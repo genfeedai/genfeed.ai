@@ -943,6 +943,13 @@
     },
     "agentDetail": {
       "activate": "Activate",
+      "activityDailyReport": "Daily report",
+      "activityExecution": "Execution — {status}",
+      "activityRunBudgetExhausted": "Run stopped — budget exhausted",
+      "activityRunCompleted": "Run completed",
+      "activityRunFailed": "Run failed",
+      "activityRunGenerated": "{count} generated · {credits} credits",
+      "activityWeeklyReport": "Weekly report",
       "agents": "Agents",
       "attributed": "Attributed to content from this agent.",
       "attributedVisits": "{impressions} impressions · {clicks} clicks · {visits} visits attributed to this agent.",

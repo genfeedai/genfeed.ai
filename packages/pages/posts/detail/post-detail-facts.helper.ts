@@ -1,6 +1,7 @@
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import type { RecordFact } from '@genfeedai/props/ui/record-detail/record-fact-line.props';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
 function formatPostStatus(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
@@ -33,9 +34,12 @@ export function buildPostDetailFacts(
     {
       id: 'when',
       label: isPublished ? 'Published' : 'Scheduled',
+      // Same timezone source as the schedule editor (`getBrowserTimezone`,
+      // via `PostSidebarScheduleCard`) so the fact line and the editor never
+      // disagree about what time is shown.
       value: scheduledOrPublishedAt
         ? new Date(scheduledOrPublishedAt).toLocaleString('en-US', {
-            timeZone: 'UTC',
+            timeZone: getBrowserTimezone(),
           })
         : undefined,
     },

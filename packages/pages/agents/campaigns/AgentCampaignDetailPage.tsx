@@ -60,6 +60,11 @@ export default function AgentCampaignDetailPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
   const loadGenerationRef = useRef(0);
+  // A ref (not the `isExecuting` state) guards re-entrancy: two rapid clicks
+  // in the same tick both close over the same stale `isExecuting`, but a ref
+  // read is synchronous and current, so the second call is blocked before
+  // either request fires a duplicate paid Program run.
+  const isExecutingRef = useRef(false);
 
   const getService = useAuthedService((token: string) =>
     AgentCampaignsService.getInstance(token),
@@ -140,7 +145,8 @@ export default function AgentCampaignDetailPage() {
   }, [campaignId, isFetchReady, loadCampaign]);
 
   const handleExecute = useCallback(async () => {
-    if (!campaignId) return;
+    if (!campaignId || isExecutingRef.current) return;
+    isExecutingRef.current = true;
     setIsExecuting(true);
 
     try {
@@ -152,6 +158,7 @@ export default function AgentCampaignDetailPage() {
       logger.error('Failed to execute Program', error);
       notificationsService.error('Failed to start Program');
     } finally {
+      isExecutingRef.current = false;
       setIsExecuting(false);
     }
   }, [campaignId, getService, notificationsService, loadCampaign]);
@@ -309,6 +316,7 @@ export default function AgentCampaignDetailPage() {
         />
 
         <CampaignNeedsYou
+          isExecuting={isExecuting}
           isPaused={campaign.status === 'paused'}
           onResume={handleExecute}
           pausedDescription={translate('detail.needsYou.pausedDescription')}

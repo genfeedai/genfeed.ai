@@ -5,117 +5,242 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import AgentActivitySection from './AgentActivitySection';
 
-vi.mock('@genfeedai/agent/components/AgentActivityFeed', () => ({
-  AgentActivityFeed: () => <div data-testid="agent-activity-feed" />,
+const mocks = vi.hoisted(() => ({
+  posts: {
+    isError: false,
+    isLoading: false,
+    posts: [] as Array<Record<string, unknown>>,
+  },
+  performance: {
+    isReportsError: false,
+    isReportsLoading: false,
+    isSnapshotError: false,
+    isSnapshotLoading: false,
+    reports: [] as Array<Record<string, unknown>>,
+    snapshot: undefined as Record<string, unknown> | undefined,
+  },
 }));
 
-vi.mock('./AgentWorkSection', () => ({
-  default: () => <div data-testid="agent-work-section" />,
+vi.mock('./use-agent-detail-posts', () => ({
+  useAgentDetailPosts: () => mocks.posts,
 }));
 
-vi.mock('./AgentPerformanceSection', () => ({
-  default: () => <div data-testid="agent-performance-section" />,
+vi.mock('./use-agent-performance', () => ({
+  useAgentPerformance: () => mocks.performance,
 }));
 
-// `WorkflowExecutionHistorySection` renders for real: it is the only place
-// left that shows the routed-model metadata (mixed actual/requested model),
-// and this suite is what proves that regression coverage survived the merge
-// into one Activity section (#5483).
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+}));
+
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) =>
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     ({
+      activate: 'Activate',
       activity: 'Activity',
+      activityDailyReport: 'Daily report',
+      activityEmpty: 'No activity yet',
+      activityExecution: `Execution — ${values?.status}`,
       activityFilterAll: 'All activity',
       activityFilterAria: 'Filter activity',
       activityFilterContent: 'Content',
       activityFilterReports: 'Reports',
       activityFilterRuns: 'Runs',
-      columnCredits: 'Credits',
-      columnDuration: 'Duration',
-      columnModel: 'Model',
-      columnNodes: 'Nodes',
-      columnStarted: 'Started',
-      columnStatus: 'Status',
-      empty: 'No executions yet',
-      historyTitle: 'Run history',
+      activityLoading: 'Loading activity…',
+      activityRunBudgetExhausted: 'Run stopped — budget exhausted',
+      activityRunCompleted: 'Run completed',
+      activityRunFailed: 'Run failed',
+      activityRunGenerated: `${values?.count} generated · ${values?.credits} credits`,
+      activityViewAction: 'View',
+      activityWeeklyReport: 'Weekly report',
+      contentError: 'Could not load agent content.',
+      counts: `${values?.generated} generated · ${values?.published} published · ${values?.credits} credits`,
+      engagement: `${values?.impressions} impressions · ${values?.clicks} clicks · ${values?.visits} visits`,
+      executionsError: 'Could not load agent executions.',
+      performanceError: 'Could not load agent performance.',
+      platformNotSet: 'Platform not set',
+      postMeta: `${values?.platform} · ${values?.state}`,
+      postMetaPending: `${values?.platform} · ${values?.state} · Pending review`,
+      reportError: 'Could not load daily report.',
+      unavailable: 'Unavailable',
+      untitledPost: 'Untitled post',
     })[key] ?? key,
 }));
 
 const baseProps = {
   agentId: 'agent-1',
   executions: [] as IWorkflowExecution[],
-  executionsErrorMessage: 'Could not load agent executions.',
-  expandedExecutionId: null,
-  getExecutionHref: (id: string) => `/runs/${id}`,
-  getThreadHref: (id: string) => `/agent/${id}`,
   isExecutionsError: false,
   isExecutionsLoading: false,
-  onToggleExpandExecution: vi.fn(),
   runHistory: [],
 };
 
 describe('AgentActivitySection', () => {
   beforeEach(() => {
-    // Radix Select's pointer-based open/close needs APIs jsdom does not
-    // implement.
     Element.prototype.hasPointerCapture = vi.fn(() => false);
     Element.prototype.scrollIntoView = vi.fn();
     Element.prototype.setPointerCapture = vi.fn();
     Element.prototype.releasePointerCapture = vi.fn();
+
+    mocks.posts = { isError: false, isLoading: false, posts: [] };
+    mocks.performance = {
+      isReportsError: false,
+      isReportsLoading: false,
+      isSnapshotError: false,
+      isSnapshotLoading: false,
+      reports: [],
+      snapshot: undefined,
+    };
   });
 
-  it('renders exactly one filter control governing every sub-section', () => {
+  it('renders exactly one filter control governing the whole merged feed', () => {
     render(<AgentActivitySection {...baseProps} />);
 
     expect(
       screen.getAllByRole('combobox', { name: 'Filter activity' }),
     ).toHaveLength(1);
-    expect(screen.getByTestId('agent-work-section')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-performance-section')).toBeInTheDocument();
-    expect(screen.getByTestId('agent-activity-feed')).toBeInTheDocument();
-    expect(screen.getByText('Run history')).toBeInTheDocument();
   });
 
-  it('shows only the content section when filtered to Content', async () => {
+  it('merges content, reports and runs into one feed sorted newest first', () => {
+    mocks.posts = {
+      isError: false,
+      isLoading: false,
+      posts: [
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'post-1',
+          label: 'Oldest post',
+          status: 'draft',
+          targetExecutionState: 'published',
+        },
+      ],
+    };
+    mocks.performance = {
+      isReportsError: false,
+      isReportsLoading: false,
+      isSnapshotError: false,
+      isSnapshotLoading: false,
+      reports: [
+        {
+          allocationChanges: [],
+          creditsSpent: 1,
+          generatedCount: 1,
+          id: 'report-1',
+          periodEnd: '2026-01-03T00:00:00.000Z',
+          periodStart: '2026-01-02T00:00:00.000Z',
+          publishedCount: 1,
+          reportType: 'daily',
+        },
+      ],
+      snapshot: undefined,
+    };
+
+    render(
+      <AgentActivitySection
+        {...baseProps}
+        runHistory={[
+          {
+            completedAt: '2026-01-02T00:05:00.000Z',
+            contentGenerated: 1,
+            creditsUsed: 2,
+            startedAt: '2026-01-02T00:00:00.000Z',
+            status: 'completed',
+          },
+        ]}
+      />,
+    );
+
+    // Newest first: the report (Jan 3) precedes the run (Jan 2), which
+    // precedes the post (Jan 1) — verified by DOM order since ListRow
+    // titles are plain text, not headings.
+    const titles = ['Daily report', 'Run completed', 'Oldest post'];
+    const positions = titles.map((title) => screen.getByText(title));
+    for (let index = 0; index < positions.length - 1; index += 1) {
+      expect(
+        positions[index].compareDocumentPosition(positions[index + 1]) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
+  });
+
+  it('narrows the feed to Content only', async () => {
     const user = userEvent.setup();
-    render(<AgentActivitySection {...baseProps} />);
+    mocks.posts = {
+      isError: false,
+      isLoading: false,
+      posts: [
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          id: 'post-1',
+          label: 'A post',
+          status: 'draft',
+          targetExecutionState: 'published',
+        },
+      ],
+    };
+
+    render(
+      <AgentActivitySection
+        {...baseProps}
+        runHistory={[
+          {
+            completedAt: '2026-01-02T00:05:00.000Z',
+            contentGenerated: 1,
+            creditsUsed: 2,
+            startedAt: '2026-01-02T00:00:00.000Z',
+            status: 'completed',
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('A post')).toBeInTheDocument();
+    expect(screen.getByText('Run completed')).toBeInTheDocument();
 
     await user.click(screen.getByRole('combobox', { name: 'Filter activity' }));
     await user.click(screen.getByRole('option', { name: 'Content' }));
 
-    expect(screen.getByTestId('agent-work-section')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('agent-performance-section'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agent-activity-feed')).not.toBeInTheDocument();
+    expect(screen.getByText('A post')).toBeInTheDocument();
+    expect(screen.queryByText('Run completed')).not.toBeInTheDocument();
   });
 
-  it('shows only the runs section when filtered to Runs', async () => {
-    const user = userEvent.setup();
+  it('shows the empty state when every source has resolved with nothing', () => {
     render(<AgentActivitySection {...baseProps} />);
 
-    await user.click(screen.getByRole('combobox', { name: 'Filter activity' }));
-    await user.click(screen.getByRole('option', { name: 'Runs' }));
-
-    expect(screen.queryByTestId('agent-work-section')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('agent-performance-section'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('agent-activity-feed')).toBeInTheDocument();
-    expect(screen.getByText('Run history')).toBeInTheDocument();
+    expect(screen.getByText('No activity yet')).toBeInTheDocument();
   });
 
-  it('shows the executions error message instead of the runs table when runs fail', async () => {
-    const user = userEvent.setup();
+  it('shows a loading state instead of the empty state while a relevant source is still loading', () => {
+    mocks.posts = { isError: false, isLoading: true, posts: [] };
+
+    render(<AgentActivitySection {...baseProps} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading activity…');
+    expect(screen.queryByText('No activity yet')).not.toBeInTheDocument();
+  });
+
+  it('keeps each source error visible inside the merged view', () => {
+    mocks.posts = { isError: true, isLoading: false, posts: [] };
+    mocks.performance = {
+      isReportsError: true,
+      isReportsLoading: false,
+      isSnapshotError: false,
+      isSnapshotLoading: false,
+      reports: [],
+      snapshot: undefined,
+    };
+
     render(<AgentActivitySection {...baseProps} isExecutionsError />);
 
-    await user.click(screen.getByRole('combobox', { name: 'Filter activity' }));
-    await user.click(screen.getByRole('option', { name: 'Runs' }));
-
+    expect(
+      screen.getByText('Could not load agent content.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Could not load daily report.'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Could not load agent executions.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Run history')).not.toBeInTheDocument();
   });
 
   it('still surfaces routed model metadata for a mixed actual/requested execution', () => {

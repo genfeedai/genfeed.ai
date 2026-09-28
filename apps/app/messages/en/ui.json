@@ -185,6 +185,8 @@
     "activityFilterContent": "Content",
     "activityFilterRuns": "Runs",
     "activityFilterReports": "Reports",
-    "activityEmpty": "No activity yet"
+    "activityEmpty": "No activity yet",
+    "activityLoading": "Loading activity…",
+    "activityViewAction": "View"
   }
 }

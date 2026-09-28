@@ -14,6 +14,9 @@ export interface CampaignNeedsYouProps {
   pausedDescription: string;
   resumeLabel: string;
   onResume?: () => void;
+  /** An execute/start call is already in flight — disables Resume so a
+   * second click can't fire a duplicate paid campaign run. */
+  isExecuting?: boolean;
   className?: string;
 }
 
@@ -29,6 +32,7 @@ export default function CampaignNeedsYou({
   pausedDescription,
   resumeLabel,
   onResume,
+  isExecuting = false,
   className,
 }: CampaignNeedsYouProps) {
   const items = useMemo(
@@ -49,6 +53,7 @@ export default function CampaignNeedsYou({
             title={pausedDescription}
             trailing={
               <Button
+                isDisabled={isExecuting}
                 label={resumeLabel}
                 onClick={onResume}
                 size={ButtonSize.SM}

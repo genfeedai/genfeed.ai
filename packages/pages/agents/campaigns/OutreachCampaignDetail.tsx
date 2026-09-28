@@ -56,6 +56,7 @@ export default function OutreachCampaignDetail() {
     isAddingUrls,
     isLoading,
     isRefreshing,
+    isStartingCampaign,
     loadCampaign,
     setUrlInput,
     targetStats,
@@ -99,6 +100,7 @@ export default function OutreachCampaignDetail() {
             }
             aria-disabled={isPairExecutable ? undefined : true}
             icon={<Play className="size-4" />}
+            isDisabled={isStartingCampaign}
             label={translate(
               primaryActionKind === 'resume' ? 'resume' : 'start',
             )}
@@ -118,6 +120,7 @@ export default function OutreachCampaignDetail() {
     handlePauseCampaign,
     handleStartCampaign,
     isPairExecutable,
+    isStartingCampaign,
     primaryActionKind,
     translate,
   ]);
@@ -249,6 +252,7 @@ export default function OutreachCampaignDetail() {
             />
 
             <CampaignNeedsYou
+              isExecuting={isStartingCampaign}
               isPaused={campaign.status === CampaignStatus.PAUSED}
               onResume={() => {
                 if (!isPairExecutable) {

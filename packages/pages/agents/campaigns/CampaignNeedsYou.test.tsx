@@ -50,4 +50,23 @@ describe('CampaignNeedsYou', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Resume' }));
     expect(onResume).toHaveBeenCalledTimes(1);
   });
+
+  it('disables Resume while an execute call is already in flight, to prevent duplicate paid runs', () => {
+    const onResume = vi.fn();
+    render(
+      <CampaignNeedsYou
+        isExecuting
+        isPaused
+        onResume={onResume}
+        pausedDescription="This program is paused."
+        resumeLabel="Resume"
+        title="Needs you"
+      />,
+    );
+
+    const resumeButton = screen.getByRole('button', { name: 'Resume' });
+    expect(resumeButton).toBeDisabled();
+    fireEvent.click(resumeButton);
+    expect(onResume).not.toHaveBeenCalled();
+  });
 });

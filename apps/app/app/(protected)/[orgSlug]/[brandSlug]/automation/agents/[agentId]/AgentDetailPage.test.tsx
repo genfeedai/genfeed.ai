@@ -336,7 +336,25 @@ describe('AgentDetailPage', () => {
     );
   });
 
-  it('surfaces posts awaiting review in Needs you with a link to the review queue', () => {
+  it('surfaces posts with review lineage awaiting a decision in Needs you', () => {
+    mockQueries({
+      posts: [
+        {
+          id: 'draft-1',
+          reviewBatchId: 'batch-1',
+          reviewDecision: 'unset',
+          targetExecutionState: 'draft',
+        },
+      ],
+    });
+    render(<AgentDetailPage agentId="strategy-1" />);
+
+    expect(
+      screen.getByRole('link', { name: 'Review content' }),
+    ).toHaveAttribute('href', '/org-one/brand-one/publishing/review');
+  });
+
+  it('does not count an ordinary draft with no review lineage as awaiting review', () => {
     mockQueries({
       posts: [
         {
@@ -349,8 +367,8 @@ describe('AgentDetailPage', () => {
     render(<AgentDetailPage agentId="strategy-1" />);
 
     expect(
-      screen.getByRole('link', { name: 'Review content' }),
-    ).toHaveAttribute('href', '/org-one/brand-one/publishing/review');
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders the merged Activity section instead of separate work, performance and run sections', () => {

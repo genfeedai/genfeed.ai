@@ -268,6 +268,84 @@ describe('AgentCampaignDetailPage', () => {
     );
   });
 
+  it('guards against a duplicate paid run from two rapid clicks on Resume', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Autumn Pause',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'paused',
+    });
+    let resolveExecute: (() => void) | undefined;
+    executeMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExecute = resolve;
+        }),
+    );
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
+    });
+
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+    const needsYouResume = resumeButtons[resumeButtons.length - 1];
+
+    // Two clicks in the same tick, before any re-render can disable the
+    // button — the reentrancy guard, not the disabled attribute, must stop
+    // the second call.
+    fireEvent.click(needsYouResume);
+    fireEvent.click(needsYouResume);
+
+    expect(executeMock).toHaveBeenCalledTimes(1);
+    resolveExecute?.();
+    executeMock.mockImplementation(() => Promise.resolve());
+  });
+
+  it('disables Resume in Needs you while an execution is already running', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Autumn Pause',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'paused',
+    });
+    let resolveExecute: (() => void) | undefined;
+    executeMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExecute = resolve;
+        }),
+    );
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
+    });
+
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+    fireEvent.click(resumeButtons[resumeButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByRole('button', { name: 'Resume' })[
+          resumeButtons.length - 1
+        ],
+      ).toBeDisabled();
+    });
+    resolveExecute?.();
+    executeMock.mockImplementation(() => Promise.resolve());
+  });
+
   it('hides Needs you and shows no primary action once the program is completed', async () => {
     getByIdMock.mockResolvedValue({
       agents: ['agent-1'],

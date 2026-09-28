@@ -1,7 +1,11 @@
 import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import { buildPostDetailFacts } from '@pages/posts/detail/post-detail-facts.helper';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@helpers/formatting/timezone/timezone.helper', () => ({
+  getBrowserTimezone: () => 'America/New_York',
+}));
 
 function buildPost(overrides: Partial<IPost> = {}): IPost {
   return {
@@ -72,5 +76,19 @@ describe('buildPostDetailFacts', () => {
   it('treats a zero SEO score as a known fact', () => {
     const facts = buildPostDetailFacts(buildPost({ seoScore: 0 }), false);
     expect(facts.find((fact) => fact.id === 'seoScore')?.value).toBe(0);
+  });
+
+  it('formats the schedule time in the browser timezone, matching the schedule editor', () => {
+    // Noon UTC on Jan 1 is 7am in America/New_York (UTC-5 in January) — a
+    // UTC-only formatter would show a different hour than the editor, which
+    // renders in the viewer's own timezone via the same `getBrowserTimezone`.
+    const facts = buildPostDetailFacts(
+      buildPost({ scheduledDate: '2026-01-01T12:00:00.000Z' }),
+      false,
+    );
+
+    const when = facts.find((fact) => fact.id === 'when')?.value;
+    expect(when).toContain('7:00');
+    expect(when).not.toContain('12:00');
   });
 });

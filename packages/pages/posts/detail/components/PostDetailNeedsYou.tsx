@@ -3,12 +3,11 @@
 import {
   ButtonSize,
   ButtonVariant,
-  normalizeReviewDecision,
   PostStatus,
-  ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -61,10 +60,7 @@ export default function PostDetailNeedsYou({
       });
     }
 
-    const isPendingReview =
-      post.targetExecutionState === TargetExecutionState.DRAFT &&
-      normalizeReviewDecision(post.reviewDecision) !== ReviewDecision.APPROVED;
-    if (isPendingReview) {
+    if (isPostAwaitingReview(post)) {
       results.push({
         action: { href: onReviewHref, label: translate('pendingReviewAction') },
         id: 'pending-review',
@@ -86,16 +82,7 @@ export default function PostDetailNeedsYou({
     }
 
     return results;
-  }, [
-    isPublished,
-    onPublishNow,
-    onReviewHref,
-    post.reviewDecision,
-    post.scheduledDate,
-    post.status,
-    post.targetExecutionState,
-    translate,
-  ]);
+  }, [isPublished, onPublishNow, onReviewHref, post, translate]);
 
   return (
     <CollectionSection

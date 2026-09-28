@@ -1,0 +1,141 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useOutreachCampaignDetail } from './useOutreachCampaignDetail';
+
+const mocks = vi.hoisted(() => ({
+  findOne: vi.fn(),
+  getTargets: vi.fn(),
+  notificationsError: vi.fn(),
+  notificationsSuccess: vi.fn(),
+  push: vi.fn(),
+  start: vi.fn(),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: 'org-1' }),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => async () =>
+    factory('token'),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
+}));
+
+vi.mock('@services/automation/outreach-campaigns.service', () => ({
+  OutreachCampaignsService: {
+    getInstance: () => ({
+      findOne: mocks.findOne,
+      getTargets: mocks.getTargets,
+      start: mocks.start,
+    }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: mocks.notificationsError,
+      success: mocks.notificationsSuccess,
+    }),
+  },
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ id: 'campaign-1' }),
+  useRouter: () => ({ push: mocks.push }),
+}));
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
+describe('useOutreachCampaignDetail — start-campaign reentrancy guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findOne.mockResolvedValue({
+      campaignType: 'manual',
+      id: 'campaign-1',
+      label: 'Sequence',
+      platform: 'twitter',
+      status: 'draft',
+    });
+    mocks.getTargets.mockResolvedValue([]);
+  });
+
+  it('guards against a duplicate paid start from two rapid calls', async () => {
+    let resolveStart: (() => void) | undefined;
+    mocks.start.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStart = () =>
+            resolve({
+              campaignType: 'manual',
+              id: 'campaign-1',
+              status: 'active',
+            });
+        }),
+    );
+
+    const { result } = renderHook(() => useOutreachCampaignDetail());
+
+    await waitFor(() => expect(result.current.campaign).not.toBeNull());
+
+    // Two calls in the same tick, before the first `await` inside
+    // `handleStartCampaign` can flip `isStartingCampaign` via a render — the
+    // reentrancy guard must be the ref, not the state, to catch this.
+    act(() => {
+      result.current.handleStartCampaign();
+      result.current.handleStartCampaign();
+    });
+
+    expect(mocks.start).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveStart?.();
+      await Promise.resolve();
+    });
+  });
+
+  it('reports isStartingCampaign true only while the call is in flight', async () => {
+    let resolveStart: (() => void) | undefined;
+    mocks.start.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStart = () =>
+            resolve({
+              campaignType: 'manual',
+              id: 'campaign-1',
+              status: 'active',
+            });
+        }),
+    );
+
+    const { result } = renderHook(() => useOutreachCampaignDetail());
+    await waitFor(() => expect(result.current.campaign).not.toBeNull());
+
+    expect(result.current.isStartingCampaign).toBe(false);
+
+    act(() => {
+      result.current.handleStartCampaign();
+    });
+
+    await waitFor(() => expect(result.current.isStartingCampaign).toBe(true));
+
+    await act(async () => {
+      resolveStart?.();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(result.current.isStartingCampaign).toBe(false));
+  });
+});

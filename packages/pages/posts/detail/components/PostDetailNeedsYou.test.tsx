@@ -79,12 +79,13 @@ describe('PostDetailNeedsYou', () => {
     expect(onPublishNow).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces a post awaiting review with a link to the review queue', () => {
+  it('surfaces a post with review lineage and an unset decision, linking to the review queue', () => {
     render(
       <PostDetailNeedsYou
         isPublished={false}
         onReviewHref="/publishing/review"
         post={buildPost({
+          reviewBatchId: 'batch-1',
           reviewDecision: ReviewDecision.UNSET,
           targetExecutionState: TargetExecutionState.DRAFT,
         })}
@@ -95,6 +96,37 @@ describe('PostDetailNeedsYou', () => {
       'href',
       '/publishing/review',
     );
+  });
+
+  it('does not treat an ordinary draft with no review lineage as awaiting review', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.UNSET,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('does not treat a rejected draft as awaiting review, even with review lineage', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/review"
+        post={buildPost({
+          reviewBatchId: 'batch-1',
+          reviewDecision: ReviewDecision.REJECTED,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('surfaces an overdue scheduled post', () => {

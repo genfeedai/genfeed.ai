@@ -4,12 +4,10 @@ import {
   AgentAutonomyMode,
   ButtonSize,
   ButtonVariant,
-  normalizeReviewDecision,
-  ReviewDecision,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
@@ -87,13 +85,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   // second request (#5483).
   const { posts: agentPosts } = useAgentDetailPosts(agentId);
   const pendingReviewCount = useMemo(
-    () =>
-      agentPosts.filter(
-        (post) =>
-          post.targetExecutionState === TargetExecutionState.DRAFT &&
-          normalizeReviewDecision(post.reviewDecision) !==
-            ReviewDecision.APPROVED,
-      ).length,
+    () => agentPosts.filter(isPostAwaitingReview).length,
     [agentPosts],
   );
 
@@ -243,10 +235,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
     [agentId, getService, href, notificationsService, refresh, router],
   );
 
-  const [expandedExecutionId, setExpandedExecutionId] = useState<string | null>(
-    null,
-  );
-
   const selectedOpportunity = useMemo(
     () =>
       requestedOpportunityId
@@ -256,12 +244,6 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         : null,
     [opportunities, requestedOpportunityId],
   );
-
-  const handleToggleExpand = useCallback((executionId: string) => {
-    setExpandedExecutionId((previous) =>
-      previous === executionId ? null : executionId,
-    );
-  }, []);
 
   const Icon = getAgentTypeIcon(strategy?.agentType);
   const typeLabel = getAgentTypeLabel(strategy?.agentType);
@@ -481,18 +463,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         <AgentActivitySection
           agentId={agentId}
           executions={executions}
-          executionsErrorMessage={detail('executionsError')}
-          expandedExecutionId={expandedExecutionId}
-          getExecutionHref={(executionId) =>
-            href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)
-          }
-          getThreadHref={(threadId) =>
-            href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
-          }
           isExecutionsError={isExecutionsError}
           isExecutionsLoading={areExecutionsLoading}
           key={`activity-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
-          onToggleExpandExecution={handleToggleExpand}
           runHistory={strategy.runHistory ?? []}
         />
       </div>
