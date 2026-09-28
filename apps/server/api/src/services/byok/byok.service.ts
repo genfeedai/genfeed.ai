@@ -196,31 +196,7 @@ export class ByokService {
     provider: ByokProvider,
   ): Promise<{ apiKey: string; apiSecret?: string } | undefined> {
     try {
-      const settings = await this.organizationSettingsService.findOne({
-        organizationId: orgId,
-      });
-
-      if (!settings) {
-        return undefined;
-      }
-
-      const byokKeys = this.getByokKeys(settings);
-      const entry = byokKeys[provider];
-
-      if (!entry?.isEnabled || !entry.apiKey) {
-        return undefined;
-      }
-
-      if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
-        return undefined;
-      }
-
-      return {
-        apiKey: EncryptionUtil.decrypt(entry.apiKey),
-        apiSecret: entry.apiSecret
-          ? EncryptionUtil.decrypt(entry.apiSecret)
-          : undefined,
-      };
+      return await this.lookupApiKey(orgId, provider);
     } catch (error: unknown) {
       this.logger.error('Failed to resolve BYOK API key', {
         error,
@@ -229,6 +205,44 @@ export class ByokService {
       });
       return undefined;
     }
+  }
+
+  /**
+   * Same resolution as {@link resolveApiKey}, but a failed lookup (settings
+   * read, entitlement read, decryption) throws instead of reading as "no
+   * key". `undefined` therefore always means the key is confirmed missing,
+   * disabled or not entitled — callers that fail accepted work on a missing
+   * key (the Replicate pollers) must not treat a transient error that way.
+   */
+  async lookupApiKey(
+    orgId: string,
+    provider: ByokProvider,
+  ): Promise<{ apiKey: string; apiSecret?: string } | undefined> {
+    const settings = await this.organizationSettingsService.findOne({
+      organizationId: orgId,
+    });
+
+    if (!settings) {
+      return undefined;
+    }
+
+    const byokKeys = this.getByokKeys(settings);
+    const entry = byokKeys[provider];
+
+    if (!entry?.isEnabled || !entry.apiKey) {
+      return undefined;
+    }
+
+    if (await this.organizationPaidAccessService.isSubscriptionGated(orgId)) {
+      return undefined;
+    }
+
+    return {
+      apiKey: EncryptionUtil.decrypt(entry.apiKey),
+      apiSecret: entry.apiSecret
+        ? EncryptionUtil.decrypt(entry.apiSecret)
+        : undefined,
+    };
   }
 
   /**

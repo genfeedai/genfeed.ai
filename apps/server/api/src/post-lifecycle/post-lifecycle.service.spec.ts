@@ -502,6 +502,39 @@ describe('PostLifecycleService', () => {
         select: { ingredients: { select: { category: true, id: true } } },
         where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
       });
+      // The corrected category is persisted in the same write, so the
+      // publish-time check and the publisher read the validated media kind.
+      expect(transaction.post.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: PostCategory.VIDEO }),
+        }),
+      );
+    });
+
+    it('keeps a REEL target a REEL while its linked media is a video', async () => {
+      const transaction = createSchedulingTransaction(
+        { ...schedulableTarget, category: PostCategory.REEL },
+        [{ category: IngredientCategory.VIDEO, id: 'ingredient-1' }],
+      );
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      await service.transition(
+        {
+          nextState: TargetExecutionState.SCHEDULED,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        },
+        transaction as never,
+      );
+
+      expect(transaction.post.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.not.objectContaining({ category: expect.anything() }),
+        }),
+      );
     });
 
     it('classifies media by the linked ingredient even when the Post category claims video', async () => {

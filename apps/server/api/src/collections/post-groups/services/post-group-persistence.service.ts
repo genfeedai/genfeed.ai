@@ -390,7 +390,7 @@ export class PostGroupPersistenceService {
    * linked ingredients' own categories. Left at the column default (TEXT), a
    * video target reads as an image to channel validation and publishers.
    */
-  private async resolveTargetCategory(
+  async resolveTargetCategory(
     tx: SchedulerTx,
     organizationId: string,
     media: CreatePostGroupParams['input']['media'],

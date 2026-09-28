@@ -321,4 +321,58 @@ describe('WorkflowNodeContinuationService', () => {
       }),
     ).rejects.toThrow('ledger unavailable');
   });
+
+  it('records the BYOK credential reference on the continuation it creates', async () => {
+    prisma.workflowExecution.findFirst.mockResolvedValue({ id: 'execution-1' });
+    prisma.ingredient.findFirst.mockResolvedValue({ id: 'ingredient-1' });
+    workflowNodeContinuation.findUnique.mockResolvedValue(null);
+    workflowNodeContinuation.create.mockResolvedValue({
+      ...baseContinuation,
+      status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+    });
+    prisma.model.findFirst.mockResolvedValue(null);
+
+    await service.createBeforeProviderSubmission({
+      actionId: 'videoGen',
+      executionId: 'execution-1',
+      ingredientId: 'ingredient-1',
+      isByok: true,
+      model: 'model',
+      nodeId: 'generate',
+      organizationId: 'org-1',
+      provider: 'replicate',
+      workflowVersionId: 'version-1',
+    });
+
+    expect(workflowNodeContinuation.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ isByok: true }),
+    });
+  });
+
+  it('returns the BYOK credential reference with each Replicate poll candidate', async () => {
+    workflowNodeContinuation.findMany.mockResolvedValue([
+      {
+        externalId: 'prediction-1',
+        id: 'continuation-1',
+        ingredientId: 'ingredient-1',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+
+    await expect(service.findReplicatePollCandidates()).resolves.toEqual([
+      {
+        continuationId: 'continuation-1',
+        externalId: 'prediction-1',
+        ingredientId: 'ingredient-1',
+        isByok: true,
+        organizationId: 'org-1',
+      },
+    ]);
+    expect(workflowNodeContinuation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ isByok: true }),
+      }),
+    );
+  });
 });
