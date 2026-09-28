@@ -16,6 +16,7 @@ import { FileQueueModule } from '@api/services/files-microservice/queue/file-que
 import { MediaVendorCostModule } from '@api/services/media-vendor-cost/media-vendor-cost.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { VideoStitchModule } from '@api/services/video-stitch/video-stitch.module';
 import { Module } from '@nestjs/common';
 
 /**
@@ -46,6 +47,7 @@ import { Module } from '@nestjs/common';
     NotificationsModule,
     NotificationsPublisherModule,
     OrganizationSettingsModule,
+    VideoStitchModule,
   ],
   providers: [
     ActivityUpdateService,

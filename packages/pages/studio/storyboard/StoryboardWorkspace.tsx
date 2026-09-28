@@ -205,6 +205,19 @@ export default function StoryboardWorkspace() {
             />
           ) : null}
 
+          {mode === 'interpolate' ? (
+            <Card
+              label="Auto-merge"
+              description="The finished transitions are merged into one video with these settings."
+            >
+              <MergeSettingsPanel
+                isDisabled={isStoryboardGenerating}
+                settings={mergeSettings}
+                onChange={updateMergeSettings}
+              />
+            </Card>
+          ) : null}
+
           {mode === 'scenes' ? (
             <Card
               label="Scenes"

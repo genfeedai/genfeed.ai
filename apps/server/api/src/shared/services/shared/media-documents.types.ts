@@ -5,7 +5,10 @@ import type {
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
+import type {
+  GenerationHarnessReceipt,
+  IVideoMergeSettings,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Canonical persistence contract for the Ingredient + Metadata pair backing
@@ -34,6 +37,7 @@ export interface MediaDocumentsInput {
   isMergeEnabled?: boolean;
   label?: string;
   language?: string;
+  mergeSettings?: IVideoMergeSettings;
   model?: string;
   negativePrompt?: string;
   order?: number;

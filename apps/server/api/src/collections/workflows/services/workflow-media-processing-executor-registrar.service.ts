@@ -8,6 +8,8 @@ import { VideoQaContinuityResolverService } from '@api/collections/workflows/ser
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
+import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
@@ -23,11 +25,36 @@ import {
 import {
   createVideoQaExecutor,
   createVideoStitchExecutor,
+  type VideoStitchProcessorParams,
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
+
+/** Maps a workflow videoStitch step onto the stitch service. */
+export function toWorkflowStitchRequest(
+  params: VideoStitchProcessorParams,
+  brandId: string,
+  clipIds: string[],
+): VideoStitchRequest {
+  return {
+    brandId,
+    callerKind: 'workflow',
+    clipIds,
+    idempotencyKey: `workflow:${params.runId}:${params.nodeId}`,
+    organizationId: params.organizationId,
+    ...(params.parentId ? { parentId: params.parentId } : {}),
+    ...(params.providerData ? { providerData: params.providerData } : {}),
+    settings: {
+      transition: params.transition,
+      ...(params.transitionDuration !== undefined
+        ? { transitionDuration: params.transitionDuration }
+        : {}),
+    },
+    userId: params.userId,
+  };
+}
 
 @Injectable()
 export class WorkflowMediaProcessingExecutorRegistrarService {
@@ -46,6 +73,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional() private readonly whisperService?: WhisperService,
     @Optional()
     private readonly continuityResolver?: VideoQaContinuityResolverService,
+    @Optional() private readonly videoStitchService?: VideoStitchService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -558,19 +586,8 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
   }
 
   private registerVideoStitchExecutor(engine: WorkflowEngine): void {
-    const fileQueueService = this.fileQueueService;
-    const filesClientService = this.filesClientService;
-    const ingredientsService = this.ingredientsService;
-    const metadataService = this.metadataService;
-    const sharedService = this.sharedService;
-
-    if (
-      !fileQueueService ||
-      !filesClientService ||
-      !ingredientsService ||
-      !metadataService ||
-      !sharedService
-    ) {
+    const videoStitchService = this.videoStitchService;
+    if (!videoStitchService) {
       return;
     }
 
@@ -581,101 +598,29 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
         'videoStitch',
         params.organizationId,
       );
-      const sources = await Promise.all(
+      const request = toWorkflowStitchRequest(
+        params,
+        brandId,
         params.videoUrls.map((videoUrl) =>
-          this.helper.requireMediaAsset(videoUrl, params.organizationId, [
-            IngredientCategory.VIDEO,
-          ]),
+          this.helper.requireMediaAssetId(videoUrl),
         ),
       );
-      if (sources.some((source) => source.brandId !== brandId)) {
-        throw new Error('All stitched clips must belong to the selected brand');
+
+      // A node retry inside the same run reuses the output; a failed one is
+      // requeued rather than failing the retry immediately.
+      let handle = await videoStitchService.stitch(request);
+      if (handle.state === 'failed') {
+        handle = await videoStitchService.retry(request, handle);
       }
-      const sourceIds = sources.map((source) => source.id);
-
-      if (sourceIds.length < 2) {
-        throw new Error(
-          'videoStitch requires at least 2 source video ingredient ids',
-        );
+      const outcome = await videoStitchService.waitForCompletion(handle);
+      if (outcome.state !== 'generated') {
+        throw new Error(outcome.error ?? 'Video stitch did not complete');
       }
 
-      const { ingredientData, metadataData } =
-        await sharedService.createMediaDocumentsInternal({
-          brandId,
-          category: IngredientCategory.VIDEO,
-          extension: MetadataExtension.MP4,
-          organizationId: params.organizationId,
-          parentId: params.parentId,
-          providerData: params.providerData,
-          sourceIds,
-          status: IngredientStatus.PROCESSING,
-          userId: params.userId,
-        });
-
-      const ingredientId = ingredientData.id.toString();
-      try {
-        const job = await fileQueueService.processVideo({
-          ingredientId,
-          organizationId: params.organizationId,
-          params: {
-            sourceIds,
-            isPersistedOutputOnly: true,
-            sourceStorageKeys: sources.map(
-              (source) =>
-                `ingredients/${source.storageType}/${source.storageKey}`,
-            ),
-            transition: params.transitionType,
-            transitionDuration: params.transitionDuration,
-          },
-          room: getUserRoomName(params.userId),
-          type: 'merge-videos',
-          userId: params.userId,
-          websocketUrl: `/videos/${ingredientId}`,
-        });
-
-        const result = await fileQueueService.waitForJob(job.jobId, 300_000);
-        if (
-          result.success !== true ||
-          typeof result.s3Key !== 'string' ||
-          !result.s3Key.startsWith('ingredients/videos/') ||
-          typeof result.url !== 'string'
-        ) {
-          throw new Error('Video merge did not return a persisted video');
-        }
-        const uploaded = {
-          publicUrl: result.url,
-          s3Key: result.s3Key,
-          duration:
-            typeof result.duration === 'number' ? result.duration : undefined,
-          width: typeof result.width === 'number' ? result.width : undefined,
-          height: typeof result.height === 'number' ? result.height : undefined,
-          size: typeof result.size === 'number' ? result.size : undefined,
-        };
-
-        await ingredientsService.patch(ingredientId, {
-          status: IngredientStatus.GENERATED,
-          s3Key: result.s3Key,
-          transformations: [TransformationCategory.MERGED],
-        });
-        await metadataService.patch(
-          metadataData.id,
-          new MetadataEntity(uploaded),
-        );
-
-        return {
-          jobId: job.jobId,
-          outputVideoUrl: this.helper.buildVideoIngredientUrl(ingredientId),
-        };
-      } catch (error: unknown) {
-        try {
-          await ingredientsService.patch(ingredientId, {
-            status: IngredientStatus.FAILED,
-          });
-        } catch {
-          // Preserve the processing failure that caused the workflow node to fail.
-        }
-        throw error;
-      }
+      return {
+        jobId: handle.jobId,
+        outputVideoUrl: this.helper.buildVideoIngredientUrl(handle.outputId),
+      };
     });
 
     engine.registerExecutor(

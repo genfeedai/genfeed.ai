@@ -1,44 +1,52 @@
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
-import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
-  FileInputType,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-  TransformationCategory,
-  WebSocketEventType,
-} from '@genfeedai/contracts';
-import { FILE_JOB_TYPES as JOB_TYPES } from '@genfeedai/contracts/queue';
+import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
+import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
+import { readVideoMergeSettings } from '@api/services/video-stitch/video-stitch.util';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
+
+const COMPLETED_STATUSES: string[] = [
+  IngredientStatus.GENERATED,
+  IngredientStatus.VALIDATED,
+];
+
+/** Idempotency key for a merge-enabled interpolation batch. */
+export function autoMergeIdempotencyKey(groupId: string): string {
+  return `auto-merge:${groupId}`;
+}
+
+/** Maps a completed interpolation group onto the stitch service. */
+export function toAutoMergeStitchRequest(
+  ingredient: IngredientDocument,
+  groupId: string,
+  clipIds: string[],
+): VideoStitchRequest | null {
+  if (!ingredient.organizationId || !ingredient.brandId || !ingredient.userId) {
+    return null;
+  }
+  return {
+    brandId: ingredient.brandId,
+    callerKind: 'auto_merge',
+    clipIds,
+    idempotencyKey: autoMergeIdempotencyKey(groupId),
+    organizationId: ingredient.organizationId,
+    settings: readVideoMergeSettings(ingredient.mergeSettings),
+    userId: ingredient.userId,
+  };
+}
 
 @Injectable()
 export class AutoMergeService {
   private readonly logContext = 'AutoMergeService';
 
   constructor(
-    private readonly activityRecorder: ActivityRecorderService,
     private readonly ingredientsService: IngredientsService,
-    private readonly metadataService: MetadataService,
-    private readonly filesClientService: FilesClientService,
-    private readonly fileQueueService: FileQueueService,
-    private readonly websocketService: NotificationsPublisherService,
     private readonly loggerService: LoggerService,
+    private readonly videoStitchService: VideoStitchService,
   ) {}
 
   /**
@@ -65,31 +73,36 @@ export class AutoMergeService {
     }
 
     const groupId = ingredient.groupId;
-    const isMergeEnabled = ingredient.isMergeEnabled;
-
-    if (!groupId || !isMergeEnabled) {
+    if (!groupId || !ingredient.isMergeEnabled) {
       this.loggerService.debug(
         `${this.logContext} not part of merge-enabled group`,
-        { groupId, ingredientId: ingredient.id, isMergeEnabled },
+        {
+          groupId,
+          ingredientId: ingredient.id,
+          isMergeEnabled: ingredient.isMergeEnabled,
+        },
       );
       return;
     }
 
-    this.loggerService.log(`${this.logContext} checking group completion`, {
+    if (!ingredient.organizationId) {
+      return;
+    }
+    const groupVideos = await this.findGroupVideos(
+      ingredient.organizationId,
       groupId,
-      ingredientId: ingredient.id,
-    });
-
-    const groupVideos = await this.findGroupVideos(groupId);
-    if (!groupVideos || groupVideos.length === 0) {
+    );
+    if (groupVideos.length === 0) {
       this.loggerService.warn(`${this.logContext} no videos found for group`, {
         groupId,
       });
       return;
     }
 
-    if (!this.areAllVideosComplete(groupVideos)) {
-      const completedCount = this.countCompleted(groupVideos);
+    const completedCount = groupVideos.filter((video) =>
+      COMPLETED_STATUSES.includes(String(video.status)),
+    ).length;
+    if (completedCount !== groupVideos.length) {
       this.loggerService.debug(
         `${this.logContext} waiting for all videos to complete`,
         { completedCount, groupId, totalCount: groupVideos.length },
@@ -97,313 +110,51 @@ export class AutoMergeService {
       return;
     }
 
-    if (await this.mergeAlreadyExists(groupId)) {
-      return;
-    }
-
-    const videoIds = groupVideos.map((v) => v.id.toString());
-
-    this.loggerService.log(`${this.logContext} triggering auto-merge`, {
+    const request = toAutoMergeStitchRequest(
+      ingredient,
       groupId,
-      videoCount: videoIds.length,
-      videoIds,
-    });
-
-    const userInfo = await this.resolveUserInfo(ingredient);
-    if (!userInfo.userId) {
+      groupVideos.map((video) => String(video.id)),
+    );
+    if (!request) {
       this.loggerService.warn(
-        `${this.logContext} no userId available for merge`,
-        { groupId },
+        `${this.logContext} batch has no owning organization, brand or user`,
+        { groupId, ingredientId: ingredient.id },
       );
       return;
     }
 
-    await this.createAndQueueMerge(ingredient, groupId, videoIds, userInfo);
+    const handle = await this.videoStitchService.stitch(request);
+    if (handle.isExisting) {
+      return;
+    }
+    this.loggerService.log(`${this.logContext} auto-merge started`, {
+      groupId,
+      jobId: handle.jobId,
+      organizationId: request.organizationId,
+      outputId: handle.outputId,
+    });
+    this.videoStitchService.trackInBackground(handle);
   }
 
   private async findGroupVideos(
+    organizationId: string,
     groupId: string,
   ): Promise<IngredientDocument[]> {
-    const groupAggregate = {
-      where: {
-        category: CategoryPrismaUtil.toIngredientCategory(
-          IngredientCategory.VIDEO,
-        ),
-        groupId,
-        isDeleted: false,
-      },
-      orderBy: { groupIndex: 1 as const },
-    };
-
     const result = await this.ingredientsService.findAll(
-      groupAggregate,
+      {
+        where: {
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.VIDEO,
+          ),
+          groupId,
+          isDeleted: false,
+          organizationId,
+        },
+        orderBy: { groupIndex: 1 as const },
+      },
       { pagination: false },
       false,
     );
     return result.docs || [];
-  }
-
-  private areAllVideosComplete(groupVideos: IngredientDocument[]): boolean {
-    const completedStatuses = [
-      IngredientStatus.GENERATED,
-      IngredientStatus.VALIDATED,
-    ];
-    return groupVideos.every((v) =>
-      completedStatuses.includes(v.status as IngredientStatus),
-    );
-  }
-
-  private countCompleted(groupVideos: IngredientDocument[]): number {
-    const completedStatuses = [
-      IngredientStatus.GENERATED,
-      IngredientStatus.VALIDATED,
-    ];
-    return groupVideos.filter((v) =>
-      completedStatuses.includes(v.status as IngredientStatus),
-    ).length;
-  }
-
-  private async mergeAlreadyExists(groupId: string): Promise<boolean> {
-    const existingMerge = await this.ingredientsService.findOne({
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VIDEO,
-      ),
-      groupId,
-      transformations: { in: [TransformationCategory.MERGED] },
-    });
-
-    if (existingMerge) {
-      this.loggerService.debug(
-        `${this.logContext} merge already exists for group`,
-        { existingMergeId: existingMerge.id, groupId },
-      );
-      return true;
-    }
-    return false;
-  }
-
-  private async resolveUserInfo(ingredient: IngredientDocument): Promise<{
-    dbUserId?: string;
-    userId?: string;
-    userRoom?: string;
-  }> {
-    return extractUserIds(ingredient.userId);
-  }
-
-  private async createAndQueueMerge(
-    ingredient: IngredientDocument,
-    groupId: string,
-    videoIds: string[],
-    userInfo: {
-      dbUserId?: string;
-      userId?: string;
-      userRoom?: string;
-    },
-  ): Promise<void> {
-    const { dbUserId, userId, userRoom } = userInfo;
-    const resolvedUserId = userId ?? dbUserId;
-    if (!resolvedUserId) {
-      throw new Error('No userId available for auto-merge');
-    }
-
-    const organizationId = ingredient.organizationId;
-    if (!organizationId) {
-      throw new Error('No organizationId available for auto-merge');
-    }
-
-    const parentIds = videoIds;
-
-    const metadataData = await this.metadataService.create(
-      new MetadataEntity({
-        extension: MetadataExtension.MP4,
-        label: 'Merged video',
-      }) as unknown as Parameters<MetadataService['create']>[0],
-    );
-    const metadataId = metadataData.id;
-    if (!metadataId) {
-      throw new Error('Auto-merge metadata id is missing');
-    }
-
-    const ingredientData = await this.ingredientsService.create({
-      brandId: ingredient.brandId ?? undefined,
-      category: CategoryPrismaUtil.toIngredientCategory(
-        IngredientCategory.VIDEO,
-      ),
-      groupId,
-      metadataId,
-      order: 1,
-      organizationId,
-      sources: parentIds,
-      status: IngredientStatus.PROCESSING,
-      transformations: [TransformationCategory.MERGED],
-      userId: dbUserId,
-    } as Parameters<typeof this.ingredientsService.create>[0]);
-
-    const mergedIngredientId = String(ingredientData.id);
-    const websocketURL = WebSocketPaths.video(mergedIngredientId);
-    const room =
-      resolveRoom(userRoom, resolvedUserId) || getUserRoomName(resolvedUserId);
-
-    const activity = await this.activityRecorder.record({
-      brandId: ingredient.brandId ?? undefined,
-      entityId: ingredientData.id,
-      entityModel: ActivityEntityModel.INGREDIENT,
-      key: ActivityKey.VIDEO_PROCESSING,
-      organizationId: organizationId,
-      source: ActivitySource.WEB,
-      userId: dbUserId,
-      value: JSON.stringify({
-        frameCount: videoIds.length,
-        groupId,
-        ingredientId: mergedIngredientId,
-        label: `Auto-merging ${videoIds.length} videos`,
-        type: 'auto-merge',
-      }),
-    });
-    const activityId = activity.id.toString();
-
-    if (userId) {
-      await this.websocketService.publishBackgroundTaskUpdate({
-        activityId,
-        label: `Merging ${videoIds.length} interpolation videos`,
-        progress: 0,
-        room,
-        status: 'processing',
-        taskId: mergedIngredientId,
-        userId: resolvedUserId,
-      });
-    }
-
-    this.fileQueueService
-      .processVideo({
-        ingredientId: mergedIngredientId,
-        organizationId,
-        params: {
-          sourceIds: videoIds,
-          transition: undefined,
-          transitionDuration: undefined,
-        },
-        room,
-        type: JOB_TYPES.MERGE_VIDEOS,
-        userId: dbUserId || '',
-        websocketUrl: websocketURL,
-      })
-      .then(async (job) => {
-        const result = await this.fileQueueService.waitForJob(
-          job.jobId,
-          300_000,
-        );
-
-        const output =
-          typeof result.outputPath === 'string' ? result.outputPath : undefined;
-        if (!output) {
-          throw new Error('Auto-merge job returned no output path');
-        }
-        const ingredientId = String(ingredientData.id);
-
-        const meta = await this.filesClientService.uploadToS3(
-          ingredientId,
-          'videos',
-          { path: output, type: FileInputType.FILE },
-        );
-
-        await this.metadataService.patch(metadataId, {
-          duration: meta.duration,
-          height: meta.height,
-          size: meta.size,
-          width: meta.width,
-        });
-
-        await this.ingredientsService.patch(ingredientId, {
-          status: IngredientStatus.GENERATED,
-          transformations: [TransformationCategory.MERGED],
-        });
-
-        await this.websocketService.publishVideoComplete(
-          websocketURL,
-          {
-            eventType: WebSocketEventType.VIDEO_MERGED,
-            id: ingredientId,
-            status: 'completed',
-            transformation: TransformationCategory.MERGED,
-          },
-          resolvedUserId,
-          room,
-        );
-
-        await this.activityRecorder.update(activity, {
-          key: ActivityKey.VIDEO_COMPLETED,
-          value: JSON.stringify({
-            frameCount: videoIds.length,
-            groupId,
-            ingredientId: mergedIngredientId,
-            label: `Merged ${videoIds.length} videos`,
-            progress: 100,
-            resultId: mergedIngredientId,
-            resultType: 'VIDEO',
-            type: 'auto-merge',
-          }),
-        });
-
-        await this.websocketService.publishBackgroundTaskUpdate({
-          activityId,
-          label: `Merged ${videoIds.length} videos`,
-          progress: 100,
-          resultId: mergedIngredientId,
-          resultType: 'VIDEO',
-          room,
-          status: 'completed',
-          taskId: mergedIngredientId,
-          userId: resolvedUserId,
-        });
-
-        this.loggerService.log(`${this.logContext} auto-merge completed`, {
-          groupId,
-          mergedIngredientId,
-          videoCount: videoIds.length,
-        });
-      })
-      .catch(async (error: unknown) => {
-        const errorMessage = getErrorMessage(error);
-
-        this.loggerService.error(`${this.logContext} auto-merge failed`, {
-          error: errorMessage,
-          groupId,
-          mergedIngredientId,
-        });
-
-        await this.ingredientsService.patch(mergedIngredientId, {
-          status: IngredientStatus.FAILED,
-        });
-
-        await this.websocketService.publishMediaFailed(
-          websocketURL,
-          `Auto-merge failed: ${errorMessage}`,
-          resolvedUserId,
-          room,
-        );
-
-        await this.activityRecorder.update(activity, {
-          key: ActivityKey.VIDEO_FAILED,
-          value: JSON.stringify({
-            error: errorMessage,
-            frameCount: videoIds.length,
-            groupId,
-            ingredientId: mergedIngredientId,
-            label: 'Auto-merge failed',
-            type: 'auto-merge',
-          }),
-        });
-
-        await this.websocketService.publishBackgroundTaskUpdate({
-          activityId,
-          error: errorMessage,
-          label: 'Auto-merge failed',
-          room,
-          status: 'failed',
-          taskId: mergedIngredientId,
-          userId: resolvedUserId,
-        });
-      });
   }
 }

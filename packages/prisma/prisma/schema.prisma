@@ -2097,6 +2097,8 @@ model Ingredient {
   groupId               String?
   groupIndex            Int?
   isMergeEnabled        Boolean?
+  // Stitch options captured when a merge-enabled batch starts (#5460).
+  mergeSettings         Json?
   promptTemplate        String?
   templateVersion       Int?
   s3Key                 String?

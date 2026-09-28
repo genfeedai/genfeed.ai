@@ -7,6 +7,7 @@ import {
   VIDEO_DIMENSIONS,
   VIDEO_FORMAT_DIMENSIONS,
   VIDEO_MERGE_LIMITS,
+  VIDEO_STITCH_LIMITS,
   YT_DLP_PROCESS_TIMEOUT_MS,
 } from './media.constant';
 
@@ -47,6 +48,16 @@ describe('media.constant', () => {
     it('requires at least 2 and at most 10 videos', () => {
       expect(VIDEO_MERGE_LIMITS.MIN_VIDEOS).toBe(2);
       expect(VIDEO_MERGE_LIMITS.MAX_VIDEOS).toBe(10);
+    });
+  });
+
+  describe('VIDEO_STITCH_LIMITS', () => {
+    it('accepts the largest interpolation sequence without raising the merge UI limit', () => {
+      expect(VIDEO_STITCH_LIMITS.MIN_CLIPS).toBe(VIDEO_MERGE_LIMITS.MIN_VIDEOS);
+      expect(VIDEO_STITCH_LIMITS.MAX_CLIPS).toBe(51);
+      expect(VIDEO_STITCH_LIMITS.MAX_CLIPS).toBeGreaterThan(
+        VIDEO_MERGE_LIMITS.MAX_VIDEOS,
+      );
     });
   });
 

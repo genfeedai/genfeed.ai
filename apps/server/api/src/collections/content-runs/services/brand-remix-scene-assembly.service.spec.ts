@@ -1,9 +1,12 @@
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
+import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixture';
+import type { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type { WhisperService } from '@api/services/whisper/whisper.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { IngredientStatus, JobState } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   brandRemixRunConfigSchema,
@@ -224,6 +227,7 @@ describe('caption failure settlement recovery', () => {
       } as unknown as MediaUrlService,
       {} as SharedService,
       prisma as unknown as PrismaService,
+      {} as VideoStitchService,
     );
   });
 
@@ -399,5 +403,163 @@ describe('caption failure settlement recovery', () => {
     expect(config.execution?.generationBrief.fidelityMode).toBe('guided');
     expect(config.phase).toBe('ready_for_review');
     expect(config.scenePipeline?.operation).toBeUndefined();
+  });
+});
+
+describe('scene merge delegation to the stitch service', () => {
+  let config = fixture();
+  const store = { fence: vi.fn(), read: vi.fn(), save: vi.fn() };
+  const generation = { asset: vi.fn(), group: vi.fn() };
+  const files = { probeMediaFromUrl: vi.fn() };
+  const shared = { createMediaDocumentsInternal: vi.fn() };
+  const prisma = {
+    ingredient: { findFirst: vi.fn(), updateMany: vi.fn() },
+    metadata: { updateMany: vi.fn() },
+  };
+  let stitch: VideoStitchFixture;
+  let service: BrandRemixSceneAssemblyService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    config = fixture();
+    const pipeline = config.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    pipeline.assembly = undefined;
+    const current = async () => ({ config, brandId: 'brand' });
+    store.fence.mockImplementation(current);
+    store.read.mockImplementation(current);
+    store.save.mockImplementation(async (_org, _run, _old, next) => {
+      config = brandRemixRunConfigSchema.parse(next);
+    });
+    generation.asset.mockResolvedValue({
+      id: 'clip',
+      status: 'GENERATED',
+      s3Key: 'ingredients/avatars/clip.mp4',
+    });
+    prisma.ingredient.findFirst.mockResolvedValue(null);
+    shared.createMediaDocumentsInternal.mockResolvedValue({
+      ingredientData: { id: 'final' },
+    });
+    files.probeMediaFromUrl.mockResolvedValue({
+      audioCodec: 'aac',
+      durationSeconds: 5,
+      height: 1024,
+      sizeBytes: 1000,
+      width: 576,
+    });
+    stitch = new VideoStitchFixture();
+    stitch.addClip({
+      brandId: 'brand',
+      category: 'AVATAR',
+      id: 'clip',
+      organizationId: 'org',
+      s3Key: 'ingredients/avatars/clip.mp4',
+    });
+    service = new BrandRemixSceneAssemblyService(
+      files as unknown as FilesClientService,
+      store as unknown as BrandRemixSceneStoreService,
+      generation as unknown as BrandRemixSceneGenerationService,
+      {} as BrandRemixSceneBillingService,
+      {} as BrandRemixRunPlanningService,
+      {} as FileQueueService,
+      {} as WhisperService,
+      {
+        buildUrl: (key: string) => `https://cdn.test/${key}`,
+      } as unknown as MediaUrlService,
+      shared as unknown as SharedService,
+      prisma as unknown as PrismaService,
+      stitch.service,
+    );
+  });
+
+  it('starts the scene merge through the stitch service with per-clip normalization', async () => {
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+
+    expect(stitch.mergeJobs()).toEqual([
+      expect.objectContaining({
+        id: 'stitch-output-1',
+        params: {
+          height: 1024,
+          isPersistedOutputOnly: true,
+          normalizeClips: true,
+          sourceIds: ['clip'],
+          sourceStorageKeys: ['ingredients/avatars/clip.mp4'],
+          transition: 'none',
+          width: 576,
+        },
+      }),
+    ]);
+    expect(stitch.row('output-1')).toMatchObject({
+      generationSource: 'video-stitch:storyboard_run',
+      sourceActionId: 'storyboard-run:run:operation',
+    });
+    expect(config.scenePipeline?.assembly).toMatchObject({
+      assetId: 'final',
+      mergeJobId: 'stitch-output-1',
+      mergedAssetId: 'output-1',
+      orderedAssetIds: ['clip'],
+    });
+  });
+
+  it('records the merged storage key once the stitch completes', async () => {
+    await service.step('org', 'run', 'operation');
+    stitch.completeJob('stitch-output-1', 'ingredients/videos/output-1');
+
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+
+    expect(config.scenePipeline?.assembly?.mergedStorageKey).toBe(
+      'ingredients/videos/output-1',
+    );
+    expect(stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
+    expect(stitch.mergeJobs()).toHaveLength(1);
+  });
+
+  it('surfaces a failed merge and requeues it on the resumed step', async () => {
+    await service.step('org', 'run', 'operation');
+    stitch.jobStates.set('stitch-output-1', JobState.FAILED);
+
+    await expect(service.step('org', 'run', 'operation')).rejects.toThrow(
+      /Scene merge failed/,
+    );
+    expect(stitch.row('output-1').status).toBe(IngredientStatus.FAILED);
+
+    stitch.jobStates.delete('stitch-output-1');
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+    expect(stitch.row('output-1').status).toBe(IngredientStatus.PROCESSING);
+    expect(stitch.mergeJobs().map((job) => job.id)).toEqual([
+      'stitch-output-1',
+      'stitch-output-1',
+    ]);
+  });
+
+  it('settles an assembly queued before the stitch service by its stored job', async () => {
+    stitch.addClip({
+      brandId: 'brand',
+      generationSource: null,
+      id: 'legacy-merged',
+      organizationId: 'org',
+      s3Key: null,
+      status: IngredientStatus.PROCESSING,
+    });
+    const pipeline = config.scenePipeline;
+    if (!pipeline) throw new Error('missing pipeline');
+    pipeline.assembly = {
+      assetId: 'final',
+      mergeJobId: 'remix-merge-legacy-merged',
+      mergedAssetId: 'legacy-merged',
+      orderedAssetIds: ['clip'],
+      transcription: { attempt: 1, state: 'pending' },
+    };
+    stitch.completeJob(
+      'remix-merge-legacy-merged',
+      'ingredients/videos/legacy-merged',
+    );
+
+    await expect(service.step('org', 'run', 'operation')).resolves.toBe(false);
+
+    expect(stitch.mergeJobs()).toEqual([]);
+    expect(config.scenePipeline?.assembly?.mergedStorageKey).toBe(
+      'ingredients/videos/legacy-merged',
+    );
   });
 });

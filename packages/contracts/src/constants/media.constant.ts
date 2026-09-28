@@ -18,6 +18,20 @@ export const VIDEO_MERGE_LIMITS = {
   MIN_VIDEOS: 2,
 } as const;
 
+/**
+ * Server-side bounds shared by every stitch caller. MAX_CLIPS is the largest
+ * sequence a caller already produces: 50 interpolation pairs plus the loop
+ * pair. The hand-picked merge UI keeps its own lower VIDEO_MERGE_LIMITS.
+ */
+export const VIDEO_STITCH_LIMITS = {
+  MAX_CLIPS: 51,
+  MAX_MUSIC_VOLUME: 100,
+  MAX_TRANSITION_DURATION: 2,
+  MIN_CLIPS: 2,
+  MIN_MUSIC_VOLUME: 0,
+  MIN_TRANSITION_DURATION: 0.1,
+} as const;
+
 export const CLIP_REFERENCE_FRAME_MAX_CANDIDATES = 5;
 /** Maximum source duration accepted by clip ingestion and materialization. */
 export const CLIP_SOURCE_MAX_DURATION_SECONDS = 6 * 60 * 60;

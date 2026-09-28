@@ -179,6 +179,9 @@ const buildIngredientCreateDto = (
     ? { isMergeEnabled: input.isMergeEnabled }
     : {}),
   ...(input.language !== undefined ? { language: input.language } : {}),
+  ...(input.mergeSettings !== undefined
+    ? { mergeSettings: input.mergeSettings }
+    : {}),
   metadataId,
   ...(input.model !== undefined ? { modelUsed: input.model } : {}),
   ...(input.negativePrompt !== undefined

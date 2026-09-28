@@ -1,3 +1,4 @@
+import { VideoTransition } from '@genfeedai/contracts';
 import type { ExecutableNode } from '../../types';
 import { isRecord } from '../../utils/record';
 import {
@@ -16,16 +17,14 @@ export interface VideoStitchResult {
 }
 
 export interface VideoStitchProcessorParams {
-  audioCodec: VideoStitchAudioCodec;
   brandId?: string;
-  concatFilter: string;
+  nodeId: string;
   organizationId: string;
-  outputQuality: VideoStitchOutputQuality;
   parentId?: string;
   providerData?: Record<string, unknown>;
-  seamlessLoop: boolean;
-  transitionDuration: number;
-  transitionType: VideoStitchTransitionType;
+  runId: string;
+  transition: VideoTransition;
+  transitionDuration?: number;
   userId: string;
   videoUrls: string[];
 }
@@ -33,13 +32,6 @@ export interface VideoStitchProcessorParams {
 export type VideoStitchProcessor = (
   params: VideoStitchProcessorParams,
 ) => Promise<VideoStitchResult>;
-
-export interface VideoStitchConcatFilterOptions {
-  hasAudio: boolean;
-  transitionDuration: number;
-  transitionType: VideoStitchTransitionType;
-  videoCount: number;
-}
 
 const VALID_TRANSITION_TYPES: VideoStitchTransitionType[] = [
   'cut',
@@ -51,13 +43,15 @@ const VALID_TRANSITION_TYPES: VideoStitchTransitionType[] = [
 const VALID_AUDIO_CODECS: VideoStitchAudioCodec[] = ['aac', 'mp3'];
 const VALID_OUTPUT_QUALITIES: VideoStitchOutputQuality[] = ['full', 'draft'];
 
-const XFADE_TRANSITION_MAP: Record<
-  Exclude<VideoStitchTransitionType, 'cut'>,
-  string
+/** Node transition names mapped onto the stitch worker's xfade names. */
+export const VIDEO_STITCH_TRANSITION_MAP: Record<
+  VideoStitchTransitionType,
+  VideoTransition
 > = {
-  crossfade: 'fade',
-  fade: 'fadeblack',
-  wipe: 'wipeleft',
+  crossfade: VideoTransition.FADE,
+  cut: VideoTransition.NONE,
+  fade: VideoTransition.FADE,
+  wipe: VideoTransition.WIPELEFT,
 };
 
 function extractVideoUrl(value: unknown): string | undefined {
@@ -159,48 +153,9 @@ export function collectVideoStitchUrls(
 }
 
 /**
- * Builds an FFmpeg concat filter. Cut uses the concat filter; other
- * transitions use xfade (same FFmpeg-pass tier as colorGrade/soundOverlay).
- */
-export function buildFfmpegConcatFilter(
-  options: VideoStitchConcatFilterOptions,
-): string {
-  const audioFlag = options.hasAudio ? 1 : 0;
-  if (
-    options.transitionType === 'cut' ||
-    options.transitionDuration <= 0 ||
-    options.videoCount < 2
-  ) {
-    return `concat=n=${options.videoCount}:v=1:a=${audioFlag}`;
-  }
-
-  const xfadeName = XFADE_TRANSITION_MAP[options.transitionType];
-  const duration = options.transitionDuration.toFixed(3);
-  const segments: string[] = [];
-
-  for (let index = 0; index < options.videoCount - 1; index += 1) {
-    const leftLabel = index === 0 ? '[0:v]' : `[v${index}]`;
-    const rightLabel = `[${index + 1}:v]`;
-    const outputLabel =
-      index === options.videoCount - 2 ? '[outv]' : `[v${index + 1}]`;
-    segments.push(
-      `${leftLabel}${rightLabel}xfade=transition=${xfadeName}:duration=${duration}:offset=0${outputLabel}`,
-    );
-  }
-
-  return segments.join(';');
-}
-
-export function buildFfmpegConcatDemuxerList(videoUrls: string[]): string {
-  return videoUrls
-    .map((url) => `file '${url.replace(/'/g, "'\\''")}'`)
-    .join('\n');
-}
-
-/**
  * Video Stitch Executor
  *
- * Concatenates ordered clip-chain segments with FFmpeg (concat demuxer / filter).
+ * Joins ordered clip-chain segments through the platform stitch service.
  *
  * Node Type: videoStitch
  * Definition: @genfeedai/contracts/types videoStitch registry entry
@@ -289,21 +244,6 @@ export class VideoStitchExecutor extends BaseExecutor {
       'transitionDuration',
       0,
     );
-    const seamlessLoop = this.getOptionalConfig<boolean>(
-      node.config,
-      'seamlessLoop',
-      false,
-    );
-    const audioCodec = this.getOptionalConfig<VideoStitchAudioCodec>(
-      node.config,
-      'audioCodec',
-      'aac',
-    );
-    const outputQuality = this.getOptionalConfig<VideoStitchOutputQuality>(
-      node.config,
-      'outputQuality',
-      'full',
-    );
     const brandId = this.getOptionalConfig<string | undefined>(
       node.config,
       'brandId',
@@ -324,20 +264,12 @@ export class VideoStitchExecutor extends BaseExecutor {
       'dispatchMode',
       undefined,
     );
-
-    const concatFilter = buildFfmpegConcatFilter({
-      hasAudio: true,
-      transitionDuration,
-      transitionType,
-      videoCount: videoUrls.length,
-    });
+    const transition = VIDEO_STITCH_TRANSITION_MAP[transitionType];
 
     const result = await this.processor({
-      audioCodec,
       brandId,
-      concatFilter,
+      nodeId: node.id,
       organizationId: context.organizationId,
-      outputQuality,
       parentId,
       providerData:
         model || dispatchMode
@@ -347,9 +279,11 @@ export class VideoStitchExecutor extends BaseExecutor {
               model,
             }
           : undefined,
-      seamlessLoop,
-      transitionDuration,
-      transitionType,
+      runId: context.runId,
+      transition,
+      ...(transition !== VideoTransition.NONE && transitionDuration > 0
+        ? { transitionDuration }
+        : {}),
       userId: context.userId,
       videoUrls,
     });
@@ -360,9 +294,8 @@ export class VideoStitchExecutor extends BaseExecutor {
         videoUrl: result.outputVideoUrl,
       },
       metadata: {
-        concatDemuxerList: buildFfmpegConcatDemuxerList(videoUrls),
-        concatFilter,
         jobId: result.jobId,
+        transition,
         transitionType,
         videoCount: videoUrls.length,
       },

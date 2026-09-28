@@ -346,6 +346,19 @@ export class WorkflowEngineExecutorHelperService {
     );
   }
 
+  /** Library asset id carried by a node input (URL, record or bare id). */
+  requireMediaAssetId(value: unknown): string {
+    const id =
+      this.extractIngredientId(value) ??
+      (typeof value === 'string' && !value.includes('/') ? value : undefined);
+    if (!id) {
+      throw new Error(
+        'Select a saved Library media asset before running this node',
+      );
+    }
+    return id;
+  }
+
   async requireMediaAsset(
     value: unknown,
     organizationId: string,
@@ -357,10 +370,8 @@ export class WorkflowEngineExecutorHelperService {
     storageKey: string;
     storageType: string;
   }> {
-    const id =
-      this.extractIngredientId(value) ??
-      (typeof value === 'string' && !value.includes('/') ? value : undefined);
-    if (!id || !this.ingredientsService) {
+    const id = this.requireMediaAssetId(value);
+    if (!this.ingredientsService) {
       throw new Error(
         'Select a saved Library media asset before running this node',
       );

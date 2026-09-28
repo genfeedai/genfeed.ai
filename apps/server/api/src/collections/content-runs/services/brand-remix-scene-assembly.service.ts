@@ -12,6 +12,8 @@ import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
+import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
+import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -25,6 +27,7 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
+import { videoStitchJobId } from '@genfeedai/contracts/interfaces';
 import { assertSafeObjectKey } from '@libs/security';
 import { ConflictException, Injectable } from '@nestjs/common';
 import { z } from 'zod';
@@ -37,6 +40,32 @@ const persistedOutput = z.object({
   height: z.number().positive().optional(),
   size: z.number().positive().optional(),
 });
+/** Maps a storyboard run's ready scene clips onto the stitch service. */
+export function toStoryboardRunStitchRequest(
+  organizationId: string,
+  brandId: string,
+  runId: string,
+  operationId: string,
+  userId: string,
+  orderedAssetIds: string[],
+  aspectRatio: string,
+): VideoStitchRequest {
+  const { height, width } = resolveAgentGenerationDimensions(
+    aspectRatio,
+    DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  );
+  return {
+    brandId,
+    callerKind: 'storyboard_run',
+    clipIds: orderedAssetIds,
+    idempotencyKey: `storyboard-run:${runId}:${operationId}`,
+    organizationId,
+    output: { height, resize: 'per_clip', width },
+    settings: {},
+    userId,
+  };
+}
+
 @Injectable()
 export class BrandRemixSceneAssemblyService {
   constructor(
@@ -50,6 +79,7 @@ export class BrandRemixSceneAssemblyService {
     private readonly mediaUrls: MediaUrlService,
     private readonly shared: SharedService,
     private readonly prisma: PrismaService,
+    private readonly stitch: VideoStitchService,
   ) {}
   async step(
     organizationId: string,
@@ -78,6 +108,18 @@ export class BrandRemixSceneAssemblyService {
         'The generated ad exceeds 90 seconds. Repair scene narration.',
       );
     const orderedAssetIds = clips.map((clip) => clip.id);
+    const output = config.draft.output;
+    if (!('aspectRatio' in output))
+      throw new ConflictException('Missing composition aspect ratio.');
+    const stitchRequest = toStoryboardRunStitchRequest(
+      organizationId,
+      brandId,
+      runId,
+      operationId,
+      userId,
+      orderedAssetIds,
+      output.aspectRatio,
+    );
     const assembly = await this.ensureAssembly(
       organizationId,
       brandId,
@@ -85,7 +127,7 @@ export class BrandRemixSceneAssemblyService {
       operationId,
       userId,
       pipeline.quote,
-      orderedAssetIds,
+      stitchRequest,
       pipeline.assembly,
     );
     if (
@@ -95,21 +137,14 @@ export class BrandRemixSceneAssemblyService {
       !assembly.assetId
     )
       throw new ConflictException('Assembly inputs changed.');
-    const output = config.draft.output;
-    if (!('aspectRatio' in output))
-      throw new ConflictException('Missing composition aspect ratio.');
     if (!assembly.mergedStorageKey) {
       await this.mergeSceneClips(
         organizationId,
-        brandId,
         runId,
         operationId,
-        userId,
         assembly,
         assembly.mergedAssetId,
-        orderedAssetIds,
-        clips.map((clip) => clip.key),
-        output.aspectRatio,
+        stitchRequest,
       );
       return false;
     }
@@ -138,50 +173,36 @@ export class BrandRemixSceneAssemblyService {
   }
   private async mergeSceneClips(
     organizationId: string,
-    brandId: string,
     runId: string,
     operationId: string,
-    userId: string,
     assembly: NonNullable<BrandRemixScenePipeline['assembly']>,
     mergedAssetId: string,
-    orderedAssetIds: string[],
-    sourceStorageKeys: string[],
-    aspectRatio: string,
+    request: VideoStitchRequest,
   ): Promise<void> {
-    const job = await this.queue.processVideo({
-      id: assembly.mergeJobId,
-      ingredientId: mergedAssetId,
+    // A merge that failed on an earlier step is requeued on this (resumed)
+    // step; one that fails now surfaces before anything else runs.
+    const handle = await this.stitch.retry(request, {
+      jobId: assembly.mergeJobId ?? videoStitchJobId(mergedAssetId),
       organizationId,
-      userId,
-      type: 'merge-videos',
-      params: {
-        sourceIds: orderedAssetIds,
-        sourceStorageKeys,
-        isPersistedOutputOnly: true,
-        normalizeClips: true,
-        ...resolveAgentGenerationDimensions(
-          aspectRatio,
-          DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-        ),
-      },
+      outputId: mergedAssetId,
     });
-    const status = await this.queue.getJobStatus(job.jobId);
-    if (status.state === 'failed')
+    if (handle.jobId !== assembly.mergeJobId)
+      await this.patch(organizationId, runId, operationId, {
+        ...assembly,
+        mergeJobId: handle.jobId,
+      });
+    const outcome = await this.stitch.settle(handle);
+    if (outcome.state === 'failed')
       throw new ConflictException(
         'Scene merge failed. Resume to retry local assembly.',
       );
-    if (status.state !== 'completed') return;
-    const result = persistedOutput.parse(status.result);
-    this.safeVideoKey(result.s3Key);
-    await this.persistAsset(
-      organizationId,
-      brandId,
-      mergedAssetId,
-      result.s3Key,
-    );
+    if (outcome.state !== 'generated' || !outcome.s3Key) return;
+    this.safeVideoKey(outcome.s3Key);
+    await this.probeComposition(outcome.s3Key);
     await this.patch(organizationId, runId, operationId, {
       ...assembly,
-      mergedStorageKey: result.s3Key,
+      mergeJobId: handle.jobId,
+      mergedStorageKey: outcome.s3Key,
     });
   }
   private async finishCaptionedAd(
@@ -262,43 +283,43 @@ export class BrandRemixSceneAssemblyService {
     operationId: string,
     userId: string,
     quote: NonNullable<BrandRemixScenePipeline['quote']>,
-    orderedAssetIds: string[],
+    stitchRequest: VideoStitchRequest,
     existing: BrandRemixScenePipeline['assembly'],
   ): Promise<NonNullable<BrandRemixScenePipeline['assembly']>> {
     if (existing) return existing;
-    const create = async (index: number) => {
-      const groupId = `remix-assembly-${runId}-${operationId}`;
-      const found = await this.prisma.ingredient.findFirst({
-        where: scopedWhere(organizationId, {
-          brandId,
-          groupId,
-          groupIndex: index,
-          category: 'VIDEO' as const,
-        }),
-      });
-      if (found) return found.id;
-      const { ingredientData } = await this.shared.createMediaDocumentsInternal(
-        {
-          brandId,
-          category: IngredientCategory.VIDEO,
-          extension: MetadataExtension.MP4,
-          organizationId,
-          userId,
-          groupId,
-          groupIndex: index,
-          sourceIds: orderedAssetIds,
-          status: IngredientStatus.PROCESSING,
-        },
-      );
-      return String(ingredientData.id);
-    };
-    const mergedAssetId = await create(0);
-    const assetId = await create(1);
+    const orderedAssetIds = stitchRequest.clipIds;
+    const merge = await this.stitch.stitch(stitchRequest);
+    const groupId = `remix-assembly-${runId}-${operationId}`;
+    const found = await this.prisma.ingredient.findFirst({
+      where: scopedWhere(organizationId, {
+        brandId,
+        groupId,
+        groupIndex: 1,
+        category: 'VIDEO' as const,
+      }),
+    });
+    const assetId = found
+      ? found.id
+      : String(
+          (
+            await this.shared.createMediaDocumentsInternal({
+              brandId,
+              category: IngredientCategory.VIDEO,
+              extension: MetadataExtension.MP4,
+              organizationId,
+              userId,
+              groupId,
+              groupIndex: 1,
+              sourceIds: orderedAssetIds,
+              status: IngredientStatus.PROCESSING,
+            })
+          ).ingredientData.id,
+        );
     const assembly = {
-      mergedAssetId,
+      mergedAssetId: merge.outputId,
       assetId,
       orderedAssetIds,
-      mergeJobId: `remix-merge-${mergedAssetId}`,
+      mergeJobId: merge.jobId,
       captionJobId: `remix-captions-${assetId}`,
       transcription: {
         attempt:
@@ -502,21 +523,7 @@ export class BrandRemixSceneAssemblyService {
         'Files did not return a persisted video key.',
       );
   }
-  private async persistAsset(
-    organizationId: string,
-    brandId: string,
-    id: string,
-    s3Key: string,
-  ) {
-    const asset = await this.prisma.ingredient.findFirst({
-      where: scopedWhere(organizationId, {
-        id,
-        brandId,
-        category: 'VIDEO' as const,
-      }),
-    });
-    if (!asset?.metadataId)
-      throw new ConflictException('Composition metadata is unavailable.');
+  private async probeComposition(s3Key: string) {
     const probe = await this.files.probeMediaFromUrl(
       this.mediaUrls.buildUrl(s3Key),
       'video',
@@ -532,6 +539,29 @@ export class BrandRemixSceneAssemblyService {
       throw new ConflictException(
         'Composition requires valid generated speech and media metadata.',
       );
+    return {
+      durationSeconds: probe.durationSeconds,
+      height: probe.height,
+      sizeBytes: probe.sizeBytes,
+      width: probe.width,
+    };
+  }
+  private async persistAsset(
+    organizationId: string,
+    brandId: string,
+    id: string,
+    s3Key: string,
+  ) {
+    const asset = await this.prisma.ingredient.findFirst({
+      where: scopedWhere(organizationId, {
+        id,
+        brandId,
+        category: 'VIDEO' as const,
+      }),
+    });
+    if (!asset?.metadataId)
+      throw new ConflictException('Composition metadata is unavailable.');
+    const probe = await this.probeComposition(s3Key);
     await this.prisma.metadata.updateMany({
       where: {
         id: asset.metadataId,
