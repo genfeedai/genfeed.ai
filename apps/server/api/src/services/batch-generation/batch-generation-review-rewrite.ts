@@ -6,6 +6,7 @@ import {
   type BatchWithConfig,
   resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
+import { withdrawDestinationPosts } from '@api/services/batch-generation/batch-generation-destination-posts';
 import { writeBatchJsonAndItemRows } from '@api/services/batch-generation/batch-item-rows';
 import {
   ReviewDecision,
@@ -134,6 +135,17 @@ async function applyPostRewrite({
       );
     }
   }
+  // Copies on other accounts still carry the old content and its approval.
+  await withdrawDestinationPosts({
+    actorUserId: userId,
+    decision: ReviewDecision.REQUEST_CHANGES,
+    item,
+    organizationId,
+    postLifecycleService,
+    publishApprovalsService,
+    reason: 'Content rewritten',
+    transaction,
+  });
 }
 
 export async function applyBatchRewrites({

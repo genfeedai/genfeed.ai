@@ -16,6 +16,8 @@ import {
 const MAX_BATCH_ITEMS = 100;
 
 export type StartBatchWorkflowExecutionInput = {
+  /** Makes a repeated start of the same run reuse its execution. */
+  idempotencyKey?: string;
   ingredientIds: string[];
   organizationId: string;
   userId: string;
@@ -56,6 +58,9 @@ export class BatchWorkflowExecutionService implements OnModuleInit {
       {
         actionType: BATCH_WORKFLOW_EXECUTION_ID,
         canonicalId: BATCH_WORKFLOW_EXECUTION_ID,
+        ...(input.idempotencyKey
+          ? { idempotencyKey: input.idempotencyKey }
+          : {}),
         inputValues: {
           childWorkflowId: workflow.id,
           childWorkflowVersionId: workflow.versionId,

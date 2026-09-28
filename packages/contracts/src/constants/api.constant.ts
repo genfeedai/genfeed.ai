@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   API_KEYS: '/api-keys',
   ARTICLES: '/articles',
   ASSETS: '/assets',
+  BATCH_PROJECTS: '/batch-projects',
   BATCHES: '/batches',
   BILLING_ACCOUNTS: '/billing-accounts',
   REFERRALS: '/referrals',

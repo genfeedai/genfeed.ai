@@ -96,4 +96,47 @@ describe('BatchWorkflowExecutionService', () => {
       }),
     ).rejects.toThrow('Duplicate ingredientIds are not allowed');
   });
+
+  it('runs a single video input, the shape a per-item retry sends', async () => {
+    prisma.ingredient.count.mockResolvedValueOnce(1);
+
+    await expect(
+      service.startBatchExecution({
+        ingredientIds: ['video-ingredient-1'],
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      }),
+    ).resolves.toBe('parent-execution');
+
+    expect(prisma.ingredient.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        id: { in: ['video-ingredient-1'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      }),
+    });
+    expect(runner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: expect.objectContaining({
+          items: ['video-ingredient-1'],
+        }),
+        metadata: {
+          batchExecution: expect.objectContaining({ itemCount: 1 }),
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('refuses a batch with no inputs', async () => {
+    await expect(
+      service.startBatchExecution({
+        ingredientIds: [],
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      }),
+    ).rejects.toThrow('At least one ingredientId is required');
+  });
 });

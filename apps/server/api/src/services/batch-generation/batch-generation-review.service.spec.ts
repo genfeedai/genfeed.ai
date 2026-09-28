@@ -6,6 +6,7 @@ import {
   BatchStatus,
   ContentFormat,
   ReviewDecision,
+  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -592,5 +593,142 @@ describe('BatchGenerationReviewService assignment', () => {
     await expect(
       service.assignItem('batch-1', 'missing-item', 'user-1', 'org-1'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('BatchGenerationReviewService destination posts', () => {
+  const batch = { findFirst: vi.fn(), updateMany: vi.fn() };
+  const batchItem = { upsert: vi.fn().mockResolvedValue({}) };
+  const postStates: Record<string, string> = {
+    'dest-draft': TargetExecutionState.SCHEDULED,
+    'dest-published': TargetExecutionState.PUBLISHED,
+    'post-1': TargetExecutionState.SCHEDULED,
+  };
+  const post = {
+    findFirst: vi.fn(async (args: { where: { id: string } }) =>
+      postStates[args.where.id]
+        ? {
+            id: args.where.id,
+            targetExecutionState: postStates[args.where.id],
+            updatedAt: new Date(),
+          }
+        : null,
+    ),
+  };
+  const postLifecycleService = { transition: vi.fn().mockResolvedValue({}) };
+  const publishApprovalsService = {
+    invalidatePost: vi.fn().mockResolvedValue(undefined),
+  };
+  let service: BatchGenerationReviewService;
+
+  const reviewedBatch = (item: Record<string, unknown>) => ({
+    brandId: 'brand-1',
+    id: 'batch-1',
+    items: [
+      {
+        caption: 'Caption',
+        id: 'item-1',
+        postId: 'post-1',
+        status: BatchItemStatus.COMPLETED,
+        ...item,
+      },
+    ],
+    organizationId: 'org-1',
+    status: BatchStatus.COMPLETED,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    batch.updateMany.mockResolvedValue({ count: 1 });
+    service = new BatchGenerationReviewService(
+      {
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({ $queryRaw: vi.fn(), batch, batchItem, post }),
+        batch,
+        batchItem,
+      } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      postLifecycleService as never,
+      publishApprovalsService as never,
+      { toBatchSummary: vi.fn((row) => row) } as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+    );
+  });
+
+  it('withdraws every unpublished destination post when changes are requested', async () => {
+    batch.findFirst.mockResolvedValue(
+      reviewedBatch({
+        destinationPostIds: ['dest-draft', 'dest-published'],
+        reviewDecision: ReviewDecision.APPROVED,
+      }),
+    );
+
+    await service.requestChanges(
+      'batch-1',
+      ['item-1'],
+      'org-1',
+      'Fix the hook',
+      'user-1',
+    );
+
+    const invalidated = publishApprovalsService.invalidatePost.mock.calls.map(
+      ([, postId]) => postId,
+    );
+    expect(invalidated).toEqual(
+      expect.arrayContaining(['post-1', 'dest-draft']),
+    );
+    expect(invalidated).not.toContain('dest-published');
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nextState: TargetExecutionState.DRAFT,
+        organizationId: 'org-1',
+        postId: 'dest-draft',
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('cancels unpublished destination posts when the item is rejected', async () => {
+    batch.findFirst.mockResolvedValue(
+      reviewedBatch({ destinationPostIds: ['dest-draft'] }),
+    );
+
+    await service.rejectItems('batch-1', ['item-1'], 'org-1', 'No', 'user-1');
+
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mutation: { isDeleted: true },
+        nextState: TargetExecutionState.CANCELLED,
+        postId: 'dest-draft',
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('records a destination post on its review item once', async () => {
+    batch.findFirst.mockResolvedValue(
+      reviewedBatch({ destinationPostIds: ['dest-draft'] }),
+    );
+
+    await service.linkDestinationPosts(
+      'batch-1',
+      'item-1',
+      ['dest-draft', 'dest-new', 'post-1'],
+      'org-1',
+    );
+
+    const [write] = batch.updateMany.mock.calls[0];
+    expect(write.data.items).toEqual([
+      expect.objectContaining({
+        destinationPostIds: ['dest-draft', 'dest-new'],
+        id: 'item-1',
+      }),
+    ]);
   });
 });

@@ -33,6 +33,57 @@ export enum BatchItemStatus {
   SKIPPED = 'SKIPPED',
 }
 
+/**
+ * Studio Batch project kind (#5463). Values match Prisma `BatchProjectKind`.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BatchProjectKind`
+ */
+export enum BatchProjectKind {
+  IDEAS = 'IDEAS',
+  WORKFLOW = 'WORKFLOW',
+}
+
+/**
+ * Studio Batch project lifecycle. Values match Prisma `BatchProjectStatus`.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BatchProjectStatus`
+ */
+export enum BatchProjectStatus {
+  DRAFT = 'DRAFT',
+  GENERATING = 'GENERATING',
+  REVIEWING = 'REVIEWING',
+  SCHEDULED = 'SCHEDULED',
+  COMPLETED = 'COMPLETED',
+  PARTIAL_FAILURE = 'PARTIAL_FAILURE',
+  CANCELLED = 'CANCELLED',
+}
+
+/**
+ * Per-item state of a Studio Batch project. Values match Prisma
+ * `BatchProjectItemStatus`.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BatchProjectItemStatus`
+ */
+export enum BatchProjectItemStatus {
+  PENDING = 'PENDING',
+  GENERATING = 'GENERATING',
+  READY = 'READY',
+  FAILED = 'FAILED',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+/**
+ * Wizard step a Studio Batch project reopens at. Persisted in the
+ * `batch_projects.step` String column as lowercase product vocabulary.
+ */
+export enum BatchProjectStep {
+  INPUTS = 'inputs',
+  IDEAS = 'ideas',
+  REVIEW = 'review',
+  SCHEDULE = 'schedule',
+}
+
 export enum ContentFormat {
   IMAGE = 'image',
   VIDEO = 'video',

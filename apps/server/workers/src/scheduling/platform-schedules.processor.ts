@@ -102,6 +102,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.batchGeneration.reconcileSettlementShortfalls(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: () =>
         this.batchGeneration.resumeStrandedBatches(),
+      [PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE]: () =>
+        this.batchGeneration.reconcileBatchProjects(),
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>

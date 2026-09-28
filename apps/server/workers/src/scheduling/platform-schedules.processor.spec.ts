@@ -14,6 +14,7 @@ function handler() {
 describe('PlatformSchedulesProcessor', () => {
   const config = { isDevSchedulersEnabled: true };
   const batchGeneration = {
+    reconcileBatchProjects: handler(),
     reconcileSettlementShortfalls: handler(),
     resumeStrandedBatches: handler(),
   };
@@ -76,6 +77,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE,
         batchGeneration.resumeStrandedBatches,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE,
+        batchGeneration.reconcileBatchProjects,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH,

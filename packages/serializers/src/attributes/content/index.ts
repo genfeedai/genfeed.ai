@@ -2,6 +2,7 @@ export * from '@serializers/attributes/content/agent-publish-audit.attributes';
 export * from '@serializers/attributes/content/article.attributes';
 export * from '@serializers/attributes/content/batch.attributes';
 export * from '@serializers/attributes/content/batch-interpolation.attributes';
+export * from '@serializers/attributes/content/batch-project.attributes';
 export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/calendar-slot.attributes';
 export * from '@serializers/attributes/content/calendar-slot-bulk-generate.attributes';
