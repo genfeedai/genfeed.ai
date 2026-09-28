@@ -1,18 +1,13 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { EnvironmentService } from '@services/core/environment.service';
-import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import MarqueeRail from '@ui/layout/marquee-rail/MarqueeRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import {
   HOME_HERO_VIDEO,
   HOME_OUTPUT_CAROUSEL_ASSETS,
 } from '@web-components/home/_assets';
 import HomeHeroVideo from '@web-components/home/_hero-video';
 import HomeOutputCard from '@web-components/home/_output-card';
-import Link from 'next/link';
-
-const AGENT_HREF = '/agent';
 
 export default function HomeHero(): React.ReactElement {
   return (
@@ -55,31 +50,10 @@ export default function HomeHero(): React.ReactElement {
           data-testid="home-hero-actions"
         >
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <ButtonTracked
-              asChild
-              size={ButtonSize.PUBLIC}
-              className="hero-cta"
-              trackingData={{ action: 'start_creating_hero' }}
-              trackingName="home_hero_click"
-            >
-              <a href={`${EnvironmentService.apps.app}/sign-up`}>
-                Start for $0
-              </a>
-            </ButtonTracked>
-
-            <ButtonTracked
-              asChild
-              className="hero-cta"
-              size={ButtonSize.PUBLIC}
-              trackingData={{ action: 'use_agent_hero' }}
-              trackingName="home_hero_click"
-              variant={ButtonVariant.SECONDARY}
-            >
-              <Link href={AGENT_HREF}>See what it does</Link>
-            </ButtonTracked>
+            <AgentFirstActions trackingName="home_hero_click" />
           </div>
           <Text as="p" className="mt-5 text-center text-sm text-surface/72">
-            Free to start. No card required.
+            Works in Claude, ChatGPT, Codex and Cursor. Free to start, no card.
           </Text>
         </div>
       </div>

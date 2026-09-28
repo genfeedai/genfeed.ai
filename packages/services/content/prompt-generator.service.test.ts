@@ -1,8 +1,18 @@
-import type { AxiosInstance } from 'axios';
-import axios from 'axios';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  type GeneratedPrompt,
+  type GeneratePromptsRequest,
+  PromptGeneratorService,
+} from '@services/content/prompt-generator.service';
+import {
+  clearRequestOrganizationId,
+  HTTPBaseService,
+  setRequestOrganizationId,
+} from '@services/core/interceptor.service';
+import axios, { type AxiosAdapter } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('axios');
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper');
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
@@ -10,89 +20,83 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-import {
-  type GeneratedPrompt,
-  type GeneratePromptsRequest,
-  PromptGeneratorService,
-} from '@services/content/prompt-generator.service';
+const generated: GeneratedPrompt[] = [
+  {
+    camera: '35mm',
+    format: 'square',
+    id: 'prompt-1',
+    lighting: 'soft',
+    mood: 'calm',
+    style: 'cinematic',
+    text: 'Generate a scene',
+  },
+];
 
-type MockFn = ReturnType<typeof vi.fn>;
+const request: GeneratePromptsRequest = {
+  count: 1,
+  input: 'base prompt',
+  mode: 'idea',
+  targetMedia: 'image',
+};
 
-const mockCreate = vi.mocked(axios.create);
-
-const createInstance = (postMock: MockFn): AxiosInstance =>
-  ({
-    post: postMock,
-  }) as AxiosInstance;
+const adapter = vi.fn<AxiosAdapter>(async (config) => ({
+  config,
+  data: generated,
+  headers: {},
+  status: 200,
+  statusText: 'OK',
+}));
 
 describe('PromptGeneratorService', () => {
   const token = 'prompt-token';
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    HTTPBaseService.clearAllInstances();
+    const create = axios.create.bind(axios);
+    vi.spyOn(axios, 'create').mockImplementation((config) =>
+      create({ ...config, adapter }),
+    );
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('initializes axios with base url and auth header', () => {
-    const postMock = vi.fn();
-    mockCreate.mockReturnValue(createInstance(postMock));
-
-    new PromptGeneratorService(token);
-
-    expect(mockCreate).toHaveBeenCalledWith({
-      baseURL: 'https://api.test.com/optimizers',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    clearRequestOrganizationId();
+    vi.restoreAllMocks();
+    adapter.mockClear();
   });
 
   it('caches instances by token', () => {
-    const postMock = vi.fn();
-    mockCreate.mockReturnValue(createInstance(postMock));
-
     const first = PromptGeneratorService.getInstance(token);
-    const second = PromptGeneratorService.getInstance(token);
-    const other = PromptGeneratorService.getInstance('other-token');
 
-    expect(first).toBe(second);
-    expect(other).not.toBe(first);
+    expect(PromptGeneratorService.getInstance(token)).toBe(first);
+    expect(PromptGeneratorService.getInstance('other-token')).not.toBe(first);
   });
 
-  it('generates prompts with optional abort signal', async () => {
-    const postMock = vi.fn();
-    const response: GeneratedPrompt[] = [
-      {
-        camera: '35mm',
-        format: 'square',
-        id: 'prompt-1',
-        lighting: 'soft',
-        mood: 'calm',
-        style: 'cinematic',
-        text: 'Generate a scene',
-      },
-    ];
-
-    postMock.mockResolvedValue({ data: response });
-    mockCreate.mockReturnValue(createInstance(postMock));
-
-    const service = new PromptGeneratorService(token);
+  it('posts to /optimizers/prompts with auth and the abort signal', async () => {
     const controller = new AbortController();
-    const request: GeneratePromptsRequest = {
-      count: 1,
-      input: 'base prompt',
-      mode: 'idea',
-      targetMedia: 'image',
-    };
-    const result = await service.generatePrompts(request, controller.signal);
 
-    expect(postMock).toHaveBeenCalledWith('/prompts', request, {
-      signal: controller.signal,
-    });
-    expect(result).toEqual(response);
+    const result = await new PromptGeneratorService(token).generatePrompts(
+      request,
+      controller.signal,
+    );
+
+    const config = adapter.mock.calls[0]?.[0];
+    expect(config?.baseURL).toBe('https://api.test.com/optimizers');
+    expect(config?.url).toBe('/prompts');
+    expect(config?.method).toBe('post');
+    expect(JSON.parse(String(config?.data))).toEqual(request);
+    expect(config?.headers.Authorization).toBe(`Bearer ${token}`);
+    expect(result).toEqual(generated);
+    controller.abort();
+    expect((config?.signal as AbortSignal | undefined)?.aborted).toBe(true);
+  });
+
+  it('sends the routed organization header', async () => {
+    setRequestOrganizationId('org-a');
+
+    await new PromptGeneratorService(token).generatePrompts(request);
+
+    expect(
+      adapter.mock.calls[0]?.[0].headers[ORGANIZATION_CONTEXT_HEADER],
+    ).toBe('org-a');
   });
 });

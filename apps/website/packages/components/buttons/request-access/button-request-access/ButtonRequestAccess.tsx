@@ -1,3 +1,4 @@
+import { BOOKING_HREF } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -17,7 +18,7 @@ export default function ButtonRequestAccess({
   const isPreLaunch = EnvironmentService.isPreLaunch;
   const displayLabel = label ?? (isPreLaunch ? 'Book a Call' : 'Get Started');
   const href = isPreLaunch
-    ? EnvironmentService.calendly
+    ? BOOKING_HREF
     : `${EnvironmentService.apps.app}/sign-up`;
   const trackingAction = isPreLaunch
     ? 'book_call_signup_cta'

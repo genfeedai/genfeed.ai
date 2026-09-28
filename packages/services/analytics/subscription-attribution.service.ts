@@ -4,6 +4,7 @@
  */
 
 import { EnvironmentService } from '@services/core/environment.service';
+import { getRequestOrganizationHeaders } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
 import { ServiceInstanceManager } from '@services/core/service-instance-manager';
 
@@ -105,6 +106,7 @@ class SubscriptionAttributionServiceClass {
         {
           body: JSON.stringify(params),
           headers: {
+            ...getRequestOrganizationHeaders(),
             Authorization: `Bearer ${this.token}`,
             'Content-Type': 'application/json',
           },
@@ -140,6 +142,7 @@ class SubscriptionAttributionServiceClass {
         `${this.baseURL}/analytics/content/${contentId}/subscription-stats`,
         {
           headers: {
+            ...getRequestOrganizationHeaders(),
             Authorization: `Bearer ${this.token}`,
           },
           method: 'GET',
@@ -188,6 +191,7 @@ class SubscriptionAttributionServiceClass {
 
       const response = await fetch(url, {
         headers: {
+          ...getRequestOrganizationHeaders(),
           Authorization: `Bearer ${this.token}`,
         },
         method: 'GET',
