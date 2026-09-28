@@ -4,12 +4,6 @@ import type {
   BrandReferenceImage,
 } from '@api/collections/brands/schemas/brand.schema';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import {
-  BRAND_HANDLE_FORMAT_MESSAGE,
-  BRAND_HANDLE_MAX_LENGTH,
-  BRAND_HANDLE_MIN_LENGTH,
-  BRAND_HANDLE_PATTERN,
-} from '@genfeedai/contracts/constants';
 import { ApiHideProperty, ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   Equals,
@@ -20,30 +14,13 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  Matches,
   Max,
   MaxLength,
   Min,
-  MinLength,
   ValidateIf,
 } from 'class-validator';
 
 export class UpdateBrandDto extends PartialType(CreateBrandDto) {
-  @IsOptional()
-  @IsString()
-  @MinLength(BRAND_HANDLE_MIN_LENGTH)
-  @MaxLength(BRAND_HANDLE_MAX_LENGTH)
-  @Matches(BRAND_HANDLE_PATTERN, { message: BRAND_HANDLE_FORMAT_MESSAGE })
-  @ApiProperty({
-    description:
-      'The brand handle: its public profile path and app route segment. ' +
-      'Unique across all brands.',
-    maxLength: BRAND_HANDLE_MAX_LENGTH,
-    minLength: BRAND_HANDLE_MIN_LENGTH,
-    required: false,
-  })
-  readonly slug?: string;
-
   @IsOptional()
   @IsString()
   @MaxLength(120)

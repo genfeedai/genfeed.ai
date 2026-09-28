@@ -1,7 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
-import { verifyBrandAccess } from '@api/collections/brands/controllers/brand-access.helpers';
+import {
+  assertBrandHandleAvailable,
+  verifyBrandAccess,
+} from '@api/collections/brands/controllers/brand-access.helpers';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -33,7 +36,6 @@ import {
   ActivitySource,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -43,7 +45,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Body,
-  ConflictException,
   Controller,
   Get,
   HttpException,
@@ -161,16 +162,12 @@ export class BrandsController extends BaseCRUDController<
     }
 
     if (rest.slug !== undefined) {
-      // Access first: a caller must not learn which handles are taken
-      // through a brand they cannot edit.
-      await verifyBrandAccess(this.brandsService, id, user);
-      const isAvailable = await this.brandsService.isSlugAvailable(
-        rest.slug,
-        id,
-      );
-      if (!isAvailable) {
-        throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
-      }
+      await assertBrandHandleAvailable(this.brandsService, {
+        brandId: id,
+        isSuperAdmin: getIsSuperAdmin(user, request),
+        slug: rest.slug,
+        user,
+      });
     }
 
     if (rest.agentConfig !== undefined && !syncOrganizationName) {

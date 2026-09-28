@@ -377,6 +377,48 @@ describe('BrandsController', () => {
 
       expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
     });
+
+    it("lets a superadmin save a handle on another organization's brand", async () => {
+      const superAdmin = { ...mockUser, isSuperAdmin: true } as User;
+      const foreignBrand = {
+        ...mockBrand,
+        organizationId: 'cmorganization000000000000002',
+      };
+      // Membership-scoped lookups miss; the plain lookup finds the brand.
+      brandsService.findOne.mockImplementation(async (params) =>
+        'OR' in (params as Record<string, unknown>)
+          ? null
+          : (foreignBrand as never),
+      );
+      brandsService.isSlugAvailable.mockResolvedValue(true);
+      brandsService.patch.mockResolvedValue(foreignBrand as never);
+
+      await controller.patch(mockRequest, superAdmin, mockBrand.id, {
+        slug: 'test-brand',
+      });
+
+      expect(brandsService.isSlugAvailable).toHaveBeenCalledWith(
+        'test-brand',
+        mockBrand.id,
+      );
+      expect(brandsService.patch).toHaveBeenCalled();
+    });
+
+    it('still 404s a superadmin handle change on a missing or deleted brand', async () => {
+      const superAdmin = { ...mockUser, isSuperAdmin: true } as User;
+      brandsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.patch(mockRequest, superAdmin, mockBrand.id, {
+          slug: 'test-brand',
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+
+      expect(brandsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ id: mockBrand.id, isDeleted: false }),
+      );
+      expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
+    });
   });
 
   it('routes an explicit organization change through the relocation operation', async () => {

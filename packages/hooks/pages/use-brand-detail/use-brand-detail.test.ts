@@ -213,7 +213,7 @@ describe('useBrandDetail', () => {
         links: [],
         scope: AssetScope.BRAND,
         slug: 'brand-1',
-      } as IBrand);
+      });
       const hook = renderHook(() => useBrandDetail());
       await waitFor(() => {
         expect(hook.result.current.brand).not.toBeNull();
@@ -227,7 +227,7 @@ describe('useBrandDetail', () => {
         id: 'brand-1',
         links: [],
         slug: 'acme-labs',
-      } as IBrand);
+      });
       const { result } = await renderLoadedBrand();
 
       await act(async () => {

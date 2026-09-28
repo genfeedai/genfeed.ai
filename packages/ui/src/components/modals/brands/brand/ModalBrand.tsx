@@ -8,7 +8,10 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/contracts';
-import { BRAND_HANDLE_PATTERN } from '@genfeedai/contracts/constants';
+import {
+  BRAND_HANDLE_MAX_LENGTH,
+  isValidBrandHandle,
+} from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
@@ -38,6 +41,7 @@ function slugifyBrandLabel(value: string): string {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, BRAND_HANDLE_MAX_LENGTH)
     .replace(/^-+|-+$/g, '');
 }
 
@@ -148,7 +152,7 @@ export default function BrandOverlay({
     if (!label || !slug) {
       return false;
     }
-    if (!BRAND_HANDLE_PATTERN.test(slug)) {
+    if (!isValidBrandHandle(slug)) {
       return false;
     }
     const website = (watchedCreateWebsite ?? '').trim();

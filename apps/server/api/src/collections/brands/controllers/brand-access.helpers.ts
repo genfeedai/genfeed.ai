@@ -1,8 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
+import { ConflictException, HttpException, HttpStatus } from '@nestjs/common';
 
 export async function verifyBrandAccess(
   brandsService: Pick<BrandsService, 'findOne'>,
@@ -38,4 +40,36 @@ export async function verifyBrandAccess(
     },
     HttpStatus.NOT_FOUND,
   );
+}
+
+/**
+ * Preflight for a PATCH that carries a handle. Access comes first, so a caller
+ * cannot learn which handles are taken through a brand they cannot edit.
+ * Superadmins may edit any live brand, as the default patch allows.
+ */
+export async function assertBrandHandleAvailable(
+  brandsService: Pick<BrandsService, 'findOne' | 'isSlugAvailable'>,
+  params: {
+    brandId: string;
+    isSuperAdmin: boolean;
+    slug: string;
+    user: User;
+  },
+): Promise<void> {
+  const { brandId, isSuperAdmin, slug, user } = params;
+  if (isSuperAdmin) {
+    const brand = await brandsService.findOne({
+      id: brandId,
+      isDeleted: false,
+    });
+    if (!brand) {
+      throw new NotFoundException('Brand', brandId);
+    }
+  } else {
+    await verifyBrandAccess(brandsService, brandId, user);
+  }
+
+  if (!(await brandsService.isSlugAvailable(slug, brandId))) {
+    throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
+  }
 }
