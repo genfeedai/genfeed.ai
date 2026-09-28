@@ -15,6 +15,11 @@ const mocks = vi.hoisted(() => {
   };
 
   return {
+    authorizedFinding: {
+      metadata: [] as unknown[],
+      reference: { id: 'trend-1', kind: 'research-trend-video' },
+      title: 'Selected trend',
+    },
     clearFinding: vi.fn(),
     registeredAdapter: null as null | Record<string, unknown>,
     setEmbedded: vi.fn(),
@@ -50,11 +55,7 @@ vi.mock('@pages/research/work-surface/ResearchFindingInspector', () => ({
 
 vi.mock('@pages/research/work-surface/ResearchWorkSurfaceProvider', () => ({
   useOptionalResearchWorkSurface: () => ({
-    authorizedFinding: {
-      metadata: [],
-      reference: { id: 'trend-1', kind: 'research-trend-video' },
-      title: 'Selected trend',
-    },
+    authorizedFinding: mocks.authorizedFinding,
     clearFinding: mocks.clearFinding,
     setEmbedded: mocks.setEmbedded,
   }),
@@ -89,6 +90,11 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
     mocks.registeredAdapter = null;
     mocks.setEmbedded.mockClear();
     mocks.clearFinding.mockClear();
+    mocks.authorizedFinding = {
+      metadata: [],
+      reference: { id: 'trend-1', kind: 'research-trend-video' },
+      title: 'Selected trend',
+    };
     mocks.store.pageContext = null;
     mocks.store.setPageContext.mockClear();
   });
@@ -135,5 +141,22 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
     expect(mocks.clearFinding).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves ad findings to the Ads page, which renders its own ad detail', () => {
+    mocks.authorizedFinding = {
+      metadata: [],
+      reference: { id: 'ad-1', kind: 'research-ad-public-meta' },
+      title: 'Proof-led winner',
+    };
+
+    render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="context-sidebar-outlet" />
+        <ResearchWorkspaceSurfaceAdapter />
+      </ContextSidebarProvider>,
+    );
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
   });
 });

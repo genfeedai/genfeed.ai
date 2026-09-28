@@ -132,6 +132,16 @@ export function ContextSidebarProvider({
     activeRef.current?.registration.onClose();
   }, []);
 
+  const reveal = useCallback(() => {
+    if (!activeRef.current) {
+      return;
+    }
+    setIsOpen(true);
+    if (isCompactViewport()) {
+      setIsMobileOpen(true);
+    }
+  }, []);
+
   const toggle = useCallback(() => {
     setIsOpen((current) => !current);
   }, []);
@@ -146,6 +156,7 @@ export function ContextSidebarProvider({
       isOpen,
       portalTarget,
       registerSelection,
+      reveal,
       selection,
       setDesktopTarget,
       setIsMobileOpen,
@@ -158,6 +169,7 @@ export function ContextSidebarProvider({
       isOpen,
       portalTarget,
       registerSelection,
+      reveal,
       selection,
       toggle,
     ],
