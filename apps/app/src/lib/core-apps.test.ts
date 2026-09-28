@@ -102,7 +102,13 @@ describe('REMOTE_FEATURE_FLAG_KEYS (#5468)', () => {
 
   it('subscribes the capability flags read outside the app rail', () => {
     expect(REMOTE_FEATURE_FLAG_KEYS).toEqual(
-      expect.arrayContaining(['studio', 'moodboard', 'low_credits_banner']),
+      expect.arrayContaining([
+        'studio',
+        'moodboard',
+        'low_credits_banner',
+        'reply_bot',
+        'desktop_local_workspace',
+      ]),
     );
   });
 });

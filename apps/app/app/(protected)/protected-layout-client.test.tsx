@@ -24,8 +24,8 @@ describe('app/(protected)/protected-layout-client.tsx', () => {
       source.indexOf('identifyAnalyticsUser({'),
     );
     expect(source).toContain("endsWith('@genfeed.ai')");
-    expect(source).toContain('REPLY_BOT_FEATURE_FLAG');
-    expect(source).toContain('DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG');
+    // The subscribed key list lives beside the fallbacks in `@/lib/core-apps`
+    // and is pinned by its own test.
     expect(source).toContain('REMOTE_FEATURE_FLAG_KEYS');
   });
 
