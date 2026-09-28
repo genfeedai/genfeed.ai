@@ -2,9 +2,6 @@
   "$schema": "https://v2-9-12.turborepo.dev/schema.json",
   "extends": ["//"],
   "tasks": {
-    // tsconfig `paths` reach these workspaces' sources without a declared
-    // dependency, so `^build` never hashes them. Explicit globs ignore
-    // .gitignore, hence the exclusions.
     "type-check": {
       "inputs": [
         "$TURBO_EXTENDS$",
