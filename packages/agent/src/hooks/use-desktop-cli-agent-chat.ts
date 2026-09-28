@@ -13,7 +13,10 @@ import type { AgentExternalRuntimeKey } from '@genfeedai/contracts/constants';
 import { useCallback, useRef } from 'react';
 
 export interface DesktopCliAgentChat {
-  /** Stops the running local turn. Returns false when none is running. */
+  /**
+   * Stops the local turn of the visible thread. Returns false when none is
+   * running there, so Stop falls through to the visible hosted run.
+   */
   cancelActiveTurn: () => boolean;
   /** True when sends for the visible thread go to the local CLI runtime. */
   isEnabled: boolean;
@@ -73,6 +76,15 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
   const cancelActiveTurn = useCallback((): boolean => {
     const activeTurn = activeTurnRef.current;
     if (!activeTurn) {
+      return false;
+    }
+
+    const { activeRunId, activeThreadId: visibleThreadId } =
+      useAgentChatStore.getState();
+    if (
+      activeRunId !== activeTurn.runId &&
+      visibleThreadId !== activeTurn.threadId
+    ) {
       return false;
     }
 

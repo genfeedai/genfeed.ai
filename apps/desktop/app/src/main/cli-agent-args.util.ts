@@ -47,10 +47,38 @@ function toTomlString(value: string): string {
 }
 
 /**
- * `codex exec --json` reading the prompt from stdin (`-`). The Genfeed MCP
- * server is configured inline with `-c` and authenticates through an env var
- * holding the `gf_` key, so no credential is written to disk. The sandbox is
- * read-only and approvals never escalate.
+ * Codex features that reach this computer. `--disable` fails closed on an
+ * unknown name, so it carries the features every supported release has.
+ */
+const CODEX_DISABLED_FEATURES = [
+  'shell_tool',
+  'unified_exec',
+  'code_mode',
+  'multi_agent',
+  'apps',
+  'plugins',
+] as const;
+
+/**
+ * Newer local-access features. `-c` overrides tolerate releases that predate
+ * them, so these stay off wherever they exist without breaking older CLIs.
+ */
+const CODEX_DISABLED_FEATURE_OVERRIDES = [
+  'features.view_image=false',
+  'features.browser_use=false',
+  'features.browser_use_external=false',
+  'features.computer_use=false',
+] as const;
+
+/**
+ * `codex exec --json` reading the prompt from stdin (`-`). Codex only reaches
+ * Genfeed: `--ignore-user-config` drops the user's own MCP servers, plugins,
+ * and hooks, and the shell, code, image, browser, and computer tools are
+ * disabled, so a prompt cannot read local files into the model context. The
+ * Genfeed MCP server is configured inline with `-c` and authenticates through
+ * an env var holding the `gf_` key, so no credential is written to disk. The
+ * sandbox stays read-only and approvals never escalate, which also rejects
+ * `apply_patch` writes.
  */
 export function buildCodexCliArgs(input: CodexCliArgsInput): string[] {
   const server = `mcp_servers.${GENFEED_MCP_SERVER_NAME}`;
@@ -58,8 +86,11 @@ export function buildCodexCliArgs(input: CodexCliArgsInput): string[] {
     'exec',
     '--json',
     '--skip-git-repo-check',
+    '--ignore-user-config',
     '--sandbox',
     'read-only',
+    ...CODEX_DISABLED_FEATURES.flatMap((feature) => ['--disable', feature]),
+    ...CODEX_DISABLED_FEATURE_OVERRIDES.flatMap((override) => ['-c', override]),
     '-c',
     'approval_policy="never"',
     '-c',
