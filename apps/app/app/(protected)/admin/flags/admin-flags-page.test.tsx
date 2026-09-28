@@ -11,6 +11,12 @@ const mocks = vi.hoisted(() => ({
   updateSettings: vi.fn(),
 }));
 
+const notifyPlatformFlagsChanged = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib/platform-flags/platform-flags-sync', () => ({
+  notifyPlatformFlagsChanged,
+}));
+
 const getPlatformSettingsService = vi.hoisted(() =>
   vi.fn(async () => ({
     getSettings: mocks.getSettings,
@@ -136,6 +142,7 @@ describe('AdminFlagsPage (#5468)', () => {
       ),
     );
     expect(mocks.success).toHaveBeenCalledWith('Studio switched Off');
+    expect(notifyPlatformFlagsChanged).toHaveBeenCalledTimes(1);
   });
 
   it('reverts the switch when the save fails', async () => {
@@ -145,6 +152,7 @@ describe('AdminFlagsPage (#5468)', () => {
     fireEvent.click(await screen.findByRole('switch', { name: 'Studio' }));
 
     await waitFor(() => expect(mocks.error).toHaveBeenCalled());
+    expect(notifyPlatformFlagsChanged).not.toHaveBeenCalled();
     expect(screen.getByRole('switch', { name: 'Studio' })).toHaveAttribute(
       'aria-checked',
       'true',

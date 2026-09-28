@@ -7,8 +7,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
   PLATFORM_SETTING_KEY,
+  type PlatformFlagKey,
   parsePlatformFeatureSettings,
-  parsePlatformFlags,
   TYPED_DECISION_PROVIDER_LABELS,
   UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
@@ -260,15 +260,22 @@ export class PlatformSettingsService
       ...(dto.typedDecisionProvider === undefined
         ? {}
         : { typedDecisionProvider: dto.typedDecisionProvider }),
-      ...this.toFeaturePatch(dto, current),
+      ...this.toFeaturePatch(dto),
     };
-    if (Object.keys(patchData).length === 0) {
+    const hasFlagPatch = Object.keys(dto.flags ?? {}).length > 0;
+    if (Object.keys(patchData).length === 0 && !hasFlagPatch) {
       setRuntimeMarginMultiplier(current.marginMultiplierGeneration);
       setRuntimeAgentChatMarginMultiplier(current.marginMultiplierAgentChat);
       return current;
     }
 
-    const updated = await this.patch(current.id, patchData);
+    if (dto.flags && hasFlagPatch) {
+      await this.mergeFlags(current.id, dto.flags);
+    }
+    const updated =
+      Object.keys(patchData).length > 0
+        ? await this.patch(current.id, patchData)
+        : await this.getSingleton();
     // Any read that started before the write finished may hold the old row.
     this.featureSettingsGeneration += 1;
     this.cacheFeatureSettings(parsePlatformFeatureSettings(updated));
@@ -277,9 +284,27 @@ export class PlatformSettingsService
     return updated;
   }
 
+  /**
+   * Merge a flag patch in one statement (#5468). Two operators switching
+   * different flags at the same moment must both win; a read-modify-write of
+   * the whole map would let the later save undo the earlier one.
+   */
+  private async mergeFlags(
+    id: string,
+    flags: Partial<Record<PlatformFlagKey, boolean>>,
+  ): Promise<void> {
+    // tenant-scope-ignore: platform-wide operator singleton, superadmin-only write
+    await this.prisma.$executeRaw`
+      UPDATE "platform_settings"
+      SET "flags" = COALESCE("flags", '{}'::jsonb) || ${JSON.stringify(flags)}::jsonb,
+          "updatedAt" = NOW()
+      WHERE "id" = ${id}
+        AND "isDeleted" = false
+    `;
+  }
+
   private toFeaturePatch(
     dto: UpdatePlatformSettingDto,
-    current: PlatformSettingDocument,
   ): Prisma.PlatformSettingUpdateInput {
     const patch: Prisma.PlatformSettingUpdateInput = {};
     for (const key of PATCHABLE_FEATURE_KEYS) {
@@ -294,10 +319,6 @@ export class PlatformSettingsService
     }
     if (dto.moderationThresholds) {
       patch.moderationThresholds = dto.moderationThresholds;
-    }
-    if (dto.flags) {
-      // A partial patch: flags the operator did not touch keep their value.
-      patch.flags = { ...parsePlatformFlags(current.flags), ...dto.flags };
     }
     if (dto.systemEventsEnabledAt !== undefined) {
       patch.systemEventsEnabledAt =

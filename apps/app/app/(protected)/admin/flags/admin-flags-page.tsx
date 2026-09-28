@@ -20,6 +20,7 @@ import { Switch } from '@ui/primitives/switch';
 import { Blocks, ToggleRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
+import { notifyPlatformFlagsChanged } from '@/lib/platform-flags/platform-flags-sync';
 
 const FLAG_KEYS: Record<
   AdminFlagsPageProps['kind'],
@@ -85,6 +86,8 @@ export default function AdminFlagsPage({ kind }: AdminFlagsPageProps) {
       const service = await getPlatformSettingsService();
       const updated = await service.updateSettings({ flags: { [key]: isOn } });
       setFlags(parsePlatformFlags(updated.flags));
+      // Open shells in this browser re-read the flags now; others within a minute.
+      notifyPlatformFlagsChanged();
       notificationsService.success(
         translate('saved', {
           label: translate(`${kind}.flags.${key}.label`),

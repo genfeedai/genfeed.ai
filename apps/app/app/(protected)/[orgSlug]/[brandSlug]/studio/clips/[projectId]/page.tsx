@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { Suspense } from 'react';
 
 import ClipsWorkspace from '../ClipsWorkspace';
@@ -14,10 +13,8 @@ export default async function StudioClipProjectPage({
   const { projectId } = await params;
 
   return (
-    <FeatureGate flagKey="studio">
-      <Suspense fallback={null}>
-        <ClipsWorkspace projectId={projectId} />
-      </Suspense>
-    </FeatureGate>
+    <Suspense fallback={null}>
+      <ClipsWorkspace projectId={projectId} />
+    </Suspense>
   );
 }

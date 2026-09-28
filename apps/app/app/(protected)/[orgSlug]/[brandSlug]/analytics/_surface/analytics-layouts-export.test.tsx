@@ -17,10 +17,6 @@ vi.mock('@contexts/analytics/analytics-context', () => ({
   }),
 }));
 
-vi.mock('@ui/guards/feature/FeatureGate', () => ({
-  default: ({ children }: { children: ReactNode }) => children,
-}));
-
 vi.mock('@ui/error', () => ({
   ErrorBoundary: ({ children }: { children: ReactNode }) => children,
 }));

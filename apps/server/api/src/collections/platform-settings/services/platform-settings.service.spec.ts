@@ -20,7 +20,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PlatformSettingsService', () => {
-  const prisma = { platformSetting: {} };
+  const prisma = { $executeRaw: vi.fn(), platformSetting: {} };
   const logger: Partial<LoggerService> = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -489,22 +489,42 @@ describe('PlatformSettingsService', () => {
       });
     });
 
-    it('merges a partial flag patch over the stored flags (#5468)', async () => {
-      vi.spyOn(service, 'getSingleton').mockResolvedValue({
-        ...row,
-        flags: { analytics: false },
-      } as never);
+    it('merges a flag patch atomically in the database (#5468)', async () => {
+      const saved = { ...row, flags: { analytics: false, studio: false } };
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(row as never)
+        .mockResolvedValueOnce(saved as never);
+      const patch = vi.spyOn(service, 'patch');
+
+      await expect(
+        service.updateSingleton({ flags: { studio: false } }),
+      ).resolves.toBe(saved);
+
+      // One jsonb `||` statement, never a read-modify-write of the whole map:
+      // a concurrent save of another flag is not overwritten.
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      const [sql, ...values] = prisma.$executeRaw.mock.calls[0] ?? [];
+      expect((sql as TemplateStringsArray).join('?')).toContain(
+        '"flags" = COALESCE("flags", \'{}\'::jsonb) || ?::jsonb',
+      );
+      expect(values).toEqual(['{"studio":false}', 'ps-1']);
+      expect(patch).not.toHaveBeenCalled();
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        flags: { ...DEFAULT_PLATFORM_FLAGS, analytics: false, studio: false },
+      });
+    });
+
+    it('saves other settings alongside a flag patch', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
       const patch = vi.spyOn(service, 'patch').mockResolvedValue(row as never);
 
-      await service.updateSingleton({ flags: { studio: false } });
-
-      expect(patch).toHaveBeenCalledWith('ps-1', {
-        flags: {
-          ...DEFAULT_PLATFORM_FLAGS,
-          analytics: false,
-          studio: false,
-        },
+      await service.updateSingleton({
+        flags: { agent: false },
+        moderationMode: 'live',
       });
+
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+      expect(patch).toHaveBeenCalledWith('ps-1', { moderationMode: 'live' });
     });
 
     it('turns system-event recording off with null', async () => {

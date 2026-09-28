@@ -1,6 +1,8 @@
+import type { PlatformFlagKey } from '@genfeedai/contracts/constants';
 import { useFeatureFlagContext } from '@hooks/feature-flags/provider';
 
-export function useFeatureFlag(flagKey: string): boolean {
+/** An Admin module or feature flag (#5468); unregistered keys do not compile. */
+export function useFeatureFlag(flagKey: PlatformFlagKey): boolean {
   const { flags, isConfigured } = useFeatureFlagContext();
 
   if (Object.hasOwn(flags, flagKey)) {

@@ -5,7 +5,6 @@ import { Timeframe } from '@genfeedai/contracts';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorBoundary } from '@ui/error';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
@@ -50,10 +49,8 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
 
 export default function AnalyticsLayout({ children }: LayoutProps) {
   return (
-    <FeatureGate flagKey="analytics">
-      <AnalyticsWorkSurfaceAdapter>
-        <AnalyticsLayoutContent>{children}</AnalyticsLayoutContent>
-      </AnalyticsWorkSurfaceAdapter>
-    </FeatureGate>
+    <AnalyticsWorkSurfaceAdapter>
+      <AnalyticsLayoutContent>{children}</AnalyticsLayoutContent>
+    </AnalyticsWorkSurfaceAdapter>
   );
 }

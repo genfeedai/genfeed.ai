@@ -14,31 +14,31 @@ describe('useFeatureFlag', () => {
   }
 
   it('returns true when the flag is on', () => {
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'), {
-      wrapper: createWrapper({ enabled_flag: true }),
+    const { result } = renderHook(() => useFeatureFlag('studio'), {
+      wrapper: createWrapper({ studio: true }),
     });
 
     expect(result.current).toBe(true);
   });
 
   it('returns false when the flag is off', () => {
-    const { result } = renderHook(() => useFeatureFlag('disabled_flag'), {
-      wrapper: createWrapper({ disabled_flag: false }),
+    const { result } = renderHook(() => useFeatureFlag('analytics'), {
+      wrapper: createWrapper({ analytics: false }),
     });
 
     expect(result.current).toBe(false);
   });
 
   it('returns a boolean value', () => {
-    const { result } = renderHook(() => useFeatureFlag('any_flag'), {
-      wrapper: createWrapper({ any_flag: true }),
+    const { result } = renderHook(() => useFeatureFlag('agent'), {
+      wrapper: createWrapper({ agent: true }),
     });
 
     expect(typeof result.current).toBe('boolean');
   });
 
   it('returns true when no provider is configured (OSS default)', () => {
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'));
+    const { result } = renderHook(() => useFeatureFlag('studio'));
 
     expect(result.current).toBe(true);
   });
@@ -91,8 +91,8 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('returns false for a flag the Admin flags do not list', () => {
-    const { result } = renderHook(() => useFeatureFlag('unknown_flag'), {
+  it('returns false for a flag missing from configured Admin flags', () => {
+    const { result } = renderHook(() => useFeatureFlag('library_canvas'), {
       wrapper: createWrapper({ reply_bot: true }),
     });
 
