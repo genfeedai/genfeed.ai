@@ -576,7 +576,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'mood-board:MoodBoard': [],
   'newsletter:Newsletter': [],
   'organization:Organization': [],
-  'platform-setting:PlatformSetting': [],
+  'platform-setting:PlatformSetting': ['isEmailDeliveryConfigured'],
   'profile:Profile': [],
   'project:Project': [],
   'role:Role': [],

@@ -176,8 +176,10 @@ export default function PlatformSettingsPage() {
     },
     [],
   );
+  // Unknown counts as available: only an explicit `false` from the API marks
+  // the mailer as missing (enforcement keeps its own safe default).
   const [isEmailDeliveryConfigured, setIsEmailDeliveryConfigured] =
-    useState(false);
+    useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -208,7 +210,9 @@ export default function PlatformSettingsPage() {
             parseTypedDecisionProvider(data.typedDecisionProvider),
           );
           setFeatureSettings(parsePlatformFeatureSettings(data));
-          setIsEmailDeliveryConfigured(data.isEmailDeliveryConfigured === true);
+          setIsEmailDeliveryConfigured(
+            data.isEmailDeliveryConfigured !== false,
+          );
         }
       } catch (error) {
         if (!signal.aborted) {
@@ -319,7 +323,7 @@ export default function PlatformSettingsPage() {
         parseTypedDecisionProvider(updated.typedDecisionProvider),
       );
       setFeatureSettings(parsePlatformFeatureSettings(updated));
-      setIsEmailDeliveryConfigured(updated.isEmailDeliveryConfigured === true);
+      setIsEmailDeliveryConfigured(updated.isEmailDeliveryConfigured !== false);
       notificationsService.success('Platform settings saved');
     } catch (error) {
       logger.error('Failed to save platform settings', error);

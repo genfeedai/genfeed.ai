@@ -437,6 +437,25 @@ describe('PlatformSettingsPage', () => {
       );
     });
 
+    it('keeps email verification available when the mailer status is unknown', async () => {
+      mocks.getSettings.mockResolvedValue({
+        id: 'platform-settings',
+        isEmailVerificationRequired: true,
+        marginInputMode: 'MARGIN',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+        typedDecisionProvider: 'none',
+      });
+      render(<PlatformSettingsPage />);
+
+      const toggle = await screen.findByRole('switch', {
+        name: /require email verification/i,
+      });
+      expect(toggle).toBeEnabled();
+      expect(toggle).toBeChecked();
+      expect(screen.queryByText(/RESEND_API_KEY/)).not.toBeInTheDocument();
+    });
+
     it('lets an operator toggle email verification once a mailer is configured', async () => {
       mocks.getSettings.mockResolvedValue({
         id: 'platform-settings',
