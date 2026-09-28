@@ -43,8 +43,11 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',
   'app/(public)/workflows/workflows-content.tsx',
+  'app/u/[handle]/profile-page.tsx',
+  'app/u/layout.tsx',
   'packages/components/PageLayout.tsx',
   'packages/components/content/NeuralGrid.tsx',
+  'packages/components/profile/ProfileSocialLinks.tsx',
 ];
 
 function readSource(path: string): string {
@@ -55,6 +58,12 @@ describe('server-rendered marketing pages', () => {
   it.each(SERVER_RENDERED_PAGES)('%s stays a server component', (path) => {
     // Multiline: a directive after a leading comment still counts.
     expect(readSource(path)).not.toMatch(/^\s*['"]use client['"]/m);
+  });
+
+  // The app's context providers bring its API service layer, pino and the
+  // Sentry SDK with them; nothing on a public profile reads them.
+  it('keeps the public profile layout free of app providers', () => {
+    expect(readSource('app/u/layout.tsx')).not.toMatch(/@providers\//);
   });
 
   it('never sanitizes article HTML in the browser', () => {
