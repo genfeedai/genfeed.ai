@@ -3,6 +3,7 @@ export * from '@serializers/server/content/agent-publish-audit.serializer';
 export * from '@serializers/server/content/article.serializer';
 export * from '@serializers/server/content/batch.serializer';
 export * from '@serializers/server/content/batch-interpolation.serializer';
+export * from '@serializers/server/content/batch-project.serializer';
 export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/calendar-slot.serializer';
 export * from '@serializers/server/content/calendar-slot-bulk-generate.serializer';

@@ -1,7 +1,9 @@
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import {
   assertValidChannelTargetSchedule,
+  categoryAfterMediaRewrite,
   InvalidChannelTargetScheduleException,
+  postCategoryForIngredientCategories,
 } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { bindScheduledPublishApproval } from '@api/collections/posts/services/post-schedule-approval.util';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
@@ -68,6 +70,25 @@ type ExistingPost = {
 };
 
 /**
+ * The category a scheduled item carries for the media attached to it: VIDEO
+ * for a video, IMAGE for an image. A format-specific category (REEL, STORY)
+ * survives while the media still fits it. Media whose category proves no
+ * visual kind keeps the historical IMAGE default.
+ */
+function categoryForScheduledMedia(
+  current: string,
+  ingredientIds: readonly string[],
+  categoryByIngredientId: ReadonlyMap<string, string>,
+): string {
+  const derived = postCategoryForIngredientCategories(
+    ingredientIds.map((id) => categoryByIngredientId.get(id)),
+  );
+  return derived === PostCategory.TEXT
+    ? PostCategory.IMAGE
+    : categoryAfterMediaRewrite(current, derived);
+}
+
+/**
  * Plan every write for the batch in statement order.
  *
  * Order mirrors the old per-post loop (a root post's child cascade is queued
@@ -86,6 +107,7 @@ function planBatchWrites(
   existingById: Map<string, ExistingPost>,
   organizationId: string,
   target: PostBatchScheduleTarget,
+  categoryByIngredientId: ReadonlyMap<string, string>,
 ): {
   invalidTargetPostIds: string[];
   updateIndexes: number[];
@@ -110,7 +132,13 @@ function planBatchWrites(
     const ingredientIds =
       EntityIdUtil.normalizeIds(item.ingredientIds ?? []) ?? [];
     const category =
-      ingredientIds.length > 0 ? PostCategory.IMAGE : existing.category;
+      ingredientIds.length > 0
+        ? categoryForScheduledMedia(
+            existing.category,
+            ingredientIds,
+            categoryByIngredientId,
+          )
+        : existing.category;
 
     try {
       assertValidChannelTargetSchedule({
@@ -160,7 +188,7 @@ function planBatchWrites(
     // through `normalizeData`. Post status values are canonical lowercase
     // strings everywhere in the persistence layer.
     const data = context.normalizeData({
-      ...(ingredientIds.length > 0 && { category: PostCategory.IMAGE }),
+      ...(ingredientIds.length > 0 && { category }),
       credentialId: target.credentialId,
       description: item.text,
       platform: target.platform,
@@ -244,12 +272,36 @@ export async function batchSchedulePosts(
     );
   }
 
+  const requestedIngredientIds = [
+    ...new Set(
+      items.flatMap(
+        (item) => EntityIdUtil.normalizeIds(item.ingredientIds ?? []) ?? [],
+      ),
+    ),
+  ];
+  const ingredientRows =
+    requestedIngredientIds.length > 0
+      ? await context.prisma.ingredient.findMany({
+          select: { category: true, id: true },
+          where: scopedWhere(organizationId, {
+            id: { in: requestedIngredientIds },
+          }),
+        })
+      : [];
+  const categoryByIngredientId = new Map<string, string>(
+    ingredientRows.map((row: { category: string; id: string }) => [
+      row.id,
+      row.category,
+    ]),
+  );
+
   const { invalidTargetPostIds, updateIndexes, writes } = planBatchWrites(
     context,
     items,
     existingById,
     organizationId,
     target,
+    categoryByIngredientId,
   );
 
   if (writes.length === 0) {

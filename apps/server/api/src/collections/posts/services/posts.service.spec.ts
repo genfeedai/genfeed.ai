@@ -110,6 +110,7 @@ describe('PostsService batchSchedule', () => {
           $transaction,
           campaign,
           credential,
+          ingredient: { findMany: vi.fn().mockResolvedValue([]) },
           post,
         } as unknown as PrismaService,
         logger as unknown as LoggerService,

@@ -420,6 +420,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'batchProject',
+    table: 'batch_projects',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'botActivity',
     table: 'bot_activities',
     brandField: 'brandId',
@@ -630,6 +636,18 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
  * with the brand-owned workflow row.
  */
 export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
+  {
+    delegate: 'batchProjectItem',
+    table: 'batch_project_items',
+    orgField: 'organizationId',
+    parents: [
+      {
+        parentDelegate: 'batchProject',
+        parentBrandField: 'brandId',
+        fkField: 'projectId',
+      },
+    ],
+  },
   {
     delegate: 'workflowExecution',
     table: 'workflow_executions',

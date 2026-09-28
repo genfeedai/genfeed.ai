@@ -4,15 +4,18 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { scopedWhere } from '@api/index';
-import type {
-  BatchConfig,
-  BatchItemFull,
-  BatchWithConfig,
+import {
+  type BatchConfig,
+  type BatchItemFull,
+  type BatchWithConfig,
+  toBatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
+  batchItemRowsInclude,
   persistBatchItemRows,
   withBatchWriteTransaction,
+  writeBatchJsonAndItemRows,
 } from '@api/services/batch-generation/batch-item-rows';
 import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
@@ -30,8 +33,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
-import { toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -272,6 +274,94 @@ export class BatchGenerationCreationService {
     return this.summaryService.toBatchSummary(batch);
   }
 
+  /**
+   * Append items to an existing manual-review batch so outputs that finish at
+   * different times land in the same review inbox batch (#5463). Each item
+   * gets its draft Post exactly as `createManualReviewBatch` creates them; the
+   * created Posts are soft-deleted again if the append does not commit.
+   */
+  async appendManualReviewItems(
+    batchId: string,
+    dto: CreateManualReviewBatchDto,
+    userId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    await this.validateIngredientOwnership(dto, orgId);
+    const { createdPostIds, items: appendedItems } =
+      await this.createManualReviewItems(dto, userId, orgId);
+
+    let batch: BatchWithConfig;
+    try {
+      batch = await this.prisma.$transaction(async (tx) => {
+        await tx.$queryRaw(
+          Prisma.sql`SELECT "id" FROM "batches" WHERE "id" = ${batchId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
+        );
+        const current = await tx.batch.findFirst({
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { brandId: dto.brandId, id: batchId }),
+        });
+        if (!current) {
+          throw new NotFoundException('Batch', batchId);
+        }
+        const existing = toBatchWithConfig(current);
+        const items = [...existing.items, ...appendedItems];
+        const config: BatchConfig = {
+          ...existing.config,
+          completedCount: items.length,
+          platforms: Array.from(
+            new Set([
+              ...(existing.config.platforms ?? []),
+              ...dto.items.flatMap((item) =>
+                item.platform ? [item.platform] : [],
+              ),
+            ]),
+          ),
+          totalCount: items.length,
+        };
+        const result = await writeBatchJsonAndItemRows(tx, {
+          batchId,
+          brandId: dto.brandId,
+          extraBatchData: { config: config as Prisma.InputJsonValue },
+          items,
+          organizationId: orgId,
+        });
+        if (result.count !== 1) {
+          throw new NotFoundException('Batch', batchId);
+        }
+        await this.linkManualReviewPosts(
+          batchId,
+          appendedItems,
+          orgId,
+          dto.brandId,
+          tx,
+        );
+        const updated = await tx.batch.findFirst({
+          include: batchItemRowsInclude(orgId),
+          where: scopedWhere(orgId, { id: batchId }),
+        });
+        if (!updated) {
+          throw new NotFoundException('Batch', batchId);
+        }
+        return toBatchWithConfig(updated);
+      });
+    } catch (error: unknown) {
+      await this.compensateManualReviewCreation(
+        undefined,
+        createdPostIds,
+        orgId,
+      );
+      throw error;
+    }
+
+    this.logger.log(`Manual review items appended: ${batchId}`, {
+      batchId,
+      itemCount: appendedItems.length,
+      orgId,
+    });
+
+    return this.summaryService.toBatchSummary(batch);
+  }
+
   private async validateIngredientOwnership(
     dto: CreateManualReviewBatchDto,
     orgId: string,
@@ -449,12 +539,13 @@ export class BatchGenerationCreationService {
     batchItems: BatchItemFull[],
     orgId: string,
     brandId: string,
+    client: Pick<Prisma.TransactionClient, 'post'> = this.prisma,
   ): Promise<void> {
     const results = await Promise.all(
       batchItems.map(async (item) => {
         if (!item.postId) return { count: 0 };
 
-        return this.prisma.post.updateMany({
+        return client.post.updateMany({
           data: {
             reviewBatchId: batchId,
             reviewItemId: item.id,

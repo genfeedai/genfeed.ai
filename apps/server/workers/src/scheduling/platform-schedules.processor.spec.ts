@@ -17,6 +17,7 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileSettlementShortfalls: handler(),
     resumeStrandedBatches: handler(),
   };
+  const batchProjects = { reconcileGeneratingProjects: handler() };
   const credentials = { refreshExpiringTokens: handler() };
   const engagement = { processArmedRules: handler() };
   const falModels = { discoverNewModels: handler() };
@@ -76,6 +77,10 @@ describe('PlatformSchedulesProcessor', () => {
       [
         PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE,
         batchGeneration.resumeStrandedBatches,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE,
+        batchProjects.reconcileGeneratingProjects,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH,
@@ -230,6 +235,7 @@ describe('PlatformSchedulesProcessor', () => {
       oauthClientCleanup as never,
       workflowSchedules as never,
       xReplyWatch as never,
+      batchProjects as never,
     );
   });
 

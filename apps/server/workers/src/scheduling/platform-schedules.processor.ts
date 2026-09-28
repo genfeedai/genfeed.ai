@@ -5,6 +5,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
+import { CronBatchProjectsReconcileService } from '@workers/crons/batch-projects/cron.batch-projects-reconcile.service';
 import { CronCredentialsService } from '@workers/crons/credentials/cron.credentials.service';
 import { CronEngagementTriggersService } from '@workers/crons/engagement/cron.engagement-triggers.service';
 import { CronFalModelWatcherService } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.service';
@@ -84,6 +85,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
     private readonly workflowSchedules: PlatformWorkflowSchedulesService,
     private readonly xReplyWatch: CronXReplyWatchService,
+    private readonly batchProjects: CronBatchProjectsReconcileService,
   ) {
     super();
     this.handlers = {
@@ -102,6 +104,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.batchGeneration.reconcileSettlementShortfalls(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_GENERATION_RECONCILE]: () =>
         this.batchGeneration.resumeStrandedBatches(),
+      [PLATFORM_SCHEDULED_TASKS.BATCH_PROJECT_RECONCILE]: () =>
+        this.batchProjects.reconcileGeneratingProjects(),
       [PLATFORM_SCHEDULED_TASKS.CREDENTIAL_TOKEN_REFRESH]: () =>
         this.credentials.refreshExpiringTokens(),
       [PLATFORM_SCHEDULED_TASKS.EDITOR_RENDER_RECONCILE]: () =>

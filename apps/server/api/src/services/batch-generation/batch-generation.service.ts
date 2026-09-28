@@ -73,6 +73,21 @@ export class BatchGenerationService {
     );
   }
 
+  @HandleErrors('append manual review items', 'batch-generation')
+  appendManualReviewItems(
+    batchId: string,
+    dto: CreateManualReviewBatchDto,
+    userId: string,
+    orgId: string,
+  ): Promise<IBatchSummary> {
+    return this.creationService.appendManualReviewItems(
+      batchId,
+      dto,
+      userId,
+      orgId,
+    );
+  }
+
   @HandleErrors('get review inbox summary', 'batch-generation')
   getReviewInboxSummary(
     orgId: string,

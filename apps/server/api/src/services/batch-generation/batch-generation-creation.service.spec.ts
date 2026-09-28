@@ -315,3 +315,108 @@ describe('BatchGenerationCreationService strategy attribution', () => {
     );
   });
 });
+
+describe('BatchGenerationCreationService.appendManualReviewItems', () => {
+  const tx = {
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    batch: { findFirst: vi.fn(), updateMany: vi.fn() },
+    batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+    post: { updateMany: vi.fn() },
+  };
+  const prisma = {
+    $transaction: vi.fn(
+      async (operation: (client: typeof tx) => Promise<unknown>) =>
+        operation(tx),
+    ),
+    ingredient: { findMany: vi.fn() },
+    post: { findMany: vi.fn(), updateMany: vi.fn() },
+  };
+  const logger = { error: vi.fn(), log: vi.fn() };
+  const postsService = { create: vi.fn() };
+  const summaryService = { toBatchSummary: vi.fn() };
+  const service = new BatchGenerationCreationService(
+    prisma as never,
+    logger as never,
+    { findOne: vi.fn() } as never,
+    postsService as never,
+    {} as never,
+    summaryService as never,
+  );
+  const existingItem = {
+    format: 'image',
+    id: 'item-existing',
+    postId: 'post-existing',
+    reviewDecision: 'unset',
+    status: 'COMPLETED',
+  };
+  const batchRow = {
+    brandId: 'brand-1',
+    config: { completedCount: 1, source: 'manual', totalCount: 1 },
+    id: 'batch-1',
+    items: [existingItem],
+    organizationId: 'org-1',
+  };
+  const dto = {
+    brandId: 'brand-1',
+    items: [
+      {
+        caption: 'Second output',
+        format: 'video' as const,
+        ingredientId: 'ingredient-2',
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    prisma.ingredient.findMany.mockResolvedValue([{ id: 'ingredient-2' }]);
+    postsService.create.mockResolvedValue({ id: 'post-2' });
+    tx.batch.findFirst.mockResolvedValue(batchRow);
+    tx.batch.updateMany.mockResolvedValue({ count: 1 });
+    tx.post.updateMany.mockResolvedValue({ count: 1 });
+    summaryService.toBatchSummary.mockImplementation((batch) => batch);
+  });
+
+  it('appends a new draft to the same review batch and links its Post', async () => {
+    await service.appendManualReviewItems('batch-1', dto, 'user-1', 'org-1');
+
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        ingredients: ['ingredient-2'],
+        organizationId: 'org-1',
+      }),
+    );
+    const written = tx.batch.updateMany.mock.calls[0][0];
+    expect(written.where).toMatchObject({
+      id: 'batch-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+    expect(written.data.items).toHaveLength(2);
+    expect(written.data.config).toMatchObject({
+      completedCount: 2,
+      totalCount: 2,
+    });
+    expect(tx.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ reviewBatchId: 'batch-1' }),
+        where: expect.objectContaining({ id: 'post-2' }),
+      }),
+    );
+  });
+
+  it('soft-deletes the created draft when the batch is gone', async () => {
+    tx.batch.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.appendManualReviewItems('batch-1', dto, 'user-1', 'org-1'),
+    ).rejects.toThrow(NotFoundException);
+    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { isDeleted: true },
+        where: expect.objectContaining({ id: { in: ['post-2'] } }),
+      }),
+    );
+  });
+});

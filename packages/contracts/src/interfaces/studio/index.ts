@@ -1,4 +1,5 @@
 export * from './agent-studio-handoff.interface';
+export * from './batch-project.interface';
 export * from './camera-movement.interface';
 export * from './conversation-canvas.interface';
 export * from './conversation-sidebar.interface';

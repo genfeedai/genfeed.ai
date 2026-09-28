@@ -4,12 +4,16 @@ import {
   type PostBatchScheduleItem,
   type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
-import { CredentialPlatform, PostCategory } from '@genfeedai/contracts';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
+} from '@genfeedai/contracts';
 
 describe('batchSchedulePosts channel target validation (#5193)', () => {
   // Instagram accepts an image, so the fixture ingredient (which the planner
-  // categorizes as IMAGE whenever ingredients are present) can satisfy it —
-  // unlike YouTube, which needs video specifically.
+  // categorizes as IMAGE when its own category proves no other kind) can
+  // satisfy it — unlike YouTube, which needs video specifically.
   const target: PostBatchScheduleTarget = {
     credentialId: 'credential-1',
     platform: CredentialPlatform.INSTAGRAM,
@@ -24,6 +28,7 @@ describe('batchSchedulePosts channel target validation (#5193)', () => {
       targetSettings: unknown;
       visibility: string | null;
     }[],
+    ingredientRows: readonly { category: string; id: string }[] = [],
   ): {
     context: PostBatchScheduleContext;
     updateCalls: Record<string, unknown>[];
@@ -44,7 +49,11 @@ describe('batchSchedulePosts channel target validation (#5193)', () => {
       logger: { log: vi.fn() },
       normalizeData: (data) => data as Record<string, unknown>,
       normalizeDocument: (document) => document as never,
-      prisma: { $transaction, post } as never,
+      prisma: {
+        $transaction,
+        ingredient: { findMany: vi.fn().mockResolvedValue(ingredientRows) },
+        post,
+      } as never,
     };
     return { context, updateCalls };
   }
@@ -142,5 +151,40 @@ describe('batchSchedulePosts channel target validation (#5193)', () => {
     expect(result.posts.map((post) => (post as { id: string }).id)).toEqual([
       'post-valid',
     ]);
+  });
+
+  it('keeps a video item VIDEO so a video-only channel accepts it', async () => {
+    const { context, updateCalls } = makeContext(
+      [
+        {
+          category: PostCategory.TEXT,
+          id: 'post-video',
+          parentId: null,
+          publishApprovalId: null,
+          targetSettings: {},
+          visibility: null,
+        },
+      ],
+      [{ category: IngredientCategory.VIDEO, id: 'ingredient-video' }],
+    );
+
+    const result = await batchSchedulePosts(
+      context,
+      [
+        {
+          ingredientIds: ['ingredient-video'],
+          postId: 'post-video',
+          scheduledDate: '2026-11-27T14:30:00Z',
+          text: 'A video',
+        },
+      ],
+      'org-1',
+      { credentialId: 'credential-1', platform: CredentialPlatform.TIKTOK },
+    );
+
+    expect(result.invalidTargetPostIds).toEqual([]);
+    expect(updateCalls[0]?.data).toMatchObject({
+      category: PostCategory.VIDEO,
+    });
   });
 });

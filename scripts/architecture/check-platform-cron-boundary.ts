@@ -178,6 +178,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
+    file: 'apps/server/workers/src/crons/batch-projects/cron.batch-projects-reconcile.service.ts',
+    id: 'batch-project-reconcile',
+    methodName: 'reconcileGeneratingProjects',
+    reason:
+      'Platform schedule handler (#5463); advances every generating Studio Batch project under its own organization so a batch the creator left still reaches the review inbox.',
+  },
+  {
     file: 'apps/server/workers/src/crons/engagement/cron.engagement-triggers.service.ts',
     id: 'engagement-triggers',
     methodName: 'processArmedRules',
