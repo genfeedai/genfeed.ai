@@ -17,7 +17,7 @@ import type {
   IEditorRenderProvenance,
   IUpdateEditorProjectDto,
 } from '@genfeedai/contracts/interfaces';
-import { Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { type EditorProject, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -153,11 +153,50 @@ export class EditorProjectsService extends BaseService<
   }
 
   /**
-   * Atomic CAS: only transitions DRAFT/COMPLETED/FAILED -> RENDERING.
-   *
-   * Uses `updateMany` with a status-not-RENDERING filter so that two
-   * concurrent callers cannot both succeed — the second write will match
-   * zero rows and be treated as a conflict.
+   * Run a render-state write under the same row lock as Editor saves: lock the
+   * row, re-read it, and merge only render fields (status, renderExport,
+   * renderedVideoId) into the fresh config. Neither writer can put back a
+   * stale config over the other's change.
+   */
+  private async withLockedProject(
+    id: string,
+    organizationId: string | undefined,
+    write: (
+      tx: Prisma.TransactionClient,
+      project: EditorProject,
+    ) => Promise<EditorProjectDocument>,
+  ): Promise<EditorProjectDocument> {
+    return this.prisma.$transaction(async (tx) => {
+      if (organizationId) {
+        await tx.$queryRaw(
+          Prisma.sql`SELECT "id" FROM "editor_projects" WHERE "id" = ${id} AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`,
+        );
+        const project = await findOrThrow(
+          tx.editorProject,
+          { where: scopedWhere(organizationId, { id }) },
+          'Project',
+        );
+        return write(tx, project);
+      }
+
+      // Render workers address the project by id only; the org comes from
+      // the locked row.
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "editor_projects" WHERE "id" = ${id} FOR UPDATE`,
+      );
+      const project = await findUniqueOrThrow(
+        tx.editorProject,
+        { where: { id } },
+        'Project',
+      );
+      return write(tx, project);
+    });
+  }
+
+  /**
+   * Transition DRAFT/COMPLETED/FAILED -> RENDERING. Concurrent callers
+   * serialize on the row lock, so the second one sees RENDERING and gets a
+   * conflict.
    */
   async markAsRendering(
     id: string,
@@ -165,88 +204,59 @@ export class EditorProjectsService extends BaseService<
     renderExport: IEditorRenderProvenance,
     allowedStatuses?: EditorProjectStatus[],
   ): Promise<EditorProjectDocument> {
-    // Verify the project exists and belongs to this organisation first so we
-    // can return a meaningful NotFoundException vs. a generic ConflictException.
-    const existing = await findOrThrow(
-      this.prisma.editorProject,
-      { where: scopedWhere(organizationId, { id }) },
-      'Project',
-    );
+    return this.withLockedProject(id, organizationId, async (tx, existing) => {
+      const status = this.readStatus(existing);
+      if (
+        status === EditorProjectStatus.RENDERING ||
+        (allowedStatuses &&
+          !allowedStatuses.includes(status as EditorProjectStatus))
+      ) {
+        throw new ConflictException('Project is already rendering');
+      }
 
-    // Atomic conditional update: only succeeds when the embedded status field
-    // is NOT already RENDERING.  If two requests race, exactly one will update
-    // count === 1; the other will get count === 0 → ConflictException.
-    const updated = await this.prisma.editorProject.updateMany({
-      data: {
-        config: toPrismaJson(
-          this.mergeProjectConfig(
-            existing,
-            EditorProjectStatus.RENDERING,
-            renderExport,
+      const project = await tx.editorProject.update({
+        data: {
+          config: toPrismaJson(
+            this.mergeProjectConfig(
+              existing,
+              EditorProjectStatus.RENDERING,
+              renderExport,
+            ),
           ),
-        ),
-        updatedAt: new Date(),
-      },
-      where: scopedWhere(organizationId, {
-        id,
-        ...(allowedStatuses
-          ? {
-              OR: allowedStatuses.map((status) => ({
-                config: { path: ['status'], equals: status },
-              })),
-            }
-          : {}),
-        // The JSON path filter below prevents the update when the embedded
-        // config.status is already RENDERING.  Prisma exposes JSON-path
-        // filtering via `path`+`equals` on JsonFilter.
-        NOT: {
-          config: {
-            path: ['status'],
-            equals: EditorProjectStatus.RENDERING,
-          },
+          updatedAt: new Date(),
         },
-      }),
+        where: scopedWhere(organizationId, { id }),
+      });
+
+      return project as unknown as EditorProjectDocument;
     });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Project is already rendering');
-    }
-
-    const project = await this.prisma.editorProject.findUniqueOrThrow({
-      where: { id },
-    });
-
-    return project as unknown as EditorProjectDocument;
   }
 
   async attachRenderJob(
     id: string,
     job: IEditorRenderCorrelation,
   ): Promise<EditorProjectDocument> {
-    const existing = await findUniqueOrThrow(
-      this.prisma.editorProject,
-      { where: { id } },
-      'Project',
-    );
-    const renderExport = this.readRenderProvenance(existing);
+    return this.withLockedProject(id, undefined, async (tx, existing) => {
+      const renderExport = this.readRenderProvenance(existing);
 
-    if (!renderExport) {
-      throw new ConflictException('Project render provenance is missing');
-    }
+      if (!renderExport) {
+        throw new ConflictException('Project render provenance is missing');
+      }
 
-    const project = await this.prisma.editorProject.update({
-      data: {
-        config: toPrismaJson(
-          this.mergeProjectConfig(existing, EditorProjectStatus.RENDERING, {
-            ...renderExport,
-            job,
-          }),
-        ),
-      },
-      where: scopedWhere(existing.organizationId, { id }),
+      const project = await tx.editorProject.update({
+        data: {
+          config: toPrismaJson(
+            this.mergeProjectConfig(existing, EditorProjectStatus.RENDERING, {
+              ...renderExport,
+              job,
+            }),
+          ),
+        },
+        where: scopedWhere(existing.organizationId, { id }),
+      });
+
+      return project as unknown as EditorProjectDocument;
     });
-
-    return project as unknown as EditorProjectDocument;
   }
 
   async findRenderingProjects(): Promise<EditorProjectDocument[]> {
@@ -264,6 +274,25 @@ export class EditorProjectsService extends BaseService<
   }
 
   /**
+   * Only the render that still owns the project (status RENDERING and, when
+   * given, the same job id) may finish it.
+   */
+  private assertRenderOwnership(
+    existing: EditorProject,
+    expectedJobId?: string,
+  ): IEditorRenderProvenance | undefined {
+    const renderExport = this.readRenderProvenance(existing);
+    if (
+      existing.isDeleted ||
+      this.readStatus(existing) !== EditorProjectStatus.RENDERING ||
+      (expectedJobId && renderExport?.job?.jobId !== expectedJobId)
+    ) {
+      throw new ConflictException('Render job no longer owns this project');
+    }
+    return renderExport;
+  }
+
+  /**
    * Mark project as completed with rendered video reference
    */
   async markAsCompleted(
@@ -272,55 +301,25 @@ export class EditorProjectsService extends BaseService<
     output: IEditorRenderOutputMetadata,
     expectedJobId?: string,
   ): Promise<EditorProjectDocument> {
-    const existing = await findUniqueOrThrow(
-      this.prisma.editorProject,
-      { where: { id } },
-      'Project',
-    );
+    return this.withLockedProject(id, undefined, async (tx, existing) => {
+      const renderExport = this.assertRenderOwnership(existing, expectedJobId);
 
-    const renderExport = this.readRenderProvenance(existing);
-    if (expectedJobId && renderExport?.job?.jobId !== expectedJobId) {
-      throw new ConflictException('Render job no longer owns this project');
-    }
-
-    const completedConfig = toPrismaJson(
-      this.mergeProjectConfig(existing, EditorProjectStatus.COMPLETED, {
-        ...(renderExport ?? ({} as IEditorRenderProvenance)),
-        completedAt: new Date().toISOString(),
-        output,
-      }),
-    );
-    const updated = await this.prisma.editorProject.updateMany({
-      data: {
-        config: completedConfig,
-        renderedVideoId,
-      },
-      where: scopedWhere(existing.organizationId, {
-        id,
-        AND: {
-          config: {
-            path: ['status'],
-            equals: EditorProjectStatus.RENDERING,
-          },
+      const project = await tx.editorProject.update({
+        data: {
+          config: toPrismaJson(
+            this.mergeProjectConfig(existing, EditorProjectStatus.COMPLETED, {
+              ...(renderExport ?? ({} as IEditorRenderProvenance)),
+              completedAt: new Date().toISOString(),
+              output,
+            }),
+          ),
+          renderedVideoId,
         },
-        ...(expectedJobId
-          ? {
-              config: {
-                path: ['renderExport', 'job', 'jobId'],
-                equals: expectedJobId,
-              },
-            }
-          : {}),
-      }),
+        where: scopedWhere(existing.organizationId, { id }),
+      });
+
+      return project as unknown as EditorProjectDocument;
     });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Render job no longer owns this project');
-    }
-
-    return (await this.prisma.editorProject.findUniqueOrThrow({
-      where: { id },
-    })) as unknown as EditorProjectDocument;
   }
 
   /**
@@ -358,58 +357,28 @@ export class EditorProjectsService extends BaseService<
     expectedJobId?: string,
     failure?: IEditorRenderFailure,
   ): Promise<EditorProjectDocument> {
-    const existing = await findUniqueOrThrow(
-      this.prisma.editorProject,
-      { where: { id } },
-      'Project',
-    );
+    return this.withLockedProject(id, undefined, async (tx, existing) => {
+      const renderExport = this.assertRenderOwnership(existing, expectedJobId);
 
-    const renderExport = this.readRenderProvenance(existing);
-    if (expectedJobId && renderExport?.job?.jobId !== expectedJobId) {
-      throw new ConflictException('Render job no longer owns this project');
-    }
-
-    const terminalConfig = toPrismaJson(
-      this.mergeProjectConfig(
-        existing,
-        status,
-        failure
-          ? {
-              ...(renderExport ?? ({} as IEditorRenderProvenance)),
-              failure,
-            }
-          : undefined,
-      ),
-    );
-    const updated = await this.prisma.editorProject.updateMany({
-      data: {
-        config: terminalConfig,
-      },
-      where: scopedWhere(existing.organizationId, {
-        id,
-        AND: {
-          config: {
-            path: ['status'],
-            equals: EditorProjectStatus.RENDERING,
-          },
+      const project = await tx.editorProject.update({
+        data: {
+          config: toPrismaJson(
+            this.mergeProjectConfig(
+              existing,
+              status,
+              failure
+                ? {
+                    ...(renderExport ?? ({} as IEditorRenderProvenance)),
+                    failure,
+                  }
+                : undefined,
+            ),
+          ),
         },
-        ...(expectedJobId
-          ? {
-              config: {
-                path: ['renderExport', 'job', 'jobId'],
-                equals: expectedJobId,
-              },
-            }
-          : {}),
-      }),
+        where: scopedWhere(existing.organizationId, { id }),
+      });
+
+      return project as unknown as EditorProjectDocument;
     });
-
-    if (updated.count === 0) {
-      throw new ConflictException('Render job no longer owns this project');
-    }
-
-    return (await this.prisma.editorProject.findUniqueOrThrow({
-      where: { id },
-    })) as unknown as EditorProjectDocument;
   }
 }
