@@ -50,6 +50,8 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
   const { href } = useOrgUrl();
   const {
     error: listError,
+    renameProject,
+    deleteProject,
     isLoading: isListLoading,
     projects,
   } = useStudioClipProjects({ isEnabled: !projectId });
@@ -119,7 +121,12 @@ export default function ClipsWorkspace({ projectId }: ClipsWorkspaceProps) {
                 </Button>
               </div>
             ) : (
-              <ClipsProjectList isLoading={isListLoading} projects={projects} />
+              <ClipsProjectList
+                isLoading={isListLoading}
+                projects={projects}
+                onRename={renameProject}
+                onDelete={deleteProject}
+              />
             )}
           </>
         )}

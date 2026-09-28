@@ -294,6 +294,16 @@ export class ClipsApiService implements ClipsApiClient {
     );
   }
 
+  async updateProject(
+    projectId: string,
+    changes: { name?: string; isDeleted?: boolean },
+  ): Promise<void> {
+    await this.fetchJson(`${this.apiEndpoint}/clip-projects/${projectId}`, {
+      body: JSON.stringify(changes),
+      method: 'PATCH',
+    });
+  }
+
   async listProjects(signal?: AbortSignal): Promise<ClipProjectSummary[]> {
     const data = await this.fetchJson<unknown>(
       `${this.apiEndpoint}/clip-projects?sort=-createdAt`,

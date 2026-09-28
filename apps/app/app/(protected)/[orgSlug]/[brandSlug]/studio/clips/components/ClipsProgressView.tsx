@@ -5,6 +5,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { ClipsProgressViewProps } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -248,7 +249,7 @@ export default function ClipsProgressView({
       ) : null}
 
       {project.clips.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <CollectionGrid maxColumns={3}>
           {project.clips.map((clip) => (
             <ClipResultCard
               key={clip.id}
@@ -258,7 +259,7 @@ export default function ClipsProgressView({
               projectId={project.projectId}
             />
           ))}
-        </div>
+        </CollectionGrid>
       ) : (
         project.status !== 'completed' &&
         project.status !== 'partially-completed' &&

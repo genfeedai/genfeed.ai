@@ -86,6 +86,7 @@ describe('ClipsApiService', () => {
       {
         brandId: undefined,
         createdAt: undefined,
+        updatedAt: undefined,
         failedClipCount: 0,
         id: 'project-1',
         isDraft: false,
@@ -103,6 +104,36 @@ describe('ClipsApiService', () => {
       'https://api.test/v1/clip-projects?sort=-createdAt',
       expect.objectContaining({
         headers: { Authorization: 'Bearer token-list' },
+      }),
+    );
+  });
+
+  it('renames and soft-deletes projects through the scoped update endpoint', async () => {
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ data: { id: 'project-1' } }), {
+          status: 200,
+        }),
+    );
+    const service = new ClipsApiService(
+      vi.fn().mockResolvedValue('token-update'),
+    );
+    await service.updateProject('project-1', { name: 'Renamed' });
+    await service.updateProject('project-1', { isDeleted: true });
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.test/v1/clip-projects/project-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ name: 'Renamed' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.test/v1/clip-projects/project-1',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ isDeleted: true }),
       }),
     );
   });

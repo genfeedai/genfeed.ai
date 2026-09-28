@@ -11,11 +11,16 @@ import { getWorkflowLabel } from '@genfeedai/helpers/automation/workflow-executi
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import Card from '@ui/card/Card';
+import CollectionGrid from '@ui/collection/CollectionGrid';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionSection from '@ui/collection/CollectionSection';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Download, FolderOpen } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
@@ -102,6 +107,7 @@ export default function BatchDetail({
   onNavigate,
   onOpenPostModal,
 }: Props) {
+  const t = useTranslations('pages.studioBatch');
   const completedOutputs = availableOutputs.length;
   const hasSelectedOutputs = selectedOutputs.length > 0;
   const outputsByItemId = useMemo(
@@ -123,11 +129,15 @@ export default function BatchDetail({
               )}
             </p>
             <h2 className="mt-1 text-2xl font-semibold text-foreground">
-              Batch Results
+              {t('detail.title')}
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {activeBatchStatus.completedCount + activeBatchStatus.failedCount}{' '}
-              / {activeBatchStatus.totalCount} items processed
+              {t('detail.itemsProcessed', {
+                processed:
+                  activeBatchStatus.completedCount +
+                  activeBatchStatus.failedCount,
+                total: activeBatchStatus.totalCount,
+              })}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -136,7 +146,7 @@ export default function BatchDetail({
               onClick={onBackToComposer}
               className="rounded-xl"
             >
-              Back to batch setup
+              {t('detail.backToSetup')}
             </Button>
             <Badge
               className={getStatusClasses(activeBatchStatus.status)}
@@ -155,33 +165,33 @@ export default function BatchDetail({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
-          <span>Completed: {activeBatchStatus.completedCount}</span>
-          <span>Failed: {activeBatchStatus.failedCount}</span>
           <span>
-            Remaining:{' '}
-            {activeBatchStatus.totalCount -
-              activeBatchStatus.completedCount -
-              activeBatchStatus.failedCount}
+            {t('detail.completedCount', {
+              count: activeBatchStatus.completedCount,
+            })}
+          </span>
+          <span>
+            {t('detail.failedCount', { count: activeBatchStatus.failedCount })}
+          </span>
+          <span>
+            {t('detail.remainingCount', {
+              count:
+                activeBatchStatus.totalCount -
+                activeBatchStatus.completedCount -
+                activeBatchStatus.failedCount,
+            })}
           </span>
           {activeBatchStatus.createdAt && (
             <span>
-              Started:{' '}
+              {t('detail.started')}{' '}
               <ClientFormattedDate value={activeBatchStatus.createdAt} />
             </span>
           )}
         </div>
       </Card>
 
-      <Card bodyClassName="gap-0 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">Outputs</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {completedOutputs} output{completedOutputs === 1 ? '' : 's'} ready
-              {hasSelectedOutputs && `, ${selectedOutputs.length} selected`}
-            </p>
-          </div>
-
+      <CollectionSection
+        actions={
           <div className="flex flex-wrap gap-2">
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -190,7 +200,7 @@ export default function BatchDetail({
               disabled={availableOutputs.length === 0}
               className="rounded-xl"
             >
-              Select all
+              {t('detail.selectAll')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -199,7 +209,7 @@ export default function BatchDetail({
               disabled={!hasSelectedOutputs}
               className="rounded-xl"
             >
-              Clear selection
+              {t('detail.clearSelection')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -208,7 +218,7 @@ export default function BatchDetail({
               disabled={availableOutputs.length === 0 || isRunningBulkAction}
               className="rounded-xl"
             >
-              Download all
+              {t('detail.downloadAll')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -217,7 +227,7 @@ export default function BatchDetail({
               disabled={!hasSelectedOutputs || isRunningBulkAction}
               className="rounded-xl"
             >
-              Download selected
+              {t('detail.downloadSelected')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -226,7 +236,7 @@ export default function BatchDetail({
               disabled={availableOutputs.length === 0}
               className="rounded-xl"
             >
-              Publish all
+              {t('detail.publishAll')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -235,7 +245,7 @@ export default function BatchDetail({
               disabled={!hasSelectedOutputs}
               className="rounded-xl"
             >
-              Publish selected
+              {t('detail.publishSelected')}
             </Button>
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -246,24 +256,33 @@ export default function BatchDetail({
               disabled={availableOutputs.length === 0}
               className="rounded-xl"
             >
-              Open in library
+              {t('detail.openInLibrary')}
             </Button>
           </div>
-        </div>
-
+        }
+        data-testid="batch-outputs-section"
+        description={
+          hasSelectedOutputs
+            ? t('detail.outputsReadySelected', {
+                count: completedOutputs,
+                selected: selectedOutputs.length,
+              })
+            : t('detail.outputsReady', { count: completedOutputs })
+        }
+        itemCount={activeBatchStatus.items.length}
+        title={t('detail.outputs')}
+      >
         {isTerminalBatchStatus(activeBatchStatus.status) &&
           availableOutputs.length === 0 && (
             <InsetSurface
-              className="mt-5 border-dashed bg-background/40 px-4 py-6 text-sm text-muted-foreground"
+              className="border-dashed bg-background/40 px-4 py-6 text-sm text-muted-foreground"
               tone="default"
             >
-              This batch finished without persisted output metadata. Download
-              and publish actions are available when child executions expose
-              output summaries.
+              {t('detail.noOutputMetadata')}
             </InsetSurface>
           )}
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <CollectionGrid data-testid="batch-outputs-grid" maxColumns={3}>
           {activeBatchStatus.items.map((item) => {
             const ingredient = outputsByItemId.get(item.id) ?? null;
             const libraryPath = getLibraryPathForCategory(
@@ -272,15 +291,17 @@ export default function BatchDetail({
             const isSelected = selectedOutputIds.has(item.id);
 
             return (
-              <article
+              <Card
+                bodyClassName="gap-0 p-0"
+                className="h-full overflow-hidden"
+                data-testid={`batch-output-card-${item.id}`}
                 key={item.id}
-                className="overflow-hidden rounded-2xl border border-border bg-background/50"
               >
-                <div className="relative aspect-video bg-muted/50">
+                <div className="relative aspect-video bg-muted">
                   {ingredient?.thumbnailUrl ? (
                     <Image
                       src={ingredient.thumbnailUrl}
-                      alt={`Output ${ingredient.id}`}
+                      alt={t('detail.outputAlt', { id: ingredient.id })}
                       className="h-full w-full object-cover outline-media"
                       sizes="(min-width: 1280px) 30vw, (min-width: 768px) 45vw, 100vw"
                       unoptimized={
@@ -292,8 +313,8 @@ export default function BatchDetail({
                   ) : (
                     <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
                       {item.outputSummary
-                        ? 'Preview unavailable for this output type'
-                        : 'No persisted output preview'}
+                        ? t('detail.previewUnavailable')
+                        : t('detail.noPreview')}
                     </div>
                   )}
 
@@ -304,28 +325,30 @@ export default function BatchDetail({
                       }
                     >
                       <Checkbox
-                        aria-label={`Select output ${item.id}`}
+                        aria-label={t('detail.selectOutput', { id: item.id })}
                         checked={isSelected}
                         onCheckedChange={() => onToggleOutputSelection(item.id)}
                       />
-                      Select
+                      {t('detail.select')}
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-3 p-4">
+                <div className="flex flex-col gap-3 p-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
                         {item.outputSummary?.id ??
                           item.outputIngredientId ??
                           item.ingredientId}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {item.outputCategory ??
-                          item.outputSummary?.category ??
-                          'unknown'}{' '}
-                        output
+                        {t('detail.outputCategory', {
+                          category:
+                            item.outputCategory ??
+                            item.outputSummary?.category ??
+                            t('detail.unknownCategory'),
+                        })}
                       </p>
                     </div>
                     <Badge
@@ -337,7 +360,7 @@ export default function BatchDetail({
                   </div>
 
                   {item.error && (
-                    <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+                    <p className="text-xs text-destructive" role="alert">
                       {item.error}
                     </p>
                   )}
@@ -345,48 +368,56 @@ export default function BatchDetail({
                   {!item.error &&
                     !item.outputSummary &&
                     item.status === WorkflowExecutionStatus.COMPLETED && (
-                      <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                        Output metadata is unavailable for this completed item.
+                      <p className="text-xs text-warning">
+                        {t('detail.missingOutputMetadata')}
                       </p>
                     )}
 
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.XS}
-                      onClick={() =>
-                        ingredient && void downloadIngredient(ingredient)
-                      }
-                      disabled={!ingredient}
-                      className="rounded-xl"
-                    >
-                      Download
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.XS}
-                      onClick={() => ingredient && onOpenPostModal(ingredient)}
-                      disabled={!ingredient}
-                      className="rounded-xl"
-                    >
-                      Publish
-                    </Button>
-                    <Button
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.XS}
-                      onClick={() => libraryPath && onNavigate(libraryPath)}
-                      disabled={!libraryPath}
-                      className="rounded-xl"
-                    >
-                      Open in library
-                    </Button>
-                  </div>
+                  <CollectionItemActions
+                    overflow={[
+                      {
+                        icon: <Download className="size-4" />,
+                        id: 'download',
+                        isDisabled: !ingredient,
+                        label: t('detail.download'),
+                        onSelect: () => {
+                          if (ingredient) {
+                            void downloadIngredient(ingredient);
+                          }
+                        },
+                      },
+                      {
+                        icon: <FolderOpen className="size-4" />,
+                        id: 'open-in-library',
+                        isDisabled: !libraryPath,
+                        label: t('detail.openInLibrary'),
+                        onSelect: () => {
+                          if (libraryPath) {
+                            onNavigate(libraryPath);
+                          }
+                        },
+                      },
+                    ]}
+                    primary={
+                      <Button
+                        variant={ButtonVariant.SECONDARY}
+                        size={ButtonSize.XS}
+                        onClick={() =>
+                          ingredient && onOpenPostModal(ingredient)
+                        }
+                        disabled={!ingredient}
+                        withWrapper={false}
+                      >
+                        {t('detail.publish')}
+                      </Button>
+                    }
+                  />
                 </div>
-              </article>
+              </Card>
             );
           })}
-        </div>
-      </Card>
+        </CollectionGrid>
+      </CollectionSection>
     </div>
   );
 }

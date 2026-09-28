@@ -171,45 +171,50 @@ export default function BatchComposer({
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
-                  {files.map((file, index) => (
-                    <div
-                      key={file.preview}
-                      className={`group relative overflow-hidden rounded-xl border ${
-                        file.ingredientId
-                          ? 'border-border'
-                          : 'border-amber-500/40'
-                      } bg-background/60`}
-                    >
-                      <Image
-                        unoptimized
-                        src={file.preview}
-                        alt={file.file.name}
-                        className={`aspect-square w-full object-cover outline-media ${
-                          file.ingredientId ? '' : 'opacity-60'
-                        }`}
-                        width={800}
-                        height={600}
-                      />
-                      <Button
-                        variant={ButtonVariant.UNSTYLED}
-                        size={ButtonSize.XS}
-                        onClick={() => onRemoveFile(index)}
-                        className={
-                          'absolute right-2 top-2 hidden rounded-full bg-black/60 px-2 py-1 text-xs text-white group-hover:block' // design-system-allow-content-color
-                        }
-                      >
-                        Remove
-                      </Button>
+                {/* Picker columns follow the picker's own width: it sits in
+                    the composer's second column inside the inset content
+                    panel, so viewport breakpoints over-count its room. */}
+                <div className="@container" data-testid="batch-file-picker">
+                  <div className="grid grid-cols-3 gap-3 @[40rem]:grid-cols-4 @[60rem]:grid-cols-6 @[80rem]:grid-cols-8">
+                    {files.map((file, index) => (
                       <div
-                        className={
-                          'absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-2xs text-white' // design-system-allow-content-color
-                        }
+                        key={file.preview}
+                        className={`group relative overflow-hidden rounded-xl border ${
+                          file.ingredientId
+                            ? 'border-border'
+                            : 'border-amber-500/40'
+                        } bg-background/60`}
                       >
-                        {file.ingredientId ? 'Uploaded' : 'Uploading…'}
+                        <Image
+                          unoptimized
+                          src={file.preview}
+                          alt={file.file.name}
+                          className={`aspect-square w-full object-cover outline-media ${
+                            file.ingredientId ? '' : 'opacity-60'
+                          }`}
+                          width={800}
+                          height={600}
+                        />
+                        <Button
+                          variant={ButtonVariant.UNSTYLED}
+                          size={ButtonSize.XS}
+                          onClick={() => onRemoveFile(index)}
+                          className={
+                            'absolute right-2 top-2 hidden rounded-full bg-black/60 px-2 py-1 text-xs text-white group-hover:block' // design-system-allow-content-color
+                          }
+                        >
+                          Remove
+                        </Button>
+                        <div
+                          className={
+                            'absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-2xs text-white' // design-system-allow-content-color
+                          }
+                        >
+                          {file.ingredientId ? 'Uploaded' : 'Uploading…'}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

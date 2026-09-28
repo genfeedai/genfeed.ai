@@ -74,5 +74,27 @@ export function useStudioClipProjects(options?: { isEnabled?: boolean }) {
     };
   }, [clipsService, isEnabled, selectedBrand?.id]);
 
-  return { error, isLoading, projects };
+  const renameProject = useCallback(
+    async (id: string, name: string): Promise<void> => {
+      await clipsService.updateProject(id, { name });
+      setProjects((items) =>
+        items.map((item) =>
+          item.id === id
+            ? { ...item, name, updatedAt: new Date().toISOString() }
+            : item,
+        ),
+      );
+    },
+    [clipsService],
+  );
+
+  const deleteProject = useCallback(
+    async (id: string): Promise<void> => {
+      await clipsService.updateProject(id, { isDeleted: true });
+      setProjects((items) => items.filter((item) => item.id !== id));
+    },
+    [clipsService],
+  );
+
+  return { error, isLoading, projects, renameProject, deleteProject };
 }

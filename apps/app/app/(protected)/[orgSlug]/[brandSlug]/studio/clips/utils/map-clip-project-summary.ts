@@ -36,6 +36,7 @@ export function mapClipProjectSummary(
   return {
     brandId: readString(attrs.brandId),
     createdAt: readString(attrs.createdAt),
+    updatedAt: readString(attrs.updatedAt),
     failedClipCount: readNumber(attrs.failedClipCount),
     id: item.id,
     isDraft: status === 'draft',

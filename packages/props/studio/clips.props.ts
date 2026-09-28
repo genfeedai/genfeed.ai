@@ -14,6 +14,7 @@ import type {
   IOrganizationSetting,
 } from '@genfeedai/contracts/interfaces';
 import type { ClipsApiClient } from '@props/studio/clips-api.props';
+import type { ReactNode } from 'react';
 
 // ─── Shared Types ─────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ export type ClipsStep = 'input' | 'review' | 'progress';
 export type ClipDraftSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface ClipProjectSummary {
+  updatedAt?: string;
   brandId?: string;
   createdAt?: string;
   failedClipCount: number;
@@ -147,9 +149,12 @@ export interface ClipsInputFormProps {
 export interface ClipsProjectListProps {
   isLoading: boolean;
   projects: ClipProjectSummary[];
+  onRename?: (id: string, name: string) => Promise<void>;
+  onDelete?: (id: string) => Promise<void>;
 }
 
 export interface ClipsProjectCardProps {
+  actions?: ReactNode;
   href: string;
   project: ClipProjectSummary;
 }
