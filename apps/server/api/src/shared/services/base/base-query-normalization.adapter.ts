@@ -165,9 +165,11 @@ export class BaseQueryNormalizationAdapter {
           [option.populate.path]: this.toRelationSelection(option.populate),
         }
       : undefined;
+    const where = option.where ? { where: option.where } : undefined;
 
     if (option.select?.length) {
       return {
+        ...where,
         select: {
           ...Object.fromEntries(option.select.map((field) => [field, true])),
           ...nested,
@@ -175,7 +177,11 @@ export class BaseQueryNormalizationAdapter {
       };
     }
 
-    return nested ? { include: nested } : true;
+    if (nested) {
+      return { ...where, include: nested };
+    }
+
+    return where ?? true;
   }
 
   public populateToInclude(

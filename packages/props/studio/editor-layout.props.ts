@@ -14,6 +14,9 @@ export interface EditorLayoutProps {
   zoom: number;
   isDirty: boolean;
   isRendering: boolean;
+  isReadOnly: boolean;
+  hasSaveConflict: boolean;
+  isDuplicating: boolean;
   selectedTrackId: string | null;
   selectedClipId: string | null;
   onPlayPause: () => void;
@@ -29,6 +32,7 @@ export interface EditorLayoutProps {
   onSave: () => void;
   onRender: () => void;
   onBack: () => void;
+  onDuplicate: () => void;
   onAddTextTrack: (newTrack: IEditorTrack) => void;
   onTrackUpdate: (trackId: string, trackUpdates: Partial<IEditorTrack>) => void;
   onClipMove: (trackId: string, clipId: string, newStartFrame: number) => void;

@@ -2345,14 +2345,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/captions/videos-captions.controller.spec.ts",
-      "fingerprint": "dcef470ce1d089d47638",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'BaseQueryDto'.   Type '{}' is missing the following properties from type 'BaseQueryDto': page, limit, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
       "code": 2739,
       "count": 2,
       "file": "apps/server/api/src/collections/videos/controllers/relationships/videos-relationships.controller.spec.ts",
@@ -3070,22 +3062,6 @@
       "file": "apps/server/api/src/helpers/utils/collection-filter/collection-filter.util.spec.ts",
       "fingerprint": "d7eb935ea57159a2cdad",
       "message": "'onlyEnd.createdAt' is of type 'unknown'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "8d53b5d1e7422823def0",
-      "message": "Argument of type '{ id: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'organizationId' is missing in type '{ id: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "af5e929b6f08988ce69d",
-      "message": "Argument of type '{ organizationId: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'id' is missing in type '{ organizationId: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
       "workspace": "api"
     },
     {
@@ -11446,14 +11422,6 @@
       "file": "packages/pages/activities/activities-list.tsx",
       "fingerprint": "a667509286102e79b6dc",
       "message": "Cannot find module '@providers/global-modals/global-modals.provider' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/AgentCampaignsPage.tsx",
-      "fingerprint": "c107aff12bd61292261b",
-      "message": "Parameter 'campaign' implicitly has an 'any' type.",
       "workspace": "pages"
     },
     {

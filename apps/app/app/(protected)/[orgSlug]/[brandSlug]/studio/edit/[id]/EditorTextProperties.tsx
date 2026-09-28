@@ -39,6 +39,7 @@ const PRESET_COLORS = [
 function EditorTextProperties({
   selectedTextClip,
   onUpdateTextOverlay,
+  isReadOnly = false,
 }: EditorTextPropertiesProps) {
   const overlay = selectedTextClip.textOverlay;
   if (!overlay) return null;
@@ -55,6 +56,7 @@ function EditorTextProperties({
         <Textarea
           value={overlay.text}
           onChange={(e) => onUpdateTextOverlay({ text: e.target.value })}
+          isDisabled={isReadOnly}
           className="w-full bg-background border border-border rounded px-2 py-1 text-sm resize-none"
           rows={2}
         />
@@ -64,6 +66,7 @@ function EditorTextProperties({
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Font</span>
         <Select
+          disabled={isReadOnly}
           value={overlay.fontFamily || 'Arial'}
           onValueChange={(value) => onUpdateTextOverlay({ fontFamily: value })}
         >
@@ -86,6 +89,7 @@ function EditorTextProperties({
           Size: {overlay.fontSize}px
         </label>
         <Slider
+          disabled={isReadOnly}
           min={12}
           max={120}
           step={1}
@@ -98,6 +102,7 @@ function EditorTextProperties({
       <div>
         <span className="text-xs text-muted-foreground block mb-1">Weight</span>
         <Select
+          disabled={isReadOnly}
           value={String(overlay.fontWeight || 700)}
           onValueChange={(value) =>
             onUpdateTextOverlay({ fontWeight: Number(value) })
@@ -133,11 +138,13 @@ function EditorTextProperties({
               }`}
               style={{ backgroundColor: color }}
               onClick={() => onUpdateTextOverlay({ color })}
+              isDisabled={isReadOnly}
               tooltip={color}
               ariaLabel={`Set color ${color}`}
             />
           ))}
           <ColorInput
+            disabled={isReadOnly}
             value={overlay.color}
             onChange={(e) => onUpdateTextOverlay({ color: e.target.value })}
             className="size-6 rounded border-border-strong p-0"
@@ -153,6 +160,7 @@ function EditorTextProperties({
         </span>
         <div className="flex items-center gap-2">
           <ColorInput
+            disabled={isReadOnly}
             value={
               overlay.backgroundColor === 'transparent'
                 ? '#000000'
@@ -175,6 +183,7 @@ function EditorTextProperties({
             onClick={() =>
               onUpdateTextOverlay({ backgroundColor: 'transparent' })
             }
+            isDisabled={isReadOnly}
           >
             None
           </Button>
@@ -187,6 +196,7 @@ function EditorTextProperties({
           X Position: {overlay.position.x}%
         </label>
         <Slider
+          disabled={isReadOnly}
           min={0}
           max={100}
           step={1}
@@ -205,6 +215,7 @@ function EditorTextProperties({
           Y Position: {overlay.position.y}%
         </label>
         <Slider
+          disabled={isReadOnly}
           min={0}
           max={100}
           step={1}

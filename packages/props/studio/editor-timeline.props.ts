@@ -21,11 +21,13 @@ export interface EditorTimelineProps {
   ) => void;
   onClipSelect: (trackId: string, clipId: string) => void;
   selectedClipId: string | null;
+  isReadOnly?: boolean;
 }
 
 export interface TrackRowProps {
   track: IEditorTrack;
   zoom: number;
+  isReadOnly: boolean;
   selectedClipId: string | null;
   onClipSelect: (clipId: string) => void;
   onClipMove: (clipId: string, newStartFrame: number) => void;

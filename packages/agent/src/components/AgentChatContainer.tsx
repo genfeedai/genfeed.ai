@@ -183,13 +183,17 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  // The dock and registered overlays host the prompt bar in a shell slot even
+  // for an empty conversation; only the full page keeps it inline under the
+  // hero.
+  const isShellHostedComposer =
+    composerShell?.placement === 'dock' ||
+    composerShell?.placement === 'overlay';
   // When the docked composer is visible, status/errors live above the glass
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
-    (onboardingMode ||
-      !container.isEmpty ||
-      composerShell?.placement === 'inspector');
+    (onboardingMode || !container.isEmpty || isShellHostedComposer);
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
@@ -264,20 +268,17 @@ export function AgentChatContainer({
             getCompletedAttachments={container.getCompletedAttachments}
             isAttachmentUploading={container.isAttachmentUploading}
             isBusy={container.isBusy}
-            // Inspector docks the composer in the shell slot; full-page empty
-            // keeps it inline and centered under the hero. Archived threads
-            // use the docked restore bar instead of a dead input.
+            // The dock and overlays host the composer in a shell slot;
+            // full-page empty keeps it inline and centered under the hero.
+            // Archived threads use the docked restore bar instead of a dead
+            // input.
             isComposerVisible={
-              !onboardingMode &&
-              !isArchivedThread &&
-              composerShell?.placement !== 'inspector'
+              !onboardingMode && !isArchivedThread && !isShellHostedComposer
             }
             isReadOnly={isReadOnly}
             isRunActive={container.isRunActive}
             isWideLayout={isWideLayout}
-            variant={
-              composerShell?.placement === 'inspector' ? 'inspector' : 'default'
-            }
+            variant={composerShell?.placement === 'dock' ? 'dock' : 'default'}
             onMoveFollowUp={container.followUpQueue.move}
             onPromoteQueuedFollowUp={container.promoteQueuedFollowUp}
             onRemoveFollowUp={container.followUpQueue.remove}

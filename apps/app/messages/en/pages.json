@@ -547,6 +547,13 @@
     "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
     "title": "Batch Workflow Runner"
   },
+  "studioEditorLock": {
+    "conflictDescription": "It was generated from an approved composition template, so your recent changes were not saved. Duplicate it to edit a copy.",
+    "description": "It was generated from an approved composition template, so it cannot be changed. Duplicate it to edit a copy.",
+    "duplicateToEdit": "Duplicate to edit",
+    "readOnlyBadge": "(read-only)",
+    "title": "This project is read-only"
+  },
   "studioGenerate": {
     "scenes": {
       "title": "Original ad scenes",
@@ -3169,5 +3176,15 @@
     "title": "Unit Economics",
     "titleDrillDown": "Unit Economics · {label}",
     "total": "Total"
+  },
+  "brandDetailOverview": {
+    "uploadProfilePicture": "Upload profile picture",
+    "generateProfilePicture": "Generate profile picture",
+    "editBrandName": "Edit brand name",
+    "editBrandHandle": "Edit brand handle",
+    "editBrandDescription": "Edit brand description",
+    "addDescription": "Add a description",
+    "copyPublicProfileLink": "Copy public profile link",
+    "profile": "Profile"
   }
 }

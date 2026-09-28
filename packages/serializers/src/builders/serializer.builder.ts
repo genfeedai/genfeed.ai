@@ -63,19 +63,20 @@ export function buildSerializer(
     return { [`${typeCapitalized}Serializer`]: serializer };
   }
 
+  // Wrap serialize on the instance itself (as getSerializer does): callers set
+  // `opts` (top-level pagination links) on the serializer they hold, and a
+  // separate wrapper object would drop them.
   const originalSerialize = serializer.serialize.bind(serializer);
-  return {
-    [`${typeCapitalized}Serializer`]: {
-      serialize: (payload: unknown) =>
-        originalSerialize(
-          transformSerializerPayload(
-            payload,
-            attributeTransforms ?? {},
-            attributeDerivations ?? {},
-          ),
-        ),
-    },
-  };
+  serializer.serialize = (payload: unknown) =>
+    originalSerialize(
+      transformSerializerPayload(
+        payload,
+        attributeTransforms ?? {},
+        attributeDerivations ?? {},
+      ),
+    );
+
+  return { [`${typeCapitalized}Serializer`]: serializer };
 }
 
 /**

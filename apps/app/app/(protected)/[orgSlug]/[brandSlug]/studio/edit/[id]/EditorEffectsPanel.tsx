@@ -56,6 +56,7 @@ const AVAILABLE_EFFECTS: EffectConfig[] = [
 
 function EditorEffectsPanel({
   tracks,
+  isReadOnly = false,
   selectedTrackId,
   selectedClipId,
   onTrackUpdate,
@@ -210,6 +211,7 @@ function EditorEffectsPanel({
                               variant={ButtonVariant.GHOST}
                               size={ButtonSize.XS}
                               onClick={() => handleRemoveEffect(effect.type)}
+                              isDisabled={isReadOnly}
                               className="text-destructive hover:text-destructive"
                             >
                               ✕
@@ -217,6 +219,7 @@ function EditorEffectsPanel({
                           </div>
                           <div className="flex items-center gap-2">
                             <Slider
+                              disabled={isReadOnly}
                               min={0}
                               max={100}
                               step={1}
@@ -255,6 +258,7 @@ function EditorEffectsPanel({
                           variant={ButtonVariant.UNSTYLED}
                           size={ButtonSize.SM}
                           key={config.type}
+                          isDisabled={isReadOnly}
                           className="w-full flex items-center gap-3 p-2 rounded hover:bg-muted/50 transition-colors text-left"
                           onClick={() =>
                             handleAddEffect(

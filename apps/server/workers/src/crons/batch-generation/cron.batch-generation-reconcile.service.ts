@@ -1,3 +1,4 @@
+import { BatchProjectReconcileService } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -25,7 +26,23 @@ export class CronBatchGenerationReconcileService {
     private readonly logger: LoggerService,
     private readonly reconcileService: BatchGenerationReconcileService,
     private readonly workflowService: BatchGenerationWorkflowService,
+    private readonly batchProjectReconcileService: BatchProjectReconcileService,
   ) {}
+
+  /**
+   * Advance Studio Batch projects whose generation is in flight (#5463), so a
+   * batch the creator left mid-generation still reaches the review inbox.
+   */
+  async reconcileBatchProjects(): Promise<void> {
+    const projectCount =
+      await this.batchProjectReconcileService.reconcileGeneratingProjects();
+    if (projectCount > 0) {
+      this.logger.log('CronBatchGenerationReconcileService batch projects', {
+        context: this.context,
+        projectCount,
+      });
+    }
+  }
 
   async reconcileSettlementShortfalls(): Promise<void> {
     await this.reconcileService.reconcileSettlementShortfalls();

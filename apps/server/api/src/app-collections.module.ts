@@ -1,3 +1,4 @@
+import { BatchProjectsModule } from '@api/collections/batch-projects/batch-projects.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
 /** Collection HTTP and persistence modules registered by the API process. */
 
@@ -135,6 +136,7 @@ import { Module } from '@nestjs/common';
     ArticlesModule,
     AssetsModule,
     AvatarsModule,
+    BatchProjectsModule,
     BookmarksModule,
     BotsModule,
     BrandMemoryModule,

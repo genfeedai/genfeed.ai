@@ -26,6 +26,7 @@ import {
   StepBack,
   StepForward,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { formatPlaybackFrameTime } from './editor-time-format.util';
 
@@ -55,6 +56,7 @@ function EditorToolbar({
   zoom,
   isDirty,
   isRendering,
+  isReadOnly = false,
   onPlayPause,
   onSeekStart,
   onSeekEnd,
@@ -68,6 +70,8 @@ function EditorToolbar({
   onRender,
   onBack,
 }: EditorToolbarProps) {
+  const t = useTranslations('pages.studioEditorLock');
+
   return (
     <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
       {/* Left section - Navigation & Project info */}
@@ -84,8 +88,14 @@ function EditorToolbar({
 
         <div className="flex items-center gap-2">
           <span className="font-medium">{projectName}</span>
-          {isDirty && (
-            <span className="text-xs text-muted-foreground">(unsaved)</span>
+          {isReadOnly ? (
+            <span className="text-xs text-muted-foreground">
+              {t('readOnlyBadge')}
+            </span>
+          ) : (
+            isDirty && (
+              <span className="text-xs text-muted-foreground">(unsaved)</span>
+            )
           )}
         </div>
       </div>
@@ -165,6 +175,7 @@ function EditorToolbar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             onClick={onAddVideoTrack}
+            isDisabled={isReadOnly}
             tooltip="Add Video Track"
             icon={<Film className="size-4" />}
           >
@@ -175,6 +186,7 @@ function EditorToolbar({
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             onClick={onAddAudioTrack}
+            isDisabled={isReadOnly}
             tooltip="Add Audio Track"
             icon={<Music className="size-4" />}
           >
@@ -185,6 +197,7 @@ function EditorToolbar({
         {/* Format selector */}
         <Select
           value={format}
+          disabled={isReadOnly}
           onValueChange={(value) => onFormatChange(value as IngredientFormat)}
         >
           <SelectTrigger className="w-24">
@@ -218,7 +231,7 @@ function EditorToolbar({
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           onClick={onSave}
-          isDisabled={!isDirty}
+          isDisabled={!isDirty || isReadOnly}
         >
           Save
         </Button>
@@ -229,7 +242,7 @@ function EditorToolbar({
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
           onClick={onRender}
-          isDisabled={isRendering}
+          isDisabled={isRendering || isReadOnly}
         >
           {isRendering ? 'Rendering...' : 'Render'}
         </Button>

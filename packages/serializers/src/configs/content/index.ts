@@ -2,6 +2,7 @@ export * from '@serializers/configs/content/agent-publish-audit.config';
 export * from '@serializers/configs/content/article.config';
 export * from '@serializers/configs/content/batch.config';
 export * from '@serializers/configs/content/batch-interpolation.config';
+export * from '@serializers/configs/content/batch-project.config';
 export * from '@serializers/configs/content/bookmark.config';
 export * from '@serializers/configs/content/calendar-slot.config';
 export * from '@serializers/configs/content/calendar-slot-bulk-generate.config';

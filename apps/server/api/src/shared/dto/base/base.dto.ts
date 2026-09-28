@@ -6,7 +6,8 @@ import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 export abstract class BaseCreateDto {}
 
 export abstract class OrganizationalCreateDto extends BaseCreateDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly userId?: string;
@@ -60,7 +61,8 @@ export abstract class LabeledCreateDto extends OrganizationalCreateDto {
 export abstract class BaseUpdateDto {}
 
 export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @IsOptional()
   @ApiProperty({ required: false })
   readonly userId?: string;

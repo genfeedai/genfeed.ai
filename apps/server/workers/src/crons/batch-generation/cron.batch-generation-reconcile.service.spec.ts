@@ -1,3 +1,4 @@
+import { BatchProjectReconcileService } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
@@ -13,6 +14,7 @@ describe('CronBatchGenerationReconcileService', () => {
     reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
   };
   let queueService: { queueBatch: ReturnType<typeof vi.fn> };
+  const batchProjectReconcile = { reconcileGeneratingProjects: vi.fn() };
   let logger: {
     error: ReturnType<typeof vi.fn>;
     log: ReturnType<typeof vi.fn>;
@@ -51,6 +53,10 @@ describe('CronBatchGenerationReconcileService', () => {
           useValue: reconcileService,
         },
         { provide: BatchGenerationWorkflowService, useValue: queueService },
+        {
+          provide: BatchProjectReconcileService,
+          useValue: batchProjectReconcile,
+        },
       ],
     }).compile();
 
@@ -104,5 +110,19 @@ describe('CronBatchGenerationReconcileService', () => {
     expect(
       reconcileService.reconcileSettlementShortfalls,
     ).toHaveBeenCalledOnce();
+  });
+
+  it('advances every generating Studio Batch project', async () => {
+    batchProjectReconcile.reconcileGeneratingProjects.mockResolvedValue(3);
+
+    await service.reconcileBatchProjects();
+
+    expect(
+      batchProjectReconcile.reconcileGeneratingProjects,
+    ).toHaveBeenCalledTimes(1);
+    expect(logger.log).toHaveBeenCalledWith(
+      'CronBatchGenerationReconcileService batch projects',
+      expect.objectContaining({ projectCount: 3 }),
+    );
   });
 });

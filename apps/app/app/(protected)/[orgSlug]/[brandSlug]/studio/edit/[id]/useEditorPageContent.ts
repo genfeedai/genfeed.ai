@@ -20,6 +20,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
+import { getErrorStatus } from '@utils/error/json-api-status.util';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -28,6 +29,7 @@ import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
 const AUTO_SAVE_INTERVAL = 30000;
+const HTTP_CONFLICT = 409;
 
 const FORMAT_DIMENSIONS: Record<
   IngredientFormat,
@@ -46,6 +48,8 @@ export function useEditorPageContent(projectId: string) {
   const { openConfirm } = useConfirmModal();
   const notificationsService = NotificationsService.getInstance();
   const previewRef = useRef<EditorPreviewRef | null>(null);
+  // Last version the server holds; a save conflict falls back to it.
+  const savedProjectRef = useRef<IEditorProject | null>(null);
 
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
@@ -53,7 +57,9 @@ export function useEditorPageContent(projectId: string) {
 
   const [state, setState] = useState<EditorState>({
     currentFrame: 0,
+    hasSaveConflict: false,
     isDirty: false,
+    isDuplicating: false,
     isLoading: true,
     isPlaying: false,
     isRendering: false,
@@ -63,6 +69,23 @@ export function useEditorPageContent(projectId: string) {
     selectedTrackId: null,
     zoom: 2,
   });
+
+  const isReadOnly = Boolean(state.project?.isLocked) || state.hasSaveConflict;
+
+  // The server refuses updates to composition-backed projects with a 409.
+  // Switch to read-only on the server version instead of a generic error;
+  // pending local edits cannot be saved, so they are dropped.
+  const handleSaveConflict = useCallback(() => {
+    setState((prev) => {
+      const serverProject = savedProjectRef.current ?? prev.project;
+      return {
+        ...prev,
+        hasSaveConflict: true,
+        isDirty: false,
+        project: serverProject ? { ...serverProject, isLocked: true } : null,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
@@ -80,6 +103,7 @@ export function useEditorPageContent(projectId: string) {
         const project = await service.findById(projectId);
 
         if (!controller.signal.aborted) {
+          savedProjectRef.current = project ?? null;
           setState((prev) => ({
             ...prev,
             isLoading: false,
@@ -102,7 +126,7 @@ export function useEditorPageContent(projectId: string) {
 
   // Auto-save effect
   useEffect(() => {
-    if (!state.project || !state.isDirty) {
+    if (!state.project || !state.isDirty || isReadOnly) {
       return;
     }
 
@@ -116,6 +140,7 @@ export function useEditorPageContent(projectId: string) {
           totalDurationFrames: project.totalDurationFrames,
           tracks: project.tracks,
         });
+        savedProjectRef.current = project;
         logger.info('Project auto-saved', { projectId: project.id });
         setState((prev) => ({
           ...prev,
@@ -124,19 +149,38 @@ export function useEditorPageContent(projectId: string) {
         }));
         notificationsService.success('Project auto-saved');
       } catch (error) {
+        if (getErrorStatus(error) === HTTP_CONFLICT) {
+          handleSaveConflict();
+          return;
+        }
         logger.error('Failed to auto-save project', error);
       }
     }, AUTO_SAVE_INTERVAL);
 
     return () => clearTimeout(saveTimeout);
-  }, [state.project, state.isDirty, notificationsService, getEditorService]);
+  }, [
+    state.project,
+    state.isDirty,
+    isReadOnly,
+    notificationsService,
+    getEditorService,
+    handleSaveConflict,
+  ]);
 
+  // Every edit funnels through here, so a read-only project never turns dirty
+  // and never reaches a save.
   const updateProject = useCallback((updates: Partial<IEditorProject>) => {
-    setState((prev) => ({
-      ...prev,
-      isDirty: true,
-      project: prev.project ? { ...prev.project, ...updates } : null,
-    }));
+    setState((prev) => {
+      if (!prev.project || prev.project.isLocked || prev.hasSaveConflict) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        isDirty: true,
+        project: { ...prev.project, ...updates },
+      };
+    });
   }, []);
 
   const handlePlayPause = useCallback(() => {
@@ -199,6 +243,10 @@ export function useEditorPageContent(projectId: string) {
   );
 
   const handleAddVideoTrack = useCallback(() => {
+    if (isReadOnly) {
+      return;
+    }
+
     openGallery({
       category: IngredientCategory.VIDEO,
       onSelect: (selected) => {
@@ -248,9 +296,13 @@ export function useEditorPageContent(projectId: string) {
       },
       title: 'Select Video',
     });
-  }, [openGallery, state.project, updateProject]);
+  }, [isReadOnly, openGallery, state.project, updateProject]);
 
   const handleAddAudioTrack = useCallback(() => {
+    if (isReadOnly) {
+      return;
+    }
+
     openGallery({
       category: IngredientCategory.MUSIC,
       onSelect: (selected) => {
@@ -293,7 +345,7 @@ export function useEditorPageContent(projectId: string) {
       },
       title: 'Select Music',
     });
-  }, [openGallery, state.project, updateProject]);
+  }, [isReadOnly, openGallery, state.project, updateProject]);
 
   const handleAddTextTrack = useCallback(
     (newTrack: IEditorTrack) => {
@@ -431,18 +483,20 @@ export function useEditorPageContent(projectId: string) {
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!state.project) {
+    if (!state.project || isReadOnly) {
       return;
     }
 
+    const project = state.project;
     try {
       const service = await getEditorService();
-      await service.update(state.project.id, {
-        name: state.project.name,
-        settings: state.project.settings,
-        totalDurationFrames: state.project.totalDurationFrames,
-        tracks: state.project.tracks,
+      await service.update(project.id, {
+        name: project.name,
+        settings: project.settings,
+        totalDurationFrames: project.totalDurationFrames,
+        tracks: project.tracks,
       });
+      savedProjectRef.current = project;
       setState((prev) => ({
         ...prev,
         isDirty: false,
@@ -450,32 +504,54 @@ export function useEditorPageContent(projectId: string) {
       }));
       notificationsService.success('Project saved');
     } catch (error) {
+      if (getErrorStatus(error) === HTTP_CONFLICT) {
+        handleSaveConflict();
+        return;
+      }
       logger.error('Failed to save project', error);
       notificationsService.error('Failed to save project');
     }
-  }, [state.project, notificationsService, getEditorService]);
+  }, [
+    state.project,
+    isReadOnly,
+    notificationsService,
+    getEditorService,
+    handleSaveConflict,
+  ]);
 
   const handleRender = useCallback(async () => {
-    if (!state.project) {
+    if (!state.project || isReadOnly) {
       return;
     }
 
+    const project = state.project;
     setState((prev) => ({ ...prev, isRendering: true }));
 
     try {
       // Save latest state before rendering
       const service = await getEditorService();
-      await service.update(state.project.id, {
-        name: state.project.name,
-        settings: state.project.settings,
-        totalDurationFrames: state.project.totalDurationFrames,
-        tracks: state.project.tracks,
-      });
+      try {
+        await service.update(project.id, {
+          name: project.name,
+          settings: project.settings,
+          totalDurationFrames: project.totalDurationFrames,
+          tracks: project.tracks,
+        });
+      } catch (error) {
+        // Only the update's 409 means the project is immutable; the render
+        // endpoint also answers 409 for a render that is already running.
+        if (getErrorStatus(error) === HTTP_CONFLICT) {
+          handleSaveConflict();
+          return;
+        }
+        throw error;
+      }
+      savedProjectRef.current = project;
 
-      const { jobId } = await service.render(state.project.id);
+      const { jobId } = await service.render(project.id);
       logger.info('Render job started', {
         jobId,
-        projectId: state.project.id,
+        projectId: project.id,
       });
 
       setState((prev) => ({
@@ -493,7 +569,40 @@ export function useEditorPageContent(projectId: string) {
     } finally {
       setState((prev) => ({ ...prev, isRendering: false }));
     }
-  }, [state.project, notificationsService, getEditorService]);
+  }, [
+    state.project,
+    isReadOnly,
+    notificationsService,
+    getEditorService,
+    handleSaveConflict,
+  ]);
+
+  const handleDuplicate = useCallback(async () => {
+    if (!state.project || state.isDuplicating) {
+      return;
+    }
+
+    const sourceId = state.project.id;
+    setState((prev) => ({ ...prev, isDuplicating: true }));
+
+    try {
+      const service = await getEditorService();
+      const copy = await service.duplicate(sourceId);
+      push(href(`${APP_ROUTES.STUDIO.EDIT}/${copy.id}`));
+    } catch (error) {
+      logger.error('Failed to duplicate project', error);
+      notificationsService.error('Failed to duplicate project');
+    } finally {
+      setState((prev) => ({ ...prev, isDuplicating: false }));
+    }
+  }, [
+    state.project,
+    state.isDuplicating,
+    getEditorService,
+    push,
+    href,
+    notificationsService,
+  ]);
 
   const handleBack = useCallback(() => {
     if (state.isDirty) {
@@ -593,6 +702,7 @@ export function useEditorPageContent(projectId: string) {
 
   return {
     state,
+    isReadOnly,
     previewRef,
     handlePlayPause,
     handleSeek,
@@ -611,6 +721,7 @@ export function useEditorPageContent(projectId: string) {
     handleClipSelect,
     handleSave,
     handleRender,
+    handleDuplicate,
     handleBack,
     handleFrameChange,
     handlePlayingChange,

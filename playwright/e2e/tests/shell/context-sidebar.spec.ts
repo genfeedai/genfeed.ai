@@ -158,6 +158,30 @@ test.describe('Context sidebar — selection driven', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
+  test('hands the selected asset to the agent dock without leaving Studio', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
+    await openStudioList(authenticatedPage);
+    const studioUrl = authenticatedPage.url();
+
+    await authenticatedPage
+      .getByTestId(`studio-asset-${ASSET_ID}`)
+      .getByText(ASSET_PROMPT)
+      .click();
+    await authenticatedPage
+      .getByRole('group', { name: 'Asset actions' })
+      .getByRole('button', { name: 'Ask Agent about this' })
+      .click();
+
+    const dock = authenticatedPage.getByRole('region', { name: 'Agent' });
+    await expect(dock).toBeVisible();
+    await expect(
+      dock.getByLabel(`Referenced content: ${ASSET_PROMPT}`),
+    ).toBeVisible();
+    expect(authenticatedPage.url()).toBe(studioUrl);
+  });
+
   test('keeps the selection while the topbar collapses and reopens it', async ({
     authenticatedPage,
   }) => {

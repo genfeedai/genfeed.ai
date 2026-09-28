@@ -1,10 +1,10 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BillingAccountMemberRole } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 
 export class GrantBillingRoleDto {
-  @IsEntityId()
+  @IsString()
+  @IsNotEmpty()
   @ApiProperty({ description: 'User receiving the billing role' })
   readonly userId!: string;
 

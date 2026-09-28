@@ -4,27 +4,10 @@ description: Genfeed blocks raw HTML elements (button, input, textarea, select, 
 type: feedback
 ---
 
-In this repo, **never write raw `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<details>`, `<summary>`, `<progress>`, or `<hr>` elements** in production `.tsx` files. They are blocked by `scripts/ui/control-guard.ts` — the single canonical raw-control scanner that replaced the old `check-raw-button-usage.ts`, `check-raw-ui-controls.ts`, and `lint-no-raw-html.sh`. It runs pre-commit via lint-staged (`lint-staged.config.mjs`) and repo-wide in CI via `bun run check:ui-guards`.
-
-**Use `@ui/primitives/*` instead:**
-- `<button>` → `Button` from `@ui/primitives/button`
-- `<input>` → `Input` from `@ui/primitives/input`
-- `<textarea>` → `Textarea` from `@ui/primitives/textarea`
-- `<select>` → `Select` from `@ui/primitives/select`
-- `<dialog>` → `Dialog` from `@ui/primitives/dialog`
-- `<table>` → `Table` from `@ui/primitives/table`
-- `<hr>` → `Separator` from `@ui/primitives/separator`
-
-**Button component gotchas:**
-- For "unstyled" usage (e.g. replacing a clickable `<div>`), use `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}` + custom `className`
-- Never nest `Button` inside `Button` — invalid HTML. Restructure as siblings (e.g. absolute positioning)
-- Button is a `forwardRef<HTMLButtonElement>`, takes `onClick`, `onKeyDown`, `tabIndex`, and spreads `...props`
-
-**When converting a clickable div to a real button, check for nested buttons first.** If the original div contains another Button (e.g. a Delete action), don't convert the outer to a button — refactor to put both as siblings instead, or the HTML becomes invalid.
-
-**Why:** Enforces design system consistency and a11y. User has called out raw HTML violations multiple times.
-
-**How to apply:** Before adding any `<button>`, `<input>`, `<dialog>`, etc., check `packages/ui/src/primitives/` for the corresponding component. If a div with `role="button"` would be the natural choice, use `Button` with `variant={ButtonVariant.UNSTYLED}` instead. Exclusions (primitives, editors, tests, mocks) live in the single `ALLOWLIST` in `scripts/ui/control-guard.ts`.
+The raw-HTML-controls ban (`<button>`, `<input>`, `<dialog>`, etc. → `@ui/primitives/*`) is stated
+in the root `CLAUDE.md` (always loaded) and enforced by `scripts/ui/control-guard.ts` pre-commit
+(`lint-staged.config.mjs`) and in CI (`bun run check:ui-guards`); its `ALLOWLIST` is the single
+exclusion list. Do not re-duplicate that content here — see `CLAUDE.md` → Frontend.
 
 ## Shared page UX (verified 2026-09-05)
 

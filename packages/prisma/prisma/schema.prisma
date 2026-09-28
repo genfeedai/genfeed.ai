@@ -497,6 +497,30 @@ enum BatchItemStatus {
   SKIPPED
 }
 
+enum BatchProjectKind {
+  IDEAS
+  WORKFLOW
+}
+
+enum BatchProjectStatus {
+  DRAFT
+  GENERATING
+  REVIEWING
+  SCHEDULED
+  COMPLETED
+  PARTIAL_FAILURE
+  CANCELLED
+}
+
+enum BatchProjectItemStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+  APPROVED
+  REJECTED
+}
+
 enum PlatformRole {
   USER
   SUPERADMIN
@@ -866,6 +890,8 @@ model Organization {
   billingAccountLinks           BillingAccountOrganization[]
   creditReservations            CreditReservation[]
   liveSessions                  LiveSession[]
+  batchProjects                 BatchProject[]
+  batchProjectItems             BatchProjectItem[]
   referralCodesRewardTarget     ReferralCode[]                 @relation("referral_code_reward_organization")
   referralsAsReferrer           Referral[]                     @relation("referral_referrer_organization")
   referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
@@ -7004,6 +7030,75 @@ model BatchItem {
   @@index([batchId, isDeleted, createdAt], map: "batch_items_batch_created_idx")
   @@index([organizationId, assigneeId, isDeleted], map: "batch_items_org_assignee_deleted_idx")
   @@map("batch_items")
+}
+
+/// A saved Studio Batch run (#5463): ideas or a workflow applied to many
+/// inputs. Every step, input and per-item state persists here so a reload
+/// restores the run. Outputs reach publishing through the review inbox
+/// (`reviewBatchId` links the manual-review Batch the items are appended to).
+model BatchProject {
+  id             String                @id @default(cuid())
+  organizationId String
+  organization   Organization          @relation(fields: [organizationId], references: [id])
+  brandId        String
+  userId         String
+  kind           BatchProjectKind
+  name           String
+  status         BatchProjectStatus    @default(DRAFT)
+  /// Wizard step, lowercase product vocabulary (`BatchProjectStep`).
+  step           String
+  workflowId     String?
+  /// Idea inputs (formats, count, angle) and schedule choices (targets,
+  /// posting set, timezone). Shape: `IBatchProjectSettings`.
+  settings       Json                  @default("{}")
+  reviewBatchId  String?
+  isDeleted      Boolean               @default(false)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  items          BatchProjectItem[]
+
+  @@index([organizationId, brandId, isDeleted, updatedAt(sort: Desc)])
+  @@index([status, isDeleted, updatedAt])
+  @@map("batch_projects")
+}
+
+/// One input of a BatchProject: an idea brief or an input ingredient, with its
+/// generation, review and scheduling state.
+model BatchProjectItem {
+  id                  String                 @id @default(cuid())
+  organizationId      String
+  organization        Organization           @relation(fields: [organizationId], references: [id])
+  projectId           String
+  project             BatchProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  position            Int
+  status              BatchProjectItemStatus @default(PENDING)
+  /// Idea brief for idea batches. Shape: `FastlaneIdea`.
+  idea                Json?
+  inputIngredientId   String?
+  inputCategory       String?
+  /// Parent workflow batch execution and this item's index in it.
+  workflowExecutionId String?
+  workflowItemIndex   Int?
+  outputIngredientId  String?
+  outputCategory      String?
+  caption             String?
+  error               String?
+  dispatchedAt        DateTime?
+  postId              String?
+  reviewBatchId       String?
+  reviewItemId        String?
+  scheduledAt         DateTime?
+  /// Destinations this item scheduled to: `[{ credentialId, postId, scheduledAt }]`.
+  scheduledTargets    Json                   @default("[]")
+  /// Retry attempts; each attempt dispatches under its own idempotency key.
+  retryCount          Int                    @default(0)
+  isDeleted           Boolean                @default(false)
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  @@index([organizationId, projectId, isDeleted, position], map: "batch_project_items_org_project_position_idx")
+  @@index([organizationId, reviewItemId, isDeleted])
+  @@map("batch_project_items")
 }
 
 // ═══════════════════════════════════════════════════════════════

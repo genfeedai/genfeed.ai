@@ -12,13 +12,14 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { type Ref, useImperativeHandle } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
 import type { EditorPreviewRef } from './EditorPreview';
 import EditorPageContent from './editor-page-content';
 
 const mocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
+  duplicate: vi.fn(),
   error: vi.fn(),
   findById: vi.fn(),
   href: vi.fn((path: string) => `/org/acme/brand/demo${path}`),
@@ -34,12 +35,18 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    duplicate: mocks.duplicate,
     findById: mocks.findById,
     render: mocks.renderProject,
     update: mocks.update,
@@ -105,6 +112,7 @@ vi.mock('./EditorToolbar', () => ({
     format,
     isDirty,
     isPlaying,
+    isReadOnly,
     isRendering,
     onAddAudioTrack,
     onAddVideoTrack,
@@ -124,6 +132,7 @@ vi.mock('./EditorToolbar', () => ({
     format: IngredientFormat;
     isDirty: boolean;
     isPlaying: boolean;
+    isReadOnly: boolean;
     isRendering: boolean;
     onAddAudioTrack: () => void;
     onAddVideoTrack: () => void;
@@ -145,6 +154,7 @@ vi.mock('./EditorToolbar', () => ({
       <div>frame:{currentFrame}</div>
       <div>dirty:{String(isDirty)}</div>
       <div>playing:{String(isPlaying)}</div>
+      <div>readOnly:{String(isReadOnly)}</div>
       <div>rendering:{String(isRendering)}</div>
       <button type="button" onClick={onBack}>
         Back
@@ -357,6 +367,7 @@ function makeProject(overrides: Record<string, unknown> = {}) {
     createdAt: '2026-01-01T00:00:00.000Z',
     id: 'editor-123',
     isDeleted: false,
+    isLocked: false,
     name: 'Launch Reel',
     organization: 'org-1',
     settings: {
@@ -591,6 +602,153 @@ describe('EditorPageContent', () => {
     expect(await screen.findByText('Project not found')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
     expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
+  });
+
+  describe('locked template projects', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('opens a locked project read-only and never attempts a save', async () => {
+      await renderLoadedEditor(makeProject({ isLocked: true }));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      const banner = screen.getByRole('status');
+      expect(banner).toHaveTextContent('This project is read-only');
+      expect(banner).toHaveTextContent('approved composition template');
+      expect(screen.getByText('readOnly:true')).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Mute Track' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Move Clip' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resize Clip End' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Effect' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Set Volume' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Video' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Add Audio' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Render' }));
+      fireEvent.keyDown(window, { key: 's', metaKey: true });
+
+      act(() => {
+        vi.advanceTimersByTime(31_000);
+      });
+      vi.useRealTimers();
+
+      expect(screen.getByText('dirty:false')).toBeVisible();
+      expect(
+        screen.getByText(`format:${IngredientFormat.LANDSCAPE}`),
+      ).toBeVisible();
+      expect(mocks.openGallery).not.toHaveBeenCalled();
+      expect(mocks.update).not.toHaveBeenCalled();
+      expect(mocks.renderProject).not.toHaveBeenCalled();
+
+      // Seeking stays available while the project is locked.
+      fireEvent.click(screen.getByRole('button', { name: 'Timeline Seek' }));
+      expect(mocks.seekToFrame).toHaveBeenCalledWith(12);
+    });
+
+    it('duplicates a locked project and opens the editable copy', async () => {
+      mocks.duplicate.mockResolvedValue(
+        makeProject({ id: 'editor-copy', name: 'Launch Reel (copy)' }),
+      );
+      await renderLoadedEditor(makeProject({ isLocked: true }));
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Duplicate to edit' }),
+      );
+
+      await waitFor(() => {
+        expect(mocks.duplicate).toHaveBeenCalledWith('editor-123');
+        expect(mocks.push).toHaveBeenCalledWith(
+          '/org/acme/brand/demo/studio/edit/editor-copy',
+        );
+      });
+    });
+
+    it('reports a failed duplicate without leaving the locked project', async () => {
+      mocks.duplicate.mockRejectedValue(new Error('network down'));
+      await renderLoadedEditor(makeProject({ isLocked: true }));
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Duplicate to edit' }),
+      );
+
+      await waitFor(() => {
+        expect(mocks.error).toHaveBeenCalledWith('Failed to duplicate project');
+      });
+      expect(mocks.push).not.toHaveBeenCalled();
+      expect(screen.getByText('readOnly:true')).toBeVisible();
+    });
+
+    it('switches to read-only and explains the lock when a save conflicts', async () => {
+      mocks.update.mockRejectedValue(
+        Object.assign(new Error('Conflict'), { status: 409 }),
+      );
+      await renderLoadedEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      expect(await screen.findByText('dirty:true')).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      const banner = await screen.findByRole('status');
+      expect(banner).toHaveTextContent('This project is read-only');
+      expect(banner).toHaveTextContent('were not saved');
+      expect(screen.getByText('readOnly:true')).toBeVisible();
+      expect(screen.getByText('dirty:false')).toBeVisible();
+      // Pending local edits are dropped: the server version is shown again.
+      expect(
+        screen.getByText(`format:${IngredientFormat.LANDSCAPE}`),
+      ).toBeVisible();
+      expect(mocks.error).not.toHaveBeenCalledWith('Failed to save project');
+      expect(
+        screen.getByRole('button', { name: 'Duplicate to edit' }),
+      ).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Render' }));
+      expect(mocks.update).toHaveBeenCalledTimes(1);
+      expect(mocks.renderProject).not.toHaveBeenCalled();
+    });
+
+    it('switches to read-only when an autosave conflicts', async () => {
+      mocks.update.mockRejectedValue(
+        Object.assign(new Error('Conflict'), { status: 409 }),
+      );
+      await renderLoadedEditor();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
+      expect(screen.getByText('dirty:true')).toBeVisible();
+
+      act(() => {
+        vi.advanceTimersByTime(31_000);
+      });
+      vi.useRealTimers();
+
+      expect(await screen.findByRole('status')).toHaveTextContent(
+        'This project is read-only',
+      );
+      expect(screen.getByText('readOnly:true')).toBeVisible();
+      expect(mocks.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the generic error for non-conflict save failures', async () => {
+      mocks.update.mockRejectedValue(
+        Object.assign(new Error('Internal'), { status: 500 }),
+      );
+      await renderLoadedEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() => {
+        expect(mocks.error).toHaveBeenCalledWith('Failed to save project');
+      });
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByText('readOnly:false')).toBeVisible();
+    });
   });
 
   it('shows the load failure state', async () => {

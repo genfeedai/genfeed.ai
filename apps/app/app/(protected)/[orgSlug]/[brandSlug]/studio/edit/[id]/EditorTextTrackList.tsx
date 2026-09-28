@@ -8,6 +8,7 @@ function EditorTextTrackList({
   selectedClipId,
   onClipSelect,
   onDeleteTrack,
+  isReadOnly = false,
 }: EditorTextTrackListProps) {
   if (textTracks.length === 0) {
     return (
@@ -46,6 +47,7 @@ function EditorTextTrackList({
               variant={ButtonVariant.GHOST}
               size={ButtonSize.XS}
               onClick={() => onDeleteTrack(track.id)}
+              isDisabled={isReadOnly}
               className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-destructive"
             >
               Delete

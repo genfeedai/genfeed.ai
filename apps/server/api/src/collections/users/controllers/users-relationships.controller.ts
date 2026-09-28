@@ -41,6 +41,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -370,8 +371,11 @@ export class UsersRelationshipsController {
     @Param('userId') userId: string,
     @Body() updateSettingDto: UpdateSettingDto,
   ) {
-    if (!this.canAccessUser(userId, currentUser)) {
-      return returnNotFound(this.constructorName, userId);
+    if (
+      !getIsSuperAdmin(currentUser, request) &&
+      (currentUser.userId ?? currentUser.id) !== userId
+    ) {
+      throw new ForbiddenException('Cannot update settings for another user');
     }
 
     const user = await this.usersService.findOne({
@@ -396,13 +400,6 @@ export class UsersRelationshipsController {
     return data
       ? serializeSingle(request, SettingSerializer, data)
       : returnNotFound(this.constructorName, userId);
-  }
-
-  private canAccessUser(targetUserId: string, currentUser: User): boolean {
-    return (
-      getIsSuperAdmin(currentUser) ||
-      (currentUser.userId || currentUser.id) === targetUserId
-    );
   }
 
   private async findUserSettings(userData: unknown): Promise<unknown | null> {

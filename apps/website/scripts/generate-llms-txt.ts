@@ -257,7 +257,6 @@ function buildLlmsIndex(): string {
     `- [Contact](${BASE_URL}/contact): Support, security, privacy, and sales`,
   );
   lines.push(`- [Blog](${BASE_URL}/articles): Articles and updates`);
-  lines.push(`- [Demo](${BASE_URL}/demo): Book a personalized demo`);
   lines.push(`- [Privacy Policy](${BASE_URL}/privacy): Privacy policy`);
   lines.push(`- [Terms of Service](${BASE_URL}/terms): Terms of service`);
   lines.push(

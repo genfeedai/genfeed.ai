@@ -561,54 +561,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "23a109e284c6ec252835",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "3c9161c4cadea87a22a9",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "a08c876cabc3f60dd573",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "606862c380dcab4377a5",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "a7c02f711a0ea8317edc",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "editorProject",
-      "file": "apps/server/api/src/collections/editor-projects/editor-projects.service.ts",
-      "fingerprint": "bdff4a9366fd198fe206",
-      "method": "findUniqueOrThrow",
-      "model": "EditorProject",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "elementBlacklist",
       "file": "apps/server/api/src/collections/elements/blacklists/services/blacklists.service.ts",
       "fingerprint": "943b1db4856f9f022535",

@@ -68,6 +68,7 @@ export class EditorProjectsService extends HTTPBaseService {
       createdAt: data.createdAt || new Date().toISOString(),
       id: data.id || '',
       isDeleted: data.isDeleted || false,
+      isLocked: data.isLocked === true,
       name: data.name || 'Untitled Project',
       organization: data.organization || '',
       renderedVideo: data.renderedVideo || undefined,
@@ -174,6 +175,22 @@ export class EditorProjectsService extends HTTPBaseService {
 
     const project = this.mapOne(response);
     logger.info('Updated editor project', { projectId: id });
+    return project;
+  }
+
+  /**
+   * Copy a project into a new editable draft (the way to edit a locked one)
+   */
+  async duplicate(id: string): Promise<IEditorProject> {
+    const response = await this.instance
+      .post<JsonApiResponseDocument>(`/${id}/duplicate`)
+      .then((res) => res.data);
+
+    const project = this.mapOne(response);
+    logger.info('Duplicated editor project', {
+      projectId: project.id,
+      sourceProjectId: id,
+    });
     return project;
   }
 

@@ -204,3 +204,32 @@ describe('server serializer wire contract (#1096)', () => {
     });
   });
 });
+
+describe('serializer options on wrapped serializers', () => {
+  // serializeCollection/serializeSingle set `serializer.opts` (top-level
+  // pagination links) before serializing. A config with attribute
+  // derivations or transforms must still honor them.
+  const pagination = { limit: 20, page: 2, pages: 3, total: 45 };
+
+  it('emits top-level links set through opts when the config derives attributes', () => {
+    const { WidgetSerializer } = buildSerializer('server', {
+      attributeDerivations: { isLarge: () => true },
+      attributes: ['label', 'isLarge'],
+      type: 'widget',
+    });
+    const serializer = WidgetSerializer as typeof WidgetSerializer & {
+      opts: Record<string, unknown>;
+    };
+
+    serializer.opts = {
+      ...serializer.opts,
+      topLevelLinks: { pagination, self: '/widgets?page=2' },
+    };
+    const output = serializer.serialize([{ id: 'widget-1', label: 'A' }]);
+
+    expect(output).toMatchObject({
+      data: [{ attributes: { isLarge: true, label: 'A' }, id: 'widget-1' }],
+      links: { pagination, self: '/widgets?page=2' },
+    });
+  });
+});

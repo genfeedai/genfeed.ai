@@ -13,7 +13,13 @@ This is an open source project. Every path must resolve within the monorepo.
 
 - `skills/` — product/content skills (used by the app). Real files.
 - `.agents/skills/` — dev/build skills (for building the app). Real files.
-- `.claude/skills/` — symlinks to `../../.agents/skills/<name>` ONLY.
+- `.agents/memory/` — the memory tree this file lives in. Real files.
+- Per-agent dirs (`.claude/`, `.codex/`) hold only internal symlinks back into
+  `.agents/` — e.g. `.claude/memory -> ../.agents/memory`, `.claude/rules ->
+  ../.agents/memory/rules`, `.codex/memory -> ../.agents/memory`, `.codex/skills
+  -> ../.agents/skills`. (Verified 2026-09-28: `.claude/skills/` no longer
+  exists — the set of symlinks an agent dir carries can change, but every
+  target must still resolve inside `genfeed.ai/`.)
 
 ## Rules
 

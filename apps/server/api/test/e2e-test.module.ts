@@ -464,6 +464,8 @@ export class TestDatabaseHelper {
     'task',
     'creditTransaction',
     'liveSession',
+    'batchProjectItem',
+    'batchProject',
     'creditReservation',
     'creditBalance',
     'billingAccountOrganization',

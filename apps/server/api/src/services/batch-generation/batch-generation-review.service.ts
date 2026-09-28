@@ -44,6 +44,7 @@ import {
   resolveBatchItems,
   toBatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
+import { withdrawDestinationPosts } from '@api/services/batch-generation/batch-generation-destination-posts';
 import {
   appendApprovedReviewEvent,
   pinApprovedDrafts,
@@ -530,6 +531,16 @@ export class BatchGenerationReviewService {
             item.reviewDecision === decision
           )
             continue;
+          await withdrawDestinationPosts({
+            actorUserId,
+            decision,
+            item,
+            organizationId: orgId,
+            postLifecycleService: this.postLifecycleService,
+            publishApprovalsService: this.publishApprovalsService,
+            reason: feedback ?? 'Review declined publication',
+            transaction,
+          });
           if (item.postId) {
             const post = await transaction.post.findFirst({
               where: scopedWhere(orgId, { id: item.postId }),
@@ -620,6 +631,39 @@ export class BatchGenerationReviewService {
       feedback,
     );
     return this.summaryService.toBatchSummary(updated);
+  }
+
+  /**
+   * Record further posts that publish a review item on other accounts, so
+   * the item's review decisions reach them (see `withdrawDestinationPosts`).
+   */
+  async linkDestinationPosts(
+    batchId: string,
+    itemId: string,
+    postIds: string[],
+    orgId: string,
+  ): Promise<void> {
+    await this.withLockedBatch(batchId, orgId, async (transaction, batch) => {
+      const items = resolveBatchItems(batch);
+      const item = items.find((candidate) => candidate.id === itemId);
+      if (!item) {
+        throw new NotFoundException('Batch item', itemId);
+      }
+      const linked = new Set(item.destinationPostIds ?? []);
+      const fresh = postIds.filter(
+        (postId) => postId !== item.postId && !linked.has(postId),
+      );
+      if (fresh.length === 0) {
+        return;
+      }
+      item.destinationPostIds = [...linked, ...fresh];
+      await writeBatchJsonAndItemRows(transaction, {
+        batchId,
+        brandId: batch.brandId,
+        items,
+        organizationId: orgId,
+      });
+    });
   }
 
   async expireAutonomousReviewBatch(
