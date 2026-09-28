@@ -52,8 +52,17 @@ type ScheduleRun = {
   dto: ScheduleBatchProjectDto;
   now: Date;
   project: BatchProjectWithItems;
-  reviewedCaptionByPostId: ReadonlyMap<string, string>;
+  reviewPostById: ReadonlyMap<string, ReviewPost>;
   scope: IBatchProjectScope;
+};
+
+/** The review draft as the inbox left it: what the creator approved. */
+type ReviewPost = {
+  credentialId: string | null;
+  description: string;
+  id: string;
+  ingredientIds: string[];
+  targetExecutionState: string;
 };
 
 type ScheduleEntry = {
@@ -191,9 +200,7 @@ export class BatchProjectSchedulingService {
       dto,
       now: new Date(),
       project,
-      reviewedCaptionByPostId: new Map(
-        reviewPosts.map((post) => [post.id, post.description]),
-      ),
+      reviewPostById: new Map(reviewPosts.map((post) => [post.id, post])),
       scope,
     };
   }
@@ -208,12 +215,12 @@ export class BatchProjectSchedulingService {
     scope: IBatchProjectScope,
   ): Promise<{
     approved: BatchProjectItem[];
-    reviewPosts: { description: string; id: string }[];
+    reviewPosts: ReviewPost[];
   }> {
     if (candidates.length === 0) {
       return { approved: [], reviewPosts: [] };
     }
-    const [reviewRows, reviewPosts] = await Promise.all([
+    const [reviewRows, postRows] = await Promise.all([
       this.prisma.batchItem.findMany({
         select: { id: true, reviewDecision: true },
         where: scopedWhere(scope.organizationId, {
@@ -225,7 +232,16 @@ export class BatchProjectSchedulingService {
         }),
       }),
       this.prisma.post.findMany({
-        select: { description: true, id: true },
+        select: {
+          credentialId: true,
+          description: true,
+          id: true,
+          ingredients: {
+            select: { id: true },
+            where: { isDeleted: false, organizationId: scope.organizationId },
+          },
+          targetExecutionState: true,
+        },
         where: scopedWhere(scope.organizationId, {
           id: {
             in: candidates.flatMap((item) =>
@@ -243,6 +259,15 @@ export class BatchProjectSchedulingService {
             ReviewDecision.APPROVED,
         )
         .map((row) => row.id),
+    );
+    const reviewPosts = postRows.map(
+      (post): ReviewPost => ({
+        credentialId: post.credentialId,
+        description: post.description,
+        id: post.id,
+        ingredientIds: post.ingredients.map((ingredient) => ingredient.id),
+        targetExecutionState: String(post.targetExecutionState),
+      }),
     );
     const livePostIds = new Set(reviewPosts.map((post) => post.id));
     return {
@@ -379,9 +404,7 @@ export class BatchProjectSchedulingService {
     try {
       const result = await this.postsService.batchSchedule(
         entries.map((entry) => ({
-          ingredientIds: entry.item.outputIngredientId
-            ? [entry.item.outputIngredientId]
-            : [],
+          ingredientIds: this.resolveMedia(entry.item, run),
           postId: entry.postId,
           scheduledDate: target.scheduledDate ?? run.now.toISOString(),
           text: entry.caption,
@@ -426,12 +449,9 @@ export class BatchProjectSchedulingService {
     const bound = bindings.find(
       (binding) => binding.credentialId === destination.credentialId,
     );
-    const isReviewPostBound = bindings.some(
-      (binding) => binding.postId === item.postId,
-    );
     const postId =
       bound?.postId ??
-      (item.postId && !isReviewPostBound
+      (this.canUseReviewPost(run, item, bindings, destination) && item.postId
         ? item.postId
         : await this.resolveDestinationDraft(
             run,
@@ -446,6 +466,47 @@ export class BatchProjectSchedulingService {
       { credentialId: destination.credentialId, postId, status: 'pending' },
     ]);
     return { caption, item, postId };
+  }
+
+  /**
+   * The review draft goes to the first destination only while nothing else
+   * owns it: not bound to another project destination, and not already
+   * targeted elsewhere (e.g. scheduled through the Post API). Otherwise the
+   * destination gets its own draft rather than retargeting that schedule.
+   */
+  private canUseReviewPost(
+    run: ScheduleRun,
+    item: BatchProjectItem,
+    bindings: IBatchProjectScheduledTarget[],
+    destination: Destination,
+  ): boolean {
+    const reviewPost = item.postId
+      ? run.reviewPostById.get(item.postId)
+      : undefined;
+    if (
+      !reviewPost ||
+      bindings.some((binding) => binding.postId === reviewPost.id)
+    ) {
+      return false;
+    }
+    if (reviewPost.credentialId) {
+      return reviewPost.credentialId === destination.credentialId;
+    }
+    return reviewPost.targetExecutionState === TargetExecutionState.DRAFT;
+  }
+
+  /**
+   * The media the review draft carries now (a creator may have swapped it in
+   * the inbox); the generated output only when the draft has none.
+   */
+  private resolveMedia(item: BatchProjectItem, run: ScheduleRun): string[] {
+    const reviewed = item.postId
+      ? run.reviewPostById.get(item.postId)?.ingredientIds
+      : undefined;
+    if (reviewed && reviewed.length > 0) {
+      return reviewed;
+    }
+    return item.outputIngredientId ? [item.outputIngredientId] : [];
   }
 
   private async writeBindings(
@@ -473,7 +534,7 @@ export class BatchProjectSchedulingService {
   private resolveCaption(item: BatchProjectItem, run: ScheduleRun): string {
     const override = run.dto.captions?.[item.id];
     const reviewed = item.postId
-      ? run.reviewedCaptionByPostId.get(item.postId)
+      ? run.reviewPostById.get(item.postId)?.description
       : undefined;
     const caption =
       typeof override === 'string'
@@ -545,7 +606,7 @@ export class BatchProjectSchedulingService {
           ? PostCategory.VIDEO
           : PostCategory.IMAGE,
       description: caption,
-      ingredients: item.outputIngredientId ? [item.outputIngredientId] : [],
+      ingredients: this.resolveMedia(item, run),
       label:
         idea?.hook?.slice(0, 100) || `${project.name} #${item.position + 1}`,
       organizationId,

@@ -91,15 +91,21 @@ describe('BatchProjectSchedulingService', () => {
     batchItem: { findMany: vi.fn() },
     post: { findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   };
-  const reviewPost = { description: 'Stored caption', id: 'review-post-1' };
+  const reviewPost = {
+    credentialId: null,
+    description: 'Stored caption',
+    id: 'review-post-1',
+    ingredients: [{ id: 'output-1' }],
+    targetExecutionState: TargetExecutionState.DRAFT,
+  };
   /** The review draft for caption/approval reads; nothing else scheduled. */
   function postsReading(
     overrides: { reviewPosts?: Row[]; scheduledPosts?: Row[] } = {},
   ) {
-    return async (args: { select?: Record<string, boolean> }) =>
-      args.select?.targetExecutionState
-        ? (overrides.scheduledPosts ?? [])
-        : (overrides.reviewPosts ?? [reviewPost]);
+    return async (args: { select?: Record<string, unknown> }) =>
+      args.select?.description
+        ? (overrides.reviewPosts ?? [reviewPost])
+        : (overrides.scheduledPosts ?? []);
   }
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const reconcileService = {
@@ -238,6 +244,70 @@ describe('BatchProjectSchedulingService', () => {
       });
     });
 
+    it('schedules the media the review draft carries now, on every destination', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [{ ...reviewPost, ingredients: [{ id: 'swapped-1' }] }],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      const [firstItems] = postsService.batchSchedule.mock.calls[0];
+      expect(firstItems[0]).toEqual(
+        expect.objectContaining({
+          ingredientIds: ['swapped-1'],
+          postId: 'review-post-1',
+        }),
+      );
+      expect(postsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ingredients: ['swapped-1'] }),
+      );
+      const [secondItems] = postsService.batchSchedule.mock.calls[1];
+      expect(secondItems[0].ingredientIds).toEqual(['swapped-1']);
+    });
+
+    it('never retargets a review draft already scheduled outside the project', async () => {
+      prisma.post.findMany.mockImplementation(
+        postsReading({
+          reviewPosts: [
+            {
+              ...reviewPost,
+              credentialId: 'credential-elsewhere',
+              targetExecutionState: TargetExecutionState.SCHEDULED,
+            },
+          ],
+        }),
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [{ credentialId: 'credential-tiktok', platform: 'tiktok' }],
+        },
+        scope,
+      );
+
+      expect(postsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          targetIdempotencyKey: 'batch-project-item:item-1:credential-tiktok',
+        }),
+      );
+      const [items] = postsService.batchSchedule.mock.calls[0];
+      expect(items.map((item: { postId: string }) => item.postId)).toEqual([
+        'clone-post-1',
+      ]);
+    });
+
     it('schedules under the project lock', async () => {
       await service.schedule(
         'project-1',
@@ -345,7 +415,7 @@ describe('BatchProjectSchedulingService', () => {
       prisma.post.findMany.mockImplementation(
         postsReading({
           reviewPosts: [
-            { description: 'Rewritten in the inbox', id: 'review-post-1' },
+            { ...reviewPost, description: 'Rewritten in the inbox' },
           ],
         }),
       );
@@ -377,8 +447,8 @@ describe('BatchProjectSchedulingService', () => {
         new Error('Media readiness failed for one approval'),
       );
       prisma.post.findMany.mockImplementation(
-        async (args: { select?: Record<string, boolean> }) => {
-          if (!args.select?.targetExecutionState) {
+        async (args: { select?: Record<string, unknown> }) => {
+          if (args.select?.description) {
             return [reviewPost];
           }
           // Nothing had gone out before the call; the call then half-commits.

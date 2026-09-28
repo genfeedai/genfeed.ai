@@ -664,31 +664,81 @@ export class BatchProjectReconcileService {
     dto: CreateManualReviewBatchDto,
   ): Promise<IBatchSummary> {
     if (project.reviewBatchId) {
-      try {
-        return await this.batchGenerationService.appendManualReviewItems(
-          project.reviewBatchId,
-          dto,
-          project.userId,
-          project.organizationId,
-        );
-      } catch (error: unknown) {
-        if (!(error instanceof NotFoundException)) {
-          throw error;
-        }
-        // The review batch was removed from the inbox; start a new one.
+      const summary = await this.appendIfLive(
+        project,
+        project.reviewBatchId,
+        dto,
+      );
+      if (summary) {
+        return summary;
       }
     }
 
-    const summary = await this.batchGenerationService.createManualReviewBatch(
-      dto,
-      project.userId,
+    // A crash between creating the review batch and saving its id leaves a
+    // batch that already holds these items; adopt it instead of a second one.
+    const handedOffBatchId = await this.findHandedOffReviewBatchId(
       project.organizationId,
+      dto,
     );
+    const adopted = handedOffBatchId
+      ? await this.appendIfLive(project, handedOffBatchId, dto)
+      : null;
+    const summary =
+      adopted ??
+      (await this.batchGenerationService.createManualReviewBatch(
+        dto,
+        project.userId,
+        project.organizationId,
+      ));
     await this.prisma.batchProject.updateMany({
       data: { reviewBatchId: summary.id },
       where: scopedWhere(project.organizationId, { id: project.id }),
     });
     return summary;
+  }
+
+  /** Append to a review batch; `null` when it was removed from the inbox. */
+  private async appendIfLive(
+    project: ProjectWithItems,
+    reviewBatchId: string,
+    dto: CreateManualReviewBatchDto,
+  ): Promise<IBatchSummary | null> {
+    try {
+      return await this.batchGenerationService.appendManualReviewItems(
+        reviewBatchId,
+        dto,
+        project.userId,
+        project.organizationId,
+      );
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /** The live review batch already holding one of these items, if any. */
+  private async findHandedOffReviewBatchId(
+    organizationId: string,
+    dto: CreateManualReviewBatchDto,
+  ): Promise<string | null> {
+    const sourceKeys = dto.items.flatMap((item) =>
+      item.sourceActionId ? [item.sourceActionId] : [],
+    );
+    if (sourceKeys.length === 0) {
+      return null;
+    }
+    const row = await this.prisma.batchItem.findFirst({
+      select: { batchId: true },
+      where: scopedWhere(organizationId, {
+        batch: { isDeleted: false, organizationId },
+        OR: sourceKeys.map((sourceKey) => ({
+          data: { equals: sourceKey, path: ['sourceActionId'] },
+        })),
+      }),
+    });
+    return row?.batchId ?? null;
   }
 
   /**

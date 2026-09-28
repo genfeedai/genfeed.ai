@@ -458,6 +458,30 @@ describe('BatchProjectsService', () => {
   });
 
   describe('retryItem', () => {
+    it('keeps a started retry generating when saving its run link fails', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      batchWorkflowExecutionService.startBatchExecution.mockResolvedValue(
+        'retry-parent',
+      );
+      prisma.batchProjectItem.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockRejectedValueOnce(new Error('connection reset'));
+
+      await service.retryItem('project-1', 'item-1', scope);
+
+      expect(prisma.batchProjectItem.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: BatchProjectItemStatus.FAILED,
+          }),
+        }),
+      );
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
     it('reruns only the failed workflow input', async () => {
       useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
       prisma.batchProjectItem.findFirst.mockResolvedValue(

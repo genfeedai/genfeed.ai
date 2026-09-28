@@ -413,16 +413,18 @@ export class BatchProjectsService {
           });
           throw error;
         }
-        await this.prisma.$transaction(
-          pending.map((item, index) =>
-            this.prisma.batchProjectItem.updateMany({
-              data: {
-                status: BatchProjectItemStatus.GENERATING,
-                workflowExecutionId: executionId,
-                workflowItemIndex: index,
-              },
-              where: scopedWhere(scope.organizationId, { id: item.id }),
-            }),
+        await this.linkStartedRun(id, scope, () =>
+          this.prisma.$transaction(
+            pending.map((item, index) =>
+              this.prisma.batchProjectItem.updateMany({
+                data: {
+                  status: BatchProjectItemStatus.GENERATING,
+                  workflowExecutionId: executionId,
+                  workflowItemIndex: index,
+                },
+                where: scopedWhere(scope.organizationId, { id: item.id }),
+              }),
+            ),
           ),
         );
       }
@@ -541,8 +543,9 @@ export class BatchProjectsService {
       }
 
       if (isWorkflow && project.workflowId && item.inputIngredientId) {
+        let executionId: string;
         try {
-          const executionId =
+          executionId =
             await this.batchWorkflowExecutionService.startBatchExecution({
               idempotencyKey: batchProjectRetryKey(itemId, attempt),
               ingredientIds: [item.inputIngredientId],
@@ -550,13 +553,6 @@ export class BatchProjectsService {
               userId: scope.userId,
               workflowId: project.workflowId,
             });
-          await this.prisma.batchProjectItem.updateMany({
-            data: { workflowExecutionId: executionId, workflowItemIndex: 0 },
-            where: scopedWhere(scope.organizationId, {
-              id: itemId,
-              retryCount: attempt,
-            }),
-          });
         } catch (error: unknown) {
           await this.prisma.batchProjectItem.updateMany({
             data: {
@@ -574,6 +570,15 @@ export class BatchProjectsService {
           });
           throw error;
         }
+        await this.linkStartedRun(id, scope, () =>
+          this.prisma.batchProjectItem.updateMany({
+            data: { workflowExecutionId: executionId, workflowItemIndex: 0 },
+            where: scopedWhere(scope.organizationId, {
+              id: itemId,
+              retryCount: attempt,
+            }),
+          }),
+        );
       }
       await this.reconcileService.refreshProjectStatus(
         id,
@@ -589,6 +594,31 @@ export class BatchProjectsService {
       });
       return this.loadProject(id, scope);
     });
+  }
+
+  /**
+   * Save the link to a run that already started. The run is paid for, so a
+   * failed write must not fail the item: reconcile recovers the link from the
+   * attempt's idempotency key.
+   */
+  private async linkStartedRun(
+    id: string,
+    scope: IBatchProjectScope,
+    write: () => Promise<unknown>,
+  ): Promise<void> {
+    try {
+      await write();
+    } catch (error: unknown) {
+      this.logger.warn(
+        'Batch project run link not saved; reconcile recovers it',
+        {
+          batchProjectId: id,
+          context: this.context,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: scope.organizationId,
+        },
+      );
+    }
   }
 
   /**

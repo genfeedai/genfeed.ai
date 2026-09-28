@@ -60,7 +60,7 @@ function makeProject(items: Row[], overrides: Row = {}): Row {
 
 describe('BatchProjectReconcileService', () => {
   const prisma = {
-    batchItem: { findMany: vi.fn() },
+    batchItem: { findFirst: vi.fn(), findMany: vi.fn() },
     batchProject: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -111,6 +111,7 @@ describe('BatchProjectReconcileService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prisma.batchItem.findFirst.mockResolvedValue(null);
     prisma.batchItem.findMany.mockResolvedValue([]);
     prisma.batchProject.updateMany.mockResolvedValue({ count: 1 });
     prisma.batchProjectItem.findMany.mockResolvedValue([]);
@@ -234,6 +235,79 @@ describe('BatchProjectReconcileService', () => {
     expect(
       batchGenerationService.createManualReviewBatch,
     ).not.toHaveBeenCalled();
+  });
+
+  it('adopts the review batch a crash left unrecorded instead of creating another', async () => {
+    useProject(makeProject([makeItem()]));
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        error: null,
+        id: 'child-1',
+        idempotencyKey: batchChildExecutionKey({
+          childWorkflowVersionId: 'version-1',
+          index: 0,
+          parentExecutionId: 'parent-1',
+        }),
+        status: WorkflowExecutionStatus.COMPLETED,
+      },
+    ]);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.IMAGE,
+      id: 'output-1',
+    });
+    prisma.batchItem.findFirst.mockResolvedValue({
+      batchId: 'review-batch-orphan',
+    });
+    batchGenerationService.appendManualReviewItems.mockResolvedValue({
+      id: 'review-batch-orphan',
+      items: [
+        {
+          id: 'review-item-1',
+          postId: 'post-1',
+          sourceActionId: 'batch-project-item:item-1',
+        },
+      ],
+    });
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(prisma.batchItem.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          OR: [
+            {
+              data: {
+                equals: 'batch-project-item:item-1',
+                path: ['sourceActionId'],
+              },
+            },
+          ],
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(batchGenerationService.appendManualReviewItems).toHaveBeenCalledWith(
+      'review-batch-orphan',
+      expect.objectContaining({ brandId: 'brand-1' }),
+      'user-1',
+      'org-1',
+    );
+    expect(
+      batchGenerationService.createManualReviewBatch,
+    ).not.toHaveBeenCalled();
+    expect(prisma.batchProject.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reviewBatchId: 'review-batch-orphan' },
+      }),
+    );
+    expect(updatedItem('item-1')).toContainEqual(
+      expect.objectContaining({
+        reviewBatchId: 'review-batch-orphan',
+        reviewItemId: 'review-item-1',
+        status: BatchProjectItemStatus.READY,
+      }),
+    );
   });
 
   it('starts a new review batch when the previous one was removed', async () => {

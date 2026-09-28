@@ -40,6 +40,12 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+/** Batch projects produce review drafts, so writing one is a draft action. */
+const BATCH_PROJECT_WRITE_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+] as const;
+
 @AutoSwagger()
 @ApiTags('BatchProjects')
 @Controller('batch-projects')
@@ -65,6 +71,7 @@ export class BatchProjectsController {
   }
 
   @Post()
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async create(
     @Req() request: Request,
@@ -93,6 +100,7 @@ export class BatchProjectsController {
   }
 
   @Patch(':id')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async update(
     @Req() request: Request,
@@ -109,6 +117,7 @@ export class BatchProjectsController {
   }
 
   @Delete(':id')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async remove(@CurrentUser() user: User, @Param('id') id: string) {
     await this.batchProjectsService.remove(id, this.requireScope(user));
@@ -116,6 +125,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/items')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async addItems(
     @Req() request: Request,
@@ -132,6 +142,7 @@ export class BatchProjectsController {
   }
 
   @Patch(':id/items/:itemId')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async updateItem(
     @Req() request: Request,
@@ -150,6 +161,7 @@ export class BatchProjectsController {
   }
 
   @Delete(':id/items/:itemId')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async removeItem(
     @Req() request: Request,
@@ -166,6 +178,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/start')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async start(
@@ -181,6 +194,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/items/:itemId/dispatch')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async dispatchItem(
@@ -200,6 +214,7 @@ export class BatchProjectsController {
   }
 
   @Post(':id/items/:itemId/retry')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
   @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN, MemberRole.CREATOR)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async retryItem(
