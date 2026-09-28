@@ -20,6 +20,7 @@ function installInMemoryLocalStorage(): void {
         store.set(key, value);
       },
     },
+    configurable: true,
     writable: true,
   });
 }
@@ -104,5 +105,25 @@ describe('useCollectionViewPreference', () => {
     );
 
     expect(result.current.view).toBe(ViewType.LIST);
+  });
+
+  it('keeps working when the browser blocks storage', () => {
+    Object.defineProperty(window, 'localStorage', {
+      get() {
+        throw new DOMException('blocked', 'SecurityError');
+      },
+      configurable: true,
+    });
+
+    const { result } = renderHook(() =>
+      useCollectionViewPreference({
+        defaultView: ViewType.LIST,
+        surface: 'automation.agents',
+      }),
+    );
+
+    expect(result.current.view).toBe(ViewType.LIST);
+    act(() => result.current.setView(ViewType.GRID));
+    expect(result.current.view).toBe(ViewType.GRID);
   });
 });

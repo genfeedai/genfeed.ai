@@ -30,22 +30,6 @@ describe('browser storage helpers', () => {
     expect(storage.setItem).toHaveBeenCalledWith('key', 'grid');
   });
 
-  it('fails soft when the browser blocks or fills storage', () => {
-    vi.stubGlobal('window', {
-      localStorage: {
-        getItem: vi.fn(() => {
-          throw new DOMException('blocked', 'SecurityError');
-        }),
-        setItem: vi.fn(() => {
-          throw new DOMException('full', 'QuotaExceededError');
-        }),
-      },
-    });
-
-    expect(readLocalStorageItem('key')).toBeNull();
-    expect(() => writeLocalStorageItem('key', 'grid')).not.toThrow();
-  });
-
   it('filters array values without changing ordering or duplicates', () => {
     const storage = storageWith('["a",42,null,"b","a"]');
     expect(readLocalStorageStringArray('key')).toEqual(['a', 'b', 'a']);
