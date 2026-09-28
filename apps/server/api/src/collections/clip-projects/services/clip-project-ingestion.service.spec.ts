@@ -873,6 +873,27 @@ describe('ClipProjectIngestionService', () => {
     );
   });
 
+  it('refuses an upload prepared for a brand outside the organization', async () => {
+    const brandError = new Error('Brand not found');
+    clipIdentityResolutionService.resolve.mockRejectedValueOnce(brandError);
+
+    await expect(
+      service.prepareUpload(currentUser as never, {
+        brandId: 'foreign-brand',
+        contentType: 'video/mp4',
+        filename: 'talk.mp4',
+        sizeBytes: 1_000,
+      }),
+    ).rejects.toBe(brandError);
+    expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+      brandId: 'foreign-brand',
+      organizationId: 'org-1',
+    });
+    expect(presignedUploadService.getPresignedUploadUrl).not.toHaveBeenCalled();
+    expect(clipProjectsService.create).not.toHaveBeenCalled();
+    expect(clipProjectsService.patchDraft).not.toHaveBeenCalled();
+  });
+
   it('rejects raw-cut generation for an audio-only upload', async () => {
     await expect(
       service.prepareUpload(currentUser as never, {
