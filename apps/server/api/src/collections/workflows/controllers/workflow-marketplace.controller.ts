@@ -10,6 +10,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
@@ -18,7 +19,7 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { JsonApiCollectionResponse } from '@genfeedai/contracts/interfaces';
 import { WorkflowSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Controller, Get, Query, Req } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 
 type WorkflowTemplates = Awaited<
@@ -55,8 +56,10 @@ export class WorkflowMarketplaceController {
    * "Most used by your team" (#5510): the caller organization's most-run
    * tenant workflows, serialized like the list endpoint plus
    * `executionCount`. Returns an empty collection when nothing has run.
+   * Requires active membership of that organization, like workflow CRUD.
    */
   @Get('most-used')
+  @UseGuards(RolesGuard)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMostUsed(
     @Req() request: Request,

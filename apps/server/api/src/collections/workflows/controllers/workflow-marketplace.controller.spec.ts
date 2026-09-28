@@ -1,3 +1,4 @@
+import type { MembersService } from '@api/collections/members/services/members.service';
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-used-workflows-query.dto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -5,7 +6,18 @@ import {
   SHOWCASE_WORKFLOW_TEMPLATE_IDS,
   WORKFLOW_TEMPLATES,
 } from '@api/collections/workflows/templates/workflow-templates';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { MemberRole } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  type CanActivate,
+  type ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -37,7 +49,10 @@ describe('WorkflowMarketplaceController', () => {
         { provide: WorkflowsService, useValue: mockWorkflowsService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
-    }).compile();
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<WorkflowMarketplaceController>(
       WorkflowMarketplaceController,
@@ -181,6 +196,81 @@ describe('WorkflowMarketplaceController', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0]?.constraints).toHaveProperty('max');
+    });
+
+    describe('membership guard', () => {
+      const organizationId = testId('org');
+      const userId = testId('user');
+      const mockMembersService = { findOne: vi.fn() };
+
+      const createMostUsedContext = (): ExecutionContext =>
+        ({
+          getClass: () => WorkflowMarketplaceController,
+          getHandler: () => WorkflowMarketplaceController.prototype.getMostUsed,
+          switchToHttp: () => ({
+            getRequest: () => ({
+              body: {},
+              params: {},
+              user: { id: userId, organizationId, userId },
+            }),
+          }),
+        }) as unknown as ExecutionContext;
+
+      /** The guard the route declares, wired to the members mock. */
+      function createMostUsedGuard(): CanActivate {
+        expect(
+          Reflect.getMetadata(
+            GUARDS_METADATA,
+            WorkflowMarketplaceController.prototype.getMostUsed,
+          ),
+        ).toEqual([RolesGuard]);
+        return new RolesGuard(
+          new Reflector(),
+          mockMembersService as unknown as MembersService,
+        );
+      }
+
+      beforeEach(() => {
+        mockMembersService.findOne.mockReset();
+      });
+
+      it('rejects a caller without an active membership of the organization', async () => {
+        // A deactivated member's unrevoked API key still authenticates, but
+        // no active membership row matches.
+        mockMembersService.findOne.mockResolvedValue(null);
+
+        let thrownError: unknown;
+        try {
+          await createMostUsedGuard().canActivate(createMostUsedContext());
+        } catch (error: unknown) {
+          thrownError = error;
+        }
+
+        expect(thrownError).toBeInstanceOf(HttpException);
+        expect((thrownError as HttpException).getStatus()).toBe(
+          HttpStatus.FORBIDDEN,
+        );
+        expect(mockMembersService.findOne).toHaveBeenCalledWith(
+          expect.objectContaining({
+            isActive: true,
+            isDeleted: false,
+            organizationId,
+            userId,
+          }),
+          expect.anything(),
+        );
+      });
+
+      it('admits an active member of the organization', async () => {
+        mockMembersService.findOne.mockResolvedValue({
+          id: testId('member'),
+          role: { id: testId('role'), key: MemberRole.CREATOR },
+        });
+
+        await expect(
+          createMostUsedGuard().canActivate(createMostUsedContext()),
+        ).resolves.toBe(true);
+      });
     });
 
     it('defaults the limit to 5 and accepts 12', async () => {
