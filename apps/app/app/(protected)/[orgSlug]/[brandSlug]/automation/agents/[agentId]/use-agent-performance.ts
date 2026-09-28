@@ -4,21 +4,9 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
-import type {
-  AgentStrategyPerformanceSnapshot,
-  AgentStrategyReport,
-} from '@services/automation/agent-strategies.service';
+import type { UseAgentPerformanceResult } from '@props/automation/use-agent-performance.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { useQuery } from '@tanstack/react-query';
-
-export interface UseAgentPerformanceResult {
-  snapshot: AgentStrategyPerformanceSnapshot | undefined;
-  isSnapshotLoading: boolean;
-  isSnapshotError: boolean;
-  reports: AgentStrategyReport[];
-  isReportsLoading: boolean;
-  isReportsError: boolean;
-}
 
 /**
  * The agent's performance snapshot and reports — shared by the Activity

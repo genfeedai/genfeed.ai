@@ -1,34 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type {
+  AgentDetailNeedsYouItem,
+  AgentDetailNeedsYouProps,
+} from '@props/automation/agent-detail-needs-you.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useMemo } from 'react';
-
-export interface AgentDetailNeedsYouProps {
-  title: string;
-  /** Consecutive run failures reported on the strategy record itself. */
-  failureCount: number;
-  failuresDescription: string;
-  viewRunsLabel: string;
-  runsHref: string;
-  /** Posts this agent generated that are still awaiting review. */
-  pendingReviewCount: number;
-  pendingReviewDescription: string;
-  reviewLabel: string;
-  reviewHref: string;
-  className?: string;
-}
-
-interface NeedsYouItem {
-  id: string;
-  description: string;
-  actionLabel: string;
-  href: string;
-}
 
 /**
  * The agent's own open work: consecutive run failures and content it
@@ -47,8 +29,8 @@ export default function AgentDetailNeedsYou({
   reviewHref,
   className,
 }: AgentDetailNeedsYouProps) {
-  const items = useMemo<NeedsYouItem[]>(() => {
-    const results: NeedsYouItem[] = [];
+  const items = useMemo<AgentDetailNeedsYouItem[]>(() => {
+    const results: AgentDetailNeedsYouItem[] = [];
     if (failureCount > 0) {
       results.push({
         actionLabel: viewRunsLabel,

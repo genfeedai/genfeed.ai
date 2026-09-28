@@ -4,8 +4,8 @@ import type {
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
 import { isPostAwaitingReview } from '@helpers/content/post-review.helper';
+import type { AgentActivityEntry } from '@props/automation/agent-activity-timeline.props';
 import type { AgentStrategyReport } from '@services/automation/agent-strategies.service';
-import type { AgentActivityEntry } from './agent-activity-timeline.helper';
 import { getExecutionModelLabel } from './execution-model-label.helper';
 
 export type ActivityTranslate = (

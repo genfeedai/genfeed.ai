@@ -1,15 +1,7 @@
 import type { RecordFact } from '@genfeedai/props/ui/record-detail/record-fact-line.props';
+import type { AgentDetailFactLabels } from '@props/automation/agent-detail-fact-labels.props';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-
-export interface AgentDetailFactLabels {
-  type: string;
-  brand: string;
-  autonomy: string;
-  creditsToday: string;
-  nextRun: string;
-  lastRun: string;
-}
 
 /**
  * The agent's own known facts for the record detail fact line (#5483).

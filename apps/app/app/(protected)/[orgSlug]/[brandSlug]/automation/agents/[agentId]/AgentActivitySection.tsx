@@ -1,11 +1,9 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type {
-  IAgentStrategyRunHistoryItem,
-  IWorkflowExecution,
-} from '@genfeedai/contracts/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { AgentActivitySectionProps } from '@props/automation/agent-activity-section.props';
+import type { AgentActivityFilter } from '@props/automation/agent-activity-timeline.props';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
 import { ListRow } from '@ui/lists/list-row/ListRow';
@@ -20,7 +18,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
-import type { AgentActivityFilter } from './agent-activity-timeline.helper';
 import {
   filterAgentActivity,
   mergeAgentActivity,
@@ -32,14 +29,6 @@ import {
 } from './build-agent-activity-entries';
 import { useAgentDetailPosts } from './use-agent-detail-posts';
 import { useAgentPerformance } from './use-agent-performance';
-
-export interface AgentActivitySectionProps {
-  agentId: string;
-  runHistory: IAgentStrategyRunHistoryItem[];
-  executions: IWorkflowExecution[];
-  isExecutionsLoading: boolean;
-  isExecutionsError: boolean;
-}
 
 /**
  * One merged, chronologically sorted Activity feed with a single filter,
