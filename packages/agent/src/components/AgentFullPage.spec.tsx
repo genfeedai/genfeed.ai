@@ -1,9 +1,9 @@
-import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
-import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import {
   ContextSidebarOutlet,
   ContextSidebarProvider,
-} from '@genfeedai/contexts/ui/context-sidebar-context';
+} from '@contexts/ui/context-sidebar-context';
+import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
+import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';

@@ -1,3 +1,4 @@
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPageMobileBar';
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
@@ -6,7 +7,6 @@ import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';

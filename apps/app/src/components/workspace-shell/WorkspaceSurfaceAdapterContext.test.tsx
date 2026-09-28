@@ -35,7 +35,6 @@ const REGISTRATION = Object.freeze({
 
 const messagesAdapter: WorkspaceSurfacePresentationAdapter = {
   contextLabel: 'Canvas · Messages',
-  inspector: <div>Messages inspector</div>,
   surfaceKey: 'messages',
 };
 
