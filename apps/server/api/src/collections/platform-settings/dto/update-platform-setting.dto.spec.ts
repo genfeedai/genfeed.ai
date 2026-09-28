@@ -141,4 +141,17 @@ describe('UpdatePlatformSettingDto', () => {
       expect((await validateDto(payload)).length).toBeGreaterThan(0);
     });
   });
+
+  it('accepts a partial patch of registered flags (#5468)', async () => {
+    await expect(
+      validateDto({ flags: { library_canvas: true, studio: false } }),
+    ).resolves.toHaveLength(0);
+  });
+
+  it.each([[{ app_switcher_studio: false }], [{ studio: 'false' }], [[false]]])(
+    'rejects an unregistered key or a non-boolean flag (%j)',
+    async (flags) => {
+      await expect(validateDto({ flags })).resolves.not.toHaveLength(0);
+    },
+  );
 });

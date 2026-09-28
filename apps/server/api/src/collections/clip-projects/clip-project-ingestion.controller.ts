@@ -8,6 +8,7 @@ import {
   ClipProjectIngestionService,
   type PrepareClipUploadResult,
 } from '@api/collections/clip-projects/services/clip-project-ingestion.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -27,6 +28,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 @AutoSwagger()
 @ApiTags('clip-projects')
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('clip-projects')
 @UseGuards(RolesGuard)
 export class ClipProjectIngestionController {

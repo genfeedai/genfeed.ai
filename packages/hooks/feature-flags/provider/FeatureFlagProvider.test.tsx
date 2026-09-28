@@ -173,32 +173,4 @@ describe('FeatureFlagProvider', () => {
 
     expect(flags).toEqual({ analytics: true, beta: false });
   });
-
-  it('treats invalid environment defaults as configured but empty', () => {
-    let status: {
-      flags: Record<string, unknown>;
-      isConfigured: boolean;
-      isReady: boolean;
-    } | null = null;
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
-    function Probe() {
-      const ctx = useFeatureFlagContext();
-      status = {
-        flags: ctx.flags,
-        isConfigured: ctx.isConfigured,
-        isReady: ctx.isReady,
-      };
-      return <span>invalid config content</span>;
-    }
-
-    render(
-      <FeatureFlagProvider>
-        <Probe />
-      </FeatureFlagProvider>,
-    );
-
-    expect(screen.getByText('invalid config content')).toBeDefined();
-    expect(status).toEqual({ flags: {}, isConfigured: true, isReady: true });
-  });
 });

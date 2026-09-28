@@ -32,6 +32,7 @@ describe('isProductFlagKey', () => {
     'MODERATION_MODE',
     'TASK_ROUTING_MIN_CONFIDENCE',
     'MODERATION_THRESHOLDS',
+    'FEATURE_FLAG_DEFAULTS',
   ])('flags %s', (key) => {
     expect(isProductFlagKey(key)).toBe(true);
   });

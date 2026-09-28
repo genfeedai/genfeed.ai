@@ -2,13 +2,9 @@ import { FeatureFlagProvider } from '@hooks/feature-flags/provider/FeatureFlagPr
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('useFeatureFlag', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   function createWrapper(
     defaults?: Record<string, unknown>,
   ): ({ children }: { children: ReactNode }) => ReactNode {
@@ -18,31 +14,31 @@ describe('useFeatureFlag', () => {
   }
 
   it('returns true when the flag is on', () => {
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'), {
-      wrapper: createWrapper({ enabled_flag: true }),
+    const { result } = renderHook(() => useFeatureFlag('studio'), {
+      wrapper: createWrapper({ studio: true }),
     });
 
     expect(result.current).toBe(true);
   });
 
   it('returns false when the flag is off', () => {
-    const { result } = renderHook(() => useFeatureFlag('disabled_flag'), {
-      wrapper: createWrapper({ disabled_flag: false }),
+    const { result } = renderHook(() => useFeatureFlag('analytics'), {
+      wrapper: createWrapper({ analytics: false }),
     });
 
     expect(result.current).toBe(false);
   });
 
   it('returns a boolean value', () => {
-    const { result } = renderHook(() => useFeatureFlag('any_flag'), {
-      wrapper: createWrapper({ any_flag: true }),
+    const { result } = renderHook(() => useFeatureFlag('agent'), {
+      wrapper: createWrapper({ agent: true }),
     });
 
     expect(typeof result.current).toBe('boolean');
   });
 
   it('returns true when no provider is configured (OSS default)', () => {
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'));
+    const { result } = renderHook(() => useFeatureFlag('studio'));
 
     expect(result.current).toBe(true);
   });
@@ -95,54 +91,17 @@ describe('useFeatureFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('returns false when environment defaults are invalid', () => {
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
-    const { result } = renderHook(() => useFeatureFlag('enabled_flag'), {
-      wrapper: createWrapper(),
+  it('returns false for a flag missing from configured Admin flags', () => {
+    const { result } = renderHook(() => useFeatureFlag('library_canvas'), {
+      wrapper: createWrapper({ reply_bot: true }),
     });
 
     expect(result.current).toBe(false);
   });
 
-  it('keeps reply_bot on when env JSON is missing, partial, or malformed', () => {
-    vi.stubEnv('NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS', 'not-json');
-
-    const { result: unconfigured } = renderHook(() =>
-      useFeatureFlag('reply_bot'),
-    );
-    const { result: otherDefaults } = renderHook(
-      () => useFeatureFlag('reply_bot'),
-      {
-        wrapper: createWrapper({ other: true }),
-      },
-    );
-    const { result: malformed } = renderHook(
-      () => useFeatureFlag('reply_bot'),
-      {
-        wrapper: createWrapper(),
-      },
-    );
-
-    expect(unconfigured.current).toBe(true);
-    expect(otherDefaults.current).toBe(true);
-    expect(malformed.current).toBe(true);
-  });
-
-  it('honors an explicit reply_bot override from PostHog', () => {
-    function Wrapper({ children }: { children: ReactNode }) {
-      return createElement(
-        FeatureFlagProvider,
-        {
-          defaults: {},
-          overrides: { reply_bot: false },
-        },
-        children,
-      );
-    }
-
+  it('honors reply_bot switched off in Admin (#5468)', () => {
     const { result } = renderHook(() => useFeatureFlag('reply_bot'), {
-      wrapper: Wrapper,
+      wrapper: createWrapper({ reply_bot: false }),
     });
 
     expect(result.current).toBe(false);

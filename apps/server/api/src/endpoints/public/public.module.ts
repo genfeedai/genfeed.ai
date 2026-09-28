@@ -7,6 +7,7 @@ import { LinksModule } from '@api/collections/links/links.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
@@ -18,6 +19,7 @@ import { PublicMediaController } from '@api/endpoints/public/controllers/media/p
 import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { PublicNewslettersController } from '@api/endpoints/public/controllers/newsletters/public.newsletters.controller';
+import { PublicPlatformFlagsController } from '@api/endpoints/public/controllers/platform-flags/public.platform-flags.controller';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
@@ -43,6 +45,7 @@ import { Module } from '@nestjs/common';
     PublicModelsController,
     PublicMusicsController,
     PublicNewslettersController,
+    PublicPlatformFlagsController,
     PublicPostsController,
     PublicRSSController,
     PublicVideosController,
@@ -63,6 +66,7 @@ import { Module } from '@nestjs/common';
     ModelsModule,
     MusicsModule,
     NewslettersModule,
+    PlatformSettingsModule,
     PostsModule,
     PublicClipToolStoreModule,
     VideosModule,

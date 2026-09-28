@@ -10,6 +10,11 @@ export type PlatformNumericFeatureSettingKey = {
     : never;
 }[keyof IPlatformFeatureSettings];
 
+/** Which half of Admin → Flags a page edits (#5468). */
+export interface AdminFlagsPageProps {
+  kind: 'features' | 'modules';
+}
+
 /** The product feature switches section of /admin platform settings (#5407). */
 export interface PlatformFeatureSettingsFieldsProps {
   isDisabled: boolean;

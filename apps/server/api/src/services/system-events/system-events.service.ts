@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import type { SystemEvent } from '@api/services/system-events/system-event.types';
+import type {
+  SystemEvent,
+  SystemEventRecording,
+} from '@api/services/system-events/system-event.types';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
@@ -14,22 +17,29 @@ import type Stripe from 'stripe';
 export class SystemEventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly platformSettings: PlatformSettingsService,
+    private readonly featureSettings: PlatformSettingsService,
     private readonly logger: LoggerService,
     private readonly notifications: NotificationsService,
   ) {}
 
   /**
-   * The recording window: an operator platform setting (#5407). Unset means
-   * disabled; events that occurred before it are never recorded, so turning
-   * recording on never replays historical signups.
+   * The recording window: `systemEventsEnabledAt` on the platform settings
+   * (#5407). Unset means disabled; events that occurred before it are never
+   * delivered, so turning recording on never replays historical signups.
+   * Before this process has ever read the settings (#5468) recording is
+   * `unresolved`: events are held, never dropped, and delivery judges them
+   * once the window is known — a billing webhook arrives once and must not
+   * be lost to a database blip at boot.
    */
-  private async configuration(): Promise<{ since: Date } | null> {
-    const { systemEventsEnabledAt } =
-      await this.platformSettings.getFeatureSettings();
-    return systemEventsEnabledAt
-      ? { since: new Date(systemEventsEnabledAt) }
-      : null;
+  private async recording(): Promise<SystemEventRecording> {
+    const { isResolved, settings } =
+      await this.featureSettings.getFeatureSettingsState();
+    if (!isResolved) {
+      return { state: 'unresolved' };
+    }
+    return settings.systemEventsEnabledAt
+      ? { since: new Date(settings.systemEventsEnabledAt), state: 'enabled' }
+      : { state: 'disabled' };
   }
 
   async settings() {
@@ -73,7 +83,7 @@ export class SystemEventsService {
       configuration: {
         ...settings,
         ...transport,
-        recordingEnabled: Boolean(await this.configuration()),
+        recordingEnabled: (await this.recording()).state === 'enabled',
       },
       observedSignups,
       signupObservationStart: first?.occurredAt.toISOString() ?? null,
@@ -140,7 +150,7 @@ export class SystemEventsService {
   }
 
   async recordSignup(userId: string): Promise<void> {
-    if (!(await this.configuration())) return;
+    if ((await this.recording()).state === 'disabled') return;
     const user = await this.prisma.user.findFirst({
       where: { id: userId, isDeleted: false },
       select: { id: true, email: true, createdAt: true },
@@ -156,8 +166,13 @@ export class SystemEventsService {
   }
 
   async record(event: SystemEvent): Promise<void> {
-    const config = await this.configuration();
-    if (!config || new Date(event.occurredAt) < config.since) return;
+    const recording = await this.recording();
+    if (
+      recording.state === 'disabled' ||
+      (recording.state === 'enabled' &&
+        new Date(event.occurredAt) < recording.since)
+    )
+      return;
     // tenant-scope-ignore: deployment-wide operator outbox, never exposed to tenant APIs
     await this.prisma.systemEventWebhook.upsert({
       where: { id: event.id },
@@ -172,17 +187,20 @@ export class SystemEventsService {
   }
 
   async recover(): Promise<void> {
-    const config = await this.configuration();
-    if (!config) return;
-    // Recover signup hook persistence failures without replaying pre-enablement accounts.
-    // tenant-scope-ignore: deployment-wide system event recovery restricted to the configured observation window
-    const users = await this.prisma.$queryRaw<Array<{ id: string }>>`
-      SELECT u.id FROM users u
-      WHERE u."isDeleted" = false AND u."createdAt" >= ${config.since}
-        AND NOT EXISTS (SELECT 1 FROM system_event_webhooks e WHERE e.id = 'user.created/' || u.id)
-      ORDER BY u."createdAt" ASC LIMIT 100
-    `;
-    for (const user of users) await this.recordSignup(user.id);
+    const recording = await this.recording();
+    // Held events wait for a real answer; nothing is delivered or skipped on a guess.
+    if (recording.state === 'unresolved') return;
+    if (recording.state === 'enabled') {
+      // Recover signup hook persistence failures without replaying pre-enablement accounts.
+      // tenant-scope-ignore: deployment-wide system event recovery restricted to the configured observation window
+      const users = await this.prisma.$queryRaw<Array<{ id: string }>>`
+        SELECT u.id FROM users u
+        WHERE u."isDeleted" = false AND u."createdAt" >= ${recording.since}
+          AND NOT EXISTS (SELECT 1 FROM system_event_webhooks e WHERE e.id = 'user.created/' || u.id)
+        ORDER BY u."createdAt" ASC LIMIT 100
+      `;
+      for (const user of users) await this.recordSignup(user.id);
+    }
     const now = new Date();
     // tenant-scope-ignore: deployment-wide operator delivery worker
     const due = await this.prisma.systemEventWebhook.findMany({
@@ -218,7 +236,15 @@ export class SystemEventsService {
         let status: number | null = null;
         try {
           const settings = await this.settings();
-          if (!settings.enabled || !settings.eventTypes.includes(row.type)) {
+          const event = JSON.parse(row.payload) as SystemEvent;
+          const isOutsideWindow =
+            recording.state === 'disabled' ||
+            new Date(event.occurredAt) < recording.since;
+          if (
+            isOutsideWindow ||
+            !settings.enabled ||
+            !settings.eventTypes.includes(row.type)
+          ) {
             // tenant-scope-ignore: lease owner records an explicit operator filter decision
             await this.prisma.systemEventWebhook.updateMany({
               where: { id: row.id, leaseToken, isDeleted: false },
@@ -230,9 +256,7 @@ export class SystemEventsService {
             });
             return;
           }
-          await this.notifications.deliverSystemNotification(
-            JSON.parse(row.payload) as SystemEvent,
-          );
+          await this.notifications.deliverSystemNotification(event);
           status = 200;
           // tenant-scope-ignore: lease owner alone may finish this delivery
           await this.prisma.systemEventWebhook.updateMany({

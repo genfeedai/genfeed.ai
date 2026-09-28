@@ -1,5 +1,7 @@
 import { MarginInputMode, type ModerationCategory } from '@genfeedai/contracts';
+import type { PlatformFlagKey } from '@genfeedai/contracts/constants';
 import {
+  isPlatformFlagKey,
   MODERATION_PROVIDER_NAMES,
   PLATFORM_FEATURE_SETTING_BOUNDS,
   parseModerationThresholdOverrides,
@@ -50,6 +52,24 @@ function IsModerationThresholdOverrides(): PropertyDecorator {
         !Array.isArray(value) &&
         Object.keys(parseModerationThresholdOverrides(value)).length ===
           Object.keys(value).length,
+    },
+  });
+}
+
+/** A plain object mapping registered platform flag keys to booleans. */
+function IsPlatformFlagPatch(): PropertyDecorator {
+  return ValidateBy({
+    name: 'isPlatformFlagPatch',
+    validator: {
+      defaultMessage: () =>
+        'flags must map registered platform flag keys to true or false',
+      validate: (value: unknown) =>
+        typeof value === 'object' &&
+        value !== null &&
+        !Array.isArray(value) &&
+        Object.entries(value).every(
+          ([key, isOn]) => isPlatformFlagKey(key) && typeof isOn === 'boolean',
+        ),
     },
   });
 }
@@ -294,4 +314,14 @@ export class UpdatePlatformSettingDto {
     'Email/password accounts must verify their email before signing in.',
   )
   readonly isEmailVerificationRequired?: boolean;
+
+  @ApiProperty({
+    description:
+      'Module and feature flags to change (#5468), e.g. `{"studio":false}`. Omitted flags keep their value.',
+    required: false,
+    type: Object,
+  })
+  @IsOptional()
+  @IsPlatformFlagPatch()
+  readonly flags?: Partial<Record<PlatformFlagKey, boolean>>;
 }

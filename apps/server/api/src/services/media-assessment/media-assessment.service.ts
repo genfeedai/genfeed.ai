@@ -44,6 +44,7 @@ import type {
   IMediaPerception,
   IMediaPublishGate,
   IMediaReadinessRequest,
+  IPlatformFeatureSettings,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -153,18 +154,31 @@ export class MediaAssessmentService implements IMediaPublishGate {
     );
     const unchecked = new Set<string>();
     const perceptions = new Map<string, IMediaPerception>();
+    // One read per assessment, so every gate judges the same switches.
+    const { isResolved, settings } =
+      await this.platformSettingsService.getFeatureSettingsState();
+    if (!isResolved) {
+      // The gate switches were never read (database down since boot): the
+      // stand-in has gates off or in shadow, so fail closed — every media
+      // asset is held for review until the switches resolve.
+      for (const assetId of mediaAssetIds) {
+        unchecked.add(assetId);
+      }
+    }
     const isPerceptionPending = await this.collectPerceptionAndVision(
       request.organizationId,
       mediaAssetIds,
       reasons,
       unchecked,
       perceptions,
+      settings,
     );
     await this.collectModeration(
       request.organizationId,
       mediaAssetIds,
       reasons,
       unchecked,
+      settings,
     );
     await this.collectTextDecisions(
       request.organizationId,
@@ -174,6 +188,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
       reasons,
       warnings,
       unchecked,
+      settings,
     );
     for (const assetId of unchecked) {
       reasons.push({
@@ -197,10 +212,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
     assetIds: readonly string[],
     reasons: MediaAssessmentReason[],
     unchecked: Set<string>,
+    featureSettings: IPlatformFeatureSettings,
   ): Promise<void> {
-    const settings = resolveModerationSettings(
-      await this.platformSettingsService.getFeatureSettings(),
-    );
+    const settings = resolveModerationSettings(featureSettings);
     if (settings.mode === 'off') {
       return;
     }
@@ -275,10 +289,9 @@ export class MediaAssessmentService implements IMediaPublishGate {
     reasons: MediaAssessmentReason[],
     warnings: MediaAssessmentReason[],
     unchecked: Set<string>,
+    featureSettings: IPlatformFeatureSettings,
   ): Promise<void> {
-    const settings = resolveMediaTextGateSettings(
-      await this.platformSettingsService.getFeatureSettings(),
-    );
+    const settings = resolveMediaTextGateSettings(featureSettings);
     if (settings.mode !== 'live') {
       return;
     }
@@ -384,6 +397,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
     reasons: MediaAssessmentReason[],
     unchecked: Set<string>,
     perceptions: Map<string, IMediaPerception>,
+    featureSettings: IPlatformFeatureSettings,
   ): Promise<boolean> {
     const rows = await this.prisma.mediaPerception.findMany({
       select: {
@@ -417,10 +431,7 @@ export class MediaAssessmentService implements IMediaPublishGate {
       }
     }
 
-    const isVisionLive =
-      resolveVisionGateMode(
-        await this.platformSettingsService.getFeatureSettings(),
-      ) === 'live';
+    const isVisionLive = resolveVisionGateMode(featureSettings) === 'live';
     let validEvaluationIds: ReadonlySet<string> = new Set();
     let flagsById = new Map<string, IEvaluationFlags | undefined>();
     if (isVisionLive && evaluationByAsset.size > 0) {

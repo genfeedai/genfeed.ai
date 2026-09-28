@@ -1,20 +1,19 @@
-import { REPLY_BOT_FEATURE_FLAG } from '@genfeedai/contracts/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import { Suspense } from 'react';
+import RepliesFeatureGate from './replies-feature-gate';
 import RepliesPage from './replies-page';
 
 export const generateMetadata = createPageMetadata('Replies');
 
 export default function RepliesRoute() {
   return (
-    <FeatureGate flagKey={REPLY_BOT_FEATURE_FLAG}>
+    <RepliesFeatureGate>
       <ErrorBoundary>
         <Suspense fallback={null}>
           <RepliesPage />
         </Suspense>
       </ErrorBoundary>
-    </FeatureGate>
+    </RepliesFeatureGate>
   );
 }

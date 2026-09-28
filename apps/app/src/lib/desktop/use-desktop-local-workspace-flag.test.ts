@@ -1,57 +1,37 @@
-import { DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG } from '@genfeedai/contracts/constants';
-import { act, renderHook } from '@testing-library/react';
+import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
+import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDesktopLocalWorkspaceFlag } from './use-desktop-local-workspace-flag';
 
-const analyticsMocks = vi.hoisted(() => ({
-  isAnalyticsEnabled: vi.fn(),
-  subscribeAnalyticsFeatureFlags: vi.fn(),
+const platformFlags = vi.hoisted(() => ({
+  state: { flags: {} as Record<string, boolean>, isReady: true },
 }));
 
-vi.mock('@/lib/analytics', () => ({
-  isAnalyticsEnabled: analyticsMocks.isAnalyticsEnabled,
-  subscribeAnalyticsFeatureFlags: analyticsMocks.subscribeAnalyticsFeatureFlags,
+vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
+  usePlatformFlags: () => platformFlags.state,
 }));
 
-describe('useDesktopLocalWorkspaceFlag', () => {
+describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
   beforeEach(() => {
-    analyticsMocks.isAnalyticsEnabled.mockReset();
-    analyticsMocks.subscribeAnalyticsFeatureFlags.mockReset();
+    platformFlags.state = {
+      flags: { ...DEFAULT_PLATFORM_FLAGS },
+      isReady: true,
+    };
   });
 
-  it('enables the local-workspace slice when PostHog is not configured', () => {
-    analyticsMocks.isAnalyticsEnabled.mockReturnValue(false);
+  it('follows the Admin flag', () => {
+    platformFlags.state.flags.desktop_local_workspace = false;
 
     const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
 
-    expect(result.current).toEqual({ isEnabled: true, isReady: true });
-    expect(
-      analyticsMocks.subscribeAnalyticsFeatureFlags,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('fails closed on SaaS until PostHog returns an explicit true', () => {
-    analyticsMocks.isAnalyticsEnabled.mockReturnValue(true);
-    let listener: ((flags: Record<string, boolean>) => void) | undefined;
-    analyticsMocks.subscribeAnalyticsFeatureFlags.mockImplementation(
-      (_keys, nextListener) => {
-        listener = nextListener;
-        return () => undefined;
-      },
-    );
-
-    const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
-
-    expect(result.current).toEqual({ isEnabled: false, isReady: false });
-
-    act(() => {
-      listener?.({});
-    });
     expect(result.current).toEqual({ isEnabled: false, isReady: true });
+  });
 
-    act(() => {
-      listener?.({ [DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG]: true });
-    });
-    expect(result.current).toEqual({ isEnabled: true, isReady: true });
+  it('reports not ready until the flags load', () => {
+    platformFlags.state.isReady = false;
+
+    const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
+
+    expect(result.current).toEqual({ isEnabled: true, isReady: false });
   });
 });

@@ -1734,6 +1734,9 @@ model PlatformSetting {
   // Signup and billing system-event recording starts here; null = disabled.
   systemEventsEnabledAt            DateTime?
   isEmailVerificationRequired      Boolean   @default(false)
+  // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
+  // false turns one off; missing keys are on.
+  flags                            Json      @default("{}")
 
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())

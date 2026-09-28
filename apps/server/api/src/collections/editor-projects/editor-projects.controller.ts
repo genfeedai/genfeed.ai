@@ -8,6 +8,7 @@ import { RemotionCompositionsService } from '@api/collections/editor-projects/se
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -58,6 +59,7 @@ import { v4 as uuidv4 } from 'uuid';
 @AutoSwagger()
 @ApiTags('editor-projects')
 @ApiBearerAuth()
+@FeatureFlag('studio')
 @Controller('editor-projects')
 @UseGuards(RolesGuard)
 export class EditorProjectsController {

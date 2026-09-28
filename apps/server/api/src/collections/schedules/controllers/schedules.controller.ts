@@ -4,6 +4,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -39,6 +40,7 @@ import type { Request } from 'express';
 
 @AutoSwagger()
 @ApiTags('Schedules')
+@FeatureFlag('publishing')
 @Controller('schedules')
 @UseInterceptors(CreditsInterceptor)
 export class SchedulesController {

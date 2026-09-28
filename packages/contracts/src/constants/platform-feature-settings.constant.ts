@@ -5,6 +5,10 @@ import type {
   IPlatformFeatureSettings,
   ShadowCappedDecisionMode,
 } from '../interfaces/settings/platform-setting.interface';
+import {
+  DEFAULT_PLATFORM_FLAGS,
+  parsePlatformFlags,
+} from './feature-flags.constant';
 
 /** Every rollout mode a decision point can take. */
 export const TYPED_DECISION_MODES: readonly TypedDecisionMode[] = [
@@ -37,6 +41,7 @@ export const PLATFORM_FEATURE_SETTING_BOUNDS = {
 export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
   {
     agentAutoRoutingDecisionMode: 'off',
+    flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
     isAgentTokenStreamingEnabled: false,
     isEmailVerificationRequired: false,
@@ -61,6 +66,18 @@ export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSetting
     taskRoutingMinConfidence: 0.85,
     untrustedContentDecisionMode: 'off',
     untrustedContentMinConfidence: 0.95,
+  };
+
+/**
+ * What a process serves before it has ever read the settings row (#5468):
+ * the defaults tightened to the production values — email verification on,
+ * the perception sweep off. Never cached; the next call retries the read.
+ */
+export const UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
+  {
+    ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    isEmailVerificationRequired: true,
+    isMediaPerceptionEnabled: false,
   };
 
 const MODERATION_CATEGORIES = new Set<string>(
@@ -164,6 +181,7 @@ export function parsePlatformFeatureSettings(
       TYPED_DECISION_MODES,
       defaults.agentAutoRoutingDecisionMode,
     ),
+    flags: parsePlatformFlags(row.flags),
     isAgentContextCompressionEnabled: pickBoolean(
       row.isAgentContextCompressionEnabled,
       defaults.isAgentContextCompressionEnabled,

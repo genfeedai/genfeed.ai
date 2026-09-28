@@ -14,6 +14,7 @@ import {
 import type { IUser } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import type {
@@ -156,6 +157,8 @@ function BrandRow({ brand, href }: OrgLandingBrandItemProps) {
 }
 
 export default function OrgLandingContent() {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const translate = useTranslations('pages.organizationLanding');
   const { brands, isReady } = useBrand();
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
@@ -181,7 +184,8 @@ export default function OrgLandingContent() {
         resolveForcedOnboardingHref({
           accountType,
           completedSteps: currentUser.onboardingStepsCompleted ?? [],
-          hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+          hasAgentFirstOnboarding:
+            hasAgentFirstOnboarding(isAgentModuleEnabled),
           orgSlug,
         }),
       );
@@ -205,6 +209,7 @@ export default function OrgLandingContent() {
     orgSlug,
     primaryBrandSlug,
     replace,
+    isAgentModuleEnabled,
   ]);
 
   const isResolving = !isReady || isCurrentUserLoading || !currentUser;

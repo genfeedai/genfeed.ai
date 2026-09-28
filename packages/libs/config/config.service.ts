@@ -59,7 +59,6 @@ interface ApiEnvConfig extends IEnvConfig {
   API_SLOW_QUERY_SAMPLE_SIZE?: string;
   API_SLOW_QUERY_THRESHOLD_MS?: string;
   CONTENT_HARNESS_PACKAGES?: string;
-  FEATURE_FLAG_DEFAULTS?: string;
   GENERATION_BRIEF_LIVE_EVAL?: '0' | '1';
   POSTHOG_HOST?: string;
   POSTHOG_PROJECT_API_KEY?: string;
@@ -102,7 +101,6 @@ const apiSpecificSchema = {
     )
     .optional()
     .allow('', '/usr/src/app/content-harness/index.cjs'),
-  FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
   GENERATION_BRIEF_LIVE_EVAL: Joi.string().valid('0', '1').optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),
   POSTHOG_PROJECT_API_KEY: Joi.string().optional().allow(''),

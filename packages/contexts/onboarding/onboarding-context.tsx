@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag/use-feature-flag';
 import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboarding-provider.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
@@ -46,6 +47,8 @@ export function useOnboarding(): IOnboardingContextValue {
 export default function OnboardingProvider({
   children,
 }: OnboardingProviderProps) {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const router = useRouter();
   const pathname = usePathname();
   const { getToken } = useAuthIdentity();
@@ -64,9 +67,9 @@ export default function OnboardingProvider({
     () =>
       resolveOnboardingSteps({
         accountType,
-        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       }),
-    [accountType],
+    [accountType, isAgentModuleEnabled],
   );
 
   // Derive current step from URL — success page bypasses step tracking
@@ -148,7 +151,7 @@ export default function OnboardingProvider({
       const nextHref = resolveOnboardingContinueHref({
         accountType,
         completedStep: stepKey,
-        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
         orgSlug: agentOnboardingOrgSlug,
       });
 
@@ -159,7 +162,14 @@ export default function OnboardingProvider({
 
       router.push(nextHref);
     },
-    [accountType, agentOnboardingOrgSlug, currentUser, saveProgress, router],
+    [
+      accountType,
+      agentOnboardingOrgSlug,
+      currentUser,
+      saveProgress,
+      router,
+      isAgentModuleEnabled,
+    ],
   );
 
   const handleSkip = useCallback(

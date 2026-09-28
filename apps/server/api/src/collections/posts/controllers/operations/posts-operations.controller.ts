@@ -8,6 +8,7 @@ import { assertPostBrandAccess } from '@api/collections/posts/services/post-draf
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { resolveThreadReplyTarget } from '@api/collections/posts/services/post-thread-target.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -53,6 +54,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('publishing')
 @Controller('posts')
 @UseGuards(RolesGuard)
 export class PostsOperationsController {

@@ -1,7 +1,6 @@
 'use client';
 
 import type { LayoutProps } from '@props/layout/layout.props';
-import FeatureGate from '@ui/guards/feature/FeatureGate';
 import LibraryWorkspaceSurfaceAdapter from './library-workspace-surface-adapter';
 
 /**
@@ -15,9 +14,9 @@ import LibraryWorkspaceSurfaceAdapter from './library-workspace-surface-adapter'
  */
 export default function LibraryLayout({ children }: LayoutProps) {
   return (
-    <FeatureGate flagKey="library">
+    <>
       <LibraryWorkspaceSurfaceAdapter />
       {children}
-    </FeatureGate>
+    </>
   );
 }

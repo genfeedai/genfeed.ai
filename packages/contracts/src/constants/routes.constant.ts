@@ -11,6 +11,10 @@ export const APP_ROUTES = {
   SIGN_UP: '/sign-up',
   ADMIN: {
     ROOT: '/admin',
+    FLAGS: {
+      FEATURES: '/admin/flags/features',
+      MODULES: '/admin/flags/modules',
+    },
     ADMINISTRATION: {
       ANNOUNCEMENTS: '/admin/administration/announcements',
       CREDIT_USAGE: '/admin/administration/credit-usage',

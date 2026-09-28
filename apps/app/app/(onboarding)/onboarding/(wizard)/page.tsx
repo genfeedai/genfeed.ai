@@ -7,6 +7,7 @@ import {
   ONBOARDING_STEPS,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -14,6 +15,8 @@ import { useEffect } from 'react';
  * Root /onboarding page — redirects to the first concrete onboarding step.
  */
 export default function OnboardingRootPage() {
+  // Admin `agent` flag (#5468): with Agent off, onboarding takes the classic wizard.
+  const isAgentModuleEnabled = useFeatureFlag('agent');
   const { currentUser, isLoading } = useCurrentUser();
   const { replace } = useRouter();
 
@@ -39,10 +42,10 @@ export default function OnboardingRootPage() {
     replace(
       resolveForcedOnboardingHref({
         completedSteps,
-        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(isAgentModuleEnabled),
       }),
     );
-  }, [currentUser, isLoading, replace]);
+  }, [currentUser, isLoading, replace, isAgentModuleEnabled]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

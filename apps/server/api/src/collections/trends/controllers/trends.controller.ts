@@ -10,6 +10,7 @@ import { SaveTrendPreferencesDto } from '@api/collections/trends/dto/trend-prefe
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -48,6 +49,7 @@ import {
 import type { Request } from 'express';
 
 @AutoSwagger()
+@FeatureFlag('discovery')
 @Controller('trends')
 @UseInterceptors(CreditsInterceptor)
 export class TrendsController {

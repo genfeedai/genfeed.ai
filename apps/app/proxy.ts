@@ -14,6 +14,7 @@ import {
   isPersonalSettingsPath,
   isSharedBrandOnboardingPath,
   ONBOARDING_STEPS,
+  parsePlatformFlags,
   parseScopedAppPath,
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
@@ -578,6 +579,40 @@ const bootstrapByRequest = new WeakMap<
   NextRequest,
   Map<string, Promise<BootstrapRead>>
 >();
+
+const PLATFORM_FLAGS_CACHE_TTL_MS = 15_000;
+let agentModuleFlagCache: { expiresAtMs: number; isEnabled: boolean } | null =
+  null;
+
+/**
+ * The Admin `agent` module flag (#5468), read only while an onboarding
+ * redirect is being decided and cached like the API's settings (15s). With
+ * Agent off, onboarding takes the classic wizard instead of an agent handoff
+ * that would 404. An unreachable API keeps the default (on), as the app does.
+ */
+async function readIsAgentModuleEnabled(): Promise<boolean> {
+  if (agentModuleFlagCache && Date.now() < agentModuleFlagCache.expiresAtMs) {
+    return agentModuleFlagCache.isEnabled;
+  }
+
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/public/platform-flags`, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    });
+    if (!response.ok) {
+      return true;
+    }
+    const isEnabled = parsePlatformFlags(await response.json()).agent;
+    agentModuleFlagCache = {
+      expiresAtMs: Date.now() + PLATFORM_FLAGS_CACHE_TTL_MS,
+      isEnabled,
+    };
+    return isEnabled;
+  } catch {
+    return true;
+  }
+}
 
 async function fetchBootstrap(token: string): Promise<BootstrapRead> {
   try {
@@ -1221,7 +1256,10 @@ async function redirectSignedInUserToDefaultRoute(
 
   const onboardingState = await readOnboardingRedirectState(token, req);
   if (onboardingState.shouldRedirect) {
-    if (!isDesktopSurface && hasAgentFirstOnboarding()) {
+    if (
+      !isDesktopSurface &&
+      hasAgentFirstOnboarding(await readIsAgentModuleEnabled())
+    ) {
       if (!hasCompletedBrandOnboardingStep(onboardingState.completedSteps)) {
         return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
       }
@@ -1384,7 +1422,11 @@ async function routeBetterAuthRequest(
     // `/onboarding/brand` is the shared brand step and stays reachable.
     // Other classic wizard paths still bounce agent-first users to the
     // agent surface after brand is confirmed.
-    if (hasSession && isClassicWizardPath(pathname)) {
+    if (
+      hasSession &&
+      isClassicWizardPath(pathname) &&
+      (await readIsAgentModuleEnabled())
+    ) {
       const token = await getBetterAuthBearerToken(req);
       const response = token
         ? await redirectSignedInUserToAgentOnboarding(req, token, sessionCookie)
@@ -1429,7 +1471,7 @@ async function routeBetterAuthRequest(
   if (options.isDesktopSurface !== true) {
     const onboardingState = await readOnboardingRedirectState(token, req);
     if (onboardingState.shouldRedirect) {
-      if (!hasAgentFirstOnboarding()) {
+      if (!hasAgentFirstOnboarding(await readIsAgentModuleEnabled())) {
         return redirectPreservingSearch(req, ONBOARDING_PATH);
       }
 

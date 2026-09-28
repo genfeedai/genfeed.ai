@@ -1,128 +1,92 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
+import {
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  DEFAULT_PLATFORM_FLAGS,
+} from '@genfeedai/contracts/constants';
+import { Reflector } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
-function createContext(request: Record<string, unknown> = {}) {
+@FeatureFlag('studio')
+class StudioController {
+  list() {}
+}
+
+class OpenController {
+  @FeatureFlag('reply_bot')
+  gated() {}
+
+  open() {}
+}
+
+function createContext(
+  controller: new () => object,
+  handlerName: string,
+  request: Record<string, unknown> = {},
+) {
   return {
-    getClass: vi.fn().mockReturnValue(class TestController {}),
-    getHandler: vi.fn().mockReturnValue(function testHandler() {}),
-    switchToHttp: vi.fn().mockReturnValue({
-      getRequest: vi.fn().mockReturnValue(request),
-    }),
+    getClass: () => controller,
+    getHandler: () =>
+      (controller.prototype as Record<string, unknown>)[handlerName],
+    switchToHttp: () => ({ getRequest: () => request }),
   };
 }
 
-describe('FeatureFlagGuard', () => {
-  it('allows requests when no feature flag metadata is present', async () => {
-    const reflector = {
-      getAllAndOverride: vi.fn().mockReturnValue(undefined),
-    };
-    const featureFlagService = {
-      isEnabled: vi.fn(),
-    };
-    const guard = new FeatureFlagGuard(
-      reflector as never,
-      featureFlagService as never,
-    );
+function createGuard(flags: Partial<typeof DEFAULT_PLATFORM_FLAGS> = {}) {
+  const getFeatureSettings = vi.fn(async () => ({
+    ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    flags: { ...DEFAULT_PLATFORM_FLAGS, ...flags },
+  }));
+  const guard = new FeatureFlagGuard(new Reflector(), {
+    getFeatureSettings,
+  } as never);
+  return { getFeatureSettings, guard };
+}
 
-    await expect(guard.canActivate(createContext() as never)).resolves.toBe(
-      true,
-    );
-    expect(featureFlagService.isEnabled).not.toHaveBeenCalled();
+describe('FeatureFlagGuard (#5468)', () => {
+  it('lets a route without a flag through without reading settings', async () => {
+    const { getFeatureSettings, guard } = createGuard({ studio: false });
+
+    await expect(
+      guard.canActivate(createContext(OpenController, 'open') as never),
+    ).resolves.toBe(true);
+    expect(getFeatureSettings).not.toHaveBeenCalled();
   });
 
-  it('allows requests when the feature flag is enabled', async () => {
-    const reflector = {
-      getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
-    };
-    const featureFlagService = {
-      isEnabled: vi.fn().mockResolvedValue(true),
-    };
-    const guard = new FeatureFlagGuard(
-      reflector as never,
-      featureFlagService as never,
-    );
-    const context = createContext({
-      context: {
-        organizationId: 'org-123',
-        subscriptionTier: 'pro',
-        userId: 'user-123',
-      },
-    });
+  it('lets a flagged controller through while its flag is on', async () => {
+    const { guard } = createGuard();
 
-    await expect(guard.canActivate(context as never)).resolves.toBe(true);
-    expect(featureFlagService.isEnabled).toHaveBeenCalledWith('new-dashboard', {
-      id: 'user-123',
-      organizationId: 'org-123',
-      plan: 'pro',
-    });
+    await expect(
+      guard.canActivate(createContext(StudioController, 'list') as never),
+    ).resolves.toBe(true);
   });
 
-  it('throws NotFoundException when the feature flag is disabled', async () => {
-    const reflector = {
-      getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
-    };
-    const featureFlagService = {
-      isEnabled: vi.fn().mockResolvedValue(false),
-    };
-    const guard = new FeatureFlagGuard(
-      reflector as never,
-      featureFlagService as never,
-    );
+  it('answers 404 on a controller whose module is off', async () => {
+    const { guard } = createGuard({ studio: false });
 
-    // Canonical 404 shape (#1147): NotFoundException('Route') → "Route not found".
-    await expect(guard.canActivate(createContext() as never)).rejects.toThrow(
-      'Route not found',
-    );
+    await expect(
+      guard.canActivate(createContext(StudioController, 'list') as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('falls back to alternate request user identifiers', async () => {
-    const reflector = {
-      getAllAndOverride: vi.fn().mockReturnValue('new-dashboard'),
-    };
-    const featureFlagService = {
-      isEnabled: vi.fn().mockResolvedValue(true),
-    };
-    const guard = new FeatureFlagGuard(
-      reflector as never,
-      featureFlagService as never,
-    );
-    const context = createContext({
-      auth: {
-        userId: 'auth-user',
-      },
-    });
+  it('answers 404 on a flagged handler whose feature is off', async () => {
+    const { guard } = createGuard({ reply_bot: false });
 
-    await guard.canActivate(context as never);
-
-    expect(featureFlagService.isEnabled).toHaveBeenCalledWith('new-dashboard', {
-      id: 'auth-user',
-    });
+    await expect(
+      guard.canActivate(createContext(OpenController, 'gated') as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('passes is_internal from the canonical users.id identify contract', async () => {
-    const reflector = {
-      getAllAndOverride: vi.fn().mockReturnValue('reply_bot'),
-    };
-    const featureFlagService = {
-      isEnabled: vi.fn().mockResolvedValue(true),
-    };
-    const guard = new FeatureFlagGuard(
-      reflector as never,
-      featureFlagService as never,
-    );
-    const context = createContext({
-      user: {
-        emailAddresses: [{ emailAddress: 'vincent@genfeed.ai', id: 'email-1' }],
-        id: 'user-123',
-        primaryEmailAddressId: 'email-1',
-      },
-    });
+  it('lets a superadmin inspect a module that is off', async () => {
+    const { guard } = createGuard({ studio: false });
 
-    await guard.canActivate(context as never);
-
-    expect(featureFlagService.isEnabled).toHaveBeenCalledWith('reply_bot', {
-      id: 'user-123',
-      is_internal: true,
-    });
+    await expect(
+      guard.canActivate(
+        createContext(StudioController, 'list', {
+          user: { isSuperAdmin: true },
+        }) as never,
+      ),
+    ).resolves.toBe(true);
   });
 });

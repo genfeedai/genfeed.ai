@@ -1,33 +1,48 @@
 import { describe, expect, it } from 'vitest';
 import {
-  APP_RAIL_FEATURE_FLAG_KEYS,
-  DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG,
-  REPLY_BOT_FEATURE_FLAG,
+  APP_RAIL_FEATURE_FLAGS,
+  DEFAULT_PLATFORM_FLAGS,
+  isPlatformFlagKey,
+  PLATFORM_FLAG_KEYS,
+  PLATFORM_MODULE_FLAG_KEYS,
+  parsePlatformFlags,
 } from './feature-flags.constant';
 
-describe('feature-flags.constant', () => {
-  it('renames the rail symbols without changing deployed PostHog keys', () => {
-    expect([...APP_RAIL_FEATURE_FLAG_KEYS].sort()).toEqual([
-      'app_switcher_agent',
-      'app_switcher_analytics',
-      'app_switcher_automate',
-      'app_switcher_discover',
-      'app_switcher_library',
-      'app_switcher_messages',
-      'app_switcher_posts',
-      'app_switcher_studio',
-      'app_switcher_workspace',
-    ]);
-  });
-
-  it('keeps the Replies PostHog key stable', () => {
-    expect(REPLY_BOT_FEATURE_FLAG).toBe('reply_bot');
-    expect(APP_RAIL_FEATURE_FLAG_KEYS).not.toContain(REPLY_BOT_FEATURE_FLAG);
-  });
-
-  it('keeps the desktop local-workspace PostHog key stable', () => {
-    expect(DESKTOP_LOCAL_WORKSPACE_FEATURE_FLAG).toBe(
-      'desktop_local_workspace',
+describe('platform flags (#5468)', () => {
+  it('defaults every flag on', () => {
+    expect(Object.keys(DEFAULT_PLATFORM_FLAGS).sort()).toEqual(
+      [...PLATFORM_FLAG_KEYS].sort(),
     );
+    expect(Object.values(DEFAULT_PLATFORM_FLAGS).every(Boolean)).toBe(true);
+  });
+
+  it('turns a flag off only on an explicit false', () => {
+    const flags = parsePlatformFlags({
+      analytics: 'false',
+      retired_flag: false,
+      studio: false,
+    });
+
+    expect(flags.studio).toBe(false);
+    expect(flags.analytics).toBe(true);
+    expect(flags).not.toHaveProperty('retired_flag');
+  });
+
+  it.each([null, undefined, 'studio', [false]])(
+    'keeps the defaults for a malformed column (%j)',
+    (value) => {
+      expect(parsePlatformFlags(value)).toEqual(DEFAULT_PLATFORM_FLAGS);
+    },
+  );
+
+  it('gates every app-rail entry with a module flag', () => {
+    for (const key of Object.values(APP_RAIL_FEATURE_FLAGS)) {
+      expect(PLATFORM_MODULE_FLAG_KEYS).toContain(key);
+    }
+  });
+
+  it('recognises only registered keys', () => {
+    expect(isPlatformFlagKey('reply_bot')).toBe(true);
+    expect(isPlatformFlagKey('app_switcher_studio')).toBe(false);
   });
 });

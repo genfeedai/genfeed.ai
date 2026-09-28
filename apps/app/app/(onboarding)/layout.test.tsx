@@ -70,6 +70,10 @@ vi.mock('./onboarding-funnel-analytics', () => ({
   default: () => <div data-testid="onboarding-funnel-analytics" />,
 }));
 
+vi.mock('@/lib/platform-flags/use-platform-flags', () => ({
+  usePlatformFlags: () => ({ flags: {}, isReady: true }),
+}));
+
 vi.mock('@/components/analytics/AnalyticsOrganizationSync', () => ({
   default: () => <div data-testid="analytics-organization-sync" />,
 }));

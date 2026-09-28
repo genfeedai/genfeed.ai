@@ -289,6 +289,9 @@ export default function PlatformSettingsPage() {
     }
 
     setIsSaving(true);
+    // Module and feature flags are edited on Admin → Flags (#5468); resending
+    // the copy loaded here would undo a flag switched there meanwhile.
+    const { flags: _flagsEditedElsewhere, ...switches } = featureSettings;
 
     try {
       const service = await getPlatformSettingsService();
@@ -297,7 +300,7 @@ export default function PlatformSettingsPage() {
         marginMultiplierAgentChat: agentChatResolved.multiplier,
         marginMultiplierGeneration: generationResolved.multiplier,
         typedDecisionProvider,
-        ...featureSettings,
+        ...switches,
       });
       const mode = parseMarginInputMode(updated.marginInputMode);
       setMarginInputMode(mode);

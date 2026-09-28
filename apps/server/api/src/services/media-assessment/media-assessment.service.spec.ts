@@ -74,18 +74,24 @@ function makeHarness(options: {
   featureSettings?: Partial<IPlatformFeatureSettings>;
   evaluations?: Record<string, unknown>[];
   isDecisionProviderBound?: boolean;
+  isSettingsResolved?: boolean;
   moderations?: Record<string, unknown>[];
   perceptions?: Record<string, unknown>[];
   readinessDiagnostics?: Record<string, unknown>[];
 }) {
   const config: Record<string, unknown> = { ...options.config };
+  const settings = {
+    ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    mediaGateVisionMode: 'off' as const,
+    moderationMode: 'live' as const,
+    moderationProvider: 'openai' as const,
+    ...options.featureSettings,
+  };
   const platformSettingsService = {
-    getFeatureSettings: vi.fn(async () => ({
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-      mediaGateVisionMode: 'off',
-      moderationMode: 'live',
-      moderationProvider: 'openai',
-      ...options.featureSettings,
+    getFeatureSettings: vi.fn(async () => settings),
+    getFeatureSettingsState: vi.fn(async () => ({
+      isResolved: options.isSettingsResolved ?? true,
+      settings,
     })),
   };
   const evaluatePublishReadiness = vi.fn().mockResolvedValue({
@@ -137,6 +143,34 @@ const REQUEST = {
 };
 
 describe('MediaAssessmentService', () => {
+  it('fails closed while the media gate switches are unresolved (#5468)', async () => {
+    // Settings unreadable since boot: the stand-in switches have every gate off or in
+    // shadow, which must never let an unchecked asset publish autonomously.
+    const { service } = makeHarness({
+      categories: { 'asset-2': 'TEXT' },
+      featureSettings: {
+        mediaGateVisionMode: 'off',
+        mediaTextGateDecisionMode: 'off',
+        moderationMode: 'shadow',
+      },
+      isSettingsResolved: false,
+      perceptions: [perceptionRow('asset-1')],
+    });
+
+    const assessment = await service.assessPublishMedia({
+      ...REQUEST,
+      assetIds: ['asset-1', 'asset-2'],
+    });
+
+    expect(assessment.isBlocking).toBe(true);
+    expect(assessment.reasons).toEqual([
+      expect.objectContaining({
+        assetId: 'asset-1',
+        code: 'perception:checks_pending',
+      }),
+    ]);
+  });
+
   it('is clean with every source off and settled perception', async () => {
     const { service } = makeHarness({
       featureSettings: { moderationMode: 'off' },

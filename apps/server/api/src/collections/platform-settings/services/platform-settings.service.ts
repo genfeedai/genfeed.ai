@@ -6,12 +6,16 @@ import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
-  DEFAULT_PLATFORM_FEATURE_SETTINGS,
   PLATFORM_SETTING_KEY,
+  type PlatformFlagKey,
   parsePlatformFeatureSettings,
   TYPED_DECISION_PROVIDER_LABELS,
+  UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
-import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
+import type {
+  IPlatformFeatureSettings,
+  IPlatformFeatureSettingsState,
+} from '@genfeedai/contracts/interfaces';
 import {
   DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
   DEFAULT_GENERATION_MARGIN_MULTIPLIER,
@@ -80,7 +84,9 @@ export class PlatformSettingsService
   implements OnModuleInit
 {
   private featureSettingsCache: FeatureSettingsCacheEntry | undefined;
-  private pendingFeatureSettings: Promise<IPlatformFeatureSettings> | undefined;
+  private pendingFeatureSettings:
+    | Promise<IPlatformFeatureSettingsState>
+    | undefined;
   /** Bumped on every write so a read already in flight cannot cache a stale row. */
   private featureSettingsGeneration = 0;
 
@@ -165,13 +171,25 @@ export class PlatformSettingsService
    * TTL is shorter than any sweep interval.
    *
    * A failed read never fails the caller: it keeps the last value this
-   * process read (or the defaults before any read) for one TTL, so a
-   * database blip neither flips a switch nor becomes a query per call.
+   * process read for one TTL, so a database blip neither flips a switch nor
+   * becomes a query per call. Before any successful read it serves the
+   * conservative unresolved profile, uncached.
    */
   async getFeatureSettings(): Promise<IPlatformFeatureSettings> {
+    return (await this.getFeatureSettingsState()).settings;
+  }
+
+  /**
+   * {@link getFeatureSettings} plus whether the values came from the
+   * database. Before this process has ever read the row the state is
+   * unresolved and carries {@link UNRESOLVED_PLATFORM_FEATURE_SETTINGS};
+   * callers that must not guess (publish gates, the system-event outbox)
+   * block or hold on it.
+   */
+  async getFeatureSettingsState(): Promise<IPlatformFeatureSettingsState> {
     const cached = this.featureSettingsCache;
     if (cached && Date.now() < cached.expiresAtMs) {
-      return cached.value;
+      return { isResolved: true, settings: cached.value };
     }
 
     this.pendingFeatureSettings ??= this.loadFeatureSettings().finally(() => {
@@ -181,7 +199,7 @@ export class PlatformSettingsService
     return this.pendingFeatureSettings;
   }
 
-  private async loadFeatureSettings(): Promise<IPlatformFeatureSettings> {
+  private async loadFeatureSettings(): Promise<IPlatformFeatureSettingsState> {
     const generation = this.featureSettingsGeneration;
     let value: IPlatformFeatureSettings;
     try {
@@ -193,10 +211,12 @@ export class PlatformSettingsService
         { error, hasLastKnownValues: Boolean(lastKnown) },
       );
       if (!lastKnown) {
-        // Never cache a guess: the defaults are permissive for some switches
-        // (email verification off), so the next call must retry the read
-        // rather than serve them for a whole TTL after the database recovers.
-        return DEFAULT_PLATFORM_FEATURE_SETTINGS;
+        // Never cache a guess: the next call must retry the read rather than
+        // serve the conservative profile for a whole TTL after recovery.
+        return {
+          isResolved: false,
+          settings: UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+        };
       }
       value = lastKnown;
     }
@@ -204,7 +224,7 @@ export class PlatformSettingsService
     if (generation === this.featureSettingsGeneration) {
       this.cacheFeatureSettings(value);
     }
-    return value;
+    return { isResolved: true, settings: value };
   }
 
   private cacheFeatureSettings(value: IPlatformFeatureSettings): void {
@@ -242,19 +262,45 @@ export class PlatformSettingsService
         : { typedDecisionProvider: dto.typedDecisionProvider }),
       ...this.toFeaturePatch(dto),
     };
-    if (Object.keys(patchData).length === 0) {
+    const hasFlagPatch = Object.keys(dto.flags ?? {}).length > 0;
+    if (Object.keys(patchData).length === 0 && !hasFlagPatch) {
       setRuntimeMarginMultiplier(current.marginMultiplierGeneration);
       setRuntimeAgentChatMarginMultiplier(current.marginMultiplierAgentChat);
       return current;
     }
 
-    const updated = await this.patch(current.id, patchData);
+    if (dto.flags && hasFlagPatch) {
+      await this.mergeFlags(current.id, dto.flags);
+    }
+    const updated =
+      Object.keys(patchData).length > 0
+        ? await this.patch(current.id, patchData)
+        : await this.getSingleton();
     // Any read that started before the write finished may hold the old row.
     this.featureSettingsGeneration += 1;
     this.cacheFeatureSettings(parsePlatformFeatureSettings(updated));
     setRuntimeMarginMultiplier(updated.marginMultiplierGeneration);
     setRuntimeAgentChatMarginMultiplier(updated.marginMultiplierAgentChat);
     return updated;
+  }
+
+  /**
+   * Merge a flag patch in one statement (#5468). Two operators switching
+   * different flags at the same moment must both win; a read-modify-write of
+   * the whole map would let the later save undo the earlier one.
+   */
+  private async mergeFlags(
+    id: string,
+    flags: Partial<Record<PlatformFlagKey, boolean>>,
+  ): Promise<void> {
+    // tenant-scope-ignore: platform-wide operator singleton, superadmin-only write
+    await this.prisma.$executeRaw`
+      UPDATE "platform_settings"
+      SET "flags" = COALESCE("flags", '{}'::jsonb) || ${JSON.stringify(flags)}::jsonb,
+          "updatedAt" = NOW()
+      WHERE "id" = ${id}
+        AND "isDeleted" = false
+    `;
   }
 
   private toFeaturePatch(

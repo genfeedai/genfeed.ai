@@ -127,12 +127,17 @@ function platformSettings(
   outage: Outage,
   overrides: Partial<IPlatformFeatureSettings> = {},
 ): PlatformSettingsService {
+  const settings = {
+    ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    ...LIVE_CONFIG,
+    moderationProvider: outage === 'none' ? 'none' : 'openai',
+    ...overrides,
+  };
   return {
-    getFeatureSettings: vi.fn(async () => ({
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-      ...LIVE_CONFIG,
-      moderationProvider: outage === 'none' ? 'none' : 'openai',
-      ...overrides,
+    getFeatureSettings: vi.fn(async () => settings),
+    getFeatureSettingsState: vi.fn(async () => ({
+      isResolved: true,
+      settings,
     })),
   } as unknown as PlatformSettingsService;
 }

@@ -9,6 +9,7 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { parseOptionalBoolean } from '@api/helpers/dto/optional-boolean.transform';
@@ -39,6 +40,7 @@ import type { Request } from 'express';
 
 @ApiTags('Agent Strategies')
 @AutoSwagger()
+@FeatureFlag('agent')
 @Controller('agent-strategies')
 export class AgentStrategiesController extends BaseCRUDController<
   AgentStrategyDocument,

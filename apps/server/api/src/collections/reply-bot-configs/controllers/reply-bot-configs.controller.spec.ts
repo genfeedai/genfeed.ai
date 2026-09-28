@@ -5,8 +5,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { ReplyBotConfigsController } from '@api/collections/reply-bot-configs/controllers/reply-bot-configs.controller';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
-import { FeatureFlagService } from '@api/feature-flag/feature-flag.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { AuthorReplyLoopService } from '@api/services/reply-bot/author-reply-loop.service';
 import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-orchestrator.service';
@@ -47,10 +45,6 @@ describe('ReplyBotConfigsController', () => {
     testReplyGeneration: vi.fn(),
   };
 
-  const mockFeatureFlagService = {
-    isEnabled: vi.fn(() => true),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ReplyBotConfigsController],
@@ -75,14 +69,8 @@ describe('ReplyBotConfigsController', () => {
           provide: ReplyPostWatchService,
           useValue: {},
         },
-        {
-          provide: FeatureFlagService,
-          useValue: mockFeatureFlagService,
-        },
       ],
     })
-      .overrideGuard(FeatureFlagGuard)
-      .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -97,7 +85,6 @@ describe('ReplyBotConfigsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-    mockFeatureFlagService.isEnabled.mockReturnValue(true);
   });
 
   it('should be defined', () => {

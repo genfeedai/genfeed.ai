@@ -6,15 +6,12 @@ const mocks = vi.hoisted(() => ({
   isSaaS: vi.fn(),
   loggerError: vi.fn(),
   posthogCapture: vi.fn(),
-  posthogFeatureFlagUnsubscribe: vi.fn(),
-  posthogGetFeatureFlagResult: vi.fn(),
   posthogGetGroups: vi.fn(),
   posthogGetProperty: vi.fn(),
   posthogGroup: vi.fn(),
   posthogIdentify: vi.fn(),
   posthogImport: vi.fn(),
   posthogInit: vi.fn(),
-  posthogOnFeatureFlags: vi.fn(),
   posthogReset: vi.fn(),
   posthogResetGroups: vi.fn(),
 }));
@@ -32,13 +29,11 @@ vi.mock('posthog-js', () => {
   return {
     default: {
       capture: mocks.posthogCapture,
-      getFeatureFlagResult: mocks.posthogGetFeatureFlagResult,
       getGroups: mocks.posthogGetGroups,
       get_property: mocks.posthogGetProperty,
       group: mocks.posthogGroup,
       identify: mocks.posthogIdentify,
       init: mocks.posthogInit,
-      onFeatureFlags: mocks.posthogOnFeatureFlags,
       reset: mocks.posthogReset,
       resetGroups: mocks.posthogResetGroups,
     },
@@ -79,9 +74,6 @@ beforeEach(() => {
   stubImmediateIdleCallback();
   mocks.posthogCapture.mockReset();
   mocks.isSaaS.mockReturnValue(true);
-  mocks.posthogOnFeatureFlags.mockReturnValue(
-    mocks.posthogFeatureFlagUnsubscribe,
-  );
   mocks.posthogGetGroups.mockReturnValue({});
   mocks.posthogGetProperty.mockReturnValue(undefined);
   vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
@@ -622,69 +614,6 @@ describe('authenticated feature flags', () => {
     expect(mocks.posthogIdentify).toHaveBeenCalledWith('user-123', {
       is_internal: true,
     });
-  });
-
-  it('resolves subscribed boolean flags after PostHog reports them ready', async () => {
-    mocks.posthogGetFeatureFlagResult.mockImplementation((key: string) => ({
-      enabled: key === 'app_switcher_agent',
-      key,
-    }));
-    const listener = vi.fn();
-    const client = await loadClient();
-
-    client.identifyAnalyticsUser({
-      id: 'user-123',
-      isInternal: true,
-    });
-    const unsubscribe = client.subscribeAnalyticsFeatureFlags(
-      ['app_switcher_agent', 'app_switcher_studio'],
-      listener,
-    );
-    client.initAnalytics();
-    await flushInit();
-
-    const featureFlagsReady = mocks.posthogOnFeatureFlags.mock
-      .calls[0]?.[0] as (
-      flags: string[],
-      variants: Record<string, string>,
-      context: { errorsLoading: boolean },
-    ) => void;
-    featureFlagsReady(['app_switcher_agent'], {}, { errorsLoading: false });
-
-    expect(listener).toHaveBeenCalledWith({
-      app_switcher_agent: true,
-      app_switcher_studio: false,
-    });
-    expect(mocks.posthogGetFeatureFlagResult).toHaveBeenCalledWith(
-      'app_switcher_agent',
-      { send_event: false },
-    );
-
-    unsubscribe();
-    expect(mocks.posthogFeatureFlagUnsubscribe).toHaveBeenCalledTimes(1);
-  });
-
-  it('preserves product fallbacks when PostHog cannot load flags', async () => {
-    mocks.posthogGetFeatureFlagResult.mockReturnValue({
-      enabled: true,
-      key: 'app_switcher_agent',
-    });
-    const listener = vi.fn();
-    const client = await loadClient();
-
-    client.subscribeAnalyticsFeatureFlags(['app_switcher_agent'], listener);
-    client.initAnalytics();
-    await flushInit();
-
-    const featureFlagsReady = mocks.posthogOnFeatureFlags.mock
-      .calls[0]?.[0] as (
-      flags: string[],
-      variants: Record<string, string>,
-      context: { errorsLoading: boolean },
-    ) => void;
-    featureFlagsReady([], {}, { errorsLoading: true });
-
-    expect(listener).toHaveBeenCalledWith({});
   });
 });
 

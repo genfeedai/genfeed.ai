@@ -4739,6 +4739,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'agentAutoRoutingDecisionMode',
       'createdAt',
+      'flags',
       'id',
       'isAgentContextCompressionEnabled',
       'isAgentTokenStreamingEnabled',
