@@ -102,6 +102,7 @@ describe('EditorProjectsController', () => {
         {
           provide: IngredientsService,
           useValue: {
+            findAll: vi.fn(),
             findOne: vi.fn(),
           },
         },
@@ -433,6 +434,91 @@ describe('EditorProjectsController', () => {
       expect(config).not.toHaveProperty('composition');
       expect(config).not.toHaveProperty('renderExport');
       expect(created).not.toHaveProperty('renderedVideoId');
+    });
+
+    it('resolves media clip URLs from the organization ingredients', async () => {
+      const placeholderUrl = 'https://assets.invalid/videos/video-1';
+      const videoClip = {
+        durationFrames: 360,
+        effects: [],
+        id: 'source-video',
+        ingredientId: 'video-1',
+        ingredientUrl: placeholderUrl,
+        sourceEndFrame: 360,
+        sourceStartFrame: 0,
+        startFrame: 0,
+      };
+      const missingClip = {
+        ...videoClip,
+        id: 'missing-audio',
+        ingredientId: 'audio-gone',
+        ingredientUrl: 'https://assets.invalid/sounds/audio-gone',
+      };
+      const source = {
+        ...makeComposition(),
+        tracks: [
+          { ...tracks[0] },
+          {
+            clips: [videoClip],
+            id: 'video',
+            isLocked: false,
+            isMuted: false,
+            name: 'Product footage',
+            type: 'video',
+            volume: 0,
+          },
+          {
+            clips: [missingClip],
+            id: 'audio',
+            isLocked: false,
+            isMuted: false,
+            name: 'Music',
+            type: 'audio',
+            volume: 100,
+          },
+        ],
+      };
+      editorProjectsService.findOne.mockResolvedValue(source as never);
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+      ingredientsService.findAll.mockResolvedValue({
+        docs: [{ category: 'VIDEO', id: 'video-1' }],
+      } as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(ingredientsService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            id: { in: ['video-1', 'audio-gone'] },
+            isDeleted: false,
+            organizationId: testId('shared'),
+          },
+        },
+        { pagination: false },
+        false,
+      );
+      const [created] = editorProjectsService.create.mock.calls[0] as [
+        { tracks: Array<{ clips: Array<{ ingredientUrl: string }> }> },
+      ];
+      expect(created.tracks[0]).toEqual(tracks[0]);
+      expect(created.tracks[1].clips[0].ingredientUrl).toBe(
+        'https://cdn.genfeed.ai/videos/video-1',
+      );
+      // An ingredient the organization can no longer read is not resolved.
+      expect(created.tracks[2].clips[0].ingredientUrl).toBe(
+        'https://assets.invalid/sounds/audio-gone',
+      );
+    });
+
+    it('does not query ingredients when the copy has no media clips', async () => {
+      editorProjectsService.findOne.mockResolvedValue(
+        makeComposition() as never,
+      );
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
+
+      await controller.duplicate(makeRequest(), makeUser(), 'source');
+
+      expect(ingredientsService.findAll).not.toHaveBeenCalled();
     });
 
     it('returns not found for a project outside the organization', async () => {

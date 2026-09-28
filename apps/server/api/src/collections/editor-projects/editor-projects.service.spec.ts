@@ -113,6 +113,50 @@ describe('EditorProjectsService.updateEditorContent', () => {
     });
   });
 
+  it('never drops render-job ownership recorded after the request started', async () => {
+    // Codex P1: the controller read a draft, then a render claimed the
+    // project. The save must not erase `rendering` or the job correlation,
+    // or render completion fails its ownership check.
+    const renderExport = {
+      job: { jobId: 'job-7' },
+      requestedAt: '2026-09-28T00:00:00.000Z',
+    };
+    const { service, tx } = setup(() =>
+      row({ name: 'Draft', renderExport, status: 'rendering' }),
+    );
+
+    await service.updateEditorContent(PROJECT_ID, ORG_ID, { name: 'Edited' });
+
+    const [args] = tx.editorProject.update.mock.calls[0] as [
+      { data: { config: Record<string, unknown> } },
+    ];
+    expect(args.data.config).toMatchObject({
+      name: 'Edited',
+      renderExport,
+      status: 'rendering',
+    });
+  });
+
+  it('merges a partial settings update into the saved settings', async () => {
+    const saved = {
+      backgroundColor: '#123456',
+      format: 'portrait',
+      fps: 30,
+      height: 1920,
+      width: 1080,
+    };
+    const { service, tx } = setup(() => row({ settings: saved }));
+
+    await service.updateEditorContent(PROJECT_ID, ORG_ID, {
+      settings: { fps: 60 },
+    });
+
+    const [args] = tx.editorProject.update.mock.calls[0] as [
+      { data: { config: Record<string, unknown> } },
+    ];
+    expect(args.data.config.settings).toEqual({ ...saved, fps: 60 });
+  });
+
   it('refuses a composition-backed project under the lock', async () => {
     const { service, tx } = setup(() =>
       row({ composition: { id: 'product-story' }, name: 'Story' }),
