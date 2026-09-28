@@ -108,7 +108,7 @@ function ErrorLine({
 function EmptyLine({ description }: { description: ReactNode }) {
   return (
     <div
-      className="px-4 py-3 text-sm text-foreground/55 sm:px-5"
+      className="px-4 py-3 text-sm text-muted-foreground sm:px-5"
       data-testid="workspace-empty-state"
     >
       {description}
@@ -515,7 +515,7 @@ function UpcomingScheduleBlock({
       data-testid="operational-home-upcoming"
     >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
+        <p className="text-2xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
           {translate('home.schedule.title')}
         </p>
         <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>

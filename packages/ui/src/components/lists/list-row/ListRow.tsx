@@ -32,12 +32,12 @@ function ListRowContent({
           {title}
         </p>
         {description ? (
-          <p className="mt-0.5 line-clamp-2 text-sm text-foreground/55">
+          <p className="mt-0.5 line-clamp-2 text-sm text-muted-foreground">
             {description}
           </p>
         ) : null}
         {meta ? (
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-foreground/40">
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {meta}
           </div>
         ) : null}
