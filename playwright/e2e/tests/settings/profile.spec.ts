@@ -19,7 +19,7 @@ import { selectVisibleRadixOption } from '../../utils/radix-select';
  */
 const USER_NAME = 'Test User';
 const USER_EMAIL = 'test@genfeed.ai';
-const ME_SETTINGS_PATTERN = '**/api.genfeed.ai/v1/users/me/settings';
+const ME_SETTINGS_PATTERN = '**/api.genfeed.ai/v1/users/me/settings*';
 
 /**
  * Capture PATCH /users/me/settings bodies and answer with `status`.

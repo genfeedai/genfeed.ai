@@ -126,6 +126,7 @@ describe('AvatarVideoGenerationService', () => {
     );
 
     return {
+      byokService,
       brandsService,
       creditsUtilsService,
       elevenlabsService,
@@ -161,6 +162,46 @@ describe('AvatarVideoGenerationService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+
+  it.each([false, true])(
+    'charges platform credits only without HeyGen BYOK (BYOK: %s)',
+    async (isByok) => {
+      const {
+        service,
+        brandsService,
+        byokService,
+        creditsUtilsService,
+        heygenService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      byokService.resolveApiKey.mockResolvedValue(
+        isByok ? { apiKey: 'byok-test-key' } : null,
+      );
+      await service.generateAvatarVideo(
+        {
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          audioUrl: 'https://cdn.example.com/audio.mp3',
+          text: 'Founder update',
+        },
+        context,
+      );
+      expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
+        'avatar-ingredient-1',
+        expect.any(String),
+        expect.any(Object),
+        context.organizationId,
+        context.userId,
+        isByok ? 'byok-test-key' : undefined,
+        '9:16',
+      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(isByok ? 0 : 1);
+    },
+  );
 
   it('publishes initial progress on the ingredient video path for its user', async () => {
     const { service, brandsService, websocketService } = createService();

@@ -8,6 +8,7 @@ import {
 } from '@api/services/batch-generation/batch-generation.types';
 import { writeBatchJsonAndItemRows } from '@api/services/batch-generation/batch-item-rows';
 import {
+  BatchItemStatus,
   ReviewDecision,
   TargetExecutionState,
   toPersistedReviewDecision,
@@ -160,6 +161,11 @@ export async function applyBatchRewrites({
   for (const item of items) {
     const caption = captions.get(item.id);
     if (caption === undefined) continue;
+    if (item.status !== BatchItemStatus.COMPLETED) {
+      throw new ConflictException(
+        'Batch item changed during rewrite. Refresh and try again.',
+      );
+    }
     await applyPostRewrite({
       autonomousPublishPolicy,
       caption,

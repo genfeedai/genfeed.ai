@@ -13,7 +13,11 @@ import {
   WorkflowExecutionStatus,
   WorkflowStatus,
 } from '@genfeedai/contracts';
-import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import {
+  PLATFORM_SYSTEM_WORKFLOW_QUEUE,
+  SystemWorkflowDispatchClass,
+  WORKFLOW_BACKGROUND_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockQueue() {
@@ -468,6 +472,23 @@ describe('WorkflowExecutionQueueService', () => {
   });
 
   describe('queueDelayedResume', () => {
+    it.each([WORKFLOW_BACKGROUND_QUEUE, PLATFORM_SYSTEM_WORKFLOW_QUEUE])(
+      'retains the %s queue for a delayed resume',
+      async (queueName) => {
+        const data = createDelayResumeData();
+        await service.queueDelayedResume(data, 5000, queueName);
+        const queue =
+          queueName === WORKFLOW_BACKGROUND_QUEUE
+            ? mockBackgroundQueue
+            : mockPlatformQueue;
+        expect(queue.add).toHaveBeenCalledWith(
+          'delay-resume',
+          expect.objectContaining({ delayResumeData: data }),
+          expect.objectContaining({ delay: 5000 }),
+        );
+        expect(mockQueue.add).not.toHaveBeenCalled();
+      },
+    );
     it('should add a delayed resume job with correct delay', async () => {
       const data = createDelayResumeData();
       const delayMs = 1800000; // 30 minutes

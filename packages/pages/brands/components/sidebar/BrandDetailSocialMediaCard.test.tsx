@@ -501,6 +501,36 @@ describe('BrandDetailSocialMediaCard', () => {
     });
   });
 
+  it('targets the selected credential from the warm-up reconnect action', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            isConnected: false,
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: 'Reconnect' }))[0],
+    );
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('twitter');
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      });
+    });
+  });
+
   it('opens account settings on posting times from the accounts table', () => {
     render(
       <BrandDetailSocialMediaCard

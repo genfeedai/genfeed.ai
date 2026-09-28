@@ -208,7 +208,7 @@ export class AvatarVideoGenerationService {
         }),
       );
 
-      if (!placeholderScope?.settleCreditsExternally) {
+      if (!heygenByokKey && !placeholderScope?.settleCreditsExternally) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
           context.userId,

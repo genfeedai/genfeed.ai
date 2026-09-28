@@ -508,6 +508,7 @@ describe('BillingAccountsService', () => {
           canOpenPortal: false,
         },
         isLinked: true,
+        id: 'ba_1',
         kind: 'organization',
         monthlyBudgetCredits: 500,
         organizationId: 'org_1',

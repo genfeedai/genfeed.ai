@@ -83,8 +83,9 @@ export default function StudioGenerateInspector({
   const ingredient = job.ingredient ?? null;
   const previewUrl = resolveStudioAssetUrl(ingredient) ?? job.url;
   const isReady =
-    job.status !== IngredientStatus.PROCESSING &&
-    job.status !== IngredientStatus.FAILED;
+    job.status === IngredientStatus.GENERATED ||
+    job.status === IngredientStatus.UPLOADED ||
+    job.status === IngredientStatus.VALIDATED;
   const [receiptAsset, setReceiptAsset] = useState<IIngredient | null>(null);
   const [receiptError, setReceiptError] = useState(false);
   const [posts, setPosts] = useState<IPost[]>([]);

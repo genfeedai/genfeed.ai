@@ -25,9 +25,12 @@ export default function ArticleShareButton(): React.ReactElement {
 
   async function handleShare(): Promise<void> {
     try {
-      await clipboardService.copyToClipboard(window.location.href);
-      setIsCopied(true);
+      const didCopy = await clipboardService.copyToClipboard(
+        window.location.href,
+      );
+      setIsCopied(didCopy);
     } catch (error) {
+      setIsCopied(false);
       deferredLogger.error('Failed to copy to clipboard:', error);
     }
   }

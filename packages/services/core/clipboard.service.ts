@@ -55,7 +55,7 @@ export class ClipboardService {
     return ClipboardService.classInstance;
   }
 
-  public async copyToClipboard(text?: string): Promise<void> {
+  public async copyToClipboard(text?: string): Promise<boolean> {
     this.isCopying = true;
     const payload = text ?? '';
 
@@ -68,13 +68,16 @@ export class ClipboardService {
         throw new Error('Clipboard write is unavailable in this environment');
       }
       this.notificationsService.success('Copied to clipboard');
+      return true;
     } catch (error) {
       // Prefer silent fallback before surfacing failure.
       if (writeTextViaExecCommand(payload)) {
         this.notificationsService.success('Copied to clipboard');
+        return true;
       } else {
         deferredLogger.error('Copy to clipboard failed', error);
         this.notificationsService.error('Copy to clipboard failed');
+        return false;
       }
     } finally {
       this.isCopying = false;

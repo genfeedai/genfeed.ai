@@ -57,12 +57,18 @@ const { notifyErrorMock, openConfirmMock, openPostRepurposeModalMock } =
 const articleModal = vi.hoisted(() => ({
   open: vi.fn(),
   mount: vi.fn(),
+  onCreated: undefined as ((ids: string | string[]) => void) | undefined,
 }));
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: (...args: unknown[]) => articleModal.open(...args),
 }));
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
-  LazyModalArticle: () => {
+  LazyModalArticle: ({
+    onCreated,
+  }: {
+    onCreated?: (ids: string | string[]) => void;
+  }) => {
+    articleModal.onCreated = onCreated;
     articleModal.mount();
     return null;
   },
@@ -543,11 +549,22 @@ describe('ContentCalendarPage', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('opens the layout article modal without mounting a duplicate', async () => {
+  it('mounts the standalone calendar article modal and preserves creation navigation', async () => {
     await renderLoaded();
     fireEvent.click(screen.getByRole('button', { name: 'New article' }));
     expect(articleModal.open).toHaveBeenCalledWith('modal-article');
+    expect(articleModal.mount).toHaveBeenCalled();
+    articleModal.onCreated?.('article-created');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/acme-org/acme-creator/publishing/posts/article-created',
+    );
+  });
+
+  it('uses the parent article modal for the embedded publishing calendar', async () => {
+    render(<ContentCalendarPage embedded />);
     expect(articleModal.mount).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'New article' }));
+    expect(articleModal.open).toHaveBeenCalledWith('modal-article');
   });
 
   it('sends an article to its dedicated editor rather than the release drawer', async () => {

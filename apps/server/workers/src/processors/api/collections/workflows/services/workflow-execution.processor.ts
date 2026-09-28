@@ -189,6 +189,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       await this.queueService.queueDelayedResume(
         result.execution._delayJobData,
         this.calculateDelayMs(result.execution._delayJobData),
+        job.queueName,
       );
     }
     return {
@@ -313,7 +314,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
           ._delayJobData as DelayResumeJobData | undefined;
         if (delayData) {
           const delayMs = this.calculateDelayMs(delayData);
-          await this.queueService.queueDelayedResume(delayData, delayMs);
+          await this.queueService.queueDelayedResume(
+            delayData,
+            delayMs,
+            job.queueName,
+          );
         }
       }
 
@@ -357,7 +362,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
 
       if (delayData) {
         const delayMs = this.calculateDelayMs(delayData);
-        await this.queueService.queueDelayedResume(delayData, delayMs);
+        await this.queueService.queueDelayedResume(
+          delayData,
+          delayMs,
+          job.queueName,
+        );
 
         this.logger.log(
           `${this.logContext} scheduled delay resume for workflow ${delayData.workflowId}`,
@@ -402,6 +411,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       await this.queueService.queueDelayedResume(
         result._delayJobData,
         this.calculateDelayMs(result._delayJobData),
+        job.queueName,
       );
     }
 
