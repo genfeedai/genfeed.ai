@@ -32,6 +32,7 @@ import {
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
   xReplyWatchPendingNotifyKey,
+  xReplyWatchResumeKey,
 } from '@workers/crons/x-replies/x-reply-watch.constants';
 
 export type XReplyWatchCredential = {
@@ -59,6 +60,40 @@ export type XReplyWatchTotals = {
 };
 
 type CredentialOutcome = Omit<XReplyWatchTotals, 'credentials'>;
+
+/**
+ * Saved mid-backlog pagination position (release review finding): when an
+ * account's unread mentions exceed `X_REPLY_WATCH_MAX_PAGES` pages, this is
+ * persisted so the next sweep resumes from the same spot instead of
+ * re-reading the newest pages from page one forever. `sinceId` is the value
+ * that opened this pagination sequence — X's `pagination_token` only means
+ * what it means paired with the `since_id` the sequence started with, so it
+ * is kept fixed for the sequence's whole lifetime, not recomputed per tick.
+ * `newestSeenId` tracks the newest mention id observed across every tick of
+ * the sequence so far, since only the very first tick ever sees the true
+ * newest page.
+ */
+type XReplyWatchResumeState = {
+  newestSeenId?: string;
+  paginationToken: string;
+  sinceId: string;
+};
+
+function isXReplyWatchResumeState(
+  value: unknown,
+): value is XReplyWatchResumeState {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const state = value as Record<string, unknown>;
+  return (
+    typeof state.paginationToken === 'string' &&
+    state.paginationToken.length > 0 &&
+    typeof state.sinceId === 'string' &&
+    state.sinceId.length > 0 &&
+    (state.newestSeenId === undefined || typeof state.newestSeenId === 'string')
+  );
+}
 
 const EMPTY_OUTCOME: CredentialOutcome = {
   failed: 0,
@@ -286,13 +321,24 @@ export class CronXReplyWatchService {
     const storedCursor = await this.cacheService.get<string>(
       xReplyWatchCursorKey(credential.id),
     );
-    const sinceId = newestSnowflake([
-      storedCursor,
-      oldestSnowflake(posts.map((post) => post.externalId)),
-    ]);
+    const cachedResume = await this.cacheService.get<unknown>(
+      xReplyWatchResumeKey(credential.id),
+    );
+    const resumeState = isXReplyWatchResumeState(cachedResume)
+      ? cachedResume
+      : undefined;
+    // A resumed sequence keeps the since_id it started with — X's
+    // pagination_token only means what it means paired with that exact
+    // since_id, so recomputing it mid-sequence would desync the two.
+    const sinceId =
+      resumeState?.sinceId ??
+      newestSnowflake([
+        storedCursor,
+        oldestSnowflake(posts.map((post) => post.externalId)),
+      ]);
 
     const mentions: TwitterInboxTweet[] = [];
-    let paginationToken: string | undefined;
+    let paginationToken: string | undefined = resumeState?.paginationToken;
     try {
       for (let page = 0; page < X_REPLY_WATCH_MAX_PAGES; page++) {
         const result = await this.twitterService.listMentionsPage(
@@ -318,14 +364,32 @@ export class CronXReplyWatchService {
     // X pages newest first. Stopping at the page cap leaves older mentions
     // unread between the cursor and the last page, so the cursor must not move.
     const hasUnreadPages = Boolean(paginationToken);
+    const newestSeen = newestSnowflake([
+      resumeState?.newestSeenId,
+      ...mentions.map((mention) => mention.tweetId),
+    ]);
     if (hasUnreadPages) {
+      // Persist where this sequence left off (release review finding):
+      // without this, the next sweep has no memory of the token above and
+      // restarts from the newest page every tick, so an account with a
+      // backlog bigger than the page cap never makes it past the newest
+      // mentions and the rest goes unprocessed forever.
+      if (sinceId && paginationToken) {
+        await this.cacheService.set(
+          xReplyWatchResumeKey(credential.id),
+          { newestSeenId: newestSeen, paginationToken, sinceId },
+          { ttl: X_REPLY_WATCH_CURSOR_TTL_SECONDS },
+        );
+      }
       this.logger.warn(
-        'X reply watch hit the mention page cap; keeping cursor',
+        'X reply watch hit the mention page cap; resuming from the saved page next sweep',
         {
           credentialId: credential.id,
           pages: X_REPLY_WATCH_MAX_PAGES,
         },
       );
+    } else if (resumeState) {
+      await this.cacheService.del(xReplyWatchResumeKey(credential.id));
     }
 
     const replies = matchRepliesToPosts(mentions, posts);
@@ -350,10 +414,7 @@ export class CronXReplyWatchService {
     }
     outcome.notified = await this.notify(credential, createdMessages);
 
-    const nextCursor = newestSnowflake([
-      sinceId,
-      ...mentions.map((mention) => mention.tweetId),
-    ]);
+    const nextCursor = newestSnowflake([sinceId, newestSeen]);
     if (!hasUnreadPages && nextCursor && nextCursor !== storedCursor) {
       await this.cacheService.set(
         xReplyWatchCursorKey(credential.id),

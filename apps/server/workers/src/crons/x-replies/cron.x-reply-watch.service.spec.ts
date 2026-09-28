@@ -10,6 +10,7 @@ import {
   xReplyWatchBackoffKey,
   xReplyWatchCursorKey,
   xReplyWatchPendingNotifyKey,
+  xReplyWatchResumeKey,
 } from '@workers/crons/x-replies/x-reply-watch.constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -340,6 +341,82 @@ describe('CronXReplyWatchService', () => {
       '1800000000000000150',
     );
     expect(context.logger.warn).toHaveBeenCalledOnce();
+  });
+
+  it('resumes mention pagination from the saved token instead of restarting after the page cap (release review finding)', async () => {
+    context.prisma.credential.findMany.mockResolvedValue([credential('a')]);
+    context.prisma.post.findMany.mockResolvedValue([
+      post('p1', 'a', '1800000000000000100'),
+    ]);
+    // X pages newest first: the first tick's first page is the true newest
+    // mention of the whole backlog, and each later page is older.
+    context.twitterService.listMentionsPage
+      .mockResolvedValueOnce({
+        nextToken: 'page-2',
+        tweets: [tweet('1800000000000000900')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-3',
+        tweets: [tweet('1800000000000000800')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-4',
+        tweets: [tweet('1800000000000000700')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-5',
+        tweets: [tweet('1800000000000000600')],
+      })
+      .mockResolvedValueOnce({
+        nextToken: 'page-6',
+        tweets: [tweet('1800000000000000500')],
+      });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // Tick 1 hits the page cap with more pages remaining: the cursor must
+    // not move, and the sequence's position must be saved for next tick.
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(
+      X_REPLY_WATCH_MAX_PAGES,
+    );
+    expect(context.cache.has(xReplyWatchCursorKey('a'))).toBe(false);
+    expect(context.cache.get(xReplyWatchResumeKey('a'))).toEqual({
+      newestSeenId: '1800000000000000900',
+      paginationToken: 'page-6',
+      sinceId: '1800000000000000100',
+    });
+
+    // Tick 2 drains the rest of the backlog in one more page.
+    context.twitterService.listMentionsPage.mockResolvedValueOnce({
+      tweets: [tweet('1800000000000000400')],
+    });
+
+    await context.service.watchRecentPostReplies(NOW);
+
+    // The crucial assertion: tick 2 resumed from the saved page-6 token and
+    // the *original* since_id, instead of restarting from page one with no
+    // pagination token (which would re-read the same newest 500 mentions
+    // forever and never reach anything past them).
+    expect(context.twitterService.listMentionsPage).toHaveBeenCalledTimes(
+      X_REPLY_WATCH_MAX_PAGES + 1,
+    );
+    expect(context.twitterService.listMentionsPage).toHaveBeenLastCalledWith(
+      'org-a',
+      'brand-a',
+      {
+        limit: 100,
+        paginationToken: 'page-6',
+        sinceId: '1800000000000000100',
+      },
+      'a',
+    );
+    // Once fully drained, the cursor advances to the newest mention ever
+    // seen across the whole sequence (tick 1's first page) — not merely the
+    // oldest page fetched in the final, draining tick.
+    expect(context.cache.get(xReplyWatchCursorKey('a'))).toBe(
+      '1800000000000000900',
+    );
+    expect(context.cache.has(xReplyWatchResumeKey('a'))).toBe(false);
   });
 
   it('retries a failed notification next tick without another X call', async () => {
