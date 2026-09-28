@@ -107,7 +107,7 @@ function renderContent(
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
-  const element = (
+  const renderElement = () => (
     <IngredientsListContent
       type="avatars"
       scope={PageScope.ORGANIZATION}
@@ -145,8 +145,9 @@ function renderContent(
       {...overrides}
     />
   );
-  const { rerender, unmount } = render(element);
-  const rerenderContent = () => rerender(element);
+  const { rerender, unmount } = render(renderElement());
+  // A fresh element each time: React bails out of re-rendering an identical one.
+  const rerenderContent = () => rerender(renderElement());
 
   return { onOpenIngredientModal, onOpenLightbox, rerenderContent, unmount };
 }
