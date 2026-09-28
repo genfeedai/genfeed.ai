@@ -1,10 +1,11 @@
-import type { TooltipPositionType } from '@genfeedai/contracts';
 import type { ReactElement } from 'react';
+
+export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
 
 /** Convenience props for `SimpleTooltip`. */
 export interface SimpleTooltipProps {
   label: string;
   children: ReactElement;
-  position?: TooltipPositionType;
+  position?: TooltipPosition;
   isDisabled?: boolean;
 }

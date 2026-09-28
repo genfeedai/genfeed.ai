@@ -1,10 +1,9 @@
 'use client';
 
-import type { TooltipPositionType } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
-import type { SimpleTooltipProps } from '@genfeedai/props/ui/display/tooltip.props';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { type ComponentPropsWithRef, useContext } from 'react';
+import type { SimpleTooltipProps, TooltipPosition } from './tooltip.types';
 import { TooltipProviderContext } from './tooltip-context';
 
 function TooltipProvider({
@@ -83,8 +82,7 @@ function SimpleTooltip({
   );
 }
 
-export type { SimpleTooltipProps };
-export type TooltipPosition = TooltipPositionType;
+export type { SimpleTooltipProps, TooltipPosition };
 export {
   SimpleTooltip,
   Tooltip,

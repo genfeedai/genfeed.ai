@@ -1,5 +1,5 @@
-import type { SimpleTooltipProps } from '@genfeedai/props/ui/display/tooltip.props';
 import { type ComponentType, createContext } from 'react';
+import type { SimpleTooltipProps } from './tooltip.types';
 
 /**
  * Set by `TooltipProvider`. It carries `SimpleTooltip` itself, so a `Button`
