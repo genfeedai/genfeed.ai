@@ -267,14 +267,10 @@ test.describe('Calendar — Scheduling', () => {
     await calendarPage.getEventByText('Clickable Post').click();
 
     await expect(calendarPage.postModal).toBeVisible();
-    await expect(
-      calendarPage.postModal.getByText('Clickable Post'),
-    ).toBeVisible();
+    await expect(calendarPage.postSidebarTitle).toHaveText('Clickable Post');
 
-    // The Sheet's own Close button sits under its sticky header during
-    // the open transition and is not reliably clickable immediately after
-    // opening; Escape is Radix Dialog's standard, always-available close.
-    await authenticatedPage.keyboard.press('Escape');
+    // The context sidebar's own close control deselects the post.
+    await calendarPage.closeModal();
     await expect(calendarPage.postModal).toBeHidden();
   });
 
@@ -299,7 +295,7 @@ test.describe('Calendar — Scheduling', () => {
 
     await calendarPage.getEventByText('Navigable Post').click();
     await expect(calendarPage.postModal).toBeVisible();
-    // The target passed validation: the drawer shows its validation badge.
+    // The target passed validation: the sidebar panel shows its validation badge.
     await expect(
       calendarPage.postModal.getByText(TargetValidationState.VALID, {
         exact: true,
