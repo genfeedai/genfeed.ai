@@ -8561,22 +8561,6 @@
       "workspace": "mcp"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/auth/credential.model.test.ts",
-      "fingerprint": "0e1765bf68d098f05736",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
-      "workspace": "models"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/billing/subscription.model.test.ts",
-      "fingerprint": "e3b092f9b319132c9a95",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
-      "workspace": "models"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/billing/subscription.model.test.ts",
@@ -8606,14 +8590,6 @@
       "file": "packages/models/content/agent-publish-audit.model.test.ts",
       "fingerprint": "b1d21fdd76b9412ff1f2",
       "message": "Type '{ id: string; }' is not assignable to type 'string | IUser | undefined'.   Type '{ id: string; }' is missing the following properties from type 'IUser': handle, firstName, lastName, email, and 4 more.",
-      "workspace": "models"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/content/article.model.test.ts",
-      "fingerprint": "b2c0a36b3ac7e9dc6a4e",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
       "workspace": "models"
     },
     {
@@ -8649,14 +8625,6 @@
       "workspace": "models"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/content/ingredient.model.test.ts",
-      "fingerprint": "52aeb22d5e51360b5ec7",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
-      "workspace": "models"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/content/ingredient.model.test.ts",
@@ -8686,14 +8654,6 @@
       "file": "packages/models/content/post.model.test.ts",
       "fingerprint": "3bfa510e1e3cbc4d738f",
       "message": "Type '{ ingredients: IIngredient[]; category: PostCategory; format?: PostFormat | undefined; credential: ICredential; credentialId?: string | undefined; user: IUser; userId?: string | undefined; organization: IOrganization; ... 60 more ...; updatedAt: string; }' is not assignable to type 'IPost'.   Types of property 'targetExecutionState' are incompatible.     Type 'TargetExecutionState | undefined' is not assignable to type 'TargetExecutionState'.       Type 'undefined' is not assignable to type 'TargetExecutionState'.",
-      "workspace": "models"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/content/post.model.test.ts",
-      "fingerprint": "d694cc5ebbf3c7daa32b",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
       "workspace": "models"
     },
     {
@@ -8737,14 +8697,6 @@
       "workspace": "models"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/content/prompt.model.test.ts",
-      "fingerprint": "8869fd72ade97a27758a",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
-      "workspace": "models"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/content/prompt.model.test.ts",
@@ -8777,27 +8729,11 @@
       "workspace": "models"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/content/tag.model.test.ts",
-      "fingerprint": "611941fad77da1962366",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
-      "workspace": "models"
-    },
-    {
       "code": 2353,
       "count": 1,
       "file": "packages/models/content/tag.model.test.ts",
       "fingerprint": "673f144a40c754691bc9",
       "message": "Object literal may only specify known properties, and 'handle' does not exist in type 'IBrand'.",
-      "workspace": "models"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/organization/brand.model.test.ts",
-      "fingerprint": "8e68dd549ccac0d750fa",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
       "workspace": "models"
     },
     {
@@ -8814,14 +8750,6 @@
       "file": "packages/models/organization/brand.model.test.ts",
       "fingerprint": "b2cc316edfceebf144f6",
       "message": "Object literal may only specify known properties, and 'parent' does not exist in type 'IAsset'.",
-      "workspace": "models"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/models/organization/member.model.test.ts",
-      "fingerprint": "62cd8a91a56261895097",
-      "message": "Type '{ isFirstLogin?: boolean | undefined; isWhitelabelEnabled: boolean; isVoiceControlEnabled: boolean; isNotificationsDiscordEnabled: boolean; isNotificationsTelegramEnabled: boolean; isNotificationsEmailEnabled: boolean; ... 51 more ...; updatedAt: string; }' is not assignable to type 'IOrganizationSetting'.   Types of property 'isFastlaneEnabled' are incompatible.     Type 'boolean | undefined' is not assignable to type 'boolean'.       Type 'undefined' is not assignable to type 'boolean'.",
       "workspace": "models"
     },
     {
