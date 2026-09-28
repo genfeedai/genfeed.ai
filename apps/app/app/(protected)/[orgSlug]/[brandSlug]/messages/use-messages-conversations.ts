@@ -192,22 +192,21 @@ export function useMessagesConversations({
 
   const refreshSelectedThread = useCallback(async () => {
     const service = await getMessagesService();
-    const sequenceBeforeTranscript = selectedId
-      ? readInboundSequence(conversationsRef.current, selectedId)
-      : undefined;
-    const [conversationResult, selectedConversationResult, messageResult] =
-      await Promise.all([
-        service.listPage(query),
-        selectedId
-          ? service.getConversation(selectedId)
-          : Promise.resolve(null),
-        selectedId
-          ? service.listMessagesPage(selectedId, {
-              limit: 50,
-              page: messagePage,
-            })
-          : Promise.resolve(null),
-      ]);
+    // The fresh conversation is read before its transcript, so the transcript
+    // is guaranteed to contain every reply up to that conversation's
+    // inboundSequence — the cursor this refresh may acknowledge.
+    const selectedConversationResult = selectedId
+      ? await service.getConversation(selectedId)
+      : null;
+    const [conversationResult, messageResult] = await Promise.all([
+      service.listPage(query),
+      selectedId
+        ? service.listMessagesPage(selectedId, {
+            limit: 50,
+            page: messagePage,
+          })
+        : Promise.resolve(null),
+    ]);
     const { items: nextConversations, ...nextConversationPagination } =
       conversationResult;
     const refreshedConversations = selectedConversationResult
@@ -227,7 +226,10 @@ export function useMessagesConversations({
         setMessages(nextMessages);
         setMessagePagination(nextMessagePagination);
         setAcknowledgeableCursor(
-          toAcknowledgeableCursor(selectedId, sequenceBeforeTranscript),
+          toAcknowledgeableCursor(
+            selectedId,
+            selectedConversationResult?.inboundSequence,
+          ),
         );
       }
     });
