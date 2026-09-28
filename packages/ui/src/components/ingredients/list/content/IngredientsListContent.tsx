@@ -1,7 +1,6 @@
 'use client';
 
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection.context';
-import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -36,7 +35,6 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
@@ -47,7 +45,7 @@ import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 // React Flow is heavier than the whole grid; only the canvas view pays for it.
 const LibraryCanvas = dynamic(
@@ -663,19 +661,38 @@ export default function IngredientsListContent({
   }, [filteredIngredients, selectedIngredientIds]);
 
   /**
-   * The grid owns the selection. It publishes the inspected asset into the
-   * shared asset selection (the composer cites it) and renders its detail
-   * into the shell's context sidebar below.
+   * The grid owns the selection, the workspace shell owns the sidebar.
+   * Publishing into the shared asset selection is the whole handoff: the
+   * library surface adapter reads it back and renders the asset into the
+   * context sidebar, so the canvas never carries a second inspector.
    */
-  const { setSelectedAsset } = useAssetSelection();
-  const translateInspector = useTranslations('pages.library.inspector');
-  const handleCloseInspector = useCallback(() => {
-    onSelectionChange([]);
-  }, [onSelectionChange]);
+  const { selectedIngredient: publishedIngredient, setSelectedAsset } =
+    useAssetSelection();
+  const confirmedPublishedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSelectedAsset(inspectedIngredient);
   }, [inspectedIngredient, setSelectedAsset]);
+
+  // Closing the sidebar clears the shared selection; follow that back into
+  // the grid. Only a publish this grid saw land counts, so the render between
+  // selecting and publishing is never mistaken for a close.
+  useEffect(() => {
+    if (!inspectedIngredient) {
+      return;
+    }
+    if (publishedIngredient?.id === inspectedIngredient.id) {
+      confirmedPublishedIdRef.current = inspectedIngredient.id;
+      return;
+    }
+    if (
+      !publishedIngredient &&
+      confirmedPublishedIdRef.current === inspectedIngredient.id
+    ) {
+      confirmedPublishedIdRef.current = null;
+      onSelectionChange([]);
+    }
+  }, [inspectedIngredient, onSelectionChange, publishedIngredient]);
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.
@@ -703,26 +720,6 @@ export default function IngredientsListContent({
       ) : (
         content
       )}
-      <ContextSidebarPanel
-        onClose={handleCloseInspector}
-        selection={
-          inspectedIngredient
-            ? {
-                id: inspectedIngredient.id,
-                kind: 'asset',
-                // Only a click or checkbox toggles the grid selection.
-                origin: 'user',
-                title:
-                  inspectedIngredient.metadataLabel ||
-                  translateInspector('untitled'),
-              }
-            : null
-        }
-      >
-        {inspectedIngredient ? (
-          <IngredientInspectorRail ingredient={inspectedIngredient} />
-        ) : null}
-      </ContextSidebarPanel>
     </div>
   );
 }

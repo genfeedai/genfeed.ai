@@ -1,6 +1,5 @@
-packages: @genfeedai/contexts, @genfeedai/pages, @genfeedai/props, @genfeedai/ui
+packages: @genfeedai/contexts, @genfeedai/pages, @genfeedai/props
 
-The context sidebar gains `reveal()`. Library's grid renders the selected
-asset into the sidebar itself (`IngredientsListContent`), Review's adapter takes
+The context sidebar gains `reveal()`. Review's adapter takes
 `activeItemOrigin` and `revealRequest`, and Discovery's generic finding panel
 leaves ad findings (`isAdsResearchFindingReference`) to the Ads page.

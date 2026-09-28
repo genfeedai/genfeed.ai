@@ -1,9 +1,4 @@
 import {
-  ContextSidebarOutlet,
-  ContextSidebarProvider,
-  useContextSidebar,
-} from '@genfeedai/contexts/ui/context-sidebar-context';
-import {
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -20,10 +15,11 @@ import {
 } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
-import type { ComponentProps, ComponentType, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { setSelectedAsset } = vi.hoisted(() => ({
+const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
+  assetSelection: { published: null as { id: string } | null },
   setSelectedAsset: vi.fn(),
 }));
 
@@ -36,7 +32,10 @@ vi.mock('next-intl', async () => {
 });
 
 vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
-  useAssetSelection: () => ({ setSelectedAsset }),
+  useAssetSelection: () => ({
+    selectedIngredient: assetSelection.published,
+    setSelectedAsset,
+  }),
 }));
 
 vi.mock('next/image', () => ({
@@ -104,12 +103,11 @@ const baseIngredient = {
 
 function renderContent(
   overrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
-  options: { readonly wrapper?: ComponentType<{ children: ReactNode }> } = {},
 ) {
   const onOpenIngredientModal = vi.fn();
   const onOpenLightbox = vi.fn(() => false);
 
-  const { unmount } = render(
+  const element = (
     <IngredientsListContent
       type="avatars"
       scope={PageScope.ORGANIZATION}
@@ -145,11 +143,12 @@ function renderContent(
       onCopyPrompt={vi.fn()}
       onReprompt={vi.fn()}
       {...overrides}
-    />,
-    options,
+    />
   );
+  const { rerender, unmount } = render(element);
+  const rerenderContent = () => rerender(element);
 
-  return { onOpenIngredientModal, onOpenLightbox, unmount };
+  return { onOpenIngredientModal, onOpenLightbox, rerenderContent, unmount };
 }
 
 const videoIngredient = {
@@ -528,6 +527,25 @@ describe('IngredientsListContent audio playback', () => {
 describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
     setSelectedAsset.mockClear();
+    assetSelection.published = null;
+  });
+
+  it('clears its own selection when the sidebar close clears the shared one', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    // Before the publish lands, the empty shared selection is not a close.
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+    expect(onSelectionChange).not.toHaveBeenCalled();
+
+    assetSelection.published = null;
+    rerenderContent();
+    expect(onSelectionChange).toHaveBeenCalledWith([]);
   });
 
   it('publishes a single selection for the workspace rail', () => {
@@ -554,46 +572,11 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(setSelectedAsset).toHaveBeenCalledWith(null);
   });
 
-  it('paints no inspector beside the grid', () => {
+  it('renders no inspector of its own', () => {
     renderContent({ selectedIngredientIds: [baseIngredient.id] });
 
     expect(screen.queryByLabelText('Asset details')).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  it('renders a single selection into the context sidebar and clears it on close', () => {
-    function CloseControl() {
-      const contextSidebar = useContextSidebar();
-      return (
-        <button type="button" onClick={contextSidebar?.close}>
-          Close sidebar
-        </button>
-      );
-    }
-    function Shell({ children }: { readonly children: ReactNode }) {
-      return (
-        <ContextSidebarProvider>
-          <CloseControl />
-          <ContextSidebarOutlet testId="context-sidebar-outlet" />
-          {children}
-        </ContextSidebarProvider>
-      );
-    }
-    const onSelectionChange = vi.fn();
-
-    renderContent(
-      { onSelectionChange, selectedIngredientIds: [baseIngredient.id] },
-      { wrapper: Shell },
-    );
-
-    expect(
-      within(screen.getByTestId('context-sidebar-outlet')).getByLabelText(
-        'Asset details',
-      ),
-    ).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
-    expect(onSelectionChange).toHaveBeenCalledWith([]);
   });
 });
 

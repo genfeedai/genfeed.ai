@@ -1,7 +1,9 @@
 import { useAssetSelection } from '@contexts/ui/asset-selection.context';
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import IngredientInspectorRail from '@ui/ingredients/inspector/IngredientInspectorRail';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   type ProductWorkspaceSurfaceAdapter,
   useRegisterWorkspaceSurfaceAdapter,
@@ -10,14 +12,19 @@ import {
 const renderNoInspector = () => null;
 
 /**
- * Hands the library's selected asset to the conversation composer as a typed
- * reference. The asset's detail is rendered by the grid itself into the
- * context sidebar, so this registers no inspector content.
+ * Renders the library's selected asset into the context sidebar and hands it
+ * to the conversation composer as a typed reference. The grid publishes its
+ * single selection into the shared asset selection; closing the sidebar
+ * clears that selection, which the grid follows back into its own state.
  */
 export default function LibraryWorkspaceSurfaceAdapter() {
   const translate = useTranslations('pages.library.inspector');
   const { brandId, organizationId } = useBrand();
-  const { selectedCanonicalAsset, selectedIngredient } = useAssetSelection();
+  const { selectedCanonicalAsset, selectedIngredient, setSelectedAsset } =
+    useAssetSelection();
+  const handleClose = useCallback(() => {
+    setSelectedAsset(null);
+  }, [setSelectedAsset]);
 
   const assetLabel =
     selectedIngredient?.metadataLabel ||
@@ -56,5 +63,25 @@ export default function LibraryWorkspaceSurfaceAdapter() {
   );
 
   useRegisterWorkspaceSurfaceAdapter(registration);
-  return null;
+
+  return (
+    <ContextSidebarPanel
+      onClose={handleClose}
+      selection={
+        selectedIngredient
+          ? {
+              id: selectedIngredient.id,
+              kind: 'asset',
+              // Only a click or checkbox toggles the grid selection.
+              origin: 'user',
+              title: selectedIngredient.metadataLabel || translate('untitled'),
+            }
+          : null
+      }
+    >
+      {selectedIngredient ? (
+        <IngredientInspectorRail ingredient={selectedIngredient} />
+      ) : null}
+    </ContextSidebarPanel>
+  );
 }

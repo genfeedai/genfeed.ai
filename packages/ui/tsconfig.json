@@ -34,7 +34,6 @@
       "@genfeedai/ui/*": ["./src/*"],
       "@genfeedai/utils": ["../utils/index.ts"],
       "@genfeedai/utils/*": ["../utils/*"],
-      "@props/*": ["../props/*"],
       "@ui/*": ["./src/*"]
     },
     "rootDir": "./src",

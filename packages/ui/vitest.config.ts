@@ -232,10 +232,6 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../props/$1'),
       },
       {
-        find: /^@props\/(.*)$/,
-        replacement: path.resolve(__dirname, '../props/$1'),
-      },
-      {
         find: '@genfeedai/providers',
         replacement: path.resolve(__dirname, '../contexts/providers'),
       },
