@@ -10,7 +10,7 @@ import { ALLOW_UNKNOWN_PROPERTIES } from '@api/helpers/pipes/validation.pipe';
  * handler and the database completely unvalidated. Every subclass MUST be
  * value-imported at its `@Body()` site: an `import type` erases the same way and
  * silently restores the no-op (see
- * `.agents/memory/rules/nestjs_value_imports_for_di.md`).
+ * `scripts/check-di-value-imports.ts`).
  *
  * `ALLOW_UNKNOWN_PROPERTIES` turns off the pipe's whitelist stripping for this
  * family. Webhook bodies are not first-party request payloads: Heygen and

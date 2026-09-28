@@ -338,7 +338,7 @@ test('caps the CI job inventory at twenty jobs', () => {
   // Runner-slot starvation is a head-count problem: every job occupies a
   // slot for its full queue+setup+run span. New validation belongs inside an
   // existing job (a step, or a test in test:executable-contracts) — see
-  // feedback_no_new_ci_guard_steps. Raising this ceiling needs an explicit
+  // feedback_code_ci_not_workflow_gates. Raising this ceiling needs an explicit
   // capacity review, not a drive-by.
   const workflow = readWorkflow('ci.yml');
   const jobsSection = workflow.slice(workflow.indexOf('\njobs:\n') + 1);

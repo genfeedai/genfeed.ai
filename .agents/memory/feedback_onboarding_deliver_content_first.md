@@ -24,4 +24,4 @@ The onboarding sequence is brand context → proactively generated image and twe
 - Reuse agent shortcut styling. Slash commands are the quick-action entry point; do not duplicate them in a lightning-button dropdown.
 - Agent assistance remains available, but chat and workspace navigation are not prerequisites to receiving the first output.
 
-This explicit user correction supersedes the conversation-first presentation prescribed in `feedback_onboarding_conversation_prompt_card.md`.
+This explicit user correction supersedes the earlier conversation-first onboarding presentation.
