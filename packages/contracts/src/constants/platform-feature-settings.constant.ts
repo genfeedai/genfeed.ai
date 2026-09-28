@@ -85,7 +85,8 @@ export const SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatur
  * them too; roll each flag out to 100% of that identity.
  *
  * Booleans map to on/off. Mode flags are multivariate (`shadow`, `live`;
- * disabled = `off`). Numeric settings ride in the flag's JSON payload.
+ * disabled or omitted = `off`). Numeric settings ride in the flag's JSON
+ * payload. Create every flag: once PostHog answers, an omitted flag is off.
  */
 export const PLATFORM_FEATURE_FLAG_KEYS = {
   agentAutoRouting: 'agent_auto_routing',
@@ -338,28 +339,28 @@ function safeParseJson(value: string): unknown {
   }
 }
 
-/** A missing flag keeps the default; a disabled one is off. */
-function readSwitch(
-  result: IPlatformFeatureFlagResult | undefined,
-): boolean | undefined {
-  return result?.enabled;
+/**
+ * PostHog omits inactive flags from `/flags`, so an omitted switch is one an
+ * operator turned off — never "keep the default".
+ */
+function readSwitch(result: IPlatformFeatureFlagResult | undefined): boolean {
+  return result?.enabled === true;
 }
 
-/** A missing flag keeps the default; a disabled one is `off`. */
+/** Omitted or disabled is `off`; an enabled flag answers with its variant. */
 function readMode(
   result: IPlatformFeatureFlagResult | undefined,
 ): string | undefined {
-  if (!result) {
-    return undefined;
-  }
-  return result.enabled ? (result.variant ?? undefined) : 'off';
+  return result?.enabled ? (result.variant ?? undefined) : 'off';
 }
 
 /**
- * Turn evaluated PostHog flags into typed switches (#5468). A flag that does
- * not exist keeps its default; everything else goes through
- * {@link parsePlatformFeatureSettings}, so an unknown variant or a malformed
- * payload fails closed field by field and shadow-capped points never go live.
+ * Turn a successful PostHog answer into typed switches (#5468). PostHog is
+ * authoritative once it answers: an omitted flag (PostHog omits inactive ones)
+ * is disabled / `off`. Only payload values absent from an enabled flag take
+ * their default. Everything goes through {@link parsePlatformFeatureSettings},
+ * so an unknown variant or a malformed payload fails closed field by field and
+ * shadow-capped points never go live.
  */
 export function platformFeatureSettingsFromFlags(
   flags: PlatformFeatureFlagResults,

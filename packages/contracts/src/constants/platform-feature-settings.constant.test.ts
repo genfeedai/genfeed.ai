@@ -96,10 +96,27 @@ describe('parseModerationThresholdOverrides', () => {
 });
 
 describe('platformFeatureSettingsFromFlags (#5468)', () => {
-  it('keeps every default when no flag exists', () => {
-    expect(platformFeatureSettingsFromFlags({})).toEqual(
-      DEFAULT_PLATFORM_FEATURE_SETTINGS,
-    );
+  it('treats every omitted flag as off, because PostHog omits inactive flags', () => {
+    expect(platformFeatureSettingsFromFlags({})).toMatchObject({
+      agentAutoRoutingDecisionMode: 'off',
+      isAgentContextCompressionEnabled: false,
+      isEmailVerificationRequired: false,
+      isMediaPerceptionEnabled: false,
+      moderationMode: 'off',
+      patternAnalyzerDecisionMode: 'off',
+      systemEventsEnabledAt: null,
+      taskRoutingDecisionMode: 'off',
+    });
+  });
+
+  it('keeps payload defaults for an enabled flag without a payload', () => {
+    expect(
+      platformFeatureSettingsFromFlags({ media_perception: { enabled: true } }),
+    ).toMatchObject({
+      isMediaPerceptionEnabled: true,
+      mediaPerceptionFrameCount: 6,
+      mediaPerceptionLookbackHours: 24,
+    });
   });
 
   it('maps booleans, variants and payloads', () => {

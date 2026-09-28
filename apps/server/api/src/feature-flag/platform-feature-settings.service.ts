@@ -2,6 +2,7 @@ import { PLATFORM_FEATURE_SETTINGS_CACHE_TTL_MS } from '@api/feature-flag/featur
 import { PostHogFeatureFlagEvaluator } from '@api/feature-flag/posthog-feature-flag.evaluator';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  PLATFORM_FEATURE_FLAG_KEYS,
   platformFeatureSettingsFromFlags,
   SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
@@ -27,6 +28,9 @@ type FeatureSettingsCacheEntry = {
  *
  * - No PostHog (Community, Desktop, self-hosted): the code defaults, with no
  *   network call.
+ * - PostHog answered: PostHog is authoritative — an omitted flag is off,
+ *   because PostHog omits inactive flags. An answer with no platform flag at
+ *   all (not migrated) serves the conservative SaaS profile instead.
  * - PostHog unanswered: the last known switches for one more TTL; before any
  *   answer, the conservative SaaS profile, uncached, so the next call asks
  *   again rather than serving a guess for a whole TTL.
@@ -60,8 +64,17 @@ export class PlatformFeatureSettingsService {
     }
 
     const flags = await this.evaluator.evaluatePlatformFlags();
-    if (flags) {
+    if (flags && hasPlatformFlag(flags)) {
       return this.store(platformFeatureSettingsFromFlags(flags));
+    }
+    if (flags) {
+      // PostHog answered, but with none of the platform flags: they are not
+      // migrated yet (or were deleted). Treating that as "everything off"
+      // would disable email verification, so keep production's posture.
+      this.logger.warn(
+        'PostHog answered without any platform feature flag; serving the conservative SaaS switches',
+      );
+      return this.store(SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS);
     }
 
     const lastKnown = this.cache?.value;
@@ -81,4 +94,10 @@ export class PlatformFeatureSettingsService {
     };
     return value;
   }
+}
+
+function hasPlatformFlag(flags: Readonly<Record<string, unknown>>): boolean {
+  return Object.values(PLATFORM_FEATURE_FLAG_KEYS).some((key) =>
+    Object.hasOwn(flags, key),
+  );
 }

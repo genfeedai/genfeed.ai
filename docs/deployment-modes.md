@@ -113,8 +113,13 @@ media perception off) until it does.
 | `system_events_recording` | boolean | `{since: "<ISO timestamp>"}` |
 | `require_email_verification` | boolean | — |
 
-A flag that does not exist keeps its default; a disabled variant flag means
-`off`. `live` is refused on the shadow-only decision points.
+Once PostHog answers, it is authoritative: an omitted flag is off (PostHog
+omits inactive flags), and a disabled variant flag means `off`. Create **all**
+flags, including those left at their default (`agent_context_compression` on,
+`moderation` / `pattern_analyzer_decision` / `task_routing_decision` at
+`shadow`). An answer with none of these flags serves production's posture.
+Payload fields left out of an enabled flag take their default. `live` is
+refused on the shadow-only decision points.
 
 ## See also
 

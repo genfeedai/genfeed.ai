@@ -45,8 +45,7 @@ describe('PlatformFeatureSettingsService (#5468)', () => {
   it('maps the PostHog flags onto the typed switches', async () => {
     const { service } = build(vi.fn().mockResolvedValue(PERCEPTION_OFF));
 
-    await expect(service.getFeatureSettings()).resolves.toEqual({
-      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+    await expect(service.getFeatureSettings()).resolves.toMatchObject({
       isEmailVerificationRequired: true,
       isMediaPerceptionEnabled: false,
     });
@@ -124,5 +123,31 @@ describe('PlatformFeatureSettingsService (#5468)', () => {
       isEmailVerificationRequired: false,
     });
     expect(evaluate).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a switch PostHog omits as disabled, because inactive flags are omitted', async () => {
+    // media_perception deactivated in PostHog: the response omits it.
+    const { service } = build(
+      vi.fn().mockResolvedValue({
+        require_email_verification: { enabled: true, variant: null },
+      }),
+    );
+
+    await expect(service.getFeatureSettings()).resolves.toMatchObject({
+      isEmailVerificationRequired: true,
+      isMediaPerceptionEnabled: false,
+      moderationMode: 'off',
+    });
+  });
+
+  it('keeps production posture when PostHog answers without any platform flag', async () => {
+    // Flags not migrated yet (or all deleted): never fall back to the
+    // permissive self-host defaults on SaaS.
+    const { logger, service } = build(vi.fn().mockResolvedValue({}));
+
+    await expect(service.getFeatureSettings()).resolves.toEqual(
+      SAAS_UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
+    );
+    expect(logger.warn).toHaveBeenCalled();
   });
 });
