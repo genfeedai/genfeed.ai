@@ -148,9 +148,11 @@ export class VideosCaptionsController {
     let caption: CaptionDocument | { id: string } | undefined;
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption =
-        (await this.captionsService.findOne({
-          id: createVideoWithCaptionsDto.caption,
-        })) ?? undefined;
+        (await this.captionsService.findOne(
+          scopedWhere(user.organizationId, {
+            id: createVideoWithCaptionsDto.caption,
+          }),
+        )) ?? undefined;
     } else {
       caption = (video as unknown as { captions?: Array<{ id: string }> })
         .captions?.[0];
