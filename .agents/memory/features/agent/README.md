@@ -1,42 +1,10 @@
 # Agent System -- Architecture Reference
 
-Last verified: 2026-09-25 (context assembly, model resolution, billing, external runtimes); other sections 2026-04-07
+Last verified: 2026-09-28. Code layout lives in `apps/server/api/src/services/agent-*`, `packages/actions/src/registry/` and `packages/agent/src/`; read the source for structure.
 
 ## Overview
 
 The agent system is a multi-turn LLM chat orchestrator with tool execution, event sourcing, streaming, memory, and sub-agent delegation. It spans backend services, persistent agent records, a shared tools package, and a React frontend package.
-
-## Documentation Index
-
-| File | Scope |
-|------|-------|
-| [ORCHESTRATOR.md](./ORCHESTRATOR.md) | Chat loop, tool dispatch, streaming, system prompt resolution |
-| [THREADING.md](./THREADING.md) | Event sourcing, snapshots, sessions, execution lanes |
-| [COLLECTIONS.md](./COLLECTIONS.md) | Agent persistence records: threads, messages, runs, memories |
-| [TOOLS.md](./TOOLS.md) | Tool registry, executor, agent type configs, credits |
-| [FRONTEND.md](./FRONTEND.md) | React package: store, hooks, components, WebSocket events |
-
-## Key File Locations
-
-### Backend
-- `apps/server/api/src/services/agent-orchestrator/` -- orchestrator, controller, stream publisher
-- `apps/server/api/src/services/agent-orchestrator/tools/` -- tool registry + executor
-- `apps/server/api/src/services/agent-orchestrator/constants/` -- type configs, credit costs, onboarding prompt
-- `apps/server/api/src/services/agent-threading/` -- event engine, projector, session binding, execution lanes
-- `apps/server/api/src/services/agent-context-assembly/` -- brand context assembly
-- `apps/server/api/src/services/agent-spawn/` -- sub-agent delegation
-- `apps/server/api/src/collections/agent-threads/` -- AgentRoom (thread metadata)
-- `apps/server/api/src/collections/agent-messages/` -- messages + tool call sub-docs
-- `apps/server/api/src/collections/agent-runs/` -- execution tracking
-- `apps/server/api/src/collections/agent-memories/` -- persistent memory
-
-### Shared
-- `packages/actions/src/registry/` -- canonical tool definitions (`source.agent.ts`, `source.mcp.ts`, `tool-registry.ts`)
-- `@genfeedai/actions` -- CuratedActionName, AgentToolOutput; `@genfeedai/contracts/interfaces` -- AgentToolResult
-- `packages/contracts/src/enums/agent-*.enum.ts` -- AgentType, AgentThreadStatus, AgentMessageRole, etc.
-
-### Frontend
-- `packages/agent/src/` -- full React package (components, hooks, stores, services)
 
 ## High-Level Flow
 

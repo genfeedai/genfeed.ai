@@ -21,9 +21,12 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 
 ## Architecture Summary
 
-- **12 backend service workspaces** (NestJS and server-tier packages): api, discord, files, images, mcp, notifications, server, slack, telegram, videos, voices, workers. `apps/server/clips/` is not currently a package workspace.
+- **8 backend service workspaces**: api, discord, files, mcp, notifications, slack, telegram, workers
+  (`apps/server/{clips,images,videos,voices}` don't exist as workspaces — see `project-structure.md`;
+  `server` is a retired name, enforced by `bun run check:retired-core-names`).
 - **7 frontend/client workspaces**: app (studio), docs, website, desktop, mobile, browser extension, IDE extension
-- **43 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, Prisma, auth client, harness, etc.
+- **32 shared packages** (`packages/*`, `@genfeedai/*` scope): serializers, UI components, hooks, services,
+  contracts, workflows, integrations, Prisma, auth client, harness, etc.
 - **Infrastructure**: Docker self-hosted, PostgreSQL (Prisma ORM), Redis + BullMQ, Better Auth
 
 ## Current State
