@@ -8,16 +8,12 @@
     "type-check": {
       "inputs": [
         "$TURBO_EXTENDS$",
-        "$TURBO_ROOT$/packages/fonts/**",
-        "$TURBO_ROOT$/packages/pages/**",
+        "$TURBO_ROOT$/packages/pricing/**",
         "!$TURBO_ROOT$/packages/*/.turbo/**",
         "!$TURBO_ROOT$/packages/*/dist/**",
         "!$TURBO_ROOT$/packages/**/*.tsbuildinfo",
         "!$TURBO_ROOT$/packages/**/node_modules/**"
       ]
-    },
-    "build": {
-      "passThroughEnv": ["GITHUB_TOKEN"]
     }
   }
 }
