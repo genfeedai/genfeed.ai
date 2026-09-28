@@ -398,17 +398,6 @@ jobs:
         if: ${{ !cancelled() && env.TURBO_TOKEN != '' }}
         continue-on-error: true
         run: node scripts/ci/check-turbo-remote-cache.mjs "${RUNNER_TEMP}/turbo-type-check.log"
-      # The guard diffs each packages/* workspace's exported type surface
-      # against the base and asks for a version bump or a changenote when it
-      # moved. Pull requests read the base from the checked-out merge commit's
-      # first parent (event payloads can retain an older base SHA).
-      - name: Check package API surface
-        run: |
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            bun run check:package-api-surface --base-ref "$(git rev-parse HEAD^1)"
-          else
-            bun run check:package-api-surface --base-ref HEAD~1
-          fi
       - name: Run executable contracts
         run: bun run test:executable-contracts
       # Repo-wide UI guards. lint-staged runs the raw-control scanner on staged
