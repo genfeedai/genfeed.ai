@@ -27,6 +27,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AnalyticsMetric,
+  fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import {
@@ -146,6 +147,7 @@ export class AnalyticsAggregationService {
         Array<{
           total_comments: number;
           total_likes: number;
+          total_saves: number;
           total_shares: number;
           total_views: number;
         }>
@@ -200,6 +202,7 @@ export class AnalyticsAggregationService {
       _sum: {
         totalComments: Number(previous?.total_comments ?? 0),
         totalLikes: Number(previous?.total_likes ?? 0),
+        totalSaves: Number(previous?.total_saves ?? 0),
         totalShares: Number(previous?.total_shares ?? 0),
         totalViews: Number(previous?.total_views ?? 0),
       },
@@ -215,8 +218,10 @@ export class AnalyticsAggregationService {
       where: scopedWhere(organizationId, {}),
     });
 
+    // Prisma label (`INSTAGRAM`) in, domain id (`instagram`) out
+    // (genfeedai/genfeed.ai#5424).
     const activePlatforms = (platformRows as Array<{ platform: string }>).map(
-      (row) => row.platform,
+      (row) => fromPrismaCredentialPlatform(row.platform) ?? row.platform,
     );
 
     return postAnalyticsProjection.buildOverview({
@@ -452,6 +457,7 @@ export class AnalyticsAggregationService {
           _sum: {
             totalComments: true,
             totalLikes: true,
+            totalSaves: true,
             totalShares: true,
             totalViews: true,
           },
@@ -461,6 +467,7 @@ export class AnalyticsAggregationService {
           _sum: {
             totalComments: true,
             totalLikes: true,
+            totalSaves: true,
             totalShares: true,
             totalViews: true,
           },
@@ -570,6 +577,7 @@ export class AnalyticsAggregationService {
           _sum: {
             totalComments: true,
             totalLikes: true,
+            totalSaves: true,
             totalShares: true,
             totalViews: true,
           },

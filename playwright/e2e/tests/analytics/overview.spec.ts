@@ -38,20 +38,35 @@ const ANALYTICS_TIMESERIES = createPlaywrightApiRoutePattern(
   'analytics/timeseries\\?',
 );
 
-const ORGANIZATION_METRICS: Partial<IAnalytics> = {
-  activePlatforms: ['instagram', 'tiktok'],
-  avgEngagementRate: 4.75,
-  bestPerformingPlatform: 'instagram',
-  engagementGrowth: 16,
-  totalBrands: 1,
+// Period sums `getOverviewMetrics` reads from `post_analytics`. Engagement
+// is likes + comments + shares + saves, and the rate divides it by views
+// (pinned in analytics-aggregation.service.spec.ts; genfeedai/genfeed.ai#5427).
+const PERIOD_TOTALS = {
   totalComments: 96,
-  totalCredentialsConnected: 3,
-  totalEngagement: 824,
   totalLikes: 640,
-  totalPosts: 18,
   totalSaves: 28,
   totalShares: 60,
   totalViews: 12450,
+};
+const PERIOD_ENGAGEMENT =
+  PERIOD_TOTALS.totalLikes +
+  PERIOD_TOTALS.totalComments +
+  PERIOD_TOTALS.totalShares +
+  PERIOD_TOTALS.totalSaves;
+const PERIOD_ENGAGEMENT_RATE =
+  (PERIOD_ENGAGEMENT / PERIOD_TOTALS.totalViews) * 100;
+
+const ORGANIZATION_METRICS: Partial<IAnalytics> = {
+  ...PERIOD_TOTALS,
+  activePlatforms: ['instagram', 'tiktok'],
+  avgEngagementRate: PERIOD_ENGAGEMENT_RATE,
+  bestPerformingPlatform: 'instagram',
+  engagementGrowth: 16,
+  totalBrands: 1,
+  // `CredentialsService.countConnected` (genfeedai/genfeed.ai#5426).
+  totalCredentialsConnected: 3,
+  totalEngagement: PERIOD_ENGAGEMENT,
+  totalPosts: 18,
   viewsGrowth: 21,
 };
 
@@ -133,15 +148,15 @@ async function mockOverviewData(page: Page): Promise<string[]> {
 async function mockOrganizationOverviewData(page: Page): Promise<void> {
   const brand: IBrandWithStats = {
     activePlatforms: ['instagram', 'tiktok'],
-    avgEngagementRate: 4.75,
+    avgEngagementRate: PERIOD_ENGAGEMENT_RATE,
     growth: 12,
     id: 'brand-1',
     name: 'Brand 1',
     organizationId: 'mock-org-id-e2e-test',
     organizationName: 'Test Organization',
-    totalEngagement: 824,
+    totalEngagement: PERIOD_ENGAGEMENT,
     totalPosts: 18,
-    totalViews: 12450,
+    totalViews: PERIOD_TOTALS.totalViews,
   };
   await page.route(
     createPlaywrightApiRoutePattern('analytics/brands\\?'),
@@ -267,11 +282,12 @@ test.describe('Analytics Overview', () => {
       await expect(views).toContainText('12450');
       await expect(views).toContainText('+21%');
       const engagement = kpiCard(authenticatedPage, 'Total Engagement');
+      // 640 + 96 + 60 + 28 = 824; 824 / 12450 = 6.62%.
       await expect(engagement).toContainText('824');
       await expect(engagement).toContainText('+16%');
       await expect(
         kpiCard(authenticatedPage, 'Avg Engagement Rate'),
-      ).toContainText('4.75%');
+      ).toContainText('6.62%');
       await expect(
         kpiCard(authenticatedPage, 'Connected Accounts'),
       ).toContainText('3');

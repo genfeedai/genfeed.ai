@@ -1,4 +1,9 @@
-import { InsightCategory, InsightImpact } from '@genfeedai/contracts';
+import {
+  fromPrismaCredentialPlatform,
+  InsightCategory,
+  InsightImpact,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
   IInsightResponse,
@@ -67,27 +72,49 @@ function viralHooksDocument(result: IViralHooksResult): unknown {
 
 const LAUNCH_HOOK = 'Stop scrolling: we shipped in 30 seconds';
 
+/**
+ * One post's `post_analytics` totals per platform — the rows both hooks
+ * queries aggregate. The response below is derived from them, so the post's
+ * platforms, its totals and `topPlatforms` always agree.
+ */
+const LAUNCH_POST_PLATFORM_ROWS = [
+  { platform: 'tiktok', totalEngagement: 700, totalViews: 9000 },
+  { platform: 'instagram', totalEngagement: 187, totalViews: 3000 },
+];
+
+const launchEngagement = LAUNCH_POST_PLATFORM_ROWS.reduce(
+  (sum, row) => sum + row.totalEngagement,
+  0,
+);
+const launchViews = LAUNCH_POST_PLATFORM_ROWS.reduce(
+  (sum, row) => sum + row.totalViews,
+  0,
+);
+
 const POPULATED_HOOKS: IViralHooksResult = {
   analysis: {
     hookEffectiveness: [
       {
-        avgEngagement: 887,
-        avgViews: 12000,
+        avgEngagement: launchEngagement,
+        avgViews: launchViews,
         hook: LAUNCH_HOOK.toLowerCase(),
         postCount: 1,
       },
     ],
     topHooks: [
-      { avgEngagement: 887, hook: LAUNCH_HOOK.toLowerCase(), postCount: 1 },
-    ],
-    topPlatforms: [
       {
-        platform: 'tiktok',
+        avgEngagement: launchEngagement,
+        hook: LAUNCH_HOOK.toLowerCase(),
         postCount: 1,
-        totalEngagement: 887,
-        totalViews: 12000,
       },
     ],
+    // Every platform with data for the post set, ordered by engagement.
+    topPlatforms: LAUNCH_POST_PLATFORM_ROWS.map((row) => ({
+      platform: row.platform,
+      postCount: 1,
+      totalEngagement: row.totalEngagement,
+      totalViews: row.totalViews,
+    })),
     totalVideos: 1,
   },
   videos: [
@@ -95,10 +122,10 @@ const POPULATED_HOOKS: IViralHooksResult = {
       description: `${LAUNCH_HOOK}\nFull recap of launch day inside.`,
       hook: LAUNCH_HOOK,
       id: 'post-1',
-      platforms: ['tiktok', 'instagram'],
+      platforms: LAUNCH_POST_PLATFORM_ROWS.map((row) => row.platform),
       title: 'Launch day recap',
-      totalEngagement: 887,
-      totalViews: 12000,
+      totalEngagement: launchEngagement,
+      totalViews: launchViews,
     },
   ],
 };
@@ -131,11 +158,13 @@ const EVENING_INSIGHT: Omit<IInsightResponse, 'createdAt' | 'id'> & {
 };
 
 /**
- * `GET /analytics/top` (`AnalyticsTopPostSerializer` over
- * `analyticsResponseProjection.buildTopContent`, which always emits
- * `isVideo: false`), filtered by `platform` like the real endpoint.
+ * `post_analytics` rows behind `GET /analytics/top`, keyed by the stored
+ * Prisma platform label. `topPostsDocument` mirrors the endpoint
+ * (`AnalyticsService.getTopContent` + `buildTopContent`): it converts the
+ * `platform` query to the Prisma label before filtering, emits domain
+ * platform ids, and always sets `isVideo: false`.
  */
-const TOP_POSTS = [
+const TOP_POST_ROWS = [
   {
     brandLogo: null,
     brandName: 'Brand 1',
@@ -144,7 +173,7 @@ const TOP_POSTS = [
     ingredientUrl: null,
     isVideo: false,
     label: 'Launch day recap',
-    platform: 'tiktok',
+    platform: 'TIKTOK',
     postId: 'post-1',
     thumbnailUrl: null,
     totalComments: 45,
@@ -162,7 +191,7 @@ const TOP_POSTS = [
     ingredientUrl: null,
     isVideo: false,
     label: 'Behind the scenes',
-    platform: 'instagram',
+    platform: 'INSTAGRAM',
     postId: 'post-2',
     thumbnailUrl: null,
     totalComments: 20,
@@ -173,6 +202,23 @@ const TOP_POSTS = [
     totalViews: 8000,
   },
 ];
+
+function topPostsDocument(requestUrl: string): unknown {
+  const requested = new URL(requestUrl).searchParams.get('platform');
+  const label = requested ? toPrismaCredentialPlatform(requested) : undefined;
+  return {
+    data: TOP_POST_ROWS.filter(
+      (row) => !requested || row.platform === label,
+    ).map((row) => ({
+      attributes: {
+        ...row,
+        platform: fromPrismaCredentialPlatform(row.platform) ?? row.platform,
+      },
+      id: `top-${row.postId}`,
+      type: 'analytics-top-post',
+    })),
+  };
+}
 
 /**
  * E2E Tests for Analytics Deep Pages
@@ -329,6 +375,16 @@ test.describe('Analytics Deep Pages', () => {
       await expect(rows.getByRole('img', { name: 'Instagram' })).toBeVisible();
       await expect(rows).toContainText('12.0k');
       await expect(rows).toContainText('887');
+
+      // Both platforms the post ran on have a card with their own totals.
+      const tiktokCard = main.getByTestId('hook-platform-tiktok');
+      await expect(tiktokCard).toContainText('9.0k');
+      await expect(tiktokCard).toContainText('700');
+      const instagramCard = main.getByTestId('hook-platform-instagram');
+      await expect(instagramCard).toContainText('3.0k');
+      await expect(instagramCard).toContainText('187');
+      await expect(tiktokCard).not.toContainText('No data available');
+      await expect(instagramCard).not.toContainText('No data available');
 
       // Stat cards and rankings come from `analysis`.
       const statCard = (label: string) =>
@@ -583,20 +639,7 @@ test.describe('Analytics Deep Pages', () => {
         authenticatedPage,
         'analytics/top\\?',
         async (r) => {
-          const platform = new URL(r.request().url()).searchParams.get(
-            'platform',
-          );
-          await r.fulfill(
-            jsonApi({
-              data: TOP_POSTS.filter(
-                (post) => !platform || post.platform === platform,
-              ).map((post) => ({
-                attributes: post,
-                id: `top-${post.postId}`,
-                type: 'analytics-top-post',
-              })),
-            }),
-          );
+          await r.fulfill(jsonApi(topPostsDocument(r.request().url())));
         },
       );
 

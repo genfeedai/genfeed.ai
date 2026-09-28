@@ -232,12 +232,21 @@ function hookResponse(): IViralHooksResult {
         },
         { avgEngagement: 90, hook: 'three mistakes i made', postCount: 2 },
       ],
+      // Per-platform sums of the posts below: video-1 splits 1200 views /
+      // 250 engagement on TikTok and 400 / 70 on Instagram; video-3 and
+      // video-4 are TikTok-only, video-2 Instagram-only.
       topPlatforms: [
         {
           platform: 'tiktok',
           postCount: 3,
-          totalEngagement: 500,
-          totalViews: 9000,
+          totalEngagement: 430,
+          totalViews: 9600,
+        },
+        {
+          platform: 'instagram',
+          postCount: 2,
+          totalEngagement: 82,
+          totalViews: 480,
         },
       ],
       totalVideos: 4,
@@ -274,7 +283,7 @@ function hookResponse(): IViralHooksResult {
         description: '',
         hook: '',
         id: 'video-2',
-        platforms: [],
+        platforms: ['instagram'],
         title: 'Untitled',
         totalEngagement: 12,
         totalViews: 80,
@@ -309,8 +318,11 @@ describe('AnalyticsHooks', () => {
     expect(screen.getByText('TIKTOK')).toBeVisible();
 
     // Platform overview comes from `analysis.topPlatforms`
-    expect(screen.getByText('Total Views: 9000')).toBeVisible();
-    expect(screen.getByText('Total Engagement: 500')).toBeVisible();
+    expect(screen.getByText('Total Views: 9600')).toBeVisible();
+    expect(screen.getByText('Total Engagement: 430')).toBeVisible();
+    expect(screen.getByText('Total Views: 480')).toBeVisible();
+    expect(screen.getByText('Total Engagement: 82')).toBeVisible();
+    expect(screen.queryByText('No data available')).toBeNull();
 
     // Post table renders each post's text hook, platform ids and aggregates
     const [, winningRow, launchRow, hiringRow, untitledRow] = within(
@@ -330,6 +342,7 @@ describe('AnalyticsHooks', () => {
     expect(within(hiringRow).getByText('3400')).toBeVisible();
     expect(within(untitledRow).getByText('Untitled')).toBeVisible();
     expect(within(untitledRow).getByText('No hook detected')).toBeVisible();
+    expect(within(untitledRow).getByLabelText('Instagram')).toBeVisible();
 
     // Hook pattern rankings: by engagement, then by reach (avg views)
     const rankedHooks = (heading: string) =>

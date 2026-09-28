@@ -57,9 +57,7 @@ describe('OrganizationsRelationshipsController', () => {
       getTopPerformingContent: vi.fn().mockResolvedValue([]),
     },
     credentialsService: {
-      findAll: vi
-        .fn()
-        .mockResolvedValue({ docs: [{ total: 0 }], totalDocs: 0 }),
+      countConnected: vi.fn().mockResolvedValue(0),
     },
     ingredientsService: {
       findAll: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
@@ -195,6 +193,24 @@ describe('OrganizationsRelationshipsController', () => {
         mockServices.analyticsAggregationService.getOverviewMetrics,
       ).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    // genfeedai/genfeed.ai#5426: the count used to be read from
+    // `findAll(...).docs[0].total`, a field credential records don't have.
+    it('reports the number of connected credentials in the organization', async () => {
+      mockServices.credentialsService.countConnected.mockResolvedValueOnce(3);
+
+      const result = await controller.findAnalytics(
+        {} as unknown as Request,
+        'clorganizationrel0000000001',
+        {},
+        mockUser,
+      );
+
+      expect(
+        mockServices.credentialsService.countConnected,
+      ).toHaveBeenCalledWith('clorganizationrel0000000001');
+      expect(result.data).toMatchObject({ totalCredentialsConnected: 3 });
     });
   });
 

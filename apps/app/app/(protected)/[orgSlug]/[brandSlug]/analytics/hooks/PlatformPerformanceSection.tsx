@@ -20,7 +20,11 @@ export default function PlatformPerformanceSection({ topPlatforms }: Props) {
           const Icon = config.icon;
 
           return (
-            <Card key={config.id} className="backdrop-blur">
+            <Card
+              key={config.id}
+              className="backdrop-blur"
+              data-testid={`hook-platform-${config.id}`}
+            >
               <div className="p-4 space-y-4">
                 <div className="flex items-center gap-3">
                   <Icon className="text-2xl" style={{ color: config.color }} />

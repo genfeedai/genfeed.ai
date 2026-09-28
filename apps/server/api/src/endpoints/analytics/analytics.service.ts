@@ -12,7 +12,11 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
@@ -78,7 +82,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return Prisma.empty;
     }
 
-    return Prisma.sql`AND ${Prisma.raw(`${alias ? `${alias}.` : ''}"platform"`)}::text = ${String(platform)}`;
+    // The column holds the Prisma label (`INSTAGRAM`); callers pass the domain
+    // id (`instagram`). An unknown value keeps its raw text and matches nothing.
+    const label = toPrismaCredentialPlatform(platform) ?? String(platform);
+
+    return Prisma.sql`AND ${Prisma.raw(`${alias ? `${alias}.` : ''}"platform"`)}::text = ${label}`;
   }
 
   private postAnalyticsTopContentSortExpression(

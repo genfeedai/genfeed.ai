@@ -371,12 +371,15 @@ export class PostAnalyticsProjection {
     const totalLikes = this.readNumber(sums.totalLikes);
     const totalComments = this.readNumber(sums.totalComments);
     const totalShares = this.readNumber(sums.totalShares);
+    const totalSaves = this.readNumber(sums.totalSaves);
     return {
       avgEngagementRate: this.readNumber(aggregate._avg?.engagementRate),
       totalComments,
-      totalEngagement: totalLikes + totalComments + totalShares,
+      // Same definition as the engagement rate `getOverviewMetrics` derives
+      // and the overview's "Likes, comments, shares, and saves" label.
+      totalEngagement: totalLikes + totalComments + totalShares + totalSaves,
       totalLikes,
-      totalSaves: this.readNumber(sums.totalSaves),
+      totalSaves,
       totalShares,
       totalViews: this.readNumber(sums.totalViews),
     };

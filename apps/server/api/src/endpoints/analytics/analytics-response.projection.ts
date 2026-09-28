@@ -1,4 +1,8 @@
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
 import type {
   IViralHookEffectiveness,
   IViralHookPlatformSummary,
@@ -31,6 +35,16 @@ export type AnalyticsBestPostingTime = {
 };
 
 /**
+ * `post_analytics.platform` is the Prisma `CredentialPlatform` label
+ * (`INSTAGRAM`); every response carries the domain id (`instagram`).
+ * Unknown labels pass through unchanged rather than being guessed.
+ */
+function toDomainPlatform(value: unknown): string {
+  const label = String(value ?? '');
+  return fromPrismaCredentialPlatform(label) ?? label;
+}
+
+/**
  * Pure response owner for endpoint analytics. Inputs are already-scoped query
  * rows; this class performs no transport, persistence, logging, or DI work.
  */
@@ -43,7 +57,7 @@ export class AnalyticsResponseProjection {
     const dataMap = new Map<string, Map<string, PlatformMetrics>>();
     for (const row of rawResults) {
       const day = row.day as string;
-      const platform = row.platform as string;
+      const platform = toDomainPlatform(row.platform);
       const platformMap =
         dataMap.get(day) ?? new Map<string, PlatformMetrics>();
       platformMap.set(platform, {
@@ -115,7 +129,7 @@ export class AnalyticsResponseProjection {
         (Number(row.avg_engagement_rate) || 0).toFixed(2),
       ),
       hour: Number(row.hour),
-      platform: row.platform as string,
+      platform: toDomainPlatform(row.platform),
       postCount: Number(row.post_count),
     }));
   }
@@ -131,7 +145,7 @@ export class AnalyticsResponseProjection {
       ingredientUrl: undefined,
       isVideo: false,
       label: row.label as string,
-      platform: row.platform as string,
+      platform: toDomainPlatform(row.platform),
       postId: row.post_id as string,
       thumbnailUrl: undefined,
       totalComments: Number(row.total_comments),
@@ -166,7 +180,7 @@ export class AnalyticsResponseProjection {
           totals.engagement > 0
             ? (totalEngagement / totals.engagement) * 100
             : 0,
-        platform: platform.platform as string,
+        platform: toDomainPlatform(platform.platform),
         postsPercentage:
           totals.posts > 0 ? (totalPosts / totals.posts) * 100 : 0,
         totalEngagement,
@@ -260,7 +274,9 @@ export class AnalyticsResponseProjection {
       description: (video.description as string) || '',
       hook: this.extractHookFromDescription(video.description as string),
       id: video.id as string,
-      platforms: (video.platforms as string[]) || [],
+      platforms: ((video.platforms as string[] | null) ?? []).map(
+        toDomainPlatform,
+      ),
       title: (video.title as string) || 'Untitled',
       totalEngagement: Number(video.total_engagement),
       totalViews: Number(video.total_views),
@@ -381,7 +397,7 @@ export class AnalyticsResponseProjection {
     rows: RawAnalyticsRow[],
   ): IViralHookPlatformSummary[] {
     return rows.map((platform) => ({
-      platform: platform.platform as string,
+      platform: toDomainPlatform(platform.platform),
       postCount: Number(platform.post_count),
       totalEngagement: Number(platform.total_engagement),
       totalViews: Number(platform.total_views),
