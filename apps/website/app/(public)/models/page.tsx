@@ -13,7 +13,7 @@ import { getPublicModels } from '@public/models/models-loader';
 export const revalidate = 300;
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'AI Model Catalog',
+  'AI Generation Model Catalog',
   'Browse the current image, video, voice, music, and language models available in Genfeed. The catalog updates automatically from the product registry.',
   '/models',
 );

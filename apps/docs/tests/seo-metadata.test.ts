@@ -23,11 +23,9 @@ const catchAllPagePath = fileURLToPath(
   new URL('../app/[[...mdxPath]]/page.tsx', import.meta.url),
 );
 
-// Ahrefs site-audit thresholds, calibrated against the 2026-08-19 crawl of
-// docs.genfeed.ai: a rendered <title> shorter than 15 characters is "Title too
-// short", longer than 63 is "Title too long".
-const TITLE_MIN_LENGTH = 15;
-const TITLE_MAX_LENGTH = 63;
+// Match the shared SEO watchdog's inclusive Unicode character limits.
+const TITLE_MIN_LENGTH = 30;
+const TITLE_MAX_LENGTH = 60;
 
 function readRenderedTitle(filePath: string): string {
   const source = fs.readFileSync(filePath, 'utf8');
@@ -182,10 +180,11 @@ describe('docs SEO metadata', () => {
     expect(mdxFiles.length).toBeGreaterThan(0);
 
     for (const filePath of mdxFiles) {
-      const renderedLength =
-        readRenderedTitle(filePath).length + DOCS_TITLE_SUFFIX.length;
+      const renderedLength = Array.from(
+        `${readRenderedTitle(filePath)}${DOCS_TITLE_SUFFIX}`,
+      ).length;
 
-      expect(renderedLength, filePath).toBeGreaterThan(TITLE_MIN_LENGTH);
+      expect(renderedLength, filePath).toBeGreaterThanOrEqual(TITLE_MIN_LENGTH);
       expect(renderedLength, filePath).toBeLessThanOrEqual(TITLE_MAX_LENGTH);
     }
   });

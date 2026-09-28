@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import YoutubeLongFormContent from '@public/tools/youtube-long-form/youtube-long-form-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'YouTube to Article & Newsletter — Free AI Tool | Genfeed',
+  'YouTube to Article and Newsletter',
   'Turn a public YouTube video into a standard article, LinkedIn article, X article, or newsletter with one reusable workflow.',
   '/tools/youtube-long-form',
 );

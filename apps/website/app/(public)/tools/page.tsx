@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import ToolsContent from '@public/tools/tools-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Free AI Content Tools | Genfeed',
-  'Try free AI tools for turning long-form content into ready-to-publish social content.',
+  'Free AI Content Tools',
+  'Turn long-form content into social posts, short clips, articles, and newsletters with free Genfeed AI tools. Preview the output before you publish.',
   '/tools',
 );
 

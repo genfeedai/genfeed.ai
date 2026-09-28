@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import AgentContent from '@public/agent/agent-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Genfeed Agent — ask for content, get it published',
-  'Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.',
+  'AI Content Agent — Create, Review, Publish',
+  'Ask the Genfeed agent for on-brand videos, images, ads, and posts; review every output before scheduling approved content to 20+ channels.',
   '/agent',
 );
 

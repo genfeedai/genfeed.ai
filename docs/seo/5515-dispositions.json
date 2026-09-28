@@ -1,0 +1,1666 @@
+{
+  "baseline_snapshot_id": "2026-09-28T08-26-41-001Z",
+  "issue_url": "https://github.com/genfeedai/genfeed.ai/issues/5515",
+  "reviewed_at": "2026-09-28",
+  "dispositions": [
+    {
+      "fingerprint": "5d6093e0e57260b5ac20eba8f741592a43f01afff5440b6849a9f19e2fd9300b",
+      "url": "https://genfeed.ai/",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.",
+        "unicode_count": 186,
+        "duplicate_urls": ["https://genfeed.ai/", "https://genfeed.ai/agent"]
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "packages/helpers/src/media/metadata/metadata.helper.ts"
+    },
+    {
+      "fingerprint": "3fa112975ad1884630e489947638992dd3c38436c8f1938407a0d97a210a75df",
+      "url": "https://genfeed.ai/developers",
+      "rule": "indexable_absent_sitemap",
+      "severity": "error",
+      "observed": {
+        "indexable": true,
+        "in_sitemap": false
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The indexable developer landing page is now an explicit weekly sitemap entry with priority 0.8; verify production sitemap membership.",
+      "source": "apps/website/app/sitemap.ts"
+    },
+    {
+      "fingerprint": "6a847d54727d543ece8784b4f1d7260a48a71fc377e224d6a7938b13aefe7400",
+      "url": "https://docs.genfeed.ai/",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Genfeed.ai | Genfeed.ai Docs",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/index.mdx"
+    },
+    {
+      "fingerprint": "8d73e87569e99d7f0ea16c57cf15740ffecaf329181d503424c392a351d3df13",
+      "url": "https://genfeed.ai/agent",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.",
+        "unicode_count": 186,
+        "duplicate_urls": ["https://genfeed.ai/", "https://genfeed.ai/agent"]
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/agent/page.tsx"
+    },
+    {
+      "fingerprint": "870f6329a3fe6ea07e94cb1c538d7d4ac887291c226bd8e878e6b6ee2a9d3c25",
+      "url": "https://genfeed.ai/",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.",
+        "unicode_count": 186
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "packages/helpers/src/media/metadata/metadata.helper.ts"
+    },
+    {
+      "fingerprint": "4b69fcb94fcf82a68f842d93d9dcb390c149bd0c6751c5347078f416019cb0e0",
+      "url": "https://marketplace.genfeed.ai/",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Discover curated workflows, prompts, skills, and AI-generated media from the Genfeed.ai creator community.",
+        "unicode_count": 106
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "975ab30670550101d6d7dad71532b604386dfe9a5a443fc25046b115129b6f3b",
+      "url": "https://docs.genfeed.ai/",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "147 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Documentation entry directory with distribution status and quick links; detailed setup and reference material belongs on linked pages.",
+      "source": "apps/docs/content/index.mdx"
+    },
+    {
+      "fingerprint": "0102f47e66981b3ce5612f662b2b800f77f34f6b772c04bb7477ced68a54a61b",
+      "url": "https://marketplace.genfeed.ai/",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "49 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current / page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "1314614e7f4caa731ab332935fa6effe67c70131c0f10463c1c11b8c17a05173",
+      "url": "https://marketplace.genfeed.ai/about",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "About | Genfeed Marketplace",
+        "unicode_count": 27
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "4ed2bea9dae8c208cabd6052406d21e84dc3b492a6470ba20ac370c0caa652b4",
+      "url": "https://marketplace.genfeed.ai/browse",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Browse | Genfeed Marketplace",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "a448a1e4c560f93af00b9962bbf0d133b3c293be17718a476b063d2aa984a1b2",
+      "url": "https://marketplace.genfeed.ai/contact",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Contact | Genfeed Marketplace",
+        "unicode_count": 29
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "15016d0afa3cc2a3c9aa4d946a80505d85e1f5ec28dac94055758f3142847722",
+      "url": "https://marketplace.genfeed.ai/images",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Images | Genfeed Marketplace",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "1d7f97b214594eee34ebc287c583f709dec4072c4800b5de53b7efa705a602a6",
+      "url": "https://marketplace.genfeed.ai/music",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Music | Genfeed Marketplace",
+        "unicode_count": 27
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "ca2f54af0ab9136577fab7c5ab736f564d1f99a2a86d6c1325849af940eaea6e",
+      "url": "https://marketplace.genfeed.ai/posts",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Posts | Genfeed Marketplace",
+        "unicode_count": 27
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "9a5dd7f89bf2e86388e9fb0edb86fefc9d7d4fc886e7f38f765be96f758ec259",
+      "url": "https://marketplace.genfeed.ai/prompts",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Prompts | Genfeed Marketplace",
+        "unicode_count": 29
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "de38a05dd581c0eb6f9175330a911b258858bf2d710bfe05d22292487ed46316",
+      "url": "https://marketplace.genfeed.ai/skills",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Skills | Genfeed Marketplace",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "2d340bdf94840ee6735c11abcb7c9bdf2060ddf53dde717160f7be23055af852",
+      "url": "https://marketplace.genfeed.ai/videos",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Videos | Genfeed Marketplace",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "23395217a2d21950f7b56413a7aa65b8a32fd7b6d0840e6997e6d3df5b548d55",
+      "url": "https://marketplace.genfeed.ai/about",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Learn what the Genfeed.ai marketplace is, who it is for, and how curated creator products work.",
+        "unicode_count": 95
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "5604b14e843d9265015cde9ab62665dc976f4b6f8d8d7c8af4d34252c915fd6e",
+      "url": "https://marketplace.genfeed.ai/contact",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Contact the Genfeed.ai marketplace team about orders, listings, sellers, payouts, or privacy.",
+        "unicode_count": 93
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "8f73810ab39fecd3afbdff0f46404daa2e4a2eed921e2ca0129cad5a206981e7",
+      "url": "https://marketplace.genfeed.ai/guidelines",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Read the quality, originality, and conduct standards every Genfeed.ai marketplace listing must meet.",
+        "unicode_count": 100
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "c042271c83a2bc35dad31ce4a55240d05349b32e2eea7667353ae1988e846083",
+      "url": "https://marketplace.genfeed.ai/images",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Explore AI-generated images shared by the Genfeed.ai creator community.",
+        "unicode_count": 71
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "34cf4d4083a02a35719d614399c801d776eba48e62580bf775618163109096ae",
+      "url": "https://marketplace.genfeed.ai/leaderboard",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "See the most-viewed AI-generated video posts from the Genfeed.ai community.",
+        "unicode_count": 75
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "86224d4419f65ebd447e9496abb5fa4adec01cf64c2293ac5246403736a2ef47",
+      "url": "https://marketplace.genfeed.ai/music",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Listen to AI-composed music shared by the Genfeed.ai creator community.",
+        "unicode_count": 71
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "a44e2d275830e11ab664f53a9c1b01dd8e95974cce31ed7260a3a68effc32bd9",
+      "url": "https://marketplace.genfeed.ai/payouts",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Learn how sellers get paid on the Genfeed.ai marketplace, including payout timing and Stripe Connect.",
+        "unicode_count": 101
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "67fc72dd24650047d3ffec9a932f3ff82ebee65d9230df3e56c957187c09fa44",
+      "url": "https://marketplace.genfeed.ai/posts",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Read AI-generated articles and creative content from the Genfeed.ai community.",
+        "unicode_count": 78
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "3620627a53ed340dd128ae6eda0b07ed124efc00bc5b68580bcac79403e5ea3c",
+      "url": "https://marketplace.genfeed.ai/prompts",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Explore expertly crafted prompts for AI generation on the Genfeed.ai marketplace.",
+        "unicode_count": 81
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "ec1a0fb574ea43ee913e41a1bfc2755cec89d3423f70435dc228f91fdf9e311d",
+      "url": "https://marketplace.genfeed.ai/sell",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "List your workflows, prompts, and skills on the Genfeed.ai marketplace and get paid through Stripe.",
+        "unicode_count": 99
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "707faf03cd6bc97587fc41307b878f37ee0bd1162560bed6774b1c600abeeedd",
+      "url": "https://marketplace.genfeed.ai/skills",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Discover packaged agent skills that extend what your AI can do.",
+        "unicode_count": 63
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "3bc31a66cde617fc183b3379cbfede71a55724c32c64728ab9eab86aa430cc44",
+      "url": "https://marketplace.genfeed.ai/videos",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Browse AI-generated videos shared by the Genfeed.ai creator community.",
+        "unicode_count": 70
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "73c20593ceebed4177589bf38223d019968dcc8700df8997f9f87742e9959e65",
+      "url": "https://marketplace.genfeed.ai/workflows",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Discover automated content workflows built by the Genfeed.ai creator community and ready to deploy.",
+        "unicode_count": 99
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "9da67486c40d2674b843f08dfb49ce388f69979593a1c94c150f82def31ea12b",
+      "url": "https://marketplace.genfeed.ai/browse",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "61 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Category directory of creator products and public content. Category links, rather than a long introductory article, are its purpose.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "176ddcb2097465f0b5762e93ba7bcbc332a8a1b580af57c6bb3898b1cf0f8e92",
+      "url": "https://marketplace.genfeed.ai/contact",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "171 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Task-specific support routing with order references, payout context, listing reports, and privacy requests. The existing instructions are complete without a 200-word minimum.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "3365c4dd216b345aab9f00323a7bdc12ce028bd536092e418779f080b8e7936f",
+      "url": "https://marketplace.genfeed.ai/images",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "17 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current /images page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "e8ea401e61f1e7607b62f58ecaf55a4383ad59e661e7ed0927dd62a04d6bf374",
+      "url": "https://marketplace.genfeed.ai/leaderboard",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "20 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current /leaderboard page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "45cc8ed96384eccee243700ffacbf99991cd8739c97fa189a368ca0db3b1b5d4",
+      "url": "https://marketplace.genfeed.ai/music",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "18 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current /music page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "86724a87104fd5dec3534803873342a7cd1670899d77fb7143ba1e5bade4ce28",
+      "url": "https://marketplace.genfeed.ai/posts",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "20 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current /posts page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "e862b6189517bdfa9c6b6aee452de2995cf9d7128fadc56f44978a2d4e22794c",
+      "url": "https://marketplace.genfeed.ai/prompts",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Prompts is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "745b8764fa760ec5a46bd46d97d149270ff8e0b4789c1ed26902bf764d02c1c2",
+      "url": "https://marketplace.genfeed.ai/sell",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "168 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Seller onboarding entry with preparation and payout links. The primary action and linked requirements should remain concise.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "0e140f87c9f60697a93268c0f7ef180679ebeedc861966ef4d72a562b487d78d",
+      "url": "https://marketplace.genfeed.ai/skills",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "24 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Skills is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "4d8ef00ac19a212f6196db840183806528692f92d6705f9629ed3481fe9f2ff6",
+      "url": "https://marketplace.genfeed.ai/videos",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "23 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The current /videos page uses the merged public-content feed instead of the old near-empty placeholder. Verify the deployed feed and its actual rendered content; media galleries have no arbitrary 200-word requirement.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "f128875c4b9c1d7a7f93397d9d46a7b49b23922dfd7906ed09a95e3a75cb21fb",
+      "url": "https://marketplace.genfeed.ai/workflows",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "22 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Workflows is a listing category whose previews, listing details, and result availability are the useful content. Do not fabricate inventory or add prose to compensate for an empty catalogue.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "34d716239d8a3a3737e9a5a21539421241af3860e8833840ba74e29284623bd3",
+      "url": "https://docs.genfeed.ai/advanced",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Advanced | Genfeed.ai Docs",
+        "unicode_count": 26
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/advanced/index.mdx"
+    },
+    {
+      "fingerprint": "73b7bbb2e024c80c198dd8b577a182344ba25d52b719b8d24a93e19061a181dc",
+      "url": "https://docs.genfeed.ai/api-reference/api-keys",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "API Keys | Genfeed.ai Docs",
+        "unicode_count": 26
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/api-reference/api-keys.mdx"
+    },
+    {
+      "fingerprint": "179a4a61965a42069a0e99d7629e8fe89eeb546e19ed3fddc6e2a05f4ec8fcd3",
+      "url": "https://docs.genfeed.ai/api-reference/cli",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "CLI | Genfeed.ai Docs",
+        "unicode_count": 21
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/api-reference/cli.mdx"
+    },
+    {
+      "fingerprint": "7e1089e1e6aee75203d7244ee397417a29b1d7fe355e352bcf3f42ae6170a2e0",
+      "url": "https://docs.genfeed.ai/api-reference/mcp",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "MCP Server | Genfeed.ai Docs",
+        "unicode_count": 28
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/api-reference/mcp.mdx"
+    },
+    {
+      "fingerprint": "f44a1f2f414285464dcc319600f1aa305f68667ee2c4ce16c3773468b3037cbd",
+      "url": "https://docs.genfeed.ai/api-reference/webhooks",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Webhooks | Genfeed.ai Docs",
+        "unicode_count": 26
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/api-reference/webhooks.mdx"
+    },
+    {
+      "fingerprint": "4425f47bc2467c0b99765b44067f409fb3a9d3a5475c6a67b2c9319a7f2fa2cf",
+      "url": "https://docs.genfeed.ai/cloud/brands",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Brands | Genfeed.ai Docs",
+        "unicode_count": 24
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/cloud/brands.mdx"
+    },
+    {
+      "fingerprint": "d309d629ecce1a2a18e4ea39144b8a392d50b1deaabc5719bf890d84f3694a00",
+      "url": "https://docs.genfeed.ai/core-loop",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Core Loop | Genfeed.ai Docs",
+        "unicode_count": 27
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/core-loop/index.mdx"
+    },
+    {
+      "fingerprint": "78787d9b04a2b140def91ca9a251c20135700fbc018e175d4e9ed1899887aad6",
+      "url": "https://docs.genfeed.ai/guides/voice-recognition",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Voice Input | Genfeed.ai Docs",
+        "unicode_count": 29
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/guides/voice-recognition.mdx"
+    },
+    {
+      "fingerprint": "11b0e407deeb1d20f1cbd68e023bd16ce3482cd3be5799e7cfe7b3b6cf018d7d",
+      "url": "https://docs.genfeed.ai/integrations/argil",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Argil | Genfeed.ai Docs",
+        "unicode_count": 23
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/integrations/argil.mdx"
+    },
+    {
+      "fingerprint": "39c679f143d77cd2ac4d39783b5b1a6e17ac0d2e4be771bc2354915fc7ffb6a3",
+      "url": "https://docs.genfeed.ai/cloud/settings",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Settings | Genfeed.ai Docs",
+        "unicode_count": 26
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/cloud/settings.mdx"
+    },
+    {
+      "fingerprint": "61b80dccee3dc773e8cb4eca1fc32cfe4d449e7bfaad14469ac3b5a346bbef92",
+      "url": "https://docs.genfeed.ai/cloud/studio",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Studio | Genfeed.ai Docs",
+        "unicode_count": 24
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Added a descriptive frontmatter title while preserving the page H1 and navigation label. Verify the rendered title, including the docs suffix, after release.",
+      "source": "apps/docs/content/cloud/studio.mdx"
+    },
+    {
+      "fingerprint": "7bfbcaab4426681a4b28fe2a5d4c26e72746f9dfac1a80f9928d7df86be81654",
+      "url": "https://genfeed.ai/agent",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Genfeed Agent — ask for content, get it published | Genfeed.ai",
+        "unicode_count": 62
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/agent/page.tsx"
+    },
+    {
+      "fingerprint": "df16b14db85872de8912683af720b3adf1ca6feb1cab3a7fed36a5e3be3b98de",
+      "url": "https://genfeed.ai/models",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "AI Model Catalog | Genfeed.ai",
+        "unicode_count": 29
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/models/page.tsx"
+    },
+    {
+      "fingerprint": "96e7dce44c03007ea80e48c57e8e2b2510fc9cde5c68a2bb5ad4d9c650e66a30",
+      "url": "https://genfeed.ai/sitemap",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Sitemap | Genfeed.ai",
+        "unicode_count": 20
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/sitemap/page.tsx"
+    },
+    {
+      "fingerprint": "fa062750c867096ca261ea08cb742848b0c50b82bf270bc0f4415e152b86dd81",
+      "url": "https://genfeed.ai/about",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Genfeed is an open-source AI content platform that generates, publishes, and measures content for creators, agencies, and founders. Founded in 2026 by Vincent Tellier.",
+        "unicode_count": 167
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/about/page.tsx"
+    },
+    {
+      "fingerprint": "ddb8c4fc28f654dd3e71273fcf9658dc2cfb9eb6d631bf8441ea95c064029a69",
+      "url": "https://genfeed.ai/agent",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Tell the Genfeed agent what you want. It makes the video, images, ads and posts, keeps them on brand, and schedules them to 20+ channels — with every output in review before it goes out.",
+        "unicode_count": 186
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/agent/page.tsx"
+    },
+    {
+      "fingerprint": "32ca0293b67b48c80f6e32700a7667c59e280a177738b5e382794947bf121e36",
+      "url": "https://marketplace.genfeed.ai/privacy",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Learn what data the Genfeed.ai marketplace collects, why it is used, and the rights you have over it.",
+        "unicode_count": 101
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "9aad1db2bf14a171805f4226a56b1b8d074b1f8c1f51558572a8382d19e374b1",
+      "url": "https://marketplace.genfeed.ai/terms",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Read the terms that govern buying and selling on the Genfeed.ai marketplace.",
+        "unicode_count": 76
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Public-route metadata is now descriptive, unique, and within the agreed title/description bounds. Existing Public Images/Music/Posts/Videos title corrections also require deployment verification.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "ce3a1cb34a92c25de6415b7bd27e77ab8a03e4faad3cf92454bbea093f64f86e",
+      "url": "https://docs.genfeed.ai/advanced",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "78 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Section directory linking advanced features and member governance, with next-step links. It should remain a concise navigation page.",
+      "source": "apps/docs/content/advanced/index.mdx"
+    },
+    {
+      "fingerprint": "def41327ef4b7a79413822e031184eead2338bc9e2a00a6de770700e7a4cb445",
+      "url": "https://docs.genfeed.ai/advanced/features",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "183 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Scoped capability and deployment-boundary reference with an explicit verification checklist. Additional unverified product promises would reduce accuracy.",
+      "source": "apps/docs/content/advanced/features.mdx"
+    },
+    {
+      "fingerprint": "543f6fd30aad36951cbef2d66a95f3d9d012f135a1a58a8601b8f843096178f3",
+      "url": "https://docs.genfeed.ai/cloud",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "117 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Hosted deployment overview with Cloud boundaries and links to individual administration guides. Avoid duplicating those guides.",
+      "source": "apps/docs/content/cloud/index.mdx"
+    },
+    {
+      "fingerprint": "b0992b26c97b2f0a6bae011b836c843941c5525a147bcdb60d3b96e4efd93a2e",
+      "url": "https://docs.genfeed.ai/cloud/billing",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "152 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Current source already includes substantive usage-based agent credits, BYOK, free-plan behavior, and display rules beyond the old 152-word crawl. Verify the rendered release; no padding is required.",
+      "source": "apps/docs/content/cloud/billing.mdx"
+    },
+    {
+      "fingerprint": "81924aae5a5d73e18bfe48b58f3173fcb84be63fb54e93fbb6c6ca14455654fb",
+      "url": "https://docs.genfeed.ai/guides",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "155 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Task-oriented guide directory with links to creation, publishing, self-hosting, and article resources. Links provide the useful content.",
+      "source": "apps/docs/content/guides/index.mdx"
+    },
+    {
+      "fingerprint": "7eea5a24e73c56a3c715dc9f5f12988711ef782bd61d80029e40dc31caf35cba",
+      "url": "https://docs.genfeed.ai/guides/keyboard-shortcuts",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "122 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Single-shortcut reference with key combinations and numbered usage steps. Expanding to undocumented shortcuts would be misleading.",
+      "source": "apps/docs/content/guides/keyboard-shortcuts.mdx"
+    },
+    {
+      "fingerprint": "46c78ef8470e7a282de5d24508a49700996d973d159fbc3d9c0269a2ae497042",
+      "url": "https://docs.genfeed.ai/guides/publishing/social-media",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "161 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Social-platform setup directory linking each platform guide; the detailed instructions are maintained on those destination pages.",
+      "source": "apps/docs/content/guides/publishing/social-media/index.mdx"
+    },
+    {
+      "fingerprint": "a6845c17873794f1a9cee03c41f1f2ff21269a5287027676c354502909c8cd50",
+      "url": "https://docs.genfeed.ai/advanced/members-guide",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "94 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Concise authorization-boundary reference deliberately deferring changing role matrices and seat limits to the deployed UI and API.",
+      "source": "apps/docs/content/advanced/members-guide.mdx"
+    },
+    {
+      "fingerprint": "224be253f7b3337134a890f9d344b41a106927e447211dcee1876ecbf62b8dec",
+      "url": "https://docs.genfeed.ai/cloud/organizations",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "67 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Defines tenant isolation and the Community/Cloud boundary, then links to execution boundaries. No extra organization-management behavior is promised.",
+      "source": "apps/docs/content/cloud/organizations.mdx"
+    },
+    {
+      "fingerprint": "1e96c4677d81ca7aa80bfb715317be4c9a14f417d85a9add3d20e511f832dd7f",
+      "url": "https://docs.genfeed.ai/cloud/settings",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "90 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Settings boundary reference deliberately avoids undocumented account/security features and points security reports to the private policy.",
+      "source": "apps/docs/content/cloud/settings.mdx"
+    },
+    {
+      "fingerprint": "43094ff571b27384475386df38a9b21d7361e59f69c14b3b0cb6c39f2dc2f34f",
+      "url": "https://docs.genfeed.ai/cloud/studio",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "79 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Studio capability overview explicitly conditional on configured providers and the deployed release, with model and brand links. Avoid inventing autosave or publishing behavior.",
+      "source": "apps/docs/content/cloud/studio.mdx"
+    },
+    {
+      "fingerprint": "fa7b65c3e50711d49866097ccfcfade9ac00e567ef54948ce6df2d3e88ddbf33",
+      "url": "https://docs.genfeed.ai/cloud/team",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "99 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Team-governance boundary reference; live role, invitation, seat, and entitlement details intentionally remain in the product and current commercial terms.",
+      "source": "apps/docs/content/cloud/team.mdx"
+    },
+    {
+      "fingerprint": "162423a588f477bf9897f0de121297ae02e5db79cc2596a08c1d044b5f18945a",
+      "url": "https://docs.genfeed.ai/core/contributing",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "33 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Navigation page delegates to the canonical CONTRIBUTING.md and private security-reporting policy. Duplicating the guide would introduce drift.",
+      "source": "apps/docs/content/core/contributing.mdx"
+    },
+    {
+      "fingerprint": "e1d7aa7a5d7a9df5575e2b2e737552d7356958e768e56e8f3209a1aa9d8aa49e",
+      "url": "https://genfeed.ai/sitemap",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "159 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "HTML directory: its useful content is the linked route inventory. Additional prose would duplicate navigation rather than help visitors find pages.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "0801b2ae6dfbcb909cc30e3a47efd1e4d68e93c2a7314bc97cb1d12119aff96c",
+      "url": "https://genfeed.ai/articles/how-to-grow-on-instagram-with-ai-generated-content",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "How to grow on Instagram with AI-generated content | Genfeed.ai",
+        "unicode_count": 63
+      },
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The Instagram article keeps its descriptive editorial title and site suffix. The observed 63-character title exceeds the heuristic by only 3; truncation would remove useful subject context. This exception applies only to this exact title.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "d8669083f09e09bdca18cdf1c5f78f7f80dc1732830cacc7d18353f2917df6a3",
+      "url": "https://genfeed.ai/articles/how-to-grow-on-linkedin-with-ai-generated-content",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "How to grow on LinkedIn with AI-generated content | Genfeed.ai",
+        "unicode_count": 62
+      },
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The Linkedin article keeps its descriptive editorial title and site suffix. The observed 62-character title exceeds the heuristic by only 2; truncation would remove useful subject context. This exception applies only to this exact title.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "437595f8bc80eaa21a09141b25cb266d1a3569e8a72a5109cb4430faf3c1879f",
+      "url": "https://genfeed.ai/articles/how-to-grow-on-youtube-with-ai-generated-content",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "How to grow on YouTube with AI-generated content | Genfeed.ai",
+        "unicode_count": 61
+      },
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The Youtube article keeps its descriptive editorial title and site suffix. The observed 61-character title exceeds the heuristic by only 1; truncation would remove useful subject context. This exception applies only to this exact title.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "671d866baba670f0b81af8e6469ace16c021d8023938b4d6342c2672ab535d0f",
+      "url": "https://genfeed.ai/benchmark",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Benchmark | Genfeed.ai",
+        "unicode_count": 22
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/benchmark/page.tsx"
+    },
+    {
+      "fingerprint": "e8879c0dc1bd95c7e9e0a6b778082235b62f2e994cf79448e1d5b061ec814f4b",
+      "url": "https://genfeed.ai/changelog",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Changelog | Genfeed.ai",
+        "unicode_count": 22
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/changelog/page.tsx"
+    },
+    {
+      "fingerprint": "cd526111d6e314464348b0c95b425cf5ee766cedc46d467616e5859798717b74",
+      "url": "https://genfeed.ai/tools/youtube-clips",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "YouTube Transcript to Clips — Free AI Tool | Genfeed | Genfeed.ai",
+        "unicode_count": 65
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/tools/youtube-clips/page.tsx"
+    },
+    {
+      "fingerprint": "6dde02c21d87cab3f86ec81607e263ee3b172ba9af02fb57ea69777c39295b59",
+      "url": "https://genfeed.ai/tools/youtube-long-form",
+      "rule": "title_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "YouTube to Article & Newsletter — Free AI Tool | Genfeed | Genfeed.ai",
+        "unicode_count": 69
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/tools/youtube-long-form/page.tsx"
+    },
+    {
+      "fingerprint": "ecc2ffc32a86a3ee838d2919c9fb3bb5cd1a5b1632eb86f9247e05316de83214",
+      "url": "https://genfeed.ai/changelog",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "The latest Genfeed releases, improvements, and fixes.",
+        "unicode_count": 53
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/changelog/page.tsx"
+    },
+    {
+      "fingerprint": "078e6a557cd2718e1130ecaa1e98eddf29ae5d8d3c1c40bee11206c8965133aa",
+      "url": "https://genfeed.ai/tools",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Try free AI tools for turning long-form content into ready-to-publish social content.",
+        "unicode_count": 85
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(public)/tools/page.tsx"
+    },
+    {
+      "fingerprint": "2311ce9b63848b41adf7a4ab4d7adc255da35cda1430bad1d87510cf00d967e0",
+      "url": "https://genfeed.ai/demo",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "110 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "The demo route is absent from the current website source and sitemap. Verify a direct 404/410 and no current discovery references on deployment; do not add content or a redirect.",
+      "source": "apps/website/app/sitemap.ts"
+    },
+    {
+      "fingerprint": "b6a07d34e9b2f5f88531ac93cd1737cc69363febe66ac512ffa894e6319812cd",
+      "url": "https://genfeed.ai/vs/buffer",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "146 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Buffer comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "ffd19cdefa091cba7f3b3fc8a35b19442da4857dda62f9f695a454c0b9e4c6d8",
+      "url": "https://genfeed.ai/vs/jasper",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "147 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Jasper comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "1f4b0a8d5eac79b796ececdc732482cddc49825d5d42d7e57800ae55e19fed72",
+      "url": "https://genfeed.ai/vs/runway",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "151 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Runway comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "9a9dcba2a9dc4a32bbd7a119806084421f8a682ad12d1d2f2bd1a3d9565e34fc",
+      "url": "https://genfeed.ai/gen",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "43 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Community interest poll with one action and an explicit no-promise statement. Do not turn a short poll into speculative token or investment content.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "b18e5d039e9b4ab4670083edc7853114ba9e8bc152d9254019ef87b95aa81f26",
+      "url": "https://genfeed.ai/posts",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "131 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Visual gallery grouped by reusable generated ingredients; the server-rendered introduction explains reuse, provenance, and how to inspect results. Word count does not measure the media gallery.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "2e01285452af89619d4208eb9229c6cc67472b02ce7648ef43299ed6bc5076c6",
+      "url": "https://genfeed.ai/tools",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "133 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Directory of two interactive tools with distinct inputs, outputs, and links. The individual tools contain their own workflow instructions.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "dfb90ea00362a41dceb1a27563433eb6d2330b56eeab08241cd1514968ce19db",
+      "url": "https://genfeed.ai/tools/youtube-clips",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "140 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Interactive transcript and clip-preview tool. The input form and generated timestamped results are the primary content; do not add static filler to a task UI.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "aefb7c0eaadb6aa539912367fc115a7d2410e9b8d4f955a9b40865989d55a988",
+      "url": "https://genfeed.ai/tools/youtube-long-form",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "189 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Interactive conversion tool with article/newsletter format choices and generated output. Its concise instructions cover the required input and workflow.",
+      "source": "apps/website/app/"
+    },
+    {
+      "fingerprint": "033a903d855540e68d974a358a0b494424d13026e8fba94c81507b019d9cb6fa",
+      "url": "https://genfeed.ai/vs/canva",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "150 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Canva comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "02bb8e719dccc0b7af2b02255098d07dd185fd5b7792564ec64f0eee3b0ea489",
+      "url": "https://genfeed.ai/vs/capcut",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "151 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "CapCut comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "c092889201431d30fb12bd25f423974373e4b6638674bb7b96f68988e99df568",
+      "url": "https://genfeed.ai/vs/descript",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "147 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Descript comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "47acaa9e7af7da3bf6e8ec0490595481a9e4d624ef3234c83f20312674c772b4",
+      "url": "https://genfeed.ai/vs/heygen",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "145 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "HeyGen comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "b931ddb36051f14768d4143759ab6416719c21d7e20ffa53816f98fefbde3e64",
+      "url": "https://genfeed.ai/vs/invideo",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "149 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "InVideo comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "557d130ec9e2900e5d43592891096d240452737891bfc8ee682c524864f97693",
+      "url": "https://genfeed.ai/vs/lumen5",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "151 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Lumen5 comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "577fa3d33decb13d387b58568c071441288c88275a866c2ba9c04b11f8cda998",
+      "url": "https://genfeed.ai/vs/opus-clip",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "151 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Opus Clip comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "7415792d24fce2cf5538b8b90facfe72ce2c8818bd607a7a977b168b7e5dbbb5",
+      "url": "https://genfeed.ai/vs/pictory",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "148 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Pictory comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "b232abebd1a59f6b8741bfefe3e01c5757c4124536058ae763dfaedefef97ebd",
+      "url": "https://genfeed.ai/vs/synthesia",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "149 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Synthesia comparison uses a structured feature matrix, a product-specific summary, and a concise advantages list. Accept the word-count heuristic for this matrix format; this is not a certification of competitor pricing or feature claims.",
+      "source": "apps/website/app/(public)/vs/[slug]/comparison-page.tsx"
+    },
+    {
+      "fingerprint": "7f13cf82577a2b81bf711d35d87503b6349c6effaea391f75ef299391962d631",
+      "url": "https://genfeed.ai/developers",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Open-source content infrastructure for developers. Generate, review, and publish brand-native content on every channel from an MCP server, workflows, or your own self-hosted stack.",
+        "unicode_count": 180
+      },
+      "status": "source_correction",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Distinct, page-specific metadata now meets the agreed Unicode bounds; verify fetched HTML, rendered metadata, and self-canonical identity after release.",
+      "source": "apps/website/app/(dev-landing)/developers/page.tsx"
+    },
+    {
+      "fingerprint": "228d62d4815108bc4201d14219bffe741bb8eb8a4154378b0ca09874fe178c74",
+      "url": "https://app.genfeed.ai/",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "17 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Unauthenticated app entry renders the login surface; preserve noindex and minimal sign-in UI. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "1e3fc3b0904338648584df83ba72ea629df1a8e05c3a49f2fff377d46fd80ad8",
+      "url": "https://app.genfeed.ai/forgot-password",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "19 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Password recovery form; extra indexable marketing copy does not help account recovery. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "8375d8c791034f353b14d2ebb69a57dd7ff11a8d488d726a2c2b6a1e878ce44b",
+      "url": "https://app.genfeed.ai/login",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "17 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Authentication method entry page; concise controls serve sign-in, not search acquisition. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "cc1052aace5e3ead7729973be410d4121da4f49410686ad52bc8f00535cfd4f7",
+      "url": "https://app.genfeed.ai/login/magic-link",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Email magic-link request form; preserve the noindex boundary and focused instructions. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "2b1ebbf62376f3aa212df14b7ff26eea00e0c81a48f939d5c731b087a0114de8",
+      "url": "https://app.genfeed.ai/login/password",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "17 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Password sign-in form; noindex and minimal authentication content are intentional. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "53edbdc3be9928c28600526f8cfa00309581e0df9ef54712669940f76c674329",
+      "url": "https://app.genfeed.ai/sign-up",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "15 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Registration method entry page; preserve noindex and concise account-creation UI. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "ba2f38706a6ceea86e894b083dc1e667ceb43179236d7e4973387f22c9c0bc78",
+      "url": "https://app.genfeed.ai/sign-up/magic-link",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Email registration form; preserve noindex and focused magic-link instructions. Acceptance requires this URL to remain non-indexable in the fresh production crawl.",
+      "source": "apps/app/app/ and app robots/meta/header policy",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "e64cf5e6fff55a5dc0f1ed4e897149f0a6796aae7b4872794d3827240d659de1",
+      "url": "https://marketplace.genfeed.ai/dashboard",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Manage your marketplace listings, sales, and seller profile.",
+        "unicode_count": 60
+      },
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Seller dashboard is a private account utility with explicit noindex metadata. Keep the short task description and authentication-dependent UI; require noindex in production for this exception.",
+      "source": "Marketplace frontend: public route metadata and page content",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "87bebdc1e70062c09cb35aa76fad2e622496fee653b0819e0a8a24c7ef6af761",
+      "url": "https://marketplace.genfeed.ai/dashboard",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "22 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Seller dashboard is a private account utility with explicit noindex metadata. Keep the short task description and authentication-dependent UI; require noindex in production for this exception.",
+      "source": "Marketplace frontend: public route metadata and page content",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "2d726c868be09100eac7496ed70a62be6d96589968bb67e0df00c2691d203dfc",
+      "url": "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32,
+        "duplicate_urls": [
+          "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+          "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+          "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+          "https://marketplace.genfeed.ai/featured/noir-aesthetics"
+        ]
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing architectural-masterclass is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "e16b837a638df74b4fcf76994b69abcf2ed361611221ed6a01f59d0bd2c6d942",
+      "url": "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing architectural-masterclass is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "34ad94ea03998fa1a7f52ac82cf2fc421d81f2b1cecf25687c510079f727a515",
+      "url": "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+      "rule": "retired_route_not_hard_cut",
+      "severity": "error",
+      "observed": {
+        "retired_prefix": "/featured",
+        "http_status": 200,
+        "final_url": "https://marketplace.genfeed.ai/featured/architectural-masterclass"
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing architectural-masterclass is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "c6d07f33b475cb71fb218c52959e84961390281bc63a2cb4661d31515d51ae45",
+      "url": "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing architectural-masterclass is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "1d0af1e3b5d89e199d7e72ceed9c57887f39297dd59632f4699d924ca79c5ddd",
+      "url": "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32,
+        "duplicate_urls": [
+          "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+          "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+          "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+          "https://marketplace.genfeed.ai/featured/noir-aesthetics"
+        ]
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing cinematic-transitions is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "f94550a532e72b8fa6f0050e4fbfe03af7122125e650f12b2fc6330aabbf3fcf",
+      "url": "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing cinematic-transitions is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "87becd39115c600161cd44123a03497b945902cf951c86e64702d624809ae8f7",
+      "url": "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+      "rule": "retired_route_not_hard_cut",
+      "severity": "error",
+      "observed": {
+        "retired_prefix": "/featured",
+        "http_status": 200,
+        "final_url": "https://marketplace.genfeed.ai/featured/cinematic-transitions"
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing cinematic-transitions is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "618e3935950bbf0f5952643a57e0979f8dd0c714bd573311c3fc711563193a26",
+      "url": "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing cinematic-transitions is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "5b6066019d1b3b4d21285b128f429886d092d0fb868796ab0d98ae51989ffd72",
+      "url": "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32,
+        "duplicate_urls": [
+          "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+          "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+          "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+          "https://marketplace.genfeed.ai/featured/noir-aesthetics"
+        ]
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing hyper-realistic-portrait is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "6562a3d0d072f48857d9ad26d59007ec72d9a4ebfe3d11ac3c96902627fe6c5b",
+      "url": "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing hyper-realistic-portrait is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "710bee84785255289cbbf3d6fb096e7838ccf5d11b24141601b8c090c7e0e575",
+      "url": "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+      "rule": "retired_route_not_hard_cut",
+      "severity": "error",
+      "observed": {
+        "retired_prefix": "/featured",
+        "http_status": 200,
+        "final_url": "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait"
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing hyper-realistic-portrait is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "00a48ffa3cc0f54325a08a15bbb951c39ae8d691a500a7eac914ffdb7857f968",
+      "url": "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing hyper-realistic-portrait is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "aa8c4d1b096ae2fe8696f673e37137cf417be76d0120c4eb43e0af78d3d8d409",
+      "url": "https://marketplace.genfeed.ai/featured/noir-aesthetics",
+      "rule": "duplicate_meta_description",
+      "severity": "error",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32,
+        "duplicate_urls": [
+          "https://marketplace.genfeed.ai/featured/architectural-masterclass",
+          "https://marketplace.genfeed.ai/featured/cinematic-transitions",
+          "https://marketplace.genfeed.ai/featured/hyper-realistic-portrait",
+          "https://marketplace.genfeed.ai/featured/noir-aesthetics"
+        ]
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing noir-aesthetics is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "753c899a24c30917b36d85b4b33e27f7e5a3ce2ac559b1e34814421cf728ec25",
+      "url": "https://marketplace.genfeed.ai/featured/noir-aesthetics",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Marketplace listing by featured.",
+        "unicode_count": 32
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing noir-aesthetics is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "f04a09e1a890cb91059497f47c477b97a38a756e7456ff8cb941a61cbaa28141",
+      "url": "https://marketplace.genfeed.ai/featured/noir-aesthetics",
+      "rule": "retired_route_not_hard_cut",
+      "severity": "error",
+      "observed": {
+        "retired_prefix": "/featured",
+        "http_status": 200,
+        "final_url": "https://marketplace.genfeed.ai/featured/noir-aesthetics"
+      },
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing noir-aesthetics is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "589766b33e398629cef843ea4c35770f9c7e70db68891af471db576d8b63c888",
+      "url": "https://marketplace.genfeed.ai/featured/noir-aesthetics",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "21 words",
+      "status": "deployment_pending",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Retired listing noir-aesthetics is already rejected by the source retired-seller guard. Verify direct HTTP 404/410 without redirect and absence from sitemap, links, breadcrumbs, and llms.txt. Do not edit placeholder copy.",
+      "source": "Marketplace frontend: public route metadata and page content"
+    },
+    {
+      "fingerprint": "5639f728a5acf74ebb7dd50f70f2681b5c7bb42e821dd819086f42c2db8c3d6e",
+      "url": "https://marketplace.genfeed.ai/library",
+      "rule": "meta_description_length",
+      "severity": "warning",
+      "observed": {
+        "exact": "Access marketplace purchases and downloads in your library.",
+        "unicode_count": 59
+      },
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Purchaser library is a private account utility with explicit noindex metadata. Keep the short task description and authentication-dependent UI; require noindex in production for this exception.",
+      "source": "Marketplace frontend: public route metadata and page content",
+      "requires_nonindexable": true
+    },
+    {
+      "fingerprint": "c993a04dd42cbe8bf24a2e308a395d7cd4bf9e2f976e7d4979b40c3240a7cadc",
+      "url": "https://marketplace.genfeed.ai/library",
+      "rule": "thin_content",
+      "severity": "warning",
+      "observed": "19 words",
+      "status": "accepted",
+      "owner": "Vincent Tellier (@decod3rs)",
+      "reason": "Purchaser library is a private account utility with explicit noindex metadata. Keep the short task description and authentication-dependent UI; require noindex in production for this exception.",
+      "source": "Marketplace frontend: public route metadata and page content",
+      "requires_nonindexable": true
+    }
+  ]
+}
