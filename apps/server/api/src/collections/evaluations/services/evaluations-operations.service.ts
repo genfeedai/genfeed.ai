@@ -10,6 +10,7 @@ import {
 } from '@api/services/byok/text-dispatch-byok.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
@@ -77,6 +78,8 @@ interface EvaluationResponsePayload {
  */
 const VIDEO_EVALUATION_FRAME_COUNT = 4;
 const VIDEO_EVALUATION_FRAME_WIDTH = 512;
+/** Where the files service stores a thumbnail generated under a given id. */
+const THUMBNAIL_STORAGE_PREFIX = 'ingredients/thumbnails/';
 
 type EvaluationPromptOptions = PromptBuilderParams & {
   isThread?: boolean;
@@ -95,6 +98,7 @@ export class EvaluationsOperationsService {
     private readonly promptBuilderService: PromptBuilderService,
     private readonly logger: LoggerService,
     private readonly filesClientService: FilesClientService,
+    private readonly mediaUrlService: MediaUrlService,
   ) {}
 
   private toEvaluationResponsePayload(
@@ -220,26 +224,36 @@ export class EvaluationsOperationsService {
     onBilling?: (amount: number) => void,
     byok?: TextByokDispatch,
   ): Promise<unknown> {
-    return this.evaluate(
-      context.prompt || 'No context provided',
-      context,
-      organizationId,
-      {
-        contentType: 'Video',
-        imageUrls: await this.sampleVideoFrames(videoUrl),
-        maxContentLength: 4000,
-        promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
-      },
-      onBilling,
-      byok,
-    );
+    const frameStorageKeys: string[] = [];
+    try {
+      return await this.evaluate(
+        context.prompt || 'No context provided',
+        context,
+        organizationId,
+        {
+          contentType: 'Video',
+          imageUrls: await this.sampleVideoFrames(videoUrl, frameStorageKeys),
+          maxContentLength: 4000,
+          promptTemplate: PromptTemplateKey.EVALUATION_VIDEO,
+        },
+        onBilling,
+        byok,
+      );
+    } finally {
+      await this.deleteVideoFrames(frameStorageKeys);
+    }
   }
 
   /**
-   * Frames at the midpoints of equal slices of the video. Each frame gets its
-   * own thumbnail id so it never overwrites the video's own thumbnail.
+   * Frames at the midpoints of equal slices of the video, signed for the CDN
+   * so the model provider can fetch them. Each frame gets its own thumbnail id
+   * so it never overwrites the video's own thumbnail; its storage key is
+   * recorded before extraction so the caller deletes even a partial sample.
    */
-  private async sampleVideoFrames(videoUrl: string): Promise<string[]> {
+  private async sampleVideoFrames(
+    videoUrl: string,
+    frameStorageKeys: string[],
+  ): Promise<string[]> {
     try {
       const { duration } =
         await this.filesClientService.extractMetadataFromUrl(videoUrl);
@@ -248,17 +262,19 @@ export class EvaluationsOperationsService {
       }
       const frameUrls: string[] = [];
       for (let index = 0; index < VIDEO_EVALUATION_FRAME_COUNT; index += 1) {
+        const frameId = `evaluation-frame-${randomUUID()}`;
+        frameStorageKeys.push(`${THUMBNAIL_STORAGE_PREFIX}${frameId}`);
         const { thumbnailUrl } =
           (await this.filesClientService.generateThumbnail(
             videoUrl,
-            `evaluation-frame-${randomUUID()}`,
+            frameId,
             (duration * (index + 0.5)) / VIDEO_EVALUATION_FRAME_COUNT,
             VIDEO_EVALUATION_FRAME_WIDTH,
           )) as { thumbnailUrl?: unknown };
         if (typeof thumbnailUrl !== 'string' || !thumbnailUrl) {
           throw new Error('Frame extraction returned no image');
         }
-        frameUrls.push(thumbnailUrl);
+        frameUrls.push(this.mediaUrlService.buildUrlFromAbsolute(thumbnailUrl));
       }
       return frameUrls;
     } catch (error: unknown) {
@@ -269,6 +285,22 @@ export class EvaluationsOperationsService {
         error,
       );
     }
+  }
+
+  /** Sampled frames are transient: a failed delete is logged, never thrown. */
+  private async deleteVideoFrames(storageKeys: readonly string[]) {
+    await Promise.all(
+      storageKeys.map(async (storageKey) => {
+        try {
+          await this.filesClientService.deleteStoredObject(storageKey);
+        } catch (error: unknown) {
+          this.logger.warn('Evaluation frame cleanup failed', {
+            error,
+            storageKey,
+          });
+        }
+      }),
+    );
   }
 
   evaluateImage(

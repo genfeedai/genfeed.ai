@@ -4,6 +4,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
@@ -21,8 +22,12 @@ describe('EvaluationsOperationsService', () => {
 
   const mockServices = {
     filesClientService: {
+      deleteStoredObject: vi.fn(),
       extractMetadataFromUrl: vi.fn(),
       generateThumbnail: vi.fn(),
+    },
+    mediaUrlService: {
+      buildUrlFromAbsolute: vi.fn(),
     },
     configService: {
       get: vi.fn((key?: string) => {
@@ -70,6 +75,7 @@ describe('EvaluationsOperationsService', () => {
           provide: FilesClientService,
           useValue: mockServices.filesClientService,
         },
+        { provide: MediaUrlService, useValue: mockServices.mediaUrlService },
       ],
     }).compile();
 
@@ -153,6 +159,109 @@ describe('EvaluationsOperationsService', () => {
             thumbnailUrl: `https://cdn.test/${frameId}.jpg`,
           }),
       );
+      mockServices.filesClientService.deleteStoredObject.mockResolvedValue(
+        undefined,
+      );
+      mockServices.mediaUrlService.buildUrlFromAbsolute.mockImplementation(
+        (url: string) => `${url}?signature=signed`,
+      );
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify({ overallScore: 70 }),
+      );
+    });
+
+    const frameIds = () =>
+      mockServices.filesClientService.generateThumbnail.mock.calls.map(
+        (call) => call[1] as string,
+      );
+    const deletedKeys = () =>
+      mockServices.filesClientService.deleteStoredObject.mock.calls.map(
+        (call) => call[0] as string,
+      );
+
+    it('sends signed frame URLs so a signing CDN serves them to the model', async () => {
+      await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      );
+
+      const [, input] =
+        mockServices.replicateService.generateTextCompletionSync.mock.calls[0];
+      expect(input.images).toEqual(
+        frameIds().map((id) => `https://cdn.test/${id}.jpg?signature=signed`),
+      );
+    });
+
+    it('deletes every sampled frame once the evaluation completes', async () => {
+      await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      );
+
+      expect(frameIds()).toHaveLength(4);
+      expect(deletedKeys()).toEqual(
+        frameIds().map((id) => `ingredients/thumbnails/${id}`),
+      );
+    });
+
+    it('deletes frames created before sampling fails', async () => {
+      mockServices.filesClientService.generateThumbnail
+        .mockResolvedValueOnce({ thumbnailUrl: 'https://cdn.test/a.jpg' })
+        .mockResolvedValueOnce({ thumbnailUrl: 'https://cdn.test/b.jpg' })
+        .mockRejectedValueOnce(new Error('ffmpeg failed'));
+
+      await expect(
+        service.evaluateVideo(
+          'https://example.com/video.mp4',
+          {},
+          organizationId,
+        ),
+      ).rejects.toThrow(ExternalServiceException);
+
+      expect(frameIds()).toHaveLength(3);
+      expect(deletedKeys()).toEqual(
+        frameIds().map((id) => `ingredients/thumbnails/${id}`),
+      );
+    });
+
+    it('deletes frames when the model call fails', async () => {
+      mockServices.replicateService.generateTextCompletionSync.mockRejectedValue(
+        new Error('provider down'),
+      );
+
+      await expect(
+        service.evaluateVideo(
+          'https://example.com/video.mp4',
+          {},
+          organizationId,
+        ),
+      ).rejects.toThrow(ExternalServiceException);
+
+      expect(deletedKeys()).toHaveLength(4);
+    });
+
+    it('logs a failed frame deletion without failing the evaluation', async () => {
+      mockServices.filesClientService.deleteStoredObject.mockRejectedValue(
+        new Error('storage down'),
+      );
+
+      await expect(
+        service.evaluateVideo(
+          'https://example.com/video.mp4',
+          {},
+          organizationId,
+        ),
+      ).resolves.toBeDefined();
+
+      expect(mockServices.loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('frame'),
+        expect.objectContaining({ storageKey: expect.any(String) }),
+      );
     });
 
     it('evaluates sampled frames as images and never sends the video to the text model', async () => {
@@ -183,7 +292,9 @@ describe('EvaluationsOperationsService', () => {
       expect(model).toBe(DEFAULT_TEXT_MODEL);
       expect(input).not.toHaveProperty('videos');
       expect(input.images).toEqual(
-        thumbnailCalls.map((call) => `https://cdn.test/${call[1]}.jpg`),
+        thumbnailCalls.map(
+          (call) => `https://cdn.test/${call[1]}.jpg?signature=signed`,
+        ),
       );
     });
 
@@ -256,6 +367,7 @@ describe('EvaluationsOperationsService', () => {
         undefined as unknown as string,
         loggerService,
         undefined as unknown as FilesClientService,
+        undefined as unknown as MediaUrlService,
       );
 
       await expect(
