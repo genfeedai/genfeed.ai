@@ -463,7 +463,6 @@
     "packages/pages/posts/list/components/PostsTableColumns.tsx": 11,
     "packages/pages/posts/list/posts-list.tsx": 4,
     "packages/pages/posts/list/release-posts-list.tsx": 4,
-    "packages/pages/posts/release/release-detail-drawer.tsx": 7,
     "packages/pages/posts/release/release-engagement-rules.tsx": 5,
     "packages/pages/scheduler/posting-set-picker.tsx": 5,
     "packages/pages/streaks/streaks-page.tsx": 13,
