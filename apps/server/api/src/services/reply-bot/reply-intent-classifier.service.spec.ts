@@ -1,19 +1,21 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import {
   hasCommentLinks,
   ReplyIntentClassifierService,
 } from '@api/services/reply-bot/reply-intent-classifier.service';
 import { REPLY_INTENT_DECISION_POINT } from '@api/services/reply-bot/reply-intent-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type EnvOverrides = Record<string, string | number>;
+type FeatureOverrides = Partial<IPlatformFeatureSettings>;
 
-const LIVE_ENV: EnvOverrides = {
-  REPLY_BOT_INTENT_DECISION_MODE: 'live',
-  REPLY_BOT_INTENT_MIN_CONFIDENCE: 0.85,
+const LIVE_SETTINGS: FeatureOverrides = {
+  replyBotIntentDecisionMode: 'live',
+  replyBotIntentMinConfidence: 0.85,
 };
 
 const COMMENT = {
@@ -24,10 +26,13 @@ const COMMENT = {
   postCaption: 'Shipping multi-tenant auth this week',
 };
 
-function createHarness(env: EnvOverrides) {
-  const configService = {
-    get: vi.fn((key: string) => env[key] ?? ''),
-  } as unknown as ConfigService;
+function createHarness(overrides: FeatureOverrides) {
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      ...overrides,
+    })),
+  } as unknown as PlatformSettingsService;
   const logger = {
     error: vi.fn(),
     log: vi.fn(),
@@ -43,7 +48,7 @@ function createHarness(env: EnvOverrides) {
     isProviderBoundMock: vi.mocked(typedDecisionService.isProviderBound),
     logger,
     service: new ReplyIntentClassifierService(
-      configService,
+      platformSettingsService,
       logger,
       typedDecisionService,
     ),
@@ -57,7 +62,7 @@ describe('ReplyIntentClassifierService', () => {
 
   describe('operator override', () => {
     it('wins over the regex and never calls the provider', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
 
       await expect(
         service.classify({
@@ -76,7 +81,7 @@ describe('ReplyIntentClassifierService', () => {
 
     it('ignores a value that is not a reply intent', async () => {
       const { chooseMock, service } = createHarness({
-        REPLY_BOT_INTENT_DECISION_MODE: 'off',
+        replyBotIntentDecisionMode: 'off',
       });
 
       const classification = await service.classify({
@@ -92,8 +97,8 @@ describe('ReplyIntentClassifierService', () => {
   describe('off mode', () => {
     it('keeps the regex answer and its persona', async () => {
       const { chooseMock, service } = createHarness({
-        ...LIVE_ENV,
-        REPLY_BOT_INTENT_DECISION_MODE: 'off',
+        ...LIVE_SETTINGS,
+        replyBotIntentDecisionMode: 'off',
       });
 
       await expect(service.classify(COMMENT)).resolves.toEqual({
@@ -107,7 +112,7 @@ describe('ReplyIntentClassifierService', () => {
 
     it('auto-skips regex spam, exactly as before the decision', async () => {
       const { service } = createHarness({
-        REPLY_BOT_INTENT_DECISION_MODE: 'off',
+        replyBotIntentDecisionMode: 'off',
       });
 
       await expect(
@@ -125,7 +130,7 @@ describe('ReplyIntentClassifierService', () => {
 
     it('stays off when no provider is bound, whatever the mode says', async () => {
       const { chooseMock, isProviderBoundMock, service } =
-        createHarness(LIVE_ENV);
+        createHarness(LIVE_SETTINGS);
       isProviderBoundMock.mockResolvedValue(false);
 
       await expect(service.classify(COMMENT)).resolves.toMatchObject({
@@ -137,7 +142,7 @@ describe('ReplyIntentClassifierService', () => {
 
     it('never consults the provider binding in off mode', async () => {
       const { isProviderBoundMock, service } = createHarness({
-        REPLY_BOT_INTENT_DECISION_MODE: 'off',
+        replyBotIntentDecisionMode: 'off',
       });
 
       await service.classify(COMMENT);
@@ -149,8 +154,8 @@ describe('ReplyIntentClassifierService', () => {
   describe('shadow mode', () => {
     it('records the decision but acts on the regex answer', async () => {
       const { chooseMock, service } = createHarness({
-        ...LIVE_ENV,
-        REPLY_BOT_INTENT_DECISION_MODE: 'shadow',
+        ...LIVE_SETTINGS,
+        replyBotIntentDecisionMode: 'shadow',
       });
       chooseMock.mockResolvedValue({ confidence: 0.99, value: 'troll' });
 
@@ -175,7 +180,7 @@ describe('ReplyIntentClassifierService', () => {
 
   describe('live mode', () => {
     it('acts on a decided intent at or above the threshold', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.85, value: 'troll' });
 
       await expect(service.classify(COMMENT)).resolves.toEqual({
@@ -188,7 +193,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('auto-replies to a confident non-skip intent', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.92, value: 'thanks' });
 
       await expect(service.classify(COMMENT)).resolves.toMatchObject({
@@ -200,7 +205,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('queues for review below the threshold — no auto-reply, no auto-skip', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.6, value: 'spam' });
 
       await expect(service.classify(COMMENT)).resolves.toEqual({
@@ -213,7 +218,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('treats a null answer exactly like a sub-threshold one', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue(null);
 
       await expect(service.classify(COMMENT)).resolves.toEqual({
@@ -225,7 +230,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('does not auto-skip a comment the regex reads as spam while uncertain', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue(null);
 
       await expect(
@@ -239,23 +244,11 @@ describe('ReplyIntentClassifierService', () => {
         isNeedsReview: true,
       });
     });
-
-    it('falls back to the conservative default threshold on a bad value', async () => {
-      const { chooseMock, service } = createHarness({
-        ...LIVE_ENV,
-        REPLY_BOT_INTENT_MIN_CONFIDENCE: 'not-a-number',
-      });
-      chooseMock.mockResolvedValue({ confidence: 0.8, value: 'spam' });
-
-      await expect(service.classify(COMMENT)).resolves.toMatchObject({
-        isNeedsReview: true,
-      });
-    });
   });
 
   describe('decision state', () => {
     it('sends the comment, the handle, a link flag and the caption — and nothing else', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.9, value: 'spam' });
 
       await service.classify({
@@ -277,7 +270,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('flags a scheme-less link the same way as one with a scheme', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.9, value: 'spam' });
 
       await service.classify({
@@ -291,7 +284,7 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('gives the async path its own budget, not the agent turn timeout', async () => {
-      const { chooseMock, service } = createHarness(LIVE_ENV);
+      const { chooseMock, service } = createHarness(LIVE_SETTINGS);
       chooseMock.mockResolvedValue({ confidence: 0.9, value: 'default' });
 
       await service.classify(COMMENT);

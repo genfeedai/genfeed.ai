@@ -1,3 +1,4 @@
+import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
 import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
 
@@ -164,6 +165,38 @@ describe('MediaLocalizationService', () => {
         providerData: expect.any(Object),
       }),
     );
+  });
+  it('translates with the text provider key and keeps the Replicate key on Replicate', async () => {
+    const h = harness();
+
+    await h.service.localize(request);
+
+    expect(h.replicate.transcribeAudio).toHaveBeenCalledWith(
+      expect.anything(),
+      `${ByokProvider.REPLICATE}-key`,
+    );
+    expect(h.replicate.generateTextCompletionSync).toHaveBeenCalled();
+    for (const call of h.replicate.generateTextCompletionSync.mock.calls) {
+      expect(call[0]).toBe(DEFAULT_TEXT_MODEL);
+      expect(call[2]).toBe(`${ByokProvider.OPENROUTER}-key`);
+    }
+  });
+  it('translates on the platform key when the org has no text provider key', async () => {
+    const h = harness();
+    h.byok.resolveApiKey.mockImplementation((_org: string, provider: string) =>
+      Promise.resolve(
+        provider === ByokProvider.OPENROUTER
+          ? undefined
+          : { apiKey: `${provider}-key` },
+      ),
+    );
+
+    await h.service.localize(request);
+
+    expect(h.replicate.generateTextCompletionSync).toHaveBeenCalled();
+    for (const call of h.replicate.generateTextCompletionSync.mock.calls) {
+      expect(call[2]).toBeUndefined();
+    }
   });
   it('rejects overlapping edits before voice generation', async () => {
     const h = harness();

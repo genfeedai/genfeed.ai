@@ -38,8 +38,11 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
 });
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@workers/config/config.service';
 import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
@@ -67,10 +70,13 @@ describe('ModelDiscoveryService', () => {
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
   };
+  let mockPlatformSettingsService: {
+    getFeatureSettings: ReturnType<typeof vi.fn>;
+  };
   let mockTypedDecisionService: {
     choose: ReturnType<typeof vi.fn>;
   };
-  let decisionConfig: Record<string, unknown>;
+  let decisionConfig: Partial<IPlatformFeatureSettings>;
 
   const mockPricing = {
     cost: 25,
@@ -105,11 +111,15 @@ describe('ModelDiscoveryService', () => {
     // The Jev adapter's wire format is still being fixed (#4910), so every
     // spec drives TypedDecisionService as a mock — `null` is the contract's
     // "no provider answered", which every mode must survive.
-    decisionConfig = { MODEL_DISCOVERY_DECISION_MODE: 'off' };
+    decisionConfig = { modelDiscoveryDecisionMode: 'off' };
     mockConfigService = {
-      get: vi.fn((key: string) =>
-        key in decisionConfig ? decisionConfig[key] : 'test-replicate-token',
-      ),
+      get: vi.fn(() => 'test-replicate-token'),
+    };
+    mockPlatformSettingsService = {
+      getFeatureSettings: vi.fn(async () => ({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        ...decisionConfig,
+      })),
     };
 
     mockTypedDecisionService = {
@@ -122,6 +132,7 @@ describe('ModelDiscoveryService', () => {
       mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
       mockTypedDecisionService as unknown as TypedDecisionService,
+      mockPlatformSettingsService as unknown as PlatformSettingsService,
     );
   });
 
@@ -477,7 +488,7 @@ describe('ModelDiscoveryService', () => {
     }
 
     it('never calls the provider when the output schema is unambiguous', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
 
       const decision = await service.classifyCategory({
         ...replicateInput,
@@ -514,7 +525,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('calls the provider in shadow mode but keeps the deterministic answer', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'shadow';
+      decisionConfig.modelDiscoveryDecisionMode = 'shadow';
       mockTypedDecisionService.choose.mockResolvedValue(
         answer(ModelCategory.MUSIC, 0.99),
       );
@@ -546,7 +557,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('acts on the provider answer in live mode above the threshold', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
       mockTypedDecisionService.choose.mockResolvedValue(
         answer(ModelCategory.VIDEO_EDIT, 0.91),
       );
@@ -561,7 +572,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('records a sub-threshold confidence when the provider agrees with the kept category', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
       mockTypedDecisionService.choose.mockResolvedValue(
         answer(ModelCategory.VIDEO, 0.4),
       );
@@ -576,7 +587,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('drops a sub-threshold confidence that belongs to a category it did not keep', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
       mockTypedDecisionService.choose.mockResolvedValue(
         answer(ModelCategory.VIDEO_EDIT, 0.4),
       );
@@ -593,8 +604,8 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('honours a configured threshold', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
-      decisionConfig.MODEL_DISCOVERY_MIN_CONFIDENCE = 0.3;
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
+      decisionConfig.modelDiscoveryMinConfidence = 0.3;
       mockTypedDecisionService.choose.mockResolvedValue(
         answer(ModelCategory.VIDEO_EDIT, 0.4),
       );
@@ -605,7 +616,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('falls back to the deterministic answer when the provider resolves null', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
       mockTypedDecisionService.choose.mockResolvedValue(null);
 
       const decision = await service.classifyCategory(replicateInput);
@@ -617,7 +628,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('falls back to the deterministic answer when the provider throws', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.modelDiscoveryDecisionMode = 'live';
       mockTypedDecisionService.choose.mockRejectedValue(new Error('boom'));
 
       const decision = await service.classifyCategory(replicateInput);
@@ -630,7 +641,7 @@ describe('ModelDiscoveryService', () => {
     });
 
     it('sends a bounded state and never the raw schema document', async () => {
-      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'shadow';
+      decisionConfig.modelDiscoveryDecisionMode = 'shadow';
 
       await service.classifyCategory({
         ...replicateInput,

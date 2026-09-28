@@ -36,6 +36,22 @@ import {
 
 const APP_WORKSPACE_ROOTS = new Set<string>(['apps/server', 'apps']);
 
+/**
+ * Package workspaces whose spec programs reach most of the frontend graph
+ * through source-pointing path aliases (the SOLO_WORKSPACES legs in ci.yml).
+ * Their imports resolve other packages' dist output (`@genfeedai/ui`,
+ * `@genfeedai/auth-client`, `@genfeedai/client`, ...) that is not in their
+ * turbo build graph, so building only the affected packages leaves those
+ * modules unresolved and the ratchet reports phantom TS2307 errors.
+ */
+export const FRONTEND_GRAPH_WORKSPACES: ReadonlySet<string> = new Set([
+  'agent',
+  'hooks',
+  'pages',
+  'props',
+  'ui',
+]);
+
 const logger = {
   error: (message: string) => console.error(`[SpecTypecheckScope] ${message}`),
   log: (message: string) => console.log(`[SpecTypecheckScope] ${message}`),
@@ -75,7 +91,8 @@ export type SpecTypecheckScopeResult = {
  * #5244's baseline): if ANY enrolled app ends up in scope — whether from its
  * own changed files or only because it depends on a changed package — the
  * "Build packages" step falls back to building every package rather than
- * guessing which subset that app needs.
+ * guessing which subset that app needs. A FRONTEND_GRAPH_WORKSPACES package
+ * in scope falls back the same way, for the same reason.
  */
 export function resolveSpecTypecheckScope(
   input: SpecTypecheckScopeInput,
@@ -89,11 +106,11 @@ export function resolveSpecTypecheckScope(
     affected.has(workspace),
   );
 
-  const appsInScope = input.appWorkspaces.some((workspace) =>
-    affected.has(workspace),
-  );
+  const hasWideWorkspaceInScope =
+    input.appWorkspaces.some((workspace) => affected.has(workspace)) ||
+    workspaces.some((workspace) => FRONTEND_GRAPH_WORKSPACES.has(workspace));
 
-  const buildFilters = appsInScope
+  const buildFilters = hasWideWorkspaceInScope
     ? []
     : input.affectedPackagesOnly.map((pkg) => `--filter=@genfeedai/${pkg}`);
 

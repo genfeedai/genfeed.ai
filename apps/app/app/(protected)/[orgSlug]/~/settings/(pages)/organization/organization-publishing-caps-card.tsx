@@ -1,4 +1,3 @@
-import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PUBLISHING_QUOTA_MAX } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -111,9 +110,6 @@ export default function OrganizationPublishingCapsCard() {
         quotaTwitter,
         quotaYoutube,
       });
-      // Organization settings are part of the protected bootstrap payload;
-      // drop its snapshot so the refetch does not restore the old caps.
-      clearClientProtectedBootstrapCache();
       await refresh();
       notifications.success(translate('saved'));
     } catch (error) {

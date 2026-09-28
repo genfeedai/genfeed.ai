@@ -403,6 +403,68 @@ describe('DesktopCliAgentRuntimeService', () => {
     expect(appended).toEqual([]);
   });
 
+  it('does not launch a turn cancelled while its thread is loading', async () => {
+    let resolveThread: (value: IDesktopCloudAgentThread) => void = () => {};
+    cloud.getAgentThread = () =>
+      new Promise<IDesktopCloudAgentThread>((resolve) => {
+        resolveThread = resolve;
+      });
+    const service = createService();
+
+    const pending = service.startTurn(
+      {
+        prompt: 'Generate and publish a video',
+        runtimeKey: 'local/claude-cli',
+        threadId: 'thread-1',
+        turnId: 'turn-precancel',
+      },
+      (event) => events.push(event),
+    );
+    expect(service.hasActiveTurns()).toBe(true);
+
+    service.cancelTurn('turn-precancel');
+    resolveThread(thread({ id: 'thread-1' }));
+
+    await expect(pending).resolves.toEqual({
+      threadId: 'thread-1',
+      turnId: 'turn-precancel',
+    });
+    expect(spawnCalls).toEqual([]);
+    expect(events).toEqual([
+      {
+        event: { code: 'cancelled', message: 'Stopped.', type: 'error' },
+        threadId: 'thread-1',
+        turnId: 'turn-precancel',
+      },
+    ]);
+    expect(service.hasActiveTurns()).toBe(false);
+  });
+
+  it('cancels turns still loading their thread on shutdown', async () => {
+    let resolveThread: (value: IDesktopCloudAgentThread) => void = () => {};
+    cloud.createAgentThread = () =>
+      new Promise<IDesktopCloudAgentThread>((resolve) => {
+        resolveThread = resolve;
+      });
+    const service = createService();
+
+    const pending = service.startTurn(
+      {
+        prompt: 'New thread',
+        runtimeKey: 'local/codex-cli',
+        turnId: 'turn-shutdown1',
+      },
+      (event) => events.push(event),
+    );
+
+    service.cancelAll();
+    resolveThread(thread({ id: 'thread-new' }));
+    await pending;
+
+    expect(spawnCalls).toEqual([]);
+    expect(events[0]?.event).toMatchObject({ code: 'cancelled' });
+  });
+
   it('stops turns that go idle', async () => {
     const service = createService({ idleTimeoutMs: 20 });
     await service.startTurn(

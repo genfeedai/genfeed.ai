@@ -1,5 +1,6 @@
 import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
@@ -63,13 +64,14 @@ export class ThreadContextCompressorService {
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  private get isEnabled(): boolean {
-    return (
-      this.configService.get('AGENT_CONTEXT_COMPRESSION_ENABLED') === 'true'
-    );
+  /** An operator platform setting (#5407). */
+  private async isEnabled(): Promise<boolean> {
+    const settings = await this.platformSettingsService.getFeatureSettings();
+    return settings.isAgentContextCompressionEnabled;
   }
 
   private get windowSize(): number {
@@ -99,7 +101,7 @@ export class ThreadContextCompressorService {
     threadId: string,
     organizationId: string,
   ): Promise<ThreadContextStateWithData | null> {
-    if (!this.isEnabled) {
+    if (!(await this.isEnabled())) {
       return null;
     }
 
@@ -142,7 +144,7 @@ export class ThreadContextCompressorService {
     threadId: string,
     organizationId: string,
   ): Promise<void> {
-    if (!this.isEnabled) {
+    if (!(await this.isEnabled())) {
       return;
     }
 

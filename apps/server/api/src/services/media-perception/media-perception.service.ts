@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   hasPendingArtefacts,
@@ -41,7 +42,6 @@ import {
   type MediaPerceptionJobData,
 } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -124,12 +124,18 @@ export class MediaPerceptionService {
     private readonly describer: MediaPerceptionDescriberService,
     private readonly costLedger: MediaVendorCostLedgerService,
     private readonly mediaUrlService: MediaUrlService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  get settings(): MediaPerceptionSettings {
-    return resolveMediaPerceptionSettings(this.configService);
+  /**
+   * The operator's perception switches (#5407), read per call so a change
+   * applies on the next sweep tick without a restart.
+   */
+  async getSettings(): Promise<MediaPerceptionSettings> {
+    return resolveMediaPerceptionSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
   }
 
   async process(job: MediaPerceptionJobData): Promise<MediaPerceptionOutcome> {
@@ -167,7 +173,7 @@ export class MediaPerceptionService {
       return 'skipped';
     }
 
-    const settings = this.settings;
+    const settings = await this.getSettings();
     const { assetHash } = await this.filesClientService.fingerprintMedia(
       ingredient.url,
     );
@@ -574,7 +580,7 @@ export class MediaPerceptionService {
     ingredient: PerceivableIngredient,
     resolution: PendingResolution,
   ): Promise<void> {
-    const model = this.settings.visionModel;
+    const model = (await this.getSettings()).visionModel;
     try {
       resolution.description = await this.describer.describe({
         brandId: ingredient.brandId,

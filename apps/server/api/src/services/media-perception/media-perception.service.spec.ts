@@ -1,3 +1,4 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import type { MediaPerceptionDescriberService } from '@api/services/media-perception/media-perception-describer.service';
@@ -10,9 +11,9 @@ import {
   type MediaPerceptionArtefacts,
   type MediaSceneDescription,
 } from '@genfeedai/contracts/api-types/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import { MEDIA_PERCEPTION_MAX_ATTEMPTS } from '@genfeedai/contracts/queue';
 import { Prisma } from '@genfeedai/prisma';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -117,9 +118,12 @@ function makeHarness(
     buildUrl: vi.fn((key: string) => `https://signed.example.com/${key}`),
     buildUrlFromAbsolute: vi.fn((url: string) => `${url}?signed=1`),
   };
-  const config: Record<string, unknown> = {
-    MEDIA_PERCEPTION_FRAME_COUNT: 4,
-    MEDIA_PERCEPTION_VISION_MODEL: 'openrouter/vision-test',
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      mediaPerceptionFrameCount: 4,
+      mediaPerceptionVisionModel: 'openrouter/vision-test',
+    })),
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -144,7 +148,7 @@ function makeHarness(
     { describe } as unknown as MediaPerceptionDescriberService,
     { record } as unknown as MediaVendorCostLedgerService,
     mediaUrlService as unknown as MediaUrlService,
-    { get: (key: string) => config[key] } as unknown as ConfigService,
+    platformSettingsService as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
 

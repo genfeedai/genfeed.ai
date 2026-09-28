@@ -1,3 +1,4 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
@@ -13,6 +14,7 @@ import {
 } from '@api/services/media-text-decisions/media-text-decision.service';
 import { MEDIA_TEXT_DECISION_TIMEOUT_MS } from '@api/services/media-text-decisions/media-text-decision.settings';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
+import type { ModerationProviders } from '@api/services/moderation/moderation.tokens';
 import { NullModerationProvider } from '@api/services/moderation/providers/null-moderation.provider';
 import { NullTypedDecisionProvider } from '@api/services/typed-decisions/providers/null-typed-decision.provider';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
@@ -22,9 +24,11 @@ import {
   AGENT_PUBLISH_POLICY_NAME,
   applyMediaAssessmentToPublishPolicy,
 } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type {
   IMediaPerception,
   IModerationProvider,
+  IPlatformFeatureSettings,
   TypedDecisionProvider,
 } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
@@ -49,16 +53,16 @@ import type { PrismaService } from '@libs/prisma/prisma.service';
 const JOB = { ingredientId: 'asset-1', organizationId: 'org-1' };
 const HASH = 'e'.repeat(64);
 const NOW = new Date('2026-09-26T10:00:00.000Z');
-const LIVE_CONFIG = {
-  MEDIA_GATE_VISION_MODE: 'live',
-  MEDIA_TEXT_GATE_DECISION_MODE: 'live',
-  MODERATION_MODE: 'live',
+const LIVE_CONFIG: Partial<IPlatformFeatureSettings> = {
+  mediaGateVisionMode: 'live',
+  mediaTextGateDecisionMode: 'live',
+  moderationMode: 'live',
 };
 
-const ALL_SHADOW = {
-  MEDIA_GATE_VISION_MODE: 'shadow',
-  MEDIA_TEXT_GATE_DECISION_MODE: 'shadow',
-  MODERATION_MODE: 'shadow',
+const ALL_SHADOW: Partial<IPlatformFeatureSettings> = {
+  mediaGateVisionMode: 'shadow',
+  mediaTextGateDecisionMode: 'shadow',
+  moderationMode: 'shadow',
 };
 
 type Outage = 'none' | 'timeout';
@@ -112,14 +116,36 @@ function decisionProvider(outage: Outage): TypedDecisionProvider {
   };
 }
 
-function config(outage: Outage, overrides: Record<string, unknown> = {}) {
-  const values: Record<string, unknown> = {
-    ...LIVE_CONFIG,
-    MODERATION_PROVIDER: outage === 'none' ? 'none' : 'openai',
-    OPENAI_API_KEY: outage === 'none' ? '' : 'test-openai-key',
-    ...overrides,
+function config(outage: Outage): ConfigService {
+  const apiKey = outage === 'none' ? '' : 'test-openai-key';
+  return {
+    get: (key: string) => (key === 'OPENAI_API_KEY' ? apiKey : undefined),
+  } as unknown as ConfigService;
+}
+
+function platformSettings(
+  outage: Outage,
+  overrides: Partial<IPlatformFeatureSettings> = {},
+): PlatformSettingsService {
+  return {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      ...LIVE_CONFIG,
+      moderationProvider: outage === 'none' ? 'none' : 'openai',
+      ...overrides,
+    })),
+  } as unknown as PlatformSettingsService;
+}
+
+/** Both adapters bound, matching production DI; only `settings.provider` picks one. */
+function moderationProviders(outage: Outage): ModerationProviders {
+  return {
+    none: new NullModerationProvider(),
+    openai:
+      outage === 'none'
+        ? new NullModerationProvider()
+        : moderationProvider(outage),
   };
-  return { get: (key: string) => values[key] } as unknown as ConfigService;
 }
 
 function logger(): LoggerService {
@@ -214,9 +240,9 @@ describe.each<Outage>(['none', 'timeout'])(
           },
         } as unknown as PrismaService,
         perceptionService(),
-        moderationProvider(outage),
+        moderationProviders(outage),
         { record: w.activityRecord } as unknown as ActivityRecorderService,
-        config(outage),
+        platformSettings(outage),
         logger(),
       );
 
@@ -265,7 +291,7 @@ describe.each<Outage>(['none', 'timeout'])(
               : rejectWithTimeout(),
           ),
         } as unknown as ContentQualityScorerService,
-        config(outage),
+        platformSettings(outage),
         logger(),
       );
 
@@ -309,7 +335,7 @@ describe.each<Outage>(['none', 'timeout'])(
         } as unknown as PrismaService,
         perceptionService(),
         typedDecisions,
-        config(outage),
+        platformSettings(outage),
         logger(),
       );
 
@@ -333,7 +359,7 @@ describe.each<Outage>(['none', 'timeout'])(
     });
 
     describe('publish-path assessment', () => {
-      function assessment(overrides: Record<string, unknown> = {}) {
+      function assessment(overrides: Partial<IPlatformFeatureSettings> = {}) {
         const provider = decisionProvider(outage);
         const readiness = {
           evaluatePublishReadiness: vi.fn().mockResolvedValue({
@@ -357,14 +383,15 @@ describe.each<Outage>(['none', 'timeout'])(
             mediaTextDecision: { findMany: vi.fn().mockResolvedValue([]) },
           } as unknown as PrismaService,
           readiness as unknown as MediaReadinessService,
-          config(outage, overrides),
+          config(outage),
           new TypedDecisionService(
             {
               resolve: vi.fn(async () => provider),
             } as unknown as TypedDecisionProviderResolver,
-            config(outage, overrides),
+            config(outage),
             logger(),
           ),
+          platformSettings(outage, overrides),
         );
         return { provider, service };
       }
@@ -406,10 +433,10 @@ describe.each<Outage>(['none', 'timeout'])(
       // provider makes its gate off (nothing could ever check the media);
       // vision has no unbound state.
       it.each([
-        ['moderation', { MODERATION_MODE: 'live' }],
-        ['vision', { MEDIA_GATE_VISION_MODE: 'live' }],
-        ['text', { MEDIA_TEXT_GATE_DECISION_MODE: 'live' }],
-      ])(
+        ['moderation', { moderationMode: 'live' }],
+        ['vision', { mediaGateVisionMode: 'live' }],
+        ['text', { mediaTextGateDecisionMode: 'live' }],
+      ] as const)(
         '%s alone holds unchecked media unless its provider is unbound',
         async (gate, live) => {
           const { service } = assessment({ ...ALL_SHADOW, ...live });

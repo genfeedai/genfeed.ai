@@ -1,9 +1,12 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { MediaAssessmentService } from '@api/services/media-assessment/media-assessment.service';
 import type { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { captionSubjectKey } from '@api/services/media-text-decisions/media-text-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -68,17 +71,22 @@ function makeHarness(options: {
   categories?: Record<string, string>;
   textDecisions?: Record<string, unknown>[];
   config?: Record<string, unknown>;
+  featureSettings?: Partial<IPlatformFeatureSettings>;
   evaluations?: Record<string, unknown>[];
   isDecisionProviderBound?: boolean;
   moderations?: Record<string, unknown>[];
   perceptions?: Record<string, unknown>[];
   readinessDiagnostics?: Record<string, unknown>[];
 }) {
-  const config: Record<string, unknown> = {
-    MEDIA_GATE_VISION_MODE: 'off',
-    MODERATION_MODE: 'live',
-    MODERATION_PROVIDER: 'openai',
-    ...options.config,
+  const config: Record<string, unknown> = { ...options.config };
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      mediaGateVisionMode: 'off',
+      moderationMode: 'live',
+      moderationProvider: 'openai',
+      ...options.featureSettings,
+    })),
   };
   const evaluatePublishReadiness = vi.fn().mockResolvedValue({
     checkedAt: NOW.toISOString(),
@@ -117,6 +125,7 @@ function makeHarness(options: {
     { evaluatePublishReadiness } as unknown as MediaReadinessService,
     { get: (key: string) => config[key] } as unknown as ConfigService,
     { isProviderBound } as unknown as TypedDecisionService,
+    platformSettingsService as unknown as PlatformSettingsService,
   );
   return { evaluatePublishReadiness, evaluationFindMany, service };
 }
@@ -130,7 +139,7 @@ const REQUEST = {
 describe('MediaAssessmentService', () => {
   it('is clean with every source off and settled perception', async () => {
     const { service } = makeHarness({
-      config: { MODERATION_MODE: 'off' },
+      featureSettings: { moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1')],
     });
 
@@ -193,7 +202,7 @@ describe('MediaAssessmentService', () => {
 
   it('never blocks on moderation in shadow mode', async () => {
     const { service } = makeHarness({
-      config: { MODERATION_MODE: 'shadow' },
+      featureSettings: { moderationMode: 'shadow' },
       moderations: [moderationRow('asset-1', 0.99, 'live')],
       perceptions: [perceptionRow('asset-1')],
     });
@@ -222,7 +231,7 @@ describe('MediaAssessmentService', () => {
     ];
 
     const shadow = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'shadow', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'shadow', moderationMode: 'off' },
       evaluations,
       perceptions,
     });
@@ -232,7 +241,7 @@ describe('MediaAssessmentService', () => {
     expect(shadow.evaluationFindMany).not.toHaveBeenCalled();
 
     const live = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
       evaluations,
       perceptions,
     });
@@ -248,7 +257,7 @@ describe('MediaAssessmentService', () => {
 
   it('holds an asset with exhausted vision retries for review as unavailable, not still running (#5316)', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1', { visionAttempts: 3 })],
     });
 
@@ -266,7 +275,7 @@ describe('MediaAssessmentService', () => {
 
   it('holds an asset with exhausted retries and a dangling evaluation link as unavailable, not still running (#5316)', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
       evaluations: [],
       perceptions: [
         perceptionRow('asset-1', {
@@ -290,7 +299,7 @@ describe('MediaAssessmentService', () => {
 
   it('never blocks on exhausted vision retries in shadow mode', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'shadow', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'shadow', moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1', { visionAttempts: 3 })],
     });
 
@@ -302,7 +311,7 @@ describe('MediaAssessmentService', () => {
 
   it('treats a dangling vision evaluation link as unchecked, never as passing (#5316)', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
       evaluations: [],
       perceptions: [
         perceptionRow('asset-1', { visionEvaluationId: 'evaluation-deleted' }),
@@ -317,7 +326,7 @@ describe('MediaAssessmentService', () => {
 
   it('reports pending perception without blocking', async () => {
     const { service } = makeHarness({
-      config: { MODERATION_MODE: 'off' },
+      featureSettings: { moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1', { transcriptStatus: 'pending' })],
     });
 
@@ -331,7 +340,7 @@ describe('MediaAssessmentService', () => {
 
   it('skips readiness when no platform is given', async () => {
     const { evaluatePublishReadiness, service } = makeHarness({
-      config: { MODERATION_MODE: 'off' },
+      featureSettings: { moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1')],
     });
 
@@ -357,7 +366,7 @@ describe('MediaAssessmentService', () => {
 
   it('treats live vision without an evaluation as checks pending', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_GATE_VISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
       perceptions: [perceptionRow('asset-1')],
     });
 
@@ -370,7 +379,8 @@ describe('MediaAssessmentService', () => {
   it('never gates a non-media attachment on pending checks', async () => {
     const { service } = makeHarness({
       categories: { 'asset-1': 'TEXT' },
-      config: { MEDIA_GATE_VISION_MODE: 'live', OPENAI_API_KEY: 'key' },
+      config: { OPENAI_API_KEY: 'key' },
+      featureSettings: { mediaGateVisionMode: 'live' },
     });
 
     await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
@@ -382,7 +392,10 @@ describe('MediaAssessmentService', () => {
   it('forces review on a confident not-brand-safe transcript and warns on caption mismatch (#4882)', async () => {
     const caption = 'Sunset yoga on the beach';
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: {
+        mediaTextGateDecisionMode: 'live',
+        moderationMode: 'off',
+      },
       perceptions: [
         perceptionRow('asset-1', {
           description: {
@@ -460,7 +473,10 @@ describe('MediaAssessmentService', () => {
 
   it('treats a live text gate without a decision as checks pending', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: {
+        mediaTextGateDecisionMode: 'live',
+        moderationMode: 'off',
+      },
       perceptions: [perceptionRow('asset-1')],
     });
 
@@ -472,7 +488,10 @@ describe('MediaAssessmentService', () => {
 
   it('treats a live text gate as off while no decision provider is bound', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: {
+        mediaTextGateDecisionMode: 'live',
+        moderationMode: 'off',
+      },
       isDecisionProviderBound: false,
       perceptions: [perceptionRow('asset-1')],
     });
@@ -485,7 +504,10 @@ describe('MediaAssessmentService', () => {
 
   it('keeps applying a persisted confident flag while no decision provider is bound', async () => {
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: {
+        mediaTextGateDecisionMode: 'live',
+        moderationMode: 'off',
+      },
       isDecisionProviderBound: false,
       perceptions: [perceptionRow('asset-1')],
       textDecisions: [
@@ -517,7 +539,10 @@ describe('MediaAssessmentService', () => {
     ['that no longer parses', { decisions: 'not-an-array' }],
   ])('treats an asset decision %s as undecided', async (_label, overrides) => {
     const { service } = makeHarness({
-      config: { MEDIA_TEXT_GATE_DECISION_MODE: 'live', MODERATION_MODE: 'off' },
+      featureSettings: {
+        mediaTextGateDecisionMode: 'live',
+        moderationMode: 'off',
+      },
       perceptions: [perceptionRow('asset-1')],
       textDecisions: [
         {
@@ -539,9 +564,9 @@ describe('MediaAssessmentService', () => {
 
   it('ignores text decisions outside live mode', async () => {
     const { service } = makeHarness({
-      config: {
-        MEDIA_TEXT_GATE_DECISION_MODE: 'shadow',
-        MODERATION_MODE: 'off',
+      featureSettings: {
+        mediaTextGateDecisionMode: 'shadow',
+        moderationMode: 'off',
       },
       perceptions: [perceptionRow('asset-1')],
       textDecisions: [

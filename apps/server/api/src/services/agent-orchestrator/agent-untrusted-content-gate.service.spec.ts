@@ -2,11 +2,12 @@
 vi.mock(
   '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util',
   () => ({
-    resolveUntrustedContentDecisionConfig: (config: {
-      get: (key: string) => unknown;
+    resolveUntrustedContentDecisionConfig: (settings: {
+      untrustedContentDecisionMode?: unknown;
+      untrustedContentMinConfidence?: unknown;
     }) => ({
-      minConfidence: config.get('UNTRUSTED_CONTENT_MIN_CONFIDENCE') ?? 0.95,
-      mode: config.get('UNTRUSTED_CONTENT_DECISION_MODE') ?? 'off',
+      minConfidence: settings.untrustedContentMinConfidence ?? 0.95,
+      mode: settings.untrustedContentDecisionMode ?? 'off',
     }),
   }),
 );
@@ -52,7 +53,16 @@ describe('AgentUntrustedContentGateService', () => {
   function buildGate(): AgentUntrustedContentGateService {
     return new AgentUntrustedContentGateService(
       { decide } as never,
-      { get: (key: string) => config.get(key) } as never,
+      {
+        getFeatureSettings: async () => ({
+          untrustedContentDecisionMode: config.get(
+            'UNTRUSTED_CONTENT_DECISION_MODE',
+          ),
+          untrustedContentMinConfidence: config.get(
+            'UNTRUSTED_CONTENT_MIN_CONFIDENCE',
+          ),
+        }),
+      } as never,
       loggerService as never,
       { publishWorkEvent } as never,
       { createAudit } as never,
@@ -334,7 +344,16 @@ describe('AgentUntrustedContentGateService', () => {
     decide.mockResolvedValue({ confidence: 0.99, value: true });
     const gate = new AgentUntrustedContentGateService(
       { decide } as never,
-      { get: (key: string) => config.get(key) } as never,
+      {
+        getFeatureSettings: async () => ({
+          untrustedContentDecisionMode: config.get(
+            'UNTRUSTED_CONTENT_DECISION_MODE',
+          ),
+          untrustedContentMinConfidence: config.get(
+            'UNTRUSTED_CONTENT_MIN_CONFIDENCE',
+          ),
+        }),
+      } as never,
       loggerService as never,
       { publishWorkEvent } as never,
     );

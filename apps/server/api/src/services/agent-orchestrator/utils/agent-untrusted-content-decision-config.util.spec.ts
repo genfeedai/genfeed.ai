@@ -1,70 +1,35 @@
+import { resolveUntrustedContentDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util';
 import {
-  resolveUntrustedContentDecisionConfig,
-  UNTRUSTED_CONTENT_DEFAULT_MIN_CONFIDENCE,
-} from '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util';
-import type { ConfigService } from '@libs/config/config.service';
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  parsePlatformFeatureSettings,
+} from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
-
-function buildConfigService(values: Record<string, unknown>): ConfigService {
-  return {
-    get: (key: string) => values[key],
-  } as unknown as ConfigService;
-}
 
 describe('resolveUntrustedContentDecisionConfig', () => {
   it('defaults to off at the 0.95 security threshold', () => {
     expect(
-      resolveUntrustedContentDecisionConfig(buildConfigService({})),
-    ).toEqual({
-      minConfidence: UNTRUSTED_CONTENT_DEFAULT_MIN_CONFIDENCE,
-      mode: 'off',
-    });
+      resolveUntrustedContentDecisionConfig(DEFAULT_PLATFORM_FEATURE_SETTINGS),
+    ).toEqual({ minConfidence: 0.95, mode: 'off' });
   });
 
-  it('rejects live even in hand-built configuration', () => {
+  it('reads shadow mode and keeps a zero threshold', () => {
+    expect(
+      resolveUntrustedContentDecisionConfig({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        untrustedContentDecisionMode: 'shadow',
+        untrustedContentMinConfidence: 0,
+      }),
+    ).toEqual({ minConfidence: 0, mode: 'shadow' });
+  });
+
+  it('rejects live even from a hand-edited row', () => {
     expect(
       resolveUntrustedContentDecisionConfig(
-        buildConfigService({
-          UNTRUSTED_CONTENT_DECISION_MODE: 'live',
-          UNTRUSTED_CONTENT_MIN_CONFIDENCE: 0.99,
+        parsePlatformFeatureSettings({
+          untrustedContentDecisionMode: 'live',
+          untrustedContentMinConfidence: 0.99,
         }),
       ),
     ).toEqual({ minConfidence: 0.99, mode: 'off' });
-  });
-
-  it('reads shadow mode', () => {
-    expect(
-      resolveUntrustedContentDecisionConfig(
-        buildConfigService({ UNTRUSTED_CONTENT_DECISION_MODE: 'shadow' }),
-      ).mode,
-    ).toBe('shadow');
-  });
-
-  it('falls back to off on an unrecognised mode', () => {
-    expect(
-      resolveUntrustedContentDecisionConfig(
-        buildConfigService({ UNTRUSTED_CONTENT_DECISION_MODE: 'LIVE' }),
-      ).mode,
-    ).toBe('off');
-  });
-
-  it('honours a configured zero threshold', () => {
-    // Joi permits min(0). Zero means "withhold on any positive decision";
-    // substituting the default would loosen a deliberate tightening.
-    expect(
-      resolveUntrustedContentDecisionConfig(
-        buildConfigService({ UNTRUSTED_CONTENT_MIN_CONFIDENCE: 0 }),
-      ).minConfidence,
-    ).toBe(0);
-  });
-
-  it('falls back to the default threshold on an out-of-range confidence', () => {
-    for (const value of [-1, 1.5, 'nonsense', undefined]) {
-      expect(
-        resolveUntrustedContentDecisionConfig(
-          buildConfigService({ UNTRUSTED_CONTENT_MIN_CONFIDENCE: value }),
-        ).minConfidence,
-      ).toBe(UNTRUSTED_CONTENT_DEFAULT_MIN_CONFIDENCE);
-    }
   });
 });
