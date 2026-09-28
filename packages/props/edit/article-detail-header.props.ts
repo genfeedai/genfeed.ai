@@ -1,4 +1,4 @@
-import type { GlobalModalsContextValue } from '@providers/global-modals/global-modals.provider';
+import type { GlobalModalsContextValue } from '@props/modals/global-modals.props';
 import type { ClipboardService } from '@services/core/clipboard.service';
 
 export type ArticleDetailHeaderState = {

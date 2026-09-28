@@ -95,6 +95,7 @@ export class TiktokController {
       CredentialPlatform.TIKTOK,
       {
         isConnected: false,
+        isHistoryImportRequested: createCredentialDto.isHistoryImportRequested,
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },

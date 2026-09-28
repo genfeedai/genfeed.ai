@@ -1,4 +1,4 @@
-import type { AgentApiService } from '@genfeedai/agent';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 
 export interface AgentWorkspaceContextValue {
   agentApiService: AgentApiService;

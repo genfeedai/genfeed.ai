@@ -17,7 +17,10 @@ import {
   useState,
 } from 'react';
 import { OPERATOR_TASK_CONTEXT_QUERY_KEYS } from '@/lib/navigation/operator-shell';
-import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
+import {
+  consumeOpenTaskComposerRequest,
+  OPEN_TASK_COMPOSER_EVENT,
+} from '@/lib/workspace/task-composer-events';
 import { usePlanningConversation } from './use-planning-conversation';
 import {
   applyRealtimeTaskUpdate,
@@ -360,10 +363,14 @@ export function useWorkspacePageContent({
     }
 
     const openComposerFromSidebar = () => {
-      setTaskComposerOpen(true);
+      if (consumeOpenTaskComposerRequest()) {
+        setTaskComposerOpen(true);
+      }
     };
 
     window.addEventListener(OPEN_TASK_COMPOSER_EVENT, openComposerFromSidebar);
+    // A request made before this page mounted (the sidebar renders first).
+    openComposerFromSidebar();
 
     return () => {
       window.removeEventListener(

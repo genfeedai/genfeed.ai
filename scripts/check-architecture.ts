@@ -185,6 +185,14 @@ const checks = [
     command: ['bun', 'run', 'scripts/architecture/check-opaque-user-ids.ts'],
     name: 'Opaque user IDs (#5410)',
   },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-retired-core-names.ts'],
+    name: 'Retired core/server names (#4348)',
+  },
+  {
+    command: ['bun', 'run', 'scripts/architecture/check-single-claude-md.ts'],
+    name: 'Single root CLAUDE.md',
+  },
 ] as const;
 
 let failed = false;

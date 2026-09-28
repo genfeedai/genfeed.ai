@@ -16,7 +16,7 @@ This file provides context for AI agents working on deployment-related tasks. It
 
 - **Single-tenant default:** One organization per deployment. Auth/request context still flows through the OSS API guard stack; self-hosted product behavior should not expose org switching as a multi-tenant product surface.
 - **Multi-tenancy:** a SaaS product surface gated at runtime by deployment mode; org guards and query filters live in the API for every mode. There is no separable multi-tenancy package.
-- **Server apps:** `apps/server/{api,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}`. `apps/server/clips/` is not currently a package workspace.
+- **Server apps:** `apps/server/{api,discord,files,mcp,notifications,slack,telegram,workers}`. `clips`/`images`/`videos`/`voices` do not exist as directories or workspaces (see `context/project-structure.md`).
 - **Frontend apps:** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, and `apps/extensions/{browser,ide}/app`
 - **Database:** PostgreSQL via Prisma
 - **Queue:** BullMQ via Redis

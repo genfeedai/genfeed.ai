@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { BRAND_HANDLE_MAX_LENGTH } from '@genfeedai/contracts/constants';
 import { isPublicAssetScope } from '@genfeedai/helpers';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -9,6 +10,7 @@ import { EditableText } from '@ui/primitives/editable-text';
 import { Copy, Share2, Sparkles, Upload } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 const ICON_BUTTON_CLASS = 'size-8 shrink-0 p-0 [&_svg]:size-3.5';
 
@@ -18,8 +20,10 @@ export default function BrandDetailOverview({
   onUploadLogo,
   onGenerateLogo,
   onUpdateBrand,
+  onUpdateHandle,
   onCopyPublicProfile,
 }: BrandDetailOverviewProps) {
+  const t = useTranslations('pages.brandDetailOverview');
   const profileUrl = `${EnvironmentService.apps.website}/u/${brand.slug}`;
 
   return (
@@ -45,7 +49,7 @@ export default function BrandDetailOverview({
           <div className="flex gap-1.5">
             <Button
               icon={<Upload className="size-3.5" />}
-              ariaLabel="Upload profile picture"
+              ariaLabel={t('uploadProfilePicture')}
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.ICON}
               className={ICON_BUTTON_CLASS}
@@ -53,7 +57,7 @@ export default function BrandDetailOverview({
             />
             <Button
               icon={<Sparkles className="size-3.5" />}
-              ariaLabel="Generate profile picture"
+              ariaLabel={t('generateProfilePicture')}
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.ICON}
               className={ICON_BUTTON_CLASS}
@@ -68,24 +72,35 @@ export default function BrandDetailOverview({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <EditableText
-              ariaLabel="Edit brand name"
+              ariaLabel={t('editBrandName')}
               className="mb-1"
               displayClassName="text-2xl font-bold"
               isRequired
               onSave={(value) => onUpdateBrand('label', value)}
               value={brand.label}
             />
-            {brand.slug ? (
+            {brand.slug && onUpdateHandle ? (
+              // The leading `@` is display only; the save normalizes it away.
+              <EditableText
+                ariaLabel={t('editBrandHandle')}
+                className="mb-1"
+                displayClassName="text-xs text-muted-foreground"
+                isRequired
+                maxLength={BRAND_HANDLE_MAX_LENGTH + 1}
+                onSave={onUpdateHandle}
+                value={`@${brand.slug}`}
+              />
+            ) : brand.slug ? (
               <p className="mb-1 text-xs text-muted-foreground">
                 @{brand.slug}
               </p>
             ) : null}
             <EditableText
-              ariaLabel="Edit brand description"
+              ariaLabel={t('editBrandDescription')}
               displayClassName="text-muted-foreground"
               isMultiline
               onSave={(value) => onUpdateBrand('description', value)}
-              placeholder="Add a description"
+              placeholder={t('addDescription')}
               value={brand.description}
             />
           </div>
@@ -94,11 +109,11 @@ export default function BrandDetailOverview({
             <div className="flex shrink-0 items-center gap-1.5">
               <Button
                 icon={<Copy className="size-3.5" />}
-                ariaLabel="Copy public profile link"
+                ariaLabel={t('copyPublicProfileLink')}
                 variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.ICON}
                 className={ICON_BUTTON_CLASS}
-                tooltip="Copy public profile link"
+                tooltip={t('copyPublicProfileLink')}
                 onClick={() => onCopyPublicProfile()}
               />
               <PrimitiveButton
@@ -113,7 +128,7 @@ export default function BrandDetailOverview({
                   className="inline-flex h-8 items-center gap-1.5 px-2.5 text-xs [&_svg]:size-3.5"
                 >
                   <Share2 className="size-3.5" />
-                  Profile
+                  {t('profile')}
                 </Link>
               </PrimitiveButton>
             </div>

@@ -20,6 +20,7 @@
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/pricing": ["../pricing/src/index.ts"],
       "@genfeedai/pricing/*": ["../pricing/src/*"],
+      "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
       "@genfeedai/contracts/interfaces": [

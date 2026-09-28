@@ -127,7 +127,7 @@ export function AgentChatPromptBar({
   onOverlayElement,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
-  const isInspectorComposer = composerShell?.placement === 'inspector';
+  const isDockComposer = composerShell?.placement === 'dock';
   const statusStack = (
     <AgentComposerStatusStack
       activeWorkEvent={activeWorkEvent}
@@ -187,7 +187,7 @@ export function AgentChatPromptBar({
   );
   const isPortaled = Boolean(composerShell?.portalTarget);
   // Surface canvas portal already owns AGENT_CONVERSATION_TRACK_CLASS (max-w-3xl).
-  // Inspector rail is narrower — fill it. Never re-center with a second max-w.
+  // The dock rail is narrower — fill it. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
@@ -232,7 +232,7 @@ export function AgentChatPromptBar({
         // Error ends the turn from the operator's POV — show Send again, not Stop.
         showStop={isRunActive && !error}
         willQueueFollowUp={isBusy}
-        density={isInspectorComposer ? 'inspector' : 'default'}
+        density={isDockComposer ? 'dock' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}
         dragState={dragState}

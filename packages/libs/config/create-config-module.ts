@@ -33,7 +33,7 @@ export interface CreateConfigModuleOptions {
    * Extra class providers registered *and* exported alongside `ConfigService`
    * (e.g. the API's `ValidationConfigService`). Nest instantiates these through
    * DI, so their constructor params must be value imports — see
-   * `.agents/memory/rules/nestjs_value_imports_for_di.md`.
+   * `scripts/check-di-value-imports.ts`.
    */
   providers?: Type<object>[];
 }

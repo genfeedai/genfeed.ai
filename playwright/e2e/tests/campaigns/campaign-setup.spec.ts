@@ -64,7 +64,7 @@ async function mockCampaign(page: Page) {
 }
 
 test.describe('Campaign setup and responsive actions', () => {
-  test('keeps actions reachable with the inspector open and on mobile', async ({
+  test('keeps actions reachable on desktop and mobile', async ({
     authenticatedPage: page,
   }, testInfo) => {
     await mockCampaign(page);
@@ -82,12 +82,10 @@ test.describe('Campaign setup and responsive actions', () => {
       const canvas = page.getByRole('region', {
         name: 'Primary workspace canvas',
       });
-      if (width >= 1280) {
-        await expect(
-          page.getByRole('complementary', { name: 'Workspace inspector' }),
-        ).toBeVisible();
-        await page.getByRole('tab', { name: 'Chat', exact: true }).click();
-      }
+      // Nothing is selected, so no right column narrows the canvas.
+      await expect(
+        page.getByRole('complementary', { name: 'Selection details' }),
+      ).toBeHidden();
       const bounds = await canvas.boundingBox();
       if (!bounds) throw new Error('Campaign canvas has no visible bounds');
       for (const control of [

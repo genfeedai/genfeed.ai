@@ -56,6 +56,15 @@ export class ConnectCredentialDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly credentialId?: string;
+
+  /**
+   * Whether to import the account's existing posts once it connects. Omitted
+   * means import (connects outside the integrations page never ask).
+   */
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ default: true, required: false })
+  readonly isHistoryImportRequested?: boolean;
 }
 
 export class CreateCredentialDto {
@@ -165,6 +174,11 @@ export class CreateCredentialDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly isConnected?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly isHistoryImportRequested?: boolean;
 
   @IsArray()
   @IsString({ each: true })

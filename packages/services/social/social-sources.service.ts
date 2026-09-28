@@ -61,14 +61,15 @@ export class SocialSourcesService extends BaseService<
     return this.mapMany(response.data);
   }
 
+  /** Import a connected account's existing posts, even if skipped at connect. */
   async scheduleHistoryImport(
-    sourceId: string,
+    credentialId: string,
     brandId: string,
   ): Promise<SocialSourceHistoryImportScheduleResult> {
     const response =
       await this.instance.post<SocialSourceHistoryImportScheduleResult>(
-        `/${sourceId}/history-import`,
-        undefined,
+        '/history-import',
+        { credentialId },
         { params: { brandId } },
       );
     return response.data;

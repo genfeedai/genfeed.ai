@@ -8,9 +8,9 @@ import {
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { ErrorBoundaryProps } from '@genfeedai/props/ui/feedback/error-boundary.props';
+import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
-import { logger } from '@genfeedai/services/core/logger.service';
 import { ErrorBoundary as SharedErrorBoundary } from '@ui/error/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
 
@@ -26,7 +26,9 @@ export default function ErrorBoundary({
     errorInfo,
     failure,
   ) => {
-    logger.error('ErrorBoundary caught an error', {
+    // Deferred: this boundary wraps every website page, and the full logger
+    // carries pino and the Sentry SDK.
+    deferredLogger.error('ErrorBoundary caught an error', {
       componentStack: errorInfo.componentStack,
       error,
       retryCount: failure.retryCount,

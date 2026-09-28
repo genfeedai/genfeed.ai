@@ -14,7 +14,7 @@ import MasonryVideoActionsBar from './MasonryVideoActionsBar';
 import MasonryVideoMediaArea from './MasonryVideoMediaArea';
 import { useMasonryVideo } from './useMasonryVideo';
 
-const MASONRY_TILE_RADIUS_CLASS = 'rounded-lg';
+const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
 export default function MasonryVideo({
   video,
@@ -106,7 +106,7 @@ export default function MasonryVideo({
       data-masonry-item="true"
       data-state={isHovered ? 'hovered' : 'idle'}
       className={cn(
-        'relative block w-full cursor-pointer rounded-xl bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
+        'relative block w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
         isScrollFocused && SCROLL_FOCUS_SURFACE_CLASS,
         video.aspectRatio,
         isSelected && 'ring-2 ring-primary',

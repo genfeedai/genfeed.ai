@@ -14,9 +14,10 @@ content consolidation landed in agent plumbing. The multi-platform desk needs
 
 **How to apply:**
 
-- Nav/UI: Automate → Agents → **Programs** (`/automate/campaigns`); Messages →
-  Outreach sequences / Replies / Reply drip; Publish → **Campaigns** when the
-  P1 model ships ([spec-publish-content-campaigns.md](spec-publish-content-campaigns.md)).
+- Nav/UI: Automate → Agents → **Programs** (`/automation/campaigns`); Messages →
+  Outreach sequences / Replies / Reply drip; Publish → **Campaigns**
+  (`/publishing/campaigns`, shipped in #4120; rationale in
+  [decisions-publish-content-campaigns.md](decisions-publish-content-campaigns.md)).
 - Never title outreach "Marketing Campaigns".
 - Do not promote Campaigns to the app switcher unless it owns 4+ destinations
   and a persona that no longer fits Publish.

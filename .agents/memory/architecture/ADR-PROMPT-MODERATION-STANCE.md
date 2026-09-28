@@ -58,7 +58,7 @@ without changing this file first.
 | Provider-side safety checkers on standard Replicate image/video paths | Yes — keep on |
 | Trained-model / LoRA Replicate `disable_safety_checker: true` | Keep — personal-likeness LoRAs trip Replicate's NSFW checker; rationale owned by #3013 |
 | First-party prompt text in PostHog / Sentry / session replay | No |
-| OpenRouter `provider.zdr` / `provider.data_collection` on first-party requests | Gap — #3029 |
+| OpenRouter `provider.zdr` / `provider.data_collection` on first-party requests | Yes — #3029 (implemented, closed) |
 | Time-bounded purge of soft-deleted agent transcripts | Yes — 30 days, #3030 |
 
 ## Enforcement (what we do instead)
@@ -97,13 +97,11 @@ Telemetry must stay privacy-preserving:
 
 ## OpenRouter vendor retention
 
-Inspected 2026-08-17:
-`apps/server/api/src/services/integrations/openrouter/`.
-
-`OpenRouterChatCompletionParams` has no `provider` object. `OpenRouterService`
-posts `{ ...params, stream }` with Authorization, `HTTP-Referer`, and
-`X-Title` only. There is no `data_collection`, `zdr`, or other zero-retention
-flag on the request body or headers.
+Implemented by #3029 (closed):
+`apps/server/api/src/services/integrations/openrouter/services/openrouter.service.ts`
+sends `provider: { ...params.provider, ...OPENROUTER_FIRST_PARTY_PROVIDER_POLICY }`
+on every first-party request, where the policy DTO
+(`openrouter.dto.ts`) defaults to `data_collection: 'deny'` and `zdr: true`.
 
 OpenRouter's documented per-request API (do not invent a different contract):
 
@@ -115,8 +113,8 @@ OpenRouter's documented per-request API (do not invent a different contract):
   https://openrouter.ai/docs/guides/routing/provider-selection)
 
 Account-level OpenRouter privacy settings are operator-owned and are not a
-substitute for setting these flags on every first-party request. Wiring them
-is #3029.
+substitute for setting these flags on every first-party request; the request-level
+flags above are now that substitute.
 
 ## Retention
 
@@ -163,7 +161,6 @@ source until then.
 - Storing moderation verdicts against user prompts
 - A staff conversation-review / audit-reading UI
 - Expanding Better Auth impersonation into a review desk
-- Implementing OpenRouter ZDR in this change (#3029)
 - Changing the 30-day soft-delete transcript retention window without a new
   ADR revision (#3030 owns the current default)
 - Changing Replicate LoRA `disable_safety_checker` (owned by #3013)
@@ -190,8 +187,6 @@ source until then.
   not classified or queued for human review inside Genfeed.
 - Soft-deleted transcripts stay in Postgres for 30 days, then prompt text is
   wiped. That is a retention window, not a license to build a review UI.
-- First-party OpenRouter traffic follows account-level vendor defaults until
-  #3029 sets per-request ZDR / deny-collection flags.
 - Downstream PRs in #3007 implement the enforcement list. They do not reopen
   this stance.
 
@@ -208,7 +203,7 @@ source until then.
 | #3029 | Set OpenRouter `provider.zdr` and `provider.data_collection` |
 | #3030 | Time-bounded purge of soft-deleted agent transcripts (30 days) |
 
-#3029 and #3030 were filed from this ADR. #3030 is implemented. #3013 and
+#3029 and #3030 were filed from this ADR. Both are implemented. #3013 and
 #3014 remain sibling work on epic #3007.
 
 ## Related ADRs

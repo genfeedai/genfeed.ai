@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import { ClipboardService } from '@services/core/clipboard.service';
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import { Button } from '@ui/primitives/button';
 import { Share2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,7 +28,7 @@ export default function ArticleShareButton(): React.ReactElement {
       await clipboardService.copyToClipboard(window.location.href);
       setIsCopied(true);
     } catch (error) {
-      logger.error('Failed to copy to clipboard:', error);
+      deferredLogger.error('Failed to copy to clipboard:', error);
     }
   }
 

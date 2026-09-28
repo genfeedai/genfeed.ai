@@ -3,6 +3,7 @@
 import LibrarySidebarNav from '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav';
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.provider';
+import { AgentDockProvider } from '@contexts/ui/agent-dock-context';
 import { ContextSidebarProvider } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -36,7 +37,6 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
-import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -522,7 +522,7 @@ function AppLayoutWithDynamicMenu({
   // toggle renders in the topbar (AppLayout's sibling prop), so the shared
   // state has to sit above both.
   const mainLayout = (
-    <WorkspaceInspectorProvider>
+    <AgentDockProvider>
       <ContextSidebarProvider>
         <AppLayout
           bannerComponent={shellBanner}
@@ -555,7 +555,7 @@ function AppLayoutWithDynamicMenu({
           )}
         </AppLayout>
       </ContextSidebarProvider>
-    </WorkspaceInspectorProvider>
+    </AgentDockProvider>
   );
   // Permanent frame, permanent boundary: a render failure anywhere under it is
   // contained the same way on every route, not only where the shell booted.

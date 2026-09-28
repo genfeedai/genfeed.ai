@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { ClipboardService } from '@services/core/clipboard.service';
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ClipboardService captures the notifications singleton once, in its own
@@ -17,7 +17,9 @@ vi.mock('@services/core/notifications.service', () => ({
     getInstance: vi.fn(() => notificationsStub),
   },
 }));
-vi.mock('./logger.service');
+vi.mock('./deferred-logger', () => ({
+  deferredLogger: { error: vi.fn() },
+}));
 
 describe('ClipboardService', () => {
   let clipboardService: ClipboardService;
@@ -95,7 +97,7 @@ describe('ClipboardService', () => {
 
       await clipboardService.copyToClipboard('test text');
 
-      expect(logger.error).toHaveBeenCalledWith(
+      expect(deferredLogger.error).toHaveBeenCalledWith(
         'Copy to clipboard failed',
         mockError,
       );

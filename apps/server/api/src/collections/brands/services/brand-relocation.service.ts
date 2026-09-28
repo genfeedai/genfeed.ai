@@ -3,6 +3,7 @@ import {
   FIRST_ORDER_TARGETS,
   SECOND_ORDER_TARGETS,
 } from '@api/collections/brands/constants/brand-org-cascade.constants';
+import { RELOCATION_RESOURCE_LABELS } from '@api/collections/brands/constants/brand-relocation-labels.constant';
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
@@ -19,6 +20,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
+import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -109,139 +111,6 @@ const EMPTY_RELOCATION_SUMMARY: BrandRelocationSummary = {
   schedulingPending: 0,
 };
 
-const RELOCATION_RESOURCE_LABELS: Record<
-  string,
-  { singular: string; plural: string }
-> = {
-  adBulkUploadJob: {
-    singular: 'ad bulk upload job',
-    plural: 'ad bulk upload jobs',
-  },
-  adCreativeMapping: {
-    singular: 'ad creative mapping',
-    plural: 'ad creative mappings',
-  },
-  adPerformance: {
-    singular: 'ad performance record',
-    plural: 'ad performance records',
-  },
-  activity: { singular: 'activity', plural: 'activities' },
-  agentCampaign: { singular: 'agent campaign', plural: 'agent campaigns' },
-  agentGoal: { singular: 'agent goal', plural: 'agent goals' },
-  agentMemory: { singular: 'agent memory', plural: 'agent memories' },
-  agentMessage: { singular: 'agent message', plural: 'agent messages' },
-  agentStrategy: { singular: 'agent strategy', plural: 'agent strategies' },
-  agentStrategyOpportunity: {
-    singular: 'agent strategy opportunity',
-    plural: 'agent strategy opportunities',
-  },
-  agentStrategyReport: {
-    singular: 'agent strategy report',
-    plural: 'agent strategy reports',
-  },
-  articleAnalytics: {
-    singular: 'article analytics record',
-    plural: 'article analytics records',
-  },
-  article: { singular: 'article', plural: 'articles' },
-  asset: { singular: 'asset', plural: 'assets' },
-  batch: { singular: 'batch', plural: 'batches' },
-  bookmark: { singular: 'bookmark', plural: 'bookmarks' },
-  botActivity: { singular: 'bot activity', plural: 'bot activities' },
-  bot: { singular: 'bot', plural: 'bots' },
-  brandInterview: {
-    singular: 'brand interview',
-    plural: 'brand interviews',
-  },
-  brandMemory: { singular: 'brand memory', plural: 'brand memories' },
-  campaignTarget: { singular: 'campaign target', plural: 'campaign targets' },
-  caption: { singular: 'caption', plural: 'captions' },
-  clipProject: { singular: 'clip project', plural: 'clip projects' },
-  contentPerformance: {
-    singular: 'content performance record',
-    plural: 'content performance records',
-  },
-  contentPlan: { singular: 'content plan', plural: 'content plans' },
-  contentPlanItem: {
-    singular: 'content plan item',
-    plural: 'content plan items',
-  },
-  contentRun: { singular: 'content run', plural: 'content runs' },
-  contextBase: { singular: 'context base', plural: 'context bases' },
-  contextEntry: { singular: 'context entry', plural: 'context entries' },
-  credential: { singular: 'credential', plural: 'credentials' },
-  creativePattern: {
-    singular: 'creative pattern',
-    plural: 'creative patterns',
-  },
-  distribution: { singular: 'distribution', plural: 'distributions' },
-  editorProject: {
-    singular: 'editor project',
-    plural: 'editor projects',
-  },
-  folder: { singular: 'folder', plural: 'folders' },
-  ingredient: { singular: 'ingredient', plural: 'ingredients' },
-  lead: { singular: 'lead', plural: 'leads' },
-  model: { singular: 'model', plural: 'models' },
-  monitoredAccount: {
-    singular: 'monitored account',
-    plural: 'monitored accounts',
-  },
-  moodBoard: { singular: 'mood board', plural: 'mood boards' },
-  newsletter: { singular: 'newsletter', plural: 'newsletters' },
-  outreachCampaign: {
-    singular: 'outreach campaign',
-    plural: 'outreach campaigns',
-  },
-  persona: { singular: 'persona', plural: 'personas' },
-  post: { singular: 'post', plural: 'posts' },
-  postAnalytics: {
-    singular: 'post analytics record',
-    plural: 'post analytics records',
-  },
-  preset: { singular: 'preset', plural: 'presets' },
-  processedTweet: {
-    singular: 'processed tweet',
-    plural: 'processed tweets',
-  },
-  prompt: { singular: 'prompt', plural: 'prompts' },
-  replyBotConfig: {
-    singular: 'reply bot config',
-    plural: 'reply bot configs',
-  },
-  schedule: { singular: 'schedule', plural: 'schedules' },
-  socialConversation: {
-    singular: 'social conversation',
-    plural: 'social conversations',
-  },
-  socialMessage: { singular: 'social message', plural: 'social messages' },
-  tag: { singular: 'tag', plural: 'tags' },
-  task: { singular: 'task', plural: 'tasks' },
-  taskComment: { singular: 'task comment', plural: 'task comments' },
-  training: { singular: 'training', plural: 'trainings' },
-  trackedLink: { singular: 'tracked link', plural: 'tracked links' },
-  transcript: { singular: 'transcript', plural: 'transcripts' },
-  trend: { singular: 'trend', plural: 'trends' },
-  trendPreferences: {
-    singular: 'trend preference',
-    plural: 'trend preferences',
-  },
-  trendRemixLineage: {
-    singular: 'trend remix lineage',
-    plural: 'trend remix lineages',
-  },
-  warmupAccount: {
-    singular: 'warmup account',
-    plural: 'warmup accounts',
-  },
-  watchlist: { singular: 'watchlist', plural: 'watchlists' },
-  workflowExecution: {
-    singular: 'workflow execution',
-    plural: 'workflow executions',
-  },
-  workflow: { singular: 'workflow', plural: 'workflows' },
-};
-
 type BrandSameOrganizationPatch = (
   updates: Partial<UpdateBrandDto>,
 ) => Promise<BrandDocument>;
@@ -278,7 +147,6 @@ export class BrandRelocationService {
     'isActive',
     'isHighlighted',
     'isFleetEnabled',
-    'isSocialHistoryImportEnabled',
     'defaultVideoModel',
     'defaultImageModel',
     'defaultImageToVideoModel',
@@ -329,15 +197,9 @@ export class BrandRelocationService {
       return { brand: patched, summary: { ...EMPTY_RELOCATION_SUMMARY } };
     }
 
-    const destOrg = await this.prisma.organization.findFirst({
-      select: { id: true },
-      where: { id: destOrgId, isDeleted: false },
-    });
-    if (!destOrg) {
-      throw new NotFoundException('Organization', destOrgId);
-    }
-
+    await this.assertDestinationOrganizationExists(destOrgId);
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
+    await this.assertHandleAvailable(brandId, updateBrandDto.slug);
 
     // An org always keeps at least one non-deleted brand (#5219): the source org
     // must have another brand left for its members' currentBrandId to fall back
@@ -642,6 +504,36 @@ export class BrandRelocationService {
       }
     }
     return out;
+  }
+
+  private async assertDestinationOrganizationExists(
+    destOrgId: string,
+  ): Promise<void> {
+    const destOrg = await this.prisma.organization.findFirst({
+      select: { id: true },
+      where: { id: destOrgId, isDeleted: false },
+    });
+    if (!destOrg) {
+      throw new NotFoundException('Organization', destOrgId);
+    }
+  }
+
+  /** Handles are unique across every brand, as the database constraint is. */
+  private async assertHandleAvailable(
+    brandId: string,
+    slug: string | undefined,
+  ): Promise<void> {
+    if (slug === undefined) {
+      return;
+    }
+    // tenant-scope-ignore: handle uniqueness spans every organization and deleted brands, matching the global unique constraint.
+    const holder = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: { not: brandId }, slug },
+    });
+    if (holder) {
+      throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
+    }
   }
 
   private async assertCanRelocate(

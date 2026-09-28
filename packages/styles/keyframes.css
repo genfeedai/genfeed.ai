@@ -178,7 +178,7 @@
   animation: gen-float 4s ease-in-out infinite;
 }
 
-/* Staggered animation delays for bento grids */
+/* Staggered animation delays */
 .gen-stagger-1 {
   animation-delay: 0.1s;
 }

@@ -14,6 +14,8 @@ Do not stack `inset 0 0 0 1px` (or an outer 1px ring) on the docked prompt bar.
 slab around "Ask for help with…". Vincent asked for an outer lift, not a block.
 
 **How to apply:** Keep the named utilities. Change their composition in
-`packages/styles/globals.css`, not a one-off class on `PROMPT_BAR_SURFACE_CLASS`.
-Cards, dropdowns, and dialogs still use inset hairlines. The composer is the
-exception, documented in `DESIGN.md`.
+`packages/styles/globals.css`, not a one-off class on `PROMPT_BAR_SURFACE_CLASS`
+— `scripts/check-composer-surface-styling.ts` already fails any call site that
+restates border/shadow/radius there, so this is only about what the shared
+constant itself should say. Cards, dropdowns, and dialogs still use inset
+hairlines. The composer is the exception, documented in `DESIGN.md`.

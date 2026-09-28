@@ -7,6 +7,16 @@ import AppProviders from './AppProviders';
 
 const themeProviderMock = vi.fn();
 
+const environment = vi.hoisted(() => ({ isProduction: true }));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: environment,
+}));
+
+vi.mock('@ui/modals/system/error-debug/ModalErrorDebug', () => ({
+  default: () => <div data-testid="error-debug-modal" />,
+}));
+
 vi.mock('next-themes', () => ({
   ThemeProvider: ({ children, ...props }: { children: ReactNode }) => {
     themeProviderMock(props);
@@ -61,5 +71,29 @@ describe('website AppProviders', () => {
     const source = readFileSync(join(__dirname, 'AppProviders.tsx'), 'utf8');
 
     expect(source).not.toMatch(/from ['"]@genfeedai\/auth-client/);
+  });
+
+  it('skips the error debug modal in production, where it never opens', async () => {
+    environment.isProduction = true;
+    render(
+      <AppProviders includeToaster={false}>
+        <div>Page</div>
+      </AppProviders>,
+    );
+
+    await screen.findByText('Page');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByTestId('error-debug-modal')).not.toBeInTheDocument();
+  });
+
+  it('mounts the error debug modal outside production', async () => {
+    environment.isProduction = false;
+    render(
+      <AppProviders includeToaster={false}>
+        <div>Page</div>
+      </AppProviders>,
+    );
+
+    expect(await screen.findByTestId('error-debug-modal')).toBeInTheDocument();
   });
 });
