@@ -733,6 +733,35 @@ describe('BatchProjectReconcileService', () => {
     );
   });
 
+  it.each(['REJECTED', 'CHANGES_REQUESTED'])(
+    'withdraws scheduling markers after a later %s decision',
+    async (decision) => {
+      prisma.batchProjectItem.findMany.mockResolvedValue([
+        makeItem({
+          status: BatchProjectItemStatus.APPROVED,
+          scheduledAt: new Date(),
+          reviewItemId: 'review-1',
+        }),
+      ]);
+      prisma.batchItem.findMany.mockResolvedValue([
+        { id: 'review-1', reviewDecision: decision },
+      ]);
+      await service.syncReviewDecisions('project-1', 'org-1');
+      expect(
+        prisma.batchProjectItem.findMany.mock.calls[0][0].where,
+      ).not.toHaveProperty('scheduledAt');
+      expect(updatedItem('item-1')).toContainEqual(
+        expect.objectContaining({
+          scheduledAt: null,
+          status:
+            decision === 'REJECTED'
+              ? BatchProjectItemStatus.REJECTED
+              : BatchProjectItemStatus.READY,
+        }),
+      );
+    },
+  );
+
   it('carries caption edits made in the review inbox back onto the item', async () => {
     useProject(makeProject([], { status: BatchProjectStatus.REVIEWING }));
     prisma.batchProjectItem.findMany.mockResolvedValue([

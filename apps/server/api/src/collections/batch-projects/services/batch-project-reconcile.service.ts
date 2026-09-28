@@ -860,7 +860,6 @@ export class BatchProjectReconcileService {
       where: scopedWhere(organizationId, {
         projectId,
         reviewItemId: { not: null },
-        scheduledAt: null,
         status: { in: REVIEWABLE_ITEM_STATUSES },
       }),
     });
@@ -903,9 +902,16 @@ export class BatchProjectReconcileService {
         : undefined;
       const hasCaptionEdit =
         typeof reviewedCaption === 'string' && reviewedCaption !== item.caption;
-      if (next !== item.status || hasCaptionEdit) {
+      const withdrawn =
+        next !== BatchProjectItemStatus.APPROVED && decision !== undefined;
+      if (
+        next !== item.status ||
+        hasCaptionEdit ||
+        (withdrawn && item.scheduledAt)
+      ) {
         await this.updateItemIfStatus(item, item.status, {
           ...(next !== item.status ? { status: next } : {}),
+          ...(withdrawn && item.scheduledAt ? { scheduledAt: null } : {}),
           ...(hasCaptionEdit ? { caption: reviewedCaption } : {}),
         });
       }
@@ -930,6 +936,7 @@ export class BatchProjectReconcileService {
         | 'reviewBatchId'
         | 'reviewItemId'
         | 'status'
+        | 'scheduledAt'
       >
     >,
   ) {

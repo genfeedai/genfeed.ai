@@ -121,6 +121,7 @@ describe('BatchProjectsService', () => {
     workflowsService as never,
     batchGenerationService as never,
     ideaGeneration as never,
+    { generateFastlaneIdeas: vi.fn() } as never,
   );
 
   function useProject(project: Row, items: Row[] = []) {
@@ -562,6 +563,52 @@ describe('BatchProjectsService', () => {
   });
 
   describe('retryItem', () => {
+    it('commits the item claim and generating project before dispatch', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      const events: string[] = [];
+      prisma.$transaction.mockImplementationOnce(async (operation: unknown) => {
+        if (typeof operation !== 'function')
+          throw new Error('Expected a transaction');
+        events.push('begin');
+        const result = await operation(prisma);
+        expect(prisma.batchProject.updateMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: BatchProjectStatus.GENERATING,
+            }),
+          }),
+        );
+        events.push('commit');
+        return result;
+      });
+      batchWorkflowExecutionService.startBatchExecution.mockImplementationOnce(
+        async () => {
+          events.push('dispatch');
+          return 'retry-parent';
+        },
+      );
+      await service.retryItem('project-1', 'item-1', scope);
+      expect(events).toEqual(['begin', 'commit', 'dispatch']);
+    });
+    it('does not dispatch when the atomic project transition fails', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({ status: BatchProjectItemStatus.FAILED }),
+      );
+      prisma.batchProject.updateMany.mockRejectedValueOnce(
+        new Error('write failed'),
+      );
+      await expect(
+        service.retryItem('project-1', 'item-1', scope),
+      ).rejects.toThrow('write failed');
+      expect(
+        batchWorkflowExecutionService.startBatchExecution,
+      ).not.toHaveBeenCalled();
+    });
+
     it('keeps a started retry generating when saving its run link fails', async () => {
       useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }));
       prisma.batchProjectItem.findFirst.mockResolvedValue(

@@ -25,6 +25,7 @@ import { BatchGenerationRewriteRunnerService } from '@api/services/batch-generat
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { BatchGenerationWorkflowService } from '@api/services/batch-generation/batch-generation-workflow.service';
+import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
@@ -40,6 +41,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [BatchGenerationController],
   exports: [
+    BatchReviewLockService,
     BatchGenerationReviewService,
     BatchGenerationRewriteRunnerService,
     BatchGenerationCreditsService,
@@ -80,6 +82,7 @@ import { Module } from '@nestjs/common';
     WorkflowsCoreModule,
   ],
   providers: [
+    BatchReviewLockService,
     CreditsGuard,
     BatchRewriteCreditsGuard,
     BatchGenerationRewriteService,

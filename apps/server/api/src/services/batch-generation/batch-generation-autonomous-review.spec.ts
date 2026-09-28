@@ -167,6 +167,16 @@ function fixture() {
     activityRecorder as unknown as ConstructorParameters<
       typeof BatchGenerationReviewService
     >[7],
+    {
+      assertActive: vi.fn(),
+      run: vi.fn(
+        async (
+          _ids: string[],
+          _org: string,
+          operation: () => Promise<unknown>,
+        ) => operation(),
+      ),
+    } as never,
   );
   return {
     activityRecorder,

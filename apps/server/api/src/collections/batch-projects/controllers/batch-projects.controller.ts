@@ -9,6 +9,7 @@ import { UpdateBatchProjectDto } from '@api/collections/batch-projects/dto/updat
 import { UpdateBatchProjectItemDto } from '@api/collections/batch-projects/dto/update-batch-project-item.dto';
 import { BatchProjectSchedulingService } from '@api/collections/batch-projects/services/batch-project-scheduling.service';
 import { BatchProjectsService } from '@api/collections/batch-projects/services/batch-projects.service';
+import { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -173,6 +174,22 @@ export class BatchProjectsController {
     const project = await this.batchProjectsService.removeItem(
       id,
       itemId,
+      this.requireScope(user),
+    );
+    return serializeSingle(request, BatchProjectSerializer, project);
+  }
+
+  @Post(':id/ideas')
+  @RequiredScopes(...BATCH_PROJECT_WRITE_SCOPES)
+  async generateIdeas(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: GenerateFastlaneIdeasDto,
+  ) {
+    const project = await this.batchProjectsService.generateIdeas(
+      id,
+      body,
       this.requireScope(user),
     );
     return serializeSingle(request, BatchProjectSerializer, project);

@@ -23,6 +23,8 @@ import {
   mergeBatchProjectSettings,
 } from '@api/collections/batch-projects/services/batch-project-settings.util';
 import { countBatchProjectItems } from '@api/collections/batch-projects/services/batch-project-status.util';
+import type { GenerateFastlaneIdeasDto } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { BatchWorkflowExecutionService } from '@api/collections/workflows/services/batch-workflow-execution.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -88,6 +90,7 @@ export class BatchProjectsService {
     private readonly workflowsService: WorkflowsService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly ideaGeneration: BatchProjectIdeaGenerationService,
+    private readonly brandsService: BrandsService,
   ) {}
 
   async list(
@@ -285,6 +288,36 @@ export class BatchProjectsService {
         where: scopedWhere(scope.organizationId, { id }),
       }),
     ]);
+  }
+
+  async generateIdeas(
+    id: string,
+    dto: GenerateFastlaneIdeasDto,
+    scope: IBatchProjectScope,
+  ): Promise<IBatchProject> {
+    await this.assertIdeasEnabled(scope.organizationId);
+    const before = await this.requireProject(id, scope);
+    this.assertDraft(before);
+    if (before.kind !== BatchProjectKind.IDEAS)
+      throw new BadRequestException('Only idea batches generate ideas');
+    const project = await this.update(
+      id,
+      { settings: { ideas: dto }, step: BatchProjectStep.IDEAS },
+      scope,
+    );
+    const ideas = await this.brandsService.generateFastlaneIdeas(
+      project.brandId,
+      dto,
+      scope.organizationId,
+    );
+    return this.reconcileService.runExclusive(id, async () => {
+      const current = await this.requireProject(id, scope);
+      if (current.revision !== project.revision)
+        throw new ConflictException(
+          'The batch changed while ideas were generated. Try again.',
+        );
+      return this.addItemsLocked(id, { ideas }, scope);
+    });
   }
 
   /**
@@ -567,26 +600,33 @@ export class BatchProjectsService {
       }
 
       const attempt = item.retryCount + 1;
-      const claim = await this.prisma.batchProjectItem.updateMany({
-        data: {
-          dispatchedAt: new Date(),
-          error: null,
-          outputCategory: null,
-          outputIngredientId: null,
-          retryCount: attempt,
-          status: BatchProjectItemStatus.GENERATING,
-          workflowExecutionId: null,
-          workflowItemIndex: 0,
-        },
-        where: scopedWhere(scope.organizationId, {
-          id: itemId,
-          retryCount: item.retryCount,
-          status: BatchProjectItemStatus.FAILED,
-        }),
+      await this.prisma.$transaction(async (transaction) => {
+        const claim = await transaction.batchProjectItem.updateMany({
+          data: {
+            dispatchedAt: new Date(),
+            error: null,
+            outputCategory: null,
+            outputIngredientId: null,
+            retryCount: attempt,
+            status: BatchProjectItemStatus.GENERATING,
+            workflowExecutionId: null,
+            workflowItemIndex: 0,
+          },
+          where: scopedWhere(scope.organizationId, {
+            id: itemId,
+            retryCount: item.retryCount,
+            status: BatchProjectItemStatus.FAILED,
+          }),
+        });
+        if (claim.count !== 1) {
+          throw new ConflictException('This item is already being retried');
+        }
+
+        await transaction.batchProject.updateMany({
+          data: { status: BatchProjectStatus.GENERATING },
+          where: scopedWhere(scope.organizationId, { id }),
+        });
       });
-      if (claim.count !== 1) {
-        throw new ConflictException('This item is already being retried');
-      }
 
       if (project.workflowId && item.inputIngredientId) {
         let executionId: string;

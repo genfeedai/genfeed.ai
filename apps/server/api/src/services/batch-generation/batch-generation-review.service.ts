@@ -5,6 +5,8 @@ import {
 } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { runLockedReviewTransaction } from '@api/services/batch-generation/batch-generation-review-transaction';
+import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { buildAgentReviewActivity } from '@api/services/notifications/workflow-notifications/workflow-outcome-activity';
 import {
   BatchItemStatus,
@@ -70,7 +72,6 @@ import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.
 import { HarnessReviewFeedbackService } from '@api/services/harness/harness-review-feedback.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-
 @Injectable()
 export class BatchGenerationReviewService {
   constructor(
@@ -82,6 +83,7 @@ export class BatchGenerationReviewService {
     private readonly summaryService: BatchGenerationSummaryService,
     private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
     private readonly activityRecorder: ActivityRecorderService,
+    private readonly reviewLocks: BatchReviewLockService,
     @Optional()
     private readonly harnessReviewFeedbackService?: HarnessReviewFeedbackService,
   ) {}
@@ -759,29 +761,13 @@ export class BatchGenerationReviewService {
       batch: BatchWithConfig,
     ) => Promise<T>,
   ): Promise<T> {
-    return this.prisma.$transaction(async (transaction) => {
-      await transaction.$queryRaw(
-        Prisma.sql`SELECT "id" FROM "batches" WHERE "id" = ${batchId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
-      );
-      const batch = await transaction.batch.findFirst({
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      });
-      if (!batch) throw new NotFoundException('Batch', batchId);
-      const postIds = [
-        ...new Set(
-          resolveBatchItems(batch).flatMap((item) =>
-            item.postId ? [item.postId] : [],
-          ),
-        ),
-      ].sort();
-      if (postIds.length)
-        await transaction.$queryRaw(
-          Prisma.sql`SELECT "id" FROM "posts" WHERE "id" IN (${Prisma.join(postIds)}) AND "organizationId" = ${orgId} AND "isDeleted" = false ORDER BY "id" FOR UPDATE`,
-        );
-
-      return operation(transaction, toBatchWithConfig(batch));
-    });
+    return runLockedReviewTransaction(
+      this.prisma,
+      this.reviewLocks,
+      batchId,
+      orgId,
+      operation,
+    );
   }
 
   async assignItem(
