@@ -46,7 +46,7 @@ export function useAgentRuntimeSelection(params: {
   const updateThread = useAgentChatStore((s) => s.updateThread);
   const draftRuntimeKey = useAgentChatStore((s) => s.draftRuntimeKey);
   const setDraftRuntimeKey = useAgentChatStore((s) => s.setDraftRuntimeKey);
-  const desktopTools = useDesktopLocalTools();
+  const { tools: desktopTools } = useDesktopLocalTools();
   const [installReadiness, setInstallReadiness] =
     useState<AgentInstallReadiness | null>(null);
 

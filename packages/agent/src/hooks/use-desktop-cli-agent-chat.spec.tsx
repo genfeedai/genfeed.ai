@@ -1,6 +1,7 @@
 import { useDesktopCliAgentChat } from '@genfeedai/agent/hooks/use-desktop-cli-agent-chat';
 import { resetDesktopLocalToolsCache } from '@genfeedai/agent/hooks/use-desktop-local-tools';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE } from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -164,32 +165,76 @@ describe('useDesktopCliAgentChat transport selection', () => {
     expect(useAgentChatStore.getState().error).toContain(CODEX_UPGRADE_MESSAGE);
   });
 
-  it('waits for CLI detection before a first send, and still blocks', async () => {
+  it('refuses a send while CLI detection is pending instead of dispatching it later', async () => {
     let finishDetection: () => void = () => undefined;
     const detection = new Promise<void>((resolve) => {
       finishDetection = resolve;
     });
-    const bridge = installBridge(
-      { claude: true, codex: false, isCodexOutdated: true },
-      detection,
-    );
-    setActiveThread('local/codex-cli');
+    const bridge = installBridge({ claude: true, codex: false }, detection);
+    setActiveThread('local/claude-cli');
 
     const { result } = renderHook(() => useDesktopCliAgentChat());
     expect(result.current.isEnabled).toBe(true);
-    expect(result.current.blockedReason).toBeNull();
+    expect(result.current.blockedReason).toBe(
+      DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
+    );
+
+    await act(async () => {
+      await result.current.sendMessage('Sent before detection finished');
+    });
+    expect(useAgentChatStore.getState().error).toBe(
+      DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
+    );
+    expect(useAgentChatStore.getState().messages).toEqual([]);
+
+    await act(async () => {
+      finishDetection();
+      await detection;
+    });
+    await waitFor(() => expect(result.current.blockedReason).toBeNull());
+    expect(bridge.agentRuntime.startTurn).not.toHaveBeenCalled();
+  });
+
+  it('never runs a pending-detection send in the thread the user moved to', async () => {
+    let finishDetection: () => void = () => undefined;
+    const detection = new Promise<void>((resolve) => {
+      finishDetection = resolve;
+    });
+    const bridge = installBridge({ claude: true, codex: false }, detection);
+    setActiveThread('local/claude-cli');
+
+    const { result } = renderHook(() => useDesktopCliAgentChat());
 
     let send: Promise<void> = Promise.resolve();
     act(() => {
-      send = result.current.sendMessage('Sent before detection finished');
+      send = result.current.sendMessage('Prompt written in thread A');
+    });
+    act(() => {
+      useAgentChatStore.setState({
+        activeThreadId: 'thread-2',
+        threads: [
+          ...useAgentChatStore.getState().threads,
+          {
+            brandId: 'brand-b',
+            contextVersion: 1,
+            createdAt: '2026-09-25T00:00:00.000Z',
+            id: 'thread-2',
+            runtimeKey: 'local/claude-cli',
+            status: AgentThreadStatus.ACTIVE,
+            updatedAt: '2026-09-25T00:00:00.000Z',
+          },
+        ],
+      });
     });
     await act(async () => {
       finishDetection();
+      await detection;
       await send;
     });
 
+    await waitFor(() => expect(result.current.blockedReason).toBeNull());
     expect(bridge.agentRuntime.startTurn).not.toHaveBeenCalled();
-    expect(useAgentChatStore.getState().error).toContain(CODEX_UPGRADE_MESSAGE);
+    expect(useAgentChatStore.getState().messages).toEqual([]);
   });
 
   it('stops the local turn only while its thread is the visible one', async () => {
@@ -203,7 +248,7 @@ describe('useDesktopCliAgentChat transport selection', () => {
     };
 
     const { result } = renderHook(() => useDesktopCliAgentChat());
-    await waitFor(() => expect(result.current.isEnabled).toBe(true));
+    await waitFor(() => expect(result.current.blockedReason).toBeNull());
 
     act(() => {
       void result.current.sendMessage('Draft a launch post');

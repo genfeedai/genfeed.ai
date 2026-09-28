@@ -1,12 +1,10 @@
 'use client';
 
 import type { SendStreamMessageOptions } from '@genfeedai/agent/hooks/agent-chat-stream.types';
-import {
-  loadDesktopLocalTools,
-  useDesktopLocalTools,
-} from '@genfeedai/agent/hooks/use-desktop-local-tools';
+import { useDesktopLocalTools } from '@genfeedai/agent/hooks/use-desktop-local-tools';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
+  DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
   resolveDesktopCliRuntimeBlocker,
   resolveDesktopCliRuntimeKey,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
@@ -20,9 +18,9 @@ import { useCallback, useRef } from 'react';
 
 export interface DesktopCliAgentChat {
   /**
-   * Why the bound local runtime cannot take a turn (CLI missing or too old),
-   * or null. Sends are refused while it is set; they never fall back to the
-   * hosted runtime.
+   * Why the bound local runtime cannot take a turn right now (CLI still being
+   * detected, missing, or too old), or null. Sends are refused while it is
+   * set, keeping the draft; they never fall back to the hosted runtime.
    */
   blockedReason: string | null;
   /**
@@ -48,7 +46,8 @@ export interface DesktopCliAgentChat {
  * subscription instead of the hosted agent API stream.
  */
 export function useDesktopCliAgentChat(): DesktopCliAgentChat {
-  const desktopTools = useDesktopLocalTools();
+  const { isResolved: isDetectionResolved, tools: desktopTools } =
+    useDesktopLocalTools();
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const activeThreadRuntimeKey = useAgentChatStore(
     (s) =>
@@ -64,6 +63,15 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
     thread: { runtimeKey: activeThreadRuntimeKey },
   });
 
+  // Until detection finishes the runtime cannot be vouched for: refuse the
+  // send (the draft stays) rather than wait and dispatch later, when the
+  // visible thread may have changed.
+  const blockedReason = !runtimeKey
+    ? null
+    : isDetectionResolved
+      ? resolveDesktopCliRuntimeBlocker(runtimeKey, desktopTools)
+      : DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE;
+
   const sendMessage = useCallback(
     async (content: string, options?: SendStreamMessageOptions) => {
       const bridge = getGenfeedDesktopBridge();
@@ -76,13 +84,8 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
         return;
       }
 
-      // Detection may still be in flight on the first send of a session.
-      const blocker = resolveDesktopCliRuntimeBlocker(
-        runtimeKey,
-        await loadDesktopLocalTools(),
-      );
-      if (blocker) {
-        useAgentChatStore.getState().setError(blocker);
+      if (blockedReason) {
+        useAgentChatStore.getState().setError(blockedReason);
         return;
       }
 
@@ -94,7 +97,7 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
         runtimeKey,
       });
     },
-    [runtimeKey],
+    [blockedReason, runtimeKey],
   );
 
   const cancelActiveTurn = useCallback((): boolean => {
@@ -117,11 +120,6 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
       .catch(() => undefined);
     return true;
   }, []);
-
-  const blockedReason =
-    runtimeKey && desktopTools
-      ? resolveDesktopCliRuntimeBlocker(runtimeKey, desktopTools)
-      : null;
 
   return {
     blockedReason,

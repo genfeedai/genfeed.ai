@@ -153,6 +153,9 @@ export function buildAgentRuntimeCatalog(params: {
   };
 }
 
+export const DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE =
+  'Checking the local CLI on this computer. Send again in a moment.';
+
 /** The picker option for a local CLI runtime, installed or not. */
 export function getDesktopCliRuntimeOption(
   key: AgentExternalRuntimeKey,

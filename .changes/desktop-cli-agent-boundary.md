@@ -13,7 +13,9 @@ Desktop local CLI agent: turn ownership and Codex readiness.
   `DesktopCliAgentChat.blockedReason` makes the composer refuse the send, and
   `AgentRuntimeSelection.runtimeNotice` shows why in the runtime bar.
   `AgentRuntimeSelector` takes `selectedRuntime` instead of
-  `selectedRuntimeKey`. New exports are `getDesktopCliRuntimeOption` and
-  `loadDesktopLocalTools`.
+  `selectedRuntimeKey`. `useDesktopLocalTools` returns
+  `{ isResolved, tools }`: until detection resolves, a bound thread's send is
+  refused with `DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE` and the draft is kept.
+  `getDesktopCliRuntimeOption` is a new export.
 - `@genfeedai/contracts`: `IDesktopLocalToolReadiness.upgradesRequired`
   (optional, `IDesktopLocalToolUpgrade[]`) lists those CLIs.
