@@ -1,9 +1,10 @@
+import { orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiOrigin } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { orgPath } from '../../utils/app-chrome';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 type TaskCreatePayload = {
   description?: string;
@@ -362,78 +363,108 @@ test.describe('Tasks', () => {
   test('loads the tasks list, filters it, and opens the task overlay', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
-      waitUntil: 'domcontentloaded',
-    });
+    // Org-scoped: the workspace shell resolves which surface (and therefore
+    // which inspector adapter) is active from the client-side pathname
+    // itself (`resolveWorkspaceShellRoute` in workspace-shell-registry.ts),
+    // which only recognizes the `/:orgSlug/~/workspace/tasks` shape. The bare
+    // path still server-renders the same page, but the client never treats
+    // the tasks surface as "effective," so selecting a row never opens the
+    // inspector rail.
+    const tasksUrl = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await authenticatedPage.goto(tasksUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksUrl);
 
-    expect(new URL(authenticatedPage.url()).pathname).toBe(
-      APP_ROUTES.WORKSPACE.TASKS,
-    );
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Tasks' }),
     ).toBeVisible();
+    // Rows render the task's title, not its identifier — the identifier only
+    // shows on the standalone detail page and the inspector's "Open full
+    // page" link.
     await expect(
-      authenticatedPage.getByRole('button', { name: /GEN-101/i }),
+      authenticatedPage.getByRole('button', {
+        name: 'Regression in task orchestration',
+      }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /GEN-102/i }),
+      authenticatedPage.getByRole('button', {
+        name: 'Analytics export is failing',
+      }),
     ).toBeVisible();
 
-    const statusFilter = authenticatedPage.locator('select').first();
-
-    await statusFilter.selectOption('blocked');
+    // The status filter is a `@ui/primitives/select` (Radix), not a raw
+    // `<select>` — scoped to the toolbar to avoid the per-row status/priority
+    // selects sharing the combobox role.
+    const toolbar = authenticatedPage.getByTestId('container-header-actions');
+    await toolbar.getByRole('combobox').click();
+    await authenticatedPage.getByRole('option', { name: 'Blocked' }).click();
 
     await expect(
-      authenticatedPage.getByRole('button', { name: /GEN-102/i }),
+      authenticatedPage.getByRole('button', {
+        name: 'Analytics export is failing',
+      }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: /GEN-101/i }),
+      authenticatedPage.getByRole('button', {
+        name: 'Regression in task orchestration',
+      }),
     ).toHaveCount(0);
 
-    await statusFilter.selectOption('');
-    await authenticatedPage.getByRole('button', { name: /GEN-101/i }).click();
+    await toolbar.getByRole('combobox').click();
+    await authenticatedPage
+      .getByRole('option', { name: 'All Statuses' })
+      .click();
+    await authenticatedPage
+      .getByRole('button', { name: 'Regression in task orchestration' })
+      .click();
 
-    const overlay = authenticatedPage.getByRole('dialog');
+    await expect(authenticatedPage).toHaveURL(/[?&]taskId=task-101(&|$)/);
 
-    await expect(overlay).toBeVisible();
+    // Selecting a row projects the task into the workspace inspector rail
+    // (same pattern as the library's asset inspector) — not a modal dialog.
+    const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
+    await expect(inspector).toBeVisible();
     await expect(
-      overlay.getByText('Regression in task orchestration'),
+      inspector.getByText('Regression in task orchestration'),
     ).toBeVisible();
-    await expect(overlay.getByText(/Comments \(4\)/)).toBeVisible();
+    await expect(inspector.getByText(/comments \(4\)/i)).toBeVisible();
     await expect(
-      overlay.getByRole('button', { name: 'Open full page' }),
-    ).toBeVisible();
+      inspector.getByRole('link', { name: 'Open full page' }),
+    ).toHaveAttribute('href', `${orgPath(APP_ROUTES.WORKSPACE.TASKS)}/GEN-101`);
   });
 
   test('creates a new task from the list view', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(APP_ROUTES.WORKSPACE.TASKS, {
-      waitUntil: 'domcontentloaded',
-    });
+    const tasksUrl = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await authenticatedPage.goto(tasksUrl, { waitUntil: 'domcontentloaded' });
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksUrl);
 
-    await authenticatedPage.getByRole('button', { name: 'New Task' }).click();
+    // Scoped: the app rail also exposes a global "New Task" shortcut
+    // (`sidebar-primary-action`) with the same accessible name.
+    const toolbar = authenticatedPage.getByTestId('container-header-actions');
+    await toolbar.getByRole('button', { name: 'New Task' }).click();
+    const dialog = authenticatedPage.getByRole('dialog');
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Create Task' }),
+      dialog.getByRole('heading', { name: 'Create Task' }),
     ).toBeVisible();
 
-    await authenticatedPage
+    await dialog
       .getByPlaceholder('Task title')
       .fill('Add failing coverage for task dashboards');
-    await authenticatedPage
+    await dialog
       .getByPlaceholder('Optional description')
       .fill('We need one targeted Playwright spec for the tasks area.');
-    await authenticatedPage
-      .getByRole('dialog')
-      .locator('select')
-      .selectOption('critical');
-    await authenticatedPage
-      .getByRole('button', { name: 'Create Task' })
-      .click();
+    // Priority is a `@ui/primitives/select` (Radix) too — its listbox renders
+    // through a portal, outside the dialog's own DOM subtree.
+    await dialog.getByRole('combobox').click();
+    await authenticatedPage.getByRole('option', { name: 'Critical' }).click();
+    await dialog.getByRole('button', { name: 'Create Task' }).click();
 
+    // The created row shows its title only, same as the seeded rows above —
+    // the identifier never renders in the list.
     await expect(
       authenticatedPage.getByRole('button', {
-        name: /GEN-104.*Add failing coverage for task dashboards/i,
+        name: 'Add failing coverage for task dashboards',
       }),
     ).toBeVisible();
   });
@@ -445,6 +476,7 @@ test.describe('Tasks', () => {
     await authenticatedPage.goto(taskRoute, {
       waitUntil: 'domcontentloaded',
     });
+    await assertNoErrorBoundaryFallback(authenticatedPage, taskRoute);
 
     expect(new URL(authenticatedPage.url()).pathname).toBe(taskRoute);
     await expect(
@@ -479,6 +511,43 @@ test.describe('Tasks', () => {
       ),
     ).toBeVisible();
   });
+
+  test('following "Back to issues" from the detail page still activates the inspector', async ({
+    authenticatedPage,
+  }) => {
+    // Root-cause regression coverage for #5397: `issue-detail.tsx`'s back
+    // link used to build a bare `APP_ROUTES.WORKSPACE.TASKS` href. The
+    // workspace-shell registry only recognizes the scoped
+    // `/:orgSlug/~/workspace/tasks` pathname (`resolveWorkspaceShellRoute`),
+    // so following that link left a real user on a pathname where selecting
+    // a row would never open the inspector rail. The fix scopes the link via
+    // `useOrgUrl()`'s `href()` — this proves the round trip through the
+    // product's own link, not just a direct navigation to the scoped route.
+    const detailRoute = orgPath(`${APP_ROUTES.WORKSPACE.TASKS}/GEN-101`);
+    await authenticatedPage.goto(detailRoute, {
+      waitUntil: 'domcontentloaded',
+    });
+    await assertNoErrorBoundaryFallback(authenticatedPage, detailRoute);
+
+    await authenticatedPage
+      .getByRole('link', { name: 'Back to issues' })
+      .click();
+
+    const tasksUrl = orgPath(APP_ROUTES.WORKSPACE.TASKS);
+    await expect(authenticatedPage).toHaveURL(new RegExp(`${tasksUrl}$`));
+    await assertNoErrorBoundaryFallback(authenticatedPage, tasksUrl);
+
+    await authenticatedPage
+      .getByRole('button', { name: 'Regression in task orchestration' })
+      .click();
+    await expect(authenticatedPage).toHaveURL(/[?&]taskId=task-101(&|$)/);
+
+    const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
+    await expect(inspector).toBeVisible();
+    await expect(
+      inspector.getByText('Regression in task orchestration'),
+    ).toBeVisible();
+  });
 });
 
 test.describe('Tasks — Unauthenticated Access', () => {
@@ -495,12 +564,20 @@ test.describe('Tasks — Unauthenticated Access', () => {
         timeout: 5000,
       });
       expect(unauthenticatedPage.url()).toMatch(/\/sign-in|\/login/);
+      await assertNoErrorBoundaryFallback(
+        unauthenticatedPage,
+        unauthenticatedPage.url(),
+      );
       return;
     } catch {
       // Local keyless dev mode intentionally skips auth enforcement.
     }
 
     expect(new URL(unauthenticatedPage.url()).pathname).toBe(
+      APP_ROUTES.WORKSPACE.TASKS,
+    );
+    await assertNoErrorBoundaryFallback(
+      unauthenticatedPage,
       APP_ROUTES.WORKSPACE.TASKS,
     );
   });

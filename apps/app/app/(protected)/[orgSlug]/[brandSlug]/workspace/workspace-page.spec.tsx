@@ -864,6 +864,6 @@ describe('WorkspacePageContent', () => {
     await openMoreActions(inspector);
     expect(
       await screen.findByRole('menuitem', { name: 'Open Issue' }),
-    ).toHaveAttribute('href', '/workspace/tasks/GEN-42');
+    ).toHaveAttribute('href', '/acme-org/acme-creator/workspace/tasks/GEN-42');
   });
 });

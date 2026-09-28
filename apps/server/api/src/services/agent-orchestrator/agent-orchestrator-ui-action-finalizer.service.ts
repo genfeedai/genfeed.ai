@@ -9,6 +9,7 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import type { AgentChatResult } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { captureRunArtifacts } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
+import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
@@ -69,7 +70,13 @@ export class AgentOrchestratorUiActionFinalizerService {
       ...(params.messageId ? { id: params.messageId } : {}),
       brandId: params.context.scope?.brandId,
       content: normalizedContent.content,
-      metadata: { creditsRemaining, ...assistantMetadata },
+      // `runId` correlates the reply with the acknowledged ui-action
+      // execution; the client reconciles the async ack by it.
+      metadata: buildPersistedAgentResponseMetadata(
+        assistantMetadata,
+        creditsRemaining,
+        params.context.executionId,
+      ),
       organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,

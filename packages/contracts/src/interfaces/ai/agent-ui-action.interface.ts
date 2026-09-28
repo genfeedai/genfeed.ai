@@ -76,10 +76,22 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+/**
+ * What a UI action handler reports back to the card that invoked it.
+ * `true`: the action finished. `false`: it was rejected or failed.
+ * `'pending'`: the server accepted it, but its result has not arrived yet, so
+ * the card must stay in its in-flight state rather than show success or error.
+ */
+export type AgentUiActionOutcome = boolean | 'pending';
+
 export type AgentUiActionHandler = (
   action: string,
   payload?: Record<string, unknown>,
-) => boolean | void | Promise<boolean | undefined> | Promise<void>;
+) =>
+  | AgentUiActionOutcome
+  | void
+  | Promise<AgentUiActionOutcome | undefined>
+  | Promise<void>;
 
 export type AgentPublishTargetMediaKind =
   | 'carousel'

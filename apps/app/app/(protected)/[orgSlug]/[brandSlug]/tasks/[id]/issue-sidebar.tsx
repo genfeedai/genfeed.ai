@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { IssueSidebarProps } from '@props/tasks/issue-sidebar.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -24,6 +25,7 @@ export default function IssueSidebar({
   entityModelLabels,
   onStatusUpdate,
 }: IssueSidebarProps) {
+  const { href } = useOrgUrl();
   return (
     <div className="space-y-4">
       <Card>
@@ -70,7 +72,9 @@ export default function IssueSidebar({
                 <DefinitionTerm variant="label">Parent Issue</DefinitionTerm>
                 <DefinitionDetail variant="inline">
                   <Link
-                    href={`${APP_ROUTES.WORKSPACE.TASKS}/${issue.parentId}`}
+                    href={href(
+                      `${APP_ROUTES.WORKSPACE.TASKS}/${issue.parentId}`,
+                    )}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     View parent

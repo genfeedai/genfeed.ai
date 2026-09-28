@@ -1,5 +1,8 @@
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionOutcome,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -541,6 +544,33 @@ describe('UiActionRenderer', () => {
 
     await expect(confirmationHandler('confirm_create_brand')).resolves.toBe(
       false,
+    );
+  });
+
+  it('passes a pending outcome through to brand confirmation cards', async () => {
+    const onUiAction = vi.fn().mockResolvedValue('pending');
+    const action = {
+      id: 'brand-confirmation-pending',
+      type: 'brand_identity_confirmation_card',
+    } as AgentUiAction;
+
+    render(<UiActionRenderer action={action} onUiAction={onUiAction} />);
+
+    const confirmationHandler =
+      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
+        .onUiAction as
+        | ((
+            actionName: string,
+            payload?: Record<string, unknown>,
+          ) => Promise<AgentUiActionOutcome>)
+        | undefined;
+
+    if (!confirmationHandler) {
+      throw new Error('Brand confirmation handler was not forwarded.');
+    }
+
+    await expect(confirmationHandler('confirm_create_brand')).resolves.toBe(
+      'pending',
     );
   });
 

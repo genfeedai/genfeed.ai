@@ -1,9 +1,18 @@
+import { orgPath } from '@e2e/utils/app-chrome';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 export class AgentPage {
   readonly page: Page;
-  readonly url = '/agent/new';
+  // Org-scoped: the bare `/agent/new` path renders, but the client only
+  // resolves `orgSlug`/`brandSlug` from route params or the pathname's own
+  // `/:orgSlug/~/...` shape (see `useOrgUrl`), so a bare-path visit leaves the
+  // thread-promotion push (`activeHref`) unable to resolve org scope. Every
+  // other agent spec already navigates org-scoped (see
+  // chat-flow-interactions.spec.ts's `ORG` constant); this page object must
+  // match or the post-send URL assertions in its specs never settle.
+  readonly url = orgPath(APP_ROUTES.AGENT.NEW);
   readonly heading: Locator;
   readonly chatInput: Locator;
   readonly planModeButton: Locator;

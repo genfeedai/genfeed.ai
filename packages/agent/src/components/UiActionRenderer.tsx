@@ -255,8 +255,14 @@ export function UiActionRenderer({
           action={action}
           onUiAction={
             liveOnUiAction
-              ? async (actionName, payload) =>
-                  (await liveOnUiAction(actionName, payload)) === true
+              ? async (actionName, payload) => {
+                  const outcome = await liveOnUiAction(actionName, payload);
+                  // A void legacy outcome is a failure; `'pending'` passes
+                  // through so the card stays in flight.
+                  return outcome === true || outcome === 'pending'
+                    ? outcome
+                    : false;
+                }
               : undefined
           }
         />

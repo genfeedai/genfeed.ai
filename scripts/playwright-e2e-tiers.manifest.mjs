@@ -43,36 +43,9 @@ export const PLAYWRIGHT_E2E_QUARANTINES = [
     reviewBy: '2026-11-17',
   },
   {
-    file: 'playwright/e2e/tests/tasks/tasks-edge-states.spec.ts',
-    reason:
-      'Standalone /tasks was retired; workspace inbox owns the desk. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/tasks/tasks.spec.ts',
-    reason:
-      'Standalone /tasks was retired; workspace inbox owns the desk. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/chat/chat-flows.spec.ts',
-    reason:
-      'Agent chat analytics snapshot / publish-fallback UI drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
     file: 'playwright/e2e/tests/analytics/overview.spec.ts',
     reason:
       'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/chat/plan-mode.spec.ts',
-    reason: 'Plan-mode approval chrome drifted. Evidence: run 31991510270.',
     trackingIssue: 2982,
     reviewBy: '2026-11-17',
   },

@@ -1,4 +1,8 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentUiActionRequest } from '@genfeedai/agent/hooks/use-agent-ui-action-request';
+import type {
+  AgentUiAction,
+  AgentUiActionOutcome,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -19,7 +23,7 @@ interface BrandIdentityConfirmationCardProps {
   onUiAction?: (
     action: string,
     payload?: Record<string, unknown>,
-  ) => Promise<boolean>;
+  ) => Promise<AgentUiActionOutcome>;
 }
 
 type BrandIdentityOperation = 'create' | 'rename';
@@ -72,9 +76,19 @@ export function BrandIdentityConfirmationCard({
   const [description, setDescription] = useState(initialValue.description);
   const [label, setLabel] = useState(initialValue.label);
   const [slug, setSlug] = useState(initialValue.slug);
-  const [isPending, setIsPending] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const request = useAgentUiActionRequest(onUiAction, { isVoidSuccess: false });
+  // Keyed by the source action, so the phase is known before the edits.
+  const phase = confirmationCta?.action
+    ? request.getPhase(confirmationCta.action, { sourceActionId })
+    : 'idle';
+  const isPending = phase === 'running' || phase === 'awaiting';
+  const isConfirmed = phase === 'completed';
+  const error =
+    phase === 'failed'
+      ? operation === 'create'
+        ? translate('createError')
+        : translate('renameError')
+      : null;
   const isInteractive = Boolean(onUiAction && confirmationCta?.action);
 
   const handleLabelChange = useCallback(
@@ -113,30 +127,13 @@ export function BrandIdentityConfirmationCard({
       return;
     }
 
-    setError(null);
-    setIsPending(true);
-
-    try {
-      const outcome = await onUiAction(confirmationCta.action, {
-        ...confirmationCta.payload,
-        label: trimmedLabel,
-        slug: trimmedSlug,
-        ...(operation === 'create' ? { description: description.trim() } : {}),
-        sourceActionId,
-      });
-      if (outcome !== true) {
-        throw new Error('Brand confirmation was not accepted.');
-      }
-      setIsConfirmed(true);
-    } catch {
-      setError(
-        operation === 'create'
-          ? translate('createError')
-          : translate('renameError'),
-      );
-    } finally {
-      setIsPending(false);
-    }
+    await request.submit(confirmationCta.action, {
+      ...confirmationCta.payload,
+      label: trimmedLabel,
+      slug: trimmedSlug,
+      ...(operation === 'create' ? { description: description.trim() } : {}),
+      sourceActionId,
+    });
   }, [
     confirmationCta?.action,
     confirmationCta?.payload,
@@ -146,9 +143,9 @@ export function BrandIdentityConfirmationCard({
     label,
     onUiAction,
     operation,
+    request,
     slug,
     sourceActionId,
-    translate,
   ]);
 
   if (isConfirmed) {

@@ -53,6 +53,17 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   },
 }));
 
+// The "Back to issues" link must be scope-aware (#5397): a bare
+// `APP_ROUTES.WORKSPACE.TASKS` `Link` renders on a pathname the workspace
+// shell registry never recognizes, so the inspector adapter never activates
+// after following it. `href()` builds the brand-scoped path when a brand is
+// selected, else falls back to the org-scoped one — verified below.
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/brand-x${path}`,
+  }),
+}));
+
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: mocks.loggerError },
 }));
@@ -84,6 +95,16 @@ describe('IssueDetail', () => {
     vi.clearAllMocks();
     mocks.getChildren.mockResolvedValue([]);
     mocks.listComments.mockResolvedValue([]);
+  });
+
+  it('scopes the back-to-issues link so the workspace shell recognizes the destination', () => {
+    mocks.findOne.mockReturnValue(new Promise(() => {}));
+
+    render(<IssueDetail issueId="task-1" />);
+
+    expect(
+      screen.getByRole('link', { name: /back to issues/i }),
+    ).toHaveAttribute('href', '/acme/brand-x/workspace/tasks');
   });
 
   it('renders the back link and a loading placeholder while the issue loads, then the issue', async () => {
