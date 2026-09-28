@@ -91,6 +91,25 @@ describe('ListRow', () => {
     render(<ListRow title="Row" data-testid="my-row" />);
     expect(screen.getByTestId('my-row')).toBeInTheDocument();
   });
+
+  // Secondary text sits on a 4% card in dark mode. The theme's muted token
+  // clears WCAG AA there (7.7:1); the old /40 timestamp was 3.4:1.
+  it('sets description and meta in the muted token, not a faint opacity', () => {
+    render(
+      <ListRow
+        description="Row description"
+        meta={<span>2 days ago</span>}
+        title="Row title"
+      />,
+    );
+
+    expect(screen.getByText('Row description')).toHaveClass(
+      'text-muted-foreground',
+    );
+    expect(screen.getByText('2 days ago').parentElement).toHaveClass(
+      'text-muted-foreground',
+    );
+  });
 });
 
 describe('ListRowsSkeleton', () => {

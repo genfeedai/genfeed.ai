@@ -79,7 +79,7 @@ export function WorkspaceSurface({
           <div className="flex min-h-control-sm items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
               {eyebrow ? (
-                <p className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
+                <p className="text-2xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {eyebrow}
                 </p>
               ) : null}
@@ -103,7 +103,7 @@ export function WorkspaceSurface({
             ) : null}
           </div>
           {description ? (
-            <p className="text-sm leading-6 text-foreground/55">
+            <p className="text-sm leading-6 text-muted-foreground">
               {description}
             </p>
           ) : null}
