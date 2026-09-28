@@ -255,9 +255,22 @@ export class EditorProjectsController {
       );
     }
 
+    // Only `tracks` is a column; the Editor's other fields live under config
+    // (see create), so merge them in rather than handing Prisma unknown keys.
+    const { name, settings, thumbnailUrl, totalDurationFrames, tracks } =
+      updateDto;
     const data: EditorProjectDocument = await this.editorProjectsService.patch(
       id,
-      updateDto,
+      {
+        config: {
+          ...this.editorProjectsService.readProjectConfig(existing.config),
+          ...(name !== undefined ? { name } : {}),
+          ...(settings !== undefined ? { settings } : {}),
+          ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
+          ...(totalDurationFrames !== undefined ? { totalDurationFrames } : {}),
+        },
+        ...(tracks !== undefined ? { tracks } : {}),
+      },
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);

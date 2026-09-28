@@ -605,8 +605,8 @@ describe('EditorPageContent', () => {
     });
 
     it('opens a locked project read-only and never attempts a save', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
       await renderLoadedEditor(makeProject({ isLocked: true }));
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
       const banner = screen.getByRole('status');
       expect(banner).toHaveTextContent('This project is read-only');
@@ -626,9 +626,10 @@ describe('EditorPageContent', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Render' }));
       fireEvent.keyDown(window, { key: 's', metaKey: true });
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(31_000);
+      act(() => {
+        vi.advanceTimersByTime(31_000);
       });
+      vi.useRealTimers();
 
       expect(screen.getByText('dirty:false')).toBeVisible();
       expect(
@@ -707,18 +708,19 @@ describe('EditorPageContent', () => {
     });
 
     it('switches to read-only when an autosave conflicts', async () => {
-      vi.useFakeTimers({ shouldAdvanceTime: true });
       mocks.update.mockRejectedValue(
         Object.assign(new Error('Conflict'), { status: 409 }),
       );
       await renderLoadedEditor();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
       fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
-      expect(await screen.findByText('dirty:true')).toBeVisible();
+      expect(screen.getByText('dirty:true')).toBeVisible();
 
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(31_000);
+      act(() => {
+        vi.advanceTimersByTime(31_000);
       });
+      vi.useRealTimers();
 
       expect(await screen.findByRole('status')).toHaveTextContent(
         'This project is read-only',

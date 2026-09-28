@@ -89,6 +89,11 @@ describe('EditorProjectsController', () => {
             findOne: vi.fn(),
             findForRender: vi.fn().mockResolvedValue({ config: {} }),
             patch: vi.fn(),
+            readProjectConfig: vi.fn((value: unknown) =>
+              value && typeof value === 'object' && !Array.isArray(value)
+                ? value
+                : {},
+            ),
           },
         },
         {
@@ -272,7 +277,7 @@ describe('EditorProjectsController', () => {
   // ── update ────────────────────────────────────────────────────────────────
   describe('update', () => {
     it('updates and returns the project', async () => {
-      const project = makeProject();
+      const project = makeProject({ config: { name: 'My Project' } });
       const updated = { ...project, name: 'Updated' };
       editorProjectsService.findOne.mockResolvedValue(project as never);
       editorProjectsService.patch.mockResolvedValue(updated as never);
@@ -286,9 +291,54 @@ describe('EditorProjectsController', () => {
 
       expect(editorProjectsService.patch).toHaveBeenCalledWith(
         String(project.id),
-        { name: 'Updated' },
+        { config: { name: 'Updated' } },
       );
       expect(result).toMatchObject({ data: updated });
+    });
+
+    it('persists Editor fields under config and tracks as the column', async () => {
+      const settings = {
+        backgroundColor: '#000000',
+        format: 'portrait',
+        fps: 30,
+        height: 1920,
+        width: 1080,
+      };
+      const tracks = [{ clips: [], id: 'track-1', name: 'Text 1' }];
+      const project = makeProject({
+        config: {
+          name: 'Draft',
+          renderExport: { job: { jobId: 'job-1' } },
+          settings: { ...settings, format: 'landscape' },
+          sourceVideoId: 'video-1',
+          status: 'completed',
+          totalDurationFrames: 300,
+        },
+      });
+      editorProjectsService.findOne.mockResolvedValue(project as never);
+      editorProjectsService.patch.mockResolvedValue(project as never);
+
+      await controller.update(makeRequest(), makeUser(), String(project.id), {
+        name: 'Edited',
+        settings,
+        totalDurationFrames: 450,
+        tracks,
+      } as never);
+
+      expect(editorProjectsService.patch).toHaveBeenCalledWith(
+        String(project.id),
+        {
+          config: {
+            name: 'Edited',
+            renderExport: { job: { jobId: 'job-1' } },
+            settings,
+            sourceVideoId: 'video-1',
+            status: 'completed',
+            totalDurationFrames: 450,
+          },
+          tracks,
+        },
+      );
     });
 
     it('throws NotFoundException when project not found during update', async () => {
