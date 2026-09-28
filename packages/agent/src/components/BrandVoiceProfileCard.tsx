@@ -7,6 +7,7 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
 interface BrandVoiceProfileCardProps {
@@ -26,6 +27,7 @@ export function BrandVoiceProfileCard({
   action,
   onUiAction,
 }: BrandVoiceProfileCardProps): ReactElement {
+  const translate = useTranslations('agent.brandVoiceProfileCard');
   const request = useAgentUiActionRequest(onUiAction);
   const profile = useMemo(() => {
     const data = action.data ?? {};
@@ -238,7 +240,7 @@ export function BrandVoiceProfileCard({
       ) : null}
       {phase === 'awaiting' ? (
         <p className="mt-2 text-xs text-muted-foreground" role="status">
-          Still saving. This card updates when the save finishes.
+          {translate('awaitingResult')}
         </p>
       ) : null}
       {failure ? (

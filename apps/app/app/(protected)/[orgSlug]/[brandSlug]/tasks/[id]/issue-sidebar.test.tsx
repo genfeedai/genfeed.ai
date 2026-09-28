@@ -1,10 +1,10 @@
 import '@testing-library/jest-dom/vitest';
 import type { IssueSidebarProps } from '@props/tasks/issue-sidebar.props';
-import type {
+import {
   Task,
-  TaskLinkedEntityModel,
-  TaskPriority,
-  TaskStatus,
+  type TaskLinkedEntityModel,
+  type TaskPriority,
+  type TaskStatus,
 } from '@services/management/tasks.service';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -74,14 +74,14 @@ function buildProps(overrides?: Partial<IssueSidebarProps>): IssueSidebarProps {
   return {
     entityModelColors: ENTITY_MODEL_COLORS,
     entityModelLabels: ENTITY_MODEL_LABELS,
-    issue: {
+    issue: new Task({
       createdAt: '2026-03-31T08:00:00.000Z',
       linkedEntities: [],
       parentId: 'task-parent-1',
       priority: 'medium',
       status: 'todo',
       updatedAt: '2026-03-31T08:00:00.000Z',
-    } as Task,
+    }),
     onStatusUpdate: vi.fn(),
     priorityColors: PRIORITY_COLORS,
     priorityLabels: PRIORITY_LABELS,

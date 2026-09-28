@@ -30,6 +30,9 @@
     "empty": "No active or recently failed runs.",
     "stale": "Run status may be stale until the connection recovers."
   },
+  "brandVoiceProfileCard": {
+    "awaitingResult": "Still saving. This card updates when the save finishes."
+  },
   "brandIdentityConfirmation": {
     "awaitingConfirmation": "Awaiting confirmation",
     "confirmCreateTitle": "Confirm create brand",
