@@ -89,14 +89,13 @@ import AnalyticsWorkSurfaceAdapter, {
   AnalyticsScopedExportButton,
 } from './analytics-work-surface-adapter';
 
-function InspectorHarness() {
+function AdapterHarness() {
   const adapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
   return (
     <>
       <span data-testid="workspace-brand">
         {adapter?.brandId ?? 'organization-wide'}
       </span>
-      {adapter?.inspectorContent}
     </>
   );
 }
@@ -105,7 +104,7 @@ function renderAdapter() {
   return (
     <AnalyticsWorkspaceSurfaceAdapterProvider>
       <AnalyticsWorkSurfaceAdapter>
-        <InspectorHarness />
+        <AdapterHarness />
       </AnalyticsWorkSurfaceAdapter>
     </AnalyticsWorkspaceSurfaceAdapterProvider>
   );
@@ -120,20 +119,18 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     brandContextValue.organizationId = 'org-1';
     orgUrlValue.brandSlug = '';
   });
-  it('shows the real brand name instead of the "selected brand" placeholder', () => {
+  it('binds the route brand when it belongs to the organization', () => {
     navigation.pathname = '/acme/~/analytics/brands/brand-2';
 
     render(
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
-          <InspectorHarness />
+          <AdapterHarness />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-    expect(screen.queryByText(/selected brand/)).not.toBeInTheDocument();
   });
 
   it('uses organization-wide scope when the route brand is unknown', () => {
@@ -142,12 +139,11 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     render(
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
-          <InspectorHarness />
+          <AdapterHarness />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
@@ -169,8 +165,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
-    expect(screen.queryByText(/Other organization/)).not.toBeInTheDocument();
   });
 
   it('waits for authorized brands to load before exposing a route binding', () => {
@@ -180,7 +174,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
 
     brandContextValue.brands = [
       { id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } },
@@ -188,7 +181,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     view.rerender(renderAdapter());
 
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-    expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
   });
 
   it('drops a stale route binding when the brand is removed', () => {
@@ -201,7 +193,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
   });
 
   it('drops the old route binding when the organization changes', () => {
@@ -214,7 +205,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
   });
 
   it('preserves the authorized route binding on platform analytics', () => {
@@ -223,27 +213,25 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     render(renderAdapter());
 
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-    expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
   });
 
-  it('shows "all brands" on routes that name no brand', () => {
+  it('binds no brand on routes that name none', () => {
     navigation.pathname = '/acme/~/analytics/overview';
 
     render(
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
-          <InspectorHarness />
+          <AdapterHarness />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
   });
 
-  it('offers the scoped export in the toolbar, not the inspector, on exportable routes', () => {
+  it('offers the scoped export in the toolbar on exportable routes', () => {
     navigation.pathname = '/acme/moonrise/analytics/posts';
     exportModalValue.openExport.mockClear();
 
@@ -251,7 +239,7 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
       <AnalyticsWorkspaceSurfaceAdapterProvider>
         <AnalyticsWorkSurfaceAdapter>
           <AnalyticsScopedExportButton />
-          <InspectorHarness />
+          <AdapterHarness />
         </AnalyticsWorkSurfaceAdapter>
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
@@ -260,9 +248,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
       name: 'Export scoped data',
     });
     expect(exportButtons).toHaveLength(1);
-    expect(
-      screen.getByTestId('analytics-context-inspector'),
-    ).not.toContainElement(exportButtons[0]);
 
     fireEvent.click(exportButtons[0]);
     expect(exportModalValue.openExport).toHaveBeenCalledTimes(1);

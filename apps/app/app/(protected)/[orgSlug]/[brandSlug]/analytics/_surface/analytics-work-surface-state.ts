@@ -427,15 +427,3 @@ export function buildAnalyticsQueryReference({
     version: 1,
   };
 }
-
-export function buildCanonicalAnalyticsHref(
-  pathname: string,
-  searchParams: URLSearchParams,
-): string {
-  const canonicalParams = new URLSearchParams(searchParams);
-  canonicalParams.delete('overlay');
-  canonicalParams.delete('overlayRef');
-  canonicalParams.delete('thread');
-  const query = canonicalParams.toString();
-  return query ? `${pathname}?${query}` : pathname;
-}

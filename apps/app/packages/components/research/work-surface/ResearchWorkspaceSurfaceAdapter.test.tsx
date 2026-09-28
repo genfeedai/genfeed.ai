@@ -137,7 +137,6 @@ describe('ResearchWorkspaceSurfaceAdapter', () => {
     expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
       'Research inspector: Selected trend',
     );
-    expect(mocks.registeredAdapter).not.toHaveProperty('inspectorContent');
 
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
     expect(mocks.clearFinding).toHaveBeenCalledTimes(1);

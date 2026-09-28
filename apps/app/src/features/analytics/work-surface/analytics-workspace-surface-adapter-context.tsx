@@ -15,7 +15,6 @@ export interface AnalyticsWorkspaceSurfaceAdapterState {
   readonly brandId?: string;
   readonly composerContext?: ReactNode;
   readonly contextLabel: string;
-  readonly inspectorContent: ReactNode;
   readonly key: string;
   readonly surfaceKey: 'analytics';
 }

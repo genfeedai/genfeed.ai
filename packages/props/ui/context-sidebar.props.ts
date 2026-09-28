@@ -7,7 +7,8 @@ export type ContextSidebarSelectionKind =
   | 'post'
   | 'run'
   | 'source'
-  | 'task';
+  | 'task'
+  | 'thread';
 
 /**
  * `user` selections come from a tap or click; `automatic` ones are picked by

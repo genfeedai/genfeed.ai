@@ -5,6 +5,9 @@
     "title": "Agent",
     "unsupportedCard": "This card type is not supported yet."
   },
+  "fullPage": {
+    "outputs": "Outputs"
+  },
   "activityFeed": {
     "budget": "Budget",
     "completed": "Completed",

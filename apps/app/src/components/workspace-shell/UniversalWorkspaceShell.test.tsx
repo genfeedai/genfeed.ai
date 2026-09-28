@@ -9,25 +9,15 @@ import {
   waitFor,
   within,
 } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import {
   type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
   type ReactNode,
-  useEffect,
   useMemo,
   useState,
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import {
-  OPEN_CONVERSATION_TAB_EVENT,
-  OPEN_FILES_TAB_EVENT,
-} from '@/lib/workspace/agent-composer-events';
-import {
-  useWorkspaceInspector,
-  WorkspaceInspectorProvider,
-} from './WorkspaceInspectorContext';
 import { useRegisterWorkspaceSurfaceAdapter } from './WorkspaceSurfaceAdapterContext';
 
 vi.mock('next-intl', async () => {
@@ -37,6 +27,11 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+// The composer renders scope controls itself; the mocked provider only
+// records what the shell hands it.
+const composerShell = vi.hoisted(() => ({
+  scopeControls: null as unknown,
+}));
 const navigation = vi.hoisted(() => ({
   pathname: '/acme/~/agent/thread-1',
   searchParams: new URLSearchParams(),
@@ -62,7 +57,6 @@ const agentActions = vi.hoisted(() => ({
   resetActiveConversationState: vi.fn(),
   setActiveThread: vi.fn(),
 }));
-const inspectorConversationMount = vi.hoisted(() => vi.fn());
 const updateThreadContext = vi.hoisted(() => vi.fn());
 const agentApiService = {
   updateThreadContext,
@@ -110,6 +104,9 @@ vi.mock('@genfeedai/agent', () => ({
     scopeControls?: ReactNode;
   }) => (
     <div
+      ref={() => {
+        composerShell.scopeControls = scopeControls;
+      }}
       data-composer-brand={brandId}
       data-composer-references={artifactReferences
         ?.map((item) => item.reference.recordId)
@@ -123,7 +120,6 @@ vi.mock('@genfeedai/agent', () => ({
       }
       data-draft-scope={draftScopeKey}
     >
-      {scopeControls}
       {children}
       <button
         aria-label="Dispatch publish action"
@@ -191,20 +187,6 @@ vi.mock('@genfeedai/agent', () => ({
       />
     </div>
   ),
-  ConversationInspectorShellProvider: ({
-    children,
-    isActive,
-  }: {
-    children: ReactNode;
-    isActive: boolean;
-  }) => (
-    <div
-      data-active={String(isActive)}
-      data-testid="conversation-inspector-provider"
-    >
-      {children}
-    </div>
-  ),
   getConversationComposerAction: (name: string) => {
     if (name === 'publish' || name === 'remix') {
       return {
@@ -242,26 +224,6 @@ vi.mock('@genfeedai/agent', () => ({
     routeBrandSlug?.trim() || selectedBrandSlug?.trim()
       ? activeHref(route)
       : orgHref(route),
-  ConversationInspectorPanel: ({
-    onOpenConversation,
-  }: {
-    onOpenConversation: () => void;
-  }) => {
-    useEffect(() => {
-      inspectorConversationMount();
-    }, []);
-    return (
-      <div data-testid="inspector-conversation">
-        {/* The panel's own expand affordance — the shell owns the navigation,
-            so the test drives it through this callback. */}
-        <button
-          aria-label="Expand conversation panel"
-          onClick={onOpenConversation}
-          type="button"
-        />
-      </div>
-    );
-  },
   useAgentChatStore: Object.assign(
     (selector: (state: typeof agentState) => unknown) => selector(agentState),
     {
@@ -331,61 +293,6 @@ vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
       Select Library source
     </button>
   ),
-}));
-
-const libraryPickerState = vi.hoisted(() => ({
-  items: [] as Array<{ id: string; metadataLabel?: string }>,
-  status: 'empty' as 'empty' | 'ready',
-}));
-
-vi.mock('@/features/library-remix/LibrarySourcePreview', () => ({
-  default: ({ record }: { record: { id: string } }) => (
-    <div data-testid={`source-preview-${record.id}`} />
-  ),
-  getLibrarySourceLabel: (record: { id: string; metadataLabel?: string }) =>
-    record.metadataLabel || record.id,
-}));
-
-vi.mock('@/features/library-remix/use-library-picker', () => ({
-  LIBRARY_PICKER_CATEGORIES: [
-    { category: 'IMAGE', key: 'images', label: 'Images' },
-    { category: 'VIDEO', key: 'videos', label: 'Videos' },
-    { category: 'GIF', key: 'gifs', label: 'GIFs' },
-  ],
-  useLibraryPicker: ({
-    onSelect,
-  }: {
-    onSelect: (
-      reference: unknown,
-      record: { id: string; metadataLabel?: string },
-    ) => void;
-  }) => ({
-    category: 'images',
-    isLoadingMore: false,
-    isValidatingId: null,
-    loadMore: vi.fn(),
-    retry: vi.fn(),
-    select: async (ingredient: { id: string; metadataLabel?: string }) => {
-      onSelect(
-        {
-          brandId: 'brand-1',
-          kind: 'ingredient',
-          organizationId: 'org-1',
-          recordId: ingredient.id,
-          serializer: 'ingredient',
-        },
-        ingredient,
-      );
-    },
-    selectionFailure: null,
-    setCategory: vi.fn(),
-    state: {
-      hasMore: false,
-      items: libraryPickerState.items,
-      status: libraryPickerState.status,
-      total: libraryPickerState.items.length,
-    },
-  }),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -471,8 +378,8 @@ vi.mock('@ui/overlays/context-inspector/ContextInspector', () => ({
 vi.mock('@ui/primitives/drawer', () => ({
   Drawer: ({ children, open }: { children: ReactNode; open?: boolean }) =>
     open ? children : null,
-  DrawerContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
+  DrawerContent: ({ children, id }: { children: ReactNode; id?: string }) => (
+    <div id={id}>{children}</div>
   ),
   DrawerDescription: ({ children }: { children: ReactNode }) => (
     <p>{children}</p>
@@ -537,12 +444,9 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
   ),
 }));
 
-import { BrandWorkspaceOverviewSurfaceAdapter } from '@/features/workspace-overview/workspace-overview-surface-adapters';
-
 vi.mock('./use-conversation-scope-controls', () => ({
   useConversationScopeControls: () => ({
     contextLabel: 'Acme · Organization-wide',
-    inspectorScope: <div data-testid="workspace-effective-scope" />,
     isConsequentiallyBlocked: false,
     scopeControls: <span>Thread scope</span>,
   }),
@@ -555,7 +459,6 @@ function AnalyticsAdapterFixture() {
     () => ({
       composerContext: <span>Visible analytics query</span>,
       contextLabel: 'Canvas · Post analytics',
-      inspectorContent: <div>Authoritative Analytics context</div>,
       key: 'analytics:/analytics/posts',
       surfaceKey: 'analytics',
     }),
@@ -576,7 +479,6 @@ function AnalyticsBrandRouteAdapterFixture({
       brandId,
       composerContext: null,
       contextLabel: 'Canvas · Brand analytics',
-      inspectorContent: <div>Brand analytics inspector</div>,
       key: `analytics:/analytics/brands/${brandId}`,
       surfaceKey: 'analytics',
     }),
@@ -584,27 +486,6 @@ function AnalyticsBrandRouteAdapterFixture({
   );
   useAnalyticsWorkspaceSurfaceAdapter(adapter);
   return <div>Brand analytics canvas</div>;
-}
-
-function InspectorToggleFixture() {
-  const inspector = useWorkspaceInspector();
-
-  return (
-    <button type="button" onClick={inspector?.toggle}>
-      Toggle inspector
-    </button>
-  );
-}
-
-/** Stands in for the topbar's below-`xl` drawer opener. */
-function MobileInspectorOpenFixture() {
-  const inspector = useWorkspaceInspector();
-
-  return (
-    <button type="button" onClick={() => inspector?.setIsMobileOpen(true)}>
-      Open inspector drawer
-    </button>
-  );
 }
 
 describe('UniversalWorkspaceShell', () => {
@@ -629,7 +510,6 @@ describe('UniversalWorkspaceShell', () => {
       contextVersion: 4,
       id: 'thread-1',
     });
-    inspectorConversationMount.mockClear();
     agentActions.resetActiveConversationState.mockClear();
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       addEventListener: vi.fn(),
@@ -652,45 +532,9 @@ describe('UniversalWorkspaceShell', () => {
     router.push.mockClear();
     router.replace.mockClear();
     vi.mocked(captureWorkspaceShellTransition).mockClear();
-    window.localStorage?.removeItem('genfeed:workspace-inspector:tabs');
-    libraryPickerState.items = [];
-    libraryPickerState.status = 'empty';
   });
 
-  it('keeps library history collapsed while its composer and asset context stay available', async () => {
-    navigation.pathname = '/acme/moonrise/library/assets';
-    function LibrarySurface() {
-      useRegisterWorkspaceSurfaceAdapter({
-        contextLabel: 'Library',
-        references: [],
-        renderInspector: () => <p>Selected asset preview</p>,
-        scope: { organizationId: 'org-acme' },
-        surfaceKey: 'library',
-      });
-      return <div>Library grid</div>;
-    }
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <LibrarySurface />
-      </UniversalWorkspaceShell>,
-    );
-    const conversation = screen.getByTestId('inspector-conversation');
-    await waitFor(() => expect(conversation).not.toBeVisible());
-    // The composer only shows under Chat; Context ends at its own content.
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).not.toBeVisible();
-    expect(screen.getByText('Selected asset preview')).toBeVisible();
-    fireEvent(window, new Event(OPEN_CONVERSATION_TAB_EVENT));
-    expect(conversation).toBeVisible();
-    fireEvent(window, new Event('workspace:open-context-tab'));
-    expect(conversation).not.toBeVisible();
-    fireEvent(window, new Event('workspace:open-conversation-tab'));
-    expect(conversation).toBeVisible();
-    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
-  });
-
-  it('replaces the legacy panes with the selection until the page deselects', () => {
+  it('renders the registered selection in the context sidebar until the page deselects', () => {
     navigation.pathname = '/acme/moonrise/library/assets';
     function SelectionSurface() {
       const [isSelected, setIsSelected] = useState(true);
@@ -718,7 +562,7 @@ describe('UniversalWorkspaceShell', () => {
       );
     }
 
-    render(
+    const { container } = render(
       <ContextSidebarProvider>
         <UniversalWorkspaceShell agentApiService={agentApiService}>
           <SelectionSurface />
@@ -726,17 +570,18 @@ describe('UniversalWorkspaceShell', () => {
       </ContextSidebarProvider>,
     );
 
+    const aside = container.querySelector('#workspace-context-inspector');
+    expect(aside).not.toHaveAttribute('inert');
+    expect(aside).not.toHaveAttribute('aria-hidden');
     const sidebar = screen.getByRole('complementary', {
       name: 'Selection details',
     });
-    expect(sidebar).not.toHaveAttribute('inert');
     expect(
       within(sidebar).getByTestId('context-sidebar-title'),
     ).toHaveTextContent('Image');
     expect(
       within(sidebar).getByTestId('context-sidebar-outlet'),
     ).toHaveTextContent('Asset detail');
-    expect(screen.getByTestId('workspace-inspector-panes')).not.toBeVisible();
 
     fireEvent.click(
       within(sidebar).getByRole('button', { name: 'Close details' }),
@@ -744,9 +589,90 @@ describe('UniversalWorkspaceShell', () => {
 
     expect(screen.queryByText('Asset detail')).toBeNull();
     expect(
-      screen.getByRole('complementary', { name: 'Workspace inspector' }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-inspector-panes')).toBeVisible();
+      container.querySelector('#workspace-context-inspector'),
+    ).toHaveAttribute('inert');
+    expect(
+      container.querySelector('#workspace-context-inspector'),
+    ).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('keeps the context sidebar rail closed and inert with no selection', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    const { container } = render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <div>Workspace overview</div>
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+
+    const aside = container.querySelector('#workspace-context-inspector');
+    expect(aside).toBeInTheDocument();
+    expect(aside).toHaveAttribute('inert');
+    expect(aside).toHaveAttribute('aria-hidden', 'true');
+    expect(aside).toHaveStyle({ width: '0px' });
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument();
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  });
+
+  it('sizes the context sidebar rail to the default width and exposes the resize separator', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    function SelectionSurface() {
+      return (
+        <ContextSidebarPanel
+          onClose={() => {}}
+          selection={{
+            id: 'asset-1',
+            kind: 'asset',
+            origin: 'user',
+            subtitle: 'flux-dev',
+            title: 'Image',
+          }}
+        >
+          <p>Asset detail</p>
+        </ContextSidebarPanel>
+      );
+    }
+
+    const { container } = render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <SelectionSurface />
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+
+    const inspectorContent = screen.getByTestId('workspace-inspector-content');
+    expect(inspectorContent).toHaveStyle({
+      minWidth: '320px',
+      width: '320px',
+    });
+    expect(
+      screen.getByRole('separator', { name: 'Resize details' }),
+    ).toHaveAttribute('aria-valuenow', '320');
+    expect(container.querySelector('#workspace-context-inspector')).toHaveStyle(
+      { width: '320px' },
+    );
+  });
+
+  it('keeps the mobile drawer closed without a context sidebar selection', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    const { container } = render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <div>Workspace overview</div>
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+
+    // The mocked Drawer renders nothing at all while closed — the mobile
+    // drawer body (and its `id`) only exists once a selection opens it.
+    expect(
+      container.querySelector('#workspace-context-inspector-drawer'),
+    ).not.toBeInTheDocument();
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
@@ -769,7 +695,6 @@ describe('UniversalWorkspaceShell', () => {
             },
           },
         ],
-        renderInspector: () => <p>Studio inspector</p>,
         scope: {
           brandId: 'brand-studio',
           organizationId: 'org-acme',
@@ -806,17 +731,7 @@ describe('UniversalWorkspaceShell', () => {
         <StudioSurface />
       </UniversalWorkspaceShell>,
     );
-    expect(screen.getAllByText('Studio inspector')).not.toHaveLength(0);
     expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-inspector-composer-slot')).toHaveClass(
-      'shrink-0',
-    );
-    expect(
-      screen.getByTestId('conversation-inspector-provider'),
-    ).toHaveAttribute('data-active', 'false');
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-brand]'),
     ).toHaveAttribute('data-composer-brand', 'brand-studio');
@@ -826,12 +741,11 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-visible]'),
     ).toHaveAttribute('data-composer-visible', 'true');
+    // The legacy inspector housing is gone and no bottom dock exists off the
+    // agent route yet, so the composer has no portal target to render into.
     expect(
       screen.getByText('Studio canvas').closest('[data-composer-target]'),
-    ).toHaveAttribute(
-      'data-composer-target',
-      'workspace-inspector-composer-slot',
-    );
+    ).toHaveAttribute('data-composer-target', 'inline');
   });
 
   it('passes the selected brand to a new conversation composer', () => {
@@ -878,7 +792,7 @@ describe('UniversalWorkspaceShell', () => {
     navigation.pathname = '/acme/~/agent/onboarding';
     agentState.activeThreadId = null;
 
-    render(
+    const { container } = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
         <div data-testid="canonical-canvas">Onboarding conversation</div>
       </UniversalWorkspaceShell>,
@@ -891,355 +805,8 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
     expect(
-      screen.queryByLabelText('Workspace inspector'),
+      container.querySelector('#workspace-context-inspector'),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Inspector' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Conversation' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByText(
-        'Context and conversation for the active workspace surface.',
-      ),
-    ).not.toBeInTheDocument();
-  });
-
-  it('carries one conversation from the agent surface into the canvas inspector', () => {
-    const view = render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div data-testid="canonical-canvas">Workspace overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    // `/agent/:id` renders the conversation as its own canvas, so the inspector
-    // must not mount a second copy of it — two would portal two prompt bars
-    // into the one shell composer slot.
-    expect(
-      screen.getByLabelText('Primary workspace canvas'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
-      'focus:outline-none',
-    );
-    expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('inspector-conversation'),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
-      'data-workspace-surface',
-      'agent-conversation',
-    );
-    expect(
-      screen.getByTestId('universal-workspace-shell').parentElement,
-    ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
-    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('conversation-inspector-provider'),
-    ).toHaveAttribute('data-active', 'true');
-    expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-composer-slot')).toHaveClass(
-      'max-w-3xl',
-    );
-    expect(screen.getByTestId('workspace-composer-slot')).not.toHaveClass(
-      'bg-background',
-    );
-    expect(screen.getByTestId('workspace-composer-dock')).not.toHaveClass(
-      'bg-background',
-    );
-    expect(screen.getByTestId('workspace-composer-dock')).toHaveClass(
-      'pb-6',
-      'md:pb-8',
-    );
-    const dockFade = screen
-      .getByTestId('workspace-composer-dock')
-      .querySelector('[data-composer-dock-fade]');
-    expect(dockFade).toBeInTheDocument();
-    expect(dockFade).toHaveClass('bg-gradient-to-t');
-    expect(dockFade).toHaveClass('from-background');
-    expect(dockFade).toHaveClass('to-transparent');
-    expect(dockFade).toHaveClass('h-8');
-    expect(dockFade).not.toHaveClass('h-28');
-    expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
-      'overflow-hidden',
-    );
-    expect(screen.getByTestId('workspace-canvas-layout')).not.toHaveClass(
-      'overflow-auto',
-      'pb-48',
-      'md:pb-56',
-    );
-    expect(
-      screen.queryByTestId('workspace-inspector-composer-slot'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId('universal-workspace-shell').parentElement,
-    ).toHaveAttribute('data-composer-target', 'workspace-composer-slot');
-
-    navigation.pathname = '/acme/moonrise/workspace';
-    navigation.searchParams = new URLSearchParams();
-    view.rerender(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div data-testid="canonical-canvas">Workspace overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(
-      screen.getByLabelText('Primary workspace canvas'),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
-    expect(
-      screen.getByTestId('conversation-inspector-provider'),
-    ).toHaveAttribute('data-active', 'false');
-    expect(screen.queryByTestId('workspace-composer-slot')).toBeNull();
-    expect(
-      screen.getByTestId('workspace-inspector-composer-slot'),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-canvas-layout')).not.toHaveClass(
-      'pb-48',
-      'md:pb-56',
-    );
-    expect(
-      screen.getByRole('separator', { name: 'Resize workspace inspector' }),
-    ).toHaveAttribute('aria-valuenow', '320');
-    expect(screen.getByTestId('canonical-canvas')).toBeInTheDocument();
-    expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
-    expect(screen.getByTestId('universal-workspace-shell')).toHaveAttribute(
-      'data-workspace-surface',
-      'workspace-overview',
-    );
-    // Same thread, same draft — leaving the agent route changes where the
-    // conversation renders, not which conversation it is.
-    expect(
-      screen.getByTestId('universal-workspace-shell').parentElement,
-    ).toHaveAttribute('data-draft-scope', 'acme:thread-1:3');
-    expect(
-      screen.getByTestId('universal-workspace-shell').parentElement,
-    ).toHaveAttribute(
-      'data-composer-target',
-      'workspace-inspector-composer-slot',
-    );
-    expect(
-      screen.getByTestId('universal-workspace-shell').parentElement,
-    ).toHaveAttribute('data-composer-placement', 'inspector');
-    expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
-    expect(router.replace).not.toHaveBeenCalledWith(
-      expect.stringContaining('thread='),
-    );
-  });
-
-  it('deep links the inspector conversation back to its full surface', () => {
-    navigation.pathname = '/acme/moonrise/workspace';
-    navigation.searchParams = new URLSearchParams();
-
-    const view = render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Workspace overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    // Brand-scoped agent route so the expanded conversation keeps topbar brand
-    // context (not org `~/agent` which drops brand selection).
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-    const expandLink = screen.getByRole('link', {
-      name: 'Open full conversation',
-    });
-    expect(expandLink).toHaveAttribute('href', '/acme/moonrise/agent/thread-1');
-
-    // The href alone proves nothing about telemetry: the click has to stamp
-    // the pending transition, or the arrival on `/agent` reports as `browser`.
-    fireEvent.click(expandLink);
-    vi.mocked(captureWorkspaceShellTransition).mockClear();
-
-    navigation.pathname = '/acme/moonrise/agent/thread-1';
-    navigation.searchParams = new URLSearchParams();
-    view.rerender(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Conversation canvas</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(captureWorkspaceShellTransition).toHaveBeenCalledWith(
-      expect.objectContaining({ transition: 'conversation_return' }),
-    );
-  });
-
-  it('returns to the full conversation from the inspector panel', () => {
-    navigation.pathname = '/acme/moonrise/workspace';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Workspace overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Expand conversation panel' }),
-    );
-
-    expect(router.push).toHaveBeenCalledWith('/acme/moonrise/agent/thread-1');
-  });
-
-  it('renders the pinned Conversation section even when the surface declares no product panes', () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    // This route registers no product surface adapter — the context pane
-    // falls back to the generic workspace body. Conversation still has to
-    // render: it is pinned chrome, not a pane a surface opts into.
-    const [conversationSection] = screen.getAllByTestId(
-      'workspace-inspector-conversation-section',
-    );
-    expect(conversationSection).toBeInTheDocument();
-  });
-
-  it('opens the mobile inspector drawer on the composer conversation event', async () => {
-    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      addEventListener: vi.fn(),
-      addListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-      matches: query === '(max-width: 1279px)',
-      media: query,
-      onchange: null,
-      removeEventListener: vi.fn(),
-      removeListener: vi.fn(),
-    }));
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(
-      screen.queryByText(
-        'Context and conversation for the active workspace surface.',
-      ),
-    ).not.toBeInTheDocument();
-
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-
-    expect(
-      await screen.findByText(
-        'Context and conversation for the active workspace surface.',
-      ),
-    ).toBeVisible();
-  });
-
-  it('keeps the desktop rail conversation pinned and visible at xl+ on the composer event', async () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-
-    // Conversation never toggles — it is always mounted. The event only
-    // matters for the mobile drawer, so at xl+ the drawer copy stays absent.
-    await waitFor(() => {
-      const [conversationSection] = screen.getAllByTestId(
-        'workspace-inspector-conversation-section',
-      );
-      expect(conversationSection).toBeVisible();
-    });
-    expect(
-      screen.queryByText(
-        'Context and conversation for the active workspace surface.',
-      ),
-    ).not.toBeInTheDocument();
-  });
-
-  it('opens panels from the add menu and only displays the active panel', async () => {
-    const user = userEvent.setup();
-    navigation.pathname = '/acme/moonrise/library/assets';
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Library</div>
-      </UniversalWorkspaceShell>,
-    );
-    expect(screen.getByRole('tab', { name: 'Files' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: 'Add panel' })).toBeNull();
-    await user.click(screen.getByRole('tab', { name: 'Files' }));
-    expect(screen.getByRole('tab', { name: 'Files' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-      'aria-selected',
-      'false',
-    );
-    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
-    await user.click(screen.getByRole('tab', { name: 'Context' }));
-    expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-  });
-
-  it('keeps Chat and its composer mounted while switching tabs', async () => {
-    const user = userEvent.setup();
-    navigation.pathname = '/acme/moonrise/library/assets';
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Library</div>
-      </UniversalWorkspaceShell>,
-    );
-    const conversation = screen.getByTestId('inspector-conversation');
-    const composer = screen.getByTestId('workspace-inspector-composer-slot');
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-    expect(conversation).toBeVisible();
-    await user.click(screen.getByRole('tab', { name: 'Context' }));
-    expect(conversation).not.toBeVisible();
-    expect(composer).not.toBeVisible();
-    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
-    expect(composer).toBeVisible();
-    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
-    expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
-      composer,
-    );
-    expect(conversation).toBeVisible();
-  });
-
-  it('selects Browser for a file preview and keeps Files available as a tab', async () => {
-    navigation.pathname = '/acme/moonrise/publishing/overview';
-    libraryPickerState.status = 'ready';
-    libraryPickerState.items = [
-      { id: 'image-1', metadataLabel: 'Source image-1' },
-    ];
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Publishing overview</div>
-      </UniversalWorkspaceShell>,
-    );
-    fireEvent(window, new CustomEvent(OPEN_FILES_TAB_EVENT));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Select Source image-1' }),
-    );
-    await waitFor(() =>
-      expect(screen.getByRole('tab', { name: 'Browser' })).toHaveAttribute(
-        'aria-selected',
-        'true',
-      ),
-    );
-    expect(screen.getByRole('tab', { name: 'Files' })).toHaveAttribute(
-      'aria-selected',
-      'false',
-    );
-    expect(screen.getByTestId('source-preview-image-1')).toBeVisible();
-    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {
@@ -1269,89 +836,6 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('hands the single conversation to the mobile drawer while it is open', () => {
-    navigation.pathname = '/acme/moonrise/workspace';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <WorkspaceInspectorProvider>
-        <MobileInspectorOpenFixture />
-        <UniversalWorkspaceShell agentApiService={agentApiService}>
-          <div>Workspace overview</div>
-        </UniversalWorkspaceShell>
-      </WorkspaceInspectorProvider>,
-    );
-
-    expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
-    // The shell paints no sub-navbar of its own — the drawer opens from the
-    // topbar toggle only.
-    expect(
-      screen.queryByRole('button', { name: 'Inspector' }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Conversation' }),
-    ).not.toBeInTheDocument();
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open inspector drawer' }),
-    );
-
-    // Still exactly one: both inspector hosts stay in the DOM, so a second copy
-    // here would portal a second prompt bar into the one shell composer slot.
-    expect(screen.getAllByTestId('inspector-conversation')).toHaveLength(1);
-    expect(
-      screen.getAllByTestId('workspace-inspector-composer-slot'),
-    ).toHaveLength(1);
-    // Desktop + mobile inspector hosts can both expose the Context tab label.
-    expect(screen.getAllByText('Context').length).toBeGreaterThan(0);
-  });
-
-  it('keeps the inspector conversation and composer mounted when collapsed', () => {
-    navigation.pathname = '/acme/moonrise/workspace';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <WorkspaceInspectorProvider>
-        <InspectorToggleFixture />
-        <UniversalWorkspaceShell agentApiService={agentApiService}>
-          <div>Workspace overview</div>
-        </UniversalWorkspaceShell>
-      </WorkspaceInspectorProvider>,
-    );
-
-    const conversation = screen.getByTestId('inspector-conversation');
-    const composerSlot = screen.getByTestId(
-      'workspace-inspector-composer-slot',
-    );
-    const inspectorContent = screen.getByTestId('workspace-inspector-content');
-
-    expect(inspectorContent).toHaveStyle({
-      minWidth: '320px',
-      width: '320px',
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle inspector' }));
-
-    expect(screen.getByLabelText('Workspace inspector')).toHaveAttribute(
-      'inert',
-    );
-    expect(screen.getByLabelText('Workspace inspector')).toHaveStyle({
-      width: '0px',
-    });
-    expect(screen.getByTestId('inspector-conversation')).toBe(conversation);
-    expect(screen.getByTestId('workspace-inspector-composer-slot')).toBe(
-      composerSlot,
-    );
-    expect(screen.getByTestId('workspace-inspector-content')).toBe(
-      inspectorContent,
-    );
-    expect(inspectorContent).toHaveStyle({
-      minWidth: '320px',
-      width: '320px',
-    });
-    expect(inspectorConversationMount).toHaveBeenCalledTimes(1);
-  });
-
   it('renders product-owned adapter context in the shared shell slots', async () => {
     navigation.pathname = '/acme/moonrise/analytics/posts';
     navigation.searchParams = new URLSearchParams();
@@ -1363,14 +847,18 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     expect(screen.getByText('Post analytics canvas')).toBeInTheDocument();
-    expect(
-      screen.getAllByText('Authoritative Analytics context').length,
-    ).toBeGreaterThan(0);
-    expect(
-      await screen.findByText('Visible analytics query'),
-    ).toBeInTheDocument();
-    // The inspector renders the adapter's real context, never developer copy:
-    // no raw `route:/…` breadcrumb and no `Registered … adapter slot` fallback.
+    await waitFor(() => {
+      const controls = render(
+        <div>{composerShell.scopeControls as ReactNode}</div>,
+      );
+      try {
+        expect(controls.container).toHaveTextContent('Visible analytics query');
+      } finally {
+        controls.unmount();
+      }
+    });
+    // Never developer copy: no raw `route:/…` breadcrumb and no `Registered
+    // … adapter slot` fallback.
     expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
   });
@@ -1415,47 +903,6 @@ describe('UniversalWorkspaceShell', () => {
     expect(screen.getByText('Brand analytics canvas')).toBeInTheDocument();
     expect(updateThreadContext).not.toHaveBeenCalled();
     expect(agentState.threads[0].brandId).toBe('brand-previous');
-  });
-
-  it('mounts the brand overview registration in the harness inspector', async () => {
-    navigation.pathname = '/acme/moonrise/workspace';
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <BrandWorkspaceOverviewSurfaceAdapter>
-          <div data-testid="canonical-brand-overview">Workspace overview</div>
-        </BrandWorkspaceOverviewSurfaceAdapter>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(
-      await screen.findByTestId('workspace-surface-adapter-inspector'),
-    ).toHaveTextContent('Brand Workspace overview');
-    expect(screen.getByTestId('canonical-brand-overview')).toBeInTheDocument();
-    // Resolved workspace adapters render the human title/description, never the
-    // terminal developer fallback string or a raw route pattern.
-    expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
-  });
-
-  it('renders a human empty state — not developer copy — when no surface adapter resolves', () => {
-    navigation.pathname = '/acme/moonrise/analytics/posts';
-    navigation.searchParams = new URLSearchParams();
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div data-testid="canonical-canvas">Analytics canvas</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    // With no adapter registered, the inspector shows a user-facing empty state…
-    expect(screen.getByText(/context yet$/)).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('workspace-surface-adapter-inspector'),
-    ).toBeNull();
-    // …and never leaks the terminal adapter-slot string or a raw route pattern.
-    expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
   });
 
   it('keeps an organization conversation route as its own canvas', () => {
@@ -1509,15 +956,12 @@ describe('UniversalWorkspaceShell', () => {
     // The shell frames the route, it no longer replaces it: the agent page is
     // the surface here, so its own children render.
     expect(screen.getByText('Routed agent page')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('inspector-conversation'),
-    ).not.toBeInTheDocument();
   });
 
-  it('restores an allowlisted temporary overlay above the canvas', () => {
+  it('restores a registered overlay above the canvas from a direct URL load', () => {
     navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams({
-      overlay: 'shell-preview',
+      overlay: 'workflow-picker',
     });
 
     render(
@@ -1532,17 +976,10 @@ describe('UniversalWorkspaceShell', () => {
     );
     expect(screen.getByTestId('workspace-dialog')).toBeInTheDocument();
     expect(screen.getByText('Studio')).toBeInTheDocument();
-    expect(screen.getByLabelText('Workspace inspector')).toBeInTheDocument();
-    expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
-    expect(
-      screen.getByText('No resource reference selected'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Authorized workflow picker')).toBeInTheDocument();
     expect(
       screen.getByTestId('workspace-overlay-composer-slot'),
     ).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('workspace-inspector-composer-slot'),
-    ).not.toBeInTheDocument();
     expect(
       screen
         .getByTestId('workspace-overlay-composer-slot')
@@ -1559,6 +996,8 @@ describe('UniversalWorkspaceShell', () => {
       screen.getByRole('button', { name: 'Dismiss workspace overlay' }),
     );
 
+    // Loaded straight from a URL, not pushed by this session: dismissal
+    // replaces the overlay params rather than assuming an owned history entry.
     expect(router.back).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith(
       '/acme/moonrise/studio/storyboard',
@@ -1701,7 +1140,7 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
-  it('keeps effective scope in the inspector and renders composer controls once', () => {
+  it('hands the composer each scope control once', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 
     render(
@@ -1713,33 +1152,10 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    expect(screen.getAllByText('Scoped controls')).toHaveLength(1);
-    expect(screen.getAllByText('Thread scope')).toHaveLength(1);
-    expect(screen.getByTestId('workspace-effective-scope')).toBeInTheDocument();
-  });
-
-  it('keeps generic product context cards and actions off conversation routes', () => {
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Conversation</div>
-      </UniversalWorkspaceShell>,
+    const { container } = render(
+      <div>{composerShell.scopeControls as ReactNode}</div>,
     );
-
-    expect(
-      screen.getByText(
-        'Context from the active conversation appears here as the agent works.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('workspace-effective-scope')).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Choose workflow' }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Open overlay preview' }),
-    ).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Return to conversation' }),
-    ).toBeNull();
+    expect(container).toHaveTextContent(/^Thread scopeScoped controls$/);
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {
@@ -1789,15 +1205,15 @@ describe('UniversalWorkspaceShell', () => {
     );
 
     fireEvent.click(
-      screen.getAllByRole('button', { name: 'Open overlay preview' })[0],
+      screen.getByRole('button', { name: 'Dispatch remix action' }),
     );
 
     expect(router.push).toHaveBeenCalledWith(
-      '/acme/moonrise/workspace?overlay=shell-preview',
+      '/acme/moonrise/workspace?overlay=library-picker',
     );
 
     navigation.searchParams = new URLSearchParams({
-      overlay: 'shell-preview',
+      overlay: 'library-picker',
     });
     view.rerender(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -1814,7 +1230,7 @@ describe('UniversalWorkspaceShell', () => {
   it('lets browser Back dismiss the overlay before the canvas', () => {
     navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams({
-      overlay: 'shell-preview',
+      overlay: 'library-picker',
     });
 
     const view = render(
@@ -1839,26 +1255,6 @@ describe('UniversalWorkspaceShell', () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('fails an unauthorized overlay reference to its underlying canvas', () => {
-    navigation.pathname = '/acme/moonrise/library/images';
-    navigation.searchParams = new URLSearchParams({
-      folder: 'launch',
-      overlay: 'shell-preview',
-      overlayRef: 'asset:asset-1',
-    });
-
-    render(
-      <UniversalWorkspaceShell agentApiService={agentApiService}>
-        <div>Library</div>
-      </UniversalWorkspaceShell>,
-    );
-
-    expect(screen.queryByTestId('workspace-dialog')).not.toBeInTheDocument();
-    expect(router.replace).toHaveBeenCalledWith(
-      '/acme/moonrise/library/images?folder=launch',
-    );
-  });
-
   it('does not retain a conversation when the canonical organization changes', () => {
     const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
@@ -1874,9 +1270,8 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    // A different organization is a different scope: the inspector still hosts
-    // a conversation, but not the previous org's thread.
-    expect(screen.getByTestId('inspector-conversation')).toBeInTheDocument();
+    // A different organization is a different scope: the draft key resets to
+    // a fresh, unthreaded scope rather than carrying the previous org's thread.
     expect(
       screen.getByTestId('universal-workspace-shell').parentElement,
     ).toHaveAttribute('data-draft-scope', 'other-org:new:0');

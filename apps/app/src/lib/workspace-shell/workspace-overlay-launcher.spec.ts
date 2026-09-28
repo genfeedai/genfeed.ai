@@ -2,9 +2,9 @@ import type { WorkspaceShellOverlayRequest } from '@genfeedai/contracts/interfac
 import { describe, expect, it } from 'vitest';
 import { resolveWorkspaceOverlayLaunch } from './workspace-overlay-launcher';
 
-const SHELL_PREVIEW_OVERLAY = {
-  key: 'shell-preview',
-  parameters: { reference: null },
+const NOTIFICATIONS_OVERLAY = {
+  key: 'notifications',
+  parameters: {},
 } as const satisfies WorkspaceShellOverlayRequest;
 
 const LIBRARY_PICKER_OVERLAY = {
@@ -38,13 +38,13 @@ describe('workspace overlay launcher', () => {
         currentHref:
           '/acme/moonrise/library/images?folder=launch&thread=thread-1#asset-grid',
         invocation: 'user',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: NOTIFICATIONS_OVERLAY,
       }),
     ).toEqual({
-      announcement: 'Temporary workspace overlay opened.',
+      announcement: 'Notifications overlay opened.',
       history: 'push',
-      href: '/acme/moonrise/library/images?folder=launch&thread=thread-1&overlay=shell-preview#asset-grid',
-      overlay: SHELL_PREVIEW_OVERLAY,
+      href: '/acme/moonrise/library/images?folder=launch&thread=thread-1&overlay=notifications#asset-grid',
+      overlay: NOTIFICATIONS_OVERLAY,
     });
   });
 
@@ -63,11 +63,11 @@ describe('workspace overlay launcher', () => {
     });
   });
 
-  it('requires explicit authorization for typed reference parameters', () => {
+  it('rejects a proposed overlay that carries any parameters', () => {
     const overlay = {
-      key: 'shell-preview',
-      parameters: { reference: { id: 'asset-1', kind: 'asset' } },
-    } as const satisfies WorkspaceShellOverlayRequest;
+      key: 'notifications',
+      parameters: { unexpected: 'value' },
+    } as unknown as WorkspaceShellOverlayRequest;
 
     expect(
       resolveWorkspaceOverlayLaunch({
@@ -76,19 +76,6 @@ describe('workspace overlay launcher', () => {
         overlay,
       }),
     ).toMatchObject({ history: 'none', overlay: null });
-
-    expect(
-      resolveWorkspaceOverlayLaunch({
-        currentHref: '/acme/moonrise/library/images?thread=thread-1',
-        invocation: 'user',
-        overlay,
-        resolveOverlayReferenceAccess: () => 'authorized',
-      }),
-    ).toMatchObject({
-      history: 'push',
-      href: '/acme/moonrise/library/images?thread=thread-1&overlay=shell-preview&overlayRef=asset%3Aasset-1',
-      overlay,
-    });
   });
 
   it('never lets a model proposal mutate shell history', () => {
@@ -96,7 +83,7 @@ describe('workspace overlay launcher', () => {
       resolveWorkspaceOverlayLaunch({
         currentHref: '/acme/~/agent/thread-1',
         invocation: 'model',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: NOTIFICATIONS_OVERLAY,
       }),
     ).toEqual({
       announcement: 'Overlay proposal requires an explicit user action.',
@@ -129,11 +116,11 @@ describe('workspace overlay launcher', () => {
         currentHref:
           '/acme/~/agent/thread-1?overlay=notifications&filter=unread',
         invocation: 'user',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: LIBRARY_PICKER_OVERLAY,
       }),
     ).toMatchObject({
       history: 'replace',
-      href: '/acme/~/agent/thread-1?filter=unread&overlay=shell-preview',
+      href: '/acme/~/agent/thread-1?filter=unread&overlay=library-picker',
     });
   });
 
@@ -141,13 +128,13 @@ describe('workspace overlay launcher', () => {
     expect(
       resolveWorkspaceOverlayLaunch({
         currentHref:
-          '/acme/~/agent/thread-1?overlay=shell-preview&filter=unread',
+          '/acme/~/agent/thread-1?overlay=notifications&filter=unread',
         invocation: 'user',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: NOTIFICATIONS_OVERLAY,
       }),
     ).toMatchObject({
       history: 'none',
-      href: '/acme/~/agent/thread-1?overlay=shell-preview&filter=unread',
+      href: '/acme/~/agent/thread-1?overlay=notifications&filter=unread',
     });
   });
 
@@ -156,18 +143,18 @@ describe('workspace overlay launcher', () => {
       resolveWorkspaceOverlayLaunch({
         currentHref: '/acme/~/settings/subscription',
         invocation: 'user',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: NOTIFICATIONS_OVERLAY,
       }),
     ).toMatchObject({
       history: 'push',
-      href: '/acme/~/settings/subscription?overlay=shell-preview',
-      overlay: SHELL_PREVIEW_OVERLAY,
+      href: '/acme/~/settings/subscription?overlay=notifications',
+      overlay: NOTIFICATIONS_OVERLAY,
     });
     expect(
       resolveWorkspaceOverlayLaunch({
         currentHref: 'https://untrusted.example/workspace',
         invocation: 'user',
-        overlay: SHELL_PREVIEW_OVERLAY,
+        overlay: NOTIFICATIONS_OVERLAY,
       }),
     ).toEqual({
       announcement: 'Overlay unavailable.',

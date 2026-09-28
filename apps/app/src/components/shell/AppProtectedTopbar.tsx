@@ -16,7 +16,6 @@ import { Suspense } from 'react';
 import CloudSyncIndicator from '@/components/cloud-sync-indicator/CloudSyncIndicator';
 import GenerationToasts from '@/components/shell/GenerationToasts';
 import NotificationInboxMenu from '@/components/shell/NotificationInboxMenu';
-import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 
 const TOPBAR_BREADCRUMB_ROOT_LABELS: Record<
   NonNullable<TopbarProps['currentApp']>,
@@ -54,11 +53,10 @@ function AppProtectedTopbarContent({
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
-  const workspaceInspector = useWorkspaceInspector();
   const contextSidebar = useContextSidebar();
   const translateContextSidebar = useTranslations('common.contextSidebar');
-  // A selection owns the right column, so the toggle drives the context
-  // sidebar while one is registered and the legacy inspector otherwise.
+  // The toggle drives the context sidebar and is hidden while nothing is
+  // selected.
   const rightPanel = contextSidebar?.selection
     ? {
         isMobileOpen: contextSidebar.isMobileOpen,
@@ -72,20 +70,7 @@ function AppProtectedTopbarContent({
         setIsMobileOpen: contextSidebar.setIsMobileOpen,
         toggle: contextSidebar.toggle,
       }
-    : workspaceInspector?.isRegistered
-      ? {
-          isMobileOpen: workspaceInspector.isMobileOpen,
-          isOpen: workspaceInspector.isOpen,
-          labels: {
-            close: 'Close workspace inspector',
-            collapse: 'Collapse workspace inspector',
-            expand: 'Expand workspace inspector',
-            open: 'Open workspace inspector',
-          },
-          setIsMobileOpen: workspaceInspector.setIsMobileOpen,
-          toggle: workspaceInspector.toggle,
-        }
-      : null;
+    : null;
 
   const ToggleIcon = isMenuOpen ? X : Menu;
   const isAdminChrome = chrome === 'admin';

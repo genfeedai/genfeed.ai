@@ -621,7 +621,6 @@ describe('workspace shell trusted registry', () => {
       getWorkspaceShellOverlayRegistration('library-picker'),
     ).toMatchObject({
       adapter: { key: 'library-picker', status: 'ready' },
-      parameterContract: { kind: 'none' },
       presentation: { title: 'Choose from Library' },
       telemetryClass: 'library_picker',
     });
@@ -630,24 +629,12 @@ describe('workspace shell trusted registry', () => {
         allowedShellModes: ['overlay'],
         canonicalUrl: null,
         kind: 'overlay',
-        parameterContract: { kind: 'none' },
         presentation: { title: 'Notifications' },
-      },
-    );
-    expect(getWorkspaceShellOverlayRegistration('shell-preview')).toMatchObject(
-      {
-        parameterContract: {
-          allowedReferenceKinds: ['asset', 'post'],
-          kind: 'optional-reference',
-          referenceAccess: 'server-authorized',
-        },
-        presentation: { title: 'Temporary workspace overlay' },
       },
     );
     expect(
       getWorkspaceShellOverlayRegistration('workflow-picker'),
     ).toMatchObject({
-      parameterContract: { kind: 'none' },
       presentation: { title: 'Choose a workflow' },
       telemetryClass: 'workflow_picker',
     });

@@ -6953,22 +6953,6 @@
       "workspace": "app"
     },
     {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/app/src/lib/workspace-shell/workspace-shell-transition.util.test.ts",
-      "fingerprint": "433349bf84e8452bcb8c",
-      "message": "Type '\"shell-preview\"' is not assignable to type '\"library_picker\" | \"notifications\" | \"shell_preview\" | \"workflow_picker\" | null'. Did you mean '\"shell_preview\"'?",
-      "workspace": "app"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/app/src/lib/workspace-shell/workspace-shell-transition.util.test.ts",
-      "fingerprint": "b9a368382e70f0f10041",
-      "message": "Type '\"shell-preview\"' is not assignable to type '\"library_picker\" | \"notifications\" | \"shell_preview\" | \"workflow_picker\" | null'. Did you mean '\"shell_preview\"'?",
-      "workspace": "app"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/tests/post-detail-context-handoff.test.tsx",
@@ -9238,22 +9222,6 @@
       "file": "packages/agent/src/components/AgentTextArtifactPreview.tsx",
       "fingerprint": "2f449c12f4983829bd37",
       "message": "Cannot find module '@genfeedai/contexts/user/brand-context/brand-context' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentThreadContextPanel.tsx",
-      "fingerprint": "adf5352ff72a5f9f0476",
-      "message": "Cannot find module '@genfeedai/models/organization/brand.model' or its corresponding type declarations.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "packages/agent/src/components/AgentThreadContextPanel.tsx",
-      "fingerprint": "f0f2cba4c88ecb823a62",
-      "message": "Cannot find module '@genfeedai/props/ui/agent/agent-thread-context-panel.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {

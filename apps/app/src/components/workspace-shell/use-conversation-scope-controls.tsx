@@ -88,7 +88,6 @@ interface UseConversationScopeControlsParams {
 
 export interface ConversationScopeControlsState {
   readonly contextLabel: string;
-  readonly inspectorScope: ReactNode;
   readonly isConsequentiallyBlocked: boolean;
   readonly scopeControls: ReactNode;
 }
@@ -543,6 +542,11 @@ export function useConversationScopeControls({
   const contextLabel = `${organizationLabel} · ${brandLabel}`;
   const scopeControls = (
     <>
+      {scopeError ? (
+        <p className="text-2xs text-destructive" role="alert">
+          {scopeError}
+        </p>
+      ) : null}
       {isStale ? (
         <Button
           className="h-7 px-2 text-2xs"
@@ -671,31 +675,8 @@ export function useConversationScopeControls({
     </>
   );
 
-  const inspectorScope = (
-    <div
-      aria-live="polite"
-      className="rounded-lg border border-border bg-background px-3 py-2"
-      data-testid="workspace-effective-scope"
-    >
-      <p className="text-xs font-medium text-foreground">{organizationLabel}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{brandLabel}</p>
-      <p className="mt-1 text-2xs text-muted-foreground">
-        {activeThread
-          ? `Thread context v${activeThread.contextVersion}`
-          : 'New thread scope'}
-        {isStale ? ' · synchronization required' : ''}
-      </p>
-      {scopeError ? (
-        <p className="mt-2 text-xs text-destructive" role="alert">
-          {scopeError}
-        </p>
-      ) : null}
-    </div>
-  );
-
   return {
     contextLabel,
-    inspectorScope,
     isConsequentiallyBlocked: isStale,
     scopeControls,
   };
