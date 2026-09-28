@@ -154,6 +154,28 @@ describe('AutoMergeService', () => {
     expect(fixture.mergeJobs()).toHaveLength(1);
   });
 
+  it('finalizes a two-frame storyboard whose group holds one clip', async () => {
+    group = [
+      groupClip('clip-1', 0, { mergeSettings: { isCaptionsEnabled: true } }),
+    ];
+    await trigger(group[0] as IngredientDocument);
+
+    await vi.waitFor(() => expect(fixture.mergeJobs()).toHaveLength(1));
+    expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+      sourceIds: ['clip-1'],
+    });
+    const [output] = fixture.outputs();
+    if (!output) throw new Error('missing output');
+    fixture.completeJob(
+      `stitch-${output.id}`,
+      `ingredients/videos/${output.id}`,
+    );
+    await vi.waitFor(() =>
+      expect(fixture.row(output.id).status).toBe(IngredientStatus.GENERATED),
+    );
+    expect(fixture.eventsNamed('whisper')).toEqual([[output.id]]);
+  });
+
   it('waits until every clip in the group has finished', async () => {
     group[1] = groupClip('clip-2', 1, { status: IngredientStatus.PROCESSING });
     await trigger(group[0] as IngredientDocument);

@@ -91,6 +91,8 @@ export class VideoStitchFixture {
   readonly failWaitFor = new Map<string, Error>();
   readonly jobResults = new Map<string, Record<string, unknown>>();
   readonly jobStates = new Map<string, JobState>();
+  /** Jobs the queue still holds; anything else answers 404 like the files service. */
+  readonly knownJobs = new Set<string>();
   readonly queued: IFileProcessingJob[] = [];
   readonly rows = new Map<string, StitchFixtureRow>();
   readonly service: VideoStitchService;
@@ -156,8 +158,16 @@ export class VideoStitchFixture {
     return this.queued.filter((job) => job.type === 'merge-videos');
   }
 
+  /** Simulates a job the queue lost or evicted. */
+  dropJob(jobId: string): void {
+    this.knownJobs.delete(jobId);
+    this.jobStates.delete(jobId);
+    this.jobResults.delete(jobId);
+  }
+
   /** Makes the worker finish a job with a persisted output. */
   completeJob(jobId: string, s3Key: string): void {
+    this.knownJobs.add(jobId);
     this.jobStates.set(jobId, JobState.COMPLETED);
     this.jobResults.set(jobId, {
       duration: 12,
@@ -168,6 +178,18 @@ export class VideoStitchFixture {
       url: `https://cdn.test/${s3Key}`,
       width: 1080,
     });
+  }
+
+  private status(jobId: string) {
+    return {
+      failedReason:
+        this.jobStates.get(jobId) === JobState.FAILED
+          ? 'ffmpeg exited'
+          : undefined,
+      jobId,
+      result: this.jobResults.get(jobId),
+      state: this.jobStates.get(jobId) ?? JobState.PENDING,
+    };
   }
 
   private record(name: string, ...args: unknown[]): void {
@@ -222,6 +244,22 @@ export class VideoStitchFixture {
       createMediaDocumentsInternal: async (
         input: InternalMediaDocumentsInput,
       ) => {
+        // The partial unique index on active stitch outputs'
+        // (organizationId, sourceActionId).
+        const isStitch = input.generationSource?.startsWith('video-stitch:');
+        const claimed = [...this.rows.values()].some(
+          (row) =>
+            isStitch &&
+            !row.isDeleted &&
+            row.generationSource?.startsWith('video-stitch:') &&
+            row.organizationId === input.organizationId &&
+            row.sourceActionId === input.sourceActionId,
+        );
+        if (claimed) {
+          throw Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          });
+        }
         this.sequence += 1;
         const id = `output-${this.sequence}`;
         this.rows.set(id, {
@@ -253,18 +291,18 @@ export class VideoStitchFixture {
 
   private queue() {
     return {
-      getJobStatus: async (jobId: string) => ({
-        failedReason:
-          this.jobStates.get(jobId) === JobState.FAILED
-            ? 'ffmpeg exited'
-            : undefined,
-        jobId,
-        result: this.jobResults.get(jobId),
-        state: this.jobStates.get(jobId) ?? JobState.PENDING,
-      }),
+      findJobStatus: async (jobId: string) =>
+        this.knownJobs.has(jobId) ? this.status(jobId) : null,
+      getJobStatus: async (jobId: string) => {
+        if (!this.knownJobs.has(jobId)) {
+          throw new Error('Request failed with status code 404');
+        }
+        return this.status(jobId);
+      },
       processVideo: async (job: IFileProcessingJob) => {
         this.queued.push(job);
         const jobId = job.id ?? `${job.type}-${this.queued.length}`;
+        this.knownJobs.add(jobId);
         if (job.type === 'add-captions') {
           this.completeJob(jobId, `ingredients/videos/${job.ingredientId}`);
         }

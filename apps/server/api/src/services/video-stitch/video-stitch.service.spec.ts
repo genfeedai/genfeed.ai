@@ -274,6 +274,32 @@ describe('VideoStitchService', () => {
   });
 
   describe('single-clip rule (keyed on output mode)', () => {
+    it('accepts one clip when finalizing a sequence (interpolation auto-merge)', async () => {
+      const handle = await fixture.service.stitch(
+        request({
+          callerKind: 'auto_merge',
+          clipIds: ['clip-1'],
+          mode: 'finalize',
+        }),
+      );
+      expect(handle.state).toBe('processing');
+      expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+        sourceIds: ['clip-1'],
+        transition: VideoTransition.NONE,
+      });
+    });
+
+    it('refuses one clip for an explicit join before queuing', async () => {
+      expect(
+        await failingField(
+          fixture.service.stitch(
+            request({ clipIds: ['clip-1'], mode: 'join' }),
+          ),
+        ),
+      ).toBe('clipIds');
+      expect(fixture.queued).toEqual([]);
+    });
+
     it('accepts one clip for a per-clip-normalized output', async () => {
       const handle = await fixture.service.stitch(
         request({
@@ -327,12 +353,14 @@ describe('VideoStitchService', () => {
       expect(fixture.mergeJobs()).toHaveLength(1);
     });
 
-    it('keeps one output when two requests with one key race', async () => {
-      const [first, second] = await Promise.all([
+    it('keeps one output and one job when requests with one key race', async () => {
+      const results = await Promise.all([
+        fixture.service.stitch(request()),
         fixture.service.stitch(request()),
         fixture.service.stitch(request()),
       ]);
-      expect(second.outputId).toBe(first.outputId);
+      expect(new Set(results.map((handle) => handle.outputId)).size).toBe(1);
+      expect(results.filter((handle) => handle.isExisting)).toHaveLength(2);
       expect(fixture.outputs()).toHaveLength(1);
       expect(fixture.mergeJobs()).toHaveLength(1);
     });
@@ -488,8 +516,19 @@ describe('VideoStitchService', () => {
       ]);
     });
 
-    it('leaves an output that has not failed alone', async () => {
+    it('leaves a processing output whose job is still queued alone', async () => {
       const handle = await fixture.service.stitch(request());
+      const retried = await fixture.service.retry(request(), handle);
+      expect(retried).toMatchObject({
+        jobId: handle.jobId,
+        state: 'processing',
+      });
+      expect(fixture.mergeJobs()).toHaveLength(1);
+    });
+
+    it('keeps tracking a legacy job id that the queue still holds', async () => {
+      const handle = await fixture.service.stitch(request());
+      fixture.knownJobs.add('legacy-job');
       const retried = await fixture.service.retry(request(), {
         ...handle,
         jobId: 'legacy-job',
@@ -499,6 +538,33 @@ describe('VideoStitchService', () => {
         state: 'processing',
       });
       expect(fixture.mergeJobs()).toHaveLength(1);
+    });
+
+    it('requeues a processing output whose job the queue lost, under its stitch id', async () => {
+      const handle = await fixture.service.stitch(request());
+      fixture.dropJob(handle.jobId);
+
+      const retried = await fixture.service.retry(request(), {
+        ...handle,
+        jobId: 'remix-merge-lost',
+      });
+
+      expect(retried).toMatchObject({
+        jobId: handle.jobId,
+        outputId: handle.outputId,
+        state: 'processing',
+      });
+      expect(fixture.mergeJobs().map((job) => job.id)).toEqual([
+        handle.jobId,
+        handle.jobId,
+      ]);
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+      await expect(fixture.service.settle(retried)).resolves.toMatchObject({
+        state: 'generated',
+      });
     });
   });
 });
