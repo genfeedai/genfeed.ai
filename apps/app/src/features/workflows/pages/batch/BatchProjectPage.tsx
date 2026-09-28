@@ -102,14 +102,13 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
   }
   function upload(files: File[]) {
     for (const file of files) {
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        setNotice(t('invalidFile'));
+        continue;
+      }
       let ingredientId: string | undefined;
       void write(
         async (api) => {
-          if (
-            !file.type.startsWith('image/') &&
-            !file.type.startsWith('video/')
-          )
-            throw new Error(t('invalidFile'));
           const category = file.type.startsWith('video/') ? 'videos' : 'images';
           const form = new FormData();
           form.append('file', file);

@@ -1,4 +1,5 @@
 import { BatchProjectKind } from '@genfeedai/contracts';
+import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { mockBatchProject } from '../../fixtures/batch-projects.fixture';
 
@@ -153,6 +154,71 @@ test.describe('Persisted Batch projects', () => {
     await expect(page.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
       'Launch collection',
     );
+  });
+
+  test('invalid files and permanent upload errors do not block later valid uploads or saves', async ({
+    authenticatedPage: page,
+  }) => {
+    const state = await mockBatchProject(page, BatchProjectKind.WORKFLOW);
+    const statuses = [413, 422];
+    await page.route(
+      `${playwrightApiEndpoint}/videos/upload`,
+      async (route) => {
+        const status = statuses.shift();
+        if (!status) return route.fallback();
+        await route.fulfill({
+          status,
+          json: {
+            errors: [
+              { status: String(status), detail: 'Upload rejected permanently' },
+            ],
+          },
+        });
+      },
+    );
+    await page.goto(`${base}/persisted-batch`);
+    const input = page.getByLabel('Add images or videos');
+    await input.setInputFiles({
+      name: 'invalid.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('invalid'),
+    });
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: 'Choose an image or video file.' }),
+    ).toBeVisible();
+    expect(statuses).toEqual([413, 422]);
+    for (const name of ['oversized.mp4', 'invalid-content.mp4']) {
+      await input.setInputFiles({
+        name,
+        mimeType: 'video/mp4',
+        buffer: Buffer.from('invalid'),
+      });
+      await expect(
+        page
+          .getByRole('alert')
+          .filter({ hasText: 'Upload rejected permanently' }),
+      ).toBeVisible();
+      await expect(input).toBeEnabled();
+      await page
+        .getByRole('textbox', { name: 'Batch name' })
+        .fill(`Saved after ${name}`);
+      await expect
+        .poll(() => state.getProject().name)
+        .toBe(`Saved after ${name}`);
+    }
+    await input.setInputFiles({
+      name: 'valid.mp4',
+      mimeType: 'video/mp4',
+      buffer: Buffer.from('valid'),
+    });
+    await expect
+      .poll(() => state.getProject().items?.[0]?.inputIngredientId)
+      .toBe('video-input');
+    await expect(
+      page.getByRole('button', { name: 'Start workflow batch' }),
+    ).toBeEnabled();
   });
 
   test('new batch offers ideas and workflow creation when there are no saved workflows', async ({

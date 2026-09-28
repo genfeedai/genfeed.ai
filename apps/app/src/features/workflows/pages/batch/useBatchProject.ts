@@ -4,11 +4,14 @@ import type {
   IUpdateBatchProjectInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { isServiceOperationError } from '@services/core/operation-error';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   type BatchProjectsApi,
   createBatchProjectsApi,
 } from './batch-projects-api';
+
+const PERMANENT_WRITE_STATUSES = new Set([400, 403, 404, 409, 410, 413, 422]);
 
 type ProjectWrite = (service: BatchProjectsApi) => Promise<IBatchProject>;
 type PendingWrite = {
@@ -97,8 +100,12 @@ export function useBatchProject(id: string, brandId: string) {
             setError(null);
           }
         } catch (reason) {
-          scope.failed = next.retryOnFailure;
-          if (!next.retryOnFailure) scope.pending.shift();
+          const permanent =
+            isServiceOperationError(reason) &&
+            reason.status !== undefined &&
+            PERMANENT_WRITE_STATUSES.has(reason.status);
+          scope.failed = next.retryOnFailure && !permanent;
+          if (!scope.failed) scope.pending.shift();
           next.complete(false);
           if (scope.alive)
             setError(
@@ -106,7 +113,7 @@ export function useBatchProject(id: string, brandId: string) {
                 ? reason.message
                 : 'Could not save batch.',
             );
-          if (next.retryOnFailure) break;
+          if (scope.failed) break;
         }
       }
     } finally {

@@ -1,4 +1,5 @@
 import type { IBatchProject } from '@genfeedai/contracts/interfaces';
+import { SERVICE_OPERATION_ERROR_NAME } from '@services/core/operation-error';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useBatchProject } from './useBatchProject';
 
@@ -115,6 +116,48 @@ describe('persisted Batch project writes', () => {
     });
     expect(invalid).toHaveBeenCalledTimes(1);
     expect(result.current.project?.name).toBe('Still editable');
+  });
+  it.each([400, 403, 404, 409, 410, 413, 422])(
+    'drops permanent %s writes and continues with the valid queued save',
+    async (status) => {
+      const { result } = renderHook(() => useBatchProject('a', 'brand-1'));
+      await waitFor(() => expect(result.current.project).not.toBeNull());
+      const failure = Object.assign(new Error('Upload rejected'), {
+        name: SERVICE_OPERATION_ERROR_NAME,
+        status,
+      });
+      const upload = vi.fn().mockRejectedValue(failure);
+      await act(async () => {
+        const rejected = result.current.write(upload, undefined, true);
+        const saved = result.current.update({
+          name: 'Valid after rejected upload',
+        });
+        expect(await rejected).toBe(false);
+        expect(await saved).toBe(true);
+      });
+      expect(upload).toHaveBeenCalledTimes(1);
+      expect(result.current.hasUnsavedChanges).toBe(false);
+      expect(result.current.project?.name).toBe('Valid after rejected upload');
+    },
+  );
+  it('retains a transient service failure until explicit retry', async () => {
+    const { result } = renderHook(() => useBatchProject('a', 'brand-1'));
+    await waitFor(() => expect(result.current.project).not.toBeNull());
+    mocks.update.mockRejectedValueOnce(
+      Object.assign(new Error('Temporarily unavailable'), {
+        name: SERVICE_OPERATION_ERROR_NAME,
+        status: 503,
+      }),
+    );
+    await act(async () => {
+      await result.current.update({ name: 'Keep me' });
+    });
+    expect(result.current.hasUnsavedChanges).toBe(true);
+    await act(async () => {
+      await result.current.retrySave();
+    });
+    expect(result.current.project?.name).toBe('Keep me');
+    expect(mocks.update).toHaveBeenCalledTimes(2);
   });
   it('keeps optimistic edits when an older poll returns', async () => {
     const delayed = deferred<IBatchProject>();
