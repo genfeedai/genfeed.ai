@@ -67,10 +67,11 @@ export type PlatformStatsResponse = JsonApiArrayWrapper<IPlatformComparison>;
 export type GrowthDataResponse = JsonApiArrayWrapper<GrowthData>;
 export type EngagementResponse = JsonApiWrapper<EngagementBreakdown>;
 
+/** Query params of `/analytics/*` (`AnalyticsDateRangeDto` and its extensions). */
 export interface AnalyticsQueryOptions {
   startDate?: string;
   endDate?: string;
-  brand?: string;
+  brandId?: string;
   metric?: string;
   limit?: number;
   platform?: string;

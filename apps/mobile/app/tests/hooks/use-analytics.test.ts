@@ -75,7 +75,7 @@ describe('useAnalytics', () => {
     } as never);
 
     const { result } = renderHook(() =>
-      useAnalytics({ brand: 'acme', startDate: '2026-08-01' }),
+      useAnalytics({ brandId: 'acme', startDate: '2026-08-01' }),
     );
 
     await waitFor(() => {
@@ -94,7 +94,7 @@ describe('useAnalytics', () => {
     ]);
     expect(result.current.data.engagement).toEqual({ totalEngagement: 12 });
     expect(analyticsService.getTopContent).toHaveBeenCalledWith('test-token', {
-      brand: 'acme',
+      brandId: 'acme',
       limit: 5,
       startDate: '2026-08-01',
     });
