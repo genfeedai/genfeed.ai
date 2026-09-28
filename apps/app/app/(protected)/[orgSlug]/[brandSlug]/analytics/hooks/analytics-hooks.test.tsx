@@ -202,7 +202,10 @@ vi.mock('@ui/layout/container/Container', () => ({
 /**
  * The exact `GET /analytics/hooks` shape `AnalyticsResponseProjection
  * .buildViralHooks` produces: a text hook per post, string platform ids, and
- * engagement/view aggregates (genfeedai/genfeed.ai#5415).
+ * engagement/view aggregates (genfeedai/genfeed.ai#5415). Both rankings are
+ * derived from `videos` (grouped by lowercased hook, posts ordered by
+ * engagement): the pattern-interrupt post wins on engagement, the two
+ * "three mistakes" posts (avg 90 engagement, avg 4200 views) win on reach.
  */
 function hookResponse(): IViralHooksResult {
   return {
@@ -237,7 +240,7 @@ function hookResponse(): IViralHooksResult {
           totalViews: 9000,
         },
       ],
-      totalVideos: 2,
+      totalVideos: 4,
     },
     videos: [
       {
@@ -248,6 +251,24 @@ function hookResponse(): IViralHooksResult {
         title: 'Winning hook video',
         totalEngagement: 320,
         totalViews: 1600,
+      },
+      {
+        description: 'Three mistakes I made\nNumber two cost me a launch.',
+        hook: 'Three mistakes I made',
+        id: 'video-3',
+        platforms: ['tiktok'],
+        title: 'Launch lessons',
+        totalEngagement: 100,
+        totalViews: 5000,
+      },
+      {
+        description: 'Three mistakes I made\nWhat I would do differently.',
+        hook: 'Three mistakes I made',
+        id: 'video-4',
+        platforms: ['tiktok'],
+        title: 'Hiring lessons',
+        totalEngagement: 80,
+        totalViews: 3400,
       },
       {
         description: '',
@@ -292,7 +313,7 @@ describe('AnalyticsHooks', () => {
     expect(screen.getByText('Total Engagement: 500')).toBeVisible();
 
     // Post table renders each post's text hook, platform ids and aggregates
-    const [, winningRow, untitledRow] = within(
+    const [, winningRow, launchRow, hiringRow, untitledRow] = within(
       screen.getByRole('table'),
     ).getAllByRole('row');
     expect(
@@ -302,10 +323,27 @@ describe('AnalyticsHooks', () => {
     expect(within(winningRow).getByLabelText('Instagram')).toBeVisible();
     expect(within(winningRow).getByText('1600')).toBeVisible();
     expect(within(winningRow).getByText('320')).toBeVisible();
+    expect(within(launchRow).getByText('Launch lessons')).toBeVisible();
+    expect(within(launchRow).getByText('Three mistakes I made')).toBeVisible();
+    expect(within(launchRow).getByText('5000')).toBeVisible();
+    expect(within(hiringRow).getByText('Hiring lessons')).toBeVisible();
+    expect(within(hiringRow).getByText('3400')).toBeVisible();
     expect(within(untitledRow).getByText('Untitled')).toBeVisible();
     expect(within(untitledRow).getByText('No hook detected')).toBeVisible();
 
     // Hook pattern rankings: by engagement, then by reach (avg views)
+    const rankedHooks = (heading: string) =>
+      within(screen.getByText(heading).closest('section') as HTMLElement)
+        .getAllByText(/^(open with a pattern interrupt|three mistakes i made)$/)
+        .map((node) => node.textContent);
+    expect(rankedHooks('Top Performing Hook Patterns')).toEqual([
+      'open with a pattern interrupt',
+      'three mistakes i made',
+    ]);
+    expect(rankedHooks('Hooks by Reach')).toEqual([
+      'three mistakes i made',
+      'open with a pattern interrupt',
+    ]);
     expect(screen.getByText('320 avg engagement • 1 posts')).toBeVisible();
     expect(screen.getByText('90 avg engagement • 2 posts')).toBeVisible();
     expect(screen.getByText('4200')).toBeVisible();

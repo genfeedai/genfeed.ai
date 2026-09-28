@@ -846,5 +846,66 @@ describe('AnalyticsService', () => {
         expect(query.values).toContain(organizationId);
       }
     });
+
+    // genfeedai/genfeed.ai#5415: the platform totals describe the same post
+    // set as the videos, so "Breakouts only" / a focused post never shows
+    // unrelated platform totals.
+    it('applies the outlier-tier and post filters to the platform aggregation too', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+
+      await service.getViralHooks(
+        '2025-01-01',
+        '2025-01-31',
+        'brand-1',
+        'org-1',
+        'breakout',
+        'post-42',
+      );
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('FROM "outlier_post_performances" opp');
+        expect(query.sql).toContain(`opp."outlierTier" IN ('breakout')`);
+        expect(query.sql).toContain('AND pa."postId" = ?');
+        expect(query.values).toContain('post-42');
+      }
+    });
+
+    it('counts distinct posts per platform and returns every platform', async () => {
+      const platforms = [
+        CredentialPlatform.TIKTOK,
+        CredentialPlatform.INSTAGRAM,
+        CredentialPlatform.YOUTUBE,
+        CredentialPlatform.TWITTER,
+        CredentialPlatform.FACEBOOK,
+        CredentialPlatform.LINKEDIN,
+      ];
+      const capturedQueries = captureQueryRawCalls([
+        [],
+        platforms.map((platform, index) => ({
+          platform,
+          post_count: BigInt(index + 1),
+          total_engagement: BigInt(600 - index * 100),
+          total_views: BigInt(6000 - index * 1000),
+        })),
+      ]);
+
+      const result = await service.getViralHooks('2025-01-01', '2025-01-31');
+
+      const platformQuery = capturedQueries[1];
+      expect(platformQuery.sql).toContain(
+        'COUNT(DISTINCT pa."postId") AS post_count',
+      );
+      expect(platformQuery.sql).not.toMatch(/\bLIMIT\b/);
+      expect(result.analysis.topPlatforms.map((row) => row.platform)).toEqual(
+        platforms,
+      );
+      expect(result.analysis.topPlatforms[5]).toEqual({
+        platform: CredentialPlatform.LINKEDIN,
+        postCount: 6,
+        totalEngagement: 100,
+        totalViews: 1000,
+      });
+    });
   });
 });

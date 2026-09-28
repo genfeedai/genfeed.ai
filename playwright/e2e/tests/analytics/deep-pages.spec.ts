@@ -463,12 +463,12 @@ test.describe('Analytics Deep Pages', () => {
             jsonApi({
               byPlatform: [
                 {
-                  alive: 9,
+                  alive: 3,
                   appeared: 6,
                   avgLifespanDays: 4.5,
                   died: 3,
                   platform: 'instagram',
-                  turnoverRate: 0.5,
+                  turnoverRate: 50,
                 },
               ],
               days: 30,
@@ -477,11 +477,11 @@ test.describe('Analytics Deep Pages', () => {
                 { appeared: 4, date: '2026-09-22', died: 2 },
               ],
               totals: {
-                alive: 9,
+                alive: 3,
                 appeared: 6,
                 avgLifespanDays: 4.5,
                 died: 3,
-                turnoverRate: 0.5,
+                turnoverRate: 50,
               },
             }),
           );
@@ -496,13 +496,16 @@ test.describe('Analytics Deep Pages', () => {
       await expect(rows).toHaveCount(1);
       await expect(rows).toContainText('Instagram');
       await expect(rows).toContainText('4.5d');
-      await expect(rows).toContainText('0.5%');
+      await expect(rows).toContainText('50%');
       await expect(
         main.getByTestId('metric-card').filter({ hasText: 'Appeared' }),
       ).toContainText('6');
       await expect(
         main.getByTestId('metric-card').filter({ hasText: 'Died' }),
       ).toContainText('3');
+      await expect(
+        main.getByTestId('metric-card').filter({ hasText: 'Turnover Rate' }),
+      ).toContainText('50%');
       expect(seen.length).toBeGreaterThan(0);
     });
   });
