@@ -178,14 +178,20 @@ describe('VideosResizeController', () => {
       },
     ];
 
+    type VideoRow = (typeof videoRows)[number];
+    type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+
+    const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
+          : row[key as keyof VideoRow] === value,
+      );
+
     beforeEach(() => {
       mockServices.videosService.findOne.mockImplementation(
-        async (where: Record<string, unknown>) =>
-          videoRows.find((row) =>
-            Object.entries(where).every(
-              ([key, value]) => row[key as keyof typeof row] === value,
-            ),
-          ) ?? null,
+        async (where: VideoWhere) =>
+          videoRows.find((row) => matchesWhere(row, where)) ?? null,
       );
     });
 
