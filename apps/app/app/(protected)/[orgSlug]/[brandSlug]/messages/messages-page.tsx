@@ -119,12 +119,13 @@ function MessageBubble({
   onToggleReference,
 }: {
   busyAction: string | null;
-  canAttachReference: boolean;
-  isReferenced: boolean;
+  canAttachReference?: boolean;
+  isReferenced?: boolean;
   message: SocialMessageModel;
   onApproveDraft: (messageId: string) => void;
   onRejectDraft: (messageId: string) => void;
-  onToggleReference: (message: SocialMessageModel) => void;
+  /** Only offered where an agent conversation can consume the reference. */
+  onToggleReference?: (message: SocialMessageModel) => void;
 }) {
   const translate = useTranslations('common.messages');
   const isOutbound = message.direction === 'outbound';
@@ -188,23 +189,25 @@ function MessageBubble({
             </Button>
           </div>
         ) : null}
-        <div className="mt-2 flex justify-end border-t border-border pt-2">
-          <Button
-            ariaLabel={
-              isReferenced
-                ? 'Remove message from agent context'
-                : 'Attach message to agent context'
-            }
-            icon={<LinkIcon className="size-3.5" />}
-            isDisabled={!canAttachReference}
-            onClick={() => onToggleReference(message)}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {isReferenced ? 'Referenced' : 'Reference'}
-          </Button>
-        </div>
+        {onToggleReference ? (
+          <div className="mt-2 flex justify-end border-t border-border pt-2">
+            <Button
+              ariaLabel={
+                isReferenced
+                  ? 'Remove message from agent context'
+                  : 'Attach message to agent context'
+              }
+              icon={<LinkIcon className="size-3.5" />}
+              isDisabled={!canAttachReference}
+              onClick={() => onToggleReference(message)}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            >
+              {isReferenced ? 'Referenced' : 'Reference'}
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -376,10 +379,6 @@ export default function MessagesPage() {
     handleRejectDraft,
     handleStatusChange,
     handleSync,
-    handleToggleConversationReference,
-    handleToggleMessageReference,
-    isConversationReferenced,
-    isMessageReferenced,
     notice,
     references,
   } = useMessagesActions({
@@ -418,13 +417,7 @@ export default function MessagesPage() {
     return href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_NEW}?${params.toString()}`);
   }, [href, selectedConversation]);
 
-  useMessagesSurfaceAdapter({
-    canAttachReferences,
-    isConversationReferenced,
-    onToggleConversationReference: handleToggleConversationReference,
-    references,
-    selectedConversation,
-  });
+  useMessagesSurfaceAdapter({ references });
 
   // A DM has no post or comment behind it, so the thread reads top-to-bottom
   // on its own instead of hanging off a source-content anchor.
@@ -678,13 +671,10 @@ export default function MessagesPage() {
                   messages.map((message) => (
                     <MessageBubble
                       busyAction={busyAction}
-                      canAttachReference={canAttachReferences}
-                      isReferenced={isMessageReferenced(message)}
                       key={message.id}
                       message={message}
                       onApproveDraft={handleApproveDraft}
                       onRejectDraft={handleRejectDraft}
-                      onToggleReference={handleToggleMessageReference}
                     />
                   ))
                 )}

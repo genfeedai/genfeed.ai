@@ -7,6 +7,7 @@ import {
   type WebsiteAnalyticsEventProperties,
   type WebsiteCtaPayload,
 } from './analytics-events';
+import { runWhenIdle } from './run-when-idle';
 
 /**
  * Gated PostHog client for the marketing website (genfeed.ai).
@@ -120,43 +121,6 @@ function handleTrackedCtaClick(event: Event): void {
   for (const name of deriveWebsiteEventsFromCta(payload)) {
     captureWebsiteAnalyticsEvent(name, payload);
   }
-}
-
-/**
- * How long the browser may keep deferring the SDK before we load it anyway.
- * Long enough to clear first paint and hydration on a slow phone, short enough
- * that a visitor who leaves quickly is still counted.
- */
-const ANALYTICS_IDLE_TIMEOUT_MS = 3000;
-
-/** Fallback delay for engines without `requestIdleCallback` (Safari). */
-const ANALYTICS_IDLE_FALLBACK_MS = 1500;
-
-interface IdleCapableWindow {
-  requestIdleCallback?: (
-    callback: () => void,
-    options?: { timeout: number },
-  ) => number;
-}
-
-/**
- * Defer analytics bootstrap past the work the visitor is actually waiting on.
- *
- * `instrumentation-client` runs as part of the initial client bundle, so an
- * eager `import('posthog-js')` puts the SDK request, its parse cost, and every
- * follow-up ingestion call inside the dependency graph Lighthouse simulates for
- * LCP. None of it is needed before the page is usable.
- */
-function runWhenIdle(run: () => void): void {
-  const requestIdle = (window as Window & IdleCapableWindow)
-    .requestIdleCallback;
-
-  if (typeof requestIdle === 'function') {
-    requestIdle(run, { timeout: ANALYTICS_IDLE_TIMEOUT_MS });
-    return;
-  }
-
-  window.setTimeout(run, ANALYTICS_IDLE_FALLBACK_MS);
 }
 
 /** Pull in `posthog-js` and start it with the marketing configuration. */

@@ -24,7 +24,6 @@ export type {
   WorkspaceShellLaunchTarget,
   WorkspaceShellOverlayRegistration,
   WorkspaceShellProductClass,
-  WorkspaceShellReferenceKind,
   WorkspaceShellRestorationPolicy,
   WorkspaceShellRouteMode,
   WorkspaceShellRouteRegistration,
@@ -1226,7 +1225,6 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
     key: 'library-picker',
     kind: 'overlay',
     launchTarget: 'overlay',
-    parameterContract: Object.freeze({ kind: 'none' } as const),
     presentation: Object.freeze({
       description:
         'Choose an authorized media source without leaving the active conversation.',
@@ -1248,7 +1246,6 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
     key: 'notifications',
     kind: 'overlay',
     launchTarget: 'overlay',
-    parameterContract: Object.freeze({ kind: 'none' } as const),
     presentation: Object.freeze({
       description:
         'Review workspace notifications without leaving the active conversation or canvas.',
@@ -1262,32 +1259,6 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
   }),
   Object.freeze({
     accessPolicy: 'organization-member',
-    adapter: Object.freeze({ key: 'shell-preview', status: 'placeholder' }),
-    allowedShellModes: Object.freeze(['overlay'] as const),
-    availability: 'conversation-shell',
-    canonicalUrl: null,
-    deployments: ALL_DEPLOYMENTS,
-    key: 'shell-preview',
-    kind: 'overlay',
-    launchTarget: 'overlay',
-    parameterContract: Object.freeze({
-      allowedReferenceKinds: Object.freeze(['asset', 'post'] as const),
-      kind: 'optional-reference',
-      referenceAccess: 'server-authorized',
-    } as const),
-    presentation: Object.freeze({
-      description:
-        'This trusted placeholder demonstrates restorable overlay state without mutating scope or approving an action.',
-      openAnnouncement: 'Temporary workspace overlay opened.',
-      title: 'Temporary workspace overlay',
-    }),
-    restoration: URL_RESTORATION_POLICY,
-    safeFallback: 'same-canonical-url',
-    scope: 'organization',
-    telemetryClass: 'shell_preview',
-  }),
-  Object.freeze({
-    accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'workflow-picker', status: 'placeholder' }),
     allowedShellModes: Object.freeze(['overlay'] as const),
     availability: 'conversation-shell',
@@ -1296,7 +1267,6 @@ export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
     key: 'workflow-picker',
     kind: 'overlay',
     launchTarget: 'overlay',
-    parameterContract: Object.freeze({ kind: 'none' } as const),
     presentation: Object.freeze({
       description:
         'Choose an authorized deterministic workflow without leaving the active conversation or canvas.',

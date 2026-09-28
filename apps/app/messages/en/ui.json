@@ -156,5 +156,14 @@
     "emptyDescription": "Insights are generated automatically as your content performance data comes in.",
     "confidence": "{value}% confidence",
     "dismissAriaLabel": "Dismiss insight"
+  },
+  "collection": {
+    "clearAll": "Clear all",
+    "grid": "Grid",
+    "list": "List",
+    "loadingItem": "Loading item",
+    "moreActions": "More actions",
+    "removeFilter": "Remove filter {label}",
+    "removeFilterFallback": "Remove filter"
   }
 }

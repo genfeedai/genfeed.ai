@@ -53,25 +53,25 @@ describe('workspace shell URL restoration', () => {
     ).toMatchObject({ state: 'canvas' });
   });
 
-  it('restores an allowlisted overlay with an authorized canonical reference', () => {
-    expect(
-      restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/library/images',
-        resolveOverlayReferenceAccess: () => 'authorized',
-        searchParams: new URLSearchParams({
-          overlay: 'shell-preview',
-          overlayRef: 'asset:asset-123',
-          thread: 'thread-1',
-        }),
+  it('strips a stale overlayRef param and still restores the no-parameter overlay', () => {
+    const restored = restoreWorkspaceShellLocation({
+      pathname: '/acme/moonrise/library/images',
+      searchParams: new URLSearchParams({
+        overlay: 'library-picker',
+        overlayRef: 'asset:asset-123',
+        thread: 'thread-1',
       }),
-    ).toMatchObject({
-      overlay: {
-        key: 'shell-preview',
-        parameters: { reference: { id: 'asset-123', kind: 'asset' } },
-      },
+    });
+
+    expect(restored).toMatchObject({
+      isCanonical: false,
+      overlay: { key: 'library-picker', parameters: {} },
       state: 'overlay',
       threadId: null,
     });
+    expect(restored?.canonicalSearchParams.toString()).toBe(
+      'overlay=library-picker',
+    );
   });
 
   // Workflows are brand-scoped only since the Automation hard-cut — the
@@ -112,64 +112,41 @@ describe('workspace shell URL restoration', () => {
     expect(restored?.canonicalSearchParams.toString()).toBe('taskId=task-1');
   });
 
-  it('fails an invalid typed reference back to the base route', () => {
+  it('strips a stray overlayRef with no overlay key back to the canonical URL', () => {
     const restored = restoreWorkspaceShellLocation({
       pathname: '/acme/moonrise/workspace',
       searchParams: new URLSearchParams({
-        overlay: 'shell-preview',
-        overlayRef: 'approval:grant-access',
+        overlayRef: 'asset:asset-123',
       }),
     });
 
     expect(restored).toMatchObject({
-      restorationFailure: 'invalid_overlay_reference',
+      isCanonical: false,
+      overlay: null,
+      restorationFailure: null,
       state: 'canvas',
     });
     expect(restored?.canonicalSearchParams.toString()).toBe('');
   });
 
-  it.each([
-    [undefined, 'unauthorized_overlay_reference'],
-    [() => 'unauthorized' as const, 'unauthorized_overlay_reference'],
-    [() => 'stale' as const, 'stale_overlay_reference'],
-  ])(
-    'fails %s reference access back to the exact underlying URL',
-    (resolveOverlayReferenceAccess, restorationFailure) => {
-      const restored = restoreWorkspaceShellLocation({
-        pathname: '/acme/moonrise/library/images',
-        resolveOverlayReferenceAccess,
-        searchParams: new URLSearchParams({
-          folder: 'launch',
-          overlay: 'shell-preview',
-          overlayRef: 'asset:asset-123',
-          thread: 'thread-1',
-        }),
-      });
-
-      expect(restored).toMatchObject({
-        overlay: null,
-        restorationFailure,
-        state: 'canvas',
-        threadId: null,
-      });
-      expect(restored?.canonicalSearchParams.toString()).toBe('folder=launch');
-    },
-  );
-
-  it('rejects parameters on an overlay registered without parameters', () => {
-    expect(
-      restoreWorkspaceShellLocation({
-        pathname: '/acme/~/agent/thread-1',
-        searchParams: new URLSearchParams({
-          overlay: 'notifications',
-          overlayRef: 'asset:asset-123',
-        }),
+  it('strips a stale overlayRef alongside a resolved no-parameter overlay', () => {
+    const restored = restoreWorkspaceShellLocation({
+      pathname: '/acme/~/agent/thread-1',
+      searchParams: new URLSearchParams({
+        overlay: 'notifications',
+        overlayRef: 'asset:asset-123',
       }),
-    ).toMatchObject({
-      overlay: null,
-      restorationFailure: 'invalid_overlay_reference',
-      state: 'canvas',
     });
+
+    expect(restored).toMatchObject({
+      isCanonical: false,
+      overlay: { key: 'notifications', parameters: {} },
+      restorationFailure: null,
+      state: 'overlay',
+    });
+    expect(restored?.canonicalSearchParams.toString()).toBe(
+      'overlay=notifications',
+    );
   });
 
   it('restores the no-parameter Library picker over the exact base route', () => {
@@ -246,17 +223,17 @@ describe('workspace shell URL restoration', () => {
     expect(
       buildWorkspaceShellHref('/acme/~/workspace/overview?filter=active', {
         overlay: {
-          key: 'shell-preview',
-          parameters: { reference: null },
+          key: 'library-picker',
+          parameters: {},
         },
       }),
-    ).toBe('/acme/~/workspace/overview?filter=active&overlay=shell-preview');
+    ).toBe('/acme/~/workspace/overview?filter=active&overlay=library-picker');
 
     expect(
       removeWorkspaceShellOverlayParams(
         '/acme/~/workspace/overview',
         new URLSearchParams({
-          overlay: 'shell-preview',
+          overlay: 'library-picker',
           taskId: 'task-1',
           thread: 'thread-1',
         }),

@@ -12,7 +12,6 @@ import {
 type WorkspaceShellOverlayTelemetryClass =
   | 'library_picker'
   | 'notifications'
-  | 'shell_preview'
   | 'workflow_picker';
 
 function getWorkspaceShellTelemetryContext(): ConversationShellTelemetryContext {

@@ -127,7 +127,7 @@ describe('MasonryImage', () => {
   it('should apply correct styles and classes', () => {
     render(<MasonryImage image={mockImage} />);
 
-    expect(screen.getByRole('button')).toHaveClass('rounded-lg');
+    expect(screen.getByRole('button')).toHaveClass('rounded-card');
   });
 
   it('uses the loaded image dimensions instead of stale square metadata', () => {

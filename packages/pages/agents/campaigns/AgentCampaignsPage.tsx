@@ -1,45 +1,50 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+  ViewType,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { SurfaceSummaryItem } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
+import type {
+  AgentCampaignItemProps,
+  AgentCampaignProgressProps,
+  AgentCampaignRelativeTimeTranslate,
+} from '@props/automation/agent-campaigns-page.props';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
+import CollectionItemActions from '@ui/collection/CollectionItemActions';
+import CollectionList from '@ui/collection/CollectionList';
+import CollectionSection from '@ui/collection/CollectionSection';
+import CollectionToolbar from '@ui/collection/CollectionToolbar';
+import CollectionView from '@ui/collection/CollectionView';
 import { SurfaceSummaryStrip } from '@ui/dashboard/SurfaceSummaryStrip';
 import Badge from '@ui/display/badge/Badge';
-import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format } from 'date-fns';
 import {
-  ArrowRight,
   CirclePlay,
   Clock,
-  Cpu,
   DollarSign,
   LayoutDashboard,
   Plus,
   Zap,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 
-type CampaignStatus = 'draft' | 'active' | 'paused' | 'completed';
-
-const STATUS_BADGE_VARIANTS: Record<
-  CampaignStatus,
-  'secondary' | 'success' | 'warning' | 'default'
-> = {
-  active: 'success',
-  completed: 'default',
-  draft: 'secondary',
-  paused: 'warning',
-};
+const CAMPAIGNS_COLLECTION_SURFACE = 'automation.campaigns';
 
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '—';
@@ -51,13 +56,61 @@ function formatDate(dateStr: string | undefined): string {
   }
 }
 
-function formatRelativeTime(dateStr: string | undefined): string {
-  if (!dateStr) return '—';
-  try {
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: true });
-  } catch {
+/** Past times read "3h ago", scheduled ones "in 3h". Pass a
+ * `common.agentCampaign.relativeTime`-scoped translate. */
+function formatRelativeTime(
+  dateStr: string,
+  translate: AgentCampaignRelativeTimeTranslate,
+): string {
+  const time = new Date(dateStr).getTime();
+  if (Number.isNaN(time)) {
+    logger.warn('Invalid date in AgentCampaignsPage', { date: dateStr });
     return '—';
   }
+
+  const deltaMinutes = Math.floor(Math.abs(Date.now() - time) / 60_000);
+  const isFuture = time > Date.now();
+
+  if (deltaMinutes < 1) {
+    return translate(isFuture ? 'dueNow' : 'justNow');
+  }
+  if (deltaMinutes < 60) {
+    return translate(isFuture ? 'inMinutes' : 'minutesAgo', {
+      minutes: deltaMinutes,
+    });
+  }
+
+  const hours = Math.floor(deltaMinutes / 60);
+  if (hours < 24) {
+    return translate(isFuture ? 'inHours' : 'hoursAgo', { hours });
+  }
+
+  return translate(isFuture ? 'inDays' : 'daysAgo', {
+    days: Math.floor(hours / 24),
+  });
+}
+
+function getCreditsPercent(allocated: number, used: number): number {
+  return allocated > 0
+    ? Math.min(100, Math.round((used / allocated) * 100))
+    : 0;
+}
+
+/**
+ * A Program needs the operator when it is paused, or when it is still active
+ * but has spent its whole credit allocation. Programs carry no failure state,
+ * so those are the only attention signals the list data has.
+ */
+function isCampaignNeedingAttention(campaign: AgentCampaign): boolean {
+  if (campaign.status === 'paused') {
+    return true;
+  }
+
+  return (
+    campaign.status === 'active' &&
+    campaign.creditsAllocated > 0 &&
+    campaign.creditsUsed >= campaign.creditsAllocated
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -65,6 +118,7 @@ function formatRelativeTime(dateStr: string | undefined): string {
 /* ------------------------------------------------------------------ */
 
 function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
+  const translateTime = useTranslations('common.agentCampaign.relativeTime');
   const items: SurfaceSummaryItem[] = useMemo(() => {
     const activeCampaigns = campaigns.filter((c) => c.status === 'active');
     const totalCreditsUsed = campaigns.reduce(
@@ -102,153 +156,179 @@ function CampaignStatsStrip({ campaigns }: { campaigns: AgentCampaign[] }) {
       },
       {
         accent: nextOrchestration
-          ? formatRelativeTime(nextOrchestration)
+          ? formatRelativeTime(nextOrchestration, translateTime)
           : 'no scheduled runs',
         icon: <Clock className="size-4 text-muted-foreground" />,
         label: 'Next Orchestration',
         value: nextOrchestration ? formatDate(nextOrchestration) : '—',
       },
     ];
-  }, [campaigns]);
+  }, [campaigns, translateTime]);
 
   return <SurfaceSummaryStrip items={items} testId="campaign-stats-strip" />;
 }
 
 /* ------------------------------------------------------------------ */
-/*  Active Campaign Cards                                              */
+/*  Program anatomy: status, progress, one fact line, one action       */
 /* ------------------------------------------------------------------ */
 
-function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
-  const { href } = useOrgUrl();
-  const creditsPercent =
-    campaign.creditsAllocated > 0
-      ? Math.min(
-          100,
-          Math.round((campaign.creditsUsed / campaign.creditsAllocated) * 100),
-        )
-      : 0;
+function CampaignProgress({
+  allocated,
+  used,
+  className,
+}: AgentCampaignProgressProps) {
+  const translate = useTranslations('common.agentCampaign.collection');
+  const percent = getCreditsPercent(allocated, used);
 
   return (
-    <Card className="group" bodyClassName="gap-3 p-4">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-full border border-border bg-foreground/[0.06]">
-            <Cpu className="size-4 text-foreground/60" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">
-              {campaign.label}
-            </p>
-            <Badge status={campaign.status} size={ComponentSize.SM}>
-              {campaign.status}
-            </Badge>
-          </div>
-        </div>
-        <Button
-          asChild
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
-        >
-          <Link
-            href={href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${campaign.id}`)}
-            aria-label={`Open ${campaign.label}`}
-          >
-            <ArrowRight className="size-3.5" />
-          </Link>
-        </Button>
-      </div>
-
-      {campaign.brief && (
-        <div className="min-h-[40px] rounded bg-secondary px-3 py-2">
-          <p className="line-clamp-2 text-2xs text-foreground/40 leading-relaxed">
-            {campaign.brief}
-          </p>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between text-xs text-foreground/50">
-        <span>
-          {campaign.agents.length} agent
-          {campaign.agents.length !== 1 ? 's' : ''}
-        </span>
-        <span>
-          {campaign.creditsUsed.toLocaleString()} /{' '}
-          {campaign.creditsAllocated.toLocaleString()} credits
-        </span>
-      </div>
-
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/[0.06]">
-        <div
-          className="h-full rounded-full bg-foreground/60 transition-all"
-          style={{ width: `${creditsPercent}%` }}
-        />
-      </div>
-
-      {campaign.nextOrchestratedAt && (
-        <p className="text-2xs text-foreground/30">
-          Next run {formatRelativeTime(campaign.nextOrchestratedAt)}
-        </p>
-      )}
-    </Card>
-  );
-}
-
-function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
-  const { href } = useOrgUrl();
-  const activeCampaigns = useMemo(
-    () => campaigns.filter((c) => c.status === 'active').slice(0, 3),
-    [campaigns],
-  );
-
-  if (activeCampaigns.length === 0) {
-    return null;
-  }
-
-  return (
-    <section data-testid="campaign-active-cards">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
-          Active Programs
-        </h2>
-        {campaigns.filter((c) => c.status === 'active').length > 3 && (
-          <Button
-            asChild
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.XS}
-          >
-            <Link href={href(APP_ROUTES.AUTOMATION.CAMPAIGNS)}>View All</Link>
-          </Button>
-        )}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {activeCampaigns.map((campaign) => (
-          <CampaignCard key={campaign.id} campaign={campaign} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/*  Enhanced Campaign Table                                            */
-/* ------------------------------------------------------------------ */
-
-function ProgressBar({ allocated, used }: { allocated: number; used: number }) {
-  const percent =
-    allocated > 0 ? Math.min(100, Math.round((used / allocated) * 100)) : 0;
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-foreground/[0.06]">
+    <div className={cn('flex items-center gap-2', className)}>
+      <div
+        aria-label={translate('creditsProgress', { percent })}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={percent}
+        className="h-1.5 w-full min-w-16 overflow-hidden rounded-full bg-foreground/[0.06]"
+        role="progressbar"
+      >
         <div
           className="h-full rounded-full bg-foreground/60 transition-all"
           style={{ width: `${percent}%` }}
         />
       </div>
-      <span className="text-xs text-foreground/50">{percent}%</span>
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+        {percent}%
+      </span>
     </div>
   );
+}
+
+function useCampaignFacts(campaign: AgentCampaign): string {
+  const translate = useTranslations('common.agentCampaign.collection');
+  const translateTime = useTranslations('common.agentCampaign.relativeTime');
+  const facts = [
+    translate('credits', {
+      allocated: campaign.creditsAllocated.toLocaleString(),
+      used: campaign.creditsUsed.toLocaleString(),
+    }),
+    translate('agents', { count: campaign.agents.length }),
+    campaign.lastOrchestratedAt
+      ? translate('lastRun', {
+          time: formatRelativeTime(campaign.lastOrchestratedAt, translateTime),
+        })
+      : null,
+  ];
+
+  return facts.filter(Boolean).join(' · ');
+}
+
+function CampaignStatusBadge({ campaign }: AgentCampaignItemProps) {
+  const translate = useTranslations('common.agentCampaign.status');
+
+  return (
+    <Badge status={campaign.status} size={ComponentSize.SM}>
+      {translate(campaign.status)}
+    </Badge>
+  );
+}
+
+function CampaignActions({
+  campaign,
+  isNeedsYou = false,
+}: AgentCampaignItemProps) {
+  const translate = useTranslations('common.agentCampaign.collection');
+  const { href } = useOrgUrl();
+
+  return (
+    <CollectionItemActions
+      primary={
+        <Button
+          asChild
+          size={ButtonSize.XS}
+          variant={isNeedsYou ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
+        >
+          <Link
+            aria-label={translate(isNeedsYou ? 'reviewLabel' : 'openLabel', {
+              label: campaign.label,
+            })}
+            href={href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${campaign.id}`)}
+          >
+            {translate(isNeedsYou ? 'review' : 'open')}
+          </Link>
+        </Button>
+      }
+    />
+  );
+}
+
+function CampaignRow({ campaign, isNeedsYou = false }: AgentCampaignItemProps) {
+  const facts = useCampaignFacts(campaign);
+
+  return (
+    <ListRow
+      data-testid="campaign-row"
+      density="compact"
+      meta={
+        <>
+          <CampaignStatusBadge campaign={campaign} />
+          <span className="truncate">{facts}</span>
+        </>
+      }
+      title={campaign.label}
+      trailing={
+        <div className="flex items-center gap-4">
+          <CampaignProgress
+            allocated={campaign.creditsAllocated}
+            className="hidden w-32 sm:flex"
+            used={campaign.creditsUsed}
+          />
+          <CampaignActions campaign={campaign} isNeedsYou={isNeedsYou} />
+        </div>
+      }
+    />
+  );
+}
+
+function CampaignCard({ campaign }: AgentCampaignItemProps) {
+  const facts = useCampaignFacts(campaign);
+
+  return (
+    <Card bodyClassName="gap-3 p-4" data-testid="campaign-card">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <CampaignStatusBadge campaign={campaign} />
+          <p className="truncate text-sm font-semibold text-foreground">
+            {campaign.label}
+          </p>
+        </div>
+        <CampaignActions campaign={campaign} />
+      </div>
+
+      {campaign.brief ? (
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {campaign.brief}
+        </p>
+      ) : null}
+
+      <CampaignProgress
+        allocated={campaign.creditsAllocated}
+        used={campaign.creditsUsed}
+      />
+
+      <p className="truncate text-xs text-muted-foreground">{facts}</p>
+    </Card>
+  );
+}
+
+function renderCampaignRow(campaign: AgentCampaign) {
+  return <CampaignRow campaign={campaign} />;
+}
+
+function renderCampaignCard(campaign: AgentCampaign) {
+  return <CampaignCard campaign={campaign} />;
+}
+
+function getCampaignKey(campaign: AgentCampaign): string {
+  return campaign.id;
 }
 
 /* ------------------------------------------------------------------ */
@@ -256,90 +336,24 @@ function ProgressBar({ allocated, used }: { allocated: number; used: number }) {
 /* ------------------------------------------------------------------ */
 
 export default function AgentCampaignsPage() {
-  const { campaigns, isLoading } = useAgentCampaigns();
+  const translate = useTranslations('common.agentCampaign.collection');
+  const { campaigns, error, isLoading, refresh } = useAgentCampaigns();
   const { href } = useOrgUrl();
+  const { view, setView } = useCollectionViewPreference({
+    defaultView: ViewType.LIST,
+    surface: CAMPAIGNS_COLLECTION_SURFACE,
+  });
 
-  const columns = useMemo(
-    () => [
-      {
-        header: 'Program',
-        key: 'label',
-        render: (campaign: AgentCampaign) => (
-          <div className="flex flex-col">
-            <Link
-              className="font-medium hover:underline"
-              href={href(`${APP_ROUTES.AUTOMATION.CAMPAIGNS}/${campaign.id}`)}
-            >
-              {campaign.label}
-            </Link>
-            {campaign.brief && (
-              <span className="text-xs text-foreground/50 line-clamp-1">
-                {campaign.brief}
-              </span>
-            )}
-          </div>
-        ),
-      },
-      {
-        header: 'Status',
-        key: 'status',
-        render: (campaign: AgentCampaign) => (
-          <Badge variant={STATUS_BADGE_VARIANTS[campaign.status]}>
-            {campaign.status}
-          </Badge>
-        ),
-      },
-      {
-        header: 'Agents',
-        key: 'agents',
-        render: (campaign: AgentCampaign) => (
-          <span className="text-sm">{campaign.agents.length}</span>
-        ),
-      },
-      {
-        header: 'Orchestration',
-        key: 'orchestration',
-        render: (campaign: AgentCampaign) => (
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                'inline-block h-1.5 w-1.5 rounded-full',
-                campaign.orchestrationEnabled
-                  ? 'bg-success'
-                  : 'bg-muted-foreground',
-              )}
-            />
-            <span className="text-sm text-foreground/70">
-              {campaign.orchestrationEnabled
-                ? `Every ${campaign.orchestrationIntervalHours ?? 24}h`
-                : 'Off'}
-            </span>
-          </div>
-        ),
-      },
-      {
-        header: 'Progress',
-        key: 'progress',
-        render: (campaign: AgentCampaign) => (
-          <ProgressBar
-            allocated={campaign.creditsAllocated}
-            used={campaign.creditsUsed}
-          />
-        ),
-      },
-      {
-        header: 'Start Date',
-        key: 'startDate',
-        render: (campaign: AgentCampaign) => (
-          <span className="text-sm">{formatDate(campaign.startDate)}</span>
-        ),
-      },
-    ],
-    [href],
+  const needsYouCampaigns = useMemo(
+    () => campaigns.filter(isCampaignNeedingAttention),
+    [campaigns],
   );
 
   const hasCampaigns = campaigns.length > 0;
-  const isEmpty = !isLoading && !hasCampaigns;
+  // A failed refetch keeps showing the Programs already loaded; only a
+  // failure with nothing to show replaces the collection with the error.
+  const hasLoadError = error !== null && !isLoading && !hasCampaigns;
+  const isEmpty = !isLoading && !hasLoadError && !hasCampaigns;
 
   return (
     <Container
@@ -356,30 +370,7 @@ export default function AgentCampaignsPage() {
         )
       }
     >
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-sm text-foreground/40">
-          Loading programs…
-        </div>
-      ) : hasCampaigns ? (
-        <div className="space-y-8">
-          <CampaignStatsStrip campaigns={campaigns} />
-          <ActiveCampaignCards campaigns={campaigns} />
-          <section data-testid="campaign-table">
-            <div className="mb-4">
-              <h2 className="text-2xs font-bold uppercase tracking-[0.2em] text-foreground/35">
-                All Programs
-              </h2>
-            </div>
-            <AppTable<AgentCampaign>
-              items={campaigns}
-              columns={columns}
-              isLoading={false}
-              getRowKey={(campaign) => campaign.id}
-              emptyLabel="No programs yet."
-            />
-          </section>
-        </div>
-      ) : (
+      {isEmpty ? (
         <div className="flex flex-col items-center justify-center gap-4 py-20">
           <div className="flex size-12 items-center justify-center rounded-full border border-border bg-foreground/[0.02]">
             <LayoutDashboard className="size-6 text-foreground/30" />
@@ -398,6 +389,64 @@ export default function AgentCampaignsPage() {
               <Plus /> New Program
             </Link>
           </Button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-8">
+          {isLoading || hasLoadError ? null : (
+            <CampaignStatsStrip campaigns={campaigns} />
+          )}
+
+          <CollectionSection
+            data-testid="campaign-needs-you"
+            description={translate('needsYouDescription')}
+            isCountVisible
+            itemCount={needsYouCampaigns.length}
+            title={translate('needsYou')}
+          >
+            <CollectionList>
+              {needsYouCampaigns.map((campaign) => (
+                <CampaignRow campaign={campaign} isNeedsYou key={campaign.id} />
+              ))}
+            </CollectionList>
+          </CollectionSection>
+
+          <CollectionSection
+            actions={
+              hasLoadError ? undefined : (
+                <CollectionToolbar onViewChange={setView} view={view} />
+              )
+            }
+            data-testid="campaign-all"
+            error={
+              hasLoadError ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>{translate('loadError')}</span>
+                  <Button
+                    onClick={() => void refresh()}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                  >
+                    {translate('retry')}
+                  </Button>
+                </div>
+              ) : undefined
+            }
+            isCountVisible
+            isLoading={isLoading}
+            itemCount={campaigns.length}
+            title={translate('all')}
+          >
+            <CollectionView
+              data-testid="campaign-collection"
+              getItemKey={getCampaignKey}
+              isLoading={isLoading}
+              items={campaigns}
+              maxColumns={3}
+              renderGridItem={renderCampaignCard}
+              renderListItem={renderCampaignRow}
+              view={view}
+            />
+          </CollectionSection>
         </div>
       )}
     </Container>

@@ -27,6 +27,8 @@ export interface BrandDetailOverviewProps {
     field: 'label' | 'description',
     value: string,
   ) => Promise<void>;
+  /** Omit to show the handle read-only. */
+  onUpdateHandle?: (value: string) => Promise<void>;
   onUploadLogo: () => void;
   onGenerateLogo: () => void;
   onCopyPublicProfile?: () => void;
@@ -355,6 +357,7 @@ export interface UseBrandDetailReturn {
     field: string,
     value: boolean | string,
   ) => Promise<void>;
+  handleUpdateHandle: (value: string) => Promise<void>;
   isUpdating: boolean;
   handleOpenUploadModal: (category: AssetCategory) => void;
   handleRequestDeleteReference: (assetId: string) => void;
@@ -370,10 +373,4 @@ export interface BrandWatermarkSettingsProps {
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;
-}
-
-export interface BrandSocialHistoryImportCardProps {
-  brand: IBrand;
-  brandId: string;
-  onRefreshBrand: () => Promise<void> | void;
 }

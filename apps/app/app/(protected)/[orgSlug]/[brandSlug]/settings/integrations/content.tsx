@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import BrandSocialHistoryImportCard from '@pages/brands/components/sidebar/BrandSocialHistoryImportCard';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
@@ -14,13 +13,13 @@ import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 /**
- * Brand Integrations settings — connected accounts and their history imports.
+ * Brand Integrations settings — connected accounts. Each account's posting
+ * times, history import and health live in its Settings dialog.
  * External website links live on Brand Profile via ModalBrandLink.
  */
 export default function BrandSettingsIntegrationsPage() {
   const translate = useTranslations('pages.brandSocialMedia');
   const translateIntegrations = useTranslations('pages.brandIntegrations');
-  const [activeTab, setActiveTab] = useState('connections');
   const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
     useState(false);
   const {
@@ -58,43 +57,23 @@ export default function BrandSettingsIntegrationsPage() {
       icon={Plug}
       label={translateIntegrations('title')}
       right={
-        activeTab === 'connections' ? (
-          <Button
-            icon={<Plus className="size-4" />}
-            label={translate('connectAccount')}
-            onClick={() => setIsConnectAccountModalOpen(true)}
-            variant={ButtonVariant.DEFAULT}
-          />
-        ) : undefined
+        <Button
+          icon={<Plus className="size-4" />}
+          label={translate('connectAccount')}
+          onClick={() => setIsConnectAccountModalOpen(true)}
+          variant={ButtonVariant.DEFAULT}
+        />
       }
-      headerTabs={{
-        activeTab,
-        ariaLabel: translateIntegrations('title'),
-        fullWidth: false,
-        onTabChange: setActiveTab,
-        tabs: [
-          { id: 'connections', label: translateIntegrations('connections') },
-          { id: 'imports', label: translateIntegrations('imports') },
-        ],
-      }}
     >
-      {activeTab === 'imports' ? (
-        <BrandSocialHistoryImportCard
-          brand={brand}
-          brandId={brandId}
-          onRefreshBrand={() => handleRefreshBrand(true)}
-        />
-      ) : (
-        <BrandDetailSocialMediaCard
-          brandId={brandId}
-          connections={connections}
-          connectedPlatformsCount={connectedPlatformsCount}
-          isConnectAccountModalOpen={isConnectAccountModalOpen}
-          onConnectAccountModalOpenChange={setIsConnectAccountModalOpen}
-          onRefresh={() => handleRefreshBrand(true)}
-          variant="page"
-        />
-      )}
+      <BrandDetailSocialMediaCard
+        brandId={brandId}
+        connections={connections}
+        connectedPlatformsCount={connectedPlatformsCount}
+        isConnectAccountModalOpen={isConnectAccountModalOpen}
+        onConnectAccountModalOpenChange={setIsConnectAccountModalOpen}
+        onRefresh={() => handleRefreshBrand(true)}
+        variant="page"
+      />
     </Container>
   );
 }

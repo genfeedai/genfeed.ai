@@ -12,15 +12,16 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
 import AccountAvatar from '@pages/brands/components/integrations/AccountAvatar';
+import AccountSettingsDialog from '@pages/brands/components/integrations/AccountSettingsDialog';
 import AccountsTable from '@pages/brands/components/integrations/AccountsTable';
 import {
   getAccountConnectionStatus,
   getConnectionLabel,
+  hasHistoryImport,
   hasWarmupBlueprint,
   STATE_MESSAGE_KEYS,
 } from '@pages/brands/components/integrations/account-connection-status.util';
 import ConnectAccountModal from '@pages/brands/components/integrations/ConnectAccountModal';
-import CredentialPostingTimesEditor from '@pages/brands/components/sidebar/CredentialPostingTimesEditor';
 import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import type {
   BrandDetailConnectedAccountProps,
@@ -218,8 +219,13 @@ export default function BrandDetailSocialMediaCard({
   const [disconnectTarget, setDisconnectTarget] =
     useState<SocialConnection | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [postingTimesTarget, setPostingTimesTarget] =
-    useState<SocialConnection | null>(null);
+  const [settingsTarget, setSettingsTarget] = useState<SocialConnection | null>(
+    null,
+  );
+  // A new account on a platform with history import asks, before OAuth,
+  // whether to import its existing posts; the answer rides the connect call.
+  const [importChoiceTarget, setImportChoiceTarget] =
+    useState<ConnectablePlatform | null>(null);
 
   const connectedConnections = connections;
   const hasVisibleConnections = connectedConnections.length > 0;
@@ -394,8 +400,20 @@ export default function BrandDetailSocialMediaCard({
   const handleConnectPlatform = async (
     item: ConnectablePlatform,
     credentialId?: string,
+    isHistoryImportRequested?: boolean,
   ) => {
     if (!item.isConnectAvailable) {
+      return;
+    }
+
+    if (
+      !credentialId &&
+      isHistoryImportRequested === undefined &&
+      hasHistoryImport(item.platform)
+    ) {
+      setIsConnectAccountModalOpen(false);
+      setIsDialogOpen(false);
+      setImportChoiceTarget(item);
       return;
     }
 
@@ -424,9 +442,13 @@ export default function BrandDetailSocialMediaCard({
       );
       // A reconnect carries the existing credentialId so the server re-links
       // the same row instead of minting a duplicate connected account.
-      const credentialOAuth = await service.postConnect(
-        credentialId ? { brandId, credentialId } : { brandId },
-      );
+      const credentialOAuth = await service.postConnect({
+        brandId,
+        ...(credentialId ? { credentialId } : {}),
+        ...(isHistoryImportRequested === undefined
+          ? {}
+          : { isHistoryImportRequested }),
+      });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
@@ -435,6 +457,14 @@ export default function BrandDetailSocialMediaCard({
       );
       setConnectingPlatform(null);
       setReconnectingCredentialId(null);
+    }
+  };
+
+  const handleImportChoice = (isHistoryImportRequested: boolean) => {
+    const item = importChoiceTarget;
+    setImportChoiceTarget(null);
+    if (item) {
+      void handleConnectPlatform(item, undefined, isHistoryImportRequested);
     }
   };
 
@@ -663,32 +693,43 @@ export default function BrandDetailSocialMediaCard({
     </Dialog>
   );
 
-  const postingTimesDialog = (
+  const importChoiceDialog = (
     <Dialog
-      open={Boolean(postingTimesTarget)}
+      open={Boolean(importChoiceTarget)}
       onOpenChange={(open) => {
         if (!open) {
-          setPostingTimesTarget(null);
+          setImportChoiceTarget(null);
         }
       }}
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {postingTimesTarget
-              ? translate('postingTimesDialogTitle', {
-                  account: getConnectionLabel(postingTimesTarget),
+          <DialogTitle>{translate('importOnConnectTitle')}</DialogTitle>
+          <DialogDescription>
+            {importChoiceTarget
+              ? translate('importOnConnectDescription', {
+                  platform: importChoiceTarget.label,
                 })
-              : translate('postingTimes')}
-          </DialogTitle>
+              : ''}
+          </DialogDescription>
         </DialogHeader>
 
-        {postingTimesTarget ? (
-          <CredentialPostingTimesEditor
-            credentialId={postingTimesTarget.credentialId}
-            initialTimes={postingTimesTarget.postingTimes}
-          />
-        ) : null}
+        <div className="flex justify-end gap-2">
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+            onClick={() => handleImportChoice(false)}
+          >
+            {translate('importOnConnectSkip')}
+          </Button>
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => handleImportChoice(true)}
+          >
+            {translate('importOnConnectConfirm')}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -766,7 +807,7 @@ export default function BrandDetailSocialMediaCard({
           connections={connectedConnections}
           onConnectAccount={() => setIsConnectAccountModalOpen(true)}
           onDisconnect={setDisconnectTarget}
-          onPostingTimes={setPostingTimesTarget}
+          onOpenSettings={setSettingsTarget}
           onReconnect={handleReconnect}
           reconnectingCredentialId={reconnectingCredentialId}
           unavailablePlatforms={unavailablePlatforms}
@@ -781,8 +822,24 @@ export default function BrandDetailSocialMediaCard({
           platformGroups={allPlatformGroups}
         />
 
+        <AccountSettingsDialog
+          brandId={brandId}
+          connection={settingsTarget}
+          health={healthRows.find(
+            (summary) => summary.credentialId === settingsTarget?.credentialId,
+          )}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSettingsTarget(null);
+            }
+          }}
+          onOverrideRequest={handleOverrideRequest}
+          onReconnect={handleReconnect}
+        />
+
         {disconnectDialog}
-        {postingTimesDialog}
+        {importChoiceDialog}
+        {overrideDialog}
       </>
     );
   }
@@ -899,6 +956,7 @@ export default function BrandDetailSocialMediaCard({
       </Dialog>
 
       {disconnectDialog}
+      {importChoiceDialog}
       {overrideDialog}
     </>
   );

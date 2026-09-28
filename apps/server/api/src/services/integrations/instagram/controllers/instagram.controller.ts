@@ -153,6 +153,7 @@ export class InstagramController {
       {
         accessToken: undefined,
         isConnected: false,
+        isHistoryImportRequested: createCredentialDto.isHistoryImportRequested,
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },

@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateSocialSourceDto } from '@api/collections/social-sources/dto/create-social-source.dto';
 import { ImportSocialPostDto } from '@api/collections/social-sources/dto/import-social-post.dto';
+import { ScheduleHistoryImportDto } from '@api/collections/social-sources/dto/schedule-history-import.dto';
 import { SocialSourcesQueryDto } from '@api/collections/social-sources/dto/social-sources-query.dto';
 import { SyncSocialSourceDto } from '@api/collections/social-sources/dto/sync-social-source.dto';
 import { UpdateSocialSourceDto } from '@api/collections/social-sources/dto/update-social-source.dto';
@@ -147,20 +148,26 @@ export class SocialSourcesController {
   }
 
   /**
-   * Queue (or re-queue) the import of a connected account's existing posts.
-   * Only own-account sources qualify; the run itself happens in the workflow
-   * queue and reports back through `metadata.historyImport` on the source.
+   * Queue (or re-queue) the import of a connected account's existing posts,
+   * whatever was chosen when it connected. The run itself happens in the
+   * workflow queue and reports back through `metadata.historyImport` on the
+   * account's own-account source.
    */
-  @Post(':id/history-import')
+  @Post('history-import')
   @HttpCode(HttpStatus.ACCEPTED)
-  async scheduleHistoryImport(
+  scheduleHistoryImport(
     @CurrentUser() user: User,
     @Query() query: BrandScopeQueryDto,
-    @Param('id') id: string,
+    @Body() body: ScheduleHistoryImportDto,
   ) {
     const context = resolveRequiredBrandRequestContext(user, query);
-    const source = await this.socialSourcesService.findOneScoped(id, context);
-    return this.historyImportService.rescheduleForSource(source, user.userId);
+    return this.historyImportService.scheduleForCredential({
+      brandId: context.brandId,
+      credentialId: body.credentialId,
+      isRequestedByUser: true,
+      organizationId: context.organizationId,
+      userId: context.userId,
+    });
   }
 
   @Post(':id/sync')

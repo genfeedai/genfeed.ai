@@ -16,6 +16,11 @@ const pushMock = vi.fn();
 const postBrandMock = vi.fn().mockResolvedValue({
   id: 'brand-created',
 });
+const patchBrandMock = vi.fn().mockResolvedValue({
+  id: 'brand-1',
+  label: 'Brand One',
+  slug: 'brand-one',
+});
 const findBrandMock = vi.fn().mockResolvedValue({
   id: 'brand-created',
   label: 'Acme',
@@ -187,7 +192,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
       findOne: findBrandMock,
       crawlBrandKitWebsite: crawlBrandKitMock,
       importBrandKitAssets: importBrandKitAssetsMock,
-      patch: vi.fn(),
+      patch: patchBrandMock,
       post: postBrandMock,
       scrape: vi.fn(),
     }),
@@ -196,7 +201,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
       findOne: findBrandMock,
       crawlBrandKitWebsite: crawlBrandKitMock,
       importBrandKitAssets: importBrandKitAssetsMock,
-      patch: vi.fn(),
+      patch: patchBrandMock,
       post: postBrandMock,
       scrape: vi.fn(),
     }),
@@ -353,6 +358,7 @@ describe('ModalBrand', () => {
   beforeEach(() => {
     pushMock.mockReset();
     postBrandMock.mockClear();
+    patchBrandMock.mockClear();
     findBrandMock.mockClear();
     crawlBrandKitMock.mockClear();
     importBrandKitAssetsMock.mockClear();
@@ -438,6 +444,44 @@ describe('ModalBrand', () => {
           }),
         ],
       });
+    });
+  });
+
+  it('saves an edit without resending the unchanged handle', async () => {
+    // A handle that predates the handle rules would fail PATCH validation.
+    formValues.current = {
+      description: 'New description',
+      label: 'Brand One',
+      slug: 'brand-one',
+    };
+    render(
+      <ModalBrand {...defaultProps} brand={overviewBrand} initialView="edit" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => {
+      expect(patchBrandMock).toHaveBeenCalledOnce();
+    });
+    expect(patchBrandMock.mock.calls[0]?.[1]).not.toHaveProperty('slug');
+    expect(patchBrandMock.mock.calls[0]?.[1]).toMatchObject({
+      description: 'New description',
+    });
+  });
+
+  it('sends a changed handle on edit', async () => {
+    formValues.current = { label: 'Brand One', slug: 'brand-two' };
+    render(
+      <ModalBrand {...defaultProps} brand={overviewBrand} initialView="edit" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() => {
+      expect(patchBrandMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({ slug: 'brand-two' }),
+      );
     });
   });
 

@@ -36,7 +36,6 @@ import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import AnalyticsOrganizationSync from '@/components/analytics/AnalyticsOrganizationSync';
 import AppProtectedRail from '@/components/shell/AppProtectedRail';
 import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
-import { WorkspaceInspectorProvider } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   WorkspaceNavPanelProvider,
   WorkspaceNavPanelTarget,
@@ -522,40 +521,38 @@ function AppLayoutWithDynamicMenu({
   // toggle renders in the topbar (AppLayout's sibling prop), so the shared
   // state has to sit above both.
   const mainLayout = (
-    <WorkspaceInspectorProvider>
-      <ContextSidebarProvider>
-        <AppLayout
-          bannerComponent={shellBanner}
-          breadcrumb={layoutBreadcrumb}
-          brandSlug={brandSlug}
-          pageHelp={pageHelp}
-          currentApp={currentApp}
-          menuComponent={menuComponent}
-          railComponent={railComponent}
-          topbarComponent={topbarComponent}
-          menuItems={navigationMenuItems}
-          orgSlug={orgSlug}
-          isWorkspaceShell={isWorkspaceShellMounted}
-          // Agent conversation owns its own thread scroller. Lock the shell so
-          // the credits banner cannot push min-h page content past the viewport
-          // (document scrollbar + thread scrollbar).
-          lockViewportHeight={isConversationRoute}
-        >
-          {/* The shell is the body of a frame that is already there, so a route
+    <ContextSidebarProvider>
+      <AppLayout
+        bannerComponent={shellBanner}
+        breadcrumb={layoutBreadcrumb}
+        brandSlug={brandSlug}
+        pageHelp={pageHelp}
+        currentApp={currentApp}
+        menuComponent={menuComponent}
+        railComponent={railComponent}
+        topbarComponent={topbarComponent}
+        menuItems={navigationMenuItems}
+        orgSlug={orgSlug}
+        isWorkspaceShell={isWorkspaceShellMounted}
+        // Agent conversation owns its own thread scroller. Lock the shell so
+        // the credits banner cannot push min-h page content past the viewport
+        // (document scrollbar + thread scrollbar).
+        lockViewportHeight={isConversationRoute}
+      >
+        {/* The shell is the body of a frame that is already there, so a route
           it does not know still renders — it just renders without the
           inspector rail rather than without an application around it. */}
-          {isUniversalWorkspaceShell ? (
-            agentApiService ? (
-              <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
-                {children}
-              </LazyUniversalWorkspaceShell>
-            ) : null
-          ) : (
-            children
-          )}
-        </AppLayout>
-      </ContextSidebarProvider>
-    </WorkspaceInspectorProvider>
+        {isUniversalWorkspaceShell ? (
+          agentApiService ? (
+            <LazyUniversalWorkspaceShell agentApiService={agentApiService}>
+              {children}
+            </LazyUniversalWorkspaceShell>
+          ) : null
+        ) : (
+          children
+        )}
+      </AppLayout>
+    </ContextSidebarProvider>
   );
   // Permanent frame, permanent boundary: a render failure anywhere under it is
   // contained the same way on every route, not only where the shell booted.

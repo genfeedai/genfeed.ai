@@ -23,7 +23,6 @@ export * from './article.enum';
 export * from './asset.enum';
 export * from './batch.enum';
 export * from './beat-sync.enum';
-export * from './bento.enum';
 export * from './billing-account.enum';
 export * from './bookmark.enum';
 export * from './bot.enum';
