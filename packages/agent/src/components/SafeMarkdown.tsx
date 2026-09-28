@@ -1,18 +1,9 @@
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { Code } from '@genfeedai/ui';
-import { Button } from '@ui/primitives/button';
-import { Check, Clipboard } from 'lucide-react';
-import {
-  isValidElement,
-  memo,
-  type ReactElement,
-  type ReactNode,
-  useMemo,
-  useState,
-} from 'react';
+import { Code } from '@ui/primitives/code';
+import { memo, type ReactElement, type ReactNode, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import MarkdownCodeBlock from './MarkdownCodeBlock';
 
 function isSafeHref(href?: string): boolean {
   if (!href) {
@@ -263,60 +254,6 @@ const SAFE_MARKDOWN_COMPONENTS: Components = {
   ),
   br: (): ReactElement => <br className="leading-none" />,
 };
-
-/** Recursively flatten a rendered code block back to its raw text. */
-function extractNodeText(node: ReactNode): string {
-  if (typeof node === 'string' || typeof node === 'number') {
-    return String(node);
-  }
-  if (Array.isArray(node)) {
-    return node.map((child) => extractNodeText(child)).join('');
-  }
-  if (isValidElement<{ children?: ReactNode }>(node)) {
-    return extractNodeText(node.props.children);
-  }
-  return '';
-}
-
-function MarkdownCodeBlock({
-  children,
-}: {
-  children?: ReactNode;
-}): ReactElement {
-  const [hasCopied, setHasCopied] = useState(false);
-
-  async function handleCopy(): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(extractNodeText(children));
-      setHasCopied(true);
-      window.setTimeout(() => setHasCopied(false), 2000);
-    } catch {
-      setHasCopied(false);
-    }
-  }
-
-  return (
-    <div className="group/code relative my-2 max-w-full">
-      <pre className="max-w-full overflow-x-auto rounded-lg">{children}</pre>
-      <div className="absolute right-1.5 top-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover/code:opacity-100 sm:group-focus-within/code:opacity-100">
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.XS}
-          tooltip={hasCopied ? 'Copied' : 'Copy code'}
-          tooltipPosition="top"
-          ariaLabel="Copy code block"
-          onClick={() => void handleCopy()}
-        >
-          {hasCopied ? (
-            <Check className="size-3.5 text-success" />
-          ) : (
-            <Clipboard className="size-3.5" />
-          )}
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 // Same rationale as `SAFE_MARKDOWN_COMPONENTS` — a fresh `[remarkGfm]` array
 // literal on every render defeats `react-markdown`'s own memoization of its

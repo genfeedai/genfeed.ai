@@ -1,3 +1,4 @@
+import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -5,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock(
   '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
-    default: () => ({
+    default: vi.fn(() => ({
       actionStates: {},
       clearEnhanceConfirm: vi.fn(),
       clearUpscaleConfirm: vi.fn(),
@@ -26,7 +27,7 @@ vi.mock(
         handleUpscale: vi.fn(),
       },
       upscaleConfirmData: null,
-    }),
+    })),
   }),
 );
 
@@ -212,5 +213,17 @@ describe('MasonryVideo', () => {
     expect(
       screen.queryByRole('button', { name: 'Retry generation' }),
     ).not.toBeInTheDocument();
+  });
+
+  // Public galleries and profiles mount none of the app's providers, and the
+  // actions hook reads them. A read-only tile must not call it.
+  it('never calls the actions hook when actions are disabled', () => {
+    vi.mocked(useIngredientActions).mockClear();
+
+    render(<MasonryVideo video={mockVideo} isActionsEnabled={false} />);
+    expect(useIngredientActions).not.toHaveBeenCalled();
+
+    render(<MasonryVideo video={mockVideo} />);
+    expect(useIngredientActions).toHaveBeenCalled();
   });
 });

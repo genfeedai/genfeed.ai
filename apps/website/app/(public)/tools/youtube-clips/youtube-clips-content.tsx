@@ -5,15 +5,13 @@ import type {
   IPublicYoutubeClipRecommendation,
   IPublicYoutubeClipToolSession,
 } from '@genfeedai/contracts/interfaces';
-import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import PageLayout from '@web-components/PageLayout';
-import { Clock3, Scissors, Sparkles } from 'lucide-react';
+import { Clock3, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -21,6 +19,7 @@ import {
   type WebsiteAnalyticsEventProperties,
 } from '../../../../packages/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../../packages/analytics/posthog-client';
+import { loadPublicService } from '../../../../packages/api/load-public-service';
 import { buildAuthHandoffHref } from '../../../../packages/auth/auth-handoff';
 
 const POLL_INTERVAL_MS = 2_000;
@@ -138,8 +137,10 @@ export default function YoutubeClipsContent(): React.ReactElement {
 
     let cancelled = false;
     const timeout = window.setTimeout(() => {
-      PublicService.getInstance()
-        .getPublicYoutubeClip(session.previewToken)
+      loadPublicService()
+        .then((publicService) =>
+          publicService.getPublicYoutubeClip(session.previewToken),
+        )
         .then((nextSession) => {
           if (!cancelled) {
             setSession(nextSession);
@@ -205,11 +206,9 @@ export default function YoutubeClipsContent(): React.ReactElement {
       { surface: 'youtube_clips' },
     );
     try {
-      const nextSession =
-        await PublicService.getInstance().createPublicYoutubeClip(
-          youtubeUrl.trim(),
-          crypto.randomUUID(),
-        );
+      const nextSession = await (
+        await loadPublicService()
+      ).createPublicYoutubeClip(youtubeUrl.trim(), crypto.randomUUID());
       setSession(nextSession);
     } catch {
       setError(
@@ -234,7 +233,7 @@ export default function YoutubeClipsContent(): React.ReactElement {
     );
     try {
       setSession(
-        await PublicService.getInstance().requestPublicYoutubeClipPreview(
+        await (await loadPublicService()).requestPublicYoutubeClipPreview(
           session.previewToken,
           recommendation.id,
         ),
@@ -261,232 +260,221 @@ export default function YoutubeClipsContent(): React.ReactElement {
     session?.preview.status === 'queued';
 
   return (
-    <PageLayout
-      badge="Free AI tool"
-      badgeIcon={Scissors}
-      compact
-      description="Paste a public YouTube URL. Get a timestamped transcript, three AI-selected short-form moments, and one rendered preview before signup."
-      title="YouTube transcript to clips"
-    >
-      <section className="container mx-auto grid gap-10 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="grid gap-8">
-          <Form
-            className="bg-background p-5 shadow-border sm:p-6"
-            aria-label="YouTube transcript to clips"
-            onSubmit={(event) => void handleSubmit(event)}
+    <section className="container mx-auto grid gap-10 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-8">
+        <Form
+          className="bg-background p-5 shadow-border sm:p-6"
+          aria-label="YouTube transcript to clips"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <Field
+            description="Public YouTube videos only. Usage is rate-limited and duplicate submissions reuse the same temporary result."
+            label="YouTube URL"
           >
-            <Field
-              description="Public YouTube videos only. Usage is rate-limited and duplicate submissions reuse the same temporary result."
-              label="YouTube URL"
-            >
-              <Input
-                autoComplete="url"
-                maxLength={2048}
-                onChange={(event) => setYoutubeUrl(event.target.value)}
-                placeholder="https://www.youtube.com/watch?v=..."
-                type="url"
-                value={youtubeUrl}
-              />
-            </Field>
-            {error ? (
-              <Text className="text-sm text-destructive" role="alert">
-                {error}
-              </Text>
-            ) : null}
-            <Button
-              ariaLabel="Analyze YouTube video"
-              isDisabled={!youtubeUrl.trim() || isSubmitting}
-              isLoading={isSubmitting}
-              label="Find my clips"
-              size={ButtonSize.PUBLIC}
-              type="submit"
-              withWrapper={false}
+            <Input
+              autoComplete="url"
+              maxLength={2048}
+              onChange={(event) => setYoutubeUrl(event.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              type="url"
+              value={youtubeUrl}
             />
-          </Form>
-
-          {session && ['analyzing', 'queued'].includes(session.status) ? (
-            <div
-              aria-live="polite"
-              className="grid gap-3 bg-background p-6 shadow-border"
-            >
-              <Text className="text-sm font-semibold">
-                Analyzing transcript and clip moments…
-              </Text>
-              <div
-                aria-label={`${session.progress}% complete`}
-                className="h-1 overflow-hidden bg-fill/[0.08]"
-                role="progressbar"
-              >
-                <div
-                  className="h-full bg-surface transition-[width]"
-                  style={{ width: `${Math.max(2, session.progress)}%` }}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {session?.status === 'failed' ? (
-            <Text className="bg-background p-6 text-sm text-destructive shadow-border">
-              This video could not be analyzed. Try another public YouTube
-              video.
+          </Field>
+          {error ? (
+            <Text className="text-sm text-destructive" role="alert">
+              {error}
             </Text>
           ) : null}
+          <Button
+            ariaLabel="Analyze YouTube video"
+            isDisabled={!youtubeUrl.trim() || isSubmitting}
+            isLoading={isSubmitting}
+            label="Find my clips"
+            size={ButtonSize.PUBLIC}
+            type="submit"
+            withWrapper={false}
+          />
+        </Form>
 
-          {session?.status === 'ready' ? (
-            <>
-              <section className="grid gap-4" aria-labelledby="clip-results">
-                <div>
-                  <Heading as="h2" id="clip-results">
-                    Three moments worth clipping
-                  </Heading>
-                  <Text className="mt-2 text-sm text-surface/65">
-                    Choose once: this free session renders one preview clip.
-                  </Text>
-                </div>
-                <div className="grid gap-4">
-                  {session.recommendations.map((recommendation, index) => (
-                    <RecommendationCard
-                      disabled={previewLocked}
-                      index={index}
-                      key={recommendation.id}
-                      onPreview={() =>
-                        void requestPreview(recommendation, index)
-                      }
-                      recommendation={recommendation}
-                    />
-                  ))}
-                </div>
-              </section>
+        {session && ['analyzing', 'queued'].includes(session.status) ? (
+          <div
+            aria-live="polite"
+            className="grid gap-3 bg-background p-6 shadow-border"
+          >
+            <Text className="text-sm font-semibold">
+              Analyzing transcript and clip moments…
+            </Text>
+            <div
+              aria-label={`${session.progress}% complete`}
+              className="h-1 overflow-hidden bg-fill/[0.08]"
+              role="progressbar"
+            >
+              <div
+                className="h-full bg-surface transition-[width]"
+                style={{ width: `${Math.max(2, session.progress)}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
 
-              <section className="grid gap-4" aria-labelledby="transcript">
-                <Heading as="h2" id="transcript">
-                  Timestamped transcript
+        {session?.status === 'failed' ? (
+          <Text className="bg-background p-6 text-sm text-destructive shadow-border">
+            This video could not be analyzed. Try another public YouTube video.
+          </Text>
+        ) : null}
+
+        {session?.status === 'ready' ? (
+          <>
+            <section className="grid gap-4" aria-labelledby="clip-results">
+              <div>
+                <Heading as="h2" id="clip-results">
+                  Three moments worth clipping
                 </Heading>
-                <div className="max-h-[34rem] overflow-y-auto bg-background p-5 shadow-border">
-                  <ol className="grid gap-3">
-                    {session.transcript.map((segment) => (
-                      <li
-                        className="grid grid-cols-[4.5rem_1fr] gap-3 text-sm"
-                        key={`${segment.start}-${segment.end}`}
-                      >
-                        <span className="font-mono text-xs text-surface/55">
-                          {formatTimestamp(segment.start)}
-                        </span>
-                        <span className="leading-6 text-surface/75">
-                          {segment.text}
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              </section>
-            </>
-          ) : null}
+                <Text className="mt-2 text-sm text-surface/65">
+                  Choose once: this free session renders one preview clip.
+                </Text>
+              </div>
+              <div className="grid gap-4">
+                {session.recommendations.map((recommendation, index) => (
+                  <RecommendationCard
+                    disabled={previewLocked}
+                    index={index}
+                    key={recommendation.id}
+                    onPreview={() => void requestPreview(recommendation, index)}
+                    recommendation={recommendation}
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section className="grid gap-4" aria-labelledby="transcript">
+              <Heading as="h2" id="transcript">
+                Timestamped transcript
+              </Heading>
+              <div className="max-h-[34rem] overflow-y-auto bg-background p-5 shadow-border">
+                <ol className="grid gap-3">
+                  {session.transcript.map((segment) => (
+                    <li
+                      className="grid grid-cols-[4.5rem_1fr] gap-3 text-sm"
+                      key={`${segment.start}-${segment.end}`}
+                    >
+                      <span className="font-mono text-xs text-surface/55">
+                        {formatTimestamp(segment.start)}
+                      </span>
+                      <span className="leading-6 text-surface/75">
+                        {segment.text}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </section>
+          </>
+        ) : null}
+      </div>
+
+      <aside className="grid content-start gap-5">
+        <div className="grid gap-4 bg-background p-6 shadow-border">
+          <Sparkles aria-hidden="true" className="size-5" />
+          <Heading as="h2" className="text-lg">
+            Free session includes
+          </Heading>
+          <ul className="grid gap-3 text-sm leading-6 text-surface/65">
+            <li>Full timestamped transcript</li>
+            <li>Three ranked clip recommendations</li>
+            <li>One rendered vertical preview</li>
+          </ul>
+          <Text className="text-xs leading-5 text-surface/55">
+            <Clock3 aria-hidden="true" className="mr-1 inline size-3" />
+            Temporary results expire automatically. The source URL and media are
+            never sent to product analytics.
+          </Text>
         </div>
 
-        <aside className="grid content-start gap-5">
-          <div className="grid gap-4 bg-background p-6 shadow-border">
-            <Sparkles aria-hidden="true" className="size-5" />
-            <Heading as="h2" className="text-lg">
-              Free session includes
-            </Heading>
-            <ul className="grid gap-3 text-sm leading-6 text-surface/65">
-              <li>Full timestamped transcript</li>
-              <li>Three ranked clip recommendations</li>
-              <li>One rendered vertical preview</li>
-            </ul>
-            <Text className="text-xs leading-5 text-surface/55">
-              <Clock3 aria-hidden="true" className="mr-1 inline size-3" />
-              Temporary results expire automatically. The source URL and media
-              are never sent to product analytics.
+        {session?.preview.status === 'generating' ||
+        session?.preview.status === 'queued' ? (
+          <div aria-live="polite" className="bg-background p-6 shadow-border">
+            <Text className="text-sm font-semibold">
+              Rendering your preview…
             </Text>
           </div>
+        ) : null}
 
-          {session?.preview.status === 'generating' ||
-          session?.preview.status === 'queued' ? (
-            <div aria-live="polite" className="bg-background p-6 shadow-border">
-              <Text className="text-sm font-semibold">
-                Rendering your preview…
-              </Text>
-            </div>
-          ) : null}
+        {session?.preview.status === 'failed' ? (
+          <Text className="bg-background p-6 text-sm text-destructive shadow-border">
+            Preview rendering failed. Your transcript and recommendations are
+            still available until this session expires.
+          </Text>
+        ) : null}
 
-          {session?.preview.status === 'failed' ? (
-            <Text className="bg-background p-6 text-sm text-destructive shadow-border">
-              Preview rendering failed. Your transcript and recommendations are
-              still available until this session expires.
+        {session?.preview.status === 'ready' && session.preview.url ? (
+          <div className="grid gap-4 bg-background p-5 shadow-border">
+            <Heading as="h2" className="text-lg">
+              Your free preview
+            </Heading>
+            <video
+              className="aspect-[9/16] w-full bg-black object-contain"
+              controls
+              data-ph-no-capture
+              src={session.preview.url}
+            >
+              <track kind="captions" />
+            </video>
+          </div>
+        ) : null}
+
+        {session?.status === 'ready' ? (
+          <div className="grid gap-3 bg-background p-6 shadow-border">
+            <Heading as="h2" className="text-lg">
+              Make the rest in Studio
+            </Heading>
+            <Text className="text-sm leading-6 text-surface/65">
+              Create a workspace to keep this transcript, recommendations, and
+              preview as a real Studio Clips project.
             </Text>
-          ) : null}
-
-          {session?.preview.status === 'ready' && session.preview.url ? (
-            <div className="grid gap-4 bg-background p-5 shadow-border">
-              <Heading as="h2" className="text-lg">
-                Your free preview
-              </Heading>
-              <video
-                className="aspect-[9/16] w-full bg-black object-contain"
-                controls
-                data-ph-no-capture
-                src={session.preview.url}
-              >
-                <track kind="captions" />
-              </video>
-            </div>
-          ) : null}
-
-          {session?.status === 'ready' ? (
-            <div className="grid gap-3 bg-background p-6 shadow-border">
-              <Heading as="h2" className="text-lg">
-                Make the rest in Studio
-              </Heading>
+            {previewInFlight ? (
               <Text className="text-sm leading-6 text-surface/65">
-                Create a workspace to keep this transcript, recommendations, and
-                preview as a real Studio Clips project.
+                Finish rendering this preview before continuing so it is saved
+                with the Studio project.
               </Text>
-              {previewInFlight ? (
-                <Text className="text-sm leading-6 text-surface/65">
-                  Finish rendering this preview before continuing so it is saved
-                  with the Studio project.
-                </Text>
-              ) : (
-                <>
-                  <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
-                    <Link
-                      data-ph-no-capture
-                      href={buildAuthHandoffHref(
-                        'sign-up',
-                        'clipToolToken',
-                        session.previewToken,
-                      )}
-                      onClick={() => captureAuthHandoff('sign_up')}
-                    >
-                      Create workspace and continue
-                    </Link>
-                  </Button>
-                  <Button
-                    asChild
-                    size={ButtonSize.PUBLIC}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
+            ) : (
+              <>
+                <Button asChild size={ButtonSize.PUBLIC} withWrapper={false}>
+                  <Link
+                    data-ph-no-capture
+                    href={buildAuthHandoffHref(
+                      'sign-up',
+                      'clipToolToken',
+                      session.previewToken,
+                    )}
+                    onClick={() => captureAuthHandoff('sign_up')}
                   >
-                    <Link
-                      data-ph-no-capture
-                      href={buildAuthHandoffHref(
-                        'login',
-                        'clipToolToken',
-                        session.previewToken,
-                      )}
-                      onClick={() => captureAuthHandoff('sign_in')}
-                    >
-                      Sign in and continue
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          ) : null}
-        </aside>
-      </section>
-    </PageLayout>
+                    Create workspace and continue
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  size={ButtonSize.PUBLIC}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                >
+                  <Link
+                    data-ph-no-capture
+                    href={buildAuthHandoffHref(
+                      'login',
+                      'clipToolToken',
+                      session.previewToken,
+                    )}
+                    onClick={() => captureAuthHandoff('sign_in')}
+                  >
+                    Sign in and continue
+                  </Link>
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
+      </aside>
+    </section>
   );
 }

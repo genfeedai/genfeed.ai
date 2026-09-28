@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
-import { ClipboardService } from '@services/core/clipboard.service';
 import { deferredLogger } from '@services/core/deferred-logger';
 import { Button } from '@ui/primitives/button';
 import { Share2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { copyText } from './copy-text';
 
 const COPIED_RESET_MS = 2000;
 
@@ -14,7 +14,6 @@ const COPIED_RESET_MS = 2000;
  * browser, so the rest of the article renders on the server.
  */
 export default function ArticleShareButton(): React.ReactElement {
-  const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
@@ -25,7 +24,7 @@ export default function ArticleShareButton(): React.ReactElement {
 
   async function handleShare(): Promise<void> {
     try {
-      await clipboardService.copyToClipboard(window.location.href);
+      await copyText(window.location.href);
       setIsCopied(true);
     } catch (error) {
       deferredLogger.error('Failed to copy to clipboard:', error);

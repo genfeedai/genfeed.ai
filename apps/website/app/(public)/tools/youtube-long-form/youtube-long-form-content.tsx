@@ -5,19 +5,14 @@ import type {
   IPublicYoutubeLongFormToolResult,
   PublicYoutubeLongFormOutputType,
 } from '@genfeedai/contracts/interfaces';
-import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
-import { YoutubeLongFormService } from '@services/content/youtube-long-form.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
-import PageLayout from '@web-components/PageLayout';
-import { FileText, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import {
@@ -65,14 +60,10 @@ function captureLongFormEvent<E extends LongFormEvent>(
   captureWebsiteAnalyticsEvent(event, properties);
 }
 
-const createYoutubeLongFormService = (token: string) =>
-  YoutubeLongFormService.getInstance(token);
+/** The API calls load on submit, keeping the auth and API clients off first load. */
+const loadRequests = () => import('./long-form-requests');
 
 export default function YoutubeLongFormContent(): React.ReactElement {
-  const { isSignedIn } = useAuthIdentity();
-  const getAuthenticatedService = useAuthedService(
-    createYoutubeLongFormService,
-  );
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [outputType, setOutputType] =
     useState<PublicYoutubeLongFormOutputType>('article');
@@ -111,15 +102,8 @@ export default function YoutubeLongFormContent(): React.ReactElement {
     });
 
     try {
-      const generated = isSignedIn
-        ? await (await getAuthenticatedService()).create(
-            youtubeUrl.trim(),
-            outputType,
-          )
-        : await PublicService.getInstance().createPublicYoutubeLongForm(
-            youtubeUrl.trim(),
-            outputType,
-          );
+      const { createLongForm } = await loadRequests();
+      const generated = await createLongForm(youtubeUrl.trim(), outputType);
       setResult(generated);
       captureLongFormEvent(
         WEBSITE_ANALYTICS_EVENTS.YOUTUBE_LONG_FORM_COMPLETED,
@@ -155,9 +139,8 @@ export default function YoutubeLongFormContent(): React.ReactElement {
     setIsSavingSource(true);
     setError(null);
     try {
-      const saved = await (
-        await getAuthenticatedService()
-      ).promoteSourceToLibrary(result.sourceArtifactId);
+      const { promoteSourceToLibrary } = await loadRequests();
+      const saved = await promoteSourceToLibrary(result.sourceArtifactId);
       setSavedSourceId(saved.ingredientId);
     } catch {
       setError(
@@ -169,164 +152,155 @@ export default function YoutubeLongFormContent(): React.ReactElement {
   };
 
   return (
-    <PageLayout
-      badge="Free AI tool"
-      badgeIcon={FileText}
-      compact
-      description="Paste a public YouTube video once, reuse its transcript, and turn it into a publish-ready article or newsletter."
-      title="YouTube to long-form text"
-    >
-      <section className="container mx-auto grid gap-10 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="grid gap-8">
-          <Form
-            spacing="section"
-            className="bg-background p-5 shadow-border sm:p-6"
-            aria-label="YouTube to long-form text"
-            onSubmit={(event) => void handleSubmit(event)}
+    <section className="container mx-auto grid gap-10 px-6 py-20 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="grid gap-8">
+        <Form
+          spacing="section"
+          className="bg-background p-5 shadow-border sm:p-6"
+          aria-label="YouTube to long-form text"
+          onSubmit={(event) => void handleSubmit(event)}
+        >
+          <Field
+            description="Public YouTube videos with spoken audio only. One workflow resolves, transcribes, and transforms your selected format into a copyable preview."
+            label="YouTube URL"
           >
-            <Field
-              description="Public YouTube videos with spoken audio only. One workflow resolves, transcribes, and transforms your selected format into a copyable preview."
-              label="YouTube URL"
-            >
-              <Input
-                autoComplete="url"
-                maxLength={2048}
-                onChange={(event) => setYoutubeUrl(event.target.value)}
-                placeholder="https://www.youtube.com/watch?v=..."
-                type="url"
-                value={youtubeUrl}
-              />
-            </Field>
-
-            <fieldset className="grid gap-3">
-              <legend className="text-sm font-semibold">Output format</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {OUTPUT_OPTIONS.map((option) => (
-                  <div className="grid gap-2" key={option.value}>
-                    <Button
-                      ariaLabel={`Select ${option.label}`}
-                      label={option.label}
-                      onClick={() => setOutputType(option.value)}
-                      size={ButtonSize.PUBLIC}
-                      type="button"
-                      variant={
-                        outputType === option.value
-                          ? ButtonVariant.DEFAULT
-                          : ButtonVariant.SECONDARY
-                      }
-                      withWrapper={false}
-                    />
-                    <Text className="text-xs leading-5 text-surface/60">
-                      {option.description}
-                    </Text>
-                  </div>
-                ))}
-              </div>
-            </fieldset>
-
-            {error ? (
-              <Text className="text-sm text-destructive" role="alert">
-                {error}
-              </Text>
-            ) : null}
-
-            <Button
-              ariaLabel="Transform YouTube video"
-              isDisabled={!youtubeUrl.trim() || isSubmitting}
-              isLoading={isSubmitting}
-              label={isSubmitting ? 'Writing long-form text…' : 'Create text'}
-              size={ButtonSize.PUBLIC}
-              type="submit"
-              withWrapper={false}
+            <Input
+              autoComplete="url"
+              maxLength={2048}
+              onChange={(event) => setYoutubeUrl(event.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              type="url"
+              value={youtubeUrl}
             />
-          </Form>
+          </Field>
 
-          {isSubmitting ? (
-            <div
-              aria-live="polite"
-              className="grid gap-2 bg-background p-6 shadow-border"
-            >
-              <Text className="text-sm font-semibold">
-                Resolving, transcribing, and writing…
+          <fieldset className="grid gap-3">
+            <legend className="text-sm font-semibold">Output format</legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {OUTPUT_OPTIONS.map((option) => (
+                <div className="grid gap-2" key={option.value}>
+                  <Button
+                    ariaLabel={`Select ${option.label}`}
+                    label={option.label}
+                    onClick={() => setOutputType(option.value)}
+                    size={ButtonSize.PUBLIC}
+                    type="button"
+                    variant={
+                      outputType === option.value
+                        ? ButtonVariant.DEFAULT
+                        : ButtonVariant.SECONDARY
+                    }
+                    withWrapper={false}
+                  />
+                  <Text className="text-xs leading-5 text-surface/60">
+                    {option.description}
+                  </Text>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+
+          {error ? (
+            <Text className="text-sm text-destructive" role="alert">
+              {error}
+            </Text>
+          ) : null}
+
+          <Button
+            ariaLabel="Transform YouTube video"
+            isDisabled={!youtubeUrl.trim() || isSubmitting}
+            isLoading={isSubmitting}
+            label={isSubmitting ? 'Writing long-form text…' : 'Create text'}
+            size={ButtonSize.PUBLIC}
+            type="submit"
+            withWrapper={false}
+          />
+        </Form>
+
+        {isSubmitting ? (
+          <div
+            aria-live="polite"
+            className="grid gap-2 bg-background p-6 shadow-border"
+          >
+            <Text className="text-sm font-semibold">
+              Resolving, transcribing, and writing…
+            </Text>
+            <Text className="text-sm text-surface/60">
+              Long videos take longer. Keep this tab open while the workflow
+              completes.
+            </Text>
+          </div>
+        ) : null}
+
+        {result ? (
+          <article className="grid gap-5 bg-background p-6 shadow-border">
+            <div className="grid gap-2">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-surface/55">
+                {OUTPUT_OPTIONS.find(
+                  (option) => option.value === result.outputType,
+                )?.label ?? result.outputType}
               </Text>
-              <Text className="text-sm text-surface/60">
-                Long videos take longer. Keep this tab open while the workflow
-                completes.
+              <Heading as="h2">{result.title}</Heading>
+              <Text className="text-sm leading-6 text-surface/65">
+                {result.summary}
               </Text>
             </div>
-          ) : null}
-
-          {result ? (
-            <article className="grid gap-5 bg-background p-6 shadow-border">
-              <div className="grid gap-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-surface/55">
-                  {OUTPUT_OPTIONS.find(
-                    (option) => option.value === result.outputType,
-                  )?.label ?? result.outputType}
-                </Text>
-                <Heading as="h2">{result.title}</Heading>
-                <Text className="text-sm leading-6 text-surface/65">
-                  {result.summary}
-                </Text>
-              </div>
-              <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-surface/85">
-                {result.content}
-              </pre>
+            <pre className="whitespace-pre-wrap font-sans text-sm leading-7 text-surface/85">
+              {result.content}
+            </pre>
+            <Button
+              ariaLabel="Copy generated long-form text"
+              label={copied ? 'Copied' : 'Copy text'}
+              onClick={() => void copyResult()}
+              size={ButtonSize.PUBLIC}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            />
+            {result.sourceArtifactId ? (
               <Button
-                ariaLabel="Copy generated long-form text"
-                label={copied ? 'Copied' : 'Copy text'}
-                onClick={() => void copyResult()}
+                ariaLabel="Save YouTube source to Library"
+                isDisabled={Boolean(savedSourceId) || isSavingSource}
+                isLoading={isSavingSource}
+                label={
+                  savedSourceId ? 'Source saved' : 'Save source to Library'
+                }
+                onClick={() => void saveSourceToLibrary()}
                 size={ButtonSize.PUBLIC}
-                variant={ButtonVariant.SECONDARY}
                 withWrapper={false}
               />
-              {result.sourceArtifactId ? (
+            ) : (
+              <div className="grid gap-3 bg-fill/[0.04] p-4">
+                <Text className="text-sm leading-6 text-surface/65">
+                  Sign in before your next run to save the generated text and
+                  optionally keep the source video in your Library.
+                </Text>
                 <Button
-                  ariaLabel="Save YouTube source to Library"
-                  isDisabled={Boolean(savedSourceId) || isSavingSource}
-                  isLoading={isSavingSource}
-                  label={
-                    savedSourceId ? 'Source saved' : 'Save source to Library'
-                  }
-                  onClick={() => void saveSourceToLibrary()}
+                  asChild
                   size={ButtonSize.PUBLIC}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
-                />
-              ) : (
-                <div className="grid gap-3 bg-fill/[0.04] p-4">
-                  <Text className="text-sm leading-6 text-surface/65">
-                    Sign in before your next run to save the generated text and
-                    optionally keep the source video in your Library.
-                  </Text>
-                  <Button
-                    asChild
-                    size={ButtonSize.PUBLIC}
-                    variant={ButtonVariant.SECONDARY}
-                    withWrapper={false}
-                  >
-                    <Link href={`${EnvironmentService.apps.app}/login`}>
-                      Sign in to save future results
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </article>
-          ) : null}
-        </div>
+                >
+                  <Link href={`${EnvironmentService.apps.app}/login`}>
+                    Sign in to save future results
+                  </Link>
+                </Button>
+              </div>
+            )}
+          </article>
+        ) : null}
+      </div>
 
-        <aside className="h-fit bg-background p-6 shadow-border">
-          <Sparkles aria-hidden="true" className="size-5" />
-          <Heading as="h2" className="mt-4 text-lg">
-            One transcript, four formats
-          </Heading>
-          <Text className="mt-3 text-sm leading-6 text-surface/65">
-            Every format uses the same source and transcription actions. Only
-            the selected output is generated. Signed-in results are saved;
-            temporary media expires unless you explicitly keep the source in
-            your Library.
-          </Text>
-        </aside>
-      </section>
-    </PageLayout>
+      <aside className="h-fit bg-background p-6 shadow-border">
+        <Sparkles aria-hidden="true" className="size-5" />
+        <Heading as="h2" className="mt-4 text-lg">
+          One transcript, four formats
+        </Heading>
+        <Text className="mt-3 text-sm leading-6 text-surface/65">
+          Every format uses the same source and transcription actions. Only the
+          selected output is generated. Signed-in results are saved; temporary
+          media expires unless you explicitly keep the source in your Library.
+        </Text>
+      </aside>
+    </section>
   );
 }

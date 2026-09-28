@@ -13,7 +13,7 @@ import {
   resolveButtonVariant,
   TEXT_TRANSFORM_CLASSES,
 } from './button.variants';
-import { SimpleTooltip } from './tooltip';
+import ButtonTooltip from './button-tooltip';
 
 export interface ButtonProps
   extends Omit<
@@ -155,9 +155,9 @@ function Button({
   }
 
   return (
-    <SimpleTooltip label={tooltip} position={tooltipPosition}>
+    <ButtonTooltip label={tooltip} position={tooltipPosition}>
       {wrappedButton as ReactElement}
-    </SimpleTooltip>
+    </ButtonTooltip>
   );
 }
 

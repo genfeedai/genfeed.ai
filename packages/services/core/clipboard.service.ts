@@ -1,5 +1,4 @@
 import { deferredLogger } from '@services/core/deferred-logger';
-import { NotificationsService } from '@services/core/notifications.service';
 
 function canUseClipboardApi(): boolean {
   return (
@@ -39,11 +38,28 @@ function writeTextViaExecCommand(text: string): boolean {
   return didCopy;
 }
 
+type NotificationKind = 'error' | 'success';
+
+/**
+ * The toast after a copy. The notifications module brings the toast library
+ * (~9 KB gzip), so it loads after the clipboard write instead of with every
+ * page that has a copy button: the write itself runs straight from the click,
+ * inside the browser's user activation.
+ */
+async function notify(kind: NotificationKind, message: string): Promise<void> {
+  try {
+    const { NotificationsService } = await import(
+      '@services/core/notifications.service'
+    );
+    NotificationsService.getInstance()[kind](message);
+  } catch (error) {
+    deferredLogger.error('Copy notification failed to load', error);
+  }
+}
+
 export class ClipboardService {
   private static classInstance?: ClipboardService;
   private isCopying = false;
-
-  private notificationsService = NotificationsService.getInstance();
 
   private constructor() {}
 
@@ -67,14 +83,14 @@ export class ClipboardService {
       } else if (!writeTextViaExecCommand(payload)) {
         throw new Error('Clipboard write is unavailable in this environment');
       }
-      this.notificationsService.success('Copied to clipboard');
+      await notify('success', 'Copied to clipboard');
     } catch (error) {
       // Prefer silent fallback before surfacing failure.
       if (writeTextViaExecCommand(payload)) {
-        this.notificationsService.success('Copied to clipboard');
+        await notify('success', 'Copied to clipboard');
       } else {
         deferredLogger.error('Copy to clipboard failed', error);
-        this.notificationsService.error('Copy to clipboard failed');
+        await notify('error', 'Copy to clipboard failed');
       }
     } finally {
       this.isCopying = false;
@@ -108,13 +124,13 @@ export class ClipboardService {
       } else if (!writeTextViaExecCommand(text)) {
         throw new Error('Clipboard write is unavailable in this environment');
       }
-      this.notificationsService.success('Copied to clipboard');
+      await notify('success', 'Copied to clipboard');
     } catch (error) {
       if (writeTextViaExecCommand(text)) {
-        this.notificationsService.success('Copied to clipboard');
+        await notify('success', 'Copied to clipboard');
       } else {
         deferredLogger.error('Copy rich text to clipboard failed', error);
-        this.notificationsService.error('Copy to clipboard failed');
+        await notify('error', 'Copy to clipboard failed');
       }
     } finally {
       this.isCopying = false;

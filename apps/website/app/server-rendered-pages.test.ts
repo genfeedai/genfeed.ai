@@ -11,7 +11,10 @@ import { describe, expect, it } from 'vitest';
  * undoes that for the whole page.
  */
 const SERVER_RENDERED_PAGES = [
+  '../../packages/agent/src/components/SafeMarkdown.tsx',
+  '../../packages/ui/src/components/footers/SiteFooter.tsx',
   'app/(content)/articles/[slug]/article-detail.tsx',
+  'app/(content)/articles/articles-list.tsx',
   'app/(public)/about/about-content.tsx',
   'app/(public)/agent-clients/agent-client-channel-content.tsx',
   'app/(public)/agent-clients/agent-client-content.tsx',
@@ -20,6 +23,7 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/benchmark/benchmark-content.tsx',
   'app/(public)/brand-os/brand-os-content.tsx',
   'app/(public)/calendar/calendar-content.tsx',
+  'app/(public)/changelog/content.tsx',
   'app/(public)/cloud/cloud-content.tsx',
   'app/(public)/download/download-content.tsx',
   'app/(public)/experts/experts-content.tsx',
@@ -43,8 +47,55 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',
   'app/(public)/workflows/workflows-content.tsx',
+  'app/u/[handle]/profile-page.tsx',
+  'app/u/layout.tsx',
   'packages/components/PageLayout.tsx',
   'packages/components/content/NeuralGrid.tsx',
+  'packages/components/content/PublicListPage.tsx',
+  'packages/components/landing/DevelopersLandingPage.tsx',
+  'packages/components/landing/ServiceLandingPage.tsx',
+  'packages/components/profile/ProfileSocialLinks.tsx',
+  'src/page-modules/posts/[id]/ingredient-posts.tsx',
+  'src/page-modules/posts/ingredients/posts-ingredients-list.tsx',
+];
+
+/**
+ * Client islands that call an API, copy text, or show a lab only after the
+ * visitor acts. Each loads that code on use; a static import puts it back on
+ * the route's first load.
+ */
+const DEFERRED_IMPORTS: ReadonlyArray<readonly [string, RegExp]> = [
+  // axios, the HTTP interceptors and the JSON:API models (~20 KB gzip).
+  [
+    'app/(public)/brand-os/brand-os-funnel.tsx',
+    /from '@services\/external\/public\.service'/,
+  ],
+  [
+    'app/(public)/tools/youtube-clips/youtube-clips-content.tsx',
+    /from '@services\/external\/public\.service'/,
+  ],
+  // The API services and the Better Auth client.
+  [
+    'app/(public)/tools/youtube-long-form/youtube-long-form-content.tsx',
+    /from '@services\/(?:content|external)\/|from '@genfeedai\/hooks\/auth\//,
+  ],
+  // The clipboard service loads the toast library only after its write, so
+  // every copy button (imported statically, inside the click) stays light.
+  [
+    '../../packages/services/core/clipboard.service.ts',
+    /from '@services\/core\/notifications\.service'/,
+  ],
+  // The clipboard service brings the toast library through notifications.
+  [
+    'app/(content)/articles/[slug]/article-content.tsx',
+    /from '@services\/core\/clipboard\.service'|from '\.\/article-experience'/,
+  ],
+  [
+    'app/(content)/articles/[slug]/article-share-button.tsx',
+    /from '@services\/core\/clipboard\.service'/,
+  ],
+  // Radix Tooltip and Floating UI, on every page that renders a button.
+  ['../../packages/ui/src/primitives/button.tsx', /from '\.\/tooltip'/],
 ];
 
 function readSource(path: string): string {
@@ -55,6 +106,35 @@ describe('server-rendered marketing pages', () => {
   it.each(SERVER_RENDERED_PAGES)('%s stays a server component', (path) => {
     // Multiline: a directive after a leading comment still counts.
     expect(readSource(path)).not.toMatch(/^\s*['"]use client['"]/m);
+  });
+
+  // The app's context providers bring its API service layer, pino and the
+  // Sentry SDK with them. Profile tiles are read-only and read neither;
+  // `ProfileMedia.test.tsx` renders them with no providers at all.
+  it('keeps the public profile layout free of app providers', () => {
+    expect(readSource('app/u/layout.tsx')).not.toMatch(/@providers\//);
+  });
+
+  it.each(DEFERRED_IMPORTS)(
+    '%s loads its on-demand code lazily',
+    (path, staticImport) => {
+      expect(readSource(path)).not.toMatch(staticImport);
+    },
+  );
+
+  // The app's `Container` (section topbar, tabs, help popover) and its client
+  // pagination, which reads totals only the app's client fetches record, so on
+  // the website it could never link past page one.
+  it('renders public lists without the app container or client pagination', () => {
+    for (const path of [
+      'app/(content)/articles/articles-list.tsx',
+      'src/page-modules/posts/[id]/ingredient-posts.tsx',
+      'src/page-modules/posts/ingredients/posts-ingredients-list.tsx',
+    ]) {
+      const source = readSource(path);
+      expect(source).not.toContain('@ui/layout/container/Container');
+      expect(source).not.toContain('AutoPagination');
+    }
   });
 
   it('never sanitizes article HTML in the browser', () => {

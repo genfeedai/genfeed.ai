@@ -1,5 +1,7 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import YoutubeClipsContent from '@public/tools/youtube-clips/youtube-clips-content';
+import PageLayout from '@web-components/PageLayout';
+import { Scissors } from 'lucide-react';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'YouTube Transcript to Clips — Free AI Tool',
@@ -8,5 +10,16 @@ export const generateMetadata = createPageMetadataWithCanonical(
 );
 
 export default function YoutubeClipsPage(): React.ReactElement {
-  return <YoutubeClipsContent />;
+  // The hero, footer and copy render on the server; only the tool hydrates.
+  return (
+    <PageLayout
+      badge="Free AI tool"
+      badgeIcon={Scissors}
+      compact
+      description="Paste a public YouTube URL. Get a timestamped transcript, three AI-selected short-form moments, and one rendered preview before signup."
+      title="YouTube transcript to clips"
+    >
+      <YoutubeClipsContent />
+    </PageLayout>
+  );
 }

@@ -70,14 +70,19 @@ export default async function IngredientPostsPage({
   const [{ id }, { page: rawPage }] = await Promise.all([params, searchParams]);
   const parsedPage = Number.parseInt(rawPage ?? '1', 10);
   const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
-  const { ingredient, posts } = await getPublicIngredientPostsPageData(
+  const { ingredient, postsPage } = await getPublicIngredientPostsPageData(
     id,
     page,
   );
 
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <IngredientPosts id={id} ingredient={ingredient} posts={posts} />
+      <IngredientPosts
+        id={id}
+        ingredient={ingredient}
+        pagination={postsPage}
+        posts={postsPage.items}
+      />
     </Suspense>
   );
 }

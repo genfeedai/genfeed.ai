@@ -23425,14 +23425,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2322,
-      "count": 3,
-      "file": "packages/ui/src/components/overview/OverviewLayout.test.tsx",
-      "fingerprint": "955d905c0bd251f5e8a5",
-      "message": "Type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }[]' is not assignable to type 'OverviewCard[]'.   Property 'id' is missing in type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }' but required in type 'OverviewCard'.",
-      "workspace": "ui"
-    },
-    {
       "code": 2550,
       "count": 1,
       "file": "packages/ui/src/components/overview/OverviewTrendsPanel.tsx",

@@ -3,12 +3,12 @@ import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { getPublishingPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
+import type { PublicListPageProps } from '@props/website/public-list-page.props';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
-import Container from '@ui/layout/container/Container';
-import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Button } from '@ui/primitives/button';
+import PublicListPage from '@web-components/content/PublicListPage';
 import { ArrowLeft, Eye, FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -16,21 +16,23 @@ import Link from 'next/link';
 export interface IngredientPostsProps {
   id: string;
   ingredient: Ingredient | null;
+  pagination?: PublicListPageProps['pagination'];
   posts: Post[];
 }
 
 export default function IngredientPosts({
   ingredient,
+  pagination,
   posts,
 }: IngredientPostsProps) {
   if (!ingredient || ingredient?.id === 'undefined') {
     return (
-      <Container>
+      <PublicListPage>
         <CardEmpty
           label="Ingredient not found"
           description="The ingredient you are looking for does not exist."
         />
-      </Container>
+      </PublicListPage>
     );
   }
 
@@ -40,7 +42,7 @@ export default function IngredientPosts({
   };
 
   return (
-    <Container>
+    <PublicListPage pagination={pagination} totalLabel="posts">
       {/* Back button */}
       <div className="mb-6">
         <Button asChild variant={ButtonVariant.GHOST}>
@@ -157,12 +159,8 @@ export default function IngredientPosts({
               </Card>
             ))}
           </div>
-
-          <div className="mt-6">
-            <AutoPagination />
-          </div>
         </div>
       )}
-    </Container>
+    </PublicListPage>
   );
 }

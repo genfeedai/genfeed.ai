@@ -129,14 +129,14 @@ export default function Pagination({
 
               return (
                 <PaginationItem key={item}>
+                  {/* No handler, so a server component can render this
+                      branch: the current page is simply not clickable. */}
                   <PaginationLink
                     href={createPageHref(item)}
                     isActive={item === clampedPage}
-                    onClick={(event) => {
-                      if (item === clampedPage) {
-                        event.preventDefault();
-                      }
-                    }}
+                    className={
+                      item === clampedPage ? 'pointer-events-none' : undefined
+                    }
                   >
                     {item}
                   </PaginationLink>

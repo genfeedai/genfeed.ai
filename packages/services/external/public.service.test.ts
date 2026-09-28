@@ -149,7 +149,6 @@ describe('PublicService', () => {
       ['findPublicMusics', 'musics', Music],
       ['findPublicPosts', 'posts', Post],
       ['findPublicArticles', 'articles', Article],
-      ['findPublicIngredients', 'posts/ingredients', Ingredient],
     ] as const;
 
     it.each(collectionCases)(
@@ -167,6 +166,71 @@ describe('PublicService', () => {
         expect(result[0]).toBeInstanceOf(Model);
       },
     );
+
+    const pageCases = [
+      ['findPublicPostsPage', 'posts', Post],
+      ['findPublicArticlesPage', 'articles', Article],
+      ['findPublicIngredientsPage', 'posts/ingredients', Ingredient],
+    ] as const;
+
+    it.each(pageCases)(
+      '%s GETs %s and keeps the pagination links',
+      async (method, path, Model) => {
+        http.get.mockResolvedValue(
+          axiosResponse(
+            collectionDocument([{ id: 'x_1', label: 'Item' }], {
+              pagination: { limit: 12, page: 2, pages: 5, total: 49 },
+            }),
+          ),
+        );
+
+        const result = await service[method]({ limit: 12, page: 2 });
+
+        expect(http.get).toHaveBeenCalledWith(path, {
+          params: { limit: 12, page: 2 },
+        });
+        expect(result.items[0]).toBeInstanceOf(Model);
+        expect(result).toMatchObject({
+          hasNext: true,
+          hasPrevious: true,
+          page: 2,
+          pageSize: 12,
+          total: 49,
+          totalPages: 5,
+        });
+      },
+    );
+
+    it('derives the page count when the API sends no pagination links', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(collectionDocument([{ id: 'a_1' }, { id: 'a_2' }])),
+      );
+
+      await expect(
+        service.findPublicArticlesPage({ limit: 12, page: 1 }),
+      ).resolves.toMatchObject({
+        hasNext: false,
+        page: 1,
+        total: 2,
+        totalPages: 1,
+      });
+    });
+
+    it('a failed page request reads as an empty first page', async () => {
+      http.get.mockRejectedValue(new Error('network'));
+
+      await expect(
+        service.findPublicIngredientsPage({ limit: 12 }),
+      ).resolves.toEqual({
+        hasNext: false,
+        hasPrevious: false,
+        items: [],
+        page: 1,
+        pageSize: 12,
+        total: 0,
+        totalPages: 1,
+      });
+    });
 
     describe('findAllPublicArticles', () => {
       it('never asks for more than the API accepts', async () => {

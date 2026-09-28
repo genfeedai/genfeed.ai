@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('Pagination', () => {
@@ -60,6 +61,13 @@ describe('Pagination', () => {
     expect(page1Link).toHaveAttribute('href', '?page=1');
     expect(page2Link).toHaveAttribute('href', '?page=2');
     expect(page3Link).toHaveAttribute('href', '?page=3');
+  });
+
+  it('server-renders plain links when onPageChange is not provided', () => {
+    const html = renderToString(<Pagination currentPage={2} totalPages={3} />);
+
+    expect(html).toContain('href="?page=3"');
+    expect(html).toContain('aria-current="page"');
   });
 
   it('uses click handlers when onPageChange is provided', () => {

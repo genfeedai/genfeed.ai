@@ -1,8 +1,5 @@
-'use client';
-
 import { BOOKING_HREF, BOOKING_PAGE_SLUG } from '@data/booking.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import type { ServiceLandingActionsProps } from '@props/website/service-landing.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
@@ -22,14 +19,15 @@ import {
   type ServiceLandingConfig,
   serviceLandingConfigBySlug,
 } from '@web-components/landing/service-landings.data';
+import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { BadgeCheck, CalendarRange, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 export interface ServiceLandingPageProps {
-  // Server pages pass the slug, not the config: the config carries icon
-  // component functions, which cannot cross the server->client boundary
-  // ("Functions cannot be passed directly to Client Components").
+  // Pages pass the slug and the config is looked up here, on the server. As
+  // a client component this page shipped every landing's copy (~14 KB gzip)
+  // to render one of them.
   slug: string;
 }
 
@@ -77,10 +75,9 @@ export default function ServiceLandingPage({
 }: ServiceLandingPageProps): React.ReactElement {
   const config = (serviceLandingConfigBySlug[slug] ??
     pitchLandingConfigBySlug[slug]) as ServiceLandingConfig;
-  const containerRef = useMarketingEntrance({ cards: false });
 
   return (
-    <div ref={containerRef}>
+    <MarketingEntrance cards={false}>
       <PageLayout
         badge={config.badge}
         badgeIcon={Sparkles}
@@ -251,6 +248,6 @@ export default function ServiceLandingPage({
       </PageLayout>
 
       <LandingFooter />
-    </div>
+    </MarketingEntrance>
   );
 }

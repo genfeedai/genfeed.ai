@@ -1,14 +1,15 @@
+import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import type { ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const findPublicPosts = vi.fn<() => Promise<Post[]>>();
+const findPublicPostsPage = vi.fn<() => Promise<IPaginatedResponse<Post>>>();
 const getPublicIngredient = vi.fn<() => Promise<Ingredient | null>>();
 
 vi.mock('@services/external/public.service', () => ({
   PublicService: {
-    getInstance: () => ({ findPublicPosts, getPublicIngredient }),
+    getInstance: () => ({ findPublicPostsPage, getPublicIngredient }),
   },
 }));
 
@@ -19,6 +20,15 @@ const { getPublicIngredientByIdCached, getPublicIngredientPostsPageData } =
   await import('./posts-loader');
 
 const POSTS = [{ id: 'p1' }] as unknown as Post[];
+const POSTS_PAGE: IPaginatedResponse<Post> = {
+  hasNext: true,
+  hasPrevious: false,
+  items: POSTS,
+  page: 1,
+  pageSize: 12,
+  total: 30,
+  totalPages: 3,
+};
 
 function ingredient(overrides: Partial<Ingredient> = {}): Ingredient {
   return {
@@ -30,9 +40,9 @@ function ingredient(overrides: Partial<Ingredient> = {}): Ingredient {
 }
 
 beforeEach(() => {
-  findPublicPosts.mockReset();
+  findPublicPostsPage.mockReset();
   getPublicIngredient.mockReset();
-  findPublicPosts.mockResolvedValue(POSTS);
+  findPublicPostsPage.mockResolvedValue(POSTS_PAGE);
   getPublicIngredient.mockResolvedValue(ingredient());
 });
 
@@ -49,8 +59,8 @@ describe('getPublicIngredientPostsPageData', () => {
     const data = await getPublicIngredientPostsPageData('ing-b', 2);
 
     expect(data.ingredient).toMatchObject({ id: 'ing-1' });
-    expect(data.posts).toBe(POSTS);
-    expect(findPublicPosts).toHaveBeenCalledWith(
+    expect(data.postsPage).toBe(POSTS_PAGE);
+    expect(findPublicPostsPage).toHaveBeenCalledWith(
       expect.objectContaining({
         ingredient: 'ing-b',
         page: 2,
@@ -114,12 +124,17 @@ describe('IngredientPostsPage', () => {
       params: Promise.resolve({ id: 'route-1' }),
       searchParams: Promise.resolve({}),
     })) as ReactElement<{
-      children: ReactElement<{ id: string; posts: Post[] }>;
+      children: ReactElement<{
+        id: string;
+        pagination: IPaginatedResponse<Post>;
+        posts: Post[];
+      }>;
     }>;
 
     expect(element.props.children.props.id).toBe('route-1');
     expect(element.props.children.props.posts).toBe(POSTS);
-    expect(findPublicPosts).toHaveBeenCalledWith(
+    expect(element.props.children.props.pagination).toBe(POSTS_PAGE);
+    expect(findPublicPostsPage).toHaveBeenCalledWith(
       expect.objectContaining({ page: 1 }),
     );
   });
@@ -134,7 +149,7 @@ describe('IngredientPostsPage', () => {
       searchParams: Promise.resolve({ page: raw }),
     });
 
-    expect(findPublicPosts).toHaveBeenLastCalledWith(
+    expect(findPublicPostsPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ page: expected }),
     );
   });

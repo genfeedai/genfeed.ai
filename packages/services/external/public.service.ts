@@ -2,6 +2,7 @@ import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
 import type {
   IBrandOsPreview,
   IBrandOsPreviewRequest,
+  IPaginatedResponse,
   IPublicYoutubeClipToolSession,
   IPublicYoutubeLongFormToolResult,
   IQueryParams,
@@ -81,6 +82,46 @@ export class PublicService extends HTTPBaseService {
         deserializeCollection<Partial<T>>(res.data).map((d) => new Model(d)),
       )
       .catch(() => []);
+  }
+
+  /**
+   * One page of a public collection with the API's pagination links, so a
+   * server-rendered list can link to the pages around it. A failed request
+   * reads as an empty first page, like `fetchMany`.
+   */
+  private async fetchPage<T>(
+    path: string,
+    Model: ModelConstructor<T>,
+    query: IQueryParams = {},
+  ): Promise<IPaginatedResponse<T>> {
+    const document = await this.instance
+      .get<JsonApiResponseDocument>(path, { params: query })
+      .then((res) => res.data)
+      .catch(() => null);
+    const items = document
+      ? deserializeCollection<Partial<T>>(document).map((d) => new Model(d))
+      : [];
+    const pagination = document?.links?.pagination;
+    const page = pagination?.page ?? query.page ?? 1;
+    const pageSize = Math.max(
+      1,
+      pagination?.limit ?? query.limit ?? items.length,
+    );
+    const total = pagination?.total ?? items.length;
+    const totalPages = Math.max(
+      1,
+      pagination?.pages ?? Math.ceil(total / pageSize),
+    );
+
+    return {
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages,
+    };
   }
 
   public async findPublicProfileBySlug(slug: string): Promise<Brand | null> {
@@ -186,6 +227,12 @@ export class PublicService extends HTTPBaseService {
     return this.fetchMany('posts', Post, query);
   }
 
+  public async findPublicPostsPage(
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Post>> {
+    return this.fetchPage('posts', Post, query);
+  }
+
   public async findPublicPostsWithSignal(
     query?: IQueryParams,
     signal?: AbortSignal,
@@ -214,6 +261,12 @@ export class PublicService extends HTTPBaseService {
 
   public async findPublicArticles(query?: IQueryParams): Promise<Article[]> {
     return this.fetchMany('articles', Article, query);
+  }
+
+  public async findPublicArticlesPage(
+    query?: IQueryParams,
+  ): Promise<IPaginatedResponse<Article>> {
+    return this.fetchPage('articles', Article, query);
   }
 
   /**
@@ -273,10 +326,10 @@ export class PublicService extends HTTPBaseService {
       .catch(() => null);
   }
 
-  public async findPublicIngredients(
+  public async findPublicIngredientsPage(
     query?: IQueryParams,
-  ): Promise<Ingredient[]> {
-    return this.fetchMany('posts/ingredients', Ingredient, query);
+  ): Promise<IPaginatedResponse<Ingredient>> {
+    return this.fetchPage('posts/ingredients', Ingredient, query);
   }
 
   public async getPublicIngredient(id: string): Promise<Ingredient | null> {

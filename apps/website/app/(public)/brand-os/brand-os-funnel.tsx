@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IBrandOsPreview } from '@genfeedai/contracts/interfaces';
-import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
@@ -16,6 +15,7 @@ import {
   type WebsiteAnalyticsEventProperties,
 } from '../../../packages/analytics/analytics-events';
 import { captureWebsiteAnalyticsEvent } from '../../../packages/analytics/posthog-client';
+import { loadPublicService } from '../../../packages/api/load-public-service';
 import { buildAuthHandoffHref } from '../../../packages/auth/auth-handoff';
 import {
   BrandOSPreviewState,
@@ -107,7 +107,7 @@ export function BrandOsFunnel(): React.ReactElement {
     setState('scanning');
     previewInFlightRef.current = true;
     try {
-      const result = await PublicService.getInstance().previewBrandOs({
+      const result = await (await loadPublicService()).previewBrandOs({
         ...(normalizedGuidance ? { guidance: normalizedGuidance } : {}),
         ...(normalizedUrl ? { url: normalizedUrl } : {}),
       });

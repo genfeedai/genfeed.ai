@@ -222,7 +222,7 @@ describe('TerminalDemo', () => {
 
   it('types the demo lines out one at a time until the script ends', async () => {
     const { default: TerminalDemo } = await import('./terminal-demo');
-    const { container } = render(<TerminalDemo />);
+    const { container } = render(<TerminalDemo lines={TERMINAL_COMMANDS} />);
 
     expect(container.textContent).not.toContain(TERMINAL_COMMANDS[0]?.command);
 

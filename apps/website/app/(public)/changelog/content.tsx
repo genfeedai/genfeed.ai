@@ -1,5 +1,3 @@
-'use client';
-
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import type { ChangelogProps } from '@genfeedai/props/pages/changelog.props';
 import {
@@ -105,6 +103,11 @@ function ReleaseEntry({ release }: { release: Release }) {
   );
 }
 
+/**
+ * Server-rendered: release notes arrive as HTML, and only the collapsible
+ * rows hydrate. As a client component this page shipped the markdown parser
+ * (~40 KB gzip) to render text the server already had.
+ */
 export default function ChangelogContent({ releases }: ChangelogProps) {
   return (
     <main className="mx-auto max-w-3xl px-6 py-20">

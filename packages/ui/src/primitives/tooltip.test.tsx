@@ -1,4 +1,10 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Button } from './button';
 import { SimpleTooltip, TooltipProvider } from './tooltip';
@@ -50,6 +56,13 @@ describe('shared tooltip interactions', () => {
       <Button withWrapper={false} tooltip="Keyboard hint">
         Action
       </Button>,
+    );
+    // No provider here, so the hint attaches once the tooltip module loads.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Action' })).toHaveAttribute(
+        'data-state',
+        'closed',
+      ),
     );
     const trigger = screen.getByRole('button', { name: 'Action' });
     fireEvent.focus(trigger);
