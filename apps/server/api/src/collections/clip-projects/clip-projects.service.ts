@@ -40,9 +40,14 @@ type ClipProjectWriteDto = Partial<
 > &
   Record<string, unknown>;
 
-export type ClipProjectCreateInput = CreateClipProjectDto & {
+/** A draft has no source yet, so internal creates may omit its URL. */
+export type ClipProjectCreateInput = Omit<
+  CreateClipProjectDto,
+  'sourceVideoUrl'
+> & {
   readonly draft?: ClipProjectDraft | null;
   readonly source?: ClipSourceContract;
+  readonly sourceVideoUrl?: string;
 };
 
 const PROJECT_SCALAR_KEYS = new Set([
@@ -347,7 +352,7 @@ export class ClipProjectsService extends BaseService<
       );
     }
 
-    const draft = project.draft ?? { sourceKind: 'youtube' };
+    const draft: Partial<ClipProjectDraft> = project.draft ?? {};
     const settings: ClipProjectSettings = {
       ...(project.settings ?? {}),
       ...(update.mode !== undefined ? { mode: update.mode } : {}),
@@ -358,7 +363,7 @@ export class ClipProjectsService extends BaseService<
     };
     const nextDraft: ClipProjectDraft = {
       filename: update.filename ?? draft.filename,
-      sourceKind: update.sourceKind ?? draft.sourceKind,
+      sourceKind: update.sourceKind ?? draft.sourceKind ?? 'youtube',
       updatedAt: new Date().toISOString(),
       youtubeUrl: update.youtubeUrl ?? draft.youtubeUrl,
     };
