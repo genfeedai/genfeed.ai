@@ -22,6 +22,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
+  categoryToPlural,
   EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
@@ -311,12 +312,69 @@ export class EditorProjectsController {
           totalDurationFrames: source.totalDurationFrames,
         },
         organizationId: user.organizationId,
-        tracks: source.tracks,
+        tracks: await this.resolveMediaClipUrls(
+          source.tracks,
+          user.organizationId,
+        ),
         userId: user.userId ?? user.id,
       } as CreateEditorProjectDto,
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);
+  }
+
+  /**
+   * Point media clips at their ingredient's canonical URL. Composition tracks
+   * carry a placeholder source URL that only the render path resolves, so a
+   * copy would otherwise open with footage that cannot load. Ingredients the
+   * organization can no longer read keep their clip unchanged.
+   */
+  private async resolveMediaClipUrls(
+    tracks: IEditorTrack[],
+    organizationId: string,
+  ): Promise<IEditorTrack[]> {
+    const ingredientIds = Array.from(
+      new Set(
+        tracks
+          .filter((track) => track.type !== EditorTrackType.TEXT)
+          .flatMap((track) => track.clips.map((clip) => clip.ingredientId))
+          .filter((ingredientId) => Boolean(ingredientId)),
+      ),
+    );
+
+    if (ingredientIds.length === 0) {
+      return tracks;
+    }
+
+    const result = await this.ingredientsService.findAll(
+      {
+        where: {
+          id: { in: ingredientIds },
+          isDeleted: false,
+          organizationId,
+        },
+      },
+      { pagination: false },
+      false,
+    );
+    const urlByIngredientId = new Map(
+      result.docs.map((ingredient) => [
+        String(ingredient.id),
+        `${this.configService.ingredientsEndpoint}/${categoryToPlural(String(ingredient.category))}/${ingredient.id}`,
+      ]),
+    );
+
+    return tracks.map((track) =>
+      track.type === EditorTrackType.TEXT
+        ? track
+        : {
+            ...track,
+            clips: track.clips.map((clip) => {
+              const ingredientUrl = urlByIngredientId.get(clip.ingredientId);
+              return ingredientUrl ? { ...clip, ingredientUrl } : clip;
+            }),
+          },
+    );
   }
 
   @Delete(':id')

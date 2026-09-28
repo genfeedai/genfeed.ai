@@ -117,7 +117,14 @@ export class EditorProjectsService extends BaseService<
           config: toPrismaJson({
             ...config,
             ...(name !== undefined ? { name } : {}),
-            ...(settings !== undefined ? { settings } : {}),
+            ...(settings !== undefined
+              ? {
+                  settings: {
+                    ...this.readProjectConfig(config.settings),
+                    ...settings,
+                  },
+                }
+              : {}),
             ...(thumbnailUrl !== undefined ? { thumbnailUrl } : {}),
             ...(totalDurationFrames !== undefined
               ? { totalDurationFrames }
