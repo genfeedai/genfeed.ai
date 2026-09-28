@@ -251,9 +251,12 @@ describe('AgentMarketplace', () => {
     ).not.toBeInTheDocument();
     expect(within(list).getByText(/25 credits/)).toBeVisible();
 
-    expect(document.querySelector('[data-src]')?.getAttribute('data-src')).toBe(
-      'https://cdn.genfeed.ai/assets/agents/analyst.webp',
-    );
+    expect(
+      within(list)
+        .getByTestId('agent-preset-row-scriptwriter')
+        .querySelector('[data-src]')
+        ?.getAttribute('data-src'),
+    ).toBe('https://cdn.genfeed.ai/assets/agents/scriptwriter.webp');
   });
 
   it('activates from a featured card and from a list row with one click', () => {
