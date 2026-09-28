@@ -25,6 +25,7 @@ export interface StitchFixtureRow {
   generationSource: string | null;
   generationStage?: string | null;
   id: string;
+  isDefault?: boolean;
   isDeleted: boolean;
   mergeSettings: unknown;
   metadataId: string | null;
@@ -326,6 +327,11 @@ export class VideoStitchFixture {
         this.knownJobs.add(jobId);
         if (job.type === 'add-captions') {
           this.completeJob(jobId, `ingredients/videos/${job.ingredientId}`);
+          // The captioned file differs in size from the merge it replaced.
+          this.jobResults.set(jobId, {
+            ...this.jobResults.get(jobId),
+            size: 4096,
+          });
         }
         return { jobId };
       },

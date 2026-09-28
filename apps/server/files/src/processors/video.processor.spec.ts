@@ -15,6 +15,7 @@ import type { Mock } from 'vitest';
 vi.mock('fs', () => ({
   existsSync: vi.fn().mockReturnValue(true),
   mkdirSync: vi.fn(),
+  statSync: vi.fn().mockReturnValue({ size: 4096 }),
   writeFileSync: vi.fn(),
 }));
 
@@ -709,6 +710,18 @@ describe('VideoProcessor', () => {
           status: 'completed',
         }),
       );
+    });
+
+    it('reports the size of the captioned file it uploaded', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
+      });
+
+      const result = await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(result.size).toBe(4096);
     });
 
     it('mutes the captioned output when asked', async () => {

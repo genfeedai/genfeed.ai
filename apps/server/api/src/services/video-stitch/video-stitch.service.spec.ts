@@ -263,6 +263,38 @@ describe('VideoStitchService', () => {
       });
     });
 
+    it('accepts a global default music track', async () => {
+      fixture.addClip({
+        category: 'MUSIC',
+        id: 'default-track',
+        isDefault: true,
+        organizationId: null,
+        s3Key: null,
+      });
+      await expect(
+        fixture.service.stitch(
+          request({ settings: { music: 'default-track' } }),
+        ),
+      ).resolves.toMatchObject({ state: 'processing' });
+    });
+
+    it('refuses a global music track that is not a default', async () => {
+      fixture.addClip({
+        category: 'MUSIC',
+        id: 'global-track',
+        isDefault: false,
+        organizationId: null,
+        s3Key: null,
+      });
+      expect(
+        await failingField(
+          fixture.service.stitch(
+            request({ settings: { music: 'global-track' } }),
+          ),
+        ),
+      ).toBe('music');
+    });
+
     it('refuses music from another organization', async () => {
       fixture.row('music-1').organizationId = 'org-2';
       expect(
@@ -449,6 +481,23 @@ describe('VideoStitchService', () => {
         result: `ingredients/videos/${handle.outputId}`,
         size: 2048,
         width: 1080,
+      });
+    });
+
+    it('records the captioned file size, not the intermediate merge size', async () => {
+      const handle = await fixture.service.stitch(
+        request({ settings: { isCaptionsEnabled: true } }),
+      );
+      fixture.completeJob(
+        handle.jobId,
+        `ingredients/videos/${handle.outputId}`,
+      );
+
+      await fixture.service.waitForCompletion(handle);
+
+      expect(fixture.eventsNamed('metadata.update')[0]?.[1]).toMatchObject({
+        duration: 12,
+        size: 4096,
       });
     });
 
