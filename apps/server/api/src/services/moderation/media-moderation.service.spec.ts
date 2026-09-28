@@ -1,17 +1,21 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { MediaModerationService } from '@api/services/moderation/media-moderation.service';
+import type { ModerationProviders } from '@api/services/moderation/moderation.tokens';
+import { NullModerationProvider } from '@api/services/moderation/providers/null-moderation.provider';
 import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
 } from '@genfeedai/contracts';
 import { DEFAULT_MODERATION_THRESHOLDS } from '@genfeedai/contracts/api-types/contracts';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
 import type {
   IMediaPerception,
   IModerationProvider,
+  IPlatformFeatureSettings,
 } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -66,7 +70,7 @@ function perception(overrides: Partial<IMediaPerception> = {}) {
 
 function makeHarness(
   options: {
-    config?: Record<string, unknown>;
+    featureSettings?: Partial<IPlatformFeatureSettings>;
     existing?: Record<string, unknown> | null;
     isEnabled?: boolean;
     perception?: IMediaPerception | null;
@@ -96,10 +100,17 @@ function makeHarness(
     .mockResolvedValue(
       options.perception === undefined ? perception() : options.perception,
     );
-  const config: Record<string, unknown> = {
-    MODERATION_MODE: 'live',
-    MODERATION_PROVIDER: 'openai',
-    ...options.config,
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      moderationMode: 'live',
+      moderationProvider: 'openai',
+      ...options.featureSettings,
+    })),
+  };
+  const providers: ModerationProviders = {
+    none: new NullModerationProvider(),
+    openai: provider as unknown as IModerationProvider,
   };
   const logger = { log: vi.fn(), warn: vi.fn() };
 
@@ -110,9 +121,9 @@ function makeHarness(
       mediaPerception: { findMany: vi.fn().mockResolvedValue([]) },
     } as unknown as PrismaService,
     { getForAsset } as unknown as MediaPerceptionService,
-    provider as unknown as IModerationProvider,
+    providers,
     activities as unknown as ActivityRecorderService,
-    { get: (key: string) => config[key] } as unknown as ConfigService,
+    platformSettingsService as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
   return {
@@ -191,7 +202,7 @@ describe('MediaModerationService.moderate', () => {
   });
 
   it('persists isFlagged=false in shadow mode and logs what would have flagged', async () => {
-    const h = makeHarness({ config: { MODERATION_MODE: 'shadow' } });
+    const h = makeHarness({ featureSettings: { moderationMode: 'shadow' } });
 
     await h.service.moderate(JOB);
 
@@ -208,7 +219,10 @@ describe('MediaModerationService.moderate', () => {
 
   it.each([
     ['the provider is none', { isEnabled: false }],
-    ['the mode is off', { config: { MODERATION_MODE: 'off' } }],
+    [
+      'the mode is off',
+      { featureSettings: { moderationMode: 'off' as const } },
+    ],
   ])('persists no verdict when %s', async (_label, options) => {
     const h = makeHarness(options);
 

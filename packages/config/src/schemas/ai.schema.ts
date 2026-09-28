@@ -3,98 +3,13 @@ import Joi from 'joi';
 import { conditionalRequired } from '../helpers';
 
 /**
- * Model-discovery category decision (#4869, epic #4863).
+ * General AI config.
  *
- * Its own fragment because the decision runs in `workers`, whose ConfigService
- * composes a much smaller schema than the API's. Both include this fragment so
- * the rollout mode and threshold carry the same defaults in either runtime.
- *
- * #4912 replaces this pair of env vars with a settings service; until then the
- * only reader is `resolveModelDiscoveryDecisionSettings`.
- */
-export const modelDiscoveryDecisionSchema = {
-  // `off` keeps the keyword table in control, `shadow` records the provider
-  // answer next to it, `live` acts on it above MODEL_DISCOVERY_MIN_CONFIDENCE.
-  MODEL_DISCOVERY_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off'),
-  MODEL_DISCOVERY_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
-};
-
-/**
- * Media validation (#4877). Perception (#4879) turns each completed image,
- * video or audio asset into persisted text artefacts off the publish path.
- */
-export const mediaValidationSchema = {
-  // Costs one vision call per asset.
-  MEDIA_GATE_VISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off')
-    .description(
-      'Vision-evaluation flags (#4881). `shadow` records flags without gating; `live` forces review on a flagged asset and on media not yet evaluated. Flags are rubric enums, not confidences: severe_artifacts and not_brand_ready (critical) and weak_composition (warning) gate; minor_artifacts and needs_brand_polish (info) never do. A live flip cites a `bench:typed-decisions --mode=media` run (docs/operations/media-gates.md)',
-    ),
-  // Frames, OCR and transcript need no model; the scene description calls the
-  // vision model below. `false` stops the workers sweep from enqueuing assets.
-  MEDIA_PERCEPTION_ENABLED: Joi.string().valid('true', 'false').default('true'),
-  // Evenly spaced stills sampled per video. Each costs one OCR pass and one
-  // image in the vision prompt, so keep it small.
-  MEDIA_PERCEPTION_FRAME_COUNT: Joi.number()
-    .integer()
-    .min(1)
-    .max(24)
-    .default(6),
-  // How far back the sweep looks for completed assets without a record.
-  // Older assets are not perceived; readers report them as pending.
-  MEDIA_PERCEPTION_LOOKBACK_HOURS: Joi.number()
-    .integer()
-    .min(1)
-    .max(720)
-    .default(24),
-  // Vision model for the scene description; empty uses LLM_DEFAULTS.fastText.
-  MEDIA_PERCEPTION_VISION_MODEL: Joi.string().optional().allow(''),
-  MODERATION_PROVIDER: Joi.string()
-    .valid('none', 'openai')
-    .default('none')
-    .description(
-      'Moderation classifier (#4880). `none` sends nothing off the host and persists no new verdict; while the mode is `live`, verdicts stored from an earlier provider still apply. `openai` uses omni-moderation (images and text)',
-    ),
-  MODERATION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('shadow')
-    .description(
-      '`shadow` persists scores and logs what would flag; `live` forces review at threshold and on media not yet moderated. A live flip cites a `bench:typed-decisions --mode=media` run with per-category precision and recall (docs/operations/media-gates.md)',
-    ),
-  MEDIA_TEXT_GATE_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off')
-    .description(
-      'Text decisions on perception output (#4882): brand safety and on-brand over transcript and scene description, caption consistency per post. In `live`, a confident `false` on brand safety or on-brand forces review, as does media not yet decided; caption inconsistency only warns. No typed-decision provider bound in /admin = off',
-    ),
-  MEDIA_TEXT_GATE_MIN_CONFIDENCE: Joi.number()
-    .min(0)
-    .max(1)
-    .default(0.85)
-    .description(
-      'Minimum confidence for a `false` text decision to count. Policy: over `false` answers only, the lowest confidence-decile floor from which every non-empty decile at or above has at least 95% of labels also false, with at least 20 such labels; the higher of the isBrandSafe and isOnBrand suggestions printed by `bench:typed-decisions --mode=media`',
-    ),
-  MODERATION_THRESHOLDS: Joi.string()
-    .pattern(
-      /^\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*(,\s*[a-z_]+\s*=\s*(0(\.\d+)?|1(\.0+)?)\s*)*$/,
-    )
-    .optional()
-    .allow('')
-    .description(
-      'Per-category moderation thresholds as `category=confidence` pairs (e.g. `sexual=0.5,violence=0.7`); unset categories keep DEFAULT_MODERATION_THRESHOLDS and lower is stricter. Policy: each threshold is the lowest score-decile floor from which every non-empty decile at or above has a positive-label rate of at least 95%, with at least 20 labelled positives at or above it (printed as `suggested` by `bench:typed-decisions --mode=media`); sexual_minors (0.2) and self_harm (0.4) are recall-biased and may only go lower without a written decision; spam (0.9) is precision-biased',
-    ),
-};
-
-/**
- * General AI config
+ * Product behaviour (rollout modes, confidence thresholds, feature switches)
+ * is not env: it lives on the Admin platform-settings singleton (#5407), and
+ * `bun run check:env-product-flags` fails CI if a new one appears here.
  */
 export const generalAiSchema = {
-  AGENT_CONTEXT_COMPRESSION_ENABLED: Joi.string()
-    .valid('true', 'false')
-    .default('true'),
   // Optional override. Unset falls back to LLM_DEFAULTS.volumeAgent in
   // ThreadContextCompressorService — do not copy a model id here.
   AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().optional().allow(''),
@@ -107,68 +22,19 @@ export const generalAiSchema = {
   // handful of publishes per response.
   AGENT_STREAM_COALESCE_MAX_BYTES: Joi.number().integer().min(1).default(2048),
   AGENT_STREAM_COALESCE_WINDOW_MS: Joi.number().integer().min(1).default(50),
-  // Feature flag: real token-by-token LLM streaming for agent chat. When
-  // 'false' (default) the orchestrator keeps the legacy simulated word-split
-  // streaming. Toggle to 'true' to stream real provider deltas via agent:token.
-  AGENT_TOKEN_STREAMING_ENABLED: Joi.string()
-    .valid('true', 'false')
-    .default('false'),
   MAX_TOKENS: Joi.number().default(4000),
-  // Pattern analyzer typed decisions (#4868). Capped at shadow
-  // (release-blocker follow-up, epic #4863): `off` keeps the rule-based
-  // labels, `shadow` records provider/rule agreement, but a provider label is
-  // never persisted — `live` is not a valid value here any more.
-  PATTERN_ANALYZER_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow')
-    .default('shadow'),
-  PATTERN_ANALYZER_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // OpenRouter is the primary text-model gateway for agent chat. Must stay on
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
-  // Agent auto-routing (#4865). No typed-decision provider is involved any
-  // more (release-blocker follow-up, epic #4863): the candidate is a
-  // deterministic read of the Admin-configured model registry. `off` keeps
-  // the OpenRouter auto-router plugin exactly as it is today, `shadow` logs
-  // the candidate it would dispatch, `live` dispatches it.
-  AGENT_AUTO_ROUTING_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off'),
-  // Reply-bot intent (#4866). `off` keeps the regex classifier, `shadow` calls
-  // the provider and records agreement while the regex still acts, `live` acts
-  // on the decided intent above REPLY_BOT_INTENT_MIN_CONFIDENCE.
-  REPLY_BOT_INTENT_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow', 'live')
-    .default('off'),
-  // Below this confidence the comment is neither auto-replied nor auto-skipped
-  // — it is queued for a person. Conservative by default, per the epic.
-  REPLY_BOT_INTENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
-  // Typed decisions (#4864). Which provider is bound is an operator setting on
-  // the platform-settings singleton (#4908), not an env var — the key here is
-  // only the credential that makes a hosted provider available at all.
-  // Task-routing output type (#4867). Capped at shadow (release-blocker
-  // follow-up, epic #4863): `off` keeps the keyword table, `shadow` calls the
-  // provider and records the disagreement, but the decided output type is
-  // never acted on — `live` is not a valid value here any more.
-  TASK_ROUTING_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow')
-    .default('shadow'),
-  TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
+  // Typed decisions (#4864). Which provider is bound, and every decision
+  // point's mode and threshold, are Admin platform settings (#4908, #5407) —
+  // the key here is only the credential that makes a hosted provider available.
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
   CONTENT_EVAL_GENFEED_API_KEY: Joi.string().optional().allow(''),
-  ...modelDiscoveryDecisionSchema,
-  ...mediaValidationSchema,
-  // Live activation is closed pending reviewed provider and real-traffic evidence (#4944).
-  // Shadow records flags without withholding tool results.
-  UNTRUSTED_CONTENT_DECISION_MODE: Joi.string()
-    .valid('off', 'shadow')
-    .default('off'),
-  // Deliberately above the epic's 0.85 default: a false positive costs a user
-  // their tool result, so the gate must be very sure before it withholds.
-  UNTRUSTED_CONTENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.95),
 };
 
 /**

@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { SystemEvent } from '@api/services/system-events/system-event.types';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ConfigService } from '@libs/config/config.service';
 import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -14,17 +14,22 @@ import type Stripe from 'stripe';
 export class SystemEventsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
     private readonly logger: LoggerService,
     private readonly notifications: NotificationsService,
   ) {}
 
-  private configuration() {
-    const since = this.config.get('SYSTEM_EVENTS_ENABLED_AT');
-    if (!since) return null;
-    const enabledAt = new Date(since);
-    if (!Number.isFinite(enabledAt.getTime())) return null;
-    return { since: enabledAt };
+  /**
+   * The recording window: an operator platform setting (#5407). Unset means
+   * disabled; events that occurred before it are never recorded, so turning
+   * recording on never replays historical signups.
+   */
+  private async configuration(): Promise<{ since: Date } | null> {
+    const { systemEventsEnabledAt } =
+      await this.platformSettings.getFeatureSettings();
+    return systemEventsEnabledAt
+      ? { since: new Date(systemEventsEnabledAt) }
+      : null;
   }
 
   async settings() {
@@ -68,7 +73,7 @@ export class SystemEventsService {
       configuration: {
         ...settings,
         ...transport,
-        recordingEnabled: Boolean(this.configuration()),
+        recordingEnabled: Boolean(await this.configuration()),
       },
       observedSignups,
       signupObservationStart: first?.occurredAt.toISOString() ?? null,
@@ -135,7 +140,7 @@ export class SystemEventsService {
   }
 
   async recordSignup(userId: string): Promise<void> {
-    if (!this.configuration()) return;
+    if (!(await this.configuration())) return;
     const user = await this.prisma.user.findFirst({
       where: { id: userId, isDeleted: false },
       select: { id: true, email: true, createdAt: true },
@@ -151,7 +156,7 @@ export class SystemEventsService {
   }
 
   async record(event: SystemEvent): Promise<void> {
-    const config = this.configuration();
+    const config = await this.configuration();
     if (!config || new Date(event.occurredAt) < config.since) return;
     // tenant-scope-ignore: deployment-wide operator outbox, never exposed to tenant APIs
     await this.prisma.systemEventWebhook.upsert({
@@ -167,7 +172,7 @@ export class SystemEventsService {
   }
 
   async recover(): Promise<void> {
-    const config = this.configuration();
+    const config = await this.configuration();
     if (!config) return;
     // Recover signup hook persistence failures without replaying pre-enablement accounts.
     // tenant-scope-ignore: deployment-wide system event recovery restricted to the configured observation window

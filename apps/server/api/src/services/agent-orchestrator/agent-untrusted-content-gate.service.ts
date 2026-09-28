@@ -1,4 +1,5 @@
 import { AgentUntrustedContentAuditsService } from '@api/collections/agent-untrusted-content-audits/services/agent-untrusted-content-audits.service';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AGENT_UNTRUSTED_CONTENT_MAX_LENGTH } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
@@ -14,7 +15,6 @@ import type {
   AgentUntrustedContentSource,
   TypedDecisionMode,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -119,7 +119,7 @@ export class AgentUntrustedContentGateService {
 
   constructor(
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly loggerService: LoggerService,
     private readonly streamPublisher: AgentStreamPublisherService,
     @Optional()
@@ -147,7 +147,7 @@ export class AgentUntrustedContentGateService {
 
     try {
       const { minConfidence, mode } = resolveUntrustedContentDecisionConfig(
-        this.configService,
+        await this.platformSettingsService.getFeatureSettings(),
       );
       if (mode === 'off') {
         return allowed;

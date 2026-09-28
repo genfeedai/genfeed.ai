@@ -1,12 +1,5 @@
-import {
-  MEDIA_PERCEPTION_DEFAULT_FRAME_COUNT,
-  MEDIA_PERCEPTION_MAX_FRAME_COUNT,
-} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-import type { ConfigService } from '@libs/config/config.service';
-
-const DEFAULT_LOOKBACK_HOURS = 24;
-const MAX_LOOKBACK_HOURS = 720;
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 
 export interface MediaPerceptionSettings {
   frameCount: number;
@@ -15,46 +8,18 @@ export interface MediaPerceptionSettings {
   visionModel: string;
 }
 
-function readBoundedInteger(
-  raw: unknown,
-  min: number,
-  max: number,
-  fallback: number,
-): number {
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed >= min && parsed <= max
-    ? parsed
-    : fallback;
-}
-
 /**
- * The one place the MEDIA_PERCEPTION_* keys are read (#4879). Joi validates
- * them at boot; the guards keep a hand-built ConfigService honest.
+ * The media perception switches (#4879) as the perception pipeline reads
+ * them. They are operator platform settings (#5407); the row is already
+ * parsed fail-closed, so only the vision-model fallback is resolved here.
  */
 export function resolveMediaPerceptionSettings(
-  configService: ConfigService,
+  settings: IPlatformFeatureSettings,
 ): MediaPerceptionSettings {
-  const visionModel = String(
-    configService.get('MEDIA_PERCEPTION_VISION_MODEL') ?? '',
-  ).trim();
-
   return {
-    frameCount: readBoundedInteger(
-      configService.get('MEDIA_PERCEPTION_FRAME_COUNT'),
-      1,
-      MEDIA_PERCEPTION_MAX_FRAME_COUNT,
-      MEDIA_PERCEPTION_DEFAULT_FRAME_COUNT,
-    ),
-    isEnabled:
-      String(configService.get('MEDIA_PERCEPTION_ENABLED') ?? 'true')
-        .trim()
-        .toLowerCase() !== 'false',
-    lookbackHours: readBoundedInteger(
-      configService.get('MEDIA_PERCEPTION_LOOKBACK_HOURS'),
-      1,
-      MAX_LOOKBACK_HOURS,
-      DEFAULT_LOOKBACK_HOURS,
-    ),
-    visionModel: visionModel || LLM_DEFAULTS.fastText,
+    frameCount: settings.mediaPerceptionFrameCount,
+    isEnabled: settings.isMediaPerceptionEnabled,
+    lookbackHours: settings.mediaPerceptionLookbackHours,
+    visionModel: settings.mediaPerceptionVisionModel ?? LLM_DEFAULTS.fastText,
   };
 }

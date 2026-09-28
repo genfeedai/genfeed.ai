@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { hasPendingArtefacts } from '@api/services/media-perception/media-perception.record';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
@@ -17,9 +18,9 @@ import {
 import type {
   IMediaPerception,
   IMediaPerceptionCandidate,
+  TypedDecisionRolloutSettings,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
@@ -93,19 +94,25 @@ export class MediaTextDecisionService {
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  get isActive(): boolean {
-    return resolveMediaTextGateSettings(this.configService).mode !== 'off';
+  private async getGateSettings(): Promise<TypedDecisionRolloutSettings> {
+    return resolveMediaTextGateSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
+  }
+
+  async isActive(): Promise<boolean> {
+    return (await this.getGateSettings()).mode !== 'off';
   }
 
   async evaluate(
     job: IMediaPerceptionCandidate,
   ): Promise<MediaTextDecisionOutcome> {
     if (
-      !this.isActive ||
+      !(await this.isActive()) ||
       !(await this.typedDecisionService.isProviderBound())
     ) {
       return 'skipped';
@@ -154,7 +161,7 @@ export class MediaTextDecisionService {
     limit: number,
     now = new Date(),
   ): Promise<IMediaPerceptionCandidate[]> {
-    if (!this.isActive) {
+    if (!(await this.isActive())) {
       return [];
     }
     const [undecided, recentlyPosted] = await Promise.all([
@@ -319,7 +326,7 @@ export class MediaTextDecisionService {
     context: DecisionContext,
     source: MediaTextDecision['source'],
   ): Promise<MediaTextDecision | null> {
-    const settings = resolveMediaTextGateSettings(this.configService);
+    const settings = await this.getGateSettings();
     const answer = await this.typedDecisionService.decide(
       { question: MEDIA_TEXT_DECISION_QUESTIONS[name], state },
       {
@@ -370,7 +377,7 @@ export class MediaTextDecisionService {
       assetHash,
       decisions: decisions as unknown as Prisma.InputJsonValue,
       isDeleted: false,
-      mode: resolveMediaTextGateSettings(this.configService).mode,
+      mode: (await this.getGateSettings()).mode,
     };
     // tenant-scope-ignore: unique-key upsert; organizationId is part of the key, and a tombstoned row is revived (isDeleted reset) rather than colliding with it.
     await this.prisma.mediaTextDecision.upsert({

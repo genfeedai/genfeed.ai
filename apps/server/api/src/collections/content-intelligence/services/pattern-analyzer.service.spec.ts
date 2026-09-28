@@ -9,6 +9,7 @@ import {
   PatternAnalyzerService,
 } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
@@ -18,8 +19,11 @@ import {
   ContentPatternType,
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
-import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-import type { ConfigService } from '@libs/config/config.service';
+import {
+  LLM_DEFAULTS,
+  parsePlatformFeatureSettings,
+} from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -56,15 +60,31 @@ const mockTypedDecisionService = {
   choose: vi.fn(),
 };
 
-const configValues: Record<string, unknown> = {};
+let rawFeatureSettings: Partial<
+  Record<keyof IPlatformFeatureSettings, unknown>
+> = {};
 
-const mockConfigService = {
-  get: vi.fn((key: string) => configValues[key]),
+const mockPlatformSettingsService = {
+  getFeatureSettings: vi.fn(async () =>
+    parsePlatformFeatureSettings(rawFeatureSettings),
+  ),
 };
 
-function setDecisionConfig(mode: string, minConfidence?: number): void {
-  configValues.PATTERN_ANALYZER_DECISION_MODE = mode;
-  configValues.PATTERN_ANALYZER_MIN_CONFIDENCE = minConfidence;
+/**
+ * `patternAnalyzerDecisionMode` is shadow-capped: `parsePlatformFeatureSettings`
+ * maps a hand-edited `live` back to `shadow`, exactly like the admin DTO and
+ * `resolvePatternAnalyzerDecisionSettings` do in production.
+ */
+function setDecisionConfig(
+  mode: 'off' | 'shadow' | 'live',
+  minConfidence?: number,
+): void {
+  rawFeatureSettings = {
+    patternAnalyzerDecisionMode: mode,
+    ...(minConfidence === undefined
+      ? {}
+      : { patternAnalyzerMinConfidence: minConfidence }),
+  };
 }
 
 function makeService() {
@@ -75,7 +95,7 @@ function makeService() {
     mockCreatorScraperService as unknown as CreatorScraperService,
     mockPatternStoreService as unknown as PatternStoreService,
     mockTypedDecisionService as unknown as TypedDecisionService,
-    mockConfigService as unknown as ConfigService,
+    mockPlatformSettingsService as unknown as PlatformSettingsService,
   );
 }
 

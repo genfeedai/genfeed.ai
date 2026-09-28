@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
@@ -8,7 +9,6 @@ import {
 } from '@api/collections/tasks/schemas/task.schema';
 import { resolveTaskRoutingDecisionRollout } from '@api/collections/tasks/services/task-routing-decision.config';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
-import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 export type TaskRoutingDecision = Pick<
@@ -62,7 +62,7 @@ type ExecutionPath = TaskRoutingDecision['executionPathUsed'];
  * This is the deterministic answer of the `task_routing.output_type` decision
  * point (#4867): the whole path in `off` mode, the comparison baseline in
  * `shadow`, and the fallback whenever the provider is unavailable or answers
- * below TASK_ROUTING_MIN_CONFIDENCE.
+ * below the task-routing minimum confidence (Admin platform settings).
  */
 const OUTPUT_TYPE_PATTERNS: ReadonlyArray<
   [RegExp, TaskDocument['outputType']]
@@ -186,7 +186,7 @@ export class TaskRoutingService {
   constructor(
     private readonly skillsService: SkillsService,
     private readonly typedDecisionService: TypedDecisionService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
   ) {}
 
   async buildRoutingDecision(
@@ -285,7 +285,7 @@ export class TaskRoutingService {
     };
 
     const { minConfidence, mode } = resolveTaskRoutingDecisionRollout(
-      this.configService,
+      await this.platformSettingsService.getFeatureSettings(),
     );
 
     if (mode === 'off' || request.trim().length === 0) {

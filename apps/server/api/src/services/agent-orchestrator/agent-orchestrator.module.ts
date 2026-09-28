@@ -30,6 +30,7 @@ import { OrganizationsCoreModule } from '@api/collections/organizations/organiza
 import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
@@ -157,6 +158,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    PlatformSettingsModule,
     ActivityRecordingModule,
     MediaPromptEnhancementModule,
     AgentSourceIngestModule,

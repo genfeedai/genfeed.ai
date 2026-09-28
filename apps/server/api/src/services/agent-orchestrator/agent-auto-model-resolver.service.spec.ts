@@ -1,10 +1,14 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentAutoRoutingResolveParams } from '@api/services/agent-orchestrator/interfaces/agent-auto-routing.interface';
 import { RouterPriority } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  AGENT_CHAT_MODEL_KEYS,
+  DEFAULT_PLATFORM_FEATURE_SETTINGS,
+} from '@genfeedai/contracts/constants';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
-import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +22,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const DEFAULT_MODEL_KEY = AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO;
 
 type Harness = {
-  configService: { get: ReturnType<typeof vi.fn> };
   logger: { log: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn> };
   registry: {
     getAutoAllowedModelKeys: ReturnType<typeof vi.fn>;
@@ -29,7 +32,9 @@ type Harness = {
 };
 
 function createHarness(
-  env: Record<string, unknown> = { AGENT_AUTO_ROUTING_DECISION_MODE: 'live' },
+  overrides: Partial<IPlatformFeatureSettings> = {
+    agentAutoRoutingDecisionMode: 'live',
+  },
 ): Harness {
   const registry = {
     getAutoAllowedModelKeys: vi
@@ -38,16 +43,20 @@ function createHarness(
     getCheapestSelectableKey: vi.fn().mockResolvedValue('vendor/cheap'),
     getDefaultModelKey: vi.fn().mockResolvedValue('vendor/default'),
   };
-  const configService = { get: vi.fn((key: string) => env[key]) };
+  const platformSettingsService = {
+    getFeatureSettings: vi.fn(async () => ({
+      ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+      ...overrides,
+    })),
+  };
   const logger = { log: vi.fn(), warn: vi.fn() };
 
   return {
-    configService,
     logger,
     registry,
     service: new AgentAutoModelResolverService(
       registry as unknown as AgentChatModelRegistryService,
-      configService as unknown as ConfigService,
+      platformSettingsService as unknown as PlatformSettingsService,
       logger as unknown as LoggerService,
     ),
   };
@@ -78,7 +87,7 @@ describe('AgentAutoModelResolverService', () => {
   describe('off mode', () => {
     it('emits the request unchanged without reading the registry default', async () => {
       const harness = createHarness({
-        AGENT_AUTO_ROUTING_DECISION_MODE: 'off',
+        agentAutoRoutingDecisionMode: 'off',
       });
 
       await expect(harness.service.resolve(resolveParams())).resolves.toEqual({
@@ -87,7 +96,7 @@ describe('AgentAutoModelResolverService', () => {
       expect(harness.registry.getDefaultModelKey).not.toHaveBeenCalled();
     });
 
-    it('is the default when the env var is unset', async () => {
+    it('is the default when platform settings have not been configured', async () => {
       const harness = createHarness({});
 
       await expect(harness.service.resolve(resolveParams())).resolves.toEqual({
@@ -99,7 +108,7 @@ describe('AgentAutoModelResolverService', () => {
   describe('shadow mode', () => {
     it('logs the candidate but dispatches nothing', async () => {
       const harness = createHarness({
-        AGENT_AUTO_ROUTING_DECISION_MODE: 'shadow',
+        agentAutoRoutingDecisionMode: 'shadow',
       });
 
       const resolution = await harness.service.resolve(resolveParams());

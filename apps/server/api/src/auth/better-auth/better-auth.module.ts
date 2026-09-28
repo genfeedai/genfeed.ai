@@ -2,6 +2,8 @@ import { SystemEventSignupListener } from '@api/auth/better-auth/listeners/syste
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PlatformSettingsModule } from '@api/collections/platform-settings/platform-settings.module';
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { UserSetupModule } from '@api/collections/users/user-setup.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
@@ -48,6 +50,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
 @Module({
   exports: [BetterAuthService, BetterAuthStrategy, PassportModule],
   imports: [
+    PlatformSettingsModule,
     SystemEventsModule,
     PassportModule,
     UsersModule,
@@ -77,6 +80,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         EventEmitter2,
         RateLimitClientService,
         LoggerService,
+        PlatformSettingsService,
       ],
       provide: BETTER_AUTH_INSTANCE,
       useFactory: (
@@ -86,6 +90,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
         eventEmitter: EventEmitter2,
         rateLimitClient: RateLimitClientService,
         logger: LoggerService,
+        platformSettings: PlatformSettingsService,
       ): BetterAuthInstance | null => {
         // Enabled by default; explicit offline/local runs can set
         // BETTER_AUTH_ENABLED=false to skip the auth handler.
@@ -100,9 +105,6 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
             'BETTER_AUTH_EXPERIMENTAL_JOINS',
           ),
           BETTER_AUTH_IP_HEADERS: config.get('BETTER_AUTH_IP_HEADERS'),
-          BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION: config.get(
-            'BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION',
-          ),
           BETTER_AUTH_SECRET: config.get('BETTER_AUTH_SECRET'),
           BETTER_AUTH_TRUSTED_ORIGINS: config.get(
             'BETTER_AUTH_TRUSTED_ORIGINS',
@@ -162,6 +164,9 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
           },
           prisma,
           rateLimitStore,
+          resolveIsEmailVerificationRequired: async () =>
+            (await platformSettings.getFeatureSettings())
+              .isEmailVerificationRequired,
           sendMagicLink: (params) => mailer.sendMagicLink(params),
           sendResetPassword: (params) => mailer.sendResetPassword(params),
           sendVerificationEmail: (params) =>

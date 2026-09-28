@@ -1,3 +1,4 @@
+import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import type { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
   MediaVisionEvaluationService,
@@ -5,8 +6,11 @@ import {
 } from '@api/services/media-assessment/media-vision-evaluation.service';
 import type { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import { EvaluationSeverity, EvaluationType } from '@genfeedai/contracts';
-import type { IMediaPerception } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
+import { DEFAULT_PLATFORM_FEATURE_SETTINGS } from '@genfeedai/contracts/constants';
+import type {
+  IMediaPerception,
+  TypedDecisionMode,
+} from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -26,7 +30,7 @@ function frames(count: number) {
 function makeHarness(
   options: {
     evaluationFindFirst?: ReturnType<typeof vi.fn>;
-    mode?: string;
+    mode?: TypedDecisionMode;
     perception?: Partial<IMediaPerception> | null;
     sibling?: { id?: string; visionEvaluationId: string } | null;
   } = {},
@@ -93,8 +97,11 @@ function makeHarness(
     } as unknown as MediaPerceptionService,
     { scoreVisionFrames } as unknown as ContentQualityScorerService,
     {
-      get: () => options.mode ?? 'live',
-    } as unknown as ConfigService,
+      getFeatureSettings: vi.fn(async () => ({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        mediaGateVisionMode: options.mode ?? 'live',
+      })),
+    } as unknown as PlatformSettingsService,
     logger as unknown as LoggerService,
   );
   return {

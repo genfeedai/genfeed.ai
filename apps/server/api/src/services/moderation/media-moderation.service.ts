@@ -1,3 +1,4 @@
+import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
@@ -9,7 +10,10 @@ import {
   type ModerationSettings,
   resolveModerationSettings,
 } from '@api/services/moderation/moderation.settings';
-import { MODERATION_PROVIDER } from '@api/services/moderation/moderation.tokens';
+import {
+  MODERATION_PROVIDERS,
+  type ModerationProviders,
+} from '@api/services/moderation/moderation.tokens';
 import {
   applyModerationMode,
   evaluateModerationVerdict,
@@ -36,7 +40,6 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { MediaModerationJobData } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -88,9 +91,12 @@ function isReadyForModeration(perception: IMediaPerception): boolean {
  * text. The verdict is the maximum over inputs against per-category
  * thresholds; per-input scores are kept for the review UI.
  *
- * - `MODERATION_PROVIDER=none` (or no provider key): nothing is classified and
- *   no verdict is persisted, so every reader sees "no moderation" rather than
- *   an error.
+ * The provider, mode and thresholds are operator platform settings (#5407),
+ * read per job so a change needs no restart.
+ *
+ * - provider `none` (or no provider key): nothing is classified and no
+ *   verdict is persisted, so every reader sees "no moderation" rather than an
+ *   error.
  * - `shadow`: the result is persisted with `isFlagged=false`; what would have
  *   flagged is kept in `candidateVerdict` and logged.
  * - `live`: flagged results persist `isFlagged=true` and emit a
@@ -106,27 +112,33 @@ export class MediaModerationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaPerceptionService: MediaPerceptionService,
-    @Inject(MODERATION_PROVIDER)
-    private readonly provider: IModerationProvider,
+    @Inject(MODERATION_PROVIDERS)
+    private readonly providers: ModerationProviders,
     private readonly activityRecorder: ActivityRecorderService,
-    private readonly configService: ConfigService,
+    private readonly platformSettingsService: PlatformSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
-  get settings(): ModerationSettings {
-    return resolveModerationSettings(this.configService);
+  async getSettings(): Promise<ModerationSettings> {
+    return resolveModerationSettings(
+      await this.platformSettingsService.getFeatureSettings(),
+    );
   }
 
-  /** Whether moderation runs at all on this deployment. */
-  get isActive(): boolean {
-    return this.provider.isEnabled && this.settings.mode !== 'off';
+  /** The bound classifier, or `null` when moderation does not run at all. */
+  private activeProvider(
+    settings: ModerationSettings,
+  ): IModerationProvider | null {
+    const provider = this.providers[settings.provider];
+    return provider.isEnabled && settings.mode !== 'off' ? provider : null;
   }
 
   async moderate(job: MediaModerationJobData): Promise<MediaModerationOutcome> {
-    if (!this.isActive) {
+    const settings = await this.getSettings();
+    const provider = this.activeProvider(settings);
+    if (!provider) {
       return 'skipped';
     }
-    const settings = this.settings;
 
     const perception = await this.mediaPerceptionService.getForAsset(
       job.organizationId,
@@ -154,7 +166,7 @@ export class MediaModerationService {
     const existing = existingRow ? toMediaModeration(existingRow) : null;
     if (
       existing?.assetHash === perception.assetHash &&
-      existing.provider === this.provider.name
+      existing.provider === provider.name
     ) {
       // Same bytes, same vendor: never classify again, but a mode or
       // threshold change re-evaluates the stored scores.
@@ -163,6 +175,7 @@ export class MediaModerationService {
         : this.persistEvaluation(job, perception.assetHash, {
             inputs: existing.inputs,
             outcome: 'reevaluated',
+            provider,
             reusedFromId: existing.reusedFromId,
             settings,
           });
@@ -174,14 +187,17 @@ export class MediaModerationService {
       where: scopedWhere(job.organizationId, {
         assetHash: perception.assetHash,
         ingredientId: { not: job.ingredientId },
-        provider: this.provider.name,
+        provider: provider.name,
       }),
     });
     const reused = reusable ? toMediaModeration(reusable) : null;
 
     return this.persistEvaluation(job, perception.assetHash, {
-      inputs: reused ? reused.inputs : await this.classify(perception),
+      inputs: reused
+        ? reused.inputs
+        : await this.classify(provider, perception),
       outcome: reused ? 'reused' : 'classified',
+      provider,
       reusedFromId: reused?.id ?? null,
       settings,
     });
@@ -207,6 +223,7 @@ export class MediaModerationService {
     input: {
       inputs: ModerationInputResult[];
       outcome: MediaModerationOutcome;
+      provider: IModerationProvider;
       reusedFromId: string | null;
       settings: ModerationSettings;
     },
@@ -220,6 +237,7 @@ export class MediaModerationService {
     await this.persist(job, assetHash, {
       candidateVerdict,
       inputs: input.inputs,
+      provider: input.provider,
       reusedFromId: input.reusedFromId,
       settings: input.settings,
       verdict,
@@ -278,7 +296,7 @@ export class MediaModerationService {
     since: Date,
     limit: number,
   ): Promise<IMediaPerceptionCandidate[]> {
-    if (!this.isActive) {
+    if (!this.activeProvider(await this.getSettings())) {
       return [];
     }
     // Queried from the ingredient side: deleted assets are excluded, and an
@@ -312,6 +330,7 @@ export class MediaModerationService {
   }
 
   private async classify(
+    provider: IModerationProvider,
     perception: IMediaPerception,
   ): Promise<ModerationInputResult[]> {
     const inputs: ModerationInputResult[] = [];
@@ -322,13 +341,13 @@ export class MediaModerationService {
       inputs.push({
         frameIndex: null,
         scores: withVisualMinorSafety(
-          await this.provider.classifyImage(perception.frames[0].url),
+          await provider.classifyImage(perception.frames[0].url),
           isMinorSuspected,
         ),
         source: 'image',
       });
     } else if (perception.kind === 'video' && perception.frames.length > 0) {
-      const frameScores = await this.provider.classifyFrames(
+      const frameScores = await provider.classifyFrames(
         perception.frames.map((frame) => frame.url),
       );
       perception.frames.forEach((frame, position) => {
@@ -347,7 +366,7 @@ export class MediaModerationService {
     if (perception.transcriptStatus === 'ready' && transcript) {
       inputs.push({
         frameIndex: null,
-        scores: await this.provider.classifyText(transcript),
+        scores: await provider.classifyText(transcript),
         source: 'transcript',
       });
     }
@@ -359,7 +378,7 @@ export class MediaModerationService {
     if (onScreenText) {
       inputs.push({
         frameIndex: null,
-        scores: await this.provider.classifyText(onScreenText),
+        scores: await provider.classifyText(onScreenText),
         source: 'ocr',
       });
     }
@@ -373,6 +392,7 @@ export class MediaModerationService {
     result: {
       candidateVerdict: ModerationVerdict;
       inputs: ModerationInputResult[];
+      provider: IModerationProvider;
       reusedFromId: string | null;
       settings: ModerationSettings;
       verdict: ModerationVerdict;
@@ -387,7 +407,7 @@ export class MediaModerationService {
       isFlagged: result.verdict.isFlagged,
       maxConfidence: result.verdict.maxConfidence,
       mode: result.settings.mode,
-      provider: this.provider.name,
+      provider: result.provider.name,
       reusedFromId: result.reusedFromId,
       thresholds: toJson(result.settings.thresholds),
       verdict: toJson(result.verdict),

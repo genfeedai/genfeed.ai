@@ -1,12 +1,9 @@
 import type { MediaGateMode } from '@genfeedai/contracts/api-types/contracts';
-import type { ConfigService } from '@libs/config/config.service';
+import type { IPlatformFeatureSettings } from '@genfeedai/contracts/interfaces';
 
-/** The one place MEDIA_GATE_VISION_MODE is read (#4881). Unknown → `off`. */
+/** The vision-evaluation gate mode (#4881), an operator platform setting (#5407). */
 export function resolveVisionGateMode(
-  configService: ConfigService,
+  settings: IPlatformFeatureSettings,
 ): MediaGateMode {
-  const raw = String(configService.get('MEDIA_GATE_VISION_MODE') ?? '')
-    .trim()
-    .toLowerCase();
-  return raw === 'live' || raw === 'shadow' ? raw : 'off';
+  return settings.mediaGateVisionMode;
 }

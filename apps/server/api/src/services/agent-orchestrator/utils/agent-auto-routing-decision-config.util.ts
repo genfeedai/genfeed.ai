@@ -1,8 +1,10 @@
-import type { TypedDecisionMode } from '@genfeedai/contracts/interfaces';
-import type { ConfigService } from '@libs/config/config.service';
+import type {
+  IPlatformFeatureSettings,
+  TypedDecisionMode,
+} from '@genfeedai/contracts/interfaces';
 
 /**
- * Rollout gate for agent auto-routing.
+ * Rollout gate for agent auto-routing, an operator platform setting (#5407).
  *
  * The tier decision no longer calls Jev (release-blocker follow-up to #4865,
  * epic #4863): the candidate key is resolved deterministically from the
@@ -16,14 +18,8 @@ export interface AgentAutoRoutingDecisionConfig {
   mode: TypedDecisionMode;
 }
 
-function toMode(value: unknown): TypedDecisionMode {
-  return value === 'live' || value === 'shadow' ? value : 'off';
-}
-
 export function resolveAgentAutoRoutingDecisionConfig(
-  configService: Pick<ConfigService, 'get'>,
+  settings: IPlatformFeatureSettings,
 ): AgentAutoRoutingDecisionConfig {
-  return {
-    mode: toMode(configService.get('AGENT_AUTO_ROUTING_DECISION_MODE')),
-  };
+  return { mode: settings.agentAutoRoutingDecisionMode };
 }

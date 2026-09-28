@@ -213,10 +213,6 @@ export function resolveBetterAuthRuntimeConfig(
       env.GOOGLE_OAUTH_CLIENT_SECRET,
     ),
     ipAddressHeaders: parseCommaSeparated(env.BETTER_AUTH_IP_HEADERS),
-    requireEmailVerification: resolveBooleanFlag(
-      env.BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION,
-      false,
-    ),
     secret,
     skipStateCookieCheck: shouldSkipOAuthStateCookieCheck(
       baseURL,
