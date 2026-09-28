@@ -18,6 +18,7 @@ import {
   buildSyntheticFixtureRows,
   buildSyntheticOutlierPairs,
   buildSyntheticOutlierRows,
+  SYNTHETIC_CONTESTANTS,
   SYNTHETIC_OUTLIER_RUN_ID,
   syntheticRow,
   syntheticVote,
