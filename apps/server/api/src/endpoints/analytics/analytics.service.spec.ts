@@ -926,4 +926,78 @@ describe('AnalyticsService', () => {
       });
     });
   });
+
+  // ==========================================================================
+  // soft deletes (genfeedai/genfeed.ai#5419)
+  // ==========================================================================
+  describe('soft-deleted post_analytics rows', () => {
+    const range = ['2025-01-01', '2025-01-31'] as const;
+    const reads: Array<
+      [string, (service: AnalyticsService) => Promise<unknown>]
+    > = [
+      ['getTimeSeriesData', (s) => s.getTimeSeriesData(...range, 'org-1')],
+      ['getOverview', (s) => s.getOverview(...range, 'brand-1', 'org-1')],
+      [
+        'getBestPostingTimes',
+        (s) => s.getBestPostingTimes(...range, 'brand-1', 'org-1'),
+      ],
+      [
+        'getTopContent',
+        (s) =>
+          s.getTopContent(
+            ...range,
+            5,
+            AnalyticsMetric.VIEWS,
+            'brand-1',
+            CredentialPlatform.YOUTUBE,
+            'org-1',
+          ),
+      ],
+      [
+        'getPlatformComparison',
+        (s) => s.getPlatformComparison(...range, 'brand-1', 'org-1'),
+      ],
+      [
+        'getGrowthTrends',
+        (s) =>
+          s.getGrowthTrends(
+            ...range,
+            AnalyticsMetric.VIEWS,
+            'brand-1',
+            'org-1',
+          ),
+      ],
+      [
+        'getEngagementBreakdown',
+        (s) =>
+          s.getEngagementBreakdown(
+            ...range,
+            'brand-1',
+            CredentialPlatform.YOUTUBE,
+            'org-1',
+          ),
+      ],
+      [
+        'getViralHooks',
+        (s) => s.getViralHooks(...range, 'brand-1', 'org-1', 'outlier'),
+      ],
+    ];
+
+    it.each(reads)(
+      '%s excludes soft-deleted analytics rows',
+      async (_name, read) => {
+        const capturedQueries = captureQueryRawCalls();
+
+        await read(service);
+
+        const analyticsQueries = capturedQueries.filter((query) =>
+          query.sql.includes('FROM "post_analytics"'),
+        );
+        expect(analyticsQueries.length).toBeGreaterThan(0);
+        for (const query of analyticsQueries) {
+          expect(query.sql).toMatch(/WHERE (pa\.)?"isDeleted" = false/);
+        }
+      },
+    );
+  });
 });
