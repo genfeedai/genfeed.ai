@@ -584,7 +584,9 @@ export class BatchProjectsService {
     const credentialsById = new Map(
       credentials.map((credential) => [credential.id, credential]),
     );
-    if (credentialsById.size !== credentialIds.length) {
+    if (
+      !credentialIds.every((credentialId) => credentialsById.has(credentialId))
+    ) {
       throw new BadRequestException(
         'One or more accounts are not connected to this brand',
       );
