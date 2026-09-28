@@ -117,10 +117,10 @@ export default function IngredientPosts({
           description="This ingredient hasn't been used in any public posts yet."
         />
       ) : (
-        <div className="space-y-6">
+        <div className="@container space-y-4">
           <h2 className="text-2xl font-bold">Posts using this ingredient</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 gap-4 @[40rem]:grid-cols-2 @[60rem]:grid-cols-3">
             {posts.map((post) => (
               <Card key={post.id} className="p-4">
                 <div className="flex flex-col gap-y-3">

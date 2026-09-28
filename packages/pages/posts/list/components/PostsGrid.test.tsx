@@ -8,6 +8,8 @@ import PostsGrid, {
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+
 const pushMock = vi.fn();
 const evaluateMock = vi.fn();
 const primaryActionOnClick = vi.fn();
@@ -95,11 +97,36 @@ describe('PostsGrid', () => {
         name: /delete post/i,
       }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /evaluate/i })).toBeVisible();
-    expect(screen.getByRole('link', { name: /view on x/i })).toHaveAttribute(
-      'href',
-      basePost.platformUrl,
+    expect(
+      screen.queryByRole('button', { name: /evaluate/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /view on x/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders compact rows without thumbnails and promotes retry for a failed post', () => {
+    const retry = {
+      key: 'retry',
+      icon: <>R</>,
+      label: 'Retry publishing',
+      onClick: vi.fn(),
+    };
+    render(
+      <PostsGrid
+        posts={[{ ...basePost, status: PostStatus.FAILED }]}
+        view="list"
+        onPostEvaluated={vi.fn()}
+        primaryAction={primaryAction}
+        secondaryActions={[retry]}
+      />,
     );
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Edit post' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Retry publishing/ }));
+    expect(retry.onClick).toHaveBeenCalledOnce();
   });
 
   it('renders attached tweet media in the card', () => {

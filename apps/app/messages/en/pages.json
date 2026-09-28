@@ -1130,7 +1130,18 @@
         "grid": "Grid",
         "list": "List"
       },
-      "actions": "Actions"
+      "actions": "Actions",
+      "collection": {
+        "all": "All",
+        "needsYou": "Needs you",
+        "open": "Open",
+        "retry": "Retry",
+        "retryFailed": "Could not retry this post. Please try again.",
+        "evaluate": "Evaluate",
+        "evaluationScore": "Evaluation: {score}",
+        "openTarget": "Open {platform} post",
+        "variations": "Remix {platform} post"
+      }
     },
     "grid": {
       "emptyDescription": "Connect an account in Settings to see per-account lanes.",

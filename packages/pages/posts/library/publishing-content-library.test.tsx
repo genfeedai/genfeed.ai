@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/contracts';
 import type { IReleaseGroup } from '@genfeedai/contracts/interfaces';
 import PublishingContentLibrary from '@pages/posts/library/publishing-content-library';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -187,6 +187,54 @@ describe('PublishingContentLibrary', () => {
     expect(
       screen.queryByRole('link', { name: 'Open Founder weekly' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('surfaces failed and imminent posts but excludes later posts from Needs you', () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [
+        {
+          ...collections.posts[0],
+          id: 'failed',
+          description: 'Failed post',
+          status: PostStatus.FAILED,
+        },
+        {
+          ...collections.posts[0],
+          id: 'soon',
+          description: 'Soon post',
+          scheduledDate: new Date(Date.now() + 3600000).toISOString(),
+        },
+        {
+          ...collections.posts[0],
+          id: 'later',
+          description: 'Later post',
+          scheduledDate: new Date(Date.now() + 172800000).toISOString(),
+        },
+      ],
+    };
+    render(<PublishingContentLibrary />);
+    const attention = within(screen.getByRole('region', { name: 'needsYou' }));
+    expect(
+      attention.getByRole('link', { name: 'Open Failed post' }),
+    ).toBeVisible();
+    expect(attention.getByRole('button', { name: 'retry' })).toBeVisible();
+    expect(
+      attention.getByRole('link', { name: 'Open Soon post' }),
+    ).toBeVisible();
+    expect(
+      attention.queryByRole('link', { name: 'Open Later post' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps board status columns and card actions available', () => {
+    mocks.search = 'view=board';
+    render(<PublishingContentLibrary />);
+    expect(screen.getByRole('region', { name: 'Scheduled' })).toBeVisible();
+    expect(
+      screen.getByRole('link', { name: 'Open Social launch copy' }),
+    ).toBeVisible();
   });
 
   it('retains the view selector around calendar content', () => {

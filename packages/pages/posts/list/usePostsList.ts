@@ -208,12 +208,7 @@ export function usePostsList({
 
   const { setFiltersNode, setRefresh, setViewToggleNode } = usePostsLayout();
 
-  const [viewType, setViewType] = useState<ViewType>(() => {
-    if (scope === PageScope.PUBLISHING) {
-      return VIEW_TYPE_GRID;
-    }
-    return VIEW_TYPE_TABLE;
-  });
+  const [viewType, setViewType] = useState<ViewType>(VIEW_TYPE_TABLE);
 
   const { isReady: isSocketReady, subscribe: subscribeToSocket } =
     useSocketManager();

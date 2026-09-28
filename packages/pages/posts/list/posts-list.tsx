@@ -1,12 +1,12 @@
 'use client';
 
 import { PageScope, PostStatus } from '@genfeedai/contracts';
-import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import type { IPost, IPreset } from '@genfeedai/contracts/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';
 import type { PostsListResult } from '@pages/posts/list/components/posts-query.helpers';
+import { needsPostAttention } from '@pages/posts/list/post-attention.helpers';
 import type {
   PostsPublicationState,
   PublishingPostsView,
@@ -18,13 +18,14 @@ import {
   VIEW_TYPE_TABLE,
 } from '@pages/posts/list/usePostsList';
 import type { ContentProps } from '@props/layout/content.props';
+import CollectionSection from '@ui/collection/CollectionSection';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
-import AppTable from '@ui/display/table/Table';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import { LayoutGrid, Table } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef } from 'react';
 
 export interface PostsListProps extends ContentProps {
@@ -50,11 +51,10 @@ export default function PostsList({
   onRewriteWithAgent,
   onSuggestScheduleWithAgent,
 }: PostsListProps) {
+  const translate = useTranslations('pages.posts.list.collection');
   const {
-    actions,
     adminBrand,
     adminOrg,
-    columns,
     currentPage,
     filterSearch,
     filterSort,
@@ -227,29 +227,40 @@ export default function PostsList({
           title="Posts could not be loaded."
           resetErrorBoundary={() => findAllPosts()}
         />
-      ) : isLoading && posts.length === 0 && viewType === VIEW_TYPE_GRID ? (
+      ) : isLoading && posts.length === 0 ? (
         <Loading isFullSize={false} />
       ) : (
         <>
-          {viewType === VIEW_TYPE_GRID ? (
+          <CollectionSection
+            title={translate('needsYou')}
+            itemCount={
+              posts.filter((post) =>
+                needsPostAttention(post.status, post.scheduledDate),
+              ).length
+            }
+            className="mb-6"
+          >
             <PostsGrid
-              posts={posts}
+              posts={posts.filter((post) =>
+                needsPostAttention(post.status, post.scheduledDate),
+              )}
+              view="list"
               onPostEvaluated={handlePostEvaluated}
               onOpenPostDetail={handleOpenPostDetail}
               primaryAction={primaryCardAction}
               secondaryActions={secondaryCardActions}
             />
-          ) : (
-            <AppTable<IPost>
-              items={posts}
-              columns={columns}
-              actions={actions}
-              getRowKey={(post) => post.id}
-              isLoading={isLoading}
-              emptyLabel={EMPTY_STATES.POSTS_FOUND}
-              onRowClick={handleOpenPostDetail}
+          </CollectionSection>
+          <CollectionSection title={translate('all')} isLoading={isLoading}>
+            <PostsGrid
+              posts={posts}
+              view={viewType === VIEW_TYPE_GRID ? 'grid' : 'list'}
+              onPostEvaluated={handlePostEvaluated}
+              onOpenPostDetail={handleOpenPostDetail}
+              primaryAction={primaryCardAction}
+              secondaryActions={secondaryCardActions}
             />
-          )}
+          </CollectionSection>
 
           <div className="mt-4">
             <Pagination
