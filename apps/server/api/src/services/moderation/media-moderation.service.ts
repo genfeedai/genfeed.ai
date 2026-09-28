@@ -1,5 +1,6 @@
 import { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { hasPendingArtefacts } from '@api/services/media-perception/media-perception.record';
 import { MediaPerceptionService } from '@api/services/media-perception/media-perception.service';
 import {
   MEDIA_MODERATION_SELECT,
@@ -67,20 +68,44 @@ export function withVisualMinorSafety(
   };
 }
 
-function toJson(value: unknown): Prisma.InputJsonValue {
-  return value as Prisma.InputJsonValue;
+/**
+ * Fails closed: only a settled description that affirmatively found no
+ * minors relaxes the visual threshold. A description that could not be
+ * produced leaves minors unruled-out.
+ */
+function isMinorSuspected(perception: IMediaPerception): boolean {
+  return perception.description?.hasSuspectedMinors !== false;
 }
 
 /**
- * Perception artefacts moderation reads. Classifying while any of them is
- * still `pending` would produce a verdict over partial evidence.
+ * Applies the perception's current minors evidence to visual inputs. Text
+ * inputs are scored by the vendor as text and never change.
  */
-function isReadyForModeration(perception: IMediaPerception): boolean {
-  return (
-    perception.framesStatus !== 'pending' &&
-    perception.ocrStatus !== 'pending' &&
-    perception.transcriptStatus !== 'pending'
+function withCurrentMinorEvidence(
+  inputs: readonly ModerationInputResult[],
+  perception: IMediaPerception,
+): ModerationInputResult[] {
+  const isSuspected = isMinorSuspected(perception);
+  return inputs.map((input) =>
+    input.source === 'frame' || input.source === 'image'
+      ? { ...input, scores: withVisualMinorSafety(input.scores, isSuspected) }
+      : input,
   );
+}
+
+function hasSameMinorScores(
+  stored: readonly ModerationInputResult[],
+  current: readonly ModerationInputResult[],
+): boolean {
+  return stored.every(
+    (input, index) =>
+      input.scores[ModerationCategory.SEXUAL_MINORS] ===
+      current[index]?.scores[ModerationCategory.SEXUAL_MINORS],
+  );
+}
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  return value as Prisma.InputJsonValue;
 }
 
 /**
@@ -103,7 +128,8 @@ function isReadyForModeration(perception: IMediaPerception): boolean {
  *   `media-moderation-flagged` activity for the review inbox.
  *
  * Identical bytes are classified once per organization and provider; a second
- * asset re-evaluates the stored scores under the current thresholds and mode.
+ * asset re-evaluates the stored scores under the current thresholds, mode and
+ * minors evidence.
  */
 @Injectable()
 export class MediaModerationService {
@@ -144,7 +170,9 @@ export class MediaModerationService {
       job.organizationId,
       job.ingredientId,
     );
-    if (!perception || !isReadyForModeration(perception)) {
+    // Every artefact must settle, the scene description included: its minors
+    // evidence decides which threshold a visual sexual score is held to.
+    if (!perception || hasPendingArtefacts(perception)) {
       return 'skipped';
     }
 
@@ -168,12 +196,14 @@ export class MediaModerationService {
       existing?.assetHash === perception.assetHash &&
       existing.provider === provider.name
     ) {
-      // Same bytes, same vendor: never classify again, but a mode or
-      // threshold change re-evaluates the stored scores.
-      return this.isCurrent(existing, settings)
+      // Same bytes, same vendor: never classify again, but a mode, threshold
+      // or minors-evidence change re-evaluates the stored scores.
+      const inputs = withCurrentMinorEvidence(existing.inputs, perception);
+      return this.isCurrent(existing, settings) &&
+        hasSameMinorScores(existing.inputs, inputs)
         ? 'skipped'
         : this.persistEvaluation(job, perception.assetHash, {
-            inputs: existing.inputs,
+            inputs,
             outcome: 'reevaluated',
             provider,
             reusedFromId: existing.reusedFromId,
@@ -193,9 +223,10 @@ export class MediaModerationService {
     const reused = reusable ? toMediaModeration(reusable) : null;
 
     return this.persistEvaluation(job, perception.assetHash, {
-      inputs: reused
-        ? reused.inputs
-        : await this.classify(provider, perception),
+      inputs: withCurrentMinorEvidence(
+        reused ? reused.inputs : await this.classify(provider, perception),
+        perception,
+      ),
       outcome: reused ? 'reused' : 'classified',
       provider,
       reusedFromId: reused?.id ?? null,
@@ -312,6 +343,7 @@ export class MediaModerationService {
         mediaModerations: { none: { isDeleted: false } },
         mediaPerceptions: {
           some: {
+            descriptionStatus: { not: 'pending' },
             framesStatus: { not: 'pending' },
             isDeleted: false,
             ocrStatus: { not: 'pending' },
@@ -335,15 +367,10 @@ export class MediaModerationService {
   ): Promise<ModerationInputResult[]> {
     const inputs: ModerationInputResult[] = [];
 
-    const isMinorSuspected =
-      perception.description?.hasSuspectedMinors === true;
     if (perception.kind === 'image' && perception.frames[0]) {
       inputs.push({
         frameIndex: null,
-        scores: withVisualMinorSafety(
-          await provider.classifyImage(perception.frames[0].url),
-          isMinorSuspected,
-        ),
+        scores: await provider.classifyImage(perception.frames[0].url),
         source: 'image',
       });
     } else if (perception.kind === 'video' && perception.frames.length > 0) {
@@ -353,10 +380,7 @@ export class MediaModerationService {
       perception.frames.forEach((frame, position) => {
         inputs.push({
           frameIndex: frame.index,
-          scores: withVisualMinorSafety(
-            frameScores[position] ?? {},
-            isMinorSuspected,
-          ),
+          scores: frameScores[position] ?? {},
           source: 'frame',
         });
       });
