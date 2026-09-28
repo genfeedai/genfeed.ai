@@ -170,6 +170,21 @@ export function isReleaseReschedulable(release: IReleaseGroup): boolean {
 }
 
 /**
+ * The API accepts "now or later" with one second of slack for clock skew
+ * (`parseFutureScheduleDate`). The panel rejects the same instants before the
+ * request goes out so the operator gets an inline reason, not a round trip.
+ */
+export const SCHEDULE_PAST_TOLERANCE_MS = 1000;
+
+export function isPastScheduleInstant(
+  instant: string,
+  now: number = Date.now(),
+): boolean {
+  const time = Date.parse(instant);
+  return Number.isFinite(time) && time < now - SCHEDULE_PAST_TOLERANCE_MS;
+}
+
+/**
  * Calendar drag eligibility. Published and past-due queued cards are movable;
  * the drop handler asks before persisting. Cancelled and in-flight stays locked.
  */

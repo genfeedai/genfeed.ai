@@ -1,5 +1,6 @@
 'use client';
 
+import { ContextSidebarPanel } from '@contexts/ui/context-sidebar-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -10,19 +11,15 @@ import {
 import type {
   AccountHealthSummary,
   IChannelTarget,
-  IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
-import {
-  fromDateTimeLocalInput,
-  toDateTimeLocalInput,
-} from '@helpers/formatting/timezone/timezone.helper';
 import { stripHtmlToPlainText } from '@helpers/security/sanitize-html.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ReleaseAnalyticsTable from '@pages/posts/release/release-analytics-table';
 import ReleaseEngagementRules from '@pages/posts/release/release-engagement-rules';
+import ReleaseRescheduleField from '@pages/posts/release/release-reschedule-field';
 import { isCredentialAtRisk } from '@pages/posts/release/release-target-actions.helpers';
 import {
   badgeVariantForTone,
@@ -42,14 +39,6 @@ import Tabs from '@ui/navigation/tabs/Tabs';
 import TargetPreview from '@ui/previews/TargetPreview';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@ui/primitives/sheet';
 import { ExternalLink, Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -74,30 +63,6 @@ function targetLabel(target: IChannelTarget): string {
 function formatInstant(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US');
-}
-
-/**
- * Per-target inputs are keyed by target id and seeded from the target's own
- * scheduled instant, falling back to the release's. A target without its own
- * override still publishes at the release time, so showing an empty field would
- * misrepresent when it goes out.
- */
-function seedTargetDates(
-  release: IReleaseGroup | null,
-): Record<string, string> {
-  if (!release) {
-    return {};
-  }
-
-  const seeded: Record<string, string> = {};
-  for (const target of releaseTargets(release)) {
-    seeded[target.id] = toDateTimeLocalInput(
-      target.scheduledAt ?? release.scheduledAt,
-      target.timezone || release.timezone,
-    );
-  }
-
-  return seeded;
 }
 
 function TargetHistory({
@@ -147,25 +112,12 @@ export default function ReleaseDetailDrawer({
   const translate = useTranslations('pages.publishing.release');
   const { href } = useOrgUrl();
   const { getToken } = useAuthIdentity();
-  const [releaseDate, setReleaseDate] = useState('');
-  const [targetDates, setTargetDates] = useState<Record<string, string>>({});
   const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
     [],
   );
   const [activeDrawerTab, setActiveDrawerTab] = useState<
     'preview' | 'analytics'
   >('preview');
-
-  // Re-seed whenever the drawer is pointed at a different release, or the same
-  // release comes back from the server with new instants after a mutation.
-  useEffect(() => {
-    setReleaseDate(
-      release
-        ? toDateTimeLocalInput(release.scheduledAt, release.timezone)
-        : '',
-    );
-    setTargetDates(seedTargetDates(release));
-  }, [release]);
 
   // Only reset the active tab when the drawer points at a *different*
   // release — a mutation-triggered refetch of the same release should not
@@ -225,377 +177,334 @@ export default function ReleaseDetailDrawer({
       accountHealth.find((row) => row.credentialId === target.credentialId),
     )
     .find((row) => row?.holdPublishing)?.holdReason;
-  const previewTitle = stripHtmlToPlainText(release?.title) || 'Post detail';
+  const previewTitle =
+    stripHtmlToPlainText(release?.title) || translate('untitledPost');
   const editorHref = release
     ? href(getPublishingPostHref(targets[0]?.id ?? release.id))
     : null;
 
+  if (!release) {
+    return (
+      <ContextSidebarPanel onClose={onClose} selection={null}>
+        {null}
+      </ContextSidebarPanel>
+    );
+  }
+
   return (
-    <Sheet
-      open={Boolean(release)}
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
-        }
+    <ContextSidebarPanel
+      onClose={onClose}
+      selection={{
+        id: release.id,
+        kind: 'post',
+        origin: 'user',
+        subtitle: translate('targetsSummary', {
+          count: targets.length,
+          timezone: release.timezone,
+        }),
+        title: previewTitle,
       }}
     >
-      <SheetContent
-        side="right"
-        className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border bg-background p-0 shadow-ambient-lg sm:max-w-[min(56rem,94vw)]"
-      >
-        <div className="border-b border-border bg-background/95 px-6 pb-5 pt-6 backdrop-blur">
-          <SheetHeader className="space-y-3 text-left">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{translate('badgePost')}</Badge>
-              {statusBadge ? (
-                <Badge variant={badgeVariantForTone(statusBadge.tone)}>
-                  {statusBadge.label}
-                </Badge>
-              ) : null}
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <SheetTitle>{previewTitle}</SheetTitle>
-              {editorHref ? (
-                <Button
-                  asChild
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
-                  icon={<ExternalLink className="size-3.5" />}
-                >
-                  <Link href={editorHref}>{translate('openEditor')}</Link>
-                </Button>
-              ) : null}
-            </div>
-            <SheetDescription>
-              {release
-                ? `${targets.length} channel target${targets.length === 1 ? '' : 's'} · ${release.timezone}`
-                : 'Select a post to inspect its targets.'}
-            </SheetDescription>
-          </SheetHeader>
+      <div className="flex flex-col" data-testid="release-detail-panel">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{translate('badgePost')}</Badge>
+            {statusBadge ? (
+              <Badge variant={badgeVariantForTone(statusBadge.tone)}>
+                {statusBadge.label}
+              </Badge>
+            ) : null}
+          </div>
+          {editorHref ? (
+            <Button
+              asChild
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              icon={<ExternalLink className="size-3.5" />}
+            >
+              <Link href={editorHref}>{translate('openEditor')}</Link>
+            </Button>
+          ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="border-b border-border px-6 py-3">
-            <Tabs
-              activeTab={activeDrawerTab}
-              ariaLabel={translate('tabs.preview')}
-              fullWidth={false}
-              items={[
-                { id: 'preview', label: translate('tabs.preview') },
-                { id: 'analytics', label: translate('tabs.analytics') },
-              ]}
-              onTabChange={(tab) =>
-                setActiveDrawerTab(
-                  tab === 'analytics' ? 'analytics' : 'preview',
-                )
-              }
-            />
-          </div>
-          {activeDrawerTab === 'preview' ? (
-            <div className="mt-0 min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
-              {error ? (
-                <p
-                  role="alert"
-                  className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
-                >
-                  {error}
+        <div className="border-b border-border px-4 py-3">
+          <Tabs
+            activeTab={activeDrawerTab}
+            ariaLabel={translate('tabs.preview')}
+            fullWidth={false}
+            items={[
+              { id: 'preview', label: translate('tabs.preview') },
+              { id: 'analytics', label: translate('tabs.analytics') },
+            ]}
+            onTabChange={(tab) =>
+              setActiveDrawerTab(tab === 'analytics' ? 'analytics' : 'preview')
+            }
+          />
+        </div>
+
+        {activeDrawerTab === 'preview' ? (
+          <div className="space-y-6 p-4">
+            {error ? (
+              <p
+                role="alert"
+                className="border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+              >
+                {error}
+              </p>
+            ) : null}
+
+            {isPaused ? (
+              <div
+                role="status"
+                className="space-y-3 border border-warning/40 bg-warning/10 p-3 text-sm"
+              >
+                <p className="font-medium text-foreground">
+                  {translate('pausedHold')}
+                </p>
+                {holdReason ? (
+                  <p className="text-muted-foreground">
+                    {translate('warmupHold', { reason: holdReason })}
+                  </p>
+                ) : null}
+                {onResumeRelease ? (
+                  <Button
+                    isDisabled={isPending}
+                    isLoading={pendingAction === RELEASE_RESUME_ACTION}
+                    label={translate('resume')}
+                    onClick={onResumeRelease}
+                    size={ButtonSize.SM}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+
+            <section className="space-y-3">
+              <h3 className="font-medium text-foreground">
+                {translate('schedule')}
+              </h3>
+              <ReleaseRescheduleField
+                buttonAriaLabel={translate('reschedule.releaseAction')}
+                buttonLabel={translate('reschedule.releaseAction')}
+                fieldLabel={translate('reschedule.releaseTime')}
+                isDisabled={!canRescheduleRelease}
+                isPending={isPending}
+                isSaving={pendingAction === RELEASE_RESCHEDULE_ACTION}
+                key={release.id}
+                onReschedule={onRescheduleRelease}
+                scheduledAt={release.scheduledAt}
+                timezone={release.timezone}
+              />
+              {!canRescheduleRelease ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('rescheduleLocked')}
                 </p>
               ) : null}
+            </section>
 
-              {isPaused ? (
-                <div
-                  role="status"
-                  className="space-y-3 border border-warning/40 bg-warning/10 p-3 text-sm"
-                >
-                  <p className="font-medium text-foreground">
-                    {translate('pausedHold')}
-                  </p>
-                  {holdReason ? (
-                    <p className="text-muted-foreground">
-                      {translate('warmupHold', { reason: holdReason })}
-                    </p>
-                  ) : null}
-                  {onResumeRelease ? (
-                    <Button
-                      isDisabled={isPending}
-                      isLoading={pendingAction === RELEASE_RESUME_ACTION}
-                      label={translate('resume')}
-                      onClick={onResumeRelease}
-                      size={ButtonSize.SM}
-                    />
-                  ) : null}
-                </div>
-              ) : null}
+            <section className="space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-medium text-foreground">
+                  {translate('targets')}
+                </h3>
+                {onAddChannel && targets.length > 0 ? (
+                  <Button
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    onClick={onAddChannel}
+                    isDisabled={isPending}
+                    icon={<Repeat2 className="size-4" />}
+                    label={translate('addChannel')}
+                    tooltip={translate('addChannelTooltip')}
+                  />
+                ) : null}
+              </div>
+              {targets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {translate('noTargets')}
+                </p>
+              ) : (
+                targets.map((target) => {
+                  const stateBadge = targetStateBadge(target.executionState);
+                  const validation = validationBadge(target.validationState);
+                  const isBlocked = isTargetBlockedByReadiness(target);
+                  const canReschedule =
+                    isTargetReschedulable(target) && !isBlocked;
+                  const canRetry =
+                    target.executionState === TargetExecutionState.FAILED &&
+                    !isBlocked;
+                  const retryAction = targetRetryAction(target.id);
+                  const platform = targetLabel(target);
+                  const needsReconnect = isCredentialAtRisk(
+                    accountHealth,
+                    target.credentialId,
+                  );
+                  const hasPreview = Boolean(target.url);
 
-              {release ? (
-                <section className="space-y-3">
-                  <h3 className="font-medium text-foreground">
-                    {translate('schedule')}
-                  </h3>
-                  <div className="flex flex-wrap items-end gap-3">
-                    <Input
-                      className="max-w-xs"
-                      isDisabled={!canRescheduleRelease || isPending}
-                      label="Publish time"
-                      onChange={(event) => setReleaseDate(event.target.value)}
-                      type="datetime-local"
-                      value={releaseDate}
-                    />
-                    <Button
-                      ariaLabel="Reschedule post"
-                      isDisabled={
-                        !canRescheduleRelease || isPending || !releaseDate
-                      }
-                      isLoading={pendingAction === RELEASE_RESCHEDULE_ACTION}
-                      label="Reschedule post"
-                      onClick={() => {
-                        const isoString = fromDateTimeLocalInput(
-                          releaseDate,
-                          release.timezone,
-                        );
-                        if (isoString) {
-                          onRescheduleRelease(isoString);
+                  return (
+                    <article
+                      key={target.id}
+                      className="space-y-3 border border-border bg-card p-4"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-foreground">
+                          {platform}
+                        </span>
+                        <Badge variant={badgeVariantForTone(stateBadge.tone)}>
+                          {stateBadge.label}
+                        </Badge>
+                        <Badge variant={badgeVariantForTone(validation.tone)}>
+                          {validation.label}
+                        </Badge>
+                        <Badge variant="secondary">{target.source}</Badge>
+                      </div>
+
+                      <TargetPreview
+                        className="max-w-sm"
+                        credential={
+                          target.credential ?? { platform: target.platform }
                         }
-                      }}
-                    />
-                  </div>
-                  {!canRescheduleRelease ? (
-                    <p className="text-xs text-muted-foreground">
-                      {translate('rescheduleLocked')}
-                    </p>
-                  ) : null}
-                </section>
-              ) : null}
+                        release={release}
+                        target={target}
+                      />
 
-              <section className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-medium text-foreground">
-                    {translate('targets')}
-                  </h3>
-                  {onAddChannel && targets.length > 0 ? (
-                    <Button
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                      onClick={onAddChannel}
-                      isDisabled={pendingAction !== null}
-                      icon={<Repeat2 className="size-4" />}
-                      label="Add channel"
-                      tooltip="Adapt this post's content into a draft for another channel"
-                    />
-                  ) : null}
-                </div>
-                {targets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {translate('noTargets')}
-                  </p>
-                ) : (
-                  targets.map((target) => {
-                    const stateBadge = targetStateBadge(target.executionState);
-                    const validation = validationBadge(target.validationState);
-                    const isBlocked = isTargetBlockedByReadiness(target);
-                    const canReschedule =
-                      isTargetReschedulable(target) && !isBlocked;
-                    const canRetry =
-                      target.executionState === TargetExecutionState.FAILED &&
-                      !isBlocked;
-                    const rescheduleAction = targetRescheduleAction(target.id);
-                    const retryAction = targetRetryAction(target.id);
-                    const inputLabel = `${targetLabel(target)} time`;
-                    const needsReconnect = isCredentialAtRisk(
-                      accountHealth,
-                      target.credentialId,
-                    );
-                    const hasPreview = Boolean(target.url);
+                      {target.validationIssues.length > 0 ? (
+                        <ol className="space-y-1 text-xs text-muted-foreground">
+                          {target.validationIssues.map((issue) => (
+                            <li key={issue}>{issue}</li>
+                          ))}
+                        </ol>
+                      ) : null}
 
-                    return (
-                      <article
-                        key={target.id}
-                        className="space-y-3 border border-border bg-card p-4"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-medium text-foreground">
-                            {targetLabel(target)}
-                          </span>
-                          <Badge variant={badgeVariantForTone(stateBadge.tone)}>
-                            {stateBadge.label}
-                          </Badge>
-                          <Badge variant={badgeVariantForTone(validation.tone)}>
-                            {validation.label}
-                          </Badge>
-                          <Badge variant="secondary">{target.source}</Badge>
-                        </div>
-
-                        {release ? (
-                          <TargetPreview
-                            className="max-w-sm"
-                            credential={
-                              target.credential ?? { platform: target.platform }
-                            }
-                            release={release}
-                            target={target}
-                          />
-                        ) : null}
-
-                        {target.validationIssues.length > 0 ? (
-                          <ol className="space-y-1 text-xs text-muted-foreground">
-                            {target.validationIssues.map((issue) => (
-                              <li key={issue}>{issue}</li>
-                            ))}
-                          </ol>
-                        ) : null}
-
-                        {isBlocked ? (
-                          <div className="border border-warning/40 bg-warning/10 p-3 text-xs">
-                            <p className="font-medium text-foreground">
-                              {translate('readinessBlocked')}
+                      {isBlocked ? (
+                        <div className="border border-warning/40 bg-warning/10 p-3 text-xs">
+                          <p className="font-medium text-foreground">
+                            {translate('readinessBlocked')}
+                          </p>
+                          {target.readiness?.requiredAction ? (
+                            <p className="mt-1 text-muted-foreground">
+                              {target.readiness.requiredAction}
                             </p>
-                            {target.readiness?.requiredAction ? (
-                              <p className="mt-1 text-muted-foreground">
-                                {target.readiness.requiredAction}
-                              </p>
-                            ) : null}
-                            <ol className="mt-1 space-y-1 text-muted-foreground">
-                              {(target.readiness?.diagnostics ?? []).map(
-                                (diagnostic) => (
-                                  <li key={diagnostic.code}>
-                                    {diagnostic.message}
-                                  </li>
-                                ),
-                              )}
-                            </ol>
+                          ) : null}
+                          <ol className="mt-1 space-y-1 text-muted-foreground">
+                            {(target.readiness?.diagnostics ?? []).map(
+                              (diagnostic) => (
+                                <li key={diagnostic.code}>
+                                  {diagnostic.message}
+                                </li>
+                              ),
+                            )}
+                          </ol>
+                          <Button
+                            asChild
+                            className="mt-3"
+                            size={ButtonSize.SM}
+                            variant={ButtonVariant.SECONDARY}
+                          >
+                            <Link href={reconnectHref}>
+                              {translate('actions.reconnect', {
+                                target: platform,
+                              })}
+                            </Link>
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {target.error ? (
+                        <p className="text-xs text-destructive">
+                          {target.error.message}
+                        </p>
+                      ) : null}
+
+                      <TargetHistory target={target} />
+
+                      <ReleaseEngagementRules
+                        postGroupId={release.id}
+                        reconnectHref={reconnectHref}
+                        target={target}
+                      />
+
+                      {hasPreview || needsReconnect ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {hasPreview ? (
                             <Button
                               asChild
-                              className="mt-3"
+                              size={ButtonSize.SM}
+                              variant={ButtonVariant.SECONDARY}
+                              icon={<ExternalLink className="size-3.5" />}
+                            >
+                              <Link
+                                href={target.url ?? ''}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                              >
+                                {translate('actions.preview')}
+                              </Link>
+                            </Button>
+                          ) : null}
+                          {needsReconnect ? (
+                            <Button
+                              asChild
                               size={ButtonSize.SM}
                               variant={ButtonVariant.SECONDARY}
                             >
                               <Link href={reconnectHref}>
                                 {translate('actions.reconnect', {
-                                  target: targetLabel(target),
+                                  target: platform,
                                 })}
                               </Link>
                             </Button>
-                          </div>
-                        ) : null}
-
-                        {target.error ? (
-                          <p className="text-xs text-destructive">
-                            {target.error.message}
-                          </p>
-                        ) : null}
-
-                        <TargetHistory target={target} />
-
-                        {release ? (
-                          <ReleaseEngagementRules
-                            postGroupId={release.id}
-                            reconnectHref={reconnectHref}
-                            target={target}
-                          />
-                        ) : null}
-
-                        {hasPreview || needsReconnect ? (
-                          <div className="flex flex-wrap items-center gap-2">
-                            {hasPreview ? (
-                              <Button
-                                asChild
-                                size={ButtonSize.SM}
-                                variant={ButtonVariant.SECONDARY}
-                                icon={<ExternalLink className="size-3.5" />}
-                              >
-                                <Link
-                                  href={target.url ?? ''}
-                                  rel="noopener noreferrer"
-                                  target="_blank"
-                                >
-                                  {translate('actions.preview')}
-                                </Link>
-                              </Button>
-                            ) : null}
-                            {needsReconnect ? (
-                              <Button
-                                asChild
-                                size={ButtonSize.SM}
-                                variant={ButtonVariant.SECONDARY}
-                              >
-                                <Link href={reconnectHref}>
-                                  {translate('actions.reconnect', {
-                                    target: targetLabel(target),
-                                  })}
-                                </Link>
-                              </Button>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        <div className="flex flex-wrap items-end gap-3">
-                          <Input
-                            className="max-w-xs"
-                            isDisabled={!canReschedule || isPending}
-                            label={inputLabel}
-                            onChange={(event) =>
-                              setTargetDates((current) => ({
-                                ...current,
-                                [target.id]: event.target.value,
-                              }))
-                            }
-                            type="datetime-local"
-                            value={targetDates[target.id] ?? ''}
-                          />
-                          <Button
-                            // A release fans out to several identically-labelled
-                            // controls; the platform keeps each one distinguishable
-                            // to a screen reader, and keeps the accessible name
-                            // stable while the spinner replaces the visible text.
-                            ariaLabel={`Reschedule ${targetLabel(target)} target`}
-                            isDisabled={
-                              !canReschedule ||
-                              isPending ||
-                              !targetDates[target.id]
-                            }
-                            isLoading={pendingAction === rescheduleAction}
-                            label="Reschedule target"
-                            onClick={() => {
-                              const isoString = fromDateTimeLocalInput(
-                                targetDates[target.id] ?? '',
-                                target.timezone || (release?.timezone ?? 'UTC'),
-                              );
-                              if (isoString) {
-                                onRescheduleTarget(target.id, isoString);
-                              }
-                            }}
-                          />
-                          {target.executionState ===
-                          TargetExecutionState.FAILED ? (
-                            <Button
-                              ariaLabel={`Retry ${targetLabel(target)} target`}
-                              isDisabled={!canRetry || isPending}
-                              isLoading={pendingAction === retryAction}
-                              label="Retry target"
-                              onClick={() => onRetryTarget(target.id)}
-                            />
                           ) : null}
                         </div>
-                      </article>
-                    );
-                  })
-                )}
-              </section>
-            </div>
-          ) : (
-            <div className="mt-0 min-h-0 flex-1 overflow-y-auto p-6">
-              <section className="space-y-3">
-                <h3 className="font-medium text-foreground">
-                  {translate('analytics.title')}
-                </h3>
-                <ReleaseAnalyticsTable
-                  comparison={release?.analyticsComparison}
-                />
-              </section>
-            </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+                      ) : null}
+
+                      <ReleaseRescheduleField
+                        buttonAriaLabel={translate(
+                          'reschedule.targetActionAriaLabel',
+                          { platform },
+                        )}
+                        buttonLabel={translate('reschedule.targetAction')}
+                        fieldLabel={translate('reschedule.targetTime', {
+                          platform,
+                        })}
+                        isDisabled={!canReschedule}
+                        isPending={isPending}
+                        isSaving={
+                          pendingAction === targetRescheduleAction(target.id)
+                        }
+                        onReschedule={(scheduledDate) =>
+                          onRescheduleTarget(target.id, scheduledDate)
+                        }
+                        scheduledAt={target.scheduledAt ?? release.scheduledAt}
+                        timezone={target.timezone || release.timezone}
+                      />
+                      {target.executionState === TargetExecutionState.FAILED ? (
+                        <Button
+                          ariaLabel={translate('retryAriaLabel', { platform })}
+                          className="w-full"
+                          isDisabled={!canRetry || isPending}
+                          isLoading={pendingAction === retryAction}
+                          label={translate('retryTarget')}
+                          onClick={() => onRetryTarget(target.id)}
+                          withWrapper={false}
+                        />
+                      ) : null}
+                    </article>
+                  );
+                })
+              )}
+            </section>
+          </div>
+        ) : (
+          <div className="p-4">
+            <section className="space-y-3">
+              <h3 className="font-medium text-foreground">
+                {translate('analytics.title')}
+              </h3>
+              <ReleaseAnalyticsTable comparison={release.analyticsComparison} />
+            </section>
+          </div>
+        )}
+      </div>
+    </ContextSidebarPanel>
   );
 }

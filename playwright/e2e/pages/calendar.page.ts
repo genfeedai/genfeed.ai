@@ -45,6 +45,7 @@ export class CalendarPage {
 
   // Modal
   readonly postModal: Locator;
+  readonly postSidebarTitle: Locator;
   readonly modalCloseButton: Locator;
   readonly viewDetailsButton: Locator;
 
@@ -116,17 +117,22 @@ export class CalendarPage {
       `a[href$="${APP_ROUTES.PUBLISHING.POSTS}"]`,
     );
 
-    // ReleaseDetailDrawer (a Radix Dialog/Sheet, role="dialog"). It has no
-    // "View Details" control -- the drawer *is* the detail view; its one
-    // navigation affordance is a link to the target's editor, labelled
-    // "Open editor" (`pages.publishing.release.openEditor`). See #5381.
-    this.postModal = page.locator('[role="dialog"]');
-    this.modalCloseButton = page.locator(
-      '[role="dialog"] button[aria-label="Close"],' +
-        ' [role="dialog"] button:has-text("Close")',
+    // The selected post's detail lives in the shell's context sidebar
+    // (`ReleaseDetailDrawer` registers it as a `post` selection). At >=1280px
+    // that is the desktop rail, not a dialog; below it the same content is a
+    // drawer. The panel unmounts on close, so it is the visibility signal.
+    // It has no "View Details" control -- its one navigation affordance is a
+    // link to the target's editor, labelled "Open editor"
+    // (`pages.publishing.release.openEditor`). See #5381.
+    this.postModal = page.locator('[data-testid="release-detail-panel"]');
+    this.postSidebarTitle = page.locator(
+      '[data-testid="context-sidebar-title"]',
     );
-    this.viewDetailsButton = page.locator(
-      '[role="dialog"] a:has-text("Open editor")',
+    this.modalCloseButton = page.locator(
+      '[data-testid="context-sidebar-close"]',
+    );
+    this.viewDetailsButton = this.postModal.locator(
+      'a:has-text("Open editor")',
     );
   }
 

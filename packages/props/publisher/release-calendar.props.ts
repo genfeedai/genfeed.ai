@@ -89,6 +89,24 @@ export interface CalendarRepublishDialogProps {
   pendingAction: string | null;
 }
 
+export interface ReleaseRescheduleFieldProps {
+  /** Accessible name for the submit button, distinct per target. */
+  buttonAriaLabel: string;
+  buttonLabel: string;
+  fieldLabel: string;
+  /** Locks the field (a published or cancelled schedule cannot move). */
+  isDisabled: boolean;
+  /** This control's own mutation is in flight. */
+  isSaving: boolean;
+  /** Any mutation is in flight; blocks a second one racing the first. */
+  isPending: boolean;
+  onReschedule: (scheduledDate: string) => void;
+  /** Current send instant as the API returned it. */
+  scheduledAt: string | null | undefined;
+  /** IANA zone the schedule is anchored to; the field reads and edits in it. */
+  timezone: string;
+}
+
 export interface ReleaseDetailDrawerProps {
   /**
    * Brand scope for the drawer's own account-health lookup, which backs the

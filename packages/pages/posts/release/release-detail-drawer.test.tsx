@@ -1,4 +1,9 @@
 import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+  useContextSidebar,
+} from '@contexts/ui/context-sidebar-context';
+import {
   CredentialPlatform,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -11,7 +16,8 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ReactElement } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ReleaseDetailDrawer, {
   RELEASE_RESCHEDULE_ACTION,
@@ -48,8 +54,6 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-// Radix's Sheet portals into a dialog the jsdom tree cannot focus-trap; the
-// drawer's own behavior is what these tests are about.
 vi.mock('./release-engagement-rules', () => ({
   default: () => <div>Automation</div>,
 }));
@@ -57,22 +61,6 @@ vi.mock('./release-engagement-rules', () => ({
 vi.mock('@ui/previews/TargetPreview', () => ({
   default: ({ target }: { target: IChannelTarget }) => (
     <div data-testid="target-preview">{target.id}</div>
-  ),
-}));
-
-vi.mock('@ui/primitives/sheet', () => ({
-  Sheet: ({ children }: { children: React.ReactNode }) => children,
-  SheetContent: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SheetDescription: ({ children }: { children: React.ReactNode }) => (
-    <p>{children}</p>
-  ),
-  SheetHeader: ({ children }: { children: React.ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SheetTitle: ({ children }: { children: React.ReactNode }) => (
-    <h2>{children}</h2>
   ),
 }));
 
@@ -120,6 +108,26 @@ function buildAccount(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function CloseControl() {
+  const contextSidebar = useContextSidebar();
+
+  return (
+    <button type="button" onClick={contextSidebar?.close}>
+      Close sidebar
+    </button>
+  );
+}
+
+function renderInSidebar(ui: ReactElement) {
+  return render(
+    <ContextSidebarProvider>
+      <CloseControl />
+      <ContextSidebarOutlet testId="context-sidebar-outlet" />
+      {ui}
+    </ContextSidebarProvider>,
+  );
+}
+
 function renderDrawer(
   overrides: Partial<IReleaseGroup> = {},
   pending: string | null = null,
@@ -131,7 +139,7 @@ function renderDrawer(
     onRetryTarget: vi.fn(),
   };
 
-  const view = render(
+  const view = renderInSidebar(
     <ReleaseDetailDrawer
       brandId="brand-1"
       error={null}
@@ -147,9 +155,15 @@ function renderDrawer(
 
 describe('ReleaseDetailDrawer', () => {
   beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-07-01T00:00:00.000Z'));
     getToken.mockClear();
     listBrandAccountHealth.mockReset();
     listBrandAccountHealth.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('seeds both schedule inputs from the instants the API returned', () => {
@@ -209,7 +223,7 @@ describe('ReleaseDetailDrawer', () => {
 
   it('explains why a paused post will not publish', () => {
     const onResumeRelease = vi.fn();
-    render(
+    renderInSidebar(
       <ReleaseDetailDrawer
         brandId="brand-1"
         error={null}
@@ -281,6 +295,9 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.getByRole('button', { name: 'Reschedule Instagram target' }),
     ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('LinkedIn time'), {
+      target: { value: '2026-08-03T16:00' },
+    });
     expect(
       screen.getByRole('button', { name: 'Reschedule LinkedIn target' }),
     ).toBeEnabled();
@@ -356,7 +373,7 @@ describe('ReleaseDetailDrawer', () => {
   });
 
   it('surfaces a rejected mutation as an alert instead of silently reverting', () => {
-    render(
+    renderInSidebar(
       <ReleaseDetailDrawer
         error="Cannot schedule: the Instagram channel is not publish-capable."
         onClose={vi.fn()}
@@ -383,8 +400,8 @@ describe('ReleaseDetailDrawer', () => {
     expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
   });
 
-  it('says so plainly when there is no release to inspect', () => {
-    render(
+  it('renders nothing when there is no release to inspect', () => {
+    renderInSidebar(
       <ReleaseDetailDrawer
         error={null}
         onClose={vi.fn()}
@@ -398,8 +415,8 @@ describe('ReleaseDetailDrawer', () => {
     );
 
     expect(
-      screen.getByText('This post has no channel targets.'),
-    ).toBeInTheDocument();
+      screen.queryByTestId('release-detail-panel'),
+    ).not.toBeInTheDocument();
   });
 
   it('renders a live preview for every channel target', () => {
@@ -492,7 +509,7 @@ describe('ReleaseDetailDrawer', () => {
   });
 
   it('skips the account-health lookup when no brandId is in scope', () => {
-    render(
+    renderInSidebar(
       <ReleaseDetailDrawer
         error={null}
         onClose={vi.fn()}
@@ -506,5 +523,302 @@ describe('ReleaseDetailDrawer', () => {
     );
 
     expect(listBrandAccountHealth).not.toHaveBeenCalled();
+  });
+
+  describe('inline reschedule from the context sidebar', () => {
+    function renderWith(
+      props: {
+        error?: string | null;
+        onAddChannel?: () => void;
+        pending?: string | null;
+        release?: IReleaseGroup;
+      } = {},
+    ) {
+      const handlers = {
+        onClose: vi.fn(),
+        onRescheduleRelease: vi.fn(),
+        onRescheduleTarget: vi.fn(),
+        onRetryTarget: vi.fn(),
+      };
+      const view = (
+        release: IReleaseGroup,
+        error: string | null,
+        pending: string | null,
+      ) => (
+        <ReleaseDetailDrawer
+          brandId="brand-1"
+          error={error}
+          onAddChannel={props.onAddChannel}
+          pendingAction={pending}
+          reconnectHref="/acme-org/acme-creator/settings/social"
+          release={release}
+          {...handlers}
+        />
+      );
+      const utils = renderInSidebar(
+        view(
+          props.release ?? release(),
+          props.error ?? null,
+          props.pending ?? null,
+        ),
+      );
+
+      return {
+        ...handlers,
+        rerender: (
+          next: IReleaseGroup,
+          error: string | null = null,
+          pending: string | null = null,
+        ) =>
+          utils.rerender(
+            <ContextSidebarProvider>
+              <CloseControl />
+              <ContextSidebarOutlet testId="context-sidebar-outlet" />
+              {view(next, error, pending)}
+            </ContextSidebarProvider>,
+          ),
+      };
+    }
+
+    it('renders the post into the context sidebar outlet', async () => {
+      renderWith();
+
+      expect(
+        await screen.findByTestId('release-detail-panel'),
+      ).toBeInTheDocument();
+      expect(
+        screen
+          .getByTestId('context-sidebar-outlet')
+          .contains(screen.getByTestId('release-detail-panel')),
+      ).toBe(true);
+    });
+
+    it('hands a sidebar close back to the page', async () => {
+      const { onClose } = renderWith();
+      await screen.findByTestId('release-detail-panel');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
+
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the button disabled until the time actually changes', () => {
+      renderWith();
+      const button = screen.getByRole('button', { name: 'Reschedule post' });
+
+      expect(button).toBeDisabled();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-03T14:30' },
+      });
+      expect(button).toBeEnabled();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-02T09:00' },
+      });
+      expect(button).toBeDisabled();
+    });
+
+    it('disables the button when the field is cleared', () => {
+      renderWith();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '' },
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'Reschedule post' }),
+      ).toBeDisabled();
+    });
+
+    it('rejects a time in the past without calling the API', () => {
+      const { onRescheduleRelease } = renderWith();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-06-30T09:00' },
+      });
+
+      expect(
+        screen.getByText('Pick a time that is now or later.'),
+      ).toBeInTheDocument();
+      const button = screen.getByRole('button', { name: 'Reschedule post' });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+      expect(onRescheduleRelease).not.toHaveBeenCalled();
+    });
+
+    it('rejects a past time on a target the same way', () => {
+      const { onRescheduleTarget } = renderWith();
+
+      fireEvent.change(screen.getByLabelText('Instagram time'), {
+        target: { value: '2026-06-30T09:00' },
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'Reschedule Instagram target' }),
+      ).toBeDisabled();
+      expect(onRescheduleTarget).not.toHaveBeenCalled();
+    });
+
+    it('submits from the keyboard with the same absolute instant', () => {
+      const { onRescheduleRelease } = renderWith();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-03T14:30' },
+      });
+      fireEvent.submit(screen.getByLabelText('Publish time'));
+
+      expect(onRescheduleRelease).toHaveBeenCalledWith(
+        '2026-08-03T14:30:00.000Z',
+      );
+    });
+
+    it('shows a pending spinner on the control that is saving and locks the rest', () => {
+      renderWith({ pending: RELEASE_RESCHEDULE_ACTION });
+
+      expect(
+        screen.getByRole('button', { name: 'Reschedule post' }),
+      ).toBeDisabled();
+      expect(screen.getByLabelText('Publish time')).toBeDisabled();
+      expect(screen.getByLabelText('Instagram time')).toBeDisabled();
+    });
+
+    it('confirms a saved reschedule and shows the new time', () => {
+      const { rerender } = renderWith();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-03T14:30' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Reschedule post' }));
+      rerender(release(), null, RELEASE_RESCHEDULE_ACTION);
+      expect(screen.queryByText('Rescheduled.')).not.toBeInTheDocument();
+
+      rerender(release({ scheduledAt: '2026-08-03T14:30:00.000Z' }));
+
+      expect(screen.getByLabelText('Publish time')).toHaveValue(
+        '2026-08-03T14:30',
+      );
+      expect(screen.getByRole('status')).toHaveTextContent('Rescheduled.');
+      expect(
+        screen.getByRole('button', { name: 'Reschedule post' }),
+      ).toBeDisabled();
+    });
+
+    it('keeps the typed time and the whole panel usable after a failed save', () => {
+      const failed = release({
+        status: ReleaseStatus.FAILED,
+        targets: [
+          target({
+            error: {
+              code: 'provider_timeout',
+              failedAt: '2026-08-02T10:00:05.000Z',
+              isRetryable: true,
+              message: 'Provider timed out.',
+            },
+            executionState: TargetExecutionState.FAILED,
+          }),
+        ],
+      });
+      const { onRescheduleRelease, onRetryTarget, rerender } = renderWith({
+        release: failed,
+      });
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-03T14:30' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Reschedule post' }));
+      rerender(failed, null, RELEASE_RESCHEDULE_ACTION);
+      rerender(failed, 'The schedule change could not be saved.', null);
+
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'The schedule change could not be saved.',
+      );
+      expect(screen.getByLabelText('Publish time')).toHaveValue(
+        '2026-08-03T14:30',
+      );
+      expect(screen.queryByText('Rescheduled.')).not.toBeInTheDocument();
+
+      const button = screen.getByRole('button', { name: 'Reschedule post' });
+      expect(button).toBeEnabled();
+      fireEvent.click(button);
+      expect(onRescheduleRelease).toHaveBeenCalledTimes(2);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Retry Instagram target' }),
+      );
+      expect(onRetryTarget).toHaveBeenCalledWith('target-1');
+    });
+
+    it('does not overwrite an edit in progress when the same instants come back', () => {
+      const { rerender } = renderWith();
+
+      fireEvent.change(screen.getByLabelText('Publish time'), {
+        target: { value: '2026-08-03T14:30' },
+      });
+      rerender(release());
+
+      expect(screen.getByLabelText('Publish time')).toHaveValue(
+        '2026-08-03T14:30',
+      );
+    });
+
+    it('locks the field for a post that can no longer move', () => {
+      renderWith({ release: release({ status: ReleaseStatus.PUBLISHED }) });
+
+      expect(screen.getByLabelText('Publish time')).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Reschedule post' }),
+      ).toBeDisabled();
+      expect(screen.getByText(/can no longer be moved/)).toBeInTheDocument();
+    });
+
+    it('keeps Add channel, Resume, Retry and Reconnect alongside the time field', async () => {
+      const onAddChannel = vi.fn();
+      const onResumeRelease = vi.fn();
+      listBrandAccountHealth.mockResolvedValue([
+        buildAccount({
+          reconnect: {
+            credentialId: 'credential-1',
+            isAvailable: true,
+            reason: 'disconnected',
+          },
+        }),
+      ]);
+      renderInSidebar(
+        <ReleaseDetailDrawer
+          brandId="brand-1"
+          error={null}
+          onAddChannel={onAddChannel}
+          onClose={vi.fn()}
+          onRescheduleRelease={vi.fn()}
+          onRescheduleTarget={vi.fn()}
+          onResumeRelease={onResumeRelease}
+          onRetryTarget={vi.fn()}
+          pendingAction={null}
+          reconnectHref="/acme-org/acme-creator/settings/social"
+          release={release({
+            status: ReleaseStatus.PAUSED,
+            targets: [
+              target({
+                credentialId: 'credential-1',
+                executionState: TargetExecutionState.FAILED,
+              }),
+            ],
+          })}
+        />,
+      );
+      expect(screen.getByLabelText('Publish time')).toBeInTheDocument();
+      expect(screen.getByLabelText('Instagram time')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Add channel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Resume post' }));
+      expect(onAddChannel).toHaveBeenCalledOnce();
+      expect(onResumeRelease).toHaveBeenCalledOnce();
+      expect(
+        screen.getByRole('button', { name: 'Retry Instagram target' }),
+      ).toBeEnabled();
+      expect(
+        await screen.findByRole('link', { name: 'Reconnect Instagram' }),
+      ).toHaveAttribute('href', '/acme-org/acme-creator/settings/social');
+    });
   });
 });

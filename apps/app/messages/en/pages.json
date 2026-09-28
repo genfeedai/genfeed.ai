@@ -1483,6 +1483,8 @@
         "preview": "Preview",
         "reconnect": "Reconnect {target}"
       },
+      "addChannel": "Add channel",
+      "addChannelTooltip": "Adapt this post's content into a draft for another channel",
       "analytics": {
         "caption": "Normalized analytics metrics by channel target",
         "emptyDescription": "Metrics appear after a published target has a collected analytics snapshot.",
@@ -1524,9 +1526,23 @@
       "noExecutionHistory": "No execution history yet.",
       "noTargets": "This post has no channel targets.",
       "readinessBlocked": "Publishing setup is blocking this channel",
+      "reschedule": {
+        "pastError": "Pick a time that is now or later.",
+        "releaseAction": "Reschedule post",
+        "releaseTime": "Publish time",
+        "saved": "Rescheduled.",
+        "targetAction": "Reschedule target",
+        "targetActionAriaLabel": "Reschedule {platform} target",
+        "targetTime": "{platform} time",
+        "timezoneHint": "Times are in {timezone}."
+      },
       "rescheduleLocked": "This post can no longer be moved — one or more targets have already published or been cancelled.",
+      "retryAriaLabel": "Retry {platform} target",
+      "retryTarget": "Retry target",
       "schedule": "Schedule",
-      "targets": "Targets"
+      "targets": "Targets",
+      "targetsSummary": "{count, plural, one {# channel target} other {# channel targets}} · {timezone}",
+      "untitledPost": "Post detail"
     },
     "review": {
       "lineage": {

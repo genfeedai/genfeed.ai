@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import {
   badgeVariantForTone,
   hasLivePublishedTarget,
+  isPastScheduleInstant,
   isReleaseDragConfirmRequired,
   isReleaseDraggable,
   isReleaseReschedulable,
@@ -377,5 +378,24 @@ describe('targetHistory', () => {
 
   it('returns nothing rather than a fabricated entry for a bare target', () => {
     expect(targetHistory(target())).toEqual([]);
+  });
+});
+
+describe('isPastScheduleInstant', () => {
+  const now = Date.parse('2026-07-01T12:00:00.000Z');
+
+  it('rejects an instant more than a second before now', () => {
+    expect(isPastScheduleInstant('2026-07-01T11:59:58.000Z', now)).toBe(true);
+    expect(isPastScheduleInstant('2026-06-30T12:00:00.000Z', now)).toBe(true);
+  });
+
+  it('accepts now, the one-second skew window, and the future', () => {
+    expect(isPastScheduleInstant('2026-07-01T11:59:59.500Z', now)).toBe(false);
+    expect(isPastScheduleInstant('2026-07-01T12:00:00.000Z', now)).toBe(false);
+    expect(isPastScheduleInstant('2026-07-02T12:00:00.000Z', now)).toBe(false);
+  });
+
+  it('leaves an unparseable instant to the field validation', () => {
+    expect(isPastScheduleInstant('not-a-date', now)).toBe(false);
   });
 });
