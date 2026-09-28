@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import agentMessages from '../../../../apps/app/messages/en/agent.json';
 import { SafeMarkdown } from './SafeMarkdown';
 
+vi.unmock('next-intl');
+
 describe('SafeMarkdown rendering', () => {
   it('renders headings, lists, emphasis, and code from markdown', () => {
     const markdown = [
