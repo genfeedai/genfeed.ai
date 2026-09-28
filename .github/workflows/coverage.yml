@@ -235,6 +235,38 @@ jobs:
     name: Coverage — apps/server/api (shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Same backing services as the `Test API` job in ci.yml: the Postgres- and
+    # Redis-backed specs fail their suite (they no longer self-skip in CI)
+    # when the services or their URLs are missing, which failed every API
+    # shard that happened to receive one of those files.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: genfeed_local
+          POSTGRES_USER: genfeed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U genfeed -d test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      KNOWLEDGE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/test
+      BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/billing_scope_test
+      CREDIT_BALANCE_TEST_DATABASE_URL: postgresql://genfeed:genfeed_local@localhost:5432/credit_balance_test
+      REDIS_URL: redis://localhost:6379
     strategy:
       fail-fast: false
       matrix:
@@ -249,6 +281,13 @@ jobs:
         with:
           node-version: "24.x"
           install-command: "bun install --frozen-lockfile"
+
+      # Every shard provisions both databases: `vitest --shard` does not let us
+      # know ahead of time which shard receives a *.postgres.spec.ts file.
+      - name: Provision billing-account-scope and credit-balance test databases
+        env:
+          PGPASSWORD: genfeed_local
+        run: bash scripts/ci/provision-api-test-databases.sh
 
       - name: Build workspace
         run: bunx turbo run build --filter=./packages/**

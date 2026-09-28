@@ -12,6 +12,7 @@ const customLogger = createVitestWarningLogger();
 
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const HELPERS_SRC = path.resolve(__dirname, '../helpers/src');
+const PRICING_SRC = path.resolve(__dirname, '../pricing/src');
 const ENUMS_SRC = path.resolve(__dirname, '../contracts/src/enums');
 const CONSTANTS_SRC = path.resolve(__dirname, '../contracts/src/constants');
 const INTERFACES_SRC = path.resolve(__dirname, '../contracts/src/interfaces');
@@ -92,6 +93,14 @@ export default defineConfig({
       {
         find: /^@genfeedai\/contracts\/enums\/(.*)$/,
         replacement: path.join(ENUMS_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/pricing$/,
+        replacement: path.join(PRICING_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/pricing\/(.*)$/,
+        replacement: path.join(PRICING_SRC, '$1'),
       },
       {
         find: /^@genfeedai\/auth-client$/,
