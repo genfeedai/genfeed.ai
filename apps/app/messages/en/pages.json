@@ -29,6 +29,9 @@
     "version": "Version"
   },
   "analytics": {
+    "scopedExport": {
+      "label": "Export scoped data"
+    },
     "overview": {
       "checkConnections": "Check connections",
       "connectAccounts": "Connect accounts",

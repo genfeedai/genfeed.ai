@@ -90,7 +90,7 @@ vi.mock('./knowledge-add-source-sheet', () => ({
   },
 }));
 
-vi.mock('./knowledge-source-detail-sheet', () => ({
+vi.mock('./knowledge-source-detail-panel', () => ({
   default: ({
     row,
     onRefresh,

@@ -10,7 +10,9 @@ import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
 
-import AnalyticsWorkSurfaceAdapter from './_surface/analytics-work-surface-adapter';
+import AnalyticsWorkSurfaceAdapter, {
+  AnalyticsScopedExportButton,
+} from './_surface/analytics-work-surface-adapter';
 
 function AnalyticsLayoutContent({ children }: LayoutProps) {
   const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
@@ -24,6 +26,7 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}
+          <AnalyticsScopedExportButton />
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

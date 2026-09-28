@@ -34,7 +34,7 @@ import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import KnowledgeAddSourceSheet from './knowledge-add-source-sheet';
-import KnowledgeSourceDetailSheet from './knowledge-source-detail-sheet';
+import KnowledgeSourceDetailPanel from './knowledge-source-detail-panel';
 import KnowledgeStateBadge from './knowledge-state-badge';
 
 const PURPOSE_KEY: Record<string, string> = {
@@ -335,9 +335,8 @@ export default function KnowledgeSourcesList({
         onClose={onAddClose}
         onSubmit={capture}
       />
-      <KnowledgeSourceDetailSheet
+      <KnowledgeSourceDetailPanel
         brandId={brandId}
-        isOpen={selectedRow !== null}
         onArchive={archive}
         onClose={() => setSelectedSourceId(null)}
         onMoveToSpace={moveToSpace}

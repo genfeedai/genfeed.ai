@@ -9,7 +9,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { MutableRefObject, ReactNode } from 'react';
 import type { AnalyticsWorkspaceSurfaceAdapterState } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
-import { WorkflowSurfaceInspector } from '@/features/workflows/workspace/WorkflowSurfaceInspector';
 
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import {
@@ -69,7 +68,6 @@ type WorkspaceInspectorRoute = {
   readonly fullConversationHref: string;
   readonly isAgentRoute: boolean;
   readonly isOverlayState: boolean;
-  readonly isWorkflowInspectorSurface: boolean;
   readonly rawPathname: string;
   readonly searchParamsString: string;
 };
@@ -214,29 +212,10 @@ function WorkspaceInspectorEmptyAgent({
 function WorkspaceInspectorPrimaryAdapter({
   bodyKind,
   effectiveSurfaceAdapter,
-  effectiveThreadId,
-  rawPathname,
-  searchParamsString,
-  threadContextVersion,
 }: {
   readonly bodyKind: WorkspaceInspectorBodyKind;
   readonly effectiveSurfaceAdapter: AnalyticsWorkspaceSurfaceAdapterState | null;
-  readonly effectiveThreadId: string | null;
-  readonly rawPathname: string;
-  readonly searchParamsString: string;
-  readonly threadContextVersion?: number;
 }) {
-  if (bodyKind === 'workflow') {
-    return (
-      <WorkflowSurfaceInspector
-        contextVersion={threadContextVersion}
-        pathname={rawPathname}
-        searchParams={new URLSearchParams(searchParamsString)}
-        threadId={effectiveThreadId}
-      />
-    );
-  }
-
   if (bodyKind === 'surface-adapter') {
     return effectiveSurfaceAdapter?.inspectorContent ?? null;
   }
@@ -367,18 +346,14 @@ function WorkspaceInspectorWorkspaceActions({
 function WorkspaceInspectorWorkspaceBody({
   bodyKind,
   effectiveSurfaceAdapter,
-  effectiveThreadId,
   inspectorBreadcrumbLabel,
   inspectorScope,
   onOpenOverlay,
   onOpenWorkflowPicker,
   onReturnToConversation,
   paneKind,
-  rawPathname,
-  searchParamsString,
   showOverlayPreview,
   surfacePresentationAdapter,
-  threadContextVersion,
   workspaceSurfaceAdapter,
 }: Omit<
   WorkspaceInspectorContextPaneProps,
@@ -394,10 +369,6 @@ function WorkspaceInspectorWorkspaceBody({
       <WorkspaceInspectorPrimaryAdapter
         bodyKind={bodyKind}
         effectiveSurfaceAdapter={effectiveSurfaceAdapter}
-        effectiveThreadId={effectiveThreadId}
-        rawPathname={rawPathname}
-        searchParamsString={searchParamsString}
-        threadContextVersion={threadContextVersion}
       />
       <WorkspaceInspectorSecondaryAdapter
         bodyKind={bodyKind}
@@ -480,7 +451,6 @@ function WorkspaceInspectorContent({
     hasEffectiveSurfaceAdapter: Boolean(adapters.effectiveSurfaceAdapter),
     hasPresentationAdapter: Boolean(adapters.surfacePresentationAdapter),
     hasWorkspaceAdapter: Boolean(adapters.workspaceSurfaceAdapter),
-    isWorkflowInspectorSurface: route.isWorkflowInspectorSurface,
   });
   const showOverlayPreview = shouldShowInspectorOverlayPreview({
     hasEffectiveSurfaceAdapter: Boolean(adapters.effectiveSurfaceAdapter),

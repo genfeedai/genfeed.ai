@@ -9,7 +9,9 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
-import AnalyticsWorkSurfaceAdapter from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
+import AnalyticsWorkSurfaceAdapter, {
+  AnalyticsScopedExportButton,
+} from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
   const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
@@ -23,6 +25,7 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
           {toolbarNode}
+          <AnalyticsScopedExportButton />
           <FormDateRangePicker
             onChange={setDateRange}
             defaultPreset={Timeframe.D7}

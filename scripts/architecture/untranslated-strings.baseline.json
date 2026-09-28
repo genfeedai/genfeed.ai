@@ -16,7 +16,7 @@
     "apps/app/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx": 20,
     "apps/app/app/(onboarding)/onboarding/components/onboarding-progress.tsx": 1,
     "apps/app/app/(onboarding)/onboarding/components/url-preview.tsx": 1,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter.tsx": 17,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter.tsx": 16,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/analytics-hooks.tsx": 15,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookAnalysisSection.tsx": 9,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/hooks/HookStatCards.tsx": 4,
