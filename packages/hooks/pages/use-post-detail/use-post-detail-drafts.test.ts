@@ -125,7 +125,7 @@ describe('usePostDetailDrafts', () => {
 
     it('keeps an unscheduled post clean until a date is picked', () => {
       const { result } = renderLoaded({
-        post: { ...loadedPost, scheduledDate: undefined } as never,
+        post: { ...(loadedPost as object), scheduledDate: undefined } as never,
       });
 
       expect(result.current.isScheduleDirty).toBe(false);
