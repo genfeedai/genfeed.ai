@@ -24,7 +24,7 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 1015,
+    "actual": 1014,
     "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"

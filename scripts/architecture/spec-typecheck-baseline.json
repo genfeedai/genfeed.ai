@@ -14660,8 +14660,8 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/display/error-boundary/ErrorBoundary.tsx",
-      "fingerprint": "0c57a2f2aca347517972",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "9db2e4b22f3caabb1278",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -15700,16 +15700,16 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/error/ErrorBoundary.tsx",
-      "fingerprint": "a770907aaf4d312a5c1e",
-      "message": "Cannot find module '@genfeedai/props/ui/feedback/error-boundary.props' or its corresponding type declarations.",
+      "fingerprint": "2ee7b92574d2befd5f7a",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/error/ErrorBoundary.tsx",
-      "fingerprint": "ebaadc1e66c8552bcaba",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "a770907aaf4d312a5c1e",
+      "message": "Cannot find module '@genfeedai/props/ui/feedback/error-boundary.props' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {
@@ -16588,8 +16588,8 @@
       "code": 2307,
       "count": 1,
       "file": "packages/ui/src/components/layout/container/Container.tsx",
-      "fingerprint": "90275b058381f166b14c",
-      "message": "Cannot find module '@genfeedai/services/core/logger.service' or its corresponding type declarations.",
+      "fingerprint": "6ccf45ca07b7f19d6705",
+      "message": "Cannot find module '@genfeedai/services/core/deferred-logger' or its corresponding type declarations.",
       "workspace": "pages"
     },
     {

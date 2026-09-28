@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   init: vi.fn(),
@@ -7,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@sentry/nextjs', () => ({
-  captureRouterTransitionStart: vi.fn(),
+  captureException: vi.fn(),
   init: mocks.init,
 }));
 
@@ -23,15 +25,35 @@ describe('website Sentry instrumentation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    vi.stubGlobal('requestIdleCallback', (callback: () => void): number => {
+      callback();
+      return 1;
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('keeps error reporting and disables performance tracing', async () => {
     await import('./instrumentation-client');
 
-    expect(mocks.init).toHaveBeenCalledWith(
-      expect.objectContaining({ tracesSampleRate: 0 }),
+    await vi.waitFor(() =>
+      expect(mocks.init).toHaveBeenCalledWith(
+        expect.objectContaining({ tracesSampleRate: 0 }),
+      ),
     );
     expect(mocks.initWebsiteAnalytics).toHaveBeenCalledTimes(1);
     expect(mocks.initSignupAttribution).toHaveBeenCalledTimes(1);
+  });
+
+  // The SDK is ~75 KB gzip; it must not be part of the first-load bundle.
+  it('never imports the Sentry SDK statically', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'instrumentation-client.ts'),
+      'utf8',
+    );
+
+    expect(source).not.toMatch(/^import[^;]*'@sentry\/nextjs'/m);
   });
 });

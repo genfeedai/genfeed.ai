@@ -12,7 +12,7 @@ import type { MouseEvent, SyntheticEvent } from 'react';
 
 const BLUR_PLACEHOLDER =
   'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWEREiMxUf/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q==';
-const MASONRY_TILE_RADIUS_CLASS = 'rounded-lg';
+const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
 type MasonryImageMediaAreaProps = {
   image: IImage;
@@ -79,7 +79,7 @@ export default function MasonryImageMediaArea({
         {isLoading && (
           <div
             className={cn(
-              'absolute inset-0 masonry-skeleton rounded-lg',
+              'absolute inset-0 masonry-skeleton rounded-card',
               isSquare && 'aspect-square',
             )}
             style={aspectRatioStyle}
@@ -151,7 +151,7 @@ export default function MasonryImageMediaArea({
       {isProcessing && (
         <div
           className={
-            'pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-lg bg-black/20 backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+            'pointer-events-none absolute inset-0 z-50 flex items-center justify-center rounded-card bg-black/20 backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
           }
         >
           <div
@@ -171,7 +171,7 @@ export default function MasonryImageMediaArea({
       {isFailed && onReprompt && (
         <div
           className={
-            'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-lg bg-black/45 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
+            'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-card bg-black/45 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
           }
           data-testid={`asset-failure-overlay-${image.id}`}
         >

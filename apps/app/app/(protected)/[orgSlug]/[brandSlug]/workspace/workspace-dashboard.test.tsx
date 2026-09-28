@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -22,9 +22,24 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('next/link', () => ({
-  default: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
+  default: ({
+    'aria-label': ariaLabel,
+    children,
+    href,
+  }: {
+    'aria-label'?: string;
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a aria-label={ariaLabel} href={href}>
+      {children}
+    </a>
   ),
 }));
 
@@ -33,20 +48,20 @@ vi.mock('@ui/card/Card', () => ({
     bodyClassName,
     children,
     className,
+    'data-testid': dataTestId,
   }: {
     bodyClassName?: string;
     children: ReactNode;
     className?: string;
+    'data-testid'?: string;
   }) => (
-    <section className={className} data-body-class={bodyClassName}>
+    <section
+      className={className}
+      data-body-class={bodyClassName}
+      data-testid={dataTestId}
+    >
       {children}
     </section>
-  ),
-}));
-
-vi.mock('@ui/dashboard/DashboardGrid', () => ({
-  DashboardGrid: ({ children }: { children: ReactNode }) => (
-    <div data-testid="dashboard-grid">{children}</div>
   ),
 }));
 
@@ -175,7 +190,7 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByText('Live now')).toBeVisible();
     expect(screen.getByText('Queued')).toBeVisible();
     expect(screen.getByText('Failed')).toBeVisible();
-    expect(screen.getByText('View All')).toHaveAttribute(
+    expect(screen.getByText('View all')).toHaveAttribute(
       'href',
       '/demo/FUDNEWS/automation/runs',
     );
@@ -184,6 +199,78 @@ describe('workspace dashboard sections', () => {
     // never the lighter bespoke background-secondary/tertiary grays.
     expect(container.querySelector('.bg-background-secondary')).toBeNull();
     expect(container.querySelector('.bg-background-tertiary')).toBeNull();
+  });
+
+  it('renders flat run cards with one fact line and a single Open action', () => {
+    const { container } = render(
+      <DashboardAgentCards
+        activeExecutions={[
+          makeExecution({ creditsUsed: 12, progress: 40 }),
+          makeExecution({
+            error: 'Node render-video timed out',
+            id: 'run-2',
+            status: WorkflowExecutionStatus.FAILED,
+            workflow: { id: 'workflow-2', label: 'Video Agent Run' },
+          }),
+        ]}
+        executions={[]}
+      />,
+    );
+
+    const section = screen.getByTestId('dashboard-agents');
+    expect(
+      within(section).getByRole('heading', { name: 'Running agents' }),
+    ).toBeVisible();
+
+    const cards = screen.getAllByTestId('workflow-execution-card');
+    expect(cards).toHaveLength(2);
+
+    for (const card of cards) {
+      // One visible action per card, and nothing nested in a filled box.
+      expect(within(card).getAllByRole('link')).toHaveLength(1);
+      expect(card.querySelector('[class*="bg-muted"]')).toBeNull();
+      expect(card.querySelector('[class*="bg-secondary"]')).toBeNull();
+      expect(card.querySelector('[class~="rounded"]')).toBeNull();
+    }
+
+    expect(
+      within(cards[0]).getByRole('link', { name: 'Open Writer Agent Run' }),
+    ).toHaveAttribute('href', '/demo/FUDNEWS/automation/runs/run-1');
+    expect(cards[0]).toHaveTextContent('40% done · 12 credits');
+    expect(cards[1]).toHaveTextContent('Node render-video timed out');
+    // The label appears once — the old nested box repeated it.
+    expect(within(cards[0]).getAllByText('Writer Agent Run')).toHaveLength(1);
+
+    // Columns follow the container, not the viewport.
+    expect(container.querySelector('.\\@container')).not.toBeNull();
+    expect(container.innerHTML).not.toMatch(/\b(?:sm|md|lg|xl):grid-cols-/);
+  });
+
+  it('labels terminal run statuses from the message catalog', () => {
+    render(
+      <DashboardAgentCards
+        activeExecutions={[]}
+        executions={[
+          makeExecution({
+            id: 'run-1',
+            status: WorkflowExecutionStatus.COMPLETED,
+          }),
+          makeExecution({
+            id: 'run-2',
+            status: WorkflowExecutionStatus.FAILED,
+          }),
+          makeExecution({
+            id: 'run-3',
+            status: WorkflowExecutionStatus.CANCELLED,
+          }),
+        ]}
+      />,
+    );
+
+    const cards = screen.getAllByTestId('workflow-execution-card');
+    expect(within(cards[0]).getByText('Completed')).toBeVisible();
+    expect(within(cards[1]).getByText('Failed')).toBeVisible();
+    expect(within(cards[2]).getByText('Cancelled')).toBeVisible();
   });
 
   it('returns no agent cards when there are no executions', () => {
@@ -321,6 +408,13 @@ describe('workspace dashboard sections', () => {
     expect(screen.getByText('Recent Activity')).toBeVisible();
     expect(screen.getByText('Recent Tasks')).toBeVisible();
     expect(screen.getByTestId('overview-trends-panel')).toBeVisible();
+
+    // Panels share the container-query card grid, not the stat-tile ladder.
+    const panels = screen.getByTestId('dashboard-panels');
+    expect(panels.firstElementChild).toHaveClass('grid', 'gap-4');
+    expect(
+      within(panels).getByTestId('overview-trends-panel'),
+    ).toBeInTheDocument();
   });
 
   it('renders the trends panel with the configured viewAllHref', () => {

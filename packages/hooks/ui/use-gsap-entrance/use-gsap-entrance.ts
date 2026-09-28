@@ -1,6 +1,6 @@
 'use client';
 
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 
@@ -100,7 +100,7 @@ function revertGsapContext(ctx: GsapContextHandle | null): void {
     ctx.revert();
   } catch (error) {
     if (!isDomInsertionRace(error)) {
-      logger.error('Failed to revert GSAP context', error);
+      deferredLogger.error('Failed to revert GSAP context', error);
     }
   }
 }
@@ -284,7 +284,7 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
           return;
         }
 
-        logger.error('Failed to start GSAP entrance animation', error);
+        deferredLogger.error('Failed to start GSAP entrance animation', error);
       }
     };
 
@@ -390,7 +390,7 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
           return;
         }
 
-        logger.error('Failed to start GSAP timeline animation', error);
+        deferredLogger.error('Failed to start GSAP timeline animation', error);
       }
     };
 

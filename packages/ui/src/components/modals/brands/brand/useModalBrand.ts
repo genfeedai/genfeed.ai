@@ -15,7 +15,9 @@ import {
   SystemPromptKey,
 } from '@genfeedai/contracts';
 import {
+  BRAND_HANDLE_FORMAT_MESSAGE,
   createBrandAppRoute,
+  isValidBrandHandle,
   MODEL_KEYS,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -592,20 +594,25 @@ export function useModalBrand(
             setError('Label and slug are required.');
             return;
           }
-          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-            setError(
-              'Slug must be lowercase letters, numbers, and hyphens only.',
-            );
-            return;
-          }
         }
 
-        const formData = {
+        // An edit that keeps the handle leaves it out: the API validates any
+        // handle it receives, and one that predates the handle rules would
+        // otherwise block unrelated edits.
+        const isHandleChanged = !overlayBrandId || slug !== activeBrand?.slug;
+        if (isHandleChanged && !isValidBrandHandle(slug)) {
+          setError(BRAND_HANDLE_FORMAT_MESSAGE);
+          return;
+        }
+
+        const { slug: _unchangedSlug, ...fieldsWithoutHandle } = {
           ...brandFormValues,
           label: label || brandFormValues.label,
-          slug: slug || brandFormValues.slug,
           isDeleted: false,
         };
+        const formData = isHandleChanged
+          ? { ...fieldsWithoutHandle, slug }
+          : fieldsWithoutHandle;
 
         if (overlayBrandId) {
           const updatedBrand = await service.patch(overlayBrandId, formData);
@@ -716,6 +723,7 @@ export function useModalBrand(
       }
     },
     [
+      activeBrand?.slug,
       form,
       getBrandsService,
       getLinksService,

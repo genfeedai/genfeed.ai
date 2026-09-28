@@ -295,7 +295,7 @@ export default function StudioGenerateCard({
     return (
       <article
         aria-label={`${label} generation`}
-        className={`group relative w-full cursor-pointer rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+        className={`group relative w-full cursor-pointer rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
           isListView
             ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] overflow-hidden sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
             : 'overflow-hidden'
@@ -341,7 +341,7 @@ export default function StudioGenerateCard({
   return (
     <article
       aria-label={`${label} generation`}
-      className={`group relative w-full cursor-pointer overflow-hidden rounded-lg border border-border bg-card shadow-border transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-border-strong ${
+      className={`group relative w-full cursor-pointer overflow-hidden rounded-card bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong ${
         isListView
           ? 'grid min-h-32 grid-cols-[7rem_minmax(0,1fr)] sm:min-h-40 sm:grid-cols-[12rem_minmax(0,1fr)]'
           : ''

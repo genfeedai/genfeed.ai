@@ -35,4 +35,9 @@ describe('createTranslateFromCatalog', () => {
     expect(translateExample('missing')).toBe('example.missing');
     expect(translateExample('')).toBe('example.');
   });
+
+  it('returns one stable translator per namespace, like useTranslations', () => {
+    expect(translate('example')).toBe(translate('example'));
+    expect(translate('example')).not.toBe(translate('other'));
+  });
 });

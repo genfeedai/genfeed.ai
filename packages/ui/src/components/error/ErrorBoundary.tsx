@@ -5,7 +5,7 @@ import type {
   ErrorBoundaryFailure,
   ErrorBoundaryProps,
 } from '@genfeedai/props/ui/feedback/error-boundary.props';
-import { logger } from '@genfeedai/services/core/logger.service';
+import { deferredLogger } from '@genfeedai/services/core/deferred-logger';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
 import { Component, type ErrorInfo } from 'react';
 
@@ -23,7 +23,9 @@ export class ErrorBoundary extends Component<
     if (this.props.reportError) {
       this.props.reportError(error, errorInfo, this.getFailure(error));
     } else {
-      logger.error('[ErrorBoundary]', {
+      // Deferred: boundaries wrap every page, and the full logger carries
+      // pino and the Sentry SDK.
+      deferredLogger.error('[ErrorBoundary]', {
         componentStack: errorInfo.componentStack,
         error,
       });

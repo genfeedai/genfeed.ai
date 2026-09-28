@@ -8,26 +8,32 @@
  * before that route becomes interactive. That is the number a reviewer needs
  * when a pull request statically imports a heavy library onto a hot route.
  *
- * It reads Next's own manifest rather than an analyzer plugin report: every
- * Next app here builds with `--turbopack`, and the webpack-only
- * `@next/bundle-analyzer` is gone. Next.js 16 removed the
- * standalone `app-build-manifest.json` and folded App Router entries into
- * `build-manifest.json`'s `pages` map (both bundlers write that file), so
- * this reads `build-manifest.json` alone and keeps only the `/page` and
- * `/route` entries — the Pages Router keys (`/_app`, `/_error`, ...) sort
- * before them and are filtered out the same way app-build-manifest.json's
- * entries used to be.
+ * Every Next app here builds with `--turbopack`. Under Next 16 + Turbopack,
+ * `build-manifest.json` no longer lists App Router routes (its `pages` map
+ * holds only the Pages Router keys), so reading it alone produced
+ * `routes: []` and a "no route moved" report on every pull request. The
+ * per-route source of truth is each page's
+ * `server/app/<route>/page_client-reference-manifest.js`: its `entryJSFiles`
+ * map lists the client chunks of every segment the page renders — the root
+ * and group layouts, `loading`, the page itself, and the root `not-found` and
+ * `global-error` boundaries Next preloads on every page. A route's first load
+ * is the union of those chunks with `rootMainFiles`.
  *
- * First-load for a route is the union of that route's own chunks with the
- * chunks every route pays for (`rootMainFiles` plus `polyfillFiles`), matching
- * how Next's build summary attributes shared chunks.
+ * `polyfillFiles` are left out: they ship as `nomodule`, so modern browsers
+ * never download them. (Verified against a production build in a real
+ * browser: every chunk counted here was requested on first load, and the
+ * polyfills were not.)
+ *
+ * When a build has no client-reference manifests (a webpack build), the
+ * collector falls back to `build-manifest.json`'s `/page` entries.
  *
  * Usage:
  *     bun run scripts/collect-bundle-manifest.ts \
  *       --app app --dist apps/app/.next --out bundle-head.json
  */
 
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import type { Dirent } from 'node:fs';
+import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -147,10 +153,100 @@ async function sumGzip(dist: string, chunks: string[]): Promise<number> {
   return sizes.reduce((total, size) => total + size, 0);
 }
 
-/** `/dashboard/page` and `/dashboard/route` both address the route `/dashboard`. */
-function toRoute(entry: string): string {
-  const route = entry.replace(/\/(page|route)$/, '');
+/**
+ * `/dashboard/page` and `/dashboard/route` both address the route
+ * `/dashboard`; route groups such as `/(public)` never appear in the URL.
+ */
+export function toRoute(entry: string): string {
+  const route = entry
+    .replace(/\/(page|route)$/, '')
+    .replace(/\/\([^/)]+\)/g, '');
   return route === '' ? '/' : route;
+}
+
+interface ClientReferenceManifest {
+  entryJSFiles?: Record<string, string[]>;
+}
+
+const CLIENT_MANIFEST_FILE = 'page_client-reference-manifest.js';
+
+/**
+ * Parse one `page_client-reference-manifest.js`. The file is a script that
+ * assigns a JSON object: `globalThis.__RSC_MANIFEST["/about/page"] = {...};`.
+ */
+export function parseClientReferenceManifest(
+  source: string,
+): { chunks: string[]; entry: string } | null {
+  const key = source.match(/__RSC_MANIFEST\["([^"]+)"\]\s*=\s*/);
+  if (!key || key.index === undefined) {
+    return null;
+  }
+
+  const body = source
+    .slice(key.index + key[0].length)
+    .trim()
+    .replace(/;$/, '');
+  const manifest = JSON.parse(body) as ClientReferenceManifest;
+  const chunks = Object.values(manifest.entryJSFiles ?? {}).flat();
+
+  return { chunks: [...new Set(chunks)], entry: key[1] };
+}
+
+async function findClientManifests(directory: string): Promise<string[]> {
+  let entries: Dirent[];
+
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+
+    throw error;
+  }
+
+  const found: string[] = [];
+
+  for (const entry of entries) {
+    const entryPath = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      found.push(...(await findClientManifests(entryPath)));
+    } else if (entry.name === CLIENT_MANIFEST_FILE) {
+      found.push(entryPath);
+    }
+  }
+
+  return found;
+}
+
+/** Route → that route's own client chunks (shared chunks are added later). */
+async function collectRouteChunks(
+  dist: string,
+  buildManifest: BuildManifest,
+): Promise<Map<string, string[]>> {
+  const routeChunks = new Map<string, string[]>();
+
+  for (const file of await findClientManifests(
+    path.join(dist, 'server', 'app'),
+  )) {
+    const parsed = parseClientReferenceManifest(await readFile(file, 'utf8'));
+    if (parsed) {
+      routeChunks.set(toRoute(parsed.entry), parsed.chunks);
+    }
+  }
+
+  if (routeChunks.size > 0) {
+    return routeChunks;
+  }
+
+  for (const [entry, chunks] of Object.entries(buildManifest.pages)) {
+    if (entry.endsWith('/page') || entry.endsWith('/route')) {
+      routeChunks.set(toRoute(entry), chunks);
+    }
+  }
+
+  return routeChunks;
 }
 
 async function main(): Promise<void> {
@@ -166,25 +262,21 @@ async function main(): Promise<void> {
     );
   }
 
-  const shared = [
-    ...(buildManifest.rootMainFiles ?? []),
-    ...(buildManifest.polyfillFiles ?? []),
-  ];
+  const shared = [...(buildManifest.rootMainFiles ?? [])];
   const sharedGzipBytes = await sumGzip(args.dist, shared);
 
   const routes: RouteSummary[] = [];
 
-  for (const [entry, chunks] of Object.entries(buildManifest.pages)) {
-    if (!entry.endsWith('/page') && !entry.endsWith('/route')) {
-      continue;
-    }
-
+  for (const [route, chunks] of await collectRouteChunks(
+    args.dist,
+    buildManifest,
+  )) {
     const unique = [...new Set([...shared, ...chunks])];
 
     routes.push({
       chunkCount: unique.length,
       firstLoadGzipBytes: await sumGzip(args.dist, unique),
-      route: toRoute(entry),
+      route,
     });
   }
 
@@ -201,4 +293,6 @@ async function main(): Promise<void> {
   await writeFile(args.out, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
 }
 
-await main();
+if (import.meta.main) {
+  await main();
+}

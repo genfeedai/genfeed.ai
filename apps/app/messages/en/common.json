@@ -269,8 +269,35 @@
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
+      "completed": "Completed",
       "draft": "Draft",
-      "label": "Status"
+      "label": "Status",
+      "paused": "Paused"
+    },
+    "collection": {
+      "agents": "{count, plural, one {# agent} other {# agents}}",
+      "all": "All programs",
+      "credits": "{used} / {allocated} credits",
+      "creditsProgress": "{percent}% of credits used",
+      "lastRun": "Last run {time}",
+      "loadError": "Programs couldn't load.",
+      "needsYou": "Needs you",
+      "needsYouDescription": "Paused, or out of allocated credits.",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "retry": "Retry",
+      "review": "Review",
+      "reviewLabel": "Review {label}"
+    },
+    "relativeTime": {
+      "daysAgo": "{days}d ago",
+      "dueNow": "due now",
+      "hoursAgo": "{hours}h ago",
+      "inDays": "in {days}d",
+      "inHours": "in {hours}h",
+      "inMinutes": "in {minutes}m",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago"
     },
     "template": {
       "blankDescription": "Coordinate only the existing agents you select below.",
@@ -940,6 +967,23 @@
       "unavailable": "Unavailable",
       "untitledPost": "Untitled post",
       "usage": "Usage"
+    },
+    "organizationOverview": {
+      "brandsTitle": "Brands",
+      "description": "Workflows, agents, and run history across every brand in this organization",
+      "emptyAction": "Go to brands",
+      "emptyDescription": "Automation runs against a brand. Create your first brand, then open Automation to build workflows and autopilot policies for it.",
+      "emptyTitle": "Automation needs a brand",
+      "loadingBrand": "Loading brand",
+      "moreActions": "More automation for {brand}",
+      "openAutomation": "Open Automation",
+      "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+      "surfaces": {
+        "agents": "Agents",
+        "analytics": "Analytics",
+        "runs": "Runs",
+        "workflows": "Workflows"
+      }
     },
     "brandEmpty": {
       "action": "Manage brands",

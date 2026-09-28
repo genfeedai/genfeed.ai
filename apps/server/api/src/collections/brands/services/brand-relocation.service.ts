@@ -19,6 +19,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
+import { BRAND_HANDLE_TAKEN_MESSAGE } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -278,7 +279,6 @@ export class BrandRelocationService {
     'isActive',
     'isHighlighted',
     'isFleetEnabled',
-    'isSocialHistoryImportEnabled',
     'defaultVideoModel',
     'defaultImageModel',
     'defaultImageToVideoModel',
@@ -338,6 +338,10 @@ export class BrandRelocationService {
     }
 
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
+
+    if (updateBrandDto.slug !== undefined) {
+      await this.assertHandleAvailable(brandId, updateBrandDto.slug);
+    }
 
     // An org always keeps at least one non-deleted brand (#5219): the source org
     // must have another brand left for its members' currentBrandId to fall back
@@ -642,6 +646,21 @@ export class BrandRelocationService {
       }
     }
     return out;
+  }
+
+  /** Handles are unique across every brand, as the database constraint is. */
+  private async assertHandleAvailable(
+    brandId: string,
+    slug: string,
+  ): Promise<void> {
+    // tenant-scope-ignore: handle uniqueness spans every organization and deleted brands, matching the global unique constraint.
+    const holder = await this.prisma.brand.findFirst({
+      select: { id: true },
+      where: { id: { not: brandId }, slug },
+    });
+    if (holder) {
+      throw new ConflictException(BRAND_HANDLE_TAKEN_MESSAGE);
+    }
   }
 
   private async assertCanRelocate(

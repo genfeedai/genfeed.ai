@@ -1,14 +1,15 @@
 'use client';
 
 import type { GlobalErrorProps } from '@props/ui/feedback/global-error.props';
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
 export default function GlobalError({ error }: GlobalErrorProps) {
   useEffect(() => {
-    // Log to Pino and Sentry via enhanced logger service
-    logger.error('Global unhandled error', {
+    // Next preloads this boundary on every page; the deferred logger keeps
+    // pino and the Sentry SDK out of every visitor's first-load bundle.
+    deferredLogger.error('Global unhandled error', {
       error,
       tags: {
         app: 'website',

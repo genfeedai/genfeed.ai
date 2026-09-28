@@ -60,18 +60,25 @@ export class SocialSourceHistoryImportService {
   ) {}
 
   /**
-   * Called after an OAuth credential is (re)connected. Never throws: a failed
-   * schedule must not fail the connection itself.
+   * Called after an OAuth credential is (re)connected, and when someone asks
+   * for an import explicitly (`isRequestedByUser`). A connect-time call
+   * honours the choice made at connect (`isHistoryImportRequested`). Never
+   * throws: a failed schedule must not fail the connection itself.
    */
   async scheduleForCredential(params: {
+    brandId?: string;
     credentialId: string;
+    isRequestedByUser?: boolean;
     organizationId: string;
     userId?: string;
   }): Promise<SocialSourceHistoryImportScheduleResult> {
     const credential = await this.prisma.credential.findFirst({
       where: scopedWhere(params.organizationId, { id: params.credentialId }),
     });
-    if (!credential?.brandId) {
+    if (
+      !credential?.brandId ||
+      (params.brandId !== undefined && credential.brandId !== params.brandId)
+    ) {
       return { skipReason: 'credential_unavailable', status: 'skipped' };
     }
     const userId = params.userId ?? credential.userId ?? undefined;
@@ -105,17 +112,20 @@ export class SocialSourceHistoryImportService {
       return { skipReason: 'unsupported_platform', status: 'skipped' };
     }
 
-    if (!brand.isSocialHistoryImportEnabled) {
+    if (
+      !params.isRequestedByUser &&
+      credential.isHistoryImportRequested === false
+    ) {
       await this.recordActivity(ActivityKey.SOCIAL_HISTORY_IMPORT_SKIPPED, {
         ...activityBase,
         entityId: credential.id,
         value: {
           credentialId: credential.id,
           platform,
-          skipReason: 'brand_opted_out',
+          skipReason: 'not_requested',
         },
       });
-      return { skipReason: 'brand_opted_out', status: 'skipped' };
+      return { skipReason: 'not_requested', status: 'skipped' };
     }
 
     const handle = resolveHandle(credential);
@@ -196,27 +206,6 @@ export class SocialSourceHistoryImportService {
     });
 
     return { sourceId: source.id, status: 'scheduled' };
-  }
-
-  /**
-   * Re-run the import for an existing own-account source (manual retry, or a
-   * brand that opted in after connecting).
-   */
-  async rescheduleForSource(
-    source: SocialSourceDocument,
-    userId: string,
-  ): Promise<SocialSourceHistoryImportScheduleResult> {
-    if (
-      source.sourceType !== SocialSourceType.OWN_ACCOUNT ||
-      !source.credentialId
-    ) {
-      return { skipReason: 'credential_unavailable', status: 'skipped' };
-    }
-    return this.scheduleForCredential({
-      credentialId: source.credentialId,
-      organizationId: source.organizationId,
-      userId,
-    });
   }
 
   async markRunning(source: SocialSourceDocument): Promise<void> {

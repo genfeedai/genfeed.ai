@@ -940,6 +940,11 @@ export class CredentialsService
           ...clearedOAuth,
           externalId,
           isConnected: true,
+          // A choice made at this connect wins; without one, an incumbent
+          // keeps the preference it already has.
+          ...(typeof source.isHistoryImportRequested === 'boolean'
+            ? { isHistoryImportRequested: source.isHistoryImportRequested }
+            : {}),
         };
         const incumbent =
           source.brandId && source.platform

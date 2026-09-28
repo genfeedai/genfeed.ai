@@ -862,8 +862,17 @@
     "overrideConfirmed": "Warmup override confirmed",
     "overrideDescription": "This bypasses the account-health publishing hold for 24 hours. Use it only after reviewing the platform warmup guidance.",
     "overrideReason": "Manual override confirmed from brand social dashboard.",
-    "postingTimes": "Posting times",
-    "postingTimesDialogTitle": "Posting times · {account}",
+    "settings": "Settings",
+    "settingsDialogTitle": "{account} settings",
+    "settingsSections": {
+      "health": "Health",
+      "import": "Import",
+      "postingTimes": "Posting times"
+    },
+    "importOnConnectTitle": "Import existing posts?",
+    "importOnConnectDescription": "Genfeed can import what this {platform} account published over the last 90 days to learn what works for this brand. You can also run the import later from the account's settings.",
+    "importOnConnectSkip": "Skip",
+    "importOnConnectConfirm": "Import posts",
     "profilePictureAlt": "{account} profile picture",
     "reconnect": "Reconnect",
     "reconnectAccount": "Reconnect {account}",
@@ -1676,13 +1685,13 @@
       "notices": {
         "scrapeIssue": {
           "codes": {
-            "BRAND_SCRAPE_EMPTY_CONTENT": "We didn't find enough content on your site, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_INVALID_URL": "That website address didn't look valid, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_SITE_BLOCKED": "Your site blocked our request to read it, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_SITE_UNREACHABLE": "We couldn't reach your site, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_TIMEOUT": "Your site took too long to respond, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_UNKNOWN": "We hit an unexpected issue while analyzing your site, but your brand setup continued \u2014 you can add details anytime.",
-            "BRAND_SCRAPE_UPSTREAM_PROVIDER_ERROR": "Your site was temporarily unavailable, but your brand setup continued \u2014 you can add details anytime."
+            "BRAND_SCRAPE_EMPTY_CONTENT": "We didn't find enough content on your site, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_INVALID_URL": "That website address didn't look valid, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_SITE_BLOCKED": "Your site blocked our request to read it, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_SITE_UNREACHABLE": "We couldn't reach your site, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_TIMEOUT": "Your site took too long to respond, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_UNKNOWN": "We hit an unexpected issue while analyzing your site, but your brand setup continued — you can add details anytime.",
+            "BRAND_SCRAPE_UPSTREAM_PROVIDER_ERROR": "Your site was temporarily unavailable, but your brand setup continued — you can add details anytime."
           }
         }
       },
@@ -1807,7 +1816,7 @@
     "add": "Add",
     "addTime": "Add a time",
     "empty": "No posting times yet.",
-    "help": "Day view uses these clock times as rows. You can still schedule outside them.",
+    "help": "Preferred times to post from this account. The calendar's day view shows them as rows, and \"Schedule at next slot\" picks the next free one. You can still schedule outside them.",
     "newPostingTime": "New posting time",
     "remove": "Remove",
     "removeAriaLabel": "Remove {label}",
@@ -1888,6 +1897,13 @@
       "empty": "No workflows in this period",
       "limit": "Latest 100 workflows in this period. These totals are a separate view of usage; do not add them to generation totals."
     }
+  },
+  "organizationLanding": {
+    "brandCount": "{count, plural, one {# brand} other {# brands}} in this workspace",
+    "newBrand": "New Brand",
+    "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+    "redirecting": "Opening your workspace",
+    "title": "Projects"
   },
   "organizationRouting": {
     "failure": {
@@ -1984,6 +2000,21 @@
       "confidencePercent": "{percent}% confidence"
     },
     "liveRuns": "Live runs",
+    "runCards": {
+      "credits": "{credits} credits",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "progress": "{percent}% done",
+      "status": {
+        "cancelled": "Cancelled",
+        "completed": "Completed",
+        "failed": "Failed",
+        "live": "Live now",
+        "queued": "Queued"
+      },
+      "title": "Running agents",
+      "viewAll": "View all"
+    },
     "noActiveTasks": "No active workspace tasks right now.",
     "openInbox": "Open Inbox",
     "openReview": "Open Review",
@@ -2411,24 +2442,18 @@
   },
   "brandIntegrations": {
     "title": "Integrations",
-    "description": "Accounts this brand publishes to and imports history from.",
-    "connections": "Connections",
-    "imports": "Imports"
+    "description": "Accounts this brand publishes to."
   },
-  "brandSocialHistoryImport": {
-    "title": "Import existing posts",
-    "description": "When you connect an account, Genfeed imports what it already published over the last 90 days so it can learn what works for this brand. Imported posts are yours, not generated by Genfeed, and appear under My accounts in Discovery.",
-    "toggleLabel": "Import existing posts when connecting an account",
-    "toggleDescription": "Turn this off before connecting to skip the import. You can run it later from this page.",
-    "auditTitle": "Import history",
+  "accountHistoryImport": {
+    "description": "Genfeed imports what this account published over the last 90 days so it can learn what works for this brand. Imported posts are yours, not generated by Genfeed, and appear under My accounts in Discovery.",
     "loading": "Loading connected accounts…",
-    "empty": "No account history has been imported yet. Open the Connections tab to connect an account.",
+    "notImported": "Nothing has been imported from this account yet.",
     "notGenerated": "Imported · not generated by Genfeed",
     "importNow": "Import now",
     "completedSummary": "Imported {count, plural, one {# post} other {# posts}} from the last {windowDays} days on {date}.",
     "failedSummary": "Import failed: {error}",
     "pendingSummary": "Import of the last {windowDays} days requested on {date}. Posts appear as soon as it finishes.",
-    "skippedSummary": "The import was skipped for this account.",
+    "skippedSummary": "The import was skipped when this account connected.",
     "status": {
       "scheduled": "Scheduled",
       "running": "Importing",
@@ -2436,7 +2461,6 @@
       "failed": "Failed",
       "skipped": "Skipped"
     },
-    "saved": "Setting saved.",
     "queued": "Import queued. Posts appear in Discovery when it finishes.",
     "error": "Something went wrong. Try again."
   },
