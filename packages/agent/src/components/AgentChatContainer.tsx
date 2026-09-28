@@ -75,7 +75,9 @@ export function AgentChatContainer({
     isActive: getGenfeedDesktopBridge() !== null,
   });
   const desktopRuntimeBar =
-    runtimeSelection.hasDesktopCliRuntimes && !isReadOnly ? (
+    (runtimeSelection.hasDesktopCliRuntimes ||
+      runtimeSelection.catalog.localToolNotice) &&
+    !isReadOnly ? (
       <AgentDesktopRuntimeBar selection={runtimeSelection} />
     ) : null;
 

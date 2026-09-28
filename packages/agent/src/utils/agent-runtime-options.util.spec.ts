@@ -118,6 +118,30 @@ describe('buildAgentRuntimeCatalog', () => {
     expect(catalog.providerSummary).toBe('Providers ready: openai');
   });
 
+  it('keeps an outdated Codex CLI out of the picker with its upgrade step', () => {
+    const upgradeMessage =
+      'This Codex CLI is too old to run Genfeed agent turns. Update it with `npm install -g @openai/codex@latest`, then restart Genfeed Desktop.';
+    const catalog = buildAgentRuntimeCatalog({
+      desktopTools: {
+        anyDetected: false,
+        claude: false,
+        codex: false,
+        detected: [],
+        grok: false,
+        upgradesRequired: [{ key: 'codex', message: upgradeMessage }],
+      },
+    });
+
+    expect(
+      catalog.options.some((option) => option.key === 'local/codex-cli'),
+    ).toBe(false);
+    expect(catalog.localToolNotice).toBe(upgradeMessage);
+    expect(buildAgentRuntimeCatalog({}).localToolNotice).toBeNull();
+    expect(
+      buildAgentRuntimeCatalog({ desktopTools: DESKTOP_TOOLS }).localToolNotice,
+    ).toBeNull();
+  });
+
   it('only offers the CLIs that are installed', () => {
     const catalog = buildAgentRuntimeCatalog({
       desktopTools: { ...DESKTOP_TOOLS, claude: false, detected: ['codex'] },

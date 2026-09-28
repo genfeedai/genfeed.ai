@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  CODEX_IGNORE_USER_CONFIG_FLAG,
   GENFEED_MCP_SERVER_NAME,
   GENFEED_MCP_TOKEN_ENV_VAR,
 } from './cli-agent-runtime.constants';
@@ -86,7 +87,7 @@ export function buildCodexCliArgs(input: CodexCliArgsInput): string[] {
     'exec',
     '--json',
     '--skip-git-repo-check',
-    '--ignore-user-config',
+    CODEX_IGNORE_USER_CONFIG_FLAG,
     '--sandbox',
     'read-only',
     ...CODEX_DISABLED_FEATURES.flatMap((feature) => ['--disable', feature]),

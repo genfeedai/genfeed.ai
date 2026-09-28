@@ -13,5 +13,7 @@ export interface AgentRuntimeCatalog {
   environmentLabel: 'cloud' | 'local';
   providerSummary: string;
   localToolSummary: string;
+  /** Why an installed local CLI is not offered, with how to fix it. */
+  localToolNotice: string | null;
   options: AgentRuntimeOption[];
 }

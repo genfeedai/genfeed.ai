@@ -89,6 +89,16 @@ function getLocalToolSummary(
   return `Local CLIs: ${detected.join(', ')}`;
 }
 
+function getLocalToolNotice(
+  desktopTools?: IDesktopLocalToolReadiness | null,
+): string | null {
+  const messages = (desktopTools?.upgradesRequired ?? []).map(
+    (upgrade) => upgrade.message,
+  );
+
+  return messages.length > 0 ? messages.join(' ') : null;
+}
+
 function getProviderSummary(readiness?: AgentInstallReadiness | null): string {
   const configured = readiness?.providers.configured ?? [];
   if (configured.length === 0) {
@@ -136,6 +146,7 @@ export function buildAgentRuntimeCatalog(params: {
 
   return {
     environmentLabel: localOptions.length > 0 ? 'local' : 'cloud',
+    localToolNotice: getLocalToolNotice(params.desktopTools),
     localToolSummary: getLocalToolSummary(params.desktopTools),
     options: [autoOption, ...localOptions, ...hostedOptions],
     providerSummary: getProviderSummary(params.readiness),
