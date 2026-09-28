@@ -59,6 +59,20 @@ describe('PlatformModuleRouteGate (#5468)', () => {
     expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
+  it('blocks disabled Clips creation for regular users', () => {
+    state.flags = { studio: false };
+    state.pathname = '/acme/brand/studio/clips/new';
+    expect(renderGate).toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('preserves superadmin inspection of disabled Clips creation', () => {
+    state.flags = { studio: false };
+    state.isSuperAdmin = true;
+    state.pathname = '/acme/brand/studio/clips/new';
+    renderGate();
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
   it('never gates a route outside the flagged modules', () => {
     state.flags = { studio: false };
     state.pathname = '/acme/brand/workspace/overview';
