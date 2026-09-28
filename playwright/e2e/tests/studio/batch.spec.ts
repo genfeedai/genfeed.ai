@@ -70,7 +70,9 @@ test.describe('Persisted Batch projects', () => {
   test('workflow video input survives reload and its output reaches the shared review inbox', async ({
     authenticatedPage: page,
   }) => {
-    const state = await mockBatchProject(page, BatchProjectKind.WORKFLOW);
+    const state = await mockBatchProject(page, BatchProjectKind.WORKFLOW, {
+      deferGeneration: true,
+    });
     await page.goto(`${base}/persisted-batch`);
     await page.getByLabel('Add images or videos').setInputFiles({
       name: 'input.mp4',
@@ -84,6 +86,12 @@ test.describe('Persisted Batch projects', () => {
     await expect(page.getByText('video-input', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Start workflow batch' }).click();
     await expect(
+      page.getByText('Generating', { exact: true }).first(),
+    ).toBeVisible();
+    await page.goto(base);
+    state.completeGeneration();
+    await page.goto(`${base}/persisted-batch`);
+    await expect(
       page.getByRole('link', { name: 'Open review inbox' }),
     ).toBeVisible();
     await page.reload();
@@ -95,6 +103,56 @@ test.describe('Persisted Batch projects', () => {
     await expect(
       page.getByText('Saved batch output', { exact: true }).first(),
     ).toBeVisible();
+    await expect(
+      page.getByText('batch-project-item:item-1', { exact: true }),
+    ).toBeVisible();
+  });
+
+  test('creates a saved idea project and reopens it from list and grid on mobile', async ({
+    authenticatedPage: page,
+  }, testInfo) => {
+    const state = await mockBatchProject(page, BatchProjectKind.IDEAS);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${base}/new`);
+    await page
+      .getByRole('button', { name: 'From ideas', exact: true })
+      .first()
+      .click();
+    await page
+      .getByRole('textbox', { name: 'Batch name' })
+      .fill('Launch collection');
+    await page
+      .getByRole('button', { name: 'Create batch', exact: true })
+      .click();
+    await expect(page).toHaveURL(new RegExp(`${base}/persisted-batch`));
+    await expect(page.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
+      'Launch collection',
+    );
+    expect(state.getProject().name).toBe('Launch collection');
+    await page.screenshot({
+      path: testInfo.outputPath('batch-detail-mobile.png'),
+      fullPage: true,
+    });
+    await page.getByRole('link', { name: 'All batches', exact: true }).click();
+    await expect(
+      page.getByText('Launch collection', { exact: true }).first(),
+    ).toBeVisible();
+    await page.getByRole('radio', { name: 'Grid', exact: true }).click();
+    await expect(
+      page.getByRole('radio', { name: 'Grid', exact: true }),
+    ).toBeChecked();
+    await page.screenshot({
+      path: testInfo.outputPath('batch-list-mobile.png'),
+      fullPage: true,
+    });
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth,
+    );
+    expect(overflow).toBe(false);
+    await page.getByRole('link', { name: 'Open', exact: true }).first().click();
+    await expect(page.getByRole('textbox', { name: 'Batch name' })).toHaveValue(
+      'Launch collection',
+    );
   });
 
   test('new batch offers ideas and workflow creation when there are no saved workflows', async ({

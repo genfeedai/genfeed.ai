@@ -26,7 +26,11 @@ const json = (route: Route, payload: unknown) =>
     contentType: 'application/json',
     body: JSON.stringify(payload),
   });
-export async function mockBatchProject(page: Page, kind: BatchProjectKind) {
+export async function mockBatchProject(
+  page: Page,
+  kind: BatchProjectKind,
+  options: { deferGeneration?: boolean } = {},
+) {
   const bootstrap = buildProtectedAppBootstrapPayload();
   const credential = {
     id: 'batch-instagram',
@@ -141,6 +145,7 @@ export async function mockBatchProject(page: Page, kind: BatchProjectKind) {
     itemId: 'review-item',
     itemAttributes: {
       label: 'Saved batch output',
+      prompt: 'Saved batch output',
       sourceActionId: 'batch-project-item:item-1',
       sourceWorkflowName: 'Saved workflow',
     },
@@ -201,14 +206,18 @@ export async function mockBatchProject(page: Page, kind: BatchProjectKind) {
           };
           return json(route, { data: project.quote });
         } else if (path.endsWith('/start')) {
-          project.status = BatchProjectStatus.REVIEWING;
+          project.status = options.deferGeneration
+            ? BatchProjectStatus.GENERATING
+            : BatchProjectStatus.REVIEWING;
           project.step = BatchProjectStep.REVIEW;
           project.reviewBatchId = 'review-batch';
           if (project.quote)
             project.quote.acceptedAt = new Date().toISOString();
           project.items = project.items?.map((entry) => ({
             ...entry,
-            status: BatchProjectItemStatus.READY,
+            status: options.deferGeneration
+              ? BatchProjectItemStatus.GENERATING
+              : BatchProjectItemStatus.READY,
             outputIngredientId: 'output-1',
             reviewBatchId: 'review-batch',
             reviewItemId: 'review-item',
@@ -234,5 +243,15 @@ export async function mockBatchProject(page: Page, kind: BatchProjectKind) {
       return json(route, response());
     },
   );
-  return { getProject: () => project, scheduled };
+  return {
+    getProject: () => project,
+    scheduled,
+    completeGeneration: () => {
+      project.status = BatchProjectStatus.REVIEWING;
+      project.items = project.items?.map((entry) => ({
+        ...entry,
+        status: BatchProjectItemStatus.READY,
+      }));
+    },
+  };
 }
