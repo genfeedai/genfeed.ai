@@ -2,11 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sentry = vi.hoisted(() => ({
   captureException: vi.fn(),
+  captureMessage: vi.fn(),
   init: vi.fn(),
 }));
 
 vi.mock('@sentry/nextjs', () => sentry);
 
+import { holdSentryReport } from '@services/core/sentry-held-reports';
 import { initDeferredSentry } from './deferred-sentry';
 
 let runIdle: () => void = () => {};
@@ -71,6 +73,38 @@ describe('initDeferredSentry', () => {
     runIdle();
     await vi.waitFor(() => expect(sentry.init).toHaveBeenCalled());
     expect(sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  // A render error caught by a boundary never reaches the window listeners; the
+  // logger holds it until the SDK has a client.
+  it('replays reports the logger held before the SDK started', async () => {
+    const renderError = new Error('Render failed');
+    holdSentryReport({
+      context: { level: 'error', tags: { errorBoundary: 'true' } },
+      error: renderError,
+      kind: 'exception',
+    });
+    holdSentryReport({
+      context: { level: 'warning' },
+      kind: 'message',
+      message: 'Slow boot',
+    });
+
+    initDeferredSentry({});
+    runIdle();
+
+    await vi.waitFor(() =>
+      expect(sentry.captureException).toHaveBeenCalledWith(renderError, {
+        level: 'error',
+        tags: { errorBoundary: 'true' },
+      }),
+    );
+    expect(sentry.captureMessage).toHaveBeenCalledWith('Slow boot', {
+      level: 'warning',
+    });
+    expect(sentry.init.mock.invocationCallOrder[0]).toBeLessThan(
+      sentry.captureException.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it('holds at most ten early errors', async () => {

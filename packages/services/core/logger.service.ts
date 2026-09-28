@@ -8,6 +8,7 @@
  */
 import * as Sentry from '@sentry/nextjs';
 import pino, { type Logger as PinoLogger } from 'pino';
+import { holdSentryReport } from './sentry-held-reports';
 
 interface LogContext {
   error?: Error | unknown;
@@ -113,6 +114,15 @@ function logToConsole(
 }
 
 /**
+ * In the browser, Sentry may not have started yet: the website starts it once
+ * the page is idle. Reports raised before then are held and replayed by that
+ * start instead of being dropped by a client-less SDK.
+ */
+function isSentryStarting(): boolean {
+  return typeof window !== 'undefined' && !Sentry.getClient();
+}
+
+/**
  * Helper to safely capture errors in Sentry
  * Extracts the actual Error object and context from the log object
  */
@@ -153,6 +163,11 @@ const captureSentryError = (message: string, obj?: unknown) => {
       context.tags = logContext.tags;
     }
 
+    if (isSentryStarting()) {
+      holdSentryReport({ context, error: actualError, kind: 'exception' });
+      return;
+    }
+
     Sentry.captureException(actualError, context);
   } catch (sentryError) {
     if (typeof window !== 'undefined') {
@@ -177,14 +192,21 @@ const captureSentryMessage = (
       return;
     }
 
-    Sentry.captureMessage(message, {
+    const context: Sentry.CaptureContext = {
       extra:
         obj && typeof obj === 'object'
           ? (obj as Record<string, unknown>)
           : undefined,
       level,
       tags: logContext?.tags,
-    });
+    };
+
+    if (isSentryStarting()) {
+      holdSentryReport({ context, kind: 'message', message });
+      return;
+    }
+
+    Sentry.captureMessage(message, context);
   } catch (sentryError) {
     if (typeof window !== 'undefined') {
       logToConsole('debug', 'Failed to send message to Sentry', {

@@ -1,4 +1,5 @@
 import type { BrowserOptions } from '@sentry/nextjs';
+import { takeHeldSentryReports } from '@services/core/sentry-held-reports';
 import { runWhenIdle } from '../analytics/run-when-idle';
 
 /** Enough to see what broke during boot without flooding a crash loop. */
@@ -9,9 +10,10 @@ const MAX_EARLY_ERRORS = 10;
  * path.
  *
  * The SDK is ~75 KB gzip, about a quarter of every marketing page's first-load
- * JavaScript. It now loads once the page is idle. Errors thrown before then are
- * held by two plain listeners and reported as soon as the SDK is up, so the
- * boot window is not a blind spot.
+ * JavaScript. It now loads once the page is idle. Nothing raised before then is
+ * lost: uncaught errors and rejections are held by two plain listeners, reports
+ * logged through the logger (error boundaries) are held by the logger, and both
+ * are sent as soon as the SDK is up.
  */
 export function initDeferredSentry(options: BrowserOptions): void {
   const earlyErrors: unknown[] = [];
@@ -48,6 +50,16 @@ export function initDeferredSentry(options: BrowserOptions): void {
           Sentry.captureException(error, {
             tags: { captured_before_sdk: 'true' },
           });
+        }
+
+        // Reports the logger raised before the client existed, such as a
+        // render error an error boundary caught during boot.
+        for (const report of takeHeldSentryReports()) {
+          if (report.kind === 'exception') {
+            Sentry.captureException(report.error, report.context);
+          } else {
+            Sentry.captureMessage(report.message, report.context);
+          }
         }
       })
       .catch(() => {

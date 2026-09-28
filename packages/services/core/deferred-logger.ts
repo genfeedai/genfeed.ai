@@ -11,13 +11,25 @@ type LogLevel = keyof Logger;
 let loggerPromise: Promise<Logger> | null = null;
 
 function loadLogger(): Promise<Logger> {
-  loggerPromise ??= import('./logger.service').then(({ logger }) => logger);
+  loggerPromise ??= import('./logger.service')
+    .then(({ logger }) => logger)
+    .catch((error: unknown) => {
+      // Forget the failed load so the next call retries it.
+      loggerPromise = null;
+      throw error;
+    });
   return loggerPromise;
 }
 
 function deferTo(level: LogLevel) {
   return (message: string, context?: unknown): void => {
-    void loadLogger().then((logger) => logger[level](message, context));
+    void loadLogger()
+      .then((logger) => logger[level](message, context))
+      .catch(() => {
+        // The logger chunk failed to load (offline, blocked). Keep the report
+        // visible instead of losing it; the next call retries the import.
+        console[level](message, context);
+      });
   };
 }
 
