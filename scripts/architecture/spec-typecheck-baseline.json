@@ -3073,22 +3073,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "8d53b5d1e7422823def0",
-      "message": "Argument of type '{ id: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'organizationId' is missing in type '{ id: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/helpers/utils/entity-id/entity-id.util.spec.ts",
-      "fingerprint": "af5e929b6f08988ce69d",
-      "message": "Argument of type '{ organizationId: string; userId: string; }' is not assignable to parameter of type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.   Property 'id' is missing in type '{ organizationId: string; userId: string; }' but required in type 'Pick<AuthenticatedUser, \"id\" | \"organizationId\" | \"userId\">'.",
-      "workspace": "api"
-    },
-    {
       "code": 18046,
       "count": 1,
       "file": "apps/server/api/src/helpers/utils/error-response/error-response.util.spec.ts",
