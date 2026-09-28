@@ -128,10 +128,14 @@ async function scheduleDraftPostForTomorrow(
     .getByRole('option', { name: '9:00 AM', exact: true })
     .click();
 
-  const scheduleButton = authenticatedPage.getByRole('button', {
-    name: 'Schedule',
-    exact: true,
-  });
+  // The header repeats Schedule as its primary action; this drives the
+  // sidebar schedule card's own button.
+  const scheduleButton = authenticatedPage
+    .getByTestId('post-schedule-card')
+    .getByRole('button', {
+      name: 'Schedule',
+      exact: true,
+    });
   await expect(scheduleButton).toBeEnabled();
 
   // Require the actual mutation chain, not just "some PATCH fired":

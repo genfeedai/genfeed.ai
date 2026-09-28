@@ -38,7 +38,7 @@ export default function PostSidebarScheduleCard({
   const translate = useTranslations('agent.postSidebarSchedule');
 
   return (
-    <Card bodyClassName="space-y-3 p-4">
+    <Card bodyClassName="space-y-3 p-4" data-testid="post-schedule-card">
       <div className="space-y-0.5">
         <h3 className="text-sm font-semibold text-foreground">
           {translate('scheduledTime')}
