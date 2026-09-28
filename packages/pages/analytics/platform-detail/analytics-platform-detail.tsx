@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  PageScope,
+  sumEngagement,
+} from '@genfeedai/contracts';
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import {
   formatCompactNumberIntl,
@@ -109,7 +114,17 @@ export default function AnalyticsPlatformDetail({
     0,
   );
 
-  const totalEngagement = totalLikes + totalComments + totalShares;
+  const totalSaves = posts.reduce(
+    (sum, post) => sum + (post.totalSaves || 0),
+    0,
+  );
+
+  const totalEngagement = sumEngagement({
+    comments: totalComments,
+    likes: totalLikes,
+    saves: totalSaves,
+    shares: totalShares,
+  });
   const avgEngagementRate =
     posts.length > 0
       ? posts.reduce((sum, post) => sum + (post.avgEngagementRate || 0), 0) /
