@@ -1,13 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IMetadata, IVideo } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import { Button } from '@ui/primitives/button';
+import MasonryFailureNotice from '@ui/masonry/shared/MasonryFailureNotice';
 import Image from 'next/image';
-import { useTranslations } from 'next-intl';
 import type { DragEvent, RefObject } from 'react';
 
 type MasonryVideoMediaAreaProps = {
@@ -64,7 +62,6 @@ export default function MasonryVideoMediaArea({
   onMediaError,
   onReprompt,
 }: MasonryVideoMediaAreaProps) {
-  const translate = useTranslations('common.libraryRetry');
   const sharedWrapperProps = {
     'data-testid': `masonry-ingredient-${video.id}`,
     role: 'button' as const,
@@ -112,47 +109,13 @@ export default function MasonryVideoMediaArea({
             </div>
           )}
 
-          {isFailed && onReprompt && (
-            <div
-              className={
-                'pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 bg-black/45 px-4 text-center backdrop-blur-sm' /* design-system-allow-content-color -- media overlay */
-              }
-              data-testid={`asset-failure-overlay-${video.id}`}
-            >
-              <p
-                className={
-                  'line-clamp-2 text-xs font-medium text-white' /* design-system-allow-content-color -- media overlay */
-                }
-              >
-                {failureReason ?? translate('genericFailureReason')}
-              </p>
-              <div
-                role="presentation"
-                className="pointer-events-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button
-                  onClick={() => onReprompt(video)}
-                  label={translate('retry')}
-                  ariaLabel={translate('retryAriaLabel')}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                />
-              </div>
-            </div>
-          )}
-
-          {isFailed && !onReprompt && (
-            <div
-              aria-live="polite"
-              className="pointer-events-none absolute inset-x-3 bottom-3 z-50 rounded-lg bg-secondary/90 px-3 py-2 text-center text-xs font-medium text-foreground/70 shadow-dropdown"
-              data-testid={`asset-failure-reason-${video.id}`}
-              role="status"
-            >
-              <span className="line-clamp-2">
-                {failureReason ?? translate('genericFailureReason')}
-              </span>
-            </div>
+          {isFailed && (
+            <MasonryFailureNotice
+              failureReason={failureReason}
+              ingredientId={video.id}
+              reasonClassName="z-50"
+              onRetry={onReprompt ? () => onReprompt(video) : undefined}
+            />
           )}
 
           <Image

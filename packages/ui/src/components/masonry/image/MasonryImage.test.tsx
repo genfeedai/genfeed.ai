@@ -1,3 +1,4 @@
+import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,7 +14,7 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 vi.mock(
   '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
-    default: () => ({
+    default: vi.fn(() => ({
       actionStates: {},
       clearEnhanceConfirm: vi.fn(),
       clearUpscaleConfirm: vi.fn(),
@@ -35,7 +36,7 @@ vi.mock(
         handleUpscale: vi.fn(),
       },
       upscaleConfirmData: null,
-    }),
+    })),
   }),
 );
 
@@ -381,5 +382,17 @@ describe('MasonryImage', () => {
     expect(
       screen.queryByRole('button', { name: 'Retry generation' }),
     ).not.toBeInTheDocument();
+  });
+
+  // Public galleries and profiles mount none of the app's providers, and the
+  // actions hook reads them. A read-only tile must not call it.
+  it('never calls the actions hook when actions are disabled', () => {
+    vi.mocked(useIngredientActions).mockClear();
+
+    render(<MasonryImage image={mockImage} isActionsEnabled={false} />);
+    expect(useIngredientActions).not.toHaveBeenCalled();
+
+    render(<MasonryImage image={mockImage} />);
+    expect(useIngredientActions).toHaveBeenCalled();
   });
 });

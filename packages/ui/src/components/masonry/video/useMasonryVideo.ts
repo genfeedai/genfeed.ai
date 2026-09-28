@@ -6,7 +6,6 @@ import type {
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
-import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';
@@ -17,26 +16,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface UseMasonryVideoParams {
   video: IVideo;
-  isGeneratingCaptions: boolean;
-  isPortraiting: boolean;
   isContainerHovered: boolean;
   isDragEnabled: boolean;
-  onDeleteIngredient?: ((ingredient: IVideo) => void) | undefined;
-  onPublishIngredient?: ((ingredient: IVideo) => void) | undefined;
-  onRefresh?: (() => void) | undefined;
   onUpdateParent?: ((ingredient: IVideo, parentId: string) => void) | undefined;
   onHoverChange?: ((isHovered: boolean) => void) | undefined;
 }
 
 export function useMasonryVideo({
   video,
-  isGeneratingCaptions,
-  isPortraiting,
   isContainerHovered,
   isDragEnabled,
-  onDeleteIngredient,
-  onPublishIngredient,
-  onRefresh,
   onUpdateParent,
   onHoverChange,
 }: UseMasonryVideoParams) {
@@ -96,27 +85,6 @@ export function useMasonryVideo({
       ? (video.metadata as IMetadata)
       : null;
   const metadataLabel = metadata?.label;
-
-  // Shared ingredient actions
-  const {
-    actionStates,
-    handlers,
-    upscaleConfirmData,
-    executeUpscale,
-    clearUpscaleConfirm,
-    enhanceConfirmData,
-    executeEnhance,
-    clearEnhanceConfirm,
-    extendConfirmData,
-    executeExtend,
-    clearExtendConfirm,
-  } = useIngredientActions({
-    initialGeneratingCaptions: isGeneratingCaptions,
-    initialPortraiting: isPortraiting,
-    onDeleteIngredient,
-    onPublishIngredient,
-    onRefresh,
-  });
 
   const handleDownload = useMemo(() => createDownloadHandler(), []);
 
@@ -293,17 +261,6 @@ export function useMasonryVideo({
     ingredientUrl,
     metadata,
     metadataLabel,
-    actionStates,
-    handlers,
-    upscaleConfirmData,
-    executeUpscale,
-    clearUpscaleConfirm,
-    enhanceConfirmData,
-    executeEnhance,
-    clearEnhanceConfirm,
-    extendConfirmData,
-    executeExtend,
-    clearExtendConfirm,
     handleDownload,
     handleMouseHover,
     handleQuickActionsMouseEnter,

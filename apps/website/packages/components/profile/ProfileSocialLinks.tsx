@@ -1,5 +1,3 @@
-'use client';
-
 import type { IconType } from '@genfeedai/contracts/interfaces/ui/icon.interface';
 import {
   InstagramIcon,

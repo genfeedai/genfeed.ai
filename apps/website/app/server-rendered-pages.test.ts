@@ -47,11 +47,14 @@ const SERVER_RENDERED_PAGES = [
   'app/(public)/use-cases/use-cases-hub-content.tsx',
   'app/(public)/vs/vs-hub-content.tsx',
   'app/(public)/workflows/workflows-content.tsx',
+  'app/u/[handle]/profile-page.tsx',
+  'app/u/layout.tsx',
   'packages/components/PageLayout.tsx',
   'packages/components/content/NeuralGrid.tsx',
   'packages/components/content/PublicListPage.tsx',
   'packages/components/landing/DevelopersLandingPage.tsx',
   'packages/components/landing/ServiceLandingPage.tsx',
+  'packages/components/profile/ProfileSocialLinks.tsx',
   'src/page-modules/posts/[id]/ingredient-posts.tsx',
   'src/page-modules/posts/ingredients/posts-ingredients-list.tsx',
 ];
@@ -97,6 +100,13 @@ describe('server-rendered marketing pages', () => {
   it.each(SERVER_RENDERED_PAGES)('%s stays a server component', (path) => {
     // Multiline: a directive after a leading comment still counts.
     expect(readSource(path)).not.toMatch(/^\s*['"]use client['"]/m);
+  });
+
+  // The app's context providers bring its API service layer, pino and the
+  // Sentry SDK with them. Profile tiles are read-only and read neither;
+  // `ProfileMedia.test.tsx` renders them with no providers at all.
+  it('keeps the public profile layout free of app providers', () => {
+    expect(readSource('app/u/layout.tsx')).not.toMatch(/@providers\//);
   });
 
   it.each(DEFERRED_IMPORTS)(

@@ -2,6 +2,7 @@
 
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryVideoProps } from '@genfeedai/props/content/masonry.props';
 import { getIngredientFailureReason } from '@genfeedai/utils/media/ingredient-ledger.util';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
@@ -16,7 +17,42 @@ import { useMasonryVideo } from './useMasonryVideo';
 
 const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
-export default function MasonryVideo({
+type IngredientActions = ReturnType<typeof useIngredientActions>;
+
+interface MasonryVideoTileProps extends MasonryVideoProps {
+  /** Present only when the tile offers actions. */
+  actions?: IngredientActions;
+}
+
+/**
+ * A read-only tile (public galleries and profiles) never calls
+ * `useIngredientActions`: that hook reads the app's elements, brand, socket
+ * and service contexts, which pages without the app's providers do not mount.
+ */
+export default function MasonryVideo(
+  props: MasonryVideoProps,
+): React.ReactElement {
+  if (props.isActionsEnabled === false) {
+    return <MasonryVideoTile {...props} />;
+  }
+
+  return <MasonryVideoWithActions {...props} />;
+}
+
+function MasonryVideoWithActions(props: MasonryVideoProps): React.ReactElement {
+  const actions = useIngredientActions({
+    initialGeneratingCaptions: props.isGeneratingCaptions ?? false,
+    initialPortraiting: props.isPortraiting ?? false,
+    onDeleteIngredient: props.onDeleteIngredient,
+    onPublishIngredient: props.onPublishIngredient,
+    onRefresh: props.onRefresh,
+  });
+
+  return <MasonryVideoTile {...props} actions={actions} />;
+}
+
+function MasonryVideoTile({
+  actions,
   video,
   isSelected = false,
   isScrollFocused = false,
@@ -34,9 +70,7 @@ export default function MasonryVideo({
   onShareIngredient,
   onClickIngredient,
   onToggleSelection,
-  onDeleteIngredient,
   onVoteIngredient,
-  onPublishIngredient,
   onToggleFavorite,
   onCopyPrompt,
   onReprompt,
@@ -53,7 +87,7 @@ export default function MasonryVideo({
   onRefresh,
   isDragEnabled = true,
   onHoverChange,
-}: MasonryVideoProps) {
+}: MasonryVideoTileProps): React.ReactElement {
   const {
     videoRef,
     isHovered,
@@ -67,17 +101,6 @@ export default function MasonryVideo({
     ingredientUrl,
     metadata,
     metadataLabel,
-    actionStates,
-    handlers,
-    upscaleConfirmData,
-    executeUpscale,
-    clearUpscaleConfirm,
-    enhanceConfirmData,
-    executeEnhance,
-    clearEnhanceConfirm,
-    extendConfirmData,
-    executeExtend,
-    clearExtendConfirm,
     handleDownload,
     handleMouseHover,
     handleQuickActionsMouseEnter,
@@ -86,13 +109,8 @@ export default function MasonryVideo({
     handleMediaDragStart,
   } = useMasonryVideo({
     video,
-    isGeneratingCaptions,
-    isPortraiting,
     isContainerHovered,
     isDragEnabled,
-    onDeleteIngredient,
-    onPublishIngredient,
-    onRefresh,
     onUpdateParent,
     onHoverChange,
   });
@@ -157,37 +175,39 @@ export default function MasonryVideo({
       )}
 
       {/* Quick actions bar */}
-      <MasonryVideoActionsBar
-        video={video}
-        isHovered={isHovered}
-        isActionsEnabled={isActionsEnabled}
-        isUnavailable={isUnavailable}
-        isSelected={isSelected}
-        isPortraiting={isPortraiting}
-        isGeneratingCaptions={isGeneratingCaptions}
-        isMirroring={isMirroring}
-        isReversing={isReversing}
-        actionStates={actionStates}
-        handlers={handlers}
-        availableTags={availableTags}
-        isLoadingTags={isLoadingTags}
-        handleDownload={handleDownload}
-        handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
-        handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
-        onVoteIngredient={onVoteIngredient}
-        onShareIngredient={onShareIngredient}
-        onSeeDetails={onSeeDetails}
-        onMarkValidated={onMarkValidated}
-        onMarkRejected={onMarkRejected}
-        onToggleFavorite={onToggleFavorite}
-        onCopyPrompt={onCopyPrompt}
-        onReprompt={onReprompt}
-        onGenerateCaptions={onGenerateCaptions}
-        onScopeChange={onScopeChange}
-        onRefresh={onRefresh}
-        onReverse={onReverse}
-        onMirror={onMirror}
-      />
+      {actions ? (
+        <MasonryVideoActionsBar
+          video={video}
+          isHovered={isHovered}
+          isActionsEnabled={isActionsEnabled}
+          isUnavailable={isUnavailable}
+          isSelected={isSelected}
+          isPortraiting={isPortraiting}
+          isGeneratingCaptions={isGeneratingCaptions}
+          isMirroring={isMirroring}
+          isReversing={isReversing}
+          actionStates={actions.actionStates}
+          handlers={actions.handlers}
+          availableTags={availableTags}
+          isLoadingTags={isLoadingTags}
+          handleDownload={handleDownload}
+          handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
+          handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
+          onVoteIngredient={onVoteIngredient}
+          onShareIngredient={onShareIngredient}
+          onSeeDetails={onSeeDetails}
+          onMarkValidated={onMarkValidated}
+          onMarkRejected={onMarkRejected}
+          onToggleFavorite={onToggleFavorite}
+          onCopyPrompt={onCopyPrompt}
+          onReprompt={onReprompt}
+          onGenerateCaptions={onGenerateCaptions}
+          onScopeChange={onScopeChange}
+          onRefresh={onRefresh}
+          onReverse={onReverse}
+          onMirror={onMirror}
+        />
+      ) : null}
     </div>
   );
 
@@ -209,17 +229,17 @@ export default function MasonryVideo({
   return (
     <>
       {content}
-      {isActionsEnabled && (
+      {isActionsEnabled && actions && (
         <MasonryConfirmBridge
-          upscaleConfirmData={upscaleConfirmData}
-          executeUpscale={executeUpscale}
-          clearUpscaleConfirm={clearUpscaleConfirm}
-          enhanceConfirmData={enhanceConfirmData}
-          executeEnhance={executeEnhance}
-          clearEnhanceConfirm={clearEnhanceConfirm}
-          extendConfirmData={extendConfirmData}
-          executeExtend={executeExtend}
-          clearExtendConfirm={clearExtendConfirm}
+          upscaleConfirmData={actions.upscaleConfirmData}
+          executeUpscale={actions.executeUpscale}
+          clearUpscaleConfirm={actions.clearUpscaleConfirm}
+          enhanceConfirmData={actions.enhanceConfirmData}
+          executeEnhance={actions.executeEnhance}
+          clearEnhanceConfirm={actions.clearEnhanceConfirm}
+          extendConfirmData={actions.extendConfirmData}
+          executeExtend={actions.executeExtend}
+          clearExtendConfirm={actions.clearExtendConfirm}
         />
       )}
     </>

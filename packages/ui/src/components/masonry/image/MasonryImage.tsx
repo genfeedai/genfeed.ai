@@ -26,7 +26,41 @@ import MasonryImageActionsBar from './MasonryImageActionsBar';
 import MasonryImageMediaArea from './MasonryImageMediaArea';
 import { getAspectRatioStyle, getImageSrc } from './masonry-image.helpers';
 
-export default function MasonryImage({
+type IngredientActions = ReturnType<typeof useIngredientActions>;
+
+interface MasonryImageTileProps extends MasonryImageProps {
+  /** Present only when the tile offers actions. */
+  actions?: IngredientActions;
+}
+
+/**
+ * A read-only tile (public galleries and profiles) never calls
+ * `useIngredientActions`: that hook reads the app's elements, brand, socket
+ * and service contexts, which pages without the app's providers do not mount.
+ */
+export default function MasonryImage(
+  props: MasonryImageProps,
+): React.ReactElement {
+  if (props.isActionsEnabled === false) {
+    return <MasonryImageTile {...props} />;
+  }
+
+  return <MasonryImageWithActions {...props} />;
+}
+
+function MasonryImageWithActions(props: MasonryImageProps): React.ReactElement {
+  const actions = useIngredientActions({
+    onConvertToVideo: props.onConvertToVideo,
+    onDeleteIngredient: props.onDeleteIngredient,
+    onPublishIngredient: props.onPublishIngredient,
+    onRefresh: props.onRefresh,
+  });
+
+  return <MasonryImageTile {...props} actions={actions} />;
+}
+
+function MasonryImageTile({
+  actions,
   image,
   isSelected = false,
   isScrollFocused = false,
@@ -41,7 +75,6 @@ export default function MasonryImage({
   onVoteIngredient,
   onClickIngredient,
   onToggleSelection,
-  onDeleteIngredient,
   onPublishIngredient,
   onToggleFavorite,
   onCopyPrompt,
@@ -62,7 +95,7 @@ export default function MasonryImage({
   onRefresh,
   isDragEnabled = true,
   onHoverChange,
-}: MasonryImageProps): React.ReactElement {
+}: MasonryImageTileProps): React.ReactElement {
   const { selectedBrand, settings } = useBrand();
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
@@ -82,22 +115,6 @@ export default function MasonryImage({
   } = useMasonryHover({
     isContainerHovered,
     onHoverChange,
-  });
-
-  const {
-    actionStates,
-    handlers,
-    upscaleConfirmData,
-    executeUpscale,
-    clearUpscaleConfirm,
-    enhanceConfirmData,
-    executeEnhance,
-    clearEnhanceConfirm,
-  } = useIngredientActions({
-    onConvertToVideo,
-    onDeleteIngredient,
-    onPublishIngredient,
-    onRefresh,
   });
 
   const handleDownload = useMemo(() => createDownloadHandler(), []);
@@ -245,47 +262,49 @@ export default function MasonryImage({
         />
       )}
 
-      <MasonryImageActionsBar
-        image={image}
-        isActionsEnabled={isActionsEnabled}
-        isSelected={isSelected}
-        showActions={showActions}
-        actionStates={actionStates}
-        handlers={handlers}
-        availableTags={availableTags}
-        isLoadingTags={isLoadingTags}
-        handleDownload={handleDownload}
-        handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
-        handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
-        onVoteIngredient={onVoteIngredient}
-        onPublishIngredient={onPublishIngredient}
-        onSeeDetails={onSeeDetails}
-        onShareIngredient={onShareIngredient}
-        onToggleFavorite={onToggleFavorite}
-        onCopyPrompt={onCopyPrompt}
-        onReprompt={onReprompt}
-        onConvertToVideo={onConvertToVideo}
-        onUseAsVideoReference={onUseAsVideoReference}
-        onCreateVariation={onCreateVariation}
-        onReverse={onReverse}
-        onMirror={onMirror}
-        onMarkValidated={onMarkValidated}
-        onMarkRejected={onMarkRejected}
-        onMarkArchived={onMarkArchived}
-        onScopeChange={onScopeChange}
-        onRefresh={onRefresh}
-      />
+      {actions ? (
+        <MasonryImageActionsBar
+          image={image}
+          isActionsEnabled={isActionsEnabled}
+          isSelected={isSelected}
+          showActions={showActions}
+          actionStates={actions.actionStates}
+          handlers={actions.handlers}
+          availableTags={availableTags}
+          isLoadingTags={isLoadingTags}
+          handleDownload={handleDownload}
+          handleQuickActionsMouseEnter={handleQuickActionsMouseEnter}
+          handleQuickActionsMouseLeave={handleQuickActionsMouseLeave}
+          onVoteIngredient={onVoteIngredient}
+          onPublishIngredient={onPublishIngredient}
+          onSeeDetails={onSeeDetails}
+          onShareIngredient={onShareIngredient}
+          onToggleFavorite={onToggleFavorite}
+          onCopyPrompt={onCopyPrompt}
+          onReprompt={onReprompt}
+          onConvertToVideo={onConvertToVideo}
+          onUseAsVideoReference={onUseAsVideoReference}
+          onCreateVariation={onCreateVariation}
+          onReverse={onReverse}
+          onMirror={onMirror}
+          onMarkValidated={onMarkValidated}
+          onMarkRejected={onMarkRejected}
+          onMarkArchived={onMarkArchived}
+          onScopeChange={onScopeChange}
+          onRefresh={onRefresh}
+        />
+      ) : null}
     </div>
   );
 
-  const confirmBridge = isActionsEnabled && (
+  const confirmBridge = isActionsEnabled && actions && (
     <MasonryConfirmBridge
-      upscaleConfirmData={upscaleConfirmData}
-      executeUpscale={executeUpscale}
-      clearUpscaleConfirm={clearUpscaleConfirm}
-      enhanceConfirmData={enhanceConfirmData}
-      executeEnhance={executeEnhance}
-      clearEnhanceConfirm={clearEnhanceConfirm}
+      upscaleConfirmData={actions.upscaleConfirmData}
+      executeUpscale={actions.executeUpscale}
+      clearUpscaleConfirm={actions.clearUpscaleConfirm}
+      enhanceConfirmData={actions.enhanceConfirmData}
+      executeEnhance={actions.executeEnhance}
+      clearEnhanceConfirm={actions.clearEnhanceConfirm}
     />
   );
 
