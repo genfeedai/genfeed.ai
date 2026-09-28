@@ -14,6 +14,8 @@ import {
   getUiActionRunKey,
   type HandleUiActionDeps,
   handleAgentUiAction,
+  hasPendingPlanReviewRun,
+  resumePendingUiActionRuns,
   resumeUiActionRun,
   UI_ACTION_BACKGROUND_CAP_MS,
   UI_ACTION_BACKGROUND_INITIAL_DELAY_MS,
@@ -137,6 +139,7 @@ function makeDeps(
     isBusy: false,
     isReadOnly: false,
     latestProposedPlan: null,
+    reconcilingRuns: new Map(),
     sendMessage: vi.fn(),
     setActiveThread: vi.fn(),
     setActiveUiAction: vi.fn(),
@@ -1083,5 +1086,237 @@ describe('handleAgentUiAction', () => {
         useAgentChatStore.getState().conversationCacheByThread['thread-1'],
       ).toBeUndefined();
     });
+  });
+});
+
+describe('duplicate submissions while a run is pending', () => {
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+    useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function makeRunningApi() {
+    return {
+      getCreditsInfo: vi
+        .fn()
+        .mockResolvedValue({ balance: 0, modelAccess: {}, modelCosts: {} }),
+      getMessages: vi.fn().mockResolvedValue([]),
+      getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+      getWorkflowExecution: vi
+        .fn()
+        .mockResolvedValue(makeExecution(WorkflowExecutionStatus.RUNNING)),
+      respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+    } as unknown as AgentApiService;
+  }
+
+  it('does not execute a plan again when its approval outlives the foreground window', async () => {
+    vi.useFakeTimers();
+    const apiService = makeRunningApi();
+    const reconcilingRuns = new Map<string, AbortSignal>();
+    const deps = () => makeDeps({ apiService, reconcilingRuns });
+
+    const first = handleAgentUiAction(
+      'approve_plan',
+      { planId: 'plan-1' },
+      deps(),
+    );
+    await vi.advanceTimersByTimeAsync(UI_ACTION_RECONCILE_TIMEOUT_MS + 1_000);
+    expect(await first).toBe('pending');
+
+    // The active ui-action lock is released, but the plan is still executing.
+    const approveAgain = await handleAgentUiAction(
+      'approve_plan',
+      { planId: 'plan-1' },
+      deps(),
+    );
+    const reviseMeanwhile = await handleAgentUiAction(
+      'revise_plan',
+      { planId: 'plan-1', revisionNote: 'Shorter' },
+      deps(),
+    );
+
+    expect(approveAgain).toBe('pending');
+    expect(reviseMeanwhile).toBe('pending');
+    expect(apiService.respondToUiAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not resubmit a card action whose run is still pending', async () => {
+    const apiService = makeRunningApi();
+    const payload = { sourceActionId: 'publish-card-1' };
+    useAgentChatStore.getState().setUiActionRun({
+      action: 'confirm_publish_post',
+      executionId: 'exec-1',
+      key: getUiActionRunKey('thread-1', 'confirm_publish_post', payload),
+      payload,
+      status: 'pending',
+      threadId: 'thread-1',
+    });
+    const deps = makeDeps({ apiService });
+
+    const result = await handleAgentUiAction(
+      'confirm_publish_post',
+      payload,
+      deps,
+    );
+
+    expect(result).toBe('pending');
+    expect(apiService.respondToUiAction).not.toHaveBeenCalled();
+    expect(deps.setActiveUiAction).not.toHaveBeenCalled();
+  });
+
+  it('scopes a pending plan review to its thread and plan', () => {
+    const run = {
+      action: 'approve_plan',
+      executionId: 'exec-1',
+      key: getUiActionRunKey('thread-1', 'approve_plan', { planId: 'plan-1' }),
+      payload: { planId: 'plan-1' },
+      status: 'pending' as const,
+      threadId: 'thread-1',
+    };
+    const runs = { [run.key]: run };
+
+    expect(hasPendingPlanReviewRun(runs, 'thread-1', 'plan-1')).toBe(true);
+    expect(hasPendingPlanReviewRun(runs, 'thread-1', 'plan-2')).toBe(false);
+    expect(hasPendingPlanReviewRun(runs, 'thread-2', 'plan-1')).toBe(false);
+    expect(
+      hasPendingPlanReviewRun(
+        { [run.key]: { ...run, status: 'completed' as const } },
+        'thread-1',
+        'plan-1',
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('reconciling runs registered on the visible thread', () => {
+  const payload = { sourceActionId: 'publish-card-1' };
+  const runKey = getUiActionRunKey('thread-1', 'confirm_publish_post', payload);
+
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+    useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+  });
+
+  function makeCompletingApi() {
+    return {
+      getCreditsInfo: vi
+        .fn()
+        .mockResolvedValue({ balance: 5, modelAccess: {}, modelCosts: {} }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue([makeRecoveredMessage({ content: 'Published.' })]),
+      getThread: vi.fn().mockResolvedValue(makeThread('thread-1')),
+      getWorkflowExecution: vi
+        .fn()
+        .mockResolvedValue(makeExecution(WorkflowExecutionStatus.COMPLETED)),
+      respondToUiAction: vi.fn().mockResolvedValue(makeAck()),
+    } as unknown as AgentApiService;
+  }
+
+  it('leaves a run acked after its submitter was aborted unclaimed, then settles it once resumed', async () => {
+    const apiService = makeCompletingApi();
+    const reconcilingRuns = new Map<string, AbortSignal>();
+    const submitter = new AbortController();
+    submitter.abort();
+
+    const result = await handleAgentUiAction(
+      'confirm_publish_post',
+      payload,
+      makeDeps({ apiService, reconcilingRuns, signal: submitter.signal }),
+    );
+    expect(result).toBe('pending');
+    expect(useAgentChatStore.getState().uiActionRuns[runKey]?.status).toBe(
+      'pending',
+    );
+    expect(reconcilingRuns.has('exec-1')).toBe(false);
+
+    const createDeps = vi.fn(() => makeDeps({ apiService, reconcilingRuns }));
+    resumePendingUiActionRuns(
+      useAgentChatStore.getState().uiActionRuns,
+      'thread-1',
+      reconcilingRuns,
+      createDeps,
+    );
+    // The same run is not reconciled twice while its reconciler is live.
+    resumePendingUiActionRuns(
+      useAgentChatStore.getState().uiActionRuns,
+      'thread-1',
+      reconcilingRuns,
+      createDeps,
+    );
+    expect(createDeps).toHaveBeenCalledTimes(1);
+
+    await vi.waitFor(() =>
+      expect(useAgentChatStore.getState().uiActionRuns[runKey]?.status).toBe(
+        'completed',
+      ),
+    );
+    expect(reconcilingRuns.has('exec-1')).toBe(false);
+  });
+
+  it('does not start a second reconciler for a run its submitter is reconciling', async () => {
+    let resolveMessages: (messages: AgentChatMessage[]) => void = () => {};
+    const apiService = {
+      ...makeCompletingApi(),
+      getMessages: vi.fn(
+        () =>
+          new Promise<AgentChatMessage[]>((resolve) => {
+            resolveMessages = resolve;
+          }),
+      ),
+    } as unknown as AgentApiService;
+    const reconcilingRuns = new Map<string, AbortSignal>();
+
+    const result = handleAgentUiAction(
+      'confirm_publish_post',
+      payload,
+      makeDeps({ apiService, reconcilingRuns }),
+    );
+    await vi.waitFor(() => expect(apiService.getMessages).toHaveBeenCalled());
+
+    const createDeps = vi.fn(() => makeDeps({ apiService, reconcilingRuns }));
+    resumePendingUiActionRuns(
+      useAgentChatStore.getState().uiActionRuns,
+      'thread-1',
+      reconcilingRuns,
+      createDeps,
+    );
+    expect(createDeps).not.toHaveBeenCalled();
+
+    resolveMessages([makeRecoveredMessage({ content: 'Published.' })]);
+    expect(await result).toBe(true);
+    expect(reconcilingRuns.has('exec-1')).toBe(false);
+  });
+
+  it('takes over a run whose reconciler was aborted', () => {
+    const apiService = makeCompletingApi();
+    const stale = new AbortController();
+    stale.abort();
+    const reconcilingRuns = new Map<string, AbortSignal>([
+      ['exec-1', stale.signal],
+    ]);
+    useAgentChatStore.getState().setUiActionRun({
+      action: 'confirm_publish_post',
+      executionId: 'exec-1',
+      key: runKey,
+      payload,
+      status: 'pending',
+      threadId: 'thread-1',
+    });
+
+    const createDeps = vi.fn(() => makeDeps({ apiService, reconcilingRuns }));
+    resumePendingUiActionRuns(
+      useAgentChatStore.getState().uiActionRuns,
+      'thread-1',
+      reconcilingRuns,
+      createDeps,
+    );
+
+    expect(createDeps).toHaveBeenCalledTimes(1);
+    expect(reconcilingRuns.get('exec-1')).not.toBe(stale.signal);
   });
 });

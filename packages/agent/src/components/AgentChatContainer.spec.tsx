@@ -350,6 +350,7 @@ type StoreState = {
   }>;
   draftRuntimeKey: string | null;
   setDraftRuntimeKey: ReturnType<typeof vi.fn>;
+  conversationCacheByThread: Record<string, unknown>;
   error: string | null;
   isGenerating: boolean;
   messages: AgentChatMessageType[];
@@ -404,6 +405,7 @@ const storeState: StoreState = {
   setPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
   markStreamLive: vi.fn(),
+  conversationCacheByThread: {},
   draftAgentMode: AgentThreadMode.MANUAL,
   draftRuntimeKey: null,
   error: null,
@@ -582,6 +584,9 @@ describe('AgentChatContainer', () => {
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
     storeState.setUiActionStatus.mockReset();
+    storeState.setUiActionRun.mockReset();
+    storeState.uiActionRuns = {};
+    storeState.conversationCacheByThread = {};
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
@@ -2236,6 +2241,109 @@ describe('AgentChatContainer', () => {
     expect(screen.getByTestId('agent-plan-review-card')).toBeInTheDocument();
     expect(screen.getByText('Approve')).toBeInTheDocument();
     expect(screen.getByText('Request changes')).toBeInTheDocument();
+  });
+
+  it('locks the plan controls while an approval of that plan is still running', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.latestProposedPlan = {
+      content: '1. Add a toggle\n2. Pause after planning',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'plan-1',
+      status: 'awaiting_approval',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+    // The approval outlived its foreground window: the active ui-action lock
+    // is released, but the run executing the plan is still pending.
+    storeState.uiActionRuns = {
+      'thread-1:approve_plan:{"planId":"plan-1"}': {
+        action: 'approve_plan',
+        executionId: 'exec-plan-1',
+        key: 'thread-1:approve_plan:{"planId":"plan-1"}',
+        payload: { planId: 'plan-1' },
+        status: 'pending',
+        threadId: 'thread-1',
+      },
+    };
+
+    render(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Request changes' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    expect(apiService.respondToUiAction).not.toHaveBeenCalled();
+  });
+
+  it('reconciles a run whose ack lands after its thread was left and shown again', async () => {
+    let resolveAck: (ack: {
+      executionId: string;
+      status: 'queued';
+      threadId: string;
+    }) => void = () => undefined;
+    const apiService = createApiService({
+      ...createUiActionApi({ content: 'Plan executed.' }),
+      getWorkflowExecution: vi
+        .fn()
+        .mockResolvedValue({ id: 'exec-ui-action', status: 'running' }),
+      respondToUiAction: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveAck = resolve;
+          }),
+      ),
+    });
+    storeState.setUiActionRun.mockImplementation((run: { key: string }) => {
+      storeState.uiActionRuns = { ...storeState.uiActionRuns, [run.key]: run };
+    });
+    storeState.pendingInputRequest = null;
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
+    storeState.latestProposedPlan = {
+      content: '1. Add a toggle\n2. Pause after planning',
+      createdAt: '2026-03-26T10:00:00.000Z',
+      id: 'plan-1',
+      status: 'awaiting_approval',
+      updatedAt: '2026-03-26T10:00:00.000Z',
+    };
+    const view = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Approve' }));
+    await waitFor(() =>
+      expect(apiService.respondToUiAction).toHaveBeenCalledTimes(1),
+    );
+
+    // Leave the thread and come back before the ack arrives.
+    storeState.activeThreadId = 'thread-2';
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+    storeState.activeThreadId = 'thread-1';
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    await act(async () => {
+      resolveAck({
+        executionId: 'exec-ui-action',
+        status: 'queued',
+        threadId: 'thread-1',
+      });
+    });
+    // The store notifies subscribers of the newly registered run.
+    view.rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    await waitFor(() =>
+      expect(storeState.setUiActionRun).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          executionId: 'exec-ui-action',
+          status: 'completed',
+        }),
+      ),
+    );
+    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
+    expect(storeState.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: 'Plan executed.' }),
+    );
   });
 
   it('renders and executes the create follow-up tasks action for approved workspace plans', async () => {

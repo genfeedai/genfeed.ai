@@ -34,6 +34,8 @@ export type AgentChatContainerThreadViewProps = {
   highlightedMessageId: string | null;
   isBusy: boolean;
   isCreatingFollowUpTasks: boolean;
+  /** A review of the shown plan is awaiting its result; its controls lock. */
+  isPlanReviewPending: boolean;
   isGenerating: boolean;
   isWideLayout: boolean;
   isReadOnly: boolean;
@@ -90,6 +92,7 @@ export function AgentChatContainerThreadView({
   isAtBottom,
   isBusy,
   isCreatingFollowUpTasks,
+  isPlanReviewPending,
   isGenerating,
   isWideLayout,
   isReadOnly,
@@ -163,7 +166,7 @@ export function AgentChatContainerThreadView({
           {latestProposedPlan ? (
             <AgentPlanReviewSection
               plan={latestProposedPlan}
-              isBusy={isBusy || isReadOnly}
+              isBusy={isBusy || isReadOnly || isPlanReviewPending}
               activeUiAction={activeUiAction}
               isCreatingFollowUpTasks={isCreatingFollowUpTasks}
               followUpTaskMessage={followUpTaskMessage}

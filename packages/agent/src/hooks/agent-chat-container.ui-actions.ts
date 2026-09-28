@@ -32,6 +32,12 @@ export type HandleUiActionDeps = {
   isBusy: boolean;
   isReadOnly: boolean;
   latestProposedPlan: AgentProposedPlan | null;
+  /**
+   * Runs being reconciled, by execution id, with the signal of the reconciler
+   * that owns each. A run has one reconciler: a claim held by a live signal
+   * blocks another, an aborted one does not.
+   */
+  reconcilingRuns: Map<string, AbortSignal>;
   sendMessage: (content: string) => Promise<void>;
   setActiveThread: (id: string | null) => void;
   setActiveUiAction: (action: string | null) => void;
@@ -116,6 +122,69 @@ export function getUiActionRunKey(
       ? payload.sourceActionId
       : JSON.stringify(payload ?? {});
   return `${threadId}:${action}:${source}`;
+}
+
+const PLAN_REVIEW_ACTIONS: ReadonlySet<string> = new Set([
+  'approve_plan',
+  'revise_plan',
+]);
+
+/**
+ * Whether a plan review (approval or revision) of this plan is still awaiting
+ * its result on the thread. Its controls stay locked until it settles: the
+ * run executes the plan, and a second submission would execute it again.
+ */
+export function hasPendingPlanReviewRun(
+  runs: Readonly<Record<string, AgentUiActionRun>>,
+  threadId: string | null,
+  planId: unknown,
+): boolean {
+  if (!threadId) {
+    return false;
+  }
+  return Object.values(runs).some(
+    (run) =>
+      run.status === 'pending' &&
+      run.threadId === threadId &&
+      PLAN_REVIEW_ACTIONS.has(run.action) &&
+      run.payload?.planId === planId,
+  );
+}
+
+/** A submission whose earlier run is still awaiting its result. */
+function isDuplicateSubmission(
+  threadId: string,
+  action: string,
+  payload: Record<string, unknown> | undefined,
+): boolean {
+  const runs = useAgentChatStore.getState().uiActionRuns;
+  if (PLAN_REVIEW_ACTIONS.has(action)) {
+    return hasPendingPlanReviewRun(runs, threadId, payload?.planId);
+  }
+  return (
+    runs[getUiActionRunKey(threadId, action, payload)]?.status === 'pending'
+  );
+}
+
+function claimUiActionRun(
+  executionId: string,
+  deps: HandleUiActionDeps,
+): boolean {
+  const owner = deps.reconcilingRuns.get(executionId);
+  if (owner && !owner.aborted) {
+    return false;
+  }
+  deps.reconcilingRuns.set(executionId, deps.signal);
+  return true;
+}
+
+function releaseUiActionRun(
+  executionId: string,
+  deps: HandleUiActionDeps,
+): void {
+  if (deps.reconcilingRuns.get(executionId) === deps.signal) {
+    deps.reconcilingRuns.delete(executionId);
+  }
 }
 
 function waitForNextPoll(ms: number, signal: AbortSignal): Promise<void> {
@@ -467,10 +536,13 @@ export async function handleAgentUiAction(
     return false;
   }
 
+  const threadId = deps.activeThreadId;
+  if (isDuplicateSubmission(threadId, action, payload)) {
+    return 'pending';
+  }
+
   deps.setActiveUiAction(action);
   deps.setError(null);
-
-  const threadId = deps.activeThreadId;
 
   try {
     const currentThread = deps.threads.find((thread) => thread.id === threadId);
@@ -495,8 +567,15 @@ export async function handleAgentUiAction(
       status: 'pending',
       threadId,
     };
+    // Claimed before it is registered, so the container does not start a
+    // second reconciler for it. A run registered after this conversation
+    // went away is left unclaimed for the container to pick up.
+    const isVisible = isRunVisible(threadId, deps.signal);
+    if (isVisible) {
+      claimUiActionRun(run.executionId, deps);
+    }
     useAgentChatStore.getState().setUiActionRun(run);
-    if (!isRunVisible(threadId, deps.signal)) {
+    if (!isVisible) {
       discardConversationCache(threadId);
       return 'pending';
     }
@@ -508,6 +587,7 @@ export async function handleAgentUiAction(
     );
     if (outcome.status === 'pending') {
       if (!isRunVisible(threadId, deps.signal)) {
+        releaseUiActionRun(run.executionId, deps);
         discardConversationCache(threadId);
         return 'pending';
       }
@@ -515,7 +595,11 @@ export async function handleAgentUiAction(
       void resumeUiActionRun(run, deps);
       return 'pending';
     }
-    return (await settleUiActionRun(run, outcome, deps)) === 'completed';
+    try {
+      return (await settleUiActionRun(run, outcome, deps)) === 'completed';
+    } finally {
+      releaseUiActionRun(run.executionId, deps);
+    }
   } catch (err) {
     if (!isRunVisible(threadId, deps.signal)) {
       return false;
@@ -537,31 +621,64 @@ function isRunVisible(threadId: string, signal: AbortSignal): boolean {
 }
 
 /**
+ * Start reconciling every pending run on the visible thread that no live
+ * reconciler owns: one left pending by an earlier visit, or one whose ack
+ * registered it after the conversation that submitted it went away. Each gets
+ * the fresh deps (and abort signal) `createDeps` returns.
+ */
+export function resumePendingUiActionRuns(
+  runs: Readonly<Record<string, AgentUiActionRun>>,
+  threadId: string,
+  reconcilingRuns: ReadonlyMap<string, AbortSignal>,
+  createDeps: () => HandleUiActionDeps,
+): void {
+  for (const run of Object.values(runs)) {
+    const owner = reconcilingRuns.get(run.executionId);
+    if (
+      run.status !== 'pending' ||
+      run.threadId !== threadId ||
+      (owner && !owner.aborted)
+    ) {
+      continue;
+    }
+    const deps = createDeps();
+    if (claimUiActionRun(run.executionId, deps)) {
+      void resumeUiActionRun(run, deps);
+    }
+  }
+}
+
+/**
  * Keep reconciling a run whose foreground window passed, or one found pending
  * when its thread becomes visible again, with backoff until the execution is
  * terminal or the cap passes. `deps.signal` stops it on thread change or
- * unmount; the run then stays pending for the next visit to resume.
+ * unmount; the run then stays pending for the next visit to resume. The
+ * caller holds the run's claim; it is released when this ends.
  */
 export async function resumeUiActionRun(
   run: AgentUiActionRun,
   deps: HandleUiActionDeps,
 ): Promise<void> {
-  const outcome = await reconcileUiActionRun(
-    deps.apiService,
-    { executionId: run.executionId, threadId: run.threadId },
-    deps.signal,
-    UI_ACTION_BACKGROUND_SCHEDULE,
-  );
-  if (outcome.status === 'pending') {
-    return;
+  try {
+    const outcome = await reconcileUiActionRun(
+      deps.apiService,
+      { executionId: run.executionId, threadId: run.threadId },
+      deps.signal,
+      UI_ACTION_BACKGROUND_SCHEDULE,
+    );
+    if (outcome.status === 'pending') {
+      return;
+    }
+    if (
+      isRunVisible(run.threadId, deps.signal) &&
+      useAgentChatStore.getState().error === UI_ACTION_PENDING_NOTICE
+    ) {
+      deps.setError(null);
+    }
+    await settleUiActionRun(run, outcome, deps);
+  } finally {
+    releaseUiActionRun(run.executionId, deps);
   }
-  if (
-    isRunVisible(run.threadId, deps.signal) &&
-    useAgentChatStore.getState().error === UI_ACTION_PENDING_NOTICE
-  ) {
-    deps.setError(null);
-  }
-  await settleUiActionRun(run, outcome, deps);
 }
 
 /**

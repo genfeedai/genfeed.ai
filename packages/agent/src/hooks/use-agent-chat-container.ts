@@ -4,7 +4,8 @@ import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-messag
 import {
   type HandleUiActionDeps,
   handleAgentUiAction,
-  resumeUiActionRun,
+  hasPendingPlanReviewRun,
+  resumePendingUiActionRuns,
 } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
@@ -186,6 +187,7 @@ export function useAgentChatContainer({
       ? draftAgentMode
       : undefined;
   const latestProposedPlan = useAgentChatStore((s) => s.latestProposedPlan);
+  const uiActionRuns = useAgentChatStore((s) => s.uiActionRuns);
   const onboardingSignupGiftCredits = useAgentChatStore(
     (s) => s.onboardingSignupGiftCredits,
   );
@@ -284,6 +286,7 @@ export function useAgentChatContainer({
   const olderMessagesRequestInFlightRef = useRef(false);
   const olderMessagesAbortControllerRef = useRef<AbortController | null>(null);
   const uiActionAbortControllersRef = useRef(new Set<AbortController>());
+  const reconcilingUiActionRunsRef = useRef(new Map<string, AbortSignal>());
   const activeThreadIdRef = useRef(activeThreadId);
   const messagesCursorRef = useRef(messagesCursor);
   const pendingScrollAnchorRef = useRef<{
@@ -764,6 +767,7 @@ export function useAgentChatContainer({
     isBusy,
     isReadOnly,
     latestProposedPlan,
+    reconcilingRuns: reconcilingUiActionRunsRef.current,
     sendMessage,
     setActiveThread,
     setActiveUiAction,
@@ -935,30 +939,33 @@ export function useAgentChatContainer({
     olderMessagesRequestInFlightRef.current = false;
     olderMessagesAbortControllerRef.current?.abort();
     olderMessagesAbortControllerRef.current = null;
-    // A ui-action still reconciling belongs to the thread being left; runs
-    // left pending on the thread now shown resume where they stopped.
+    // A ui-action still reconciling belongs to the thread being left.
     for (const controller of uiActionAbortControllersRef.current) {
       controller.abort();
     }
     uiActionAbortControllersRef.current.clear();
-    if (activeThreadId) {
-      for (const run of Object.values(
-        useAgentChatStore.getState().uiActionRuns,
-      )) {
-        if (run.status !== 'pending' || run.threadId !== activeThreadId) {
-          continue;
-        }
-        const controller = new AbortController();
-        uiActionAbortControllersRef.current.add(controller);
-        void resumeUiActionRun(
-          run,
-          buildUiActionDepsRef.current(controller.signal),
-        );
-      }
-    }
     pendingScrollAnchorRef.current = null;
     setIsAtBottom(true);
   }, [activeThreadId]);
+
+  // Runs pending on the thread shown — left by an earlier visit, or
+  // registered by an ack that arrived after their submitter was aborted —
+  // resume where they stopped. Runs after the abort above on a thread change.
+  useEffect(() => {
+    if (!activeThreadId) {
+      return;
+    }
+    resumePendingUiActionRuns(
+      uiActionRuns,
+      activeThreadId,
+      reconcilingUiActionRunsRef.current,
+      () => {
+        const controller = new AbortController();
+        uiActionAbortControllersRef.current.add(controller);
+        return buildUiActionDepsRef.current(controller.signal);
+      },
+    );
+  }, [activeThreadId, uiActionRuns]);
 
   useEffect(() => {
     const uiActionAbortControllers = uiActionAbortControllersRef.current;
@@ -971,6 +978,12 @@ export function useAgentChatContainer({
       uiActionAbortControllers.clear();
     };
   }, []);
+
+  const isPlanReviewPending = hasPendingPlanReviewRun(
+    uiActionRuns,
+    activeThreadId,
+    latestProposedPlan?.id,
+  );
 
   const isEmpty = !hasRenderableThreadState({
     hasLatestProposedPlan: Boolean(latestProposedPlan),
@@ -1168,6 +1181,7 @@ export function useAgentChatContainer({
     workEvents,
     // derived
     isBusy,
+    isPlanReviewPending,
     isRunActive,
     isStreamingActive,
     isEmpty,

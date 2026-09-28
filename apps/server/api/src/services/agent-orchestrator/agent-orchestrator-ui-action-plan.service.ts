@@ -52,6 +52,11 @@ export class AgentOrchestratorUiActionPlanService {
         'No proposed plan is available to approve.',
       );
     }
+    // Runs share the thread lane, so an earlier approval has already recorded
+    // the plan as approved before its execution starts.
+    if (latestPlan?.status === 'approved') {
+      throw new BadRequestException('This plan has already been approved.');
+    }
     await this.threadEventRecorder.recordPlanUpserted({
       context: params.context,
       plan: {
