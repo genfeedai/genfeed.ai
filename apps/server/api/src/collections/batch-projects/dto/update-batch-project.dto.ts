@@ -31,7 +31,8 @@ export class UpdateBatchProjectDto {
 
   @ApiPropertyOptional({
     description: 'Idea and schedule choices; each key replaces its section',
-    type: 'object',
+    additionalProperties: true,
+    type: Object,
   })
   @IsOptional()
   @IsObject()

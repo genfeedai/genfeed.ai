@@ -41,7 +41,8 @@ export class ScheduleBatchProjectDto {
 
   @ApiPropertyOptional({
     description: 'Caption per item id',
-    type: 'object',
+    additionalProperties: true,
+    type: Object,
   })
   @IsOptional()
   @IsObject()

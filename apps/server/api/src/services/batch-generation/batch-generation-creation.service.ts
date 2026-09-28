@@ -304,13 +304,14 @@ export class BatchGenerationCreationService {
           throw new NotFoundException('Batch', batchId);
         }
         const existing = toBatchWithConfig(current);
+        const existingConfig: BatchConfig = existing.config;
         const items = [...existing.items, ...appendedItems];
         const config: BatchConfig = {
-          ...existing.config,
+          ...existingConfig,
           completedCount: items.length,
           platforms: Array.from(
             new Set([
-              ...(existing.config.platforms ?? []),
+              ...(existingConfig.platforms ?? []),
               ...dto.items.flatMap((item) =>
                 item.platform ? [item.platform] : [],
               ),
