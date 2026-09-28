@@ -6,6 +6,7 @@ import {
   distinctCount,
   lifetimeMetricValue,
   periodMetricGain,
+  sumEngagement,
 } from '../../src';
 
 describe('periodMetricGain', () => {
@@ -94,5 +95,17 @@ describe('derivedEngagementRate', () => {
         views: 100,
       }),
     ).toBe(40);
+  });
+});
+
+describe('sumEngagement', () => {
+  it('counts likes, comments, shares and saves', () => {
+    expect(sumEngagement({ comments: 2, likes: 3, saves: 4, shares: 1 })).toBe(
+      10,
+    );
+  });
+
+  it('treats missing saves as zero', () => {
+    expect(sumEngagement({ comments: 2, likes: 3, shares: 1 })).toBe(6);
   });
 });

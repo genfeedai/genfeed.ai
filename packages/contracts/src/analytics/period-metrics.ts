@@ -113,6 +113,22 @@ export function distinctCount(
   return unique.size;
 }
 
+/**
+ * The single definition of engagement across analytics: likes, comments,
+ * shares and saves. Every total, per-post score, time-series point and rate
+ * numerator derives from this (genfeedai/genfeed.ai#5427, #5449).
+ */
+export function sumEngagement(options: {
+  comments: number;
+  likes: number;
+  saves?: number;
+  shares: number;
+}): number {
+  return (
+    options.likes + options.comments + options.shares + (options.saves ?? 0)
+  );
+}
+
 export function derivedEngagementRate(options: {
   comments: number;
   likes: number;
@@ -124,12 +140,5 @@ export function derivedEngagementRate(options: {
     return 0;
   }
 
-  return (
-    ((options.likes +
-      options.comments +
-      options.shares +
-      (options.saves ?? 0)) /
-      options.views) *
-    100
-  );
+  return (sumEngagement(options) / options.views) * 100;
 }

@@ -221,6 +221,8 @@ export class TopContent implements ITopContent {
   declare public likes: number;
   declare public comments: number;
   declare public shares: number;
+  declare public saves?: number;
+  declare public totalEngagement?: number;
   declare public engagementRate: number;
   declare public publishDate: Date | string;
   declare public url?: string;

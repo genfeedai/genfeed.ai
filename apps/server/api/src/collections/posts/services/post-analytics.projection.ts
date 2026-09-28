@@ -18,6 +18,7 @@ import type {
 import {
   AnalyticsMetric,
   fromPrismaCredentialPlatform,
+  sumEngagement,
 } from '@genfeedai/contracts';
 import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 
@@ -153,7 +154,7 @@ export class PostAnalyticsProjection {
         likes: data.likes,
         saves: data.saves,
         shares: data.shares,
-        totalEngagement: data.likes + data.comments + data.shares,
+        totalEngagement: sumEngagement(data),
         views: data.views,
       }));
   }
@@ -241,7 +242,7 @@ export class PostAnalyticsProjection {
         postCount,
         saves,
         shares,
-        totalEngagement: likes + comments + shares + saves,
+        totalEngagement: sumEngagement({ comments, likes, saves, shares }),
         views,
       };
     });
@@ -253,19 +254,20 @@ export class PostAnalyticsProjection {
     limit: number,
   ): TopContentScore[] {
     const scored = rows.map((row) => {
-      const max = row._max ?? {};
-      const likes = this.readNumber(max.totalLikes);
-      const comments = this.readNumber(max.totalComments);
-      const shares = this.readNumber(max.totalShares);
+      const likes = this.readNumber(row.max_likes);
+      const comments = this.readNumber(row.max_comments);
+      const shares = this.readNumber(row.max_shares);
+      const saves = this.readNumber(row.max_saves);
       return {
-        avgEngagementRate: this.readNumber(row._avg?.engagementRate),
+        avgEngagementRate: this.readNumber(row.avg_engagement_rate),
         comments,
         likes,
-        platform: row.platform,
-        postId: row.postId,
+        platform: fromPrismaCredentialPlatform(row.platform) ?? row.platform,
+        postId: row.post_id,
+        saves,
         shares,
-        totalEngagement: likes + comments + shares,
-        views: this.readNumber(max.totalViews),
+        totalEngagement: sumEngagement({ comments, likes, saves, shares }),
+        views: this.readNumber(row.max_views),
       };
     });
 
@@ -295,8 +297,10 @@ export class PostAnalyticsProjection {
         platform: item.platform,
         postId: item.postId,
         publishDate: post?.publicationDate || new Date(),
+        saves: item.saves,
         shares: item.shares,
         title: post?.label || 'Untitled',
+        totalEngagement: item.totalEngagement,
         url: post?.url,
         views: item.views,
       };
@@ -354,7 +358,7 @@ export class PostAnalyticsProjection {
     const comments = this.readNumber(sums.totalComments);
     const shares = this.readNumber(sums.totalShares);
     const saves = this.readNumber(sums.totalSaves);
-    const total = likes + comments + shares + saves;
+    const total = sumEngagement({ comments, likes, saves, shares });
 
     return {
       comments,
@@ -386,9 +390,12 @@ export class PostAnalyticsProjection {
     return {
       avgEngagementRate: this.readNumber(aggregate._avg?.engagementRate),
       totalComments,
-      // Same definition as the engagement rate `getOverviewMetrics` derives
-      // and the overview's "Likes, comments, shares, and saves" label.
-      totalEngagement: totalLikes + totalComments + totalShares + totalSaves,
+      totalEngagement: sumEngagement({
+        comments: totalComments,
+        likes: totalLikes,
+        saves: totalSaves,
+        shares: totalShares,
+      }),
       totalLikes,
       totalSaves,
       totalShares,
