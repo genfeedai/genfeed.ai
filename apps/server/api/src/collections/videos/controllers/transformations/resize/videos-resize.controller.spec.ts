@@ -215,6 +215,61 @@ describe('VideosResizeController', () => {
     ).rejects.toThrow(HttpException);
   });
 
+  describe('resizeToPortrait source lookup', () => {
+    const deletedVideoId = 'cmvideo0000000000000000003';
+    const foreignVideoId = 'cmvideo0000000000000000004';
+    const videoRows = [
+      { ...mockVideo, isDeleted: false },
+      { ...mockVideo, id: deletedVideoId, isDeleted: true },
+      {
+        ...mockVideo,
+        id: foreignVideoId,
+        isDeleted: false,
+        organizationId: 'cmorganization000000000000002',
+      },
+    ];
+
+    type VideoRow = (typeof videoRows)[number];
+    type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+
+    const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
+          : row[key as keyof VideoRow] === value,
+      );
+
+    beforeEach(() => {
+      mockServices.videosService.findOne.mockImplementation(
+        async (where: VideoWhere) =>
+          videoRows.find((row) => matchesWhere(row, where)) ?? null,
+      );
+    });
+
+    it('scopes the lookup to the caller organization and live videos', async () => {
+      await controller.resizeToPortrait(mockRequest, mockUser, videoId);
+      expect(mockServices.videosService.findOne).toHaveBeenCalledWith({
+        id: videoId,
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
+    it('returns NOT_FOUND for a soft-deleted video', async () => {
+      await expect(
+        controller.resizeToPortrait(mockRequest, mockUser, deletedVideoId),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    it('returns NOT_FOUND for a video owned by the user in another organization', async () => {
+      await expect(
+        controller.resizeToPortrait(mockRequest, mockUser, foreignVideoId),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+  });
+
   it('should set parent to original video for resize', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };

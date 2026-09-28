@@ -27,6 +27,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AssetScope,
   FileInputType,
@@ -99,13 +100,9 @@ export class VideosCaptionsController {
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     // Verify video exists and user has access
-    const video = await this.videosService.findOne({
-      id: videoId,
-      OR: [
-        { userId: user.userId ?? user.id },
-        { organizationId: user.organizationId },
-      ],
-    });
+    const video = await this.videosService.findOne(
+      scopedWhere(user.organizationId, { id: videoId }),
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
@@ -139,9 +136,10 @@ export class VideosCaptionsController {
     @Body() createVideoWithCaptionsDto: CreateVideoWithCaptionsDto,
   ) {
     const url = `videos-captions:${this.constructorName}:createVideoWithCaptions:user:${user.id}:videoId:${videoId}`;
-    const video = await this.videosService.findOne({ id: videoId }, [
-      { path: 'captions' },
-    ]);
+    const video = await this.videosService.findOne(
+      scopedWhere(user.organizationId, { id: videoId }),
+      [{ path: 'captions' }],
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);

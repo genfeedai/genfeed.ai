@@ -16,6 +16,7 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   AssetScope,
   FileInputType,
@@ -139,10 +140,9 @@ export class VideosResizeController {
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const video = await this.videosService.findOne({
-      id: videoId,
-      userId: user.userId ?? user.id,
-    });
+    const video = await this.videosService.findOne(
+      scopedWhere(user.organizationId, { id: videoId }),
+    );
 
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
