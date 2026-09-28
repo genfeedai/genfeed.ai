@@ -218,3 +218,171 @@ describe('EditorProjectsService.updateEditorContent', () => {
     expect((error as Error).name).not.toBe('PrismaClientValidationError');
   });
 });
+
+describe('EditorProjectsService render-state writers', () => {
+  const renderingRow = (name: string) => ({
+    config: {
+      name,
+      renderExport: { job: { jobId: 'job-1' }, requestedAt: 'then' },
+      settings: { fps: 30 },
+      status: 'rendering',
+    },
+    id: PROJECT_ID,
+    isDeleted: false,
+    organizationId: ORG_ID,
+    renderedVideoId: null,
+    tracks: [],
+  });
+
+  // An Editor rename commits right after the writer's first statement.
+  // Without a row lock that statement is the writer's read, so it writes a
+  // stale config back; with the lock the re-read sees the rename.
+  function setupWithConcurrentRename(initial: Record<string, unknown>) {
+    let statements = 0;
+    const renamed = {
+      ...initial,
+      config: {
+        ...(initial.config as Record<string, unknown>),
+        name: 'Edited',
+      },
+    };
+    const current = () => (statements > 1 ? renamed : initial);
+    const writes: Array<Record<string, unknown>> = [];
+    const delegate = {
+      findFirst: vi.fn(async () => {
+        statements += 1;
+        return current();
+      }),
+      findUnique: vi.fn(async () => {
+        statements += 1;
+        return current();
+      }),
+      findUniqueOrThrow: vi.fn(async () => {
+        statements += 1;
+        return current();
+      }),
+      update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        statements += 1;
+        writes.push(data);
+        return { ...current(), ...data };
+      }),
+      updateMany: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        statements += 1;
+        writes.push(data);
+        return { count: 1 };
+      }),
+    };
+    const tx = {
+      $queryRaw: vi.fn(async () => {
+        statements += 1;
+        return [];
+      }),
+      editorProject: delegate,
+    };
+    const prisma = {
+      ...tx,
+      $transaction: vi.fn(
+        async (execute: (client: typeof tx) => Promise<unknown>) => execute(tx),
+      ),
+    };
+    const service = new EditorProjectsService(
+      prisma as unknown as PrismaService,
+      {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+      } as unknown as LoggerService,
+    );
+    return { delegate, service, tx, writes };
+  }
+
+  const writtenConfig = (writes: Array<Record<string, unknown>>) =>
+    writes.at(-1)?.config as Record<string, unknown>;
+
+  it.each([
+    [
+      'markAsCompleted',
+      (service: EditorProjectsService) =>
+        service.markAsCompleted(
+          PROJECT_ID,
+          'video-9',
+          { url: 'https://cdn.example.test/out.mp4' } as never,
+          'job-1',
+        ),
+      'completed',
+    ],
+    [
+      'markAsFailed',
+      (service: EditorProjectsService) =>
+        service.markAsFailed(PROJECT_ID, 'job-1', {
+          reason: 'boom',
+        } as never),
+      'failed',
+    ],
+    [
+      'attachRenderJob',
+      (service: EditorProjectsService) =>
+        service.attachRenderJob(PROJECT_ID, { jobId: 'job-2' } as never),
+      'rendering',
+    ],
+  ])(
+    '%s keeps an Editor rename that lands before its write',
+    async (_name, write, status) => {
+      const { service, tx, writes } = setupWithConcurrentRename(
+        renderingRow('Draft'),
+      );
+
+      await write(service);
+
+      expect(tx.$queryRaw).toHaveBeenCalled();
+      expect(writtenConfig(writes)).toMatchObject({ name: 'Edited', status });
+    },
+  );
+
+  it('markAsRendering keeps an Editor rename that lands before its write', async () => {
+    const draft = {
+      ...renderingRow('Draft'),
+      config: { name: 'Draft', status: 'draft' },
+    };
+    const { service, writes } = setupWithConcurrentRename(draft);
+
+    await service.markAsRendering(PROJECT_ID, ORG_ID, {
+      requestedAt: 'now',
+    } as never);
+
+    expect(writtenConfig(writes)).toMatchObject({
+      name: 'Edited',
+      renderExport: { requestedAt: 'now' },
+      status: 'rendering',
+    });
+  });
+
+  it('refuses a completion from a job that no longer owns the project', async () => {
+    const { service, writes } = setupWithConcurrentRename(
+      renderingRow('Draft'),
+    );
+
+    await expect(
+      service.markAsCompleted(
+        PROJECT_ID,
+        'video-9',
+        { url: 'https://cdn.example.test/out.mp4' } as never,
+        'job-other',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(writes).toEqual([]);
+  });
+
+  it('refuses to start a render while one is running', async () => {
+    const { service, writes } = setupWithConcurrentRename(
+      renderingRow('Draft'),
+    );
+
+    await expect(
+      service.markAsRendering(PROJECT_ID, ORG_ID, {
+        requestedAt: 'now',
+      } as never),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(writes).toEqual([]);
+  });
+});
