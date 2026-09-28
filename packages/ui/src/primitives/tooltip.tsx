@@ -1,12 +1,10 @@
 'use client';
 
+import type { TooltipPositionType } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
+import type { SimpleTooltipProps } from '@genfeedai/props/ui/display/tooltip.props';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
-import {
-  type ComponentPropsWithRef,
-  type ReactElement,
-  useContext,
-} from 'react';
+import { type ComponentPropsWithRef, useContext } from 'react';
 import { TooltipProviderContext } from './tooltip-context';
 
 function TooltipProvider({
@@ -56,18 +54,6 @@ function TooltipContent({
 TooltipContent.displayName = TooltipPrimitive.Content.displayName;
 
 /**
- * Convenience props for SimpleTooltip
- */
-type TooltipPosition = 'top' | 'bottom' | 'left' | 'right';
-
-interface SimpleTooltipProps {
-  label: string;
-  children: ReactElement;
-  position?: TooltipPosition;
-  isDisabled?: boolean;
-}
-
-/**
  * Simplified Tooltip component for common use cases
  * Wraps shadcn tooltip primitives with a convenient single-component API
  */
@@ -97,7 +83,8 @@ function SimpleTooltip({
   );
 }
 
-export type { SimpleTooltipProps, TooltipPosition };
+export type { SimpleTooltipProps };
+export type TooltipPosition = TooltipPositionType;
 export {
   SimpleTooltip,
   Tooltip,

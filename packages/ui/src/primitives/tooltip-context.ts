@@ -1,5 +1,5 @@
-import { createContext } from 'react';
-import type { SimpleTooltip } from './tooltip';
+import type { SimpleTooltipProps } from '@genfeedai/props/ui/display/tooltip.props';
+import { type ComponentType, createContext } from 'react';
 
 /**
  * Set by `TooltipProvider`. It carries `SimpleTooltip` itself, so a `Button`
@@ -7,6 +7,5 @@ import type { SimpleTooltip } from './tooltip';
  * Only the provider's module imports Radix; a page with no provider (the
  * website) never downloads it unless a tooltip is actually rendered.
  */
-export const TooltipProviderContext = createContext<
-  typeof SimpleTooltip | null
->(null);
+export const TooltipProviderContext =
+  createContext<ComponentType<SimpleTooltipProps> | null>(null);

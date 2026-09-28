@@ -15,7 +15,7 @@ const DECLARATION_ALLOWLIST = [
   /^apps\/desktop\/app\/src\/shared\/[^/]+\.d\.ts$/u,
   /^apps\/server\/api\/src\/helpers\/test\/[^/]+\.d\.ts$/u,
   /^apps\/server\/api\/src\/types\/[^/]+\.d\.ts$/u,
-  /^packages\/api-types\/src\/generated\/[^/]+\.d\.ts$/u,
+  /^packages\/contracts\/src\/api-types\/generated\/[^/]+\.d\.ts$/u,
   /^packages\/ui\/src\/css\.d\.ts$/u,
   /^packages\/workflows\/src\/ui\/css\.d\.ts$/u,
 ];
