@@ -91,6 +91,93 @@ describe('agent-chat.store messages and plans', () => {
     expect(state.latestProposedPlan).toEqual(plan);
   });
 
+  describe('plan identity guard', () => {
+    function makeDatedPlan(
+      id: string,
+      createdAt: string,
+      overrides: Partial<AgentProposedPlan> = {},
+    ): AgentProposedPlan {
+      return {
+        createdAt,
+        id,
+        status: 'awaiting_approval',
+        updatedAt: createdAt,
+        ...overrides,
+      };
+    }
+
+    const planA = makeDatedPlan('plan-a', '2026-09-28T10:00:00.000Z');
+    const planB = makeDatedPlan('plan-b', '2026-09-28T10:05:00.000Z');
+    // The approval of plan A finishing after plan B was proposed.
+    const staleApprovedA = makeDatedPlan('plan-a', planA.createdAt, {
+      approvedAt: '2026-09-28T10:06:00.000Z',
+      status: 'approved',
+      updatedAt: '2026-09-28T10:06:00.000Z',
+    });
+
+    it('does not let a late approval reply of an older plan replace a newer plan', () => {
+      const store = useAgentChatStore.getState();
+      store.addMessage(
+        makeMessage('m-a', { metadata: { proposedPlan: planA } }),
+      );
+      store.addMessage(
+        makeMessage('m-b', { metadata: { proposedPlan: planB } }),
+      );
+      store.addMessage(
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      );
+
+      const state = useAgentChatStore.getState();
+      expect(state.latestProposedPlan).toEqual(planB);
+      expect(state.messages).toHaveLength(3);
+    });
+
+    it('does not let a late finalized run replace a newer plan', () => {
+      const store = useAgentChatStore.getState();
+      store.addMessage(
+        makeMessage('m-b', { metadata: { proposedPlan: planB } }),
+      );
+
+      store.finalizeStream(
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      );
+
+      expect(useAgentChatStore.getState().latestProposedPlan).toEqual(planB);
+    });
+
+    it('applies the approval of the current plan', () => {
+      const store = useAgentChatStore.getState();
+      store.addMessage(
+        makeMessage('m-a', { metadata: { proposedPlan: planA } }),
+      );
+
+      store.finalizeStream(
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      );
+
+      expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+        staleApprovedA,
+      );
+    });
+
+    it('derives the newest plan when hydrating messages listed out of plan order', () => {
+      useAgentChatStore.getState().setMessages([
+        makeMessage('m-b', { metadata: { proposedPlan: planB } }),
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      ]);
+
+      expect(useAgentChatStore.getState().latestProposedPlan).toEqual(planB);
+    });
+  });
+
   it('persists a completed UI action across message row remounts', () => {
     const action: AgentUiAction = {
       id: 'brand-voice-card-1',
