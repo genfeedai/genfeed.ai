@@ -583,8 +583,11 @@ function UniversalWorkspaceShellContent({
 
   const handleOpenFullConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
+    // The full page is the conversation; the dock closes as it hands off
+    // (arriving on `/agent` by any other way closes it once the route mounts).
+    agentDock?.close();
     push(fullConversationHref);
-  }, [fullConversationHref, push]);
+  }, [agentDock, fullConversationHref, push]);
 
   // The dock is the conversation on product routes. `/agent/*` is the
   // conversation itself, so arriving there closes the dock; it stays closed
