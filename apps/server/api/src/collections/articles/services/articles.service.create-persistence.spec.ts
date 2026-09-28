@@ -31,7 +31,7 @@ import { LoggerService } from '@libs/logger/logger.service';
  * JSON:API wire contract, packages/client — used `label`/`summary`. The
  * mismatch was invisible to TypeScript because ArticleDocument declared
  * `label?`/`summary?` as optional Mongo-era aliases (see
- * .agents/memory/rules/prisma_legacy_alias_fields.md): they type-check and are
+ * docs/identity-resolution.md): they type-check and are
  * undefined at runtime.
  *
  * `BaseService.normalizeData` only drops `undefined` keys — it does not filter

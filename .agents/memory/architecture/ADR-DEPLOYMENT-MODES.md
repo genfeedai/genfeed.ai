@@ -101,7 +101,7 @@ Client features gate on **mode**, never on raw auth signals.
 
 ### 7. Canonical mode source of truth
 
-**One** mode authority in `packages/config`, modeled as the two axes (§1), consumed by backend **and** frontend. Delete the duplicate frontend `edition.ts`, collapse the redundant `IS_SELF_HOSTED`/`IS_CLOUD` helpers, and standardize the `NEXT_PUBLIC_GENFEED_CLOUD` comparison to one truthiness helper (today `=== 'true'` vs truthy split-brains 6 sites). Tracked in #742.
+**One** mode authority in `packages/config` (`packages/config/src/deployment.ts`), modeled as the two axes (§1), consumed by backend **and** frontend. Done (#742): the duplicate frontend `edition.ts` and the legacy `GenfeedMode`/`IS_SELF_HOSTED`/`IS_CLOUD` helpers are removed, and `envFlag()` is the one truthiness helper. `scripts/architecture/check-deployment-mode-boundary.ts` (run via `bun run check:architecture`) now bans raw `process.env.GENFEED_CLOUD`/`NEXT_PUBLIC_DESKTOP_SHELL` reads, the legacy mode API names, and the frontend `edition` import going forward.
 
 ### 8. Community charter
 

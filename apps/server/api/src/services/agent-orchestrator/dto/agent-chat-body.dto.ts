@@ -83,7 +83,7 @@ export class AgentGenerationSettingsDto {
  * `emitDecoratorMetadata`, and a `@Body()` DTO must emit a runtime metatype for
  * the global `ValidationPipe` to validate against. An interface emits none, so
  * the pipe would silently skip the body entirely (see
- * `.agents/memory/rules/nestjs_value_imports_for_di.md`). It MUST be imported as
+ * `scripts/check-di-value-imports.ts`). It MUST be imported as
  * a value at every `@Body()` site.
  *
  * The scalar fields are fully validated. The three complex fields

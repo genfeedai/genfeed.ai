@@ -24,18 +24,6 @@
     "symbol": "BillingAccountMigrationService.run"
   },
   {
-    "actual": 1014,
-    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-    "metric": "file-lines",
-    "symbol": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts"
-  },
-  {
-    "actual": 153,
-    "file": "apps/server/api/src/collections/brands/services/brand-relocation.service.ts",
-    "metric": "method-lines",
-    "symbol": "BrandRelocationService.relocateToOrganization"
-  },
-  {
     "actual": 182,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",

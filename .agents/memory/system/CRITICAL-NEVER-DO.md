@@ -33,55 +33,17 @@ Pattern: `.agents/sessions/YYYY-MM-DD.md`. Multiple sessions same day -> add to 
 
 ## Coding Violations
 
-### Keep Organization Multi-Tenancy Guards
+Most of these are stated once in the repo's `CLAUDE.md` and are now guard-enforced in CI; kept here
+as a one-line index, not restated in full.
 
-Multi-tenant data isolation is a SaaS deployment-mode surface of the one AGPL codebase. Every tenant-scoped data access must include organization scope and `isDeleted: false` (enforced by `bun run check:tenant-scope`). Security -- data MUST be isolated by organization.
-
-For single-tenant self-hosted deployments, the default organization is used implicitly but the query pattern remains the same for forward compatibility.
-
-```typescript
-// CORRECT
-return prisma.resource.findFirst({
-  where: {
-    id,
-    organizationId,
-    isDeleted: false,
-  },
-});
-```
-
-### NEVER Create Serializers in API App
-
-Serializers MUST live in `packages/serializers/`, NOT in API modules.
-
-### NEVER Use `deletedAt` for Soft Deletes
-
-Use `isDeleted: boolean`. `updatedAt` becomes the deletion timestamp.
-
-### NEVER Create Inline Interfaces
-
-All interfaces go in `packages/props/` (component props) or `packages/contracts/src/interfaces/` (state/helpers). NEVER declare interfaces inline in component files.
-
-### Keep Compound Indexes In Prisma Schema Or Migrations
-
-Use Prisma schema indexes or explicit migrations for compound database indexes. Keep index definitions close to the model or migration that owns them.
-
-### NEVER Forget isDeleted Filter
-
-Without `isDeleted: false`, soft-deleted items appear in results.
-
-### NEVER Skip AbortController in Frontend useEffect
-
-Every `useEffect` with async calls must use `AbortController` and clean up on unmount. See repo `CLAUDE.md` or `.agents/memory/system/CROSS-PROJECT-RULES.md` for the full pattern.
-
-### Serialize API Responses
-
-Always serialize: DB record -> Serializer -> Client Response.
-
-### NEVER Use Dynamic Imports in Type Definitions
-
-All imports at top of file, never `import('...')` inline in type definitions.
-
-### NEVER Implement Backward Compatibility Workarounds
-
-Break things properly, then fix them at the source. No aliases, wrappers, or re-exports.
+- **Organization scoping + `isDeleted: false` on every tenant-scoped query** — enforced by
+  `bun run check:tenant-scope` (`scripts/architecture/check-tenant-scope.ts`).
+- **No inline interfaces** (props -> `packages/props/`, state/helpers -> `packages/contracts/src/interfaces/`)
+  — enforced for `apps/app/app/**` by `bun run check:inline-types`.
+- **Serializers live only in `packages/serializers/`, never in API modules; never return a raw DB record**
+  — see `context/system-patterns.md` (Serializer triplet); cross-checked by `bun run check:serializer-drift`.
+- **Soft delete is `isDeleted: boolean`; there is no `deletedAt`.**
+- **AbortController in every async `useEffect`** — not currently guard-checked; see `CLAUDE.md`.
+- **No dynamic `import('...')` inline in type definitions; no backward-compatibility wrappers/aliases/re-exports**
+  — not guard-checked; green-field policy, fix at the source (`CLAUDE.md` Philosophy).
+- **Compound indexes live in Prisma schema `@@index` or explicit migrations**, close to the owning model.

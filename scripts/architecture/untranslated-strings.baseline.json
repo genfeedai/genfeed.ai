@@ -423,7 +423,6 @@
     "packages/pages/articles/list/articles-list.tsx": 12,
     "packages/pages/brands/components/banner/BrandDetailBanner.tsx": 2,
     "packages/pages/brands/components/brand-kit/BrandKitReviewCard.tsx": 15,
-    "packages/pages/brands/components/overview/BrandDetailOverview.tsx": 8,
     "packages/pages/brands/components/sidebar/AgentProfilePlatformOverride.tsx": 1,
     "packages/pages/brands/components/sidebar/AgentProfilePlatformOverrideFields.tsx": 22,
     "packages/pages/brands/components/sidebar/AgentProfilePlatformOverrideWideFields.tsx": 9,
