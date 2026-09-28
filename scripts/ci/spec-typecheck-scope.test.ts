@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
+  FRONTEND_GRAPH_WORKSPACES,
   queryTurboAffectedScope,
   type RunTurboProcess,
   resolveSpecTypecheckScope,
@@ -63,6 +64,25 @@ const APP_WORKSPACES = ['api', 'app'];
 describe('resolveSpecTypecheckScope (#5315)', () => {
   it('package-only: an affected leaf package with no dependent app narrows scope and build filters to it', () => {
     const result = resolveSpecTypecheckScope({
+      affectedPackagesOnly: ['contracts'],
+      allAffectedNames: ['contracts'],
+      allWorkspaces: ALL_WORKSPACES,
+      appWorkspaces: APP_WORKSPACES,
+      appsAffectedFromFiles: [],
+    });
+
+    expect(result).toEqual({
+      buildFilters: ['--filter=@genfeedai/contracts'],
+      runAny: true,
+      workspaces: ['contracts'],
+    });
+  });
+
+  it('frontend-graph: a package whose specs reach the frontend graph through path aliases builds every package', () => {
+    // A pages-only diff built only the affected packages and left
+    // `@genfeedai/ui` unbuilt, so the ratchet reported phantom TS2307
+    // errors (PR #5433).
+    const result = resolveSpecTypecheckScope({
       affectedPackagesOnly: ['agent'],
       allAffectedNames: ['agent'],
       allWorkspaces: ALL_WORKSPACES,
@@ -70,8 +90,9 @@ describe('resolveSpecTypecheckScope (#5315)', () => {
       appsAffectedFromFiles: [],
     });
 
+    expect(FRONTEND_GRAPH_WORKSPACES.has('agent')).toBe(true);
     expect(result).toEqual({
-      buildFilters: ['--filter=@genfeedai/agent'],
+      buildFilters: [],
       runAny: true,
       workspaces: ['agent'],
     });
