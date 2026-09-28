@@ -1055,6 +1055,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'projectId',
       'reviewBatchId',
       'reviewItemId',
+      'scheduledAt',
       'status',
       'updatedAt',
       'workflowExecutionId',
