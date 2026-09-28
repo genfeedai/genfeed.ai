@@ -64,6 +64,19 @@ describe('findRecoveredAssistantMessage', () => {
     ).toBe('reply-run-2');
   });
 
+  it('uses the latest assistant reply for the tracked run', () => {
+    const messages: AgentChatMessage[] = [
+      assistant('older-owned-reply', 'run-2'),
+      assistant('latest-owned-reply', 'run-2'),
+      { ...assistant('user-message', 'run-2'), role: 'user' },
+      assistant('foreign-reply', 'run-3'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2')?.id,
+    ).toBe('latest-owned-reply');
+  });
+
   it('matches a run’s own stamped reply even when it is already loaded', () => {
     const messages = [
       assistant('reply-run-1', 'run-1'),

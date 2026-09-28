@@ -66,12 +66,11 @@ export function findRecoveredAssistantMessage(
   options: { notBefore?: string | null; requireRunId?: boolean } = {},
 ): AgentChatMessage | undefined {
   if (runId) {
-    const ownReply = messages.findLast(
-      (message) =>
-        message.role === 'assistant' && message.metadata?.runId === runId,
-    );
-    if (ownReply) {
-      return ownReply;
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message?.role === 'assistant' && message.metadata?.runId === runId) {
+        return message;
+      }
     }
   }
   const notBefore = options.notBefore ? Date.parse(options.notBefore) : NaN;
