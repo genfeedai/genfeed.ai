@@ -37,7 +37,7 @@ export default function ArticlesList({
       className="min-h-screen pt-10"
       isLabelHidden
       label="Articles"
-      pagination={articles.length > 0 ? pagination : undefined}
+      pagination={pagination}
       totalLabel="articles"
     >
       {articles.length === 0 ? (

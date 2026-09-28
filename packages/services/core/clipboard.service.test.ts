@@ -3,10 +3,9 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { deferredLogger } from '@services/core/deferred-logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ClipboardService captures the notifications singleton once, in its own
-// constructor, so the mock has to hand back the same object on every call —
-// an inline `vi.fn(() => ({ ... }))` would give the test a different stub
-// than the one under assertion.
+// ClipboardService loads the notifications singleton on each copy, so the mock
+// hands back the same object on every call — an inline `vi.fn(() => ({ ... }))`
+// would give the test a different stub than the one under assertion.
 const notificationsStub = vi.hoisted(() => ({
   error: vi.fn(),
   success: vi.fn(),
@@ -62,6 +61,26 @@ describe('ClipboardService', () => {
       await clipboardService.copyToClipboard('test text');
 
       expect(mockWriteText).toHaveBeenCalledWith('test text');
+      expect(notificationsService.success).toHaveBeenCalledWith(
+        'Copied to clipboard',
+      );
+    });
+
+    // Safari drops the click's user activation across an awaited import, so
+    // the write must start before the toast module loads.
+    it('starts the clipboard write synchronously, before loading the toast', async () => {
+      const mockWriteText = vi.fn().mockResolvedValue(undefined);
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: mockWriteText },
+        writable: true,
+      });
+
+      const copying = clipboardService.copyToClipboard('in the gesture');
+
+      expect(mockWriteText).toHaveBeenCalledWith('in the gesture');
+      expect(notificationsService.success).not.toHaveBeenCalled();
+      await copying;
       expect(notificationsService.success).toHaveBeenCalledWith(
         'Copied to clipboard',
       );

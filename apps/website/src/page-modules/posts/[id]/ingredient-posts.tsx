@@ -42,10 +42,7 @@ export default function IngredientPosts({
   };
 
   return (
-    <PublicListPage
-      pagination={posts.length > 0 ? pagination : undefined}
-      totalLabel="posts"
-    >
+    <PublicListPage pagination={pagination} totalLabel="posts">
       {/* Back button */}
       <div className="mb-6">
         <Button asChild variant={ButtonVariant.GHOST}>

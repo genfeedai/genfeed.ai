@@ -9,9 +9,9 @@ import ProfileVideos from './ProfileVideos';
  * Public profiles mount none of the app's providers (elements, prompt bar,
  * intl). These render the real masonry tiles with none of them,
  * the way `/u/<handle>` does, so a tile that reaches for an app context fails
- * here instead of on a live profile. The public API returns only generated
- * assets, so the failed-asset notice (the one part of a tile that translates)
- * never renders here.
+ * here instead of on a live profile. The failed-asset notice (the one part of
+ * a tile that translates) never renders here: the grids leave failed assets
+ * out, and the public API returns only generated ones anyway.
  */
 // A real page always has the App Router mounted; jsdom does not.
 vi.mock('next/navigation', () => ({
@@ -69,5 +69,16 @@ describe('public profile media without app providers', () => {
         container.querySelector('[data-masonry-item="true"]'),
       ).not.toBeNull(),
     );
+  });
+
+  // A failed tile's notice needs translations the website does not mount.
+  it('leaves failed assets out of the grid', () => {
+    const { container } = render(
+      <ProfileImages
+        images={[{ ...IMAGE, status: IngredientStatus.FAILED } as IImage]}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

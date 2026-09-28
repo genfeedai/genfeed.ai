@@ -53,7 +53,9 @@ export default function PublicListPage({
       {heading}
       <div className="px-5 sm:px-6">
         {children}
-        {pagination ? (
+        {/* Keyed on the API's total, not this page's items: a page past the
+            end is empty but still needs links back. */}
+        {pagination && pagination.total > 0 ? (
           <div className="mt-8">
             <Pagination
               currentPage={pagination.page}

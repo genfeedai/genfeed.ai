@@ -79,6 +79,12 @@ const DEFERRED_IMPORTS: ReadonlyArray<readonly [string, RegExp]> = [
     'app/(public)/tools/youtube-long-form/youtube-long-form-content.tsx',
     /from '@services\/(?:content|external)\/|from '@genfeedai\/hooks\/auth\//,
   ],
+  // The clipboard service loads the toast library only after its write, so
+  // every copy button (imported statically, inside the click) stays light.
+  [
+    '../../packages/services/core/clipboard.service.ts',
+    /from '@services\/core\/notifications\.service'/,
+  ],
   // The clipboard service brings the toast library through notifications.
   [
     'app/(content)/articles/[slug]/article-content.tsx',

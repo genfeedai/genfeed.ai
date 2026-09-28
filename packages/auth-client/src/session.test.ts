@@ -14,8 +14,11 @@ vi.mock('./client', async (importOriginal) => {
   };
 });
 
-const { BetterAuthTokenUnavailableError, getSignedInBetterAuthToken } =
-  await import('./session');
+const {
+  BetterAuthSessionLookupError,
+  BetterAuthTokenUnavailableError,
+  getSignedInBetterAuthToken,
+} = await import('./session');
 const { getBetterAuthTokenContextKey } = await import('./client');
 
 describe('getSignedInBetterAuthToken', () => {
@@ -62,5 +65,17 @@ describe('getSignedInBetterAuthToken', () => {
     await expect(getSignedInBetterAuthToken()).rejects.toBeInstanceOf(
       BetterAuthTokenUnavailableError,
     );
+  });
+
+  it('rejects when the session lookup itself fails', async () => {
+    mocks.getSession.mockResolvedValue({
+      data: null,
+      error: { message: 'Network error', status: 0 },
+    });
+
+    await expect(getSignedInBetterAuthToken()).rejects.toBeInstanceOf(
+      BetterAuthSessionLookupError,
+    );
+    expect(mocks.getBetterAuthToken).not.toHaveBeenCalled();
   });
 });

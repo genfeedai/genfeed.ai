@@ -49,6 +49,13 @@ function toTokenContext(
   };
 }
 
+export class BetterAuthSessionLookupError extends Error {
+  constructor(message?: string) {
+    super(message || 'Session lookup failed');
+    this.name = 'BetterAuthSessionLookupError';
+  }
+}
+
 export class BetterAuthTokenUnavailableError extends Error {
   constructor() {
     super('Authentication token unavailable');
@@ -63,13 +70,20 @@ export class BetterAuthTokenUnavailableError extends Error {
  * form), so it can import this module then instead of mounting
  * `useBetterAuthIdentity` and shipping the auth client with the page. Keys the
  * token cache exactly as the hook does. Resolves `null` when nobody is signed
- * in, and rejects with {@link BetterAuthTokenUnavailableError} when a session
- * exists but no token could be minted.
+ * in. Rejects with {@link BetterAuthSessionLookupError} when the session
+ * lookup fails, and with {@link BetterAuthTokenUnavailableError} when a
+ * session exists but no token could be minted.
  */
 export async function getSignedInBetterAuthToken(
   options?: BetterAuthTokenRequestOptions,
 ): Promise<string | null> {
   const result = await getSession();
+
+  // A failed lookup is not a signed-out visitor: callers would otherwise
+  // send a signed-in user down the anonymous path.
+  if (result?.error) {
+    throw new BetterAuthSessionLookupError(result.error.message);
+  }
 
   if (!result?.data?.session) {
     return null;

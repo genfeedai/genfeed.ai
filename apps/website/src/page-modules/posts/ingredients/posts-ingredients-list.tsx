@@ -29,7 +29,7 @@ export default function PostsIngredientsList({
       description="Content organized by ingredient."
       icon={ImageIcon}
       label="Posts by Ingredient"
-      pagination={ingredients.length > 0 ? pagination : undefined}
+      pagination={pagination}
       totalLabel="ingredients"
     >
       {ingredients.length === 0 ? (

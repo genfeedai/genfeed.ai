@@ -48,10 +48,17 @@ export default function MasonryFailureNotice({
         >
           {reason}
         </p>
+        {/* The tile behind it opens the asset on click and on Enter/Space;
+            neither may reach it from the retry button. */}
         <div
           role="presentation"
           className="pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.stopPropagation();
+            }
+          }}
         >
           <Button
             onClick={onRetry}

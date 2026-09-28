@@ -56,4 +56,18 @@ describe('ArticlesList pagination', () => {
 
     expect(screen.queryByText('0 articles')).toBeNull();
   });
+
+  it('links back from a page past the end', () => {
+    render(
+      <ArticlesList
+        articles={[]}
+        pagination={{ page: 9, total: 30, totalPages: 3 }}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: '3' })).toHaveAttribute(
+      'href',
+      '?page=3',
+    );
+  });
 });
