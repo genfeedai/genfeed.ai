@@ -1,5 +1,6 @@
 'use client';
 
+import { useAgentDock } from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
@@ -8,7 +9,14 @@ import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoTo
 import { Button } from '@ui/primitives/button';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
-import { Menu, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import {
+  Menu,
+  PanelBottomClose,
+  PanelBottomOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  X,
+} from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
@@ -55,6 +63,8 @@ function AppProtectedTopbarContent({
     pathname?.split('/').filter(Boolean)[2] === 'settings';
   const contextSidebar = useContextSidebar();
   const translateContextSidebar = useTranslations('common.contextSidebar');
+  const agentDock = useAgentDock();
+  const translateAgentDock = useTranslations('common.agentDock');
   // The toggle drives the context sidebar and is hidden while nothing is
   // selected.
   const rightPanel = contextSidebar?.selection
@@ -135,6 +145,31 @@ function AppProtectedTopbarContent({
               shifts between states. At `xl` and up it collapses/expands the
               rail; below `xl` the rail is display:none, so the same slot
               swaps to a variant that opens the inspector drawer instead. */}
+          {agentDock?.isAvailable ? (
+            <Button
+              aria-controls="workspace-agent-dock"
+              aria-expanded={agentDock.isOpen}
+              aria-keyshortcuts="Meta+J Control+J"
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              className="size-8"
+              data-active={agentDock.isOpen ? 'true' : 'false'}
+              data-testid="topbar-agent-dock-toggle"
+              ariaLabel={
+                agentDock.isOpen
+                  ? translateAgentDock('close')
+                  : translateAgentDock('open')
+              }
+              onClick={agentDock.toggle}
+            >
+              {agentDock.isOpen ? (
+                <PanelBottomClose className="size-4" />
+              ) : (
+                <PanelBottomOpen className="size-4" />
+              )}
+            </Button>
+          ) : null}
           {rightPanel ? (
             <>
               <Button

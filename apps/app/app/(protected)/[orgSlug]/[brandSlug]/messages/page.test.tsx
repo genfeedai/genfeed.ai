@@ -17,7 +17,13 @@ assertSourceHasExport(
 );
 
 const mocks = vi.hoisted(() => ({
+  agentDock: null as null | { isAvailable: boolean; open: () => void },
+  agentThread: {
+    activeThreadId: 'agent-thread-1' as string | null,
+    threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+  },
   brandContext: {
+    brandId: 'brand-1',
     brands: [
       {
         credentials: [
@@ -68,12 +74,13 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
+vi.mock('@contexts/ui/agent-dock-context', () => ({
+  useAgentDock: () => mocks.agentDock,
+}));
+
 vi.mock('@genfeedai/agent', () => ({
   useAgentChatStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      activeThreadId: 'agent-thread-1',
-      threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
-    }),
+    selector(mocks.agentThread),
 }));
 
 vi.mock('@genfeedai/agent/components/AgentOAuthConnectMenu', () => ({
@@ -965,4 +972,75 @@ describe('SocialMessagesPage', () => {
       expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
     }
   });
+
+  it('offers no agent hand-off where no dock hosts the conversation', async () => {
+    render(<SocialMessagesPage />);
+
+    expect(
+      await screen.findByText('Here is a drafted answer.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Ask Agent about this' }),
+    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Ask Agent' })).toBeNull();
+  });
+
+  it('attaches the conversation or a message to the agent dock and opens it', async () => {
+    const open = vi.fn();
+    mocks.agentDock = { isAvailable: true, open };
+
+    try {
+      render(<SocialMessagesPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Ask Agent about this' }),
+      );
+      expect(open).toHaveBeenCalledTimes(1);
+
+      const [askMessage] = await screen.findAllByRole('button', {
+        name: 'Attach message to the agent',
+      });
+      fireEvent.click(askMessage);
+      expect(open).toHaveBeenCalledTimes(2);
+      expect(
+        await screen.findAllByRole('button', {
+          name: 'Remove message from the agent',
+        }),
+      ).not.toHaveLength(0);
+    } finally {
+      mocks.agentDock = null;
+    }
+  });
+
+  it.each([
+    ['the selected brand', 'brand-1', true],
+    ['another brand', 'brand-2', false],
+  ])(
+    'lets a new dock conversation take references for %s only',
+    async (_label, selectedBrandId, isAllowed) => {
+      mocks.agentDock = { isAvailable: true, open: vi.fn() };
+      mocks.agentThread = { activeThreadId: null, threads: [] };
+      mocks.brandContext.brandId = selectedBrandId;
+
+      try {
+        render(<SocialMessagesPage />);
+
+        const askConversation = await screen.findByRole('button', {
+          name: 'Ask Agent about this',
+        });
+        if (isAllowed) {
+          expect(askConversation).toBeEnabled();
+        } else {
+          expect(askConversation).toBeDisabled();
+        }
+      } finally {
+        mocks.agentDock = null;
+        mocks.agentThread = {
+          activeThreadId: 'agent-thread-1',
+          threads: [{ brandId: 'brand-1', id: 'agent-thread-1' }],
+        };
+        mocks.brandContext.brandId = 'brand-1';
+      }
+    },
+  );
 });

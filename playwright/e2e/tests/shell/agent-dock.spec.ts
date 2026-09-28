@@ -1,0 +1,130 @@
+import { brandPath } from '@e2e/utils/app-chrome';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { Page } from '@playwright/test';
+import {
+  mockActiveSubscription,
+  mockLibraryData,
+} from '../../fixtures/api-mocks.fixture';
+import { expect, test } from '../../fixtures/auth.fixture';
+import { expectNoErrorOverlay } from '../../utils/route-assertions';
+
+/**
+ * The agent lives in a bottom dock on product routes: collapsed by default,
+ * summoned with ⌘J / Ctrl+J or the topbar toggle, closed with Esc, and handed
+ * off to the full conversation from its header. `/agent` is the conversation
+ * itself, so the dock closes there.
+ *
+ * @module agent-dock.spec
+ */
+
+async function openLibrary(page: Page): Promise<void> {
+  await page.goto(brandPath(APP_ROUTES.LIBRARY.IMAGES), {
+    waitUntil: 'domcontentloaded',
+  });
+  await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();
+}
+
+test.describe('Agent dock', () => {
+  test.setTimeout(90_000);
+
+  test.beforeEach(async ({ authenticatedPage }) => {
+    await mockActiveSubscription(authenticatedPage, {
+      credits: 1000,
+      plan: 'pro',
+    });
+    await mockLibraryData(authenticatedPage);
+  });
+
+  test('opens with ⌘J, shows the conversation and closes with Esc', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await openLibrary(page);
+
+    const dock = page.getByRole('region', { name: 'Agent' });
+    const toggle = page.getByTestId('topbar-agent-dock-toggle');
+    await expect(dock).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await page.keyboard.press('ControlOrMeta+j');
+
+    await expect(dock).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    // The conversation and its composer render in the dock. (The mocked agent
+    // stream is offline in E2E, so the composer is disabled and cannot take
+    // focus; the unit tests cover focusing it.)
+    await expect(
+      dock.getByRole('textbox', { name: 'Conversation prompt' }),
+    ).toBeVisible();
+    // The dock sits under the canvas, not over it.
+    const canvas = page.getByRole('region', {
+      name: 'Primary workspace canvas',
+    });
+    const [canvasBox, dockBox] = await Promise.all([
+      canvas.boundingBox(),
+      dock.boundingBox(),
+    ]);
+    expect(dockBox?.y ?? 0).toBeGreaterThanOrEqual(
+      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) - 1,
+    );
+
+    await dock.getByRole('button', { name: 'Open full page' }).focus();
+    await page.keyboard.press('Escape');
+    await expect(dock).toHaveCount(0);
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.click();
+    await expect(dock).toBeVisible();
+    await expectNoErrorOverlay(page);
+  });
+
+  test('keeps its open state across product pages', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await openLibrary(page);
+    await page.getByTestId('topbar-agent-dock-toggle').click();
+    await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
+  });
+
+  test('hands off to the full conversation and closes on /agent', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 900, width: 1440 });
+    await openLibrary(page);
+    await page.getByTestId('topbar-agent-dock-toggle').click();
+
+    const dock = page.getByRole('region', { name: 'Agent' });
+    await dock.getByRole('button', { name: 'Open full page' }).click();
+
+    await expect(page).toHaveURL(/\/agent(\/|$)/);
+    await expect(dock).toHaveCount(0);
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
+
+    // Back on a product page the dock stays closed until reopened.
+    await openLibrary(page);
+    await expect(dock).toHaveCount(0);
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
+  test('opens as a bottom sheet on mobile', async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await openLibrary(page);
+
+    await page.getByTestId('topbar-agent-dock-toggle').click();
+
+    const sheet = page.getByRole('dialog', { name: 'Agent' });
+    await expect(sheet).toBeVisible();
+    await sheet.getByRole('button', { name: 'Close agent' }).click();
+    await expect(sheet).toHaveCount(0);
+  });
+});

@@ -7,6 +7,15 @@ import type { JSONContent } from '@tiptap/core';
 
 const STORAGE_PREFIX = 'genfeed:conversation-composer:v1';
 
+/**
+ * Dispatched on `window` whenever a scope's draft content references change
+ * outside the composer that owns it (e.g. a Library "Add to conversation"
+ * action while the dock composer is mounted). `detail.scopeKey` identifies
+ * which draft changed so a listener can ignore updates to other scopes.
+ */
+export const CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT =
+  'genfeed:conversation-composer:draft-updated';
+
 const EMPTY_DRAFT: PersistedConversationComposerDraft = {
   attachments: [],
   contentReferences: [],
@@ -48,9 +57,16 @@ function normalizeContentReference(
   }
 
   return {
+    ...(typeof record.brandId === 'string' && record.brandId
+      ? { brandId: record.brandId }
+      : {}),
     contentTitle: record.contentTitle,
     contentType: record.contentType,
     id: record.id,
+    // Missing on a legacy record (written before `kind` existed) means `post`.
+    ...(record.kind === 'ingredient' || record.kind === 'post'
+      ? { kind: record.kind }
+      : {}),
     ...(typeof record.thumbnailUrl === 'string'
       ? { thumbnailUrl: record.thumbnailUrl }
       : {}),
@@ -204,15 +220,16 @@ export function buildConversationComposerDraftScopeKey(
 }
 
 /**
- * Puts a Library item on the attachment tray of the organization's next new
- * conversation, so a page can hand an asset to the Agent without sending a
- * message on the user's behalf.
+ * Appends a content reference to a scope's draft (deduped by id) and notifies
+ * any composer currently mounted on that scope via
+ * `CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT`, so a record attached from
+ * elsewhere in the app (e.g. Library) shows up in a live composer without a
+ * remount.
  */
-export function attachContentToNewConversationDraft(
-  orgSlug: string,
+export function attachContentToConversationDraft(
+  scopeKey: string | null,
   reference: PersistedConversationComposerContentReference,
 ): void {
-  const scopeKey = buildConversationComposerDraftScopeKey(orgSlug, null);
   const { contentReferences } = readConversationComposerDraft(scopeKey);
   if (contentReferences.some((item) => item.id === reference.id)) {
     return;
@@ -222,4 +239,60 @@ export function attachContentToNewConversationDraft(
     ...contentReferences,
     reference,
   ]);
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent(CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT, {
+        detail: { scopeKey },
+      }),
+    );
+  }
+}
+
+/**
+ * Puts a Library item on the attachment tray of the organization's next new
+ * conversation, so a page can hand an asset to the Agent without sending a
+ * message on the user's behalf.
+ */
+export function attachContentToNewConversationDraft(
+  orgSlug: string,
+  reference: PersistedConversationComposerContentReference,
+): void {
+  attachContentToConversationDraft(
+    buildConversationComposerDraftScopeKey(orgSlug, null),
+    reference,
+  );
+}
+
+// Chips a composer dismissed for the next message. Held per scope in memory so
+// they survive the composer remounting (an overlay taking the prompt bar, the
+// dock sheet closing) until the next send in that scope.
+const dismissedSurfaceReferenceKeysByScope = new Map<
+  string,
+  ReadonlySet<string>
+>();
+const EMPTY_DISMISSED_KEYS: ReadonlySet<string> = new Set();
+
+export function readDismissedSurfaceReferenceKeys(
+  scopeKey: string | null,
+): ReadonlySet<string> {
+  return scopeKey
+    ? (dismissedSurfaceReferenceKeysByScope.get(scopeKey) ??
+        EMPTY_DISMISSED_KEYS)
+    : EMPTY_DISMISSED_KEYS;
+}
+
+export function writeDismissedSurfaceReferenceKeys(
+  scopeKey: string | null,
+  keys: ReadonlySet<string>,
+): void {
+  if (!scopeKey) {
+    return;
+  }
+
+  if (keys.size === 0) {
+    dismissedSurfaceReferenceKeysByScope.delete(scopeKey);
+  } else {
+    dismissedSurfaceReferenceKeysByScope.set(scopeKey, keys);
+  }
 }

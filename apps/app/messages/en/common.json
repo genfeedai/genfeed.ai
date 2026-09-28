@@ -654,6 +654,15 @@
   "workspaceOverlay": {
     "noContent": "No content configured for this overlay."
   },
+  "agentDock": {
+    "close": "Close agent",
+    "description": "Chat with the agent without leaving this page.",
+    "label": "Agent",
+    "open": "Open agent",
+    "openFullPage": "Open full page",
+    "resize": "Resize agent",
+    "title": "Agent"
+  },
   "contextSidebar": {
     "close": "Close details",
     "collapse": "Collapse details",
@@ -815,7 +824,10 @@
       "dropPlaceholder": "drop it here?",
       "queueFull": "Follow-up queue is full. Remove a prompt or wait until one sends.",
       "uploadInProgress": "Wait for attachments to finish uploading, then send again.",
-      "knowledgeSelected": "Knowledge · {count} selected"
+      "knowledgeSelected": "Knowledge · {count} selected",
+      "referencedContent": "Referenced content: {label}",
+      "removeAttachment": "Remove {name}",
+      "removeReference": "Remove reference {label}"
     },
     "composerFollowUpQueue": {
       "collapse": "Hide queued follow-ups",
@@ -1344,6 +1356,13 @@
     "transcriptIngestion": "Transcript Ingestion"
   },
   "messages": {
+    "agent": {
+      "askConversation": "Ask Agent about this",
+      "askMessage": "Ask Agent",
+      "attachMessage": "Attach message to the agent",
+      "attached": "Attached",
+      "removeMessage": "Remove message from the agent"
+    },
     "actions": {
       "approve": "Approve",
       "automation": "Automation",

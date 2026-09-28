@@ -39,7 +39,7 @@ export {
   ConversationComposerShellProvider,
   useConversationComposerShell,
 } from '@genfeedai/agent/components/ConversationComposerShellContext';
-export { ConversationInspectorPanel } from '@genfeedai/agent/components/ConversationInspectorPanel';
+export { ConversationDockPanel } from '@genfeedai/agent/components/ConversationDockPanel';
 export { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 export { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 export { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';

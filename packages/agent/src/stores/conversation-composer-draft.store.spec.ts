@@ -1,7 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  attachContentToConversationDraft,
   attachContentToNewConversationDraft,
   buildConversationComposerDraftScopeKey,
+  CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
   readConversationComposerDraft,
   writeConversationComposerAttachments,
@@ -120,5 +122,78 @@ describe('conversation composer draft persistence', () => {
     expect(
       readConversationComposerDraft('acme:thread-1:0').contentReferences,
     ).toEqual([]);
+  });
+
+  it('persists the content reference kind and defaults a legacy record to post', () => {
+    const scopeKey = 'acme:thread-1:5';
+
+    writeConversationComposerContentReferences(scopeKey, [
+      {
+        contentTitle: 'Hero shot',
+        contentType: 'image',
+        id: 'ingredient-1',
+        kind: 'ingredient',
+      },
+    ]);
+    expect(readConversationComposerDraft(scopeKey).contentReferences).toEqual([
+      expect.objectContaining({ id: 'ingredient-1', kind: 'ingredient' }),
+    ]);
+
+    // A record written before `kind` existed has no `kind` field at all.
+    sessionStorage.setItem(
+      `genfeed:conversation-composer:v1:${scopeKey}`,
+      JSON.stringify({
+        attachments: [],
+        contentReferences: [
+          { contentTitle: 'Launch post', contentType: 'post', id: 'post-1' },
+        ],
+        document: null,
+        plainText: '',
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+
+    const legacy = readConversationComposerDraft(scopeKey).contentReferences;
+    expect(legacy).toEqual([expect.objectContaining({ id: 'post-1' })]);
+    expect(legacy[0]?.kind).toBeUndefined();
+  });
+
+  it('attaches content to a scope and dispatches the draft-updated event', () => {
+    const scopeKey = 'acme:thread-1:6';
+    const listener = vi.fn();
+    window.addEventListener(
+      CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
+      listener,
+    );
+
+    const reference = {
+      contentTitle: 'Launch still',
+      contentType: 'image',
+      id: 'ingredient-1',
+      kind: 'ingredient' as const,
+    };
+
+    attachContentToConversationDraft(scopeKey, reference);
+
+    expect(readConversationComposerDraft(scopeKey).contentReferences).toEqual([
+      reference,
+    ]);
+    expect(listener).toHaveBeenCalledTimes(1);
+    const event = listener.mock.calls[0]?.[0] as CustomEvent<{
+      scopeKey: string | null;
+    }>;
+    expect(event.detail).toEqual({ scopeKey });
+
+    // Re-attaching the same id dedupes and does not fire again.
+    attachContentToConversationDraft(scopeKey, reference);
+    expect(
+      readConversationComposerDraft(scopeKey).contentReferences,
+    ).toHaveLength(1);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    window.removeEventListener(
+      CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
+      listener,
+    );
   });
 });

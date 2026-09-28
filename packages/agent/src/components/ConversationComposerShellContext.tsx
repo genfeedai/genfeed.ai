@@ -34,7 +34,7 @@ export interface ConversationComposerShellContextValue {
   isConsequentiallyBlocked?: boolean;
   isComposerVisible?: boolean;
   onSendMessage?: () => void;
-  placement?: 'inspector' | 'overlay' | 'surface';
+  placement?: 'dock' | 'overlay' | 'surface';
   portalTarget: HTMLElement | null;
   references?: readonly ConversationComposerContextReference[];
   scopeControls?: ReactNode;
