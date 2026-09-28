@@ -26,6 +26,7 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -243,7 +244,8 @@ export class ReportingPolicyDto {
   weeklySummaryEnabled?: boolean;
 
   @IsArray()
-  @IsEntityId({ each: true })
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Optional report recipient user IDs',

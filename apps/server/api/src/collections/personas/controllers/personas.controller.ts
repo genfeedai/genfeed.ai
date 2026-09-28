@@ -7,11 +7,13 @@ import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.d
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { composeCharacterSheetPrompt } from '@api/endpoints/ai-actions/prompts/character-sheet-preset';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
+import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
@@ -177,9 +179,15 @@ export class PersonasController extends BaseCRUDController<
       const organization = user.organizationId;
       const personaId = EntityIdUtil.validate(id, 'personaId');
       const orgId = EntityIdUtil.validate(organization, 'organizationId');
-      const memberIds = EntityIdUtil.validateMany(
-        updateDto.memberIds,
-        'memberIds',
+      // Member IDs are user IDs: opaque strings, including legacy Better
+      // Auth base62 IDs, so they are not held to the entity-id format.
+      if (updateDto.memberIds.length === 0) {
+        throw new ValidationException('memberIds array cannot be empty');
+      }
+      const memberIds = updateDto.memberIds.map((memberId, index) =>
+        InputValidationUtil.validateString(memberId, `memberIds[${index}]`, {
+          sanitize: false,
+        }),
       );
 
       // Applied directly here (not via the generic field patch) because

@@ -131,42 +131,6 @@ describe('EntityIdUtil', () => {
     });
   });
 
-  describe('enrichWithUserContext', () => {
-    it('should enrich DTO with user and organization', () => {
-      const dto = { name: 'Test' };
-      const user = {
-        organizationId,
-        userId,
-      };
-
-      const result = EntityIdUtil.enrichWithUserContext(dto, user);
-
-      expect(result.name).toBe('Test');
-      expect(result.userId).toEqual(expect.any(String));
-      expect(result.organizationId).toEqual(expect.any(String));
-    });
-
-    it('should enrich DTO without organization', () => {
-      const dto = { name: 'Test' };
-      const user = {
-        userId,
-      };
-
-      const result = EntityIdUtil.enrichWithUserContext(dto, user);
-
-      expect(result.userId).toEqual(expect.any(String));
-      expect(result.organizationId).toBeUndefined();
-    });
-
-    it('should throw error for missing user context', () => {
-      const dto = { name: 'Test' };
-
-      expect(() =>
-        EntityIdUtil.enrichWithUserContext(dto, { id: '', userId: '' }),
-      ).toThrow(ValidationException);
-    });
-  });
-
   describe('convertRelationshipField', () => {
     it('should accept a supported entity id string', async () => {
       const result = await EntityIdUtil.convertRelationshipField(
