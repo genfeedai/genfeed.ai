@@ -8,12 +8,14 @@ import type { WhisperService } from '@api/services/whisper/whisper.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
+import { of } from 'rxjs';
 import { ClipAnalysisWorkflowService } from './clip-analysis-workflow.service';
 import type { ClipHighlightDetector } from './clip-highlight-detector.service';
 
 describe('ClipAnalysisWorkflowService', () => {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const clipProjects = { patch: vi.fn() };
+  const http = { get: vi.fn(), post: vi.fn() };
   const runner = {
     registerAction: vi.fn(
       (actionId: string, executor: SystemWorkflowActionExecutor) => {
@@ -26,7 +28,7 @@ describe('ClipAnalysisWorkflowService', () => {
     { error: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
     clipProjects as unknown as ClipProjectsService,
     { transcribeUrl: vi.fn() } as unknown as WhisperService,
-    { get: vi.fn(), post: vi.fn() } as unknown as HttpService,
+    http as unknown as HttpService,
     {
       get: vi.fn(),
       isDevelopment: true,
@@ -95,4 +97,68 @@ describe('ClipAnalysisWorkflowService', () => {
       'org-1',
     );
   });
+
+  it.each([
+    [
+      'a stored source by its storage key',
+      {
+        contentType: 'video/mp4',
+        mediaUrl: 'https://cdn.genfeed.ai/ingredients/videos/video-1',
+        storageKey: 'ingredients/videos/video-1',
+      },
+      { s3Key: 'ingredients/videos/video-1', timestamps: [15] },
+    ],
+    [
+      'a YouTube source by its URL',
+      undefined,
+      {
+        inputPath: 'https://www.youtube.com/watch?v=abc123def45',
+        timestamps: [15],
+      },
+    ],
+  ])(
+    'asks the files service for reference frames from %s',
+    async (_label, sourceArtifact, params) => {
+      http.post.mockReturnValue(of({ data: {} }));
+      const extract = actions.get('clip.analysis.extract-reference-frames');
+
+      const result = (await extract?.({
+        input: {
+          highlighted: {
+            data: {
+              orgId: 'org-1',
+              projectId: 'project-1',
+              source: { contentType: 'video/mp4', kind: 'library' },
+              userId: 'user-1',
+            },
+            highlights: [
+              {
+                clip_type: 'hook',
+                end_time: 20,
+                id: 'h1',
+                start_time: 10,
+                summary: 'Hook',
+                tags: [],
+                title: 'Hook',
+                virality_score: 90,
+              },
+            ],
+            ...(sourceArtifact ? { sourceArtifact } : {}),
+            sourceUrl: 'https://www.youtube.com/watch?v=abc123def45',
+          },
+        },
+      } as never)) as { referenceFrames: { status: string } };
+
+      expect(http.post).toHaveBeenCalledWith(
+        expect.stringContaining('/v1/files/process/video'),
+        expect.objectContaining({
+          organizationId: 'org-1',
+          params,
+          type: 'extract-reference-frames',
+        }),
+        expect.anything(),
+      );
+      expect(result.referenceFrames.status).toBe('unavailable');
+    },
+  );
 });

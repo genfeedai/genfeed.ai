@@ -27,6 +27,7 @@ import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
+import type { Prisma } from '@genfeedai/prisma';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -49,6 +50,9 @@ export type ClipProjectCreateInput = Omit<
   readonly source?: ClipSourceContract;
   readonly sourceVideoUrl?: string;
 };
+
+const DRAFT_STARTED_MESSAGE =
+  'This clip project has already started and its setup can no longer be edited.';
 
 const PROJECT_SCALAR_KEYS = new Set([
   'brandId',
@@ -347,9 +351,7 @@ export class ClipProjectsService extends BaseService<
       throw new NotFoundException('ClipProject', projectId);
     }
     if (project.status !== 'draft') {
-      throw new ConflictException(
-        'This clip project has already started and its setup can no longer be edited.',
-      );
+      throw new ConflictException(DRAFT_STARTED_MESSAGE);
     }
 
     const draft: Partial<ClipProjectDraft> = project.draft ?? {};
@@ -378,12 +380,46 @@ export class ClipProjectsService extends BaseService<
       where: { ...where, status: 'draft' },
     });
     if (result.count !== 1) {
-      throw new ConflictException(
-        'This clip project has already started and its setup can no longer be edited.',
-      );
+      throw new ConflictException(DRAFT_STARTED_MESSAGE);
     }
 
     return { ...project, draft: nextDraft, settings };
+  }
+
+  /**
+   * Writes project fields onto a project that is still a draft, keeping it a
+   * draft. Used to attach a prepared upload, so a failed transfer can be
+   * prepared again; the draft is claimed only once the upload is finalized.
+   */
+  async patchDraft(
+    projectId: string,
+    organizationId: string,
+    update: Record<string, unknown>,
+  ): Promise<ClipProjectDocument> {
+    const where = { id: projectId, isDeleted: false, organizationId };
+    const project = await this.findOne(where);
+    if (!project) {
+      throw new NotFoundException('ClipProject', projectId);
+    }
+    if (project.status !== 'draft') {
+      throw new ConflictException(DRAFT_STARTED_MESSAGE);
+    }
+
+    const { status: _status, ...fields } = update;
+    const data = this.toPrismaWriteData(
+      fields,
+      'update',
+      this.readRecord((project as Record<string, unknown>).config),
+    ) as Prisma.ClipProjectUncheckedUpdateManyInput;
+    const result = await this.prisma.clipProject.updateMany({
+      data,
+      where: { ...where, status: 'draft' },
+    });
+    if (result.count !== 1) {
+      throw new ConflictException(DRAFT_STARTED_MESSAGE);
+    }
+
+    return (await this.findOne(where)) ?? project;
   }
 
   private toPrismaWriteData(

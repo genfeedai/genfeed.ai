@@ -280,6 +280,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           data.userId,
           data.projectId,
           referenceTimestamps,
+          highlighted.sourceArtifact?.storageKey,
         );
       } catch (error: unknown) {
         this.logger.warn(
@@ -370,6 +371,7 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
     userId: string,
     projectId: string,
     timestamps: number[],
+    sourceS3Key?: string,
   ): Promise<ClipReferenceFrameSet> {
     const filesUrl = this.getFilesServiceUrl();
 
@@ -380,7 +382,12 @@ export class ClipAnalysisWorkflowService implements OnModuleInit {
           id: `clip-reference-frames-${projectId}`,
           ingredientId: projectId,
           organizationId,
-          params: { inputPath: youtubeUrl, timestamps },
+          // Stored sources (uploads, Library assets, materialized YouTube
+          // downloads) are read by key; the files service only fetches
+          // remote URLs from YouTube.
+          params: sourceS3Key
+            ? { s3Key: sourceS3Key, timestamps }
+            : { inputPath: youtubeUrl, timestamps },
           type: 'extract-reference-frames',
           userId,
         },

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
+import { S3Service } from '@files/services/s3/s3.service';
 import { UploadService } from '@files/services/upload/upload.service';
 import { YtDlpService } from '@files/services/ytdlp/ytdlp.service';
 import {
@@ -69,6 +70,7 @@ export class ClipReferenceFrameExtractionService {
     private readonly uploadService: UploadService,
     private readonly ytDlpService: YtDlpService,
     private readonly logger: LoggerService,
+    private readonly s3Service: S3Service,
   ) {}
 
   async extract(
@@ -82,11 +84,16 @@ export class ClipReferenceFrameExtractionService {
       );
     }
 
-    let sourceUrl: string;
+    const sourceStorageKey = input.sourceStorageKey?.trim();
+    let sourceUrl: string | undefined;
     let organizationId: string;
     let projectId: string;
     try {
-      sourceUrl = validatePublicYoutubeUrl(input.sourceUrl);
+      // A stored source is read from storage by key (S3Service rejects unsafe
+      // keys); only a remote source must be a public YouTube URL.
+      sourceUrl = sourceStorageKey
+        ? undefined
+        : validatePublicYoutubeUrl(input.sourceUrl);
       organizationId = storageSegment(input.organizationId);
       projectId = storageSegment(input.projectId);
     } catch (error: unknown) {
@@ -107,7 +114,11 @@ export class ClipReferenceFrameExtractionService {
     );
 
     try {
-      await this.ytDlpService.downloadVideo(sourceUrl, sourcePath);
+      if (sourceStorageKey) {
+        await this.s3Service.downloadFile(sourceStorageKey, sourcePath);
+      } else if (sourceUrl) {
+        await this.ytDlpService.downloadVideo(sourceUrl, sourcePath);
+      }
 
       const candidates: ClipReferenceFrameCandidate[] = [];
       for (const [index, timestampSeconds] of timestamps.entries()) {

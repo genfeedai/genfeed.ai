@@ -881,6 +881,7 @@ export class VideoProcessor extends WorkerHost {
       await this.clipReferenceFrameExtractionService.extract({
         organizationId,
         projectId: ingredientId,
+        sourceStorageKey: params.s3Key,
         sourceUrl: params.inputPath || '',
         timestamps: params.timestamps || [],
       });

@@ -435,36 +435,41 @@ export class ClipProjectIngestionService {
       updatedAt: now,
     };
 
-    const project = await this.createOrStartDraft(
-      user.organizationId,
-      dto.draftProjectId,
-      {
-        brandId: dto.brandId,
+    const projectInput: ClipProjectCreateInput = {
+      brandId: dto.brandId,
+      language: dto.language ?? 'en',
+      name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
+      organizationId: user.organizationId,
+      settings: {
+        addCaptions: true,
+        aspectRatio: '9:16',
+        avatarId: dto.avatarId,
+        avatarProvider: dto.avatarProvider,
+        captionStyle: 'default',
+        flow,
         language: dto.language ?? 'en',
-        name: dto.name ?? `Uploaded Clip Source — ${now.slice(0, 10)}`,
-        organizationId: user.organizationId,
-        settings: {
-          addCaptions: true,
-          aspectRatio: '9:16',
-          avatarId: dto.avatarId,
-          avatarProvider: dto.avatarProvider,
-          captionStyle: 'default',
-          flow,
-          language: dto.language ?? 'en',
-          maxClips: dto.maxClips ?? 10,
-          maxDuration: 90,
-          minDuration: 15,
-          minViralityScore: dto.minViralityScore ?? 50,
-          mode,
-          voiceId: dto.voiceId,
-        },
-        source,
-        sourceVideoS3Key: upload.s3Key,
-        sourceVideoUrl: upload.publicUrl,
-        status: 'pending',
-        userId,
+        maxClips: dto.maxClips ?? 10,
+        maxDuration: 90,
+        minDuration: 15,
+        minViralityScore: dto.minViralityScore ?? 50,
+        mode,
+        voiceId: dto.voiceId,
       },
-    );
+      source,
+      sourceVideoS3Key: upload.s3Key,
+      sourceVideoUrl: upload.publicUrl,
+      status: 'pending',
+      userId,
+    };
+    // A draft stays a draft until finalize, so a failed transfer can be
+    // prepared again against the same draft.
+    const project = dto.draftProjectId
+      ? await this.clipProjectsService.patchDraft(
+          dto.draftProjectId,
+          user.organizationId,
+          { ...projectInput },
+        )
+      : await this.clipProjectsService.create(projectInput);
 
     return {
       expiresIn: upload.expiresIn,
@@ -568,6 +573,24 @@ export class ClipProjectIngestionService {
     }
     if (durationSeconds > CLIP_SOURCE_MAX_DURATION_SECONDS) {
       throw new BadRequestException('Clip sources may be up to 6 hours long.');
+    }
+
+    if (project.status === 'draft') {
+      const isClaimed = await this.clipProjectsService.claimDraft(
+        projectId,
+        user.organizationId,
+      );
+      if (!isClaimed) {
+        throw new ConflictException(
+          'This clip project draft was already started or no longer exists.',
+        );
+      }
+      await this.clipProjectsService.patch(
+        projectId,
+        { draft: null },
+        [],
+        user.organizationId,
+      );
     }
 
     const flow = project.settings?.flow ?? source.flow;

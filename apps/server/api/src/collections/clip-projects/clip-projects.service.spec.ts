@@ -856,4 +856,56 @@ describe('ClipProjectsService', () => {
       expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
     });
   });
+
+  describe('patchDraft', () => {
+    const draftRow = {
+      config: {
+        draft: { filename: 'podcast.mp4', sourceKind: 'upload' },
+        settings: { maxClips: 10 },
+      },
+      id: 'draft-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      progress: 0,
+      readiness: {},
+      status: 'draft',
+    };
+
+    it('attaches source fields while the project stays a draft', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue(draftRow);
+      prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchDraft('draft-1', 'org-1', {
+        source: { kind: 'upload', status: 'uploading' },
+        sourceVideoS3Key: 'videos/ingredient-1',
+        status: 'pending',
+      });
+
+      const call = prisma.clipProject.updateMany.mock.calls[0]?.[0];
+      expect(call.where).toEqual({
+        id: 'draft-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        status: 'draft',
+      });
+      expect(call.data).not.toHaveProperty('status');
+      expect(call.data.config).toMatchObject({
+        draft: { filename: 'podcast.mp4', sourceKind: 'upload' },
+        source: { kind: 'upload', status: 'uploading' },
+        sourceVideoS3Key: 'videos/ingredient-1',
+      });
+    });
+
+    it('refuses a project that already started', async () => {
+      prisma.clipProject.findFirst.mockResolvedValue({
+        ...draftRow,
+        status: 'analyzing',
+      });
+
+      await expect(
+        service.patchDraft('draft-1', 'org-1', { name: 'x' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
+    });
+  });
 });

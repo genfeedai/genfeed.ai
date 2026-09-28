@@ -37,6 +37,7 @@ describe('ClipProjectIngestionService', () => {
     create: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
+    patchDraft: ReturnType<typeof vi.fn>;
   };
   let clipFactoryWorkflowQueue: {
     enqueue: ReturnType<typeof vi.fn>;
@@ -73,6 +74,9 @@ describe('ClipProjectIngestionService', () => {
       } as ClipProjectDocument),
       findOne: vi.fn(),
       patch: vi.fn(),
+      patchDraft: vi.fn().mockResolvedValue({
+        id: 'draft-1',
+      } as ClipProjectDocument),
     };
     clipFactoryWorkflowQueue = {
       enqueue: vi.fn().mockResolvedValue('clip-factory-project-1'),
@@ -972,7 +976,7 @@ describe('ClipProjectIngestionService', () => {
       );
     });
 
-    it('starts a quick run and an upload on the claimed draft', async () => {
+    it('starts a quick run on the claimed draft', async () => {
       clipProjectsService.patch.mockResolvedValue({
         id: 'draft-1',
       } as ClipProjectDocument);
@@ -982,20 +986,119 @@ describe('ClipProjectIngestionService', () => {
         mode: 'raw-cut',
         youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
       });
-      await expect(
+
+      expect(clipProjectsService.claimDraft).toHaveBeenCalledOnce();
+      expect(clipProjectsService.create).not.toHaveBeenCalled();
+      expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith(
+        expect.objectContaining({ projectId: 'draft-1' }),
+      );
+    });
+
+    it('keeps an upload draft resumable until the upload is finalized', async () => {
+      const prepare = () =>
         service.prepareUpload(currentUser as never, {
           contentType: 'video/mp4',
           draftProjectId: 'draft-1',
           filename: 'podcast.mp4',
           sizeBytes: 100,
-        }),
-      ).resolves.toMatchObject({ projectId: 'draft-1' });
+        });
 
-      expect(clipProjectsService.claimDraft).toHaveBeenCalledTimes(2);
+      // The first transfer fails client-side; preparing again must still work.
+      await expect(prepare()).resolves.toMatchObject({ projectId: 'draft-1' });
+      await expect(prepare()).resolves.toMatchObject({ projectId: 'draft-1' });
+
+      expect(clipProjectsService.claimDraft).not.toHaveBeenCalled();
       expect(clipProjectsService.create).not.toHaveBeenCalled();
-      expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledWith(
+      expect(clipProjectsService.patchDraft).toHaveBeenCalledTimes(2);
+      expect(clipProjectsService.patchDraft).toHaveBeenLastCalledWith(
+        'draft-1',
+        'org-1',
+        expect.objectContaining({
+          source: expect.objectContaining({
+            filename: 'podcast.mp4',
+            kind: 'upload',
+            status: 'uploading',
+          }),
+          sourceVideoS3Key: 'videos/ingredient-1',
+        }),
+      );
+    });
+
+    it('claims an upload draft when its upload is finalized', async () => {
+      clipProjectsService.findOne.mockResolvedValue({
+        id: 'draft-1',
+        organizationId: 'org-1',
+        settings: { flow: 'review', maxClips: 4 },
+        source: {
+          contentType: 'video/mp4',
+          filename: 'podcast.mp4',
+          flow: 'review',
+          ingredientId: 'ingredient-1',
+          kind: 'upload',
+          maxRetries: 3,
+          retryCount: 0,
+          schemaVersion: 1,
+          status: 'uploading',
+        },
+        sourceVideoUrl: 'https://cdn.test/videos/ingredient-1',
+        status: 'draft',
+      } as ClipProjectDocument);
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: { duration: 600, size: 1_000 },
+        mimeType: 'video/mp4',
+        status: 'UPLOADED',
+      });
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).resolves.toMatchObject({ status: 'analyzing' });
+
+      expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+      );
+      expect(clipProjectsService.patch).toHaveBeenCalledWith(
+        'draft-1',
+        { draft: null },
+        [],
+        'org-1',
+      );
+      expect(clipAnalysisWorkflowQueue.enqueue).toHaveBeenCalledWith(
         expect.objectContaining({ projectId: 'draft-1' }),
       );
+    });
+
+    it('does not queue a finalized upload whose draft another start claimed', async () => {
+      clipProjectsService.claimDraft.mockResolvedValue(false);
+      clipProjectsService.findOne.mockResolvedValue({
+        id: 'draft-1',
+        organizationId: 'org-1',
+        settings: { flow: 'review' },
+        source: {
+          contentType: 'video/mp4',
+          flow: 'review',
+          ingredientId: 'ingredient-1',
+          kind: 'upload',
+          maxRetries: 3,
+          retryCount: 0,
+          schemaVersion: 1,
+          status: 'uploading',
+        },
+        sourceVideoUrl: 'https://cdn.test/videos/ingredient-1',
+        status: 'draft',
+      } as ClipProjectDocument);
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadata: { duration: 600, size: 1_000 },
+        mimeType: 'video/mp4',
+        status: 'UPLOADED',
+      });
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(clipAnalysisWorkflowQueue.enqueue).not.toHaveBeenCalled();
     });
 
     it('refuses a draft that was already started without queueing twice', async () => {
