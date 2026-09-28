@@ -1,6 +1,9 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
-import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
-import type { FastlaneFormat } from '../types';
+import type {
+  FastlaneFormat,
+  IBrand,
+  ICredential,
+} from '@genfeedai/contracts/interfaces';
 
 const SHORT_FORM_PLATFORMS: string[] = ['tiktok', 'instagram', 'youtube'];
 
@@ -10,7 +13,7 @@ export interface BrandReadinessResult {
 }
 
 /**
- * Checks whether a brand has the minimum configuration required to run Fastlane.
+ * Checks whether a brand has the minimum configuration required to generate Batch ideas.
  *
  * Required for all formats:
  *  - Brand voice tone is set (agentConfig.voice.tone)
@@ -23,7 +26,7 @@ export interface BrandReadinessResult {
  *    cannot drive avatar generation, so it is not accepted here)
  *  - defaultVoiceId is set
  */
-export function isBrandReadyForFastlane(
+export function isBrandReadyForBatch(
   brand: IBrand | null | undefined,
   credentials: ICredential[],
   formats?: FastlaneFormat[],

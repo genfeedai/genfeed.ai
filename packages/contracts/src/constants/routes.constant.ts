@@ -345,13 +345,11 @@ export const APP_ROUTES = {
    */
   STUDIO: {
     BATCH: '/studio/batch',
-    BATCH_HISTORY: '/studio/batch/history',
     BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',
     CLIPS_NEW: '/studio/clips/new',
     EDIT: '/studio/edit',
     EDIT_NEW: '/studio/edit/new',
-    FASTLANE: '/studio/fastlane',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.

@@ -21,7 +21,6 @@ import {
  * the goal is to execute as many code paths as possible for coverage.
  */
 
-const BATCH_ROUTE = '/test-org/brand-1/studio/batch';
 const CLIPS_ROUTE = '/test-org/brand-1/studio/clips';
 const CLIPS_DRAFT_ID = '000000000000000000009876';
 
@@ -75,55 +74,6 @@ async function openClipDraft(page: Page): Promise<void> {
   await assertRouteRenders(page, `${CLIPS_ROUTE}/new`);
   await page.waitForURL(new RegExp(`${CLIPS_ROUTE}/${CLIPS_DRAFT_ID}`));
 }
-
-test.describe('Studio batch workflow runner — deep interactions', () => {
-  test.setTimeout(90_000);
-
-  test('renders the batch runner composer', async ({ authenticatedPage }) => {
-    await assertRouteRenders(authenticatedPage, BATCH_ROUTE);
-
-    await expect(
-      authenticatedPage.locator('text=Batch Workflow Runner').first(),
-    ).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('opens the workflow selector dropdown', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, BATCH_ROUTE);
-
-    await tryClick(authenticatedPage, '#workflow-select');
-    await tryClick(authenticatedPage, '[role="option"]');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('attempts to run a batch and clear files', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, BATCH_ROUTE);
-
-    await tryClick(authenticatedPage, 'button:has-text("Run Batch")');
-    await tryClick(authenticatedPage, 'button:has-text("Clear all")');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-
-  test('opens a recent batch job from the query param', async ({
-    authenticatedPage,
-  }) => {
-    await assertRouteRenders(authenticatedPage, `${BATCH_ROUTE}?job=batch-1`);
-
-    await tryClick(authenticatedPage, 'button:has-text("Back to batch setup")');
-    await tryClick(authenticatedPage, 'button:has-text("New batch")');
-
-    await expect(authenticatedPage.locator('body')).toBeVisible();
-    await expectNoErrorOverlay(authenticatedPage);
-  });
-});
 
 test.describe('Studio clip factory — deep interactions', () => {
   test.setTimeout(90_000);

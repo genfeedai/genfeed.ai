@@ -1,6 +1,6 @@
 import type { IBrand, ICredential } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
-import { isBrandReadyForFastlane } from './brand-readiness';
+import { isBrandReadyForBatch } from './batch-readiness';
 
 // ────────────────────────────────────────────────────────────
 // Fixtures
@@ -60,16 +60,16 @@ const shortFormCred = makeCredential('tiktok');
 // Tests
 // ────────────────────────────────────────────────────────────
 
-describe('isBrandReadyForFastlane', () => {
+describe('isBrandReadyForBatch', () => {
   it('returns not-ready for null brand', () => {
-    const result = isBrandReadyForFastlane(null, [shortFormCred]);
+    const result = isBrandReadyForBatch(null, [shortFormCred]);
     expect(result.ready).toBe(false);
     expect(result.reasons).toContain('No brand selected');
   });
 
   it('returns not-ready when social credential is missing but voice + reference are set', () => {
     const brand = makeBrand();
-    const result = isBrandReadyForFastlane(brand, []); // no credentials
+    const result = isBrandReadyForBatch(brand, []); // no credentials
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('tiktok'))).toBe(
       true,
@@ -78,7 +78,7 @@ describe('isBrandReadyForFastlane', () => {
 
   it('returns ready for fully-configured brand', () => {
     const brand = makeBrand();
-    const result = isBrandReadyForFastlane(brand, [shortFormCred]);
+    const result = isBrandReadyForBatch(brand, [shortFormCred]);
     expect(result.ready).toBe(true);
     expect(result.reasons).toHaveLength(0);
   });
@@ -86,7 +86,7 @@ describe('isBrandReadyForFastlane', () => {
   it('accepts uppercase platform value (case-insensitive check)', () => {
     const brand = makeBrand();
     const upperCaseCred = makeCredential('INSTAGRAM');
-    const result = isBrandReadyForFastlane(brand, [upperCaseCred]);
+    const result = isBrandReadyForBatch(brand, [upperCaseCred]);
     expect(result.ready).toBe(true);
   });
 
@@ -97,7 +97,7 @@ describe('isBrandReadyForFastlane', () => {
         // no defaultAvatarIngredientId, no defaultVoiceId
       },
     });
-    const result = isBrandReadyForFastlane(brand, [shortFormCred], ['avatar']);
+    const result = isBrandReadyForBatch(brand, [shortFormCred], ['avatar']);
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
       true,
@@ -115,7 +115,7 @@ describe('isBrandReadyForFastlane', () => {
         defaultVoiceId: 'voice-1',
       },
     });
-    const result = isBrandReadyForFastlane(brand, [shortFormCred], ['avatar']);
+    const result = isBrandReadyForBatch(brand, [shortFormCred], ['avatar']);
     expect(result.ready).toBe(true);
   });
 
@@ -127,7 +127,7 @@ describe('isBrandReadyForFastlane', () => {
         defaultVoiceId: 'voice-1',
       },
     });
-    const result = isBrandReadyForFastlane(brand, [shortFormCred], ['avatar']);
+    const result = isBrandReadyForBatch(brand, [shortFormCred], ['avatar']);
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
       true,
@@ -140,7 +140,7 @@ describe('isBrandReadyForFastlane', () => {
         voice: { tone: '' },
       },
     });
-    const result = isBrandReadyForFastlane(brand, [shortFormCred]);
+    const result = isBrandReadyForBatch(brand, [shortFormCred]);
     expect(result.ready).toBe(false);
     expect(result.reasons.some((r) => r.toLowerCase().includes('tone'))).toBe(
       true,
@@ -149,7 +149,7 @@ describe('isBrandReadyForFastlane', () => {
 
   it('returns not-ready when no reference images', () => {
     const brand = makeBrand({ references: [] });
-    const result = isBrandReadyForFastlane(brand, [shortFormCred]);
+    const result = isBrandReadyForBatch(brand, [shortFormCred]);
     expect(result.ready).toBe(false);
     expect(
       result.reasons.some((r) => r.toLowerCase().includes('reference')),

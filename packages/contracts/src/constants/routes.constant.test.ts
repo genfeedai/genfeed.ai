@@ -82,7 +82,6 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
     expect(APP_ROUTES.STUDIO.BATCH).toBe('/studio/batch');
     expect(APP_ROUTES.STUDIO.BATCH_NEW).toBe('/studio/batch/new');
-    expect(APP_ROUTES.STUDIO.BATCH_HISTORY).toBe('/studio/batch/history');
   });
 
   it('reclaims Publish Campaigns without moving Automate Programs', () => {

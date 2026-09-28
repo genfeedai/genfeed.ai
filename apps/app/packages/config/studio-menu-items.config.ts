@@ -1,6 +1,6 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import { Clapperboard, Film, Layers, Scissors, Wand2, Zap } from 'lucide-react';
+import { Clapperboard, Film, Layers, Scissors, Wand2 } from 'lucide-react';
 
 /**
  * Flat nav under the Studio app chrome (no Edit / Automation subgroups) —
@@ -45,22 +45,11 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.STUDIO.BATCH,
     label: 'Batch',
-    matchPaths: [
-      APP_ROUTES.STUDIO.BATCH,
-      APP_ROUTES.STUDIO.BATCH_NEW,
-      APP_ROUTES.STUDIO.BATCH_HISTORY,
-    ],
+    matchPaths: [APP_ROUTES.STUDIO.BATCH, APP_ROUTES.STUDIO.BATCH_NEW],
     outline: Layers,
     solid: Layers,
   },
-  {
-    group: '',
-    href: APP_ROUTES.STUDIO.FASTLANE,
-    label: 'Fastlane',
-    matchPaths: [APP_ROUTES.STUDIO.FASTLANE],
-    outline: Zap,
-    solid: Zap,
-  },
+
   {
     // Remotion timeline. Path stays `/studio/edit` (Editor → Studio Edit surface);
     // label is "Edit" so nav matches the route segment users see in the URL.

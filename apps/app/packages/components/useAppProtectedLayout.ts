@@ -28,7 +28,6 @@ import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
-import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useMenuItems } from '@hooks/ui/use-menu-items';
@@ -249,8 +248,6 @@ export function useAppProtectedLayout(
   const threads = useAgentChatStore((s) => s.threads);
 
   const role = useUserRole();
-  const { isEnabled: isFastlaneEnabled, isLoading: isFastlaneLoading } =
-    useFastlaneEnabled();
 
   // Sync route context into the agent store
   useAgentPageContext(role);
@@ -279,25 +276,17 @@ export function useAppProtectedLayout(
   }, []);
 
   // Studio is production-only now — one-off generation moved to the Agent, so
-  // no menu item maps to a generation category. Fastlane keeps its own org flag.
+  // no menu item maps to a generation category. Idea batches enforce their own org flag.
   const studioMenuItems = useMemo(
     () =>
       STUDIO_MENU_ITEMS.reduce<MenuItemConfig[]>((items, item) => {
-        // Hide while the flag is still loading to avoid a flash of the item.
-        if (
-          item.href === APP_ROUTES.STUDIO.FASTLANE &&
-          (!isFastlaneEnabled || isFastlaneLoading)
-        ) {
-          return items;
-        }
-
         items.push({
           ...item,
           href: withTaskContextHref(item.href, taskContextSearchParams),
         });
         return items;
       }, []),
-    [isFastlaneEnabled, isFastlaneLoading, taskContextSearchParams],
+    [taskContextSearchParams],
   );
 
   const publishingMenuItems = useMemo(
