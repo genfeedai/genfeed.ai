@@ -982,6 +982,7 @@ describe('WorkflowTemplatesPage', () => {
       await user.click(within(allAlert).getByRole('button', { name: 'Retry' }));
 
       await waitFor(() => {
+        expect(mocks.create).toHaveBeenCalledTimes(1);
         expect(
           within(allSection()).getByText('Social blast'),
         ).toBeInTheDocument();
@@ -1006,7 +1007,9 @@ describe('WorkflowTemplatesPage', () => {
       mocks.create.mockRejectedValueOnce(new Error('Workflow create failed'));
       const { rerender } = render(<WorkflowTemplatesPage />);
 
-      const featuredAlert = await within(featuredSection()).findByRole('alert');
+      const featuredAlert = await waitFor(() =>
+        within(featuredSection()).getByRole('alert'),
+      );
       expect(mocks.create).not.toHaveBeenCalled();
 
       await user.click(
