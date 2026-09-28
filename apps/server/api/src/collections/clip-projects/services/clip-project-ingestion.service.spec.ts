@@ -957,6 +957,7 @@ describe('ClipProjectIngestionService', () => {
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
         'draft-1',
         'org-1',
+        undefined,
       );
       expect(clipProjectsService.create).not.toHaveBeenCalled();
       expect(clipProjectsService.patch).toHaveBeenNthCalledWith(
@@ -1055,6 +1056,7 @@ describe('ClipProjectIngestionService', () => {
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
         'draft-1',
         'org-1',
+        undefined,
       );
       expect(
         clipProjectsService.claimDraft.mock.invocationCallOrder[0],
@@ -1209,6 +1211,7 @@ describe('ClipProjectIngestionService', () => {
       expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
         'draft-1',
         'org-1',
+        undefined,
       );
       expect(clipProjectsService.releaseDraft).toHaveBeenCalledWith(
         'draft-1',
