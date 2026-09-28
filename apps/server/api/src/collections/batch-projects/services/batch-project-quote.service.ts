@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import {
-  IDEA_OUTPUT_ASPECT_RATIO,
   ideaDispatchKey,
   ideaPromptText,
+  resolveIdeaGenerationParams,
 } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
@@ -107,8 +107,10 @@ export class BatchProjectQuoteService {
       };
     }
 
+    const { aspectRatio, duration } = resolveIdeaGenerationParams(format);
     const quote = await this.estimate.estimate({
-      aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
+      aspectRatio,
+      ...(duration ? { duration } : {}),
       category: format === 'video' ? ModelCategory.VIDEO : ModelCategory.IMAGE,
       organizationId,
       outputs: 1,

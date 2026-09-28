@@ -220,6 +220,24 @@ describe('BatchProjectIdeaDispatchService', () => {
     expect(providerCalls).toEqual([]);
   });
 
+  it('requests a video at the exact parameters its quote priced', async () => {
+    useItem(
+      makeItem('video', {
+        dispatch: makeDispatch({ credits: 20, model: 'model-video' }),
+      }),
+    );
+    videoGeneration.generateVideo.mockResolvedValue({
+      data: { id: 'video-1' },
+    });
+
+    await service.dispatch(job);
+
+    const [, dto] = videoGeneration.generateVideo.mock.calls[0];
+    expect(dto).toEqual(
+      expect.objectContaining({ duration: 10, height: 1024, width: 576 }),
+    );
+  });
+
   it('reserves an avatar line itself, right before the provider call', async () => {
     creditsUtils.reserveCredits.mockImplementation(async () => {
       providerCalls.push('reserve');
@@ -249,12 +267,13 @@ describe('BatchProjectIdeaDispatchService', () => {
 
     await service.dispatch(job);
 
+    // Identity resolution turns the brand's saved voice into the provider
+    // voice; the internal voice id is never sent as an ElevenLabs id.
     const [params] = avatarGeneration.generateAvatarVideo.mock.calls[0];
     expect(params).toEqual({
       aspectRatio: '9:16',
-      elevenlabsVoiceId: 'voice-1',
-      photoIngredientId: 'portrait-1',
       text: 'Say hi to the new mug',
+      useIdentity: true,
     });
     expect(creditsUtils.reserveCredits).toHaveBeenCalledWith(
       expect.objectContaining({

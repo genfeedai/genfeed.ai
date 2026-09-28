@@ -1,3 +1,7 @@
+import {
+  DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  resolveAgentGenerationDimensions,
+} from '@genfeedai/contracts/constants';
 import type {
   BatchProjectBillingMode,
   FastlaneFormat,
@@ -9,8 +13,30 @@ import type {
 
 /** Idea generation renders portrait short-form media, as Fastlane did. */
 export const IDEA_OUTPUT_ASPECT_RATIO = '9:16';
-export const IDEA_OUTPUT_WIDTH = 1080;
-export const IDEA_OUTPUT_HEIGHT = 1920;
+
+export type IdeaGenerationParams = {
+  aspectRatio: string;
+  duration?: number;
+  height: number;
+  width: number;
+};
+
+/**
+ * The generation parameters of an idea. The quote prices and the dispatch
+ * requests exactly these, through the Agent dimension table the estimator
+ * charges with, so an accepted price always matches the reservation.
+ */
+export function resolveIdeaGenerationParams(
+  format: FastlaneFormat,
+): IdeaGenerationParams {
+  return {
+    aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
+    ...resolveAgentGenerationDimensions(IDEA_OUTPUT_ASPECT_RATIO),
+    ...(format === 'video'
+      ? { duration: DEFAULT_AGENT_VIDEO_DURATION_SECONDS }
+      : {}),
+  };
+}
 
 const FORMATS = new Set<string>(['avatar', 'image', 'video']);
 const BILLING_MODES = new Set<string>(['byok', 'platform']);
@@ -35,6 +61,20 @@ function readCount(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
     ? value
     : undefined;
+}
+
+/**
+ * The attempt an idea's next generation runs as: one past the attempt its
+ * last dispatch used, so a retry never reuses a released reservation.
+ */
+export function nextIdeaAttempt(item: {
+  dispatch: unknown;
+  retryCount: number;
+}): number {
+  return (
+    (parseBatchProjectItemDispatch(item.dispatch)?.attempt ?? item.retryCount) +
+    1
+  );
 }
 
 /** Reservation and job key of one generation attempt of one idea item. */

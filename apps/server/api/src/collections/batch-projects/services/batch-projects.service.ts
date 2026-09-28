@@ -252,7 +252,20 @@ export class BatchProjectsService {
     return this.loadProject(id, scope);
   }
 
-  async remove(id: string, scope: IBatchProjectScope): Promise<void> {
+  /**
+   * Deletion takes the project lock start and retry take, so a batch can
+   * never be deleted between their generating check and their claim.
+   */
+  remove(id: string, scope: IBatchProjectScope): Promise<void> {
+    return this.reconcileService.runExclusive(id, () =>
+      this.removeLocked(id, scope),
+    );
+  }
+
+  private async removeLocked(
+    id: string,
+    scope: IBatchProjectScope,
+  ): Promise<void> {
     await this.requireProject(id, scope);
     const generating = await this.prisma.batchProjectItem.count({
       where: scopedWhere(scope.organizationId, {

@@ -717,6 +717,24 @@ describe('BatchProjectsService', () => {
       expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
     });
 
+    it('deletes under the project lock start and retry take', async () => {
+      useProject(makeProject());
+      prisma.batchProjectItem.count.mockResolvedValue(0);
+
+      await service.remove('project-1', scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+      const [lockOrder] =
+        reconcileService.runExclusive.mock.invocationCallOrder;
+      const [countOrder] =
+        prisma.batchProjectItem.count.mock.invocationCallOrder;
+      expect(lockOrder).toBeLessThan(countOrder);
+      expect(prisma.batchProject.updateMany).toHaveBeenCalled();
+    });
+
     it('moves the project revision when its inputs change', async () => {
       useProject(makeProject());
       prisma.ingredient.findMany.mockResolvedValue([

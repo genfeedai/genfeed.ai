@@ -1,5 +1,6 @@
 import {
   BatchProjectReconcileService,
+  IDEA_REQUEUE_AFTER_MS,
   UNRECORDED_RUN_TIMEOUT_MS,
 } from '@api/collections/batch-projects/services/batch-project-reconcile.service';
 import { batchChildExecutionKey } from '@api/collections/batch-projects/services/batch-project-workflow-output.util';
@@ -86,6 +87,7 @@ describe('BatchProjectReconcileService', () => {
     release: vi.fn(),
     settle: vi.fn(),
   };
+  const ideaDispatcher = { enqueue: vi.fn() };
   const batchGenerationService = {
     appendManualReviewItems: vi.fn(),
     createManualReviewBatch: vi.fn(),
@@ -96,6 +98,7 @@ describe('BatchProjectReconcileService', () => {
     cacheService as never,
     batchGenerationService as never,
     ideaCredits as never,
+    ideaDispatcher as never,
   );
 
   function useProject(project: Row) {
@@ -555,6 +558,51 @@ describe('BatchProjectReconcileService', () => {
       ]);
     }
 
+    it('queues again a claimed idea whose job never started', async () => {
+      const queued = { ...reserved, reservationId: undefined, state: 'queued' };
+      const stale = new Date(Date.now() - IDEA_REQUEUE_AFTER_MS - 1000);
+      useProject(
+        makeProject(
+          [
+            makeItem({ dispatch: queued, dispatchedAt: stale, idea }),
+            makeItem({
+              dispatch: {
+                ...queued,
+                key: 'batch-project-item:item-2:dispatch:1',
+              },
+              dispatchedAt: new Date(),
+              id: 'item-2',
+              idea,
+            }),
+            makeItem({
+              dispatch: {
+                ...reserved,
+                key: 'batch-project-item:item-3:dispatch:1',
+              },
+              dispatchedAt: stale,
+              id: 'item-3',
+              idea,
+            }),
+          ],
+          { kind: BatchProjectKind.IDEAS, workflowId: null },
+        ),
+      );
+
+      await service.reconcileProject('project-1', 'org-1');
+
+      expect(ideaDispatcher.enqueue).toHaveBeenCalledTimes(1);
+      expect(ideaDispatcher.enqueue).toHaveBeenCalledWith({
+        itemId: 'item-1',
+        key: 'batch-project-item:item-1:dispatch:1',
+        organizationId: 'org-1',
+        projectId: 'project-1',
+        userId: 'user-1',
+      });
+      expect(updatedItem('item-1')).not.toContainEqual(
+        expect.objectContaining({ status: BatchProjectItemStatus.FAILED }),
+      );
+    });
+
     it('settles the reserved line once a usable output lands, before review', async () => {
       useIdeaItem(IngredientStatus.GENERATED);
       ideaCredits.settle.mockResolvedValue('settled');
@@ -793,7 +841,7 @@ describe('BatchProjectReconcileService', () => {
     'recovers the run of %s whose execution link was never saved',
     async (_label, overrides, keyOf) => {
       const dispatchedAt = new Date(
-        Date.now() - IDEA_DISPATCH_TIMEOUT_MS - 1000,
+        Date.now() - UNRECORDED_RUN_TIMEOUT_MS - 1000,
       );
       useProject(
         makeProject([

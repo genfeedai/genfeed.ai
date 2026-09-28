@@ -1,6 +1,7 @@
 import { BatchProjectCreditsService } from '@api/collections/batch-projects/services/batch-project-credits.service';
 import { parseBatchProjectItemDispatch } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
+import { BatchProjectIdeaDispatchService } from '@api/collections/batch-projects/services/batch-project-idea-dispatch.service';
 import {
   type BatchProjectItemStatusValue,
   deriveBatchProjectStatus,
@@ -39,6 +40,12 @@ import { ConflictException, Injectable } from '@nestjs/common';
 
 /** A workflow run claimed for an item but never recorded is failed after this. */
 export const UNRECORDED_RUN_TIMEOUT_MS = 5 * 60 * 1000;
+
+/**
+ * A claimed idea whose job has not started this long may never have been
+ * queued (the process stopped between the claim and the enqueue).
+ */
+export const IDEA_REQUEUE_AFTER_MS = 2 * 60 * 1000;
 const RECONCILE_LOCK_TTL_SECONDS = 120;
 const SWEEP_BATCH_SIZE = 50;
 /** Creator actions wait this long for an in-flight reconcile to finish. */
@@ -123,6 +130,7 @@ export class BatchProjectReconcileService {
     private readonly cacheService: CacheService,
     private readonly batchGenerationService: BatchGenerationService,
     private readonly credits: BatchProjectCreditsService,
+    private readonly ideaDispatcher: BatchProjectIdeaDispatchService,
   ) {}
 
   /** Reconcile one project; a concurrent reconcile of it makes this a no-op. */
@@ -356,6 +364,45 @@ export class BatchProjectReconcileService {
     });
   }
 
+  /**
+   * Queue again every claimed idea whose job never started. The job id is the
+   * attempt's dispatch key, so a job that is still queued is not added twice,
+   * and a job that already ran skips an attempt that is no longer queued.
+   */
+  private async requeueUnstartedIdeas(
+    project: ProjectWithItems,
+    generating: BatchProjectItem[],
+  ): Promise<void> {
+    const deadline = Date.now() - IDEA_REQUEUE_AFTER_MS;
+    for (const item of generating) {
+      const dispatch = parseBatchProjectItemDispatch(item.dispatch);
+      if (
+        item.outputIngredientId ||
+        dispatch?.state !== 'queued' ||
+        (item.dispatchedAt?.getTime() ?? 0) >= deadline
+      ) {
+        continue;
+      }
+      try {
+        await this.ideaDispatcher.enqueue({
+          itemId: item.id,
+          key: dispatch.key,
+          organizationId: project.organizationId,
+          projectId: project.id,
+          userId: project.userId,
+        });
+      } catch (error: unknown) {
+        this.logger.warn('Batch project idea could not be queued again', {
+          batchProjectId: project.id,
+          batchProjectItemId: item.id,
+          context: this.context,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: project.organizationId,
+        });
+      }
+    }
+  }
+
   private async resolveIdeaOutcomes(
     project: ProjectWithItems,
   ): Promise<ItemOutcome[]> {
@@ -382,6 +429,8 @@ export class BatchProjectReconcileService {
     const ingredientsById = new Map(
       ingredients.map((ingredient) => [ingredient.id, ingredient]),
     );
+
+    await this.requeueUnstartedIdeas(project, generating);
 
     return generating.flatMap((item): ItemOutcome[] => {
       // Not dispatched yet: its durable job is still queued, or its failure

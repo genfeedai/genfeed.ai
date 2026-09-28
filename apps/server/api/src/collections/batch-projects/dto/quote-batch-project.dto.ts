@@ -1,4 +1,3 @@
-import { BATCH_PROJECT_MAX_IDEAS } from '@api/collections/batch-projects/dto/add-batch-project-items.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -11,13 +10,13 @@ import {
 export class QuoteBatchProjectDto {
   @ApiPropertyOptional({
     description:
-      'Failed ideas to price for a retry; omit to price every pending idea',
+      'The failed idea to price for a retry (one at a time: each retry accepts its own quote); omit to price every pending idea',
     type: [String],
   })
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
-  @ArrayMaxSize(BATCH_PROJECT_MAX_IDEAS)
+  @ArrayMaxSize(1)
   @IsString({ each: true })
   readonly itemIds?: string[];
 }

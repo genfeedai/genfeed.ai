@@ -78,6 +78,14 @@ describe('BatchProjectQuoteService', () => {
     ]);
     // One estimate per format, not per idea.
     expect(estimate.estimate).toHaveBeenCalledTimes(2);
+    // The same parameters the dispatch requests (576×1024, 10 s video).
+    expect(estimate.estimate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aspectRatio: '9:16',
+        category: ModelCategory.VIDEO,
+        duration: 10,
+      }),
+    );
     expect(estimate.estimate).toHaveBeenCalledWith(
       expect.objectContaining({
         aspectRatio: '9:16',

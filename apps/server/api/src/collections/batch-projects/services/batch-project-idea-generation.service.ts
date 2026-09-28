@@ -1,4 +1,5 @@
 import {
+  nextIdeaAttempt,
   parseBatchProjectQuote,
   toQueuedDispatch,
 } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
@@ -58,6 +59,10 @@ export class BatchProjectIdeaGenerationService {
     itemIds: string[] | undefined,
     scope: IBatchProjectScope,
   ): Promise<IBatchProjectQuote> {
+    // Each retry accepts its own quote, so a retry quote prices one idea.
+    if (itemIds && itemIds.length !== 1) {
+      throw new BadRequestException('Quote one failed idea at a time');
+    }
     const priced = itemIds
       ? project.items
           .filter(
@@ -65,7 +70,7 @@ export class BatchProjectIdeaGenerationService {
               itemIds.includes(item.id) &&
               item.status === BatchProjectItemStatus.FAILED,
           )
-          .map((item) => ({ attempt: item.retryCount + 1, item }))
+          .map((item) => ({ attempt: nextIdeaAttempt(item), item }))
       : project.status === BatchProjectStatus.DRAFT
         ? project.items
             .filter((item) => item.status === BatchProjectItemStatus.PENDING)
@@ -163,7 +168,7 @@ export class BatchProjectIdeaGenerationService {
     quoteId: string | undefined,
     scope: IBatchProjectScope,
   ): Promise<void> {
-    const attempt = item.retryCount + 1;
+    const attempt = nextIdeaAttempt(item);
     const quote = this.acceptableQuote(project, quoteId);
     const line = this.lineOf(
       this.linesFor(quote, [{ attempt, itemId: item.id }]),
@@ -181,7 +186,7 @@ export class BatchProjectIdeaGenerationService {
         error: null,
         outputCategory: null,
         outputIngredientId: null,
-        retryCount: attempt,
+        retryCount: item.retryCount + 1,
         status: BatchProjectItemStatus.GENERATING,
       },
       where: scopedWhere(scope.organizationId, {

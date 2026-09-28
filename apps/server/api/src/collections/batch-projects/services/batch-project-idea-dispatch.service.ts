@@ -1,11 +1,11 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BatchProjectCreditsService } from '@api/collections/batch-projects/services/batch-project-credits.service';
 import {
-  IDEA_OUTPUT_HEIGHT,
-  IDEA_OUTPUT_WIDTH,
+  IDEA_OUTPUT_ASPECT_RATIO,
   ideaPromptText,
   ideaSpeechText,
   parseBatchProjectItemDispatch,
+  resolveIdeaGenerationParams,
 } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { readBatchProjectIdea } from '@api/collections/batch-projects/services/batch-project-idea.util';
 import {
@@ -303,29 +303,13 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
     };
 
     if (idea.format === 'avatar') {
-      const agentConfig = readRecord(
-        (
-          await this.prisma.brand.findFirst({
-            select: { agentConfig: true },
-            where: scopedWhere(job.organizationId, { id: project.brandId }),
-          })
-        )?.agentConfig,
-      );
-      const photoIngredientId = readString(
-        agentConfig.defaultAvatarIngredientId,
-      );
-      const voiceId = readString(agentConfig.defaultVoiceId);
-      if (!photoIngredientId || !voiceId) {
-        throw new ConflictException(
-          'Set a default avatar and voice in brand settings to generate avatar ideas.',
-        );
-      }
+      // The avatar service resolves the brand's (else the organization's)
+      // default avatar and saved voice into provider identities.
       await this.avatarGeneration.generateAvatarVideo(
         {
-          aspectRatio: '9:16',
-          elevenlabsVoiceId: voiceId,
-          photoIngredientId,
+          aspectRatio: IDEA_OUTPUT_ASPECT_RATIO,
           text: ideaSpeechText(idea),
+          useIdentity: true,
         },
         {
           brandId: project.brandId,
@@ -350,18 +334,22 @@ export class BatchProjectIdeaDispatchService implements OnModuleInit {
         job.organizationId,
       )
     ).references.map((reference) => reference.id);
+    const { duration, height, width } = resolveIdeaGenerationParams(
+      idea.format,
+    );
     const media = {
       autoSelectModel: false,
       brandId: project.brandId,
       brandingMode: 'brand',
-      height: IDEA_OUTPUT_HEIGHT,
+      ...(duration ? { duration } : {}),
+      height,
       isBrandingEnabled: true,
       model: dispatch.model,
       outputs: 1,
       references,
       sourceActionId: dispatch.key,
       text: ideaPromptText(idea),
-      width: IDEA_OUTPUT_WIDTH,
+      width,
     };
     const onCreditsPrepared = () =>
       this.recordGenerationReservation(job, dispatch, request);

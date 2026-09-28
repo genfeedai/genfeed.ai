@@ -299,6 +299,42 @@ describe('BatchProjectIdeaGenerationService', () => {
       );
     });
 
+    it('runs the first retry as a new attempt past the initial dispatch', async () => {
+      const firstFailure = item('item-1', {
+        dispatch: {
+          attempt: 1,
+          billingMode: 'platform',
+          credits: 4,
+          key: 'batch-project-item:item-1:dispatch:1',
+          model: 'model-avatar',
+          state: 'released',
+        },
+        retryCount: 0,
+        status: BatchProjectItemStatus.FAILED,
+      });
+
+      await service.retry(
+        project({
+          quote: quote([retryLine], { total: 4 }),
+          status: BatchProjectStatus.PARTIAL_FAILURE,
+        }) as never,
+        firstFailure as never,
+        'quote-1',
+        scope,
+      );
+
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          dispatch: expect.objectContaining({
+            attempt: 2,
+            key: 'batch-project-item:item-1:dispatch:2',
+          }),
+          retryCount: 1,
+        }),
+        where: expect.objectContaining({ id: 'item-1', retryCount: 0 }),
+      });
+    });
+
     it('needs a quote line priced for the next attempt', async () => {
       await expect(
         service.retry(
@@ -348,6 +384,52 @@ describe('BatchProjectIdeaGenerationService', () => {
         data: { quote: { id: 'quote-new' } },
         where: expect.objectContaining({ id: 'project-1' }),
       });
+    });
+
+    it('prices a failed idea at the attempt after its last dispatch', async () => {
+      const firstFailure = item('item-1', {
+        dispatch: {
+          attempt: 1,
+          billingMode: 'platform',
+          credits: 4,
+          key: 'batch-project-item:item-1:dispatch:1',
+          model: 'model-image',
+          state: 'released',
+        },
+        status: BatchProjectItemStatus.FAILED,
+      });
+      quotes.build.mockResolvedValue({ id: 'quote-retry' });
+
+      await service.quote(
+        {
+          ...project({ status: BatchProjectStatus.PARTIAL_FAILURE }),
+          items: [firstFailure],
+        } as never,
+        ['item-1'],
+        scope,
+      );
+
+      expect(quotes.build).toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: [{ attempt: 2, item: firstFailure }],
+        }),
+      );
+    });
+
+    it('prices one failed idea per retry quote', async () => {
+      const failedItems = [
+        item('item-1', { status: BatchProjectItemStatus.FAILED }),
+        item('item-2', { status: BatchProjectItemStatus.FAILED }),
+      ];
+
+      await expect(
+        service.quote(
+          { ...project(), items: failedItems } as never,
+          ['item-1', 'item-2'],
+          scope,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(quotes.build).not.toHaveBeenCalled();
     });
 
     it('prices only failed ideas for a retry', async () => {
