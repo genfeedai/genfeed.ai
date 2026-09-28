@@ -2,6 +2,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { TwitterPublishType } from '@api/services/twitter-pipeline/dto/twitter-pipeline.dto';
 import { TwitterPipelineController } from '@api/services/twitter-pipeline/twitter-pipeline.controller';
 import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-pipeline.service';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TwitterPipelineController', () => {
@@ -34,6 +35,12 @@ describe('TwitterPipelineController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('requires RolesGuard so the :organizationId path must match the caller membership', () => {
+    expect(
+      Reflect.getMetadata(GUARDS_METADATA, TwitterPipelineController),
+    ).toEqual([RolesGuard]);
   });
 
   describe('search', () => {
