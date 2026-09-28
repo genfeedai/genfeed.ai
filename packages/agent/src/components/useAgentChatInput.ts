@@ -173,32 +173,27 @@ function artifactReferenceKey(reference: AgentArtifactReference): string {
 }
 
 /**
- * A content reference (Library picker item or a record attached from
- * elsewhere in the app) becomes a proper artifact reference on send, built
- * per kind so the discriminated `AgentArtifactReference` union typechecks
- * without a cast. Missing `kind` is a legacy record and defaults to `post`.
+ * A record attached from a page (e.g. Studio "Ask Agent about this") becomes a
+ * typed artifact reference on send. Only ingredients qualify: they come from
+ * the brand the conversation is bound to. Content-picker posts span every
+ * brand in the organization, and the server rejects the whole turn when a
+ * reference's brand differs from the thread's, so they stay display-only
+ * until the picker is brand-scoped.
  */
 function buildContentReferenceArtifact(
   contentReference: PersistedConversationComposerContentReference,
   organizationId: string,
   brandId: string | undefined,
-): AgentArtifactReference {
-  const recordId = contentReference.id;
-  if (contentReference.kind === 'ingredient') {
-    return {
-      kind: 'ingredient',
-      organizationId,
-      recordId,
-      serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
-      ...(brandId ? { brandId } : {}),
-    };
+): AgentArtifactReference | null {
+  if (contentReference.kind !== 'ingredient') {
+    return null;
   }
 
   return {
-    kind: 'post',
+    kind: 'ingredient',
     organizationId,
-    recordId,
-    serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.post,
+    recordId: contentReference.id,
+    serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
     ...(brandId ? { brandId } : {}),
   };
 }
@@ -810,11 +805,10 @@ export function useAgentChatInput({
       generationMode,
       prompt: promptContent,
     });
-    // Library/content-picker references and records attached from elsewhere
-    // (e.g. "Add to conversation") were display-only mentions; the agent
-    // needs them as artifact references to resolve the underlying record.
-    // Surface-provided references are the existing scope context, so they
-    // win a dedupe collision over one built from a content reference.
+    // Records attached from a page were display-only mentions; the agent needs
+    // them as artifact references to resolve the underlying record.
+    // Surface-provided references are the existing scope context, so they win
+    // a dedupe collision over one built from a content reference.
     const artifactReferencesByKey = new Map<string, AgentArtifactReference>();
     for (const item of visibleSurfaceArtifactReferences) {
       artifactReferencesByKey.set(
@@ -829,6 +823,9 @@ export function useAgentChatInput({
           organizationId,
           composerShell?.brandId,
         );
+        if (!artifact) {
+          continue;
+        }
         const key = artifactReferenceKey(artifact);
         if (!artifactReferencesByKey.has(key)) {
           artifactReferencesByKey.set(key, artifact);

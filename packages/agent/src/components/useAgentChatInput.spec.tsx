@@ -413,25 +413,14 @@ describe('useAgentChatInput references', () => {
       await result.current.handleSend();
     });
 
-    // A content reference is now also sent as an artifact reference (#5458
-    // bug fix): post-1 collides with an existing workspace selection, so the
-    // richer, brand-scoped workspace reference wins; post-2 has no workspace
-    // counterpart and is added from the content reference (no brandId, since
-    // this composer's shell does not set one).
+    // Content-picker posts span every brand, so they stay display-only: only
+    // the workspace's own references are sent.
     expect(onSend).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Array),
       undefined,
       expect.objectContaining({
-        artifactReferences: [
-          ...workspaceReferences,
-          {
-            kind: 'post',
-            organizationId: 'org-1',
-            recordId: 'post-2',
-            serializer: 'post',
-          },
-        ],
+        artifactReferences: workspaceReferences,
       }),
     );
   });
