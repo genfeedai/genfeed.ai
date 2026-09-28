@@ -5,8 +5,10 @@ import { useDesktopLocalTools } from '@genfeedai/agent/hooks/use-desktop-local-t
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE,
+  getDesktopCliRuntimeOption,
   resolveDesktopCliRuntimeBlocker,
   resolveDesktopCliRuntimeKey,
+  resolveWebCliRuntimeKey,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import {
@@ -14,13 +16,15 @@ import {
   runDesktopCliAgentTurn,
 } from '@genfeedai/agent/utils/desktop-cli-agent-turn.util';
 import type { AgentExternalRuntimeKey } from '@genfeedai/contracts/constants';
+import { useTranslations } from 'next-intl';
 import { useCallback, useRef } from 'react';
 
 export interface DesktopCliAgentChat {
   /**
    * Why the bound local runtime cannot take a turn right now (CLI still being
-   * detected, missing, or too old), or null. Sends are refused while it is
-   * set, keeping the draft; they never fall back to the hosted runtime.
+   * detected, missing, or too old; or, outside Desktop, a thread bound to a
+   * CLI the browser cannot run), or null. Sends are refused while it is set,
+   * keeping the draft; they never fall back to the hosted runtime.
    */
   blockedReason: string | null;
   /**
@@ -30,7 +34,9 @@ export interface DesktopCliAgentChat {
   cancelActiveTurn: () => boolean;
   /**
    * True when the visible thread (or the draft) is bound to a local CLI
-   * runtime in Desktop, whether or not that CLI can run right now.
+   * runtime, whether or not that CLI can run right now. Outside Desktop it
+   * routes every send through the blocker, so no path (follow-up, retry,
+   * suggested prompt) reaches the hosted stream.
    */
   isEnabled: boolean;
   runtimeKey: AgentExternalRuntimeKey | null;
@@ -56,24 +62,40 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
   const draftRuntimeKey = useAgentChatStore((s) => s.draftRuntimeKey);
   const activeTurnRef: DesktopCliAgentTurnHandleRef = useRef(null);
 
-  const runtimeKey = resolveDesktopCliRuntimeKey({
+  const translate = useTranslations('agent.localCliRuntime');
+  const hasDesktopBridge = getGenfeedDesktopBridge() !== null;
+  const bindingParams = {
     activeThreadId,
     draftRuntimeKey,
-    hasDesktopBridge: getGenfeedDesktopBridge() !== null,
+    hasDesktopBridge,
     thread: { runtimeKey: activeThreadRuntimeKey },
-  });
+  };
+  const runtimeKey = resolveDesktopCliRuntimeKey(bindingParams);
+  // The plain web app cannot run a local CLI: the bound thread is blocked
+  // instead of silently reaching the credit-billed hosted stream.
+  const webRuntimeKey = resolveWebCliRuntimeKey(bindingParams);
 
   // Until detection finishes the runtime cannot be vouched for: refuse the
   // send (the draft stays) rather than wait and dispatch later, when the
   // visible thread may have changed.
-  const blockedReason = !runtimeKey
+  const desktopBlockedReason = !runtimeKey
     ? null
     : isDetectionResolved
       ? resolveDesktopCliRuntimeBlocker(runtimeKey, desktopTools)
       : DESKTOP_CLI_RUNTIME_CHECKING_MESSAGE;
+  const blockedReason = webRuntimeKey
+    ? translate('webBlocked', {
+        runtime: getDesktopCliRuntimeOption(webRuntimeKey).label,
+      })
+    : desktopBlockedReason;
 
   const sendMessage = useCallback(
     async (content: string, options?: SendStreamMessageOptions) => {
+      if (blockedReason) {
+        useAgentChatStore.getState().setError(blockedReason);
+        return;
+      }
+
       const bridge = getGenfeedDesktopBridge();
       if (!bridge || !runtimeKey) {
         useAgentChatStore
@@ -81,11 +103,6 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
           .setError(
             'Local CLI runtimes are only available in Genfeed Desktop.',
           );
-        return;
-      }
-
-      if (blockedReason) {
-        useAgentChatStore.getState().setError(blockedReason);
         return;
       }
 
@@ -124,7 +141,7 @@ export function useDesktopCliAgentChat(): DesktopCliAgentChat {
   return {
     blockedReason,
     cancelActiveTurn,
-    isEnabled: runtimeKey !== null,
+    isEnabled: runtimeKey !== null || webRuntimeKey !== null,
     runtimeKey,
     sendMessage,
   };

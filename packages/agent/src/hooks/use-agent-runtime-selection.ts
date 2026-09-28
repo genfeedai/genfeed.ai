@@ -13,10 +13,13 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentRuntimeCatalog,
   getDesktopCliRuntimeOption,
+  HOSTED_GENFEED_RUNTIME_OPTION,
   isDesktopCliRuntimeKey,
   resolveDesktopCliRuntimeBlocker,
   resolveThreadRuntimeOption,
+  resolveWebCliRuntimeKey,
 } from '@genfeedai/agent/utils/agent-runtime-options.util';
+import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export interface AgentRuntimeSelection {
@@ -30,6 +33,16 @@ export interface AgentRuntimeSelection {
    */
   runtimeNotice: string | null;
   selectedRuntime: AgentRuntimeOption;
+  /**
+   * Moves the thread (or the draft) to the credit-billed Genfeed runtime,
+   * through the same persistence as any runtime change.
+   */
+  switchToHosted: () => void;
+  /**
+   * The local CLI runtime the thread (or draft) is bound to when this is not
+   * Desktop, where it cannot run and sends are blocked, else null.
+   */
+  webBlockedRuntime: AgentRuntimeOption | null;
 }
 
 /**
@@ -184,6 +197,18 @@ export function useAgentRuntimeSelection(params: {
     [activeThreadId, apiService, setDraftRuntimeKey, updateThread],
   );
 
+  const switchToHosted = useCallback(
+    () => onRuntimeChange(HOSTED_GENFEED_RUNTIME_OPTION),
+    [onRuntimeChange],
+  );
+
+  const webBlockedRuntimeKey = resolveWebCliRuntimeKey({
+    activeThreadId,
+    draftRuntimeKey,
+    hasDesktopBridge: getGenfeedDesktopBridge() !== null,
+    thread: activeThread,
+  });
+
   const selectedRuntimeBlocker =
     desktopTools && isDesktopCliRuntimeKey(selectedRuntime.key)
       ? resolveDesktopCliRuntimeBlocker(selectedRuntime.key, desktopTools)
@@ -197,5 +222,9 @@ export function useAgentRuntimeSelection(params: {
     onRuntimeChange,
     runtimeNotice: selectedRuntimeBlocker ?? catalog.localToolNotice,
     selectedRuntime,
+    switchToHosted,
+    webBlockedRuntime: webBlockedRuntimeKey
+      ? getDesktopCliRuntimeOption(webBlockedRuntimeKey)
+      : null,
   };
 }

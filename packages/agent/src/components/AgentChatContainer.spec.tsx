@@ -1024,6 +1024,132 @@ describe('AgentChatContainer', () => {
     }
   });
 
+  describe('a thread bound to a local CLI in the plain web app', () => {
+    beforeEach(() => {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+      storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/claude-cli' }];
+      storeState.pendingInputRequest = null;
+    });
+
+    it('blocks the send, keeps the draft and never reaches the hosted stream', () => {
+      const apiService = createApiService();
+
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        screen.getByTestId('agent-web-local-cli-notice'),
+      ).toHaveTextContent('title');
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      // `false` tells the composer to keep the draft.
+      expect(composerSendResults).toEqual([false]);
+      expect(storeState.setError).toHaveBeenCalledWith('webBlocked');
+      expect(sendStreaming).not.toHaveBeenCalled();
+      expect(sendNonStreaming).not.toHaveBeenCalled();
+    });
+
+    it('offers to open the thread in Desktop', () => {
+      const apiService = createApiService();
+
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        screen.getByRole('link', { name: 'openInDesktop' }),
+      ).toHaveAttribute('href', 'genfeedai-desktop://thread/thread-1');
+    });
+
+    it('switches the thread to the hosted runtime through the runtime selection path', () => {
+      const apiService = createApiService({
+        updateThread: vi.fn().mockResolvedValue({}),
+      });
+
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      fireEvent.click(screen.getByText('switchToHosted'));
+
+      expect(storeState.updateThread).toHaveBeenCalledWith('thread-1', {
+        requestedModel: undefined,
+        runtimeKey: 'hosted/genfeed',
+      });
+      expect(apiService.updateThread).toHaveBeenCalledWith(
+        'thread-1',
+        { requestedModel: '', runtimeKey: 'hosted/genfeed' },
+        expect.any(AbortSignal),
+      );
+    });
+
+    it('lets the thread send once it is bound to a hosted runtime', () => {
+      storeState.threads = [{ id: 'thread-1', runtimeKey: 'hosted/genfeed' }];
+      const apiService = createApiService();
+
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        screen.queryByTestId('agent-web-local-cli-notice'),
+      ).not.toBeInTheDocument();
+
+      fireEvent.paste(screen.getByLabelText('Composer paste'), {
+        clipboardData: { getData: () => 'Write a launch post' },
+      });
+
+      expect(composerSendResults).toEqual([true]);
+      expect(sendStreaming).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('keeps the Desktop runtime bar, not the web notice, for a CLI thread in Desktop', async () => {
+    resetDesktopLocalToolsCache();
+    (window as DesktopWindow).genfeedDesktop = {
+      agentRuntime: {
+        cancelTurn: vi.fn(),
+        onEvent: vi.fn(() => () => undefined),
+        startTurn: vi.fn(),
+      },
+      app: {
+        detectLocalTools: vi.fn().mockResolvedValue({
+          anyDetected: true,
+          claude: true,
+          codex: false,
+          detected: ['claude'],
+          grok: false,
+        }),
+      },
+    };
+    storeState.threads = [{ id: 'thread-1', runtimeKey: 'local/claude-cli' }];
+    storeState.pendingInputRequest = null;
+    const apiService = createApiService({
+      getInstallReadiness: vi.fn().mockResolvedValue(null),
+    });
+
+    try {
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        await screen.findByTestId('agent-desktop-runtime-bar'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('agent-web-local-cli-notice'),
+      ).not.toBeInTheDocument();
+    } finally {
+      delete (window as DesktopWindow).genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
+  });
+
   it('resolves a pasted URL on the same turn while the agent is waiting for input', async () => {
     let resolveAnswer: (() => void) | undefined;
     const apiService = createApiService({

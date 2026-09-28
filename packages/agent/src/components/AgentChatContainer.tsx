@@ -8,6 +8,7 @@ import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptB
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktopRuntimeBar';
+import { AgentWebLocalCliNotice } from '@genfeedai/agent/components/AgentWebLocalCliNotice';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
@@ -74,10 +75,18 @@ export function AgentChatContainer({
     apiService,
     isActive: getGenfeedDesktopBridge() !== null,
   });
-  const desktopRuntimeBar =
-    (runtimeSelection.hasDesktopCliRuntimes ||
-      runtimeSelection.runtimeNotice) &&
-    !isReadOnly ? (
+  const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
+  // In the plain web app a thread bound to a local CLI cannot send: the
+  // notice offers the two ways forward instead of the Desktop runtime bar.
+  const runtimeBanner =
+    isReadOnly ? null : runtimeSelection.webBlockedRuntime ? (
+      <AgentWebLocalCliNotice
+        onSwitchToHosted={runtimeSelection.switchToHosted}
+        runtime={runtimeSelection.webBlockedRuntime}
+        threadId={activeThreadId}
+      />
+    ) : runtimeSelection.hasDesktopCliRuntimes ||
+      runtimeSelection.runtimeNotice ? (
       <AgentDesktopRuntimeBar selection={runtimeSelection} />
     ) : null;
 
@@ -254,11 +263,7 @@ export function AgentChatContainer({
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
             composerBanner={
-              onboardingMode ? (
-                <OnboardingConversationCard />
-              ) : (
-                desktopRuntimeBar
-              )
+              onboardingMode ? <OnboardingConversationCard /> : runtimeBanner
             }
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
@@ -360,7 +365,7 @@ export function AgentChatContainer({
                 onboardingMode && container.isEmpty ? (
                   <OnboardingConversationCard />
                 ) : onboardingMode ? undefined : (
-                  (desktopRuntimeBar ?? undefined)
+                  (runtimeBanner ?? undefined)
                 )
               }
               activeWorkEvent={activeWorkEvent}

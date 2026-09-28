@@ -22,7 +22,11 @@ import type {
   IDesktopWorkflowGenerationOptions,
   IDesktopWorkspaceCloudLinkInput,
 } from '@genfeedai/contracts/desktop';
-import { DESKTOP_IPC_CHANNELS } from '@genfeedai/contracts/desktop';
+import {
+  DESKTOP_APP_PROTOCOL_SCHEME,
+  DESKTOP_IPC_CHANNELS,
+  parseDesktopThreadLink,
+} from '@genfeedai/contracts/desktop';
 import {
   app,
   BrowserWindow,
@@ -1304,12 +1308,37 @@ const handleAuthCallback = async (
   return result;
 };
 
+/**
+ * `genfeedai-desktop://thread/<id>` opens that agent thread (the web app's
+ * "Open in Desktop" for a thread bound to a local CLI); every other link is
+ * the sign-in callback.
+ */
+const handleDeepLink = async (rawUrl: string): Promise<void> => {
+  const threadId = parseDesktopThreadLink(rawUrl);
+  if (threadId === null) {
+    await handleAuthCallback(rawUrl);
+    return;
+  }
+
+  if (!mainWindow) {
+    return;
+  }
+
+  await loadCanonicalApp(
+    mainWindow,
+    new URL(
+      `/agent/${encodeURIComponent(threadId)}`,
+      appShellService.appOrigin,
+    ).toString(),
+  );
+};
+
 const registerProtocolHandling = (): void => {
-  app.setAsDefaultProtocolClient('genfeedai-desktop');
+  app.setAsDefaultProtocolClient(DESKTOP_APP_PROTOCOL_SCHEME);
 
   app.on('open-url', (event: { preventDefault(): void }, url: string) => {
     event.preventDefault();
-    void handleAuthCallback(url);
+    void handleDeepLink(url);
   });
 };
 
@@ -2157,11 +2186,11 @@ void app
     updaterService.initialize();
 
     const deepLinkArgument = process.argv.find((value: string) =>
-      value.startsWith('genfeedai-desktop://'),
+      value.startsWith(`${DESKTOP_APP_PROTOCOL_SCHEME}://`),
     );
 
     if (deepLinkArgument) {
-      void handleAuthCallback(deepLinkArgument);
+      void handleDeepLink(deepLinkArgument);
     }
 
     app.on('activate', () => {
@@ -2177,11 +2206,11 @@ void app
 
 app.on('second-instance', (_event: unknown, argv: string[]) => {
   const deepLinkArgument = argv.find((value: string) =>
-    value.startsWith('genfeedai-desktop://'),
+    value.startsWith(`${DESKTOP_APP_PROTOCOL_SCHEME}://`),
   );
 
   if (deepLinkArgument) {
-    void handleAuthCallback(deepLinkArgument);
+    void handleDeepLink(deepLinkArgument);
   }
 
   if (mainWindow) {
