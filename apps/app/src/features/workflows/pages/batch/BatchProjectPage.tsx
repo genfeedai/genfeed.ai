@@ -10,7 +10,7 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFastlaneEnabled } from '@hooks/data/organization/use-fastlane-enabled/use-fastlane-enabled';
+import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { IngredientsService } from '@services/content/ingredients.service';
 import CollectionGrid from '@ui/collection/CollectionGrid';
@@ -35,7 +35,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
   const locale = useLocale();
   const { brandId, selectedBrand, credentials } = useBrand();
   const { href } = useOrgUrl();
-  const flag = useFastlaneEnabled();
+  const isIdeasEnabled = useFeatureFlag('batch_ideas');
   const {
     project,
     error,
@@ -70,7 +70,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
   const blocked = isSaving || hasUnsavedChanges;
   const items = project.items ?? [];
   const quote = project.quote;
-  const canGenerate = !ideas || (flag.isEnabled && readiness.ready);
+  const canGenerate = !ideas || (isIdeasEnabled && readiness.ready);
   const steps = [
     ideas ? BatchProjectStep.IDEAS : BatchProjectStep.INPUTS,
     BatchProjectStep.REVIEW,
@@ -197,9 +197,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
             </Button>
           ))}
         </div>
-        {ideas && !flag.isLoading && !flag.isEnabled && (
-          <p role="alert">{t('ideasDisabled')}</p>
-        )}
+        {ideas && !isIdeasEnabled && <p role="alert">{t('ideasDisabled')}</p>}
         {ideas && !readiness.ready && (
           <CollectionSection title={t('readiness')}>
             <ul className="space-y-2">
@@ -228,7 +226,7 @@ export default function BatchProjectPage({ projectId }: BatchProjectPageProps) {
           <BatchIdeasEditor
             settings={settings}
             canGenerate={!blocked && readiness.ready}
-            disabled={!flag.isEnabled}
+            disabled={!isIdeasEnabled}
             onChange={(next) => void update({ settings: { ideas: next } })}
             onGenerate={() => {
               if (!blocked && readiness.ready)

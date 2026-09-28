@@ -13,7 +13,6 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'isGenerateImagesEnabled',
   'isGenerateMusicEnabled',
   'isAutoEvaluateEnabled',
-  'isFastlaneEnabled',
   'isNotificationsDiscordEnabled',
   'isNotificationsTelegramEnabled',
   'isNotificationsEmailEnabled',

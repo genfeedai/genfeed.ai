@@ -1662,6 +1662,7 @@ model OrganizationSetting {
   isGenerateImagesEnabled        Boolean           @default(true)
   isGenerateMusicEnabled         Boolean           @default(true)
   isAutoEvaluateEnabled          Boolean           @default(false)
+  /// Retired (#5463): no longer read or written; dropped after v0.1.77 rolls out (#5567).
   isFastlaneEnabled              Boolean           @default(false)
   seatsLimit                     Int               @default(1)
   brandsLimit                    Int               @default(0)
@@ -2733,7 +2734,7 @@ model Post {
   listeningEvidenceIds           String[]           @default([])
   sourceWorkflowId               String?
   sourceWorkflowName             String?
-  // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
+  // Origin label for the post (e.g. agent, batch, manual). Free-form string.
   source                         String?
   // Canonical SEO score (0-100) + structured scorecard, set by SEOScorerService (#758).
   seoScore                       Float?
@@ -7115,7 +7116,7 @@ model BatchProjectItem {
   project             BatchProject           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   position            Int
   status              BatchProjectItemStatus @default(PENDING)
-  /// Idea brief for idea batches. Shape: `FastlaneIdea`.
+  /// Idea brief for idea batches. Shape: `BatchIdea`.
   idea                Json?
   inputIngredientId   String?
   inputCategory       String?

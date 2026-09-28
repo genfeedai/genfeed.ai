@@ -238,7 +238,6 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
       brandsLimit: 0,
       enabledModelIds: ['model_low_cost_1'],
       isAutoEvaluateEnabled: false,
-      isFastlaneEnabled: false,
       isGenerateArticlesEnabled: false,
       isGenerateImagesEnabled: true,
       isGenerateMusicEnabled: true,

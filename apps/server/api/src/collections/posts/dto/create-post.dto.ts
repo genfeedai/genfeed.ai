@@ -377,7 +377,7 @@ export class CreatePostDto {
 
   @ApiProperty({
     description:
-      'Origin label for the post (e.g. agent, fastlane, manual). Free-form string.',
+      'Origin label for the post (e.g. agent, batch, manual). Free-form string.',
     required: false,
   })
   @IsOptional()
