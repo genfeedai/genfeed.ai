@@ -47,18 +47,6 @@ export interface TimeSeriesDataPointWithPlatforms {
   medium: PlatformMetrics;
 }
 
-export interface PlatformComparison {
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-  postCount: number;
-  avgViewsPerPost: number;
-}
-
 export interface TopContent {
   postId: string;
   ingredientId: string;

@@ -484,7 +484,7 @@ describe('AnalyticsService', () => {
   // getPlatformComparison
   // ==========================================================================
   describe('getPlatformComparison', () => {
-    it('should return platform comparison data with percentages', async () => {
+    it('returns IPlatformComparison rows with domain platform ids', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
         {
           platform: 'YOUTUBE',
@@ -497,50 +497,33 @@ describe('AnalyticsService', () => {
           total_views: BigInt(5000),
           total_engagement: BigInt(425),
         },
-        {
-          platform: 'TIKTOK',
-          avg_engagement_rate: 8.5,
-          total_comments: BigInt(60),
-          total_likes: BigInt(150),
-          total_posts: BigInt(30),
-          total_saves: BigInt(15),
-          total_shares: BigInt(30),
-          total_views: BigInt(3000),
-          total_engagement: BigInt(255),
-        },
       ]);
 
-      const result = typed<Array<Record<string, unknown>>>(
-        await service.getPlatformComparison(),
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
-      expect(result[0].viewsPercentage as number).toBeGreaterThan(0);
-      expect(result[0].engagementPercentage as number).toBeGreaterThan(0);
+      expect(await service.getPlatformComparison()).toEqual([
+        {
+          avgViewsPerPost: 100,
+          comments: 100,
+          engagementRate: 8.5,
+          likes: 250,
+          platform: CredentialPlatform.YOUTUBE,
+          postCount: 50,
+          saves: 25,
+          shares: 50,
+          totalEngagement: 425,
+          views: 5000,
+        },
+      ]);
     });
 
-    it('should calculate 100% when single platform', async () => {
-      mockPrismaService.$queryRaw.mockResolvedValue([
-        {
-          platform: 'YOUTUBE',
-          avg_engagement_rate: 10,
-          total_comments: BigInt(0),
-          total_likes: BigInt(0),
-          total_posts: BigInt(100),
-          total_saves: BigInt(0),
-          total_shares: BigInt(0),
-          total_views: BigInt(1000),
-          total_engagement: BigInt(100),
-        },
-      ]);
+    it('counts distinct posts from live analytics rows only', async () => {
+      const capturedQueries = captureQueryRawCalls();
 
-      const result = typed<Array<Record<string, number>>>(
-        await service.getPlatformComparison(),
+      await service.getPlatformComparison();
+
+      expect(capturedQueries[0].sql).toContain(
+        'COUNT(DISTINCT "postId") AS total_posts',
       );
-
-      expect(result[0].viewsPercentage).toBe(100);
-      expect(result[0].postsPercentage).toBe(100);
+      expect(capturedQueries[0].sql).toContain('"isDeleted" = false');
     });
 
     it('should parameterize brand and date filters', async () => {

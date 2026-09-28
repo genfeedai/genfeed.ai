@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import type { IAnalytics } from '@genfeedai/contracts/interfaces';
+import type {
+  IAnalytics,
+  IPlatformComparison,
+} from '@genfeedai/contracts/interfaces';
 import AnalyticsOrganizationOverview from '@pages/analytics/organization-overview/analytics-organization-overview';
 import type { IBrandWithStats } from '@services/analytics/analytics.service';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -52,7 +55,12 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('next/dynamic', () => ({
-  default: () => () => <div data-testid="analytics-chart" />,
+  default: () =>
+    function ChartStub({ data }: { data?: unknown }) {
+      return (
+        <div data-chart={JSON.stringify(data)} data-testid="analytics-chart" />
+      );
+    },
 }));
 
 vi.mock('next/navigation', () => ({
@@ -107,7 +115,7 @@ describe('AnalyticsOrganizationOverview', () => {
     vi.clearAllMocks();
     analyticsResult = { analytics: analyticsFixture, isLoading: false };
     getBrandsWithStatsMock.mockResolvedValue({ data: [brandFixture] });
-    getPlatformComparisonMock.mockResolvedValue({});
+    getPlatformComparisonMock.mockResolvedValue([]);
     contextBrandId = null;
   });
 
@@ -118,6 +126,52 @@ describe('AnalyticsOrganizationOverview', () => {
       expect(getPlatformComparisonMock).toHaveBeenCalledWith(
         expect.objectContaining({ brandId: undefined }),
       );
+    });
+  });
+
+  // genfeedai/genfeed.ai#5419: `/analytics/platforms` returns an
+  // `IPlatformComparison[]`, not a platform-keyed record.
+  it('charts real per-platform views and posts', async () => {
+    const platforms: IPlatformComparison[] = [
+      {
+        avgViewsPerPost: 300,
+        comments: 12,
+        engagementRate: 4,
+        likes: 60,
+        platform: 'instagram',
+        postCount: 4,
+        saves: 3,
+        shares: 5,
+        totalEngagement: 80,
+        views: 1200,
+      },
+      {
+        avgViewsPerPost: 250,
+        comments: 1,
+        engagementRate: 2,
+        likes: 8,
+        platform: 'tiktok',
+        postCount: 2,
+        saves: 0,
+        shares: 1,
+        totalEngagement: 10,
+        views: 500,
+      },
+    ];
+    getPlatformComparisonMock.mockResolvedValue(platforms);
+
+    render(<AnalyticsOrganizationOverview />);
+
+    const expected = JSON.stringify([
+      { platform: 'instagram', posts: 4, value: 1200 },
+      { platform: 'tiktok', posts: 2, value: 500 },
+    ]);
+    await waitFor(() => {
+      expect(
+        screen
+          .getAllByTestId('analytics-chart')
+          .map((chart) => chart.getAttribute('data-chart')),
+      ).toContain(expected);
     });
   });
 

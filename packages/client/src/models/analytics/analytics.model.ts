@@ -161,6 +161,7 @@ export class PlatformComparison implements IPlatformComparison {
   declare public comments: number;
   declare public shares: number;
   declare public saves: number;
+  declare public totalEngagement: number;
   declare public engagementRate: number;
   declare public postCount: number;
   declare public avgViewsPerPost: number;

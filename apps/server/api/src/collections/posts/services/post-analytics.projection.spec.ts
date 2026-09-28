@@ -319,4 +319,36 @@ describe('PostAnalyticsProjection', () => {
       total: 100,
     });
   });
+
+  // genfeedai/genfeed.ai#5419: the organization endpoint shares the
+  // `IPlatformComparison` contract with `GET /analytics/platforms`.
+  it('projects organization platform rows onto IPlatformComparison', () => {
+    expect(
+      projection.buildPlatformComparison([
+        {
+          comments: BigInt(2),
+          engagement_rate: 4,
+          likes: BigInt(10),
+          platform: 'INSTAGRAM',
+          post_count: BigInt(4),
+          saves: BigInt(1),
+          shares: BigInt(3),
+          views: BigInt(400),
+        },
+      ]),
+    ).toEqual([
+      {
+        avgViewsPerPost: 100,
+        comments: 2,
+        engagementRate: 4,
+        likes: 10,
+        platform: 'instagram',
+        postCount: 4,
+        saves: 1,
+        shares: 3,
+        totalEngagement: 16,
+        views: 400,
+      },
+    ]);
+  });
 });

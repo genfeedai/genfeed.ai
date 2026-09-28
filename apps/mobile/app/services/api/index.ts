@@ -3,7 +3,6 @@ export type {
   AnalyticsQueryOptions,
   EngagementBreakdown,
   GrowthData,
-  PlatformStats,
   TopContent,
 } from '@/services/api/analytics.service';
 export { analyticsService } from '@/services/api/analytics.service';

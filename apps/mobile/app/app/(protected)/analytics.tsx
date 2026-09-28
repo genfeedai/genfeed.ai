@@ -312,8 +312,8 @@ export default function AnalyticsScreen() {
             <PlatformCard
               key={platform.platform || index}
               platform={platform.platform}
-              views={platform.totalViews}
-              posts={platform.totalPosts}
+              views={platform.views}
+              posts={platform.postCount}
               engagementRate={platform.engagementRate}
             />
           ))}

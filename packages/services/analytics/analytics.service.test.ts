@@ -54,7 +54,6 @@ describe('AnalyticsService', () => {
   describe('resource endpoints', () => {
     const resourceEndpoints = [
       ['getOverview', 'overview'],
-      ['getPlatformComparison', 'platforms'],
       ['getTimeSeries', 'timeseries'],
       ['getGrowthTrends', 'growth'],
       ['getEngagement', 'engagement'],
@@ -94,6 +93,21 @@ describe('AnalyticsService', () => {
         { brandId: 'brand-1', windowWeeks: 4 },
         { params: { organizationId: 'org-1' } },
       );
+    });
+
+    it('getPlatformComparison GETs platforms and deserializes the collection', async () => {
+      http.get.mockResolvedValue(
+        axiosResponse(
+          collectionDocument([{ id: 'p_1', platform: 'youtube', views: 9 }]),
+        ),
+      );
+
+      const result = await service.getPlatformComparison({ limit: 5 });
+
+      expect(http.get).toHaveBeenCalledWith('platforms', {
+        params: { limit: 5 },
+      });
+      expect(result).toEqual([{ id: 'p_1', platform: 'youtube', views: 9 }]);
     });
 
     it('getTopContent GETs top and deserializes the collection', async () => {

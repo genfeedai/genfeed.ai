@@ -1,3 +1,4 @@
+import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMobileAuth } from '@/contexts/auth-context';
 import { useAsyncList } from '@/hooks/use-async-data';
@@ -6,14 +7,13 @@ import {
   type AnalyticsQueryOptions,
   analyticsService,
   type EngagementBreakdown,
-  type PlatformStats,
   type TopContent,
 } from '@/services/api/analytics.service';
 
 interface AnalyticsData {
   overview: AnalyticsOverview | null;
   topContent: TopContent[];
-  platformStats: PlatformStats[];
+  platformStats: IPlatformComparison[];
   engagement: EngagementBreakdown | null;
 }
 

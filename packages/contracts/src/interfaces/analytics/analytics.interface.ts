@@ -121,6 +121,12 @@ export interface ITimeSeriesDataPoint {
   totalEngagement: number;
 }
 
+/**
+ * One row of `GET /analytics/platforms` and
+ * `GET /organizations/:id/analytics/platforms`. `platform` is the domain id
+ * (`instagram`), `postCount` counts distinct posts, and `totalEngagement` is
+ * likes + comments + shares + saves.
+ */
 export interface IPlatformComparison {
   platform: string;
   views: number;
@@ -128,6 +134,7 @@ export interface IPlatformComparison {
   comments: number;
   shares: number;
   saves: number;
+  totalEngagement: number;
   engagementRate: number;
   postCount: number;
   avgViewsPerPost: number;

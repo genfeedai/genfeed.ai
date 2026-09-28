@@ -7,7 +7,6 @@ import type {
   GrowthTrends,
   NumericSqlValue,
   OverviewMetrics,
-  PlatformComparison,
   PlatformComparisonRow,
   PlatformMetrics,
   PostViewsRow,
@@ -30,6 +29,7 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import type { IPlatformComparison } from '@genfeedai/contracts/interfaces';
 import {
   Prisma,
   CredentialPlatform as PrismaCredentialPlatform,
@@ -42,7 +42,6 @@ export type {
   GrowthTrends,
   NumericSqlValue,
   OverviewMetrics,
-  PlatformComparison,
   PlatformComparisonRow,
   PlatformMetrics,
   PostViewsRow,
@@ -321,7 +320,7 @@ export class AnalyticsAggregationService {
     brandId: string | undefined,
     startDateInput?: Date | string,
     endDateInput?: Date | string,
-  ): Promise<PlatformComparison[]> {
+  ): Promise<IPlatformComparison[]> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateInput,
       endDateInput,

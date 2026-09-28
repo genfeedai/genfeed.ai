@@ -6,41 +6,22 @@ import {
 } from './use-workspace-dashboard-data';
 
 describe('workspace dashboard live-data normalization', () => {
-  it('normalizes keyed platform analytics into live dashboard rows', () => {
-    expect(
-      normalizePlatformComparison([
-        {
-          platform: 'instagram',
-          totalEngagement: 8,
-          totalPosts: 2,
-          totalViews: 40,
-        },
-        {
-          platform: 'tiktok',
-          totalEngagement: 12,
-          totalPosts: 3,
-          totalViews: 60,
-        },
-      ]),
-    ).toEqual([
-      {
-        engagement: 8,
-        platform: 'instagram',
-        posts: 2,
-        totalEngagement: 8,
-        totalPosts: 2,
-        totalViews: 40,
-        views: 40,
-      },
-      {
-        engagement: 12,
-        platform: 'tiktok',
-        posts: 3,
-        totalEngagement: 12,
-        totalPosts: 3,
-        totalViews: 60,
-        views: 60,
-      },
+  it('maps IPlatformComparison rows onto the dashboard chart keys', () => {
+    const row = {
+      avgViewsPerPost: 20,
+      comments: 2,
+      engagementRate: 20,
+      likes: 5,
+      platform: 'instagram',
+      postCount: 2,
+      saves: 0,
+      shares: 1,
+      totalEngagement: 8,
+      views: 40,
+    };
+
+    expect(normalizePlatformComparison([row])).toEqual([
+      { ...row, engagement: 8, posts: 2 },
     ]);
   });
 
