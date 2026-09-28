@@ -1,7 +1,14 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  MOST_USED_WORKFLOWS_DEFAULT_LIMIT,
+  MostUsedWorkflowsQueryDto,
+} from '@api/collections/workflows/dto/most-used-workflows-query.dto';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { withNextRunAt } from '@api/collections/workflows/utils/workflow-next-run.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -42,6 +49,28 @@ export class WorkflowMarketplaceController {
     const templates = await this.workflowsService.getWorkflowTemplates();
 
     return { data: templates };
+  }
+
+  /**
+   * "Most used by your team" (#5510): the caller organization's most-run
+   * tenant workflows, serialized like the list endpoint plus
+   * `executionCount`. Returns an empty collection when nothing has run.
+   */
+  @Get('most-used')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async getMostUsed(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query() query: MostUsedWorkflowsQueryDto,
+  ): Promise<JsonApiCollectionResponse> {
+    const docs = await this.workflowsService.findMostUsed(
+      user.organizationId,
+      query.limit ?? MOST_USED_WORKFLOWS_DEFAULT_LIMIT,
+    );
+
+    return serializeCollection(request, WorkflowSerializer, {
+      docs: docs.map(withNextRunAt),
+    });
   }
 
   @Get('marketplace')

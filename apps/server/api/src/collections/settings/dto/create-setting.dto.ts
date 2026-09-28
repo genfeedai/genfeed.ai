@@ -1,3 +1,4 @@
+import { MAX_FAVORITE_WORKFLOW_IDS } from '@api/collections/settings/constants/favorite-workflows.constant';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   AgentThreadMode,
@@ -13,6 +14,9 @@ import {
 } from '@genfeedai/contracts/constants';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
   IsBoolean,
   IsEmail,
   IsEnum,
@@ -200,6 +204,22 @@ export class CreateSettingDto {
     type: [String],
   })
   readonly favoriteModelKeys?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_FAVORITE_WORKFLOW_IDS)
+  @ArrayUnique()
+  @IsEntityId({ each: true })
+  @ApiProperty({
+    default: [],
+    description:
+      'Favorite workflow ids saved for the current user. Every id must be a non-deleted workflow in the caller organization.',
+    isArray: true,
+    maxItems: MAX_FAVORITE_WORKFLOW_IDS,
+    required: false,
+    type: [String],
+  })
+  readonly favoriteWorkflowIds?: string[];
 
   @IsBoolean()
   @IsOptional()

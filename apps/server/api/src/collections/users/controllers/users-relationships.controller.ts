@@ -9,6 +9,7 @@ import {
   buildMeBrandsWhere,
   getCanonicalId,
   nestedSettingsRecord,
+  readObjectRecord,
 } from '@api/collections/users/controllers/users-relationships.helpers';
 import { ProductEmailTopicDto } from '@api/collections/users/dto/product-email-topic.dto';
 import { UpdateWorkflowEmailNotificationPreferenceDto } from '@api/collections/users/dto/update-workflow-email-notification-preference.dto';
@@ -233,7 +234,14 @@ export class UsersRelationshipsController {
       return returnNotFound('Settings', user.userId ?? user.id);
     }
 
-    return serializeSingle(request, SettingSerializer, settings);
+    return serializeSingle(
+      request,
+      SettingSerializer,
+      await this.settingsService.withLiveFavoriteWorkflowIds(
+        settings,
+        user.organizationId,
+      ),
+    );
   }
 
   @Patch('me/settings')
@@ -261,14 +269,13 @@ export class UsersRelationshipsController {
       return returnNotFound('Settings', user.userId ?? user.id);
     }
 
-    const data = await this.settingsService.patch(
+    return this.patchSettingsForCaller(
+      request,
       settingsId,
-      new SettingEntity({ ...updateSettingDto }),
+      updateSettingDto,
+      user,
+      user.userId ?? user.id,
     );
-
-    return data
-      ? serializeSingle(request, SettingSerializer, data)
-      : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 
   @Get('me/organizations')
@@ -368,6 +375,7 @@ export class UsersRelationshipsController {
     @Req() request: Request,
     @Param('userId') userId: string,
     @Body() updateSettingDto: UpdateSettingDto,
+    @CurrentUser() currentUser: User,
   ) {
     const user = await this.usersService.findOne({
       id: userId,
@@ -383,18 +391,53 @@ export class UsersRelationshipsController {
       return returnNotFound(this.constructorName, userId);
     }
 
+    return this.patchSettingsForCaller(
+      request,
+      settingsId,
+      updateSettingDto,
+      currentUser,
+      userId,
+    );
+  }
+
+  /**
+   * Favorite workflow ids are validated against the caller's organization
+   * before anything is written, and the response carries only live favorites.
+   */
+  private async patchSettingsForCaller(
+    request: Request,
+    settingsId: string,
+    updateSettingDto: UpdateSettingDto,
+    caller: User,
+    notFoundId: string,
+  ) {
+    // `null` passes the optional DTO validator; the service rejects it.
+    if (updateSettingDto.favoriteWorkflowIds !== undefined) {
+      await this.settingsService.assertFavoriteWorkflowIds(
+        updateSettingDto.favoriteWorkflowIds,
+        caller.organizationId,
+      );
+    }
+
     const data = await this.settingsService.patch(
       settingsId,
       new SettingEntity({ ...updateSettingDto }),
     );
 
     return data
-      ? serializeSingle(request, SettingSerializer, data)
-      : returnNotFound(this.constructorName, userId);
+      ? serializeSingle(
+          request,
+          SettingSerializer,
+          await this.settingsService.withLiveFavoriteWorkflowIds(
+            data,
+            caller.organizationId,
+          ),
+        )
+      : returnNotFound(this.constructorName, notFoundId);
   }
 
-  private async findUserSettings(userData: unknown): Promise<unknown | null> {
-    const nestedSettings = nestedSettingsRecord(userData);
+  private async findUserSettings(userData: unknown): Promise<object | null> {
+    const nestedSettings = readObjectRecord(nestedSettingsRecord(userData));
     if (getCanonicalId(nestedSettings)) {
       return nestedSettings;
     }

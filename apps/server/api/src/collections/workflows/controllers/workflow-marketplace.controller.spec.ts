@@ -1,7 +1,14 @@
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
+import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-used-workflows-query.dto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import {
+  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
+  WORKFLOW_TEMPLATES,
+} from '@api/collections/workflows/templates/workflow-templates';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import type { Request } from 'express';
 
 describe('WorkflowMarketplaceController', () => {
@@ -12,6 +19,7 @@ describe('WorkflowMarketplaceController', () => {
 
   const mockWorkflowsService = {
     findAll: vi.fn(),
+    findMostUsed: vi.fn(),
     getWorkflowTemplates: vi.fn(),
   };
 
@@ -94,6 +102,97 @@ describe('WorkflowMarketplaceController', () => {
       });
       expect(aggregateArg.where).not.toHaveProperty('isPublic');
       expect(aggregateArg.where).not.toHaveProperty('isTemplate');
+    });
+  });
+
+  describe('getTemplates showcase ranking', () => {
+    it('passes featuredRank through for the curated showcase only', async () => {
+      mockWorkflowsService.getWorkflowTemplates.mockResolvedValue(
+        Object.values(WORKFLOW_TEMPLATES),
+      );
+
+      const result = await controller.getTemplates();
+      const ranked = result.data
+        .filter((template) => template.featuredRank !== undefined)
+        .sort(
+          (left, right) => (left.featuredRank ?? 0) - (right.featuredRank ?? 0),
+        );
+
+      expect(ranked.map((template) => template.id)).toEqual([
+        ...SHOWCASE_WORKFLOW_TEMPLATE_IDS,
+      ]);
+      expect(ranked.map((template) => template.featuredRank)).toEqual(
+        SHOWCASE_WORKFLOW_TEMPLATE_IDS.map((_, index) => index + 1),
+      );
+    });
+  });
+
+  describe('getMostUsed', () => {
+    const user = { organizationId: 'org-1', userId: 'user-1' } as never;
+
+    it('reads the caller organization with the requested limit', async () => {
+      mockWorkflowsService.findMostUsed.mockResolvedValue([]);
+
+      const result = await controller.getMostUsed(mockRequest, user, {
+        limit: 3,
+      });
+
+      expect(mockWorkflowsService.findMostUsed).toHaveBeenCalledWith(
+        'org-1',
+        3,
+      );
+      expect(result.data).toEqual([]);
+    });
+
+    it('serializes usage fields alongside the workflow summary', async () => {
+      mockWorkflowsService.findMostUsed.mockResolvedValue([
+        {
+          edges: [],
+          executionCount: 42,
+          id: 'workflow-1',
+          isScheduleEnabled: false,
+          label: 'Weekly recap',
+          lastExecutedAt: new Date('2026-09-20T10:00:00.000Z'),
+          nodes: [],
+          organizationId: 'org-1',
+        },
+      ]);
+
+      const result = await controller.getMostUsed(mockRequest, user, {
+        limit: 5,
+      });
+
+      expect(result.data).toEqual([
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            executionCount: 42,
+            label: 'Weekly recap',
+            lastExecutedAt: new Date('2026-09-20T10:00:00.000Z'),
+          }),
+          id: 'workflow-1',
+          type: 'workflow',
+        }),
+      ]);
+    });
+
+    it('rejects a limit above 12', async () => {
+      const dto = plainToInstance(MostUsedWorkflowsQueryDto, { limit: '13' });
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]?.constraints).toHaveProperty('max');
+    });
+
+    it('defaults the limit to 5 and accepts 12', async () => {
+      const defaulted = plainToInstance(MostUsedWorkflowsQueryDto, {});
+      const capped = plainToInstance(MostUsedWorkflowsQueryDto, {
+        limit: '12',
+      });
+
+      expect(defaulted.limit).toBe(5);
+      expect(await validate(defaulted)).toEqual([]);
+      expect(capped.limit).toBe(12);
+      expect(await validate(capped)).toEqual([]);
     });
   });
 });

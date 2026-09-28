@@ -13,6 +13,7 @@ import type { FilesClientService } from '@api/services/files-microservice/client
 import type { ISubscriptionsService } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -63,7 +64,14 @@ describe('UsersController', () => {
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
       recordSignupAttribution: vi.fn().mockResolvedValue(true),
     };
-    settingsService = { findOne: vi.fn(), patch: vi.fn() };
+    settingsService = {
+      assertFavoriteWorkflowIds: vi.fn().mockResolvedValue(undefined),
+      findOne: vi.fn(),
+      patch: vi.fn(),
+      withLiveFavoriteWorkflowIds: vi
+        .fn()
+        .mockImplementation(async (settings: unknown) => settings),
+    };
     brandsService = {
       clearBrandSelectionForUser: vi.fn(),
       findAll: vi.fn(),
@@ -128,6 +136,7 @@ describe('UsersController', () => {
       subscriptionsService as unknown as ISubscriptionsService,
       filesClientService as unknown as FilesClientService,
       userAccessCacheService,
+      settingsService as unknown as SettingsService,
       serverFunnelCaptureService as never,
     );
     relationshipsController = new UsersRelationshipsController(
@@ -494,6 +503,7 @@ describe('UsersController', () => {
         {
           theme: 'light',
         } as never,
+        mockUser,
       );
 
       expect(usersService.findOne).toHaveBeenCalledWith({
@@ -506,6 +516,176 @@ describe('UsersController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('validates favorite workflows against the caller organization', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: 'prisma-user-id',
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockResolvedValue({ id: settingsId });
+
+      await relationshipsController.updateSettings(
+        mockRequest,
+        userId,
+        { favoriteWorkflowIds: ['workflow-1'] } as never,
+        mockUser,
+      );
+
+      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
+        ['workflow-1'],
+        orgId,
+      );
+    });
+  });
+
+  describe('favorite workflows', () => {
+    it('rejects invalid favorites before writing anything', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.assertFavoriteWorkflowIds.mockRejectedValue(
+        new BadRequestException('not available in this organization'),
+      );
+
+      await expect(
+        relationshipsController.updateMeSettings(mockRequest, mockUser, {
+          favoriteWorkflowIds: ['foreign-workflow'],
+        } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
+        ['foreign-workflow'],
+        orgId,
+      );
+      expect(settingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('routes a null favorites list through validation instead of writing it', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.assertFavoriteWorkflowIds.mockRejectedValue(
+        new BadRequestException('favoriteWorkflowIds must be an array'),
+      );
+
+      await expect(
+        relationshipsController.updateMeSettings(mockRequest, mockUser, {
+          favoriteWorkflowIds: null,
+        } as never),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(settingsService.assertFavoriteWorkflowIds).toHaveBeenCalledWith(
+        null,
+        orgId,
+      );
+      expect(settingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('skips favorites validation when the patch does not touch favorites', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockResolvedValue({ id: settingsId });
+
+      await relationshipsController.updateMeSettings(mockRequest, mockUser, {
+        theme: 'dark',
+      } as never);
+
+      expect(settingsService.assertFavoriteWorkflowIds).not.toHaveBeenCalled();
+    });
+
+    it('persists valid favorites and returns only live ones', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: { id: settingsId },
+      });
+      settingsService.patch.mockResolvedValue({
+        favoriteWorkflowIds: ['workflow-1', 'workflow-2'],
+        id: settingsId,
+      });
+      settingsService.withLiveFavoriteWorkflowIds.mockImplementation(
+        async (settings: Record<string, unknown>) => ({
+          ...settings,
+          favoriteWorkflowIds: ['workflow-1'],
+        }),
+      );
+
+      const result = await relationshipsController.updateMeSettings(
+        mockRequest,
+        mockUser,
+        { favoriteWorkflowIds: ['workflow-1', 'workflow-2'] } as never,
+      );
+
+      expect(settingsService.patch).toHaveBeenCalledWith(
+        settingsId,
+        expect.objectContaining({
+          favoriteWorkflowIds: ['workflow-1', 'workflow-2'],
+        }),
+      );
+      expect(result).toMatchObject({
+        data: { attributes: { favoriteWorkflowIds: ['workflow-1'] } },
+      });
+    });
+
+    it('drops deleted favorites when settings are read', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: {
+          favoriteWorkflowIds: ['workflow-1', 'deleted-workflow'],
+          id: settingsId,
+        },
+      });
+      settingsService.withLiveFavoriteWorkflowIds.mockImplementation(
+        async (settings: Record<string, unknown>) => ({
+          ...settings,
+          favoriteWorkflowIds: ['workflow-1'],
+        }),
+      );
+
+      const result = await relationshipsController.findMeSettings(
+        mockRequest,
+        mockUser,
+      );
+
+      expect(settingsService.withLiveFavoriteWorkflowIds).toHaveBeenCalledWith(
+        expect.objectContaining({ id: settingsId }),
+        orgId,
+      );
+      expect(result).toMatchObject({
+        data: { attributes: { favoriteWorkflowIds: ['workflow-1'] } },
+      });
+    });
+
+    it('drops deleted favorites from the nested settings of GET /users/me', async () => {
+      subscriptionsService.findOne.mockResolvedValue(null);
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        isOnboardingCompleted: true,
+        settings: {
+          favoriteWorkflowIds: ['workflow-1', 'deleted-workflow'],
+          id: settingsId,
+        },
+      });
+      settingsService.withLiveFavoriteWorkflowIds.mockImplementation(
+        async (settings: Record<string, unknown>) => ({
+          ...settings,
+          favoriteWorkflowIds: ['workflow-1'],
+        }),
+      );
+
+      await controller.findMe(mockRequest, mockUser);
+
+      expect(settingsService.withLiveFavoriteWorkflowIds).toHaveBeenCalledWith(
+        expect.objectContaining({
+          favoriteWorkflowIds: ['workflow-1', 'deleted-workflow'],
+          id: settingsId,
+        }),
+        orgId,
+      );
     });
   });
 

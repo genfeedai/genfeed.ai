@@ -76,6 +76,7 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       {} as never, // subscriptionsService
       {} as never, // filesClientService
       userAccessCacheService as never,
+      {} as never, // settingsService
       serverFunnelCaptureService as never,
     );
 
@@ -141,6 +142,7 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       {} as never,
       {} as never,
       userAccessCacheService as never,
+      {} as never, // settingsService
       serverFunnelCaptureService as never,
     );
 

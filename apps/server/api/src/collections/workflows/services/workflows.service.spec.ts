@@ -3,6 +3,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -870,4 +871,95 @@ describe('WorkflowsService versioned edge style patches', () => {
       expect(result).toHaveProperty('edgeStyle', expected);
     },
   );
+});
+
+describe('WorkflowsService.findMostUsed', () => {
+  function versionedRow(id: string, executionCount: number) {
+    return {
+      currentVersion: {
+        graph: { edges: [], nodes: [] },
+        id: `${id}-version`,
+        inputSchema: [],
+        version: 1,
+      },
+      executionCount,
+      id,
+      lastExecutedAt: new Date('2026-09-01T00:00:00.000Z'),
+      organizationId: 'org-1',
+    };
+  }
+
+  function buildService(findMany: ReturnType<typeof vi.fn>) {
+    return new WorkflowsService(
+      { workflow: { findMany } } as never,
+      {
+        debug: vi.fn(),
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as never,
+      emptyModuleRef as never,
+    );
+  }
+
+  it('reads only run, non-deleted, non-system workflows of the caller org by usage', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await buildService(findMany).findMostUsed('org-1', 5);
+
+    expect(findMany).toHaveBeenCalledWith({
+      include: { currentVersion: true },
+      orderBy: [
+        { executionCount: 'desc' },
+        { lastExecutedAt: { nulls: 'last', sort: 'desc' } },
+      ],
+      take: 5,
+      where: {
+        ...EXCLUDE_SYSTEM_WORKFLOW,
+        executionCount: { gt: 0 },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('applies the requested limit', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await buildService(findMany).findMostUsed('org-1', 12);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 12 }),
+    );
+  });
+
+  it('returns the rows in database order with their usage fields', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue([
+        versionedRow('workflow-busy', 40),
+        versionedRow('workflow-quiet', 3),
+      ]);
+
+    const result = await buildService(findMany).findMostUsed('org-1', 5);
+
+    expect(result.map((workflow) => workflow.id)).toEqual([
+      'workflow-busy',
+      'workflow-quiet',
+    ]);
+    expect(result[0]).toMatchObject({
+      executionCount: 40,
+      lastExecutedAt: new Date('2026-09-01T00:00:00.000Z'),
+      nodes: [],
+      versionId: 'workflow-busy-version',
+    });
+  });
+
+  it('returns an empty list when nothing has run', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await expect(
+      buildService(findMany).findMostUsed('org-1', 5),
+    ).resolves.toEqual([]);
+  });
 });

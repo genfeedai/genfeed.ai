@@ -1,5 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
+import {
+  getCanonicalId,
+  nestedSettingsRecord,
+  readObjectRecord,
+} from '@api/collections/users/controllers/users-relationships.helpers';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
@@ -69,6 +75,7 @@ export class UsersController {
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly filesClientService: FilesClientService,
     private readonly userAccessCacheService: UserAccessCacheService,
+    private readonly settingsService: SettingsService,
     // Depends on the leaf-level ServerFunnelCaptureService rather than
     // OnboardingCreditGrantsService: importing CreditsModule into UsersModule
     // to reach it would risk the same circular dependency UserSetupModule
@@ -91,6 +98,25 @@ export class UsersController {
       getIsSuperAdmin(currentUser) ||
       (currentUser.userId || currentUser.id) === targetUserId
     );
+  }
+
+  /** The nested settings expose only live favorites of the caller's org. */
+  private async withLiveFavoriteWorkflowIds<T extends object>(
+    userData: T,
+    organizationId: string,
+  ): Promise<T> {
+    const settings = readObjectRecord(nestedSettingsRecord(userData));
+    if (!getCanonicalId(settings)) {
+      return userData;
+    }
+
+    return {
+      ...userData,
+      settings: await this.settingsService.withLiveFavoriteWorkflowIds(
+        settings,
+        organizationId,
+      ),
+    };
   }
 
   private async setBrandSelectionForUser(
@@ -191,7 +217,11 @@ export class UsersController {
       }
     }
 
-    return serializeSingle(request, UserSerializer, data);
+    return serializeSingle(
+      request,
+      UserSerializer,
+      await this.withLiveFavoriteWorkflowIds(data, organizationId),
+    );
   }
 
   @Post('me/avatar')
@@ -254,7 +284,11 @@ export class UsersController {
         });
 
     return data
-      ? serializeSingle(request, UserSerializer, data)
+      ? serializeSingle(
+          request,
+          UserSerializer,
+          await this.withLiveFavoriteWorkflowIds(data, user.organizationId),
+        )
       : returnNotFound(this.constructorName, user.userId ?? user.id);
   }
 

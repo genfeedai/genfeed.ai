@@ -22,6 +22,7 @@ import {
   SYSTEM_WORKFLOW_METADATA_KEY,
 } from '@api/collections/workflows/system-workflow.contract';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import {
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
@@ -689,6 +690,32 @@ export class WorkflowsService extends BaseService<
       count,
       id,
     }));
+  }
+
+  /**
+   * The organization's most-run tenant workflows (#5510): non-deleted,
+   * non-system rows that have executed at least once, ordered by
+   * `executionCount` then most recent run. Served by the
+   * `[organizationId, isDeleted]` index.
+   */
+  async findMostUsed(
+    organizationId: string,
+    limit: number,
+  ): Promise<WorkflowDocument[]> {
+    const rows = await this.prisma.workflow.findMany({
+      include: { currentVersion: true },
+      orderBy: [
+        { executionCount: 'desc' },
+        { lastExecutedAt: { nulls: 'last', sort: 'desc' } },
+      ],
+      take: limit,
+      where: scopedWhere(organizationId, {
+        ...EXCLUDE_SYSTEM_WORKFLOW,
+        executionCount: { gt: 0 },
+      }),
+    });
+
+    return this.normalizeDocuments(rows);
   }
 
   /**
