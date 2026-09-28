@@ -7,14 +7,13 @@ import {
 
 describe('card.enum', () => {
   describe('CardVariant', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(CardVariant)).toHaveLength(3);
+    it('should have 2 members', () => {
+      expect(Object.values(CardVariant)).toHaveLength(2);
     });
 
     it('should have correct values', () => {
       expect(CardVariant.DEFAULT).toBe('default');
-      expect(CardVariant.WHITE).toBe('white');
-      expect(CardVariant.BLACK).toBe('black');
+      expect(CardVariant.BORDERED).toBe('bordered');
     });
   });
 

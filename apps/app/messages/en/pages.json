@@ -1898,6 +1898,13 @@
       "limit": "Latest 100 workflows in this period. These totals are a separate view of usage; do not add them to generation totals."
     }
   },
+  "organizationLanding": {
+    "brandCount": "{count, plural, one {# brand} other {# brands}} in this workspace",
+    "newBrand": "New Brand",
+    "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+    "redirecting": "Opening your workspace",
+    "title": "Projects"
+  },
   "organizationRouting": {
     "failure": {
       "description": "The requested organization could not be confirmed. No tenant data was loaded.",
@@ -1993,6 +2000,21 @@
       "confidencePercent": "{percent}% confidence"
     },
     "liveRuns": "Live runs",
+    "runCards": {
+      "credits": "{credits} credits",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "progress": "{percent}% done",
+      "status": {
+        "cancelled": "Cancelled",
+        "completed": "Completed",
+        "failed": "Failed",
+        "live": "Live now",
+        "queued": "Queued"
+      },
+      "title": "Running agents",
+      "viewAll": "View all"
+    },
     "noActiveTasks": "No active workspace tasks right now.",
     "openInbox": "Open Inbox",
     "openReview": "Open Review",

@@ -702,9 +702,76 @@ topbar icon actions: transparent, no border, `hover:bg-hover`.
 
 ### Card
 
-`bg-secondary` plane with an edge — `shadow-border` or a `border-border` CSS border.
-Hover lifts the edge to `shadow-border-strong`. Stat cards tint with `bg-{color}/5`.
-Cards are square (`rounded-card`, 0px).
+`bg-secondary` plane with an edge — `shadow-border` (`default`) or a `border-border`
+CSS border (`bordered`). Hover lifts the edge to `shadow-border-strong` (or
+`border-border-strong`) and nothing else — no hover fill, no second edge stacked on
+the first. Stat cards tint with `bg-{color}/5`. Cards are square (`rounded-card`,
+0px), and so are media tiles: a Library or Studio thumbnail is a card whose body is
+the media. Every card surface renders through `@ui/card/Card`; a hand-written
+`rounded-card bg-card shadow-border` string is a fork of it.
+
+Card anatomy: an output-type icon, a title, one line of known facts (empty fields
+are omitted, never shown as "Set…" placeholders), and **one visible primary
+action**. Every other action — including every destructive one — lives in the
+overflow menu. An overflow item that navigates is a real link (`href`), never a
+command that pushes a route, so open-in-new-tab and copy-link keep working. Nothing inside a card gets its own filled box; use type and spacing,
+not a nested `bg-secondary`/`bg-muted` panel.
+
+### Collections
+
+A collection is any page or section that lists many records. Pick its shape by
+what the viewer came to do, not by habit. The building blocks live in
+`@ui/collection` and compose the existing `PageSection`, `ListRow`, `ViewToggle`,
+`HorizontalCarousel`, and `Card` primitives.
+
+**Content type decides the default view.**
+
+| Collection | Default | Why |
+|------------|---------|-----|
+| Visual-first — media, generated outputs, trend media, video thumbnails | grid or masonry | the image is the identifier |
+| Text-first — agents, workflows, templates, posts, campaigns, projects, catalogs | list, with a grid toggle | cards force a zig-zag scan; a list reads top to bottom |
+
+The viewer's choice persists per surface as a local preference
+(`useCollectionViewPreference`). Loading skeletons mirror the active view.
+
+**Intent sections, in this order.** A page with more than one reason to visit
+splits into sections; a page with one reason renders only **All**.
+
+1. **Needs you** — failed, paused, overdue, or awaiting-approval items, each with
+   one inline resolving action.
+2. **Yours / Recent** — items the viewer already knows, as compact one-line rows.
+3. **Discover / Most used** — wide cards that preview the output, in a
+   `HorizontalCarousel` that never auto-advances.
+4. **Browse by type** — type tiles that filter **All**.
+5. **All** — the complete collection, list by default.
+
+A section with zero items renders nothing — no heading, no empty card. The page's
+own empty state appears only when every section is empty. A section whose request
+fails shows its own error; the other sections stay interactive.
+
+**One toolbar row, no filter sidebar.** Search, Type/Category dropdowns, sort, and
+the view toggle share one row. Active filters appear beneath it as removable chips.
+
+**Density follows the panel, not the viewport.** Pages render inside the inset
+content panel (see Shell Layout), which is roughly 300px narrower than the window
+once the rail and sidebar are open. Grid columns therefore resolve from container
+queries on the collection itself:
+
+| Panel width | Columns |
+|-------------|---------|
+| < 640px | 1 |
+| ≥ 640px | 2 |
+| ≥ 960px | 3 |
+| ≥ 1280px | 4 |
+
+Cards use `gap-4`, stat tiles `gap-3`, media masonry its own 4px gutter. No
+collection uses `gap-6`, and no collection picks columns from `sm:`/`md:`/`lg:`
+viewport breakpoints.
+
+**Record detail pages** follow the same economy: one primary action in the header
+with the rest in overflow, known facts on one line with an "All details"
+disclosure for the remainder, a **Needs you** block above everything else, and one
+activity timeline with a single filter instead of a tab per record type.
 
 ### Input
 
@@ -861,6 +928,10 @@ animations in chrome.
 - **Don't** add new semantic colours without updating this file and the token source.
 - **Don't** use large decorative gradients as core product surfaces, or nest cards
   inside cards.
+- **Don't** lay a text-first collection out as a wall of equal cards, or give a
+  card more than one visible action.
+- **Don't** choose collection columns from viewport breakpoints; the content panel
+  is narrower than the window.
 - **Don't** add coloured accents or glow shadows to chrome — colour enters only
   through the four doors above.
 
