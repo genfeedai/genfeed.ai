@@ -273,6 +273,45 @@ describe('VideoStitchService', () => {
     });
   });
 
+  describe('single-clip rule (keyed on output mode)', () => {
+    it('accepts one clip for a per-clip-normalized output', async () => {
+      const handle = await fixture.service.stitch(
+        request({
+          callerKind: 'storyboard_run',
+          clipIds: ['clip-1'],
+          output: { height: 1024, resize: 'per_clip', width: 576 },
+        }),
+      );
+      expect(handle.state).toBe('processing');
+      expect(fixture.mergeJobs()[0]?.params).toMatchObject({
+        normalizeClips: true,
+        sourceIds: ['clip-1'],
+      });
+    });
+
+    it.each([
+      ['a plain stitch', undefined],
+      [
+        'an after-merge resize',
+        { height: 1920, resize: 'after_merge' as const, width: 1080 },
+      ],
+    ])('refuses one clip for %s before queuing', async (_label, output) => {
+      expect(
+        await failingField(
+          fixture.service.stitch(
+            request({
+              callerKind: 'storyboard_run',
+              clipIds: ['clip-1'],
+              ...(output ? { output } : {}),
+            }),
+          ),
+        ),
+      ).toBe('clipIds');
+      expect(fixture.outputs()).toEqual([]);
+      expect(fixture.queued).toEqual([]);
+    });
+  });
+
   describe('idempotency', () => {
     it('returns the existing output for a repeated key without a second job', async () => {
       const first = await fixture.service.stitch(request());
