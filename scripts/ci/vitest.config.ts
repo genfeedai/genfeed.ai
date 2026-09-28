@@ -13,6 +13,13 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@genfeedai\/contracts\/api-types\/(.+)$/,
+        replacement: path.resolve(
+          import.meta.dirname,
+          '../../packages/contracts/src/api-types/$1',
+        ),
+      },
+      {
         find: /^@genfeedai\/contracts$/,
         replacement: path.resolve(
           import.meta.dirname,
