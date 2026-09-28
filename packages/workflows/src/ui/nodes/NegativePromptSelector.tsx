@@ -107,8 +107,10 @@ function NegativePromptSelectorComponent({
   // Extract and track custom terms separately
   const [customText, setCustomText] = useState(() => extractCustomTerms(value));
 
-  // Count selected items for collapsed summary
-  const selectedCount = checkedTerms.size + (customText.trim() ? 1 : 0);
+  // Count selected items for collapsed summary: checked predefined options
+  // plus one for the custom group (custom terms also live in checkedTerms).
+  const selectedCount =
+    [...checkedTerms].filter(isKnownTerm).length + (customText.trim() ? 1 : 0);
 
   // Handle checkbox toggle
   const handleCheckboxChange = useCallback(
