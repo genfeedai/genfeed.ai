@@ -713,7 +713,8 @@ the media. Every card surface renders through `@ui/card/Card`; a hand-written
 Card anatomy: an output-type icon, a title, one line of known facts (empty fields
 are omitted, never shown as "Set…" placeholders), and **one visible primary
 action**. Every other action — including every destructive one — lives in the
-overflow menu. Nothing inside a card gets its own filled box; use type and spacing,
+overflow menu. An overflow item that navigates is a real link (`href`), never a
+command that pushes a route, so open-in-new-tab and copy-link keep working. Nothing inside a card gets its own filled box; use type and spacing,
 not a nested `bg-secondary`/`bg-muted` panel.
 
 ### Collections

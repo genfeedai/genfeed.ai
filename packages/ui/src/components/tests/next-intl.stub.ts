@@ -55,10 +55,27 @@ function interpolateMessage(
  * while package tests pass only the messages their package contract renders.
  * Missing keys return their full path so absent fixtures fail visibly instead
  * of producing a misleading blank label.
+ *
+ * One translator per namespace is reused across calls, like next-intl's own
+ * `useTranslations`, so a component that lists `translate` in a hook
+ * dependency array does not re-run that hook on every render under test.
  */
 export function createTranslateFromCatalog(catalog: MessageCatalog) {
-  return (namespace: string) =>
-    (key: string, values?: Record<string, string | number>): string => {
+  const translators = new Map<
+    string,
+    (key: string, values?: Record<string, string | number>) => string
+  >();
+
+  return (namespace: string) => {
+    const cached = translators.get(namespace);
+    if (cached) {
+      return cached;
+    }
+
+    const translator = (
+      key: string,
+      values?: Record<string, string | number>,
+    ): string => {
       const path = `${namespace}.${key}`;
       let node: MessageNode = catalog;
 
@@ -82,6 +99,10 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 
       return interpolateMessage(node, values);
     };
+
+    translators.set(namespace, translator);
+    return translator;
+  };
 }
 
 const UI_TEST_MESSAGES = {

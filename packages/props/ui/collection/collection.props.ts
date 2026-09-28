@@ -99,13 +99,39 @@ export interface CollectionToolbarProps {
   className?: string;
 }
 
-export interface CollectionOverflowAction {
+interface CollectionOverflowActionBase {
   id: string;
   label: string;
   icon?: ReactNode;
-  onSelect: () => void;
   isDestructive?: boolean;
   isDisabled?: boolean;
+}
+
+/** A command: runs `onSelect` in place (rename, pause, delete). */
+export interface CollectionOverflowCommand
+  extends CollectionOverflowActionBase {
+  onSelect: () => void;
+  href?: undefined;
+}
+
+/**
+ * A destination: renders a real link, so Cmd/Ctrl-click, open-in-new-tab and
+ * copy-link keep working. Every overflow item that navigates uses this form.
+ */
+export interface CollectionOverflowLink extends CollectionOverflowActionBase {
+  href: string;
+  /** Opens in a new tab with `rel="noopener noreferrer"`. */
+  isExternal?: boolean;
+  onSelect?: undefined;
+}
+
+export type CollectionOverflowAction =
+  | CollectionOverflowCommand
+  | CollectionOverflowLink;
+
+export interface CollectionOverflowItemProps {
+  action: CollectionOverflowAction;
+  className?: string;
 }
 
 export interface CollectionItemActionsProps {

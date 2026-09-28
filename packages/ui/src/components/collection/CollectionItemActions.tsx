@@ -2,7 +2,10 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { CollectionItemActionsProps } from '@genfeedai/props/ui/collection/collection.props';
+import type {
+  CollectionItemActionsProps,
+  CollectionOverflowItemProps,
+} from '@genfeedai/props/ui/collection/collection.props';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -12,7 +15,45 @@ import {
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
 import { EllipsisVertical } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+
+/**
+ * A destination renders as a real link inside the menu item, so the browser
+ * keeps its link affordances; a command runs `onSelect` in place.
+ */
+function OverflowItem({ action, className }: CollectionOverflowItemProps) {
+  if (action.href !== undefined) {
+    return (
+      <DropdownMenuItem
+        asChild
+        className={className}
+        disabled={action.isDisabled}
+      >
+        <Link
+          aria-disabled={action.isDisabled || undefined}
+          href={action.href}
+          rel={action.isExternal ? 'noopener noreferrer' : undefined}
+          target={action.isExternal ? '_blank' : undefined}
+        >
+          {action.icon}
+          {action.label}
+        </Link>
+      </DropdownMenuItem>
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      className={className}
+      disabled={action.isDisabled}
+      onSelect={action.onSelect}
+    >
+      {action.icon}
+      {action.label}
+    </DropdownMenuItem>
+  );
+}
 
 /**
  * One visible primary action and an overflow menu for everything else.
@@ -60,28 +101,17 @@ export default function CollectionItemActions({
             collisionPadding={8}
           >
             {regularActions.map((action) => (
-              <DropdownMenuItem
-                disabled={action.isDisabled}
-                key={action.id}
-                onSelect={action.onSelect}
-              >
-                {action.icon}
-                {action.label}
-              </DropdownMenuItem>
+              <OverflowItem action={action} key={action.id} />
             ))}
             {regularActions.length > 0 && destructiveActions.length > 0 ? (
               <DropdownMenuSeparator />
             ) : null}
             {destructiveActions.map((action) => (
-              <DropdownMenuItem
+              <OverflowItem
+                action={action}
                 className="text-destructive focus:text-destructive"
-                disabled={action.isDisabled}
                 key={action.id}
-                onSelect={action.onSelect}
-              >
-                {action.icon}
-                {action.label}
-              </DropdownMenuItem>
+              />
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
