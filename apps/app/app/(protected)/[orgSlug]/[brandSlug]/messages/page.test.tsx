@@ -564,6 +564,46 @@ describe('SocialMessagesPage', () => {
     );
   });
 
+  it('never acknowledges a reply that a receipt response reports before the transcript shows it', async () => {
+    const displayed = { ...conversation, inboundSequence: 10, unreadCount: 1 };
+    mocks.listPage.mockResolvedValue({
+      hasNext: false,
+      hasPrevious: false,
+      items: [displayed],
+      page: 1,
+      pageSize: 50,
+      total: 1,
+      totalPages: 1,
+    });
+    // Reply 11 lands while markRead(10) is in flight: it stays unread.
+    mocks.markRead.mockResolvedValue({
+      ...displayed,
+      inboundSequence: 11,
+      unreadCount: 1,
+    });
+
+    render(<SocialMessagesPage />);
+
+    await waitFor(() =>
+      expect(mocks.markRead).toHaveBeenCalledWith(
+        'conversation-1',
+        10,
+        expect.any(AbortSignal),
+      ),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshInboxIndicators).toHaveBeenCalled(),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mocks.markRead).not.toHaveBeenCalledWith(
+      'conversation-1',
+      11,
+      expect.anything(),
+    );
+    expect(mocks.markRead).toHaveBeenCalledTimes(1);
+  });
+
   it('does not send a read receipt for an already read conversation', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,

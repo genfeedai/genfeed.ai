@@ -1,12 +1,16 @@
 import type { IPaginatedResponse } from '@genfeedai/contracts/interfaces';
 import type { SocialConversationModel } from '@genfeedai/models/social/social-conversation.model';
 import type { SocialMessageModel } from '@genfeedai/models/social/social-message.model';
-import type { UseMessagesConversationsParams } from '@genfeedai/props/messages/messages-conversations.props';
+import type {
+  MessagesAcknowledgeableCursor,
+  UseMessagesConversationsParams,
+} from '@genfeedai/props/messages/messages-conversations.props';
 import {
   startTransition,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -40,6 +44,12 @@ export function useMessagesConversations({
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [acknowledgeableCursor, setAcknowledgeableCursor] =
+    useState<MessagesAcknowledgeableCursor | null>(null);
+  // Read when a transcript request starts: the conversation snapshot taken
+  // before that request bounds what the transcript is guaranteed to show.
+  const conversationsRef = useRef(conversations);
+  conversationsRef.current = conversations;
 
   const loadConversations = useCallback(
     async (signal?: AbortSignal) => {
@@ -143,6 +153,10 @@ export function useMessagesConversations({
     const controller = new AbortController();
     setIsLoadingMessages(true);
     setLoadError(null);
+    const sequenceBeforeTranscript = readInboundSequence(
+      conversationsRef.current,
+      selectedId,
+    );
 
     getMessagesService()
       .then((service) =>
@@ -157,6 +171,9 @@ export function useMessagesConversations({
           const { items: nextMessages, ...pagination } = result;
           setMessages(nextMessages);
           setMessagePagination(pagination);
+          setAcknowledgeableCursor(
+            toAcknowledgeableCursor(selectedId, sequenceBeforeTranscript),
+          );
         }
       })
       .catch((err: unknown) => {
@@ -175,6 +192,9 @@ export function useMessagesConversations({
 
   const refreshSelectedThread = useCallback(async () => {
     const service = await getMessagesService();
+    const sequenceBeforeTranscript = selectedId
+      ? readInboundSequence(conversationsRef.current, selectedId)
+      : undefined;
     const [conversationResult, selectedConversationResult, messageResult] =
       await Promise.all([
         service.listPage(query),
@@ -202,10 +222,13 @@ export function useMessagesConversations({
     startTransition(() => {
       setConversations(refreshedConversations);
       setConversationPagination(nextConversationPagination);
-      if (messageResult) {
+      if (messageResult && selectedId) {
         const { items: nextMessages, ...nextMessagePagination } = messageResult;
         setMessages(nextMessages);
         setMessagePagination(nextMessagePagination);
+        setAcknowledgeableCursor(
+          toAcknowledgeableCursor(selectedId, sequenceBeforeTranscript),
+        );
       }
     });
   }, [getMessagesService, messagePage, query, selectedId]);
@@ -220,12 +243,20 @@ export function useMessagesConversations({
     [conversations, selectedId],
   );
   const selectedUnreadCount = selectedConversation?.unreadCount ?? 0;
-  const selectedInboundSequence = selectedConversation?.inboundSequence;
+  const acknowledgeableSequence =
+    acknowledgeableCursor?.conversationId === selectedId
+      ? acknowledgeableCursor.inboundSequence
+      : undefined;
 
-  // Opening a thread reads it: zero its counter and let the bell and the
-  // Messages badge catch up.
+  // Opening a thread reads it through the transcript actually loaded: a
+  // receipt response may report newer replies, but those stay unread until a
+  // transcript that contains them has been fetched.
   useEffect(() => {
-    if (!selectedId || selectedUnreadCount <= 0) {
+    if (
+      !selectedId ||
+      selectedUnreadCount <= 0 ||
+      acknowledgeableSequence === undefined
+    ) {
       return;
     }
 
@@ -234,7 +265,7 @@ export function useMessagesConversations({
       .then((service) =>
         service.markRead(
           selectedId,
-          selectedInboundSequence,
+          acknowledgeableSequence,
           controller.signal,
         ),
       )
@@ -258,10 +289,10 @@ export function useMessagesConversations({
 
     return () => controller.abort();
   }, [
+    acknowledgeableSequence,
     getMessagesService,
     onUnreadStateChange,
     selectedId,
-    selectedInboundSequence,
     selectedUnreadCount,
   ]);
 
@@ -298,4 +329,22 @@ export function useMessagesConversations({
     setMessagePage,
     setSelectedId,
   };
+}
+
+function readInboundSequence(
+  conversations: readonly SocialConversationModel[],
+  conversationId: string,
+): number | undefined {
+  return conversations.find(
+    (conversation) => conversation.id === conversationId,
+  )?.inboundSequence;
+}
+
+function toAcknowledgeableCursor(
+  conversationId: string,
+  inboundSequence: number | undefined,
+): MessagesAcknowledgeableCursor | null {
+  return inboundSequence === undefined
+    ? null
+    : { conversationId, inboundSequence };
 }
