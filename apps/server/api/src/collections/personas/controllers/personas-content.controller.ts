@@ -5,6 +5,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { PersonaContentService } from '@api/services/persona-content/persona-content.service';
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
@@ -47,7 +48,13 @@ export class PersonasContentController {
       ),
       personaId: EntityIdUtil.validate(personaId, 'personaId'),
       user,
-      userId: EntityIdUtil.validate(user.userId ?? user.id, 'userId'),
+      userId: InputValidationUtil.validateString(
+        user.userId ?? user.id,
+        'userId',
+        {
+          sanitize: false,
+        },
+      ),
     };
   }
 

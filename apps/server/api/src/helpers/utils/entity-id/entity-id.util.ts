@@ -1,4 +1,3 @@
-import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 
@@ -105,27 +104,6 @@ export const EntityIdUtil = {
    */
   isValid(id: unknown): id is string {
     return isEntityId(id);
-  },
-
-  /**
-   * Validate and enrich DTO with user context
-   */
-  enrichWithUserContext(
-    dto: Record<string, unknown>,
-    user: Pick<AuthenticatedUser, 'userId' | 'organizationId' | 'id'>,
-  ): Record<string, unknown> {
-    const userId = user.userId || user.id;
-    if (!userId) {
-      throw new ValidationException('User context is required');
-    }
-
-    return {
-      ...dto,
-      organizationId: user.organizationId
-        ? EntityIdUtil.validate(user.organizationId, 'organizationId')
-        : undefined,
-      userId: EntityIdUtil.validate(userId, 'userId'),
-    };
   },
 
   /**
