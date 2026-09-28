@@ -28,10 +28,12 @@ import { getAspectRatioStyle, getImageSrc } from './masonry-image.helpers';
 
 type IngredientActions = ReturnType<typeof useIngredientActions>;
 
-interface MasonryImageTileProps extends MasonryImageProps {
+// An intersection, not `interface … extends`: a workspace that cannot
+// resolve `MasonryImageProps` then degrades to `any` instead of an empty type.
+type MasonryImageTileProps = MasonryImageProps & {
   /** Present only when the tile offers actions. */
   actions?: IngredientActions;
-}
+};
 
 /**
  * A read-only tile (public galleries and profiles) never calls

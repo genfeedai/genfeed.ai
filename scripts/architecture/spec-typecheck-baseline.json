@@ -11449,14 +11449,6 @@
       "workspace": "pages"
     },
     {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/AgentCampaignsPage.tsx",
-      "fingerprint": "c107aff12bd61292261b",
-      "message": "Parameter 'campaign' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/pages/agents/campaigns/OutreachCampaignDetail.test.tsx",
@@ -23454,14 +23446,6 @@
       "file": "packages/ui/src/components/navigation/pagination/Pagination.test.tsx",
       "fingerprint": "91805e2ff66738d7dbdf",
       "message": "Property 'currentPage' is missing in type '{ totalPages: number; onPageChange: Mock<Procedure>; }' but required in type 'PaginationProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2322,
-      "count": 3,
-      "file": "packages/ui/src/components/overview/OverviewLayout.test.tsx",
-      "fingerprint": "955d905c0bd251f5e8a5",
-      "message": "Type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }[]' is not assignable to type 'OverviewCard[]'.   Property 'id' is missing in type '{ color: string; cta: string; description: string; href: string; icon: LucideIcon; label: string; }' but required in type 'OverviewCard'.",
       "workspace": "ui"
     },
     {

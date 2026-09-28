@@ -19,10 +19,12 @@ const MASONRY_TILE_RADIUS_CLASS = 'rounded-card';
 
 type IngredientActions = ReturnType<typeof useIngredientActions>;
 
-interface MasonryVideoTileProps extends MasonryVideoProps {
+// An intersection, not `interface … extends`: a workspace that cannot
+// resolve `MasonryVideoProps` then degrades to `any` instead of an empty type.
+type MasonryVideoTileProps = MasonryVideoProps & {
   /** Present only when the tile offers actions. */
   actions?: IngredientActions;
-}
+};
 
 /**
  * A read-only tile (public galleries and profiles) never calls
