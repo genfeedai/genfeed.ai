@@ -2,11 +2,14 @@ import {
   ActivityKey,
   AgentThreadMode,
   type CredentialPlatform,
+  FleetReviewStatus,
   IngredientCategory,
+  IngredientStatus,
   LibraryShelf,
   PostCategory,
   PostStatus,
   PostVisibility,
+  QualityStatus,
   ReleaseTargetSource,
   SocialSourceType,
   TargetAnalyticsCapability,
@@ -130,7 +133,11 @@ function buildAvatarIngredientDocument(avatar: MockAvatarIdentityFixture) {
       createdAt: new Date().toISOString(),
       id: avatar.id,
       parent: avatar.parent ?? null,
-      status: 'generated',
+      // Awaiting review, unfoldered: the Unsorted and Needs review shelves
+      // (LibraryShelfUtil) — the counts the avatar library summary reports.
+      qualityStatus: QualityStatus.UNRATED,
+      reviewStatus: FleetReviewStatus.PENDING,
+      status: IngredientStatus.GENERATED,
       updatedAt: new Date().toISOString(),
     },
     id: avatar.id,
@@ -162,7 +169,7 @@ function buildVoiceDocument(id: string, label: string, provider: string) {
         label,
       },
       provider,
-      status: 'generated',
+      status: IngredientStatus.GENERATED,
       updatedAt: new Date().toISOString(),
     },
     id,
@@ -3509,7 +3516,8 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
   });
 
   // LibrarySidebarNav's counters (useLibrarySummary): plain ILibrarySummary,
-  // not JSON:API. Both seeded avatars are unfoldered, un-reviewed assets.
+  // not JSON:API. Both seeded avatars are GENERATED, unfoldered and PENDING
+  // review, so each counts on Unsorted and on Needs review.
   const avatarLibrarySummary: ILibrarySummary = {
     byCategory: { [IngredientCategory.AVATAR]: 2 },
     byShelf: {
