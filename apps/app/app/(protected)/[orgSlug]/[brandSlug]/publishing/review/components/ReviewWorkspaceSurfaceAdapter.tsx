@@ -6,7 +6,7 @@ import { useAgentChatStore } from '@genfeedai/agent';
 import type { ReviewWorkspaceSurfaceAdapterProps } from '@props/publishing/review-workspace-surface-adapter.props';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { createElement, useEffect } from 'react';
+import { createElement, useCallback, useEffect, useState } from 'react';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
 import { getReviewItemTitle } from './review-item.helpers';
@@ -15,7 +15,9 @@ import { isReadyToReview } from './review-state';
 /**
  * Renders the active review item into the shell's context sidebar so the
  * canvas stays a table-only queue, and keeps the agent's page context on it.
- * The queue always has an active row, so closing only collapses the sidebar.
+ * The queue always keeps an active row, so closing dismisses the details (the
+ * right column goes back to the workspace panes) until a row tap or "Open in
+ * Context" asks for them again.
  */
 export default function ReviewWorkspaceSurfaceAdapter({
   activeItem,
@@ -33,23 +35,36 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const pathname = usePathname();
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
   const reveal = useContextSidebar()?.reveal;
+  const [isDismissed, setIsDismissed] = useState(false);
+  const [isRevealPending, setIsRevealPending] = useState(false);
+  const handleClose = useCallback(() => {
+    setIsDismissed(true);
+  }, []);
+  const requestDetails = useCallback(() => {
+    setIsDismissed(false);
+    setIsRevealPending(true);
+  }, []);
 
-  // Every row tap reveals the sidebar, including a tap on the row that is
-  // already active after the operator collapsed it.
+  // Every row tap asks for the details, including a tap on the active row.
   useEffect(() => {
     if (revealRequest > 0) {
-      reveal?.();
+      requestDetails();
     }
-  }, [reveal, revealRequest]);
+  }, [requestDetails, revealRequest]);
+
+  // Reveal only once the selection is registered again.
+  useEffect(() => {
+    if (!isRevealPending || isDismissed) {
+      return;
+    }
+    setIsRevealPending(false);
+    reveal?.();
+  }, [isDismissed, isRevealPending, reveal]);
 
   // Explicit "Open in Context" row action.
   useEffect(() => {
-    if (!reveal) {
-      return;
-    }
-
     const handleForceOpen = (): void => {
-      reveal();
+      requestDetails();
     };
 
     window.addEventListener(
@@ -62,7 +77,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
         handleForceOpen,
       );
     };
-  }, [reveal]);
+  }, [requestDetails]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
@@ -154,8 +169,9 @@ export default function ReviewWorkspaceSurfaceAdapter({
 
   return (
     <ContextSidebarPanel
+      onClose={handleClose}
       selection={
-        activeItem
+        activeItem && !isDismissed
           ? {
               id: activeItem.id,
               kind: 'post',

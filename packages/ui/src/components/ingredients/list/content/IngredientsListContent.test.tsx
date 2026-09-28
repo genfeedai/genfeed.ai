@@ -147,7 +147,12 @@ function renderContent(
   );
   const { rerender, unmount } = render(renderElement());
   // A fresh element each time: React bails out of re-rendering an identical one.
-  const rerenderContent = () => rerender(renderElement());
+  const rerenderContent = (
+    nextOverrides: Partial<ComponentProps<typeof IngredientsListContent>> = {},
+  ) => {
+    Object.assign(overrides, nextOverrides);
+    rerender(renderElement());
+  };
 
   return { onOpenIngredientModal, onOpenLightbox, rerenderContent, unmount };
 }
@@ -547,6 +552,39 @@ describe('IngredientsListContent inspector handoff', () => {
     assetSelection.published = null;
     rerenderContent();
     expect(onSelectionChange).toHaveBeenCalledWith([]);
+  });
+
+  it('keeps a reselected asset selected while its new publish lands', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    // Deselect in the grid, then select the same asset again.
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps the remaining asset when a second one is added and removed', () => {
+    const onSelectionChange = vi.fn();
+    const { rerenderContent } = renderContent({
+      onSelectionChange,
+      selectedIngredientIds: [baseIngredient.id],
+    });
+    assetSelection.published = baseIngredient;
+    rerenderContent();
+
+    assetSelection.published = null;
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id, 'other-id'] });
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+
+    expect(onSelectionChange).not.toHaveBeenCalled();
   });
 
   it('publishes a single selection for the workspace rail', () => {

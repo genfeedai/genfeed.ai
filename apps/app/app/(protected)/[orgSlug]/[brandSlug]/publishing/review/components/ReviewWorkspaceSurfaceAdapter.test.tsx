@@ -59,6 +59,9 @@ function ShellControls() {
       <p data-testid="sidebar-state">
         {contextSidebar?.isOpen ? 'open' : 'closed'}
       </p>
+      <p data-testid="sidebar-selection">
+        {contextSidebar?.selection ? 'registered' : 'none'}
+      </p>
       <button type="button" onClick={contextSidebar?.close}>
         Close sidebar
       </button>
@@ -123,25 +126,31 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
     expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
   });
 
-  it('only collapses on close, because the queue always keeps an active row', () => {
+  it('releases the right column on close so the workspace panes return', () => {
     renderAdapter({});
 
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
-    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('closed');
-    expect(screen.getByTestId('review-detail-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('none');
+    expect(screen.queryByTestId('review-detail-panel')).toBeNull();
   });
 
-  it('reveals the collapsed sidebar on every row tap, including the active row', () => {
+  it('brings the details back on a row tap, including the active row', () => {
     const { rerenderAdapter } = renderAdapter({});
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
     rerenderAdapter({ activeItemOrigin: 'user', revealRequest: 1 });
 
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent(
+      'registered',
+    );
     expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
+    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
+      'Ship the review rail',
+    );
   });
 
-  it('reveals the sidebar on workspace:force-open-review-context', () => {
+  it('brings the details back on workspace:force-open-review-context', () => {
     renderAdapter({});
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
 
@@ -151,6 +160,9 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
       );
     });
 
+    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent(
+      'registered',
+    );
     expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
   });
 

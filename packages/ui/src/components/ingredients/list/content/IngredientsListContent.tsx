@@ -679,6 +679,9 @@ export default function IngredientsListContent({
   // selecting and publishing is never mistaken for a close.
   useEffect(() => {
     if (!inspectedIngredient) {
+      // A deselect or multi-select ends that publish; reselecting the same
+      // asset must wait for its new publish before a clear can count.
+      confirmedPublishedIdRef.current = null;
       return;
     }
     if (publishedIngredient?.id === inspectedIngredient.id) {
