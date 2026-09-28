@@ -22,6 +22,10 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { AgentPolicyOverridesService } from '@api/collections/organizations/services/agent-policy-overrides.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  type AccessBootstrapCachePayload,
+  AccessBootstrapCacheService,
+} from '@api/common/services/access-bootstrap-cache.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
@@ -33,6 +37,7 @@ import {
 } from '@genfeedai/contracts/interfaces/billing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -100,6 +105,58 @@ describe('OrganizationsSettingsController', () => {
     sendTestDelivery: vi.fn(),
   };
 
+  /**
+   * In-memory Redis covering the commands AccessBootstrapCacheService uses, so
+   * the real cache service runs against a warmed snapshot.
+   */
+  function createInMemoryRedis() {
+    const values = new Map<string, string>();
+    const sets = new Map<string, Set<string>>();
+    const matches = (pattern: string, key: string) =>
+      new RegExp(
+        `^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`,
+      ).test(key);
+
+    return {
+      expire: vi.fn(async () => 1),
+      get: vi.fn(async (key: string) => values.get(key) ?? null),
+      sadd: vi.fn(async (key: string, member: string) => {
+        const members = sets.get(key) ?? new Set<string>();
+        members.add(member);
+        sets.set(key, members);
+        return 1;
+      }),
+      scan: vi.fn(async (_cursor: string, _match: string, pattern: string) => [
+        '0',
+        [...values.keys()].filter((key) => matches(pattern, key)),
+      ]),
+      setex: vi.fn(async (key: string, _ttl: number, value: string) => {
+        values.set(key, value);
+        return 'OK';
+      }),
+      smembers: vi.fn(async (key: string) => [...(sets.get(key) ?? [])]),
+      unlink: vi.fn(async (keys: string[]) => {
+        for (const key of keys) {
+          values.delete(key);
+          sets.delete(key);
+        }
+        return keys.length;
+      }),
+    };
+  }
+
+  let redis: ReturnType<typeof createInMemoryRedis>;
+  let accessBootstrapCacheService: AccessBootstrapCacheService;
+  const bootstrapUserId = testId('user');
+  const bootstrapSnapshot = {
+    access: {},
+    brands: [],
+    currentUser: null,
+    fleetCapabilities: null,
+    settings: { defaultAvatarIngredientId: 'avatar-before-save' },
+    streak: null,
+  } as unknown as AccessBootstrapCachePayload;
+
   const organizationA = testId('org-a');
   const organizationB = testId('org-b');
 
@@ -115,6 +172,7 @@ describe('OrganizationsSettingsController', () => {
 
   beforeEach(async () => {
     mockReq = {} as Request;
+    redis = createInMemoryRedis();
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [OrganizationsSettingsController],
@@ -151,6 +209,11 @@ describe('OrganizationsSettingsController', () => {
           provide: WebhookDispatchService,
           useValue: mockWebhookDispatchService,
         },
+        AccessBootstrapCacheService,
+        {
+          provide: RedisService,
+          useValue: { getPublisher: () => redis },
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -166,6 +229,7 @@ describe('OrganizationsSettingsController', () => {
     subscriptionsService = module.get<ISubscriptionsService>(
       SUBSCRIPTIONS_SERVICE,
     );
+    accessBootstrapCacheService = module.get(AccessBootstrapCacheService);
   });
 
   afterEach(() => {
@@ -576,6 +640,99 @@ describe('OrganizationsSettingsController', () => {
         'sk-test',
         undefined,
       );
+    });
+  });
+
+  describe('bootstrap snapshot invalidation (#5416)', () => {
+    async function warmBootstrapSnapshots(): Promise<void> {
+      await accessBootstrapCacheService.set(
+        bootstrapUserId,
+        organizationA,
+        bootstrapSnapshot,
+      );
+      await accessBootstrapCacheService.set(
+        bootstrapUserId,
+        organizationB,
+        bootstrapSnapshot,
+      );
+    }
+
+    async function expectOnlyOrganizationASnapshotDropped(): Promise<void> {
+      await expect(
+        accessBootstrapCacheService.get(bootstrapUserId, organizationA),
+      ).resolves.toBeNull();
+      await expect(
+        accessBootstrapCacheService.get(bootstrapUserId, organizationB),
+      ).resolves.toEqual(bootstrapSnapshot);
+    }
+
+    it('drops the saved organization bootstrap snapshot after a settings save', async () => {
+      await warmBootstrapSnapshots();
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      await controller.updateSettings(
+        memberRequest(organizationA),
+        organizationA,
+        { isWhitelabelEnabled: true },
+      );
+
+      await expectOnlyOrganizationASnapshotDropped();
+    });
+
+    it('keeps the snapshot when the settings save is rejected', async () => {
+      await warmBootstrapSnapshots();
+
+      await expect(
+        controller.updateSettings(memberRequest(organizationA), organizationA, {
+          enabledModelIds: [],
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      await expect(
+        accessBootstrapCacheService.get(bootstrapUserId, organizationA),
+      ).resolves.toEqual(bootstrapSnapshot);
+    });
+
+    it('drops the snapshot after saving and removing a BYOK key', async () => {
+      await warmBootstrapSnapshots();
+      await controller.saveByokProviderKey(
+        memberRequest(organizationA),
+        organizationA,
+        ByokProvider.OPENAI,
+        { apiKey: 'sk-test' },
+      );
+      await expectOnlyOrganizationASnapshotDropped();
+
+      await warmBootstrapSnapshots();
+      await controller.removeByokProviderKey(
+        memberRequest(organizationA),
+        organizationA,
+        ByokProvider.OPENAI,
+      );
+      await expectOnlyOrganizationASnapshotDropped();
+    });
+
+    it('drops the snapshot after recording a webhook test delivery', async () => {
+      await warmBootstrapSnapshots();
+      mockWebhookDispatchService.sendTestDelivery.mockResolvedValue({
+        deliveryId: 'webhook-test:abc',
+        event: 'target.published',
+        isTest: true,
+        status: 'queued',
+      });
+
+      await controller.testWebhookDelivery(
+        memberRequest(organizationA),
+        organizationA,
+        { event: 'target.published' },
+      );
+
+      await expectOnlyOrganizationASnapshotDropped();
     });
   });
 

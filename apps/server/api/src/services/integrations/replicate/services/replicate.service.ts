@@ -2,7 +2,10 @@ import {
   runStructuredCompletion,
   toStructuredJsonSchema,
 } from '@api/services/integrations/llm/structured-output.util';
-import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import type {
+  OpenRouterMessage,
+  OpenRouterMessageContentPart,
+} from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
@@ -57,17 +60,101 @@ function readFiniteNumber(value: unknown): number | undefined {
   return value;
 }
 
+function hasMediaUrl(value: unknown): boolean {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    typeof (value as { url?: unknown }).url === 'string' &&
+    (value as { url: string }).url.length > 0
+  );
+}
+
+function isOpenRouterContentPart(
+  value: unknown,
+): value is OpenRouterMessageContentPart {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const part = value as Record<string, unknown>;
+  switch (part.type) {
+    case 'text':
+      return typeof part.text === 'string';
+    case 'image_url':
+      return hasMediaUrl(part.image_url);
+    default:
+      return false;
+  }
+}
+
 function isOpenRouterMessage(value: unknown): value is OpenRouterMessage {
   if (!value || typeof value !== 'object') {
     return false;
   }
   const candidate = value as { content?: unknown; role?: unknown };
+  const hasValidContent =
+    typeof candidate.content === 'string' ||
+    (Array.isArray(candidate.content) &&
+      candidate.content.length > 0 &&
+      candidate.content.every(isOpenRouterContentPart));
   return (
-    typeof candidate.content === 'string' &&
+    hasValidContent &&
     (candidate.role === 'assistant' ||
       candidate.role === 'system' ||
       candidate.role === 'user')
   );
+}
+
+/**
+ * Replicate-shaped `images` URLs as OpenAI-compatible `image_url` parts.
+ * Media the call cannot send fails it: completing without the asset would
+ * bill a blind answer. Text models take no video; callers send sampled frames
+ * as images instead.
+ */
+function toImageContentParts(
+  input: Record<string, unknown>,
+): OpenRouterMessageContentPart[] {
+  if (input.videos !== undefined) {
+    throw new Error(
+      'Text completion cannot read video; send sampled frames as images',
+    );
+  }
+  if (input.images === undefined) {
+    return [];
+  }
+  const urls = typeof input.images === 'string' ? [input.images] : input.images;
+  if (
+    !Array.isArray(urls) ||
+    !urls.every((url) => typeof url === 'string' && url.length > 0)
+  ) {
+    throw new Error('Text completion images must be URL strings');
+  }
+  return (urls as string[]).map((url) => ({
+    image_url: { url },
+    type: 'image_url',
+  }));
+}
+
+function withMediaContent(
+  messages: OpenRouterMessage[],
+  mediaParts: OpenRouterMessageContentPart[],
+): OpenRouterMessage[] {
+  if (mediaParts.length === 0) {
+    return messages;
+  }
+  const userIndex = messages.map((message) => message.role).lastIndexOf('user');
+  if (userIndex < 0) {
+    return [...messages, { content: mediaParts, role: 'user' }];
+  }
+  return messages.map((message, index) => {
+    if (index !== userIndex) {
+      return message;
+    }
+    const textParts: OpenRouterMessageContentPart[] =
+      typeof message.content === 'string'
+        ? [{ text: message.content, type: 'text' }]
+        : (message.content ?? []);
+    return { ...message, content: [...textParts, ...mediaParts] };
+  });
 }
 
 @Injectable()
@@ -454,8 +541,12 @@ export class ReplicateService {
   private toOpenRouterMessages(
     input: Record<string, unknown>,
   ): OpenRouterMessage[] {
+    const mediaParts = toImageContentParts(input);
     if (Array.isArray(input.messages)) {
-      return input.messages.filter(isOpenRouterMessage);
+      return withMediaContent(
+        input.messages.filter(isOpenRouterMessage),
+        mediaParts,
+      );
     }
 
     const prompt = typeof input.prompt === 'string' ? input.prompt : '';
@@ -469,7 +560,7 @@ export class ReplicateService {
       messages.push({ content: system, role: 'system' });
     }
     messages.push({ content: prompt, role: 'user' });
-    return messages;
+    return withMediaContent(messages, mediaParts);
   }
 
   /**

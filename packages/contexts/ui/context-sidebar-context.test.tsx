@@ -33,6 +33,9 @@ function ShellProbe() {
       <button type="button" onClick={contextSidebar?.toggle}>
         toggle
       </button>
+      <button type="button" onClick={contextSidebar?.reveal}>
+        reveal
+      </button>
       <button
         type="button"
         onClick={() => contextSidebar?.setIsMobileOpen(true)}
@@ -309,5 +312,30 @@ describe('ContextSidebarPanel', () => {
 
     expect(readProbe()).toMatchObject({ isMobileOpen: true, isOpen: true });
     expect(screen.getByTestId('drawer-outlet')).toHaveTextContent('user');
+  });
+
+  it('reveals a collapsed selection, and the drawer on compact widths', () => {
+    stubCompactViewport(true);
+    render(
+      <Shell>
+        <ContextSidebarPanel selection={{ ...ASSET, origin: 'automatic' }}>
+          <p>asset detail</p>
+        </ContextSidebarPanel>
+      </Shell>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'toggle' }));
+    expect(readProbe()).toMatchObject({ isMobileOpen: false, isOpen: false });
+
+    fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
+
+    expect(readProbe()).toMatchObject({ isMobileOpen: true, isOpen: true });
+  });
+
+  it('reveals nothing when nothing is selected', () => {
+    render(<Shell>{null}</Shell>);
+
+    fireEvent.click(screen.getByRole('button', { name: 'reveal' }));
+
+    expect(readProbe()).toMatchObject({ isMobileOpen: false, isOpen: false });
   });
 });

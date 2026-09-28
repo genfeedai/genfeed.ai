@@ -6,10 +6,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^@genfeedai\/contracts\/constants$/,
+        find: /^@genfeedai\/contracts\/(.+)$/,
         replacement: path.resolve(
           import.meta.dirname,
-          '../../packages/contracts/src/constants/index.ts',
+          '../../packages/contracts/src/$1',
         ),
       },
       {

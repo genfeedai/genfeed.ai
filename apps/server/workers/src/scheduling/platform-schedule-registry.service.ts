@@ -39,6 +39,18 @@ const DRAIN_MARKER_KEY = 'genfeed:platform-schedules:5162-job-drain';
 
 const DRAIN_PAGE_SIZE = 100;
 
+/**
+ * Bounded immediate retry for the post-removal cancellation CAS (release
+ * review finding): the removal already committed, so a transient DB blip on
+ * the very next call would otherwise turn a routine one-time migration
+ * cleanup into a row the reconciler later fails loudly — customer-visible
+ * notification/webhook plus `consecutiveFailures` accounting the row never
+ * earned, potentially disabling a strategy. Matches the immediate bounded
+ * retry loops already used for a Prisma write elsewhere in this app (e.g.
+ * `SchedulerPublishStateService.transition`).
+ */
+const CANCEL_EXECUTION_MAX_ATTEMPTS = 3;
+
 @Injectable()
 export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
   private readonly context = PlatformScheduleRegistryService.name;
@@ -84,12 +96,20 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
    * Never touches `active` jobs. Wrapped so no failure here can fail worker
    * boot — see `onApplicationBootstrap`'s fire-and-forget call.
    *
-   * For each match, `cancelExecution` runs BEFORE `job.remove()` (#5252
-   * blocker): removing only the BullMQ job left the `WorkflowExecution` row
-   * `PENDING` forever, which `PendingWorkflowExecutionReconcileService`
-   * would eventually fail with a customer notification/webhook and proactive
-   * accounting it never earned. `cancelExecution` is a silent CAS onto
-   * `CANCELLED` — no notification, no webhook, no `recordRun`.
+   * For each match, `job.remove()` runs BEFORE `cancelExecution` (release
+   * review finding, superseding the earlier #5252 ordering): a job returned
+   * by `getJobs(['waiting', 'delayed'])` can be claimed by a worker and start
+   * running between that page fetch and this call. `job.remove()` throws
+   * when BullMQ has locked the job for an active worker, so removing first
+   * doubles as the liveness check — a locked/already-gone job is left
+   * completely untouched, including its execution, instead of being
+   * cancelled out from under the worker running it. Only once the removal
+   * itself succeeds (the job was still genuinely queued) does
+   * `cancelExecution` run, as a silent CAS onto `CANCELLED` — no
+   * notification, no webhook, no `recordRun`. If that CAS then fails, the
+   * job is already gone but the row stays `PENDING`; that gap is bounded by
+   * `PendingWorkflowExecutionReconcileService`'s own independent sweep
+   * rather than left to a second drain (this migration runs once, ever).
    */
   async drainStalePlatformSourcedJobs(): Promise<void> {
     try {
@@ -167,28 +187,43 @@ export class PlatformScheduleRegistryService implements OnApplicationBootstrap {
     }
 
     try {
-      await this.workflowExecutions.cancelExecution(executionId);
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.context} failed to cancel the execution behind a stale platform-sourced job — leaving the job queued`,
-        { error, executionId, jobId: job.id },
-      );
-      return false;
-    }
-
-    try {
       await job.remove();
-      return true;
     } catch (error: unknown) {
-      // Expected under concurrent boot: another replica's fetch already
-      // claimed or removed this exact job between our getJobs() page and
-      // this remove() call. The execution is already cancelled either way.
+      // Expected when a worker claimed (locked) this exact job between our
+      // getJobs() page and this remove() call: it is now live work, not
+      // stale. Leave it — and the execution behind it — completely alone;
+      // cancelling here would CAS a RUNNING execution to CANCELLED out from
+      // under the worker actively processing it.
       this.logger.debug(
-        `${this.context} stale platform-sourced job was already gone or locked when draining`,
+        `${this.context} stale platform-sourced job was already active or gone when draining`,
         { error, jobId: job.id },
       );
       return false;
     }
+
+    for (
+      let attempt = 1;
+      attempt <= CANCEL_EXECUTION_MAX_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        await this.workflowExecutions.cancelExecution(executionId);
+        return true;
+      } catch (error: unknown) {
+        if (attempt === CANCEL_EXECUTION_MAX_ATTEMPTS) {
+          this.logger.error(
+            `${this.context} removed a stale platform-sourced job but failed to cancel its execution after ${CANCEL_EXECUTION_MAX_ATTEMPTS} attempts — the row stays PENDING for the reconciler to close`,
+            { error, executionId, jobId: job.id },
+          );
+          return false;
+        }
+        this.logger.debug(
+          `${this.context} retrying cancellation of a stale platform-sourced job's execution`,
+          { attempt, error, executionId, jobId: job.id },
+        );
+      }
+    }
+    return false;
   }
 
   async reconcile(): Promise<void> {
