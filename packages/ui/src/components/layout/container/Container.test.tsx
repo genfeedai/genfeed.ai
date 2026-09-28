@@ -1,7 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+/**
+ * Container logs through the deferred logger, which loads on first use. Let
+ * any import it started finish, plus a macrotask for the log call itself,
+ * before asserting that nothing was logged.
+ */
+async function settleDeferredLogging(): Promise<void> {
+  await vi.dynamicImportSettled();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 const navigationState = vi.hoisted(() => ({
   hasCanonicalBreadcrumb: false,
@@ -399,7 +409,7 @@ describe('Container', () => {
       vi.unstubAllEnvs();
     });
 
-    it('warns when the resolved chrome mode changes between renders', () => {
+    it('warns when the resolved chrome mode changes between renders', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
         /* silence expected warning */
       });
@@ -428,15 +438,18 @@ describe('Container', () => {
         'section-topbar',
       );
 
-      expect(warnSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Container's chrome mode changed"),
-        expect.objectContaining({ next: true, previous: false }),
+      // The logger loads on first use, so the warning lands a tick later.
+      await waitFor(() =>
+        expect(warnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("Container's chrome mode changed"),
+          expect.objectContaining({ next: true, previous: false }),
+        ),
       );
 
       warnSpy.mockRestore();
     });
 
-    it('does not warn across renders that keep the same resolved chrome mode', () => {
+    it('does not warn across renders that keep the same resolved chrome mode', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
         /* silence in case of an unexpected warning; asserted below */
       });
@@ -452,11 +465,12 @@ describe('Container', () => {
         </Container>,
       );
 
+      await settleDeferredLogging();
       expect(warnSpy).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
-    it('does not warn on the very first render', () => {
+    it('does not warn on the very first render', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
         /* silence in case of an unexpected warning; asserted below */
       });
@@ -467,11 +481,12 @@ describe('Container', () => {
         </Container>,
       );
 
+      await settleDeferredLogging();
       expect(warnSpy).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });
 
-    it('stays silent outside development', () => {
+    it('stays silent outside development', async () => {
       vi.stubEnv('NODE_ENV', 'test');
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
         /* silence in case of an unexpected warning; asserted below */
@@ -492,6 +507,7 @@ describe('Container', () => {
         </Container>,
       );
 
+      await settleDeferredLogging();
       expect(warnSpy).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });

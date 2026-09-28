@@ -1,9 +1,10 @@
-import * as Sentry from '@sentry/nextjs';
 import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
 import { initSignupAttribution } from './packages/analytics/signup-attribution';
+import { initDeferredSentry } from './packages/sentry/deferred-sentry';
 import { dropNonBrowserRuntimeEvent } from './packages/sentry/drop-non-browser-runtime-event';
 
-Sentry.init({
+// Error reporting starts once the page is idle; see deferred-sentry.ts.
+initDeferredSentry({
   beforeSend(event) {
     return dropNonBrowserRuntimeEvent(event);
   },
@@ -43,4 +44,5 @@ initWebsiteAnalytics();
 // See packages/analytics/signup-attribution.ts.
 initSignupAttribution();
 
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// No `onRouterTransitionStart` export: it only records navigation spans, and
+// performance tracing is off (`tracesSampleRate: 0`).

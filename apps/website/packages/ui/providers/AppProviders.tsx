@@ -1,5 +1,6 @@
 'use client';
 
+import { EnvironmentService } from '@services/core/environment.service';
 import WebMcpProvider from '@ui/providers/WebMcpProvider';
 import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
@@ -30,7 +31,10 @@ export interface AppProvidersProps {
 export default function AppProviders({
   children,
   disableTransitionOnChange = true,
-  includeLazyModalErrorDebug = true,
+  // Error boundaries open this debug modal only outside production, and it
+  // pulls in the clipboard service, the logger and the Sentry SDK. Production
+  // pages never mount it, so none of that downloads.
+  includeLazyModalErrorDebug = !EnvironmentService.isProduction,
   includeToaster = true,
 }: AppProvidersProps) {
   return (
