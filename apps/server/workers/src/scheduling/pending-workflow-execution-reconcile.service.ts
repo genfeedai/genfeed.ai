@@ -186,9 +186,19 @@ export class PendingWorkflowExecutionReconcileService {
   }
 
   private async reconcileCandidate(
-    candidate: { id: string; organizationId: string },
-    action: 'cancel' | 'fail',
+    candidate: {
+      id: string;
+      organizationId: string;
+      cancelRequestedAt: Date | null;
+    },
+    cohortAction: 'cancel' | 'fail',
   ): Promise<void> {
+    // A row the deploy drain intentionally emptied of its job (#5450) is
+    // closed silently whatever its age: `completeExecution` would emit a
+    // customer-visible failure and count toward the strategy's consecutive
+    // failures, which the drain never earned. The intent stays on the row
+    // until `cancelExecution` succeeds, so a failure here just retries next lap.
+    const action = candidate.cancelRequestedAt ? 'cancel' : cohortAction;
     try {
       const hasLiveJob = await this.queueService.hasClaimableSystemWorkflowJob(
         `system-workflow-${candidate.id}`,
@@ -212,7 +222,9 @@ export class PendingWorkflowExecutionReconcileService {
 
       await this.workflowExecutions.cancelExecution(candidate.id);
       this.logger.log(
-        `${this.logContext} silently cancelled an ancient never-claimed workflow execution`,
+        candidate.cancelRequestedAt
+          ? `${this.logContext} silently cancelled a workflow execution whose job the deploy drain removed`
+          : `${this.logContext} silently cancelled an ancient never-claimed workflow execution`,
         {
           executionId: candidate.id,
           organizationId: candidate.organizationId,

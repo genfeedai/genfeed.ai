@@ -13,6 +13,8 @@ import '@testing-library/jest-dom/vitest';
 const pushMock = vi.fn();
 const getByIdMock = vi.fn();
 const getStatusMock = vi.fn();
+const executeMock = vi.fn();
+const pauseMock = vi.fn();
 let brandContext = {
   brandId: 'brand-123',
   isReady: true,
@@ -46,10 +48,10 @@ vi.mock('next-intl', async () => {
 });
 
 const campaignsServiceMock = {
-  execute: vi.fn(),
+  execute: executeMock,
   getById: getByIdMock,
   getStatus: getStatusMock,
-  pause: vi.fn(),
+  pause: pauseMock,
   update: vi.fn(),
 };
 const resolveCampaignsService = async () => campaignsServiceMock;
@@ -113,14 +115,37 @@ vi.mock('@ui/primitives/button', () => ({
     ariaLabel,
     label,
     onClick,
+    isDisabled,
   }: {
     ariaLabel?: string;
     label: ReactNode;
     onClick?: () => void;
+    isDisabled?: boolean;
   }) => (
-    <button aria-label={ariaLabel} onClick={onClick}>
+    <button aria-label={ariaLabel} disabled={isDisabled} onClick={onClick}>
       {label}
     </button>
+  ),
+}));
+
+// Flattened like the other collection-actions consumers: the real Radix
+// dropdown needs pointer events jsdom does not implement.
+vi.mock('@ui/collection/CollectionItemActions', () => ({
+  default: ({
+    primary,
+    overflow,
+  }: {
+    primary?: ReactNode;
+    overflow: Array<{ id: string; label: string; onSelect?: () => void }>;
+  }) => (
+    <div data-testid="header-actions">
+      {primary}
+      {overflow.map((action) => (
+        <button key={action.id} onClick={action.onSelect} type="button">
+          {action.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -171,6 +196,7 @@ describe('AgentCampaignDetailPage', () => {
       creditsUsed: 250,
       id: 'campaign-123',
       label: 'Spring Launch',
+      startDate: '2026-03-01T00:00:00.000Z',
       status: 'active',
     });
     getStatusMock.mockResolvedValue({
@@ -194,6 +220,181 @@ describe('AgentCampaignDetailPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Back to Programs' }));
     expect(pushMock).toHaveBeenCalledWith('/acme/demo/automation/campaigns');
+  });
+
+  it('shows exactly one primary action — Pause — for a running program, with Complete in overflow', async () => {
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Spring Launch')).toBeInTheDocument();
+    });
+
+    const actions = screen.getByTestId('header-actions');
+    expect(actions).toHaveTextContent('Pause');
+    expect(actions).toHaveTextContent('Complete');
+    expect(screen.queryByText('Start')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    await waitFor(() => expect(pauseMock).toHaveBeenCalledWith('campaign-123'));
+  });
+
+  it('shows Resume as the primary action for a paused program and surfaces it in Needs you', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Autumn Pause',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'paused',
+    });
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('header-actions')).toHaveTextContent('Resume');
+    expect(
+      screen.getByRole('heading', { name: 'Needs you' }),
+    ).toBeInTheDocument();
+
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+    fireEvent.click(resumeButtons[resumeButtons.length - 1]);
+    await waitFor(() =>
+      expect(executeMock).toHaveBeenCalledWith('campaign-123'),
+    );
+  });
+
+  it('guards against a duplicate paid run from two rapid clicks on Resume', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Autumn Pause',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'paused',
+    });
+    let resolveExecute: (() => void) | undefined;
+    executeMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExecute = resolve;
+        }),
+    );
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
+    });
+
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+    const needsYouResume = resumeButtons[resumeButtons.length - 1];
+
+    try {
+      // Two clicks in the same tick, before any re-render can disable the
+      // button — the reentrancy guard, not the disabled attribute, must
+      // stop the second call.
+      fireEvent.click(needsYouResume);
+      fireEvent.click(needsYouResume);
+
+      await waitFor(() => expect(executeMock).toHaveBeenCalled());
+      expect(executeMock).toHaveBeenCalledTimes(1);
+    } finally {
+      await act(async () => {
+        resolveExecute?.();
+        await Promise.resolve();
+      });
+      executeMock.mockImplementation(() => Promise.resolve());
+    }
+  });
+
+  it('disables Resume in Needs you while an execution is already running', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 0,
+      id: 'campaign-123',
+      label: 'Autumn Pause',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'paused',
+    });
+    let resolveExecute: (() => void) | undefined;
+    executeMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveExecute = resolve;
+        }),
+    );
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Autumn Pause')).toBeInTheDocument();
+    });
+
+    const resumeButtons = screen.getAllByRole('button', { name: 'Resume' });
+
+    try {
+      fireEvent.click(resumeButtons[resumeButtons.length - 1]);
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByRole('button', { name: 'Resume' })[
+            resumeButtons.length - 1
+          ],
+        ).toBeDisabled();
+      });
+    } finally {
+      await act(async () => {
+        resolveExecute?.();
+        await Promise.resolve();
+      });
+      executeMock.mockImplementation(() => Promise.resolve());
+    }
+  });
+
+  it('hides Needs you and shows no primary action once the program is completed', async () => {
+    getByIdMock.mockResolvedValue({
+      agents: ['agent-1'],
+      brandId: 'brand-123',
+      creditsAllocated: 100,
+      creditsUsed: 100,
+      id: 'campaign-123',
+      label: 'Wrapped Up',
+      startDate: '2026-03-01T00:00:00.000Z',
+      status: 'completed',
+    });
+
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Wrapped Up')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('header-actions')).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the known lifecycle facts on one line, omitting the absent end date', async () => {
+    render(<AgentCampaignDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Spring Launch')).toBeInTheDocument();
+    });
+
+    const factLine = screen.getByTestId('record-fact-line');
+    expect(factLine).toHaveTextContent('Status');
+    expect(factLine).toHaveTextContent('Active');
+    expect(factLine).not.toHaveTextContent('Ends');
   });
 
   it('does not render a Program from another selected brand', async () => {

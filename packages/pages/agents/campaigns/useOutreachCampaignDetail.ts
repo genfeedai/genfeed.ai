@@ -12,7 +12,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export function useOutreachCampaignDetail() {
   const router = useRouter();
@@ -30,6 +30,12 @@ export function useOutreachCampaignDetail() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [urlInput, setUrlInput] = useState('');
   const [isAddingUrls, setIsAddingUrls] = useState(false);
+  const [isStartingCampaign, setIsStartingCampaign] = useState(false);
+  // A ref, not the `isStartingCampaign` state: two rapid clicks in the same
+  // tick both close over the same stale state value, but a ref read is
+  // synchronous and current, so the second call is blocked before either
+  // request fires a duplicate paid campaign run.
+  const isStartingCampaignRef = useRef(false);
 
   const getService = useAuthedService((token: string) =>
     OutreachCampaignsService.getInstance(token),
@@ -105,9 +111,11 @@ export function useOutreachCampaignDetail() {
   }, [urlInput, campaignId, getService, notificationsService, loadCampaign]);
 
   const handleStartCampaign = useCallback(async () => {
-    if (!campaignId) {
+    if (!campaignId || isStartingCampaignRef.current) {
       return;
     }
+    isStartingCampaignRef.current = true;
+    setIsStartingCampaign(true);
 
     try {
       const service = await getService();
@@ -117,6 +125,9 @@ export function useOutreachCampaignDetail() {
     } catch (error) {
       logger.error('Failed to start campaign', error);
       notificationsService.error(translate('notifications.startFailed'));
+    } finally {
+      isStartingCampaignRef.current = false;
+      setIsStartingCampaign(false);
     }
   }, [campaignId, getService, notificationsService, translate]);
 
@@ -228,6 +239,7 @@ export function useOutreachCampaignDetail() {
     isAddingUrls,
     isLoading,
     isRefreshing,
+    isStartingCampaign,
     loadCampaign,
     setUrlInput,
     targetStats,

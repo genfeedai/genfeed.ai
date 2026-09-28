@@ -4899,6 +4899,13 @@ model WorkflowExecution {
   purgeAfterHours      Int?
   purgeAt              DateTime?
 
+  /// Durable intent to silently cancel this `PENDING` execution, written by the
+  /// deploy drain before it removes the execution's queued job (#5450). The
+  /// stale-`PENDING` reconciler honours it with a silent cancel instead of a
+  /// loud failure, so a DB outage after the removal never counts as a
+  /// strategy failure.
+  cancelRequestedAt DateTime?
+
   posts                    Post[]
   nodeResults              WorkflowExecutionNodeResult[]
   artifacts                WorkflowArtifact[]

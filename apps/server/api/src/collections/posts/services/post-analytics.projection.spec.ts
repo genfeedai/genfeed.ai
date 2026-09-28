@@ -54,7 +54,7 @@ describe('PostAnalyticsProjection', () => {
     });
   });
 
-  it('groups time-series rows while excluding saves from total engagement', () => {
+  it('groups time-series rows with saves counted in total engagement', () => {
     const points = projection.buildTimeSeries(
       [
         {
@@ -91,7 +91,8 @@ describe('PostAnalyticsProjection', () => {
         likes: 10,
         saves: 17,
         shares: 3,
-        totalEngagement: 18,
+        // likes 10 + comments 5 + shares 3 + saves 17 (genfeedai/genfeed.ai#5449).
+        totalEngagement: 35,
         views: 50,
       },
     ]);
@@ -205,26 +206,24 @@ describe('PostAnalyticsProjection', () => {
   it('preserves ranking metrics and post response projection', () => {
     const analyticsRows = [
       {
-        _avg: { engagementRate: 5 },
-        _max: {
-          totalComments: 2,
-          totalLikes: 3,
-          totalShares: 1,
-          totalViews: 100,
-        },
-        platform: 'instagram',
-        postId: 'post_views',
+        avg_engagement_rate: 5,
+        max_comments: 2,
+        max_likes: 3,
+        max_saves: 4,
+        max_shares: 1,
+        max_views: 100,
+        platform: 'INSTAGRAM',
+        post_id: 'post_views',
       },
       {
-        _avg: { engagementRate: 15 },
-        _max: {
-          totalComments: 20,
-          totalLikes: 30,
-          totalShares: 10,
-          totalViews: 50,
-        },
-        platform: 'tiktok',
-        postId: 'post_engagement',
+        avg_engagement_rate: 15,
+        max_comments: 20,
+        max_likes: 30,
+        max_saves: 5,
+        max_shares: 10,
+        max_views: 50,
+        platform: 'TIKTOK',
+        post_id: 'post_engagement',
       },
     ];
 
@@ -256,11 +255,58 @@ describe('PostAnalyticsProjection', () => {
         platform: 'tiktok',
         postId: 'post_engagement',
         publishDate: publishedAt,
+        saves: 5,
         shares: 10,
         title: 'Launch post',
+        totalEngagement: 65,
         url: 'https://example.com/post',
         views: 50,
       },
+    ]);
+  });
+
+  // genfeedai/genfeed.ai#5449: saves count toward top-content engagement, so
+  // a save-heavy post outranks a like-heavy one and reports the same total.
+  it('ranks top content by engagement including saves', () => {
+    const rows = [
+      {
+        avg_engagement_rate: 1,
+        max_comments: 5,
+        max_likes: 50,
+        max_saves: 0,
+        max_shares: 5,
+        max_views: 500,
+        platform: 'INSTAGRAM',
+        post_id: 'post_likes',
+      },
+      {
+        avg_engagement_rate: 2,
+        max_comments: 0,
+        max_likes: 10,
+        max_saves: 90,
+        max_shares: 0,
+        max_views: 100,
+        platform: 'INSTAGRAM',
+        post_id: 'post_saves',
+      },
+    ];
+
+    const byEngagement = projection.scoreTopContent(
+      rows,
+      AnalyticsMetric.ENGAGEMENT,
+      2,
+    );
+    expect(byEngagement.map((item) => item.postId)).toEqual([
+      'post_saves',
+      'post_likes',
+    ]);
+    expect(byEngagement.map((item) => item.totalEngagement)).toEqual([100, 60]);
+    expect(byEngagement[0]?.saves).toBe(90);
+
+    const byViews = projection.scoreTopContent(rows, AnalyticsMetric.VIEWS, 2);
+    expect(byViews.map((item) => item.postId)).toEqual([
+      'post_likes',
+      'post_saves',
     ]);
   });
 

@@ -191,13 +191,17 @@ describe('PostDetail', () => {
 
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.getByText('Publication Failed')).toBeInTheDocument();
+    expect(
+      screen.getByText('This post failed to publish.'),
+    ).toBeInTheDocument();
   });
 
   it('does not warn for a healthy post', () => {
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
-    expect(screen.queryByText('Publication Failed')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('This post failed to publish.'),
+    ).not.toBeInTheDocument();
   });
 
   it('applies the page container only for the page presentation', () => {
