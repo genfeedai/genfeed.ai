@@ -38,22 +38,18 @@ export class DashboardPage {
   readonly logoutButton: Locator;
   readonly profileLink: Locator;
 
-  // Statistics/Widgets
+  // Statistics/Widgets — the operational-home metric grid
+  // (`operational-home-sections.tsx`'s `MetricCardGrid`). The dashboard's
+  // former video/image/credit/storage counters were retired with the
+  // operational-home rebuild (#2093); analytics now lives at
+  // /analytics/overview.
   readonly statsSection: Locator;
-  readonly videoCountWidget: Locator;
-  readonly imageCountWidget: Locator;
-  readonly creditUsageWidget: Locator;
-  readonly storageWidget: Locator;
 
-  // Activity feed
+  // Activity feed — the operational-home activity surface
+  // (`ActivitySurface` in operational-home-sections.tsx).
   readonly activitySection: Locator;
   readonly activityList: Locator;
   readonly activityItem: Locator;
-
-  // Recent content
-  readonly recentContentSection: Locator;
-  readonly recentVideoCard: Locator;
-  readonly recentImageCard: Locator;
 
   // Quick actions
   readonly quickActionsSection: Locator;
@@ -119,43 +115,14 @@ export class DashboardPage {
     );
 
     // Statistics widgets
-    this.statsSection = page.locator(
-      '[data-testid="stats-section"], [data-testid="statistics"]',
-    );
-    this.videoCountWidget = page.locator(
-      '[data-testid="video-count"], [data-stat="videos"]',
-    );
-    this.imageCountWidget = page.locator(
-      '[data-testid="image-count"], [data-stat="images"]',
-    );
-    this.creditUsageWidget = page.locator(
-      '[data-testid="credit-usage"], [data-stat="credits"]',
-    );
-    this.storageWidget = page.locator(
-      '[data-testid="storage-usage"], [data-stat="storage"]',
-    );
+    this.statsSection = page.getByTestId('operational-home-metrics');
 
     // Activity feed
-    this.activitySection = page.locator(
-      '[data-testid="activity-section"], [data-testid="activity-feed"]',
-    );
+    this.activitySection = page.getByTestId('operational-home-activity');
     this.activityList = page.locator(
       '[data-testid="activity-list"], ul[role="list"]',
     );
-    this.activityItem = page.locator(
-      '[data-testid="activity-item"], [data-activity]',
-    );
-
-    // Recent content
-    this.recentContentSection = page.locator(
-      '[data-testid="recent-content"], [data-testid="recent-creations"]',
-    );
-    this.recentVideoCard = page.locator(
-      '[data-testid="recent-video"], [data-recent-type="video"]',
-    );
-    this.recentImageCard = page.locator(
-      '[data-testid="recent-image"], [data-recent-type="image"]',
-    );
+    this.activityItem = page.getByTestId('operational-home-activity-row');
 
     // Quick actions
     this.quickActionsSection = page.locator(
@@ -365,30 +332,6 @@ export class DashboardPage {
   }
 
   /**
-   * Get stat widget value
-   */
-  async getStatValue(
-    stat: 'videos' | 'images' | 'credits' | 'storage',
-  ): Promise<string> {
-    const widgetMap = {
-      credits: this.creditUsageWidget,
-      images: this.imageCountWidget,
-      storage: this.storageWidget,
-      videos: this.videoCountWidget,
-    };
-
-    return (await widgetMap[stat].textContent()) || '';
-  }
-
-  /**
-   * Click on a recent content card
-   */
-  async clickRecentContent(type: 'video' | 'image', index = 0): Promise<void> {
-    const card = type === 'video' ? this.recentVideoCard : this.recentImageCard;
-    await card.nth(index).click();
-  }
-
-  /**
    * Switch organization
    */
   async switchOrganization(orgName: string): Promise<void> {
@@ -412,18 +355,7 @@ export class DashboardPage {
   }
 
   async assertStatsDisplayed(): Promise<void> {
-    // At least one stat widget should be visible
-    const hasVideoStat = await this.videoCountWidget
-      .isVisible()
-      .catch(() => false);
-    const hasImageStat = await this.imageCountWidget
-      .isVisible()
-      .catch(() => false);
-    const hasCreditStat = await this.creditUsageWidget
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasVideoStat || hasImageStat || hasCreditStat).toBe(true);
+    await expect(this.statsSection).toBeVisible();
   }
 
   async assertNavigationWorks(): Promise<void> {

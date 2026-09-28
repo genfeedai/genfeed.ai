@@ -4,6 +4,8 @@ import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
 const projection = new AnalyticsResponseProjection();
 
 describe('AnalyticsResponseProjection', () => {
+  // Rows carry the Prisma label (`YOUTUBE`); responses carry the domain id
+  // (genfeedai/genfeed.ai#5424).
   it('scaffolds the fixed platform response across the complete UTC range', () => {
     const result = projection.buildTimeSeries(
       [
@@ -12,7 +14,7 @@ describe('AnalyticsResponseProjection', () => {
           day: '2025-01-01',
           engagement_rate: null,
           likes: BigInt(4),
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           saves: BigInt(1),
           shares: BigInt(3),
           views: BigInt(100),
@@ -81,14 +83,14 @@ describe('AnalyticsResponseProjection', () => {
       projection.buildPlatformComparison([
         {
           avg_engagement_rate: 10,
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           total_engagement: BigInt(75),
           total_posts: BigInt(3),
           total_views: BigInt(300),
         },
         {
           avg_engagement_rate: 5,
-          platform: CredentialPlatform.TIKTOK,
+          platform: 'TIKTOK',
           total_engagement: BigInt(25),
           total_posts: BigInt(1),
           total_views: BigInt(100),
@@ -188,7 +190,7 @@ describe('AnalyticsResponseProjection', () => {
         {
           description: 'Stop scrolling\nThe rest of the post',
           id: 'post_1',
-          platforms: [CredentialPlatform.TIKTOK],
+          platforms: ['TIKTOK'],
           title: 'First',
           total_engagement: BigInt(100),
           total_views: BigInt(1_000),
@@ -196,7 +198,7 @@ describe('AnalyticsResponseProjection', () => {
         {
           description: ' stop scrolling ',
           id: 'post_2',
-          platforms: [CredentialPlatform.YOUTUBE],
+          platforms: ['YOUTUBE'],
           title: 'Second',
           total_engagement: BigInt(200),
           total_views: BigInt(3_000),
@@ -204,7 +206,7 @@ describe('AnalyticsResponseProjection', () => {
       ],
       [
         {
-          platform: CredentialPlatform.TIKTOK,
+          platform: 'TIKTOK',
           post_count: BigInt(2),
           total_engagement: BigInt(300),
           total_views: BigInt(4_000),
@@ -239,5 +241,9 @@ describe('AnalyticsResponseProjection', () => {
       totalVideos: 2,
     });
     expect(result.videos[0]?.hook).toBe('Stop scrolling');
+    expect(result.videos.map((video) => video.platforms)).toEqual([
+      [CredentialPlatform.TIKTOK],
+      [CredentialPlatform.YOUTUBE],
+    ]);
   });
 });

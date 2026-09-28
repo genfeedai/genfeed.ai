@@ -172,7 +172,7 @@ describe('AnalyticsService', () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
         {
           day: '2025-01-01',
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           comments: BigInt(5),
           engagement_rate: 5,
           likes: BigInt(10),
@@ -182,7 +182,7 @@ describe('AnalyticsService', () => {
         },
         {
           day: '2025-01-02',
-          platform: CredentialPlatform.TIKTOK,
+          platform: 'TIKTOK',
           comments: BigInt(10),
           engagement_rate: 8,
           likes: BigInt(20),
@@ -334,13 +334,13 @@ describe('AnalyticsService', () => {
     it('should return best posting times per platform', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           hour: 14,
           avg_engagement_rate: 8.5,
           post_count: BigInt(20),
         },
         {
-          platform: CredentialPlatform.TIKTOK,
+          platform: 'TIKTOK',
           hour: 20,
           avg_engagement_rate: 12.0,
           post_count: BigInt(35),
@@ -396,7 +396,7 @@ describe('AnalyticsService', () => {
         {
           id: 'pa-1',
           post_id: 'post-1',
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           date: new Date(),
           total_views: BigInt(10000),
           total_likes: BigInt(500),
@@ -419,6 +419,8 @@ describe('AnalyticsService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].label).toBe('Top Video');
       expect(result[0].totalViews).toBe(10000);
+      // genfeedai/genfeed.ai#5424: Prisma label in, domain id out.
+      expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
     });
 
     it('should call $queryRaw for different metrics', async () => {
@@ -469,7 +471,11 @@ describe('AnalyticsService', () => {
       expect(capturedQueries[0].sql).not.toContain(brandId);
       expect(capturedQueries[0].sql).not.toContain(organizationId);
       expect(capturedQueries[0].values).toContain(brandId);
-      expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
+      // genfeedai/genfeed.ai#5425: the column holds the Prisma label.
+      expect(capturedQueries[0].values).toContain('YOUTUBE');
+      expect(capturedQueries[0].values).not.toContain(
+        CredentialPlatform.YOUTUBE,
+      );
       expect(capturedQueries[0].values).toContain(organizationId);
     });
   });
@@ -481,7 +487,7 @@ describe('AnalyticsService', () => {
     it('should return platform comparison data with percentages', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           avg_engagement_rate: 8.5,
           total_comments: BigInt(100),
           total_likes: BigInt(250),
@@ -492,7 +498,7 @@ describe('AnalyticsService', () => {
           total_engagement: BigInt(425),
         },
         {
-          platform: CredentialPlatform.TIKTOK,
+          platform: 'TIKTOK',
           avg_engagement_rate: 8.5,
           total_comments: BigInt(60),
           total_likes: BigInt(150),
@@ -517,7 +523,7 @@ describe('AnalyticsService', () => {
     it('should calculate 100% when single platform', async () => {
       mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          platform: CredentialPlatform.YOUTUBE,
+          platform: 'YOUTUBE',
           avg_engagement_rate: 10,
           total_comments: BigInt(0),
           total_likes: BigInt(0),
@@ -750,7 +756,7 @@ describe('AnalyticsService', () => {
       expect(capturedQueries[0].sql).toContain('AND "platform"::text = ?');
       expect(capturedQueries[0].sql).not.toContain(brandId);
       expect(capturedQueries[0].values).toContain(brandId);
-      expect(capturedQueries[0].values).toContain(CredentialPlatform.YOUTUBE);
+      expect(capturedQueries[0].values).toContain('YOUTUBE');
     });
 
     it('should parameterize organization filters', async () => {
@@ -799,7 +805,7 @@ describe('AnalyticsService', () => {
         .mockResolvedValueOnce([
           {
             id: 'post-1',
-            platforms: [CredentialPlatform.TIKTOK],
+            platforms: ['TIKTOK', 'INSTAGRAM'],
             total_engagement: BigInt(5000),
             total_views: BigInt(100000),
             description: 'This went viral',
@@ -808,7 +814,7 @@ describe('AnalyticsService', () => {
         ])
         .mockResolvedValueOnce([
           {
-            platform: CredentialPlatform.TIKTOK,
+            platform: 'TIKTOK',
             post_count: BigInt(1),
             total_engagement: BigInt(5000),
             total_views: BigInt(100000),
@@ -819,7 +825,36 @@ describe('AnalyticsService', () => {
 
       expect(result.videos).toHaveLength(1);
       expect(result.videos[0].title).toBe('Viral Video');
-      expect(result.analysis.topPlatforms).toHaveLength(1);
+      // genfeedai/genfeed.ai#5424: the hooks page matches these against
+      // lowercase platform configs.
+      expect(result.videos[0].platforms).toEqual([
+        CredentialPlatform.TIKTOK,
+        CredentialPlatform.INSTAGRAM,
+      ]);
+      expect(result.analysis.topPlatforms).toEqual([
+        {
+          platform: CredentialPlatform.TIKTOK,
+          postCount: 1,
+          totalEngagement: 5000,
+          totalViews: 100000,
+        },
+      ]);
+    });
+
+    it('filters top content by the Prisma label of the requested platform', async () => {
+      const capturedQueries = captureQueryRawCalls();
+
+      await service.getTopContent(
+        '2025-01-01',
+        '2025-01-31',
+        10,
+        AnalyticsMetric.VIEWS,
+        undefined,
+        CredentialPlatform.INSTAGRAM,
+      );
+
+      expect(capturedQueries[0].values).toContain('INSTAGRAM');
+      expect(capturedQueries[0].values).not.toContain('instagram');
     });
 
     it('should parameterize brand, organization, and date filters in both raw queries', async () => {
@@ -845,6 +880,67 @@ describe('AnalyticsService', () => {
         expect(query.values).toContain(brandId);
         expect(query.values).toContain(organizationId);
       }
+    });
+
+    // genfeedai/genfeed.ai#5415: the platform totals describe the same post
+    // set as the videos, so "Breakouts only" / a focused post never shows
+    // unrelated platform totals.
+    it('applies the outlier-tier and post filters to the platform aggregation too', async () => {
+      const capturedQueries = captureQueryRawCalls([[], []]);
+
+      await service.getViralHooks(
+        '2025-01-01',
+        '2025-01-31',
+        'brand-1',
+        'org-1',
+        'breakout',
+        'post-42',
+      );
+
+      expect(capturedQueries).toHaveLength(2);
+      for (const query of capturedQueries) {
+        expect(query.sql).toContain('FROM "outlier_post_performances" opp');
+        expect(query.sql).toContain(`opp."outlierTier" IN ('breakout')`);
+        expect(query.sql).toContain('AND pa."postId" = ?');
+        expect(query.values).toContain('post-42');
+      }
+    });
+
+    it('counts distinct posts per platform and returns every platform', async () => {
+      const platforms = [
+        CredentialPlatform.TIKTOK,
+        CredentialPlatform.INSTAGRAM,
+        CredentialPlatform.YOUTUBE,
+        CredentialPlatform.TWITTER,
+        CredentialPlatform.FACEBOOK,
+        CredentialPlatform.LINKEDIN,
+      ];
+      const capturedQueries = captureQueryRawCalls([
+        [],
+        platforms.map((platform, index) => ({
+          platform: platform.toUpperCase(),
+          post_count: BigInt(index + 1),
+          total_engagement: BigInt(600 - index * 100),
+          total_views: BigInt(6000 - index * 1000),
+        })),
+      ]);
+
+      const result = await service.getViralHooks('2025-01-01', '2025-01-31');
+
+      const platformQuery = capturedQueries[1];
+      expect(platformQuery.sql).toContain(
+        'COUNT(DISTINCT pa."postId") AS post_count',
+      );
+      expect(platformQuery.sql).not.toMatch(/\bLIMIT\b/);
+      expect(result.analysis.topPlatforms.map((row) => row.platform)).toEqual(
+        platforms,
+      );
+      expect(result.analysis.topPlatforms[5]).toEqual({
+        platform: CredentialPlatform.LINKEDIN,
+        postCount: 6,
+        totalEngagement: 100,
+        totalViews: 1000,
+      });
     });
   });
 });

@@ -206,22 +206,8 @@ export class OrganizationsRelationshipsController {
       endDate,
     );
 
-    const pipeline = {
-      where: {
-        isConnected: true,
-        isDeleted: false,
-        organizationId,
-      },
-    };
-
-    // Get total accounts connected (credentials) using pipeline count
-    const credentials = await this.credentialsService.findAll(pipeline, {
-      pagination: false,
-    });
-
-    // Extract count from $count stage result (docs[0].total)
     const totalCredentialsConnected =
-      (credentials.docs[0] as { total?: number })?.total || 0;
+      await this.credentialsService.countConnected(organizationId);
 
     return serializeSingle(request, AnalyticSerializer, {
       ...metrics,

@@ -34,7 +34,7 @@ describe('PostAnalyticsProjection', () => {
       }),
     ).toMatchObject({
       engagementGrowth: 0,
-      totalEngagement: 18,
+      totalEngagement: 25,
       totalSaves: 7,
       viewsGrowth: 0,
     });
@@ -48,7 +48,7 @@ describe('PostAnalyticsProjection', () => {
       }),
     ).toMatchObject({
       engagementGrowth: 100,
-      totalEngagement: 18,
+      totalEngagement: 25,
       totalSaves: 7,
       viewsGrowth: 100,
     });
@@ -292,10 +292,11 @@ describe('PostAnalyticsProjection', () => {
       ]),
     ).toEqual({
       bestDay: { date: '2026-04-05', views: 80 },
+      // Engagement includes saves (genfeedai/genfeed.ai#5427).
       engagement: {
-        current: 60,
-        growth: 30,
-        growthPercentage: 100,
+        current: 100,
+        growth: 70,
+        growthPercentage: (70 / 30) * 100,
         previous: 30,
       },
       trendingDirection: 'up',

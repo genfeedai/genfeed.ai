@@ -1,46 +1,45 @@
+import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/hook-stat-cards.props';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
-import { Clock, Eye, Heart, TrendingUp } from 'lucide-react';
+import { Eye, Heart, Sparkles, TrendingUp } from 'lucide-react';
 
 export default function HookStatCards({
   analysisData,
-  formatTimeSpent,
   isLoading = false,
 }: Props) {
+  const bestHook = analysisData.topHooks[0];
+  const topPlatform = analysisData.topPlatforms[0];
+
   return (
     <MetricCardGrid columns={4}>
       <MetricCard
         icon={Eye}
         isLoading={isLoading}
-        label="Total Videos Analyzed"
+        label="Posts Analyzed"
         size="md"
         value={String(analysisData.totalVideos)}
       />
       <MetricCard
-        icon={Clock}
+        icon={Sparkles}
         isLoading={isLoading}
-        label="Total Time Tracked"
+        label="Hook Patterns"
         size="md"
-        value={formatTimeSpent(analysisData.totalTime)}
+        value={String(analysisData.hookEffectiveness.length)}
       />
       <MetricCard
         icon={TrendingUp}
         isLoading={isLoading}
-        label="Avg Time per Video"
+        label="Best Hook Avg Engagement"
         size="md"
-        value={formatTimeSpent(analysisData.avgTimePerVideo)}
+        value={bestHook ? formatCompactNumber(bestHook.avgEngagement) : 'N/A'}
       />
       <MetricCard
         icon={Heart}
         isLoading={isLoading}
         label="Top Platform"
         size="md"
-        value={
-          analysisData.topPlatforms[0]
-            ? analysisData.topPlatforms[0].platform.toUpperCase()
-            : 'N/A'
-        }
+        value={topPlatform ? topPlatform.platform.toUpperCase() : 'N/A'}
       />
     </MetricCardGrid>
   );

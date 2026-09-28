@@ -20,36 +20,7 @@
  */
 
 /** @type {PlaywrightE2eQuarantine[]} */
-export const PLAYWRIGHT_E2E_QUARANTINES = [
-  {
-    file: 'playwright/e2e/tests/dashboard/analytics.spec.ts',
-    reason:
-      'Asserts retired dashboard stat widgets. Analytics lives at /analytics/overview. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/admin/business-analytics.spec.ts',
-    reason:
-      'Admin business-analytics cards drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/analytics/deep-pages.spec.ts',
-    reason:
-      'Insights / hooks / performance-lab / trend-turnover copy drifted. Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-  {
-    file: 'playwright/e2e/tests/analytics/overview.spec.ts',
-    reason:
-      'Analytics overview tabs trip strict-mode (duplicate Trends links). Evidence: run 31991510270.',
-    trackingIssue: 2982,
-    reviewBy: '2026-11-17',
-  },
-];
+export const PLAYWRIGHT_E2E_QUARANTINES = [];
 
 /** Specs owned by other execution lanes, not broken-test quarantines. */
 export const PLAYWRIGHT_E2E_LANE_EXCLUSIONS = [

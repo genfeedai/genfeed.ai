@@ -5,11 +5,8 @@ import type {
   IOrgLeaderboardItem,
   IOrganizationWithStats as IOrgWithStats,
   IQueryParams,
+  IViralHooksResult,
 } from '@genfeedai/contracts/interfaces';
-import type {
-  IViralHookAnalysis,
-  IViralHookVideo,
-} from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -255,17 +252,10 @@ export class AnalyticsService extends HTTPBaseService {
       .then((res) => deserializeResource<unknown>(res.data));
   }
 
-  public async getViralHooks(
-    query?: IQueryParams,
-  ): Promise<{ videos: IViralHookVideo[]; analysis: IViralHookAnalysis }> {
+  public async getViralHooks(query?: IQueryParams): Promise<IViralHooksResult> {
     return await this.instance
       .get<JsonApiResponseDocument>('hooks', { params: query })
-      .then((res) =>
-        deserializeResource<{
-          videos: IViralHookVideo[];
-          analysis: IViralHookAnalysis;
-        }>(res.data),
-      );
+      .then((res) => deserializeResource<IViralHooksResult>(res.data));
   }
 
   // ============================================

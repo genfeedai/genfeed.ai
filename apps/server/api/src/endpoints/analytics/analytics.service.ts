@@ -6,14 +6,18 @@ import {
   type AnalyticsBestPostingTime,
   AnalyticsResponseProjection,
   type RawAnalyticsRow,
-  type ViralHooksResult,
 } from '@api/endpoints/analytics/analytics-response.projection';
 import { assertAnalyticsBrandInScope } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  CredentialPlatform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import type { IViralHooksResult } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -78,7 +82,11 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       return Prisma.empty;
     }
 
-    return Prisma.sql`AND ${Prisma.raw(`${alias ? `${alias}.` : ''}"platform"`)}::text = ${String(platform)}`;
+    // The column holds the Prisma label (`INSTAGRAM`); callers pass the domain
+    // id (`instagram`). An unknown value keeps its raw text and matches nothing.
+    const label = toPrismaCredentialPlatform(platform) ?? String(platform);
+
+    return Prisma.sql`AND ${Prisma.raw(`${alias ? `${alias}.` : ''}"platform"`)}::text = ${label}`;
   }
 
   private postAnalyticsTopContentSortExpression(
@@ -612,7 +620,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     organizationId?: string,
     minOutlierTier?: 'outlier' | 'breakout',
     postId?: string,
-  ): Promise<ViralHooksResult> {
+  ): Promise<IViralHooksResult> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
       endDateStr,
@@ -629,34 +637,34 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       'pa',
     );
 
+    // Both queries describe the same post set: the outlier-tier and single-post
+    // filters apply to the platform totals too.
+    const postSetFilter = this.viralHookPostSetFilter(minOutlierTier, postId);
+
     // Get top performing posts with description data
     const videos = await this.fetchViralHookVideos(
       startDate,
       endDate,
       brandFilter,
       orgFilter,
-      minOutlierTier,
-      postId,
+      postSetFilter,
     );
-    // Platform aggregation
+    // Platform aggregation over every platform with data for that post set
     const topPlatformsRaw = await this.fetchViralHookPlatforms(
       startDate,
       endDate,
       brandFilter,
       orgFilter,
+      postSetFilter,
     );
 
     return analyticsResponseProjection.buildViralHooks(videos, topPlatformsRaw);
   }
 
-  private async fetchViralHookVideos(
-    startDate: Date,
-    endDate: Date,
-    brandFilter: PrismaSql,
-    orgFilter: PrismaSql,
+  private viralHookPostSetFilter(
     minOutlierTier?: 'outlier' | 'breakout',
     postId?: string,
-  ): Promise<RawAnalyticsRow[]> {
+  ): PrismaSql {
     const tiers =
       minOutlierTier === 'breakout'
         ? [Prisma.sql`'breakout'`]
@@ -681,6 +689,17 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     const postFilter = postId
       ? Prisma.sql`AND pa."postId" = ${postId}`
       : Prisma.empty;
+
+    return Prisma.sql`${outlierFilter} ${postFilter}`;
+  }
+
+  private async fetchViralHookVideos(
+    startDate: Date,
+    endDate: Date,
+    brandFilter: PrismaSql,
+    orgFilter: PrismaSql,
+    postSetFilter: PrismaSql,
+  ): Promise<RawAnalyticsRow[]> {
     // Get top performing posts with description data
     const videos = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
@@ -695,8 +714,7 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
-        ${outlierFilter}
-        ${postFilter}
+        ${postSetFilter}
       GROUP BY pa."postId", p.description, p.label
       ORDER BY total_engagement DESC
       LIMIT 50
@@ -710,21 +728,24 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
+    postSetFilter: PrismaSql,
   ): Promise<RawAnalyticsRow[]> {
-    // Platform aggregation
+    // One row per platform (no LIMIT: the hooks page shows every platform).
+    // `post_analytics` holds one row per post, platform and day, so count
+    // distinct posts, not rows.
     const topPlatformsRaw = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
         pa."platform"::text AS platform,
-        COUNT(*) AS post_count,
+        COUNT(DISTINCT pa."postId") AS post_count,
         SUM(pa."totalLikes" + pa."totalComments" + pa."totalShares" + pa."totalSaves") AS total_engagement,
         SUM(pa."totalViews") AS total_views
       FROM "post_analytics" pa
       WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
+        ${postSetFilter}
       GROUP BY pa."platform"
       ORDER BY total_engagement DESC
-      LIMIT 5
     `;
 
     return topPlatformsRaw;

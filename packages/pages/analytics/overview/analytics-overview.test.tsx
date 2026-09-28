@@ -166,6 +166,11 @@ const mockTopPostsReturn = {
   topPosts: [],
 };
 const mockUseAgentDashboardPersistence = vi.hoisted(() => vi.fn());
+const mockDataHookOptions = vi.hoisted(() => ({
+  leaderboards: vi.fn(),
+  timeseries: vi.fn(),
+  topPosts: vi.fn(),
+}));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => mockAnalyticsContext,
@@ -209,15 +214,24 @@ vi.mock('@hooks/data/analytics/use-health-checks/use-health-checks', () => ({
 }));
 
 vi.mock('@hooks/data/analytics/use-leaderboards/use-leaderboards', () => ({
-  useLeaderboards: () => mockLeaderboardsReturn,
+  useLeaderboards: (options: unknown) => {
+    mockDataHookOptions.leaderboards(options);
+    return mockLeaderboardsReturn;
+  },
 }));
 
 vi.mock('@hooks/data/analytics/use-timeseries/use-timeseries', () => ({
-  useTimeseries: () => mockTimeseriesReturn,
+  useTimeseries: (options: unknown) => {
+    mockDataHookOptions.timeseries(options);
+    return mockTimeseriesReturn;
+  },
 }));
 
 vi.mock('@hooks/data/analytics/use-top-posts/use-top-posts', () => ({
-  useTopPosts: () => mockTopPostsReturn,
+  useTopPosts: (options: unknown) => {
+    mockDataHookOptions.topPosts(options);
+    return mockTopPostsReturn;
+  },
 }));
 
 vi.mock('@models/auth/user.model', () => ({
@@ -328,6 +342,59 @@ describe('AnalyticsOverview', () => {
     mockTimeseriesReturn.timeseriesData = [];
     mockTopPostsReturn.topPosts = [];
     mockUseAgentDashboardPersistence.mockClear();
+    mockDataHookOptions.leaderboards.mockClear();
+    mockDataHookOptions.timeseries.mockClear();
+    mockDataHookOptions.topPosts.mockClear();
+  });
+
+  // genfeedai/genfeed.ai#5418: the data hooks skip their mount fetch whenever
+  // they receive initial data with `revalidateOnMount: false`, so a page that
+  // passes no server data must not hand them an empty array ("hydrated").
+  it('lets the chart, leaderboard and top-post hooks fetch when no server data is passed', () => {
+    renderOverview();
+
+    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: undefined }),
+    );
+    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialBrandsLeaderboard: undefined,
+        initialOrgsLeaderboard: undefined,
+      }),
+    );
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: undefined }),
+    );
+  });
+
+  it('hands server-provided data to the hooks as hydrated initial data', () => {
+    const timeseriesData = [{ date: '2026-03-03', instagram: 10 }];
+
+    renderToStaticMarkup(
+      <AnalyticsOverview
+        brandsLeaderboard={[]}
+        orgsLeaderboard={[]}
+        timeseriesData={timeseriesData}
+        topPosts={[]}
+      />,
+    );
+
+    expect(mockDataHookOptions.timeseries).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialData: timeseriesData,
+        revalidateOnMount: false,
+      }),
+    );
+    expect(mockDataHookOptions.leaderboards).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initialBrandsLeaderboard: [],
+        initialOrgsLeaderboard: [],
+        revalidateOnMount: false,
+      }),
+    );
+    expect(mockDataHookOptions.topPosts).toHaveBeenCalledWith(
+      expect.objectContaining({ initialData: [], revalidateOnMount: false }),
+    );
   });
 
   it('blocks the overview with connect-account onboarding when no analytics data exists', () => {

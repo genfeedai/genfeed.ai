@@ -1,13 +1,10 @@
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { Props } from '@props/analytics/platform-performance-section.props';
 import Card from '@ui/card/Card';
-import Badge from '@ui/display/badge/Badge';
 import MetricItem from '@ui/display/metric-item/MetricItem';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 
-export default function PlatformPerformanceSection({
-  aggregatedPlatformData,
-}: Props) {
+export default function PlatformPerformanceSection({ topPlatforms }: Props) {
   return (
     <section>
       <h2 className="mb-4 text-xl font-semibold tracking-tight">
@@ -16,28 +13,22 @@ export default function PlatformPerformanceSection({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {PLATFORM_CONFIGS.map((config) => {
-          const platformData = aggregatedPlatformData.find(
+          const platformData = topPlatforms.find(
             (p) => p.platform === config.id,
           );
 
           const Icon = config.icon;
 
           return (
-            <Card key={config.id} className="backdrop-blur">
+            <Card
+              key={config.id}
+              className="backdrop-blur"
+              data-testid={`hook-platform-${config.id}`}
+            >
               <div className="p-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Icon
-                      className="text-2xl"
-                      style={{ color: config.color }}
-                    />
-                    <span className="font-semibold">{config.label}</span>
-                  </div>
-                  {platformData && (
-                    <Badge className="bg-primary text-primary-foreground text-xs">
-                      {platformData.videoCount} videos
-                    </Badge>
-                  )}
+                <div className="flex items-center gap-3">
+                  <Icon className="text-2xl" style={{ color: config.color }} />
+                  <span className="font-semibold">{config.label}</span>
                 </div>
 
                 {platformData ? (
@@ -47,16 +38,8 @@ export default function PlatformPerformanceSection({
                       value={formatCompactNumber(platformData.totalViews)}
                     />
                     <MetricItem
-                      label="Total Likes"
-                      value={formatCompactNumber(platformData.totalLikes)}
-                    />
-                    <MetricItem
-                      label="Avg Engagement"
-                      value={`${platformData.avgEngagement.toFixed(1)}%`}
-                    />
-                    <MetricItem
-                      label="Viral Score"
-                      value={platformData.avgViralScore.toFixed(0)}
+                      label="Total Engagement"
+                      value={formatCompactNumber(platformData.totalEngagement)}
                     />
                   </div>
                 ) : (

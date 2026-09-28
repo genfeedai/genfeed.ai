@@ -1,4 +1,14 @@
-import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/contracts';
+import {
+  AnalyticsMetric,
+  CredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import type {
+  IViralHookEffectiveness,
+  IViralHookPlatformSummary,
+  IViralHooksResult,
+  IViralHookVideo,
+} from '@genfeedai/contracts/interfaces';
 
 export type RawAnalyticsRow = Record<string, unknown>;
 
@@ -24,39 +34,15 @@ export type AnalyticsBestPostingTime = {
   postCount: number;
 };
 
-type ViralHookVideo = {
-  description: string;
-  hook: string;
-  id: string;
-  platforms: string[];
-  title: string;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-type HookEffectiveness = {
-  avgEngagement: number;
-  avgViews: number;
-  hook: string;
-  postCount: number;
-};
-
-type TopPlatformSummary = {
-  platform: string;
-  postCount: number;
-  totalEngagement: number;
-  totalViews: number;
-};
-
-export type ViralHooksResult = {
-  analysis: {
-    hookEffectiveness: HookEffectiveness[];
-    topHooks: Array<{ hook: string; avgEngagement: number; postCount: number }>;
-    topPlatforms: TopPlatformSummary[];
-    totalVideos: number;
-  };
-  videos: ViralHookVideo[];
-};
+/**
+ * `post_analytics.platform` is the Prisma `CredentialPlatform` label
+ * (`INSTAGRAM`); every response carries the domain id (`instagram`).
+ * Unknown labels pass through unchanged rather than being guessed.
+ */
+function toDomainPlatform(value: unknown): string {
+  const label = String(value ?? '');
+  return fromPrismaCredentialPlatform(label) ?? label;
+}
 
 /**
  * Pure response owner for endpoint analytics. Inputs are already-scoped query
@@ -71,7 +57,7 @@ export class AnalyticsResponseProjection {
     const dataMap = new Map<string, Map<string, PlatformMetrics>>();
     for (const row of rawResults) {
       const day = row.day as string;
-      const platform = row.platform as string;
+      const platform = toDomainPlatform(row.platform);
       const platformMap =
         dataMap.get(day) ?? new Map<string, PlatformMetrics>();
       platformMap.set(platform, {
@@ -143,7 +129,7 @@ export class AnalyticsResponseProjection {
         (Number(row.avg_engagement_rate) || 0).toFixed(2),
       ),
       hour: Number(row.hour),
-      platform: row.platform as string,
+      platform: toDomainPlatform(row.platform),
       postCount: Number(row.post_count),
     }));
   }
@@ -159,7 +145,7 @@ export class AnalyticsResponseProjection {
       ingredientUrl: undefined,
       isVideo: false,
       label: row.label as string,
-      platform: row.platform as string,
+      platform: toDomainPlatform(row.platform),
       postId: row.post_id as string,
       thumbnailUrl: undefined,
       totalComments: Number(row.total_comments),
@@ -194,7 +180,7 @@ export class AnalyticsResponseProjection {
           totals.engagement > 0
             ? (totalEngagement / totals.engagement) * 100
             : 0,
-        platform: platform.platform as string,
+        platform: toDomainPlatform(platform.platform),
         postsPercentage:
           totals.posts > 0 ? (totalPosts / totals.posts) * 100 : 0,
         totalEngagement,
@@ -283,12 +269,14 @@ export class AnalyticsResponseProjection {
   buildViralHooks(
     videos: RawAnalyticsRow[],
     topPlatformsRaw: RawAnalyticsRow[],
-  ): ViralHooksResult {
-    const videosWithHooks: ViralHookVideo[] = videos.map((video) => ({
+  ): IViralHooksResult {
+    const videosWithHooks: IViralHookVideo[] = videos.map((video) => ({
       description: (video.description as string) || '',
       hook: this.extractHookFromDescription(video.description as string),
       id: video.id as string,
-      platforms: (video.platforms as string[]) || [],
+      platforms: ((video.platforms as string[] | null) ?? []).map(
+        toDomainPlatform,
+      ),
       title: (video.title as string) || 'Untitled',
       totalEngagement: Number(video.total_engagement),
       totalViews: Number(video.total_views),
@@ -372,8 +360,8 @@ export class AnalyticsResponseProjection {
   }
 
   private buildHookEffectiveness(
-    videosWithHooks: ViralHookVideo[],
-  ): HookEffectiveness[] {
+    videosWithHooks: IViralHookVideo[],
+  ): IViralHookEffectiveness[] {
     const hookMap = new Map<
       string,
       { totalEngagement: number; totalViews: number; count: number }
@@ -405,9 +393,11 @@ export class AnalyticsResponseProjection {
       .sort((left, right) => right.avgEngagement - left.avgEngagement);
   }
 
-  private mapTopPlatforms(rows: RawAnalyticsRow[]): TopPlatformSummary[] {
+  private mapTopPlatforms(
+    rows: RawAnalyticsRow[],
+  ): IViralHookPlatformSummary[] {
     return rows.map((platform) => ({
-      platform: platform.platform as string,
+      platform: toDomainPlatform(platform.platform),
       postCount: Number(platform.post_count),
       totalEngagement: Number(platform.total_engagement),
       totalViews: Number(platform.total_views),

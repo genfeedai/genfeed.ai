@@ -1,7 +1,6 @@
-import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces/analytics/viral-hooks.interface';
+import type { IViralHookAnalysis } from '@genfeedai/contracts/interfaces';
 
 export type Props = {
   analysisData: IViralHookAnalysis;
-  formatTimeSpent: (seconds: number) => string;
   isLoading?: boolean;
 };

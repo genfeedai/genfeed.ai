@@ -99,4 +99,61 @@ describe('AnalyticsAggregationService', () => {
       where: { isDeleted: false, organizationId: 'org_1' },
     });
   });
+
+  // genfeedai/genfeed.ai#5427: total engagement and the engagement rate share
+  // one definition (likes + comments + shares + saves), as the overview
+  // labels it.
+  it('includes saves in overview engagement, its rate, and its growth', async () => {
+    const queryRaw = vi
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          total_comments: 96,
+          total_likes: 640,
+          total_posts: 18,
+          total_saves: 28,
+          total_shares: 60,
+          total_views: 12450,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          total_comments: 40,
+          total_likes: 300,
+          total_saves: 10,
+          total_shares: 50,
+          total_views: 10000,
+        },
+      ]);
+    const service = new AnalyticsAggregationService(
+      {
+        $queryRaw: queryRaw,
+        brand: { count: vi.fn().mockResolvedValue(1) },
+        postAnalytics: {
+          groupBy: vi
+            .fn()
+            .mockResolvedValue([
+              { platform: 'INSTAGRAM' },
+              { platform: 'TIKTOK' },
+            ]),
+        },
+      } as unknown as PrismaService,
+      { count: vi.fn().mockResolvedValue(18) } as unknown as PostsService,
+    );
+
+    const metrics = await service.getOverviewMetrics(
+      'org_1',
+      undefined,
+      '2026-04-01',
+      '2026-04-14',
+    );
+
+    expect(metrics.totalEngagement).toBe(824);
+    expect(metrics.avgEngagementRate).toBe((824 / 12450) * 100);
+    expect(metrics.engagementGrowth).toBe(((824 - 400) / 400) * 100);
+    expect(metrics.totalViews).toBe(12450);
+    expect(metrics.viewsGrowth).toBe(((12450 - 10000) / 10000) * 100);
+    expect(metrics.activePlatforms).toEqual(['instagram', 'tiktok']);
+    expect(metrics.bestPerformingPlatform).toBe('instagram');
+  });
 });

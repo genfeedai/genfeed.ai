@@ -1106,6 +1106,70 @@ export async function mockAnalyticsData(page: Page): Promise<void> {
     });
   });
 
+  // `/analytics/top` (AnalyticsService.getTopContent, used by useTopPosts) is a
+  // JSON:API *collection* — registered after the broad `/analytics/**` handler
+  // above so it wins (Playwright matches routes in reverse registration order).
+  // Without this, the generic single-resource body deserializes as an object
+  // and `deserializeCollection` throws "expected data to be an array", which
+  // AnalyticsPostsList surfaces as a "could not be loaded" error state.
+  // Attribute names match the real, now-fixed server contract
+  // (`AnalyticsTopPostSerializer` / `analyticsResponseProjection.
+  // buildTopContent`) — see genfeedai/genfeed.ai#5404.
+  await routeApiPattern(page, '/analytics/top**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify({
+        data: [
+          {
+            attributes: {
+              brandLogo: null,
+              brandName: 'Brand 1',
+              description: 'Launch day recap',
+              engagementRate: 7.4,
+              ingredientUrl: null,
+              isVideo: false,
+              label: 'Launch day recap',
+              platform: 'tiktok',
+              postId: 'post-1',
+              thumbnailUrl: null,
+              totalComments: 45,
+              totalEngagement: 887,
+              totalLikes: 800,
+              totalSaves: 12,
+              totalShares: 30,
+              totalViews: 12000,
+            },
+            id: 'top-post-1',
+            type: 'analytics-top-post',
+          },
+          {
+            attributes: {
+              brandLogo: null,
+              brandName: 'Brand 1',
+              description: 'Behind the scenes',
+              engagementRate: 5.1,
+              ingredientUrl: null,
+              isVideo: false,
+              label: 'Behind the scenes',
+              platform: 'instagram',
+              postId: 'post-2',
+              thumbnailUrl: null,
+              totalComments: 20,
+              totalEngagement: 410,
+              totalLikes: 360,
+              totalSaves: 8,
+              totalShares: 22,
+              totalViews: 8000,
+            },
+            id: 'top-post-2',
+            type: 'analytics-top-post',
+          },
+        ],
+      }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await routeApiPattern(page, '/activities**', async (route) => {
     await route.fulfill({
       body: JSON.stringify({

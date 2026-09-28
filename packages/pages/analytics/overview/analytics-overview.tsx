@@ -64,11 +64,11 @@ export default function AnalyticsOverview({
   scope = PageScope.ORGANIZATION,
   basePath = '/analytics',
   analytics: initialAnalytics,
-  brandsLeaderboard: initialBrandsLeaderboard = [],
+  brandsLeaderboard: initialBrandsLeaderboard,
   cachedAt: initialCachedAt = '',
-  orgsLeaderboard: initialOrgsLeaderboard = [],
-  timeseriesData: initialTimeseriesData = [],
-  topPosts: initialTopPosts = [],
+  orgsLeaderboard: initialOrgsLeaderboard,
+  timeseriesData: initialTimeseriesData,
+  topPosts: initialTopPosts,
 }: AnalyticsOverviewProps) {
   const translate = useTranslations('pages.analytics.overview');
   const router = useRouter();
@@ -197,6 +197,7 @@ export default function AnalyticsOverview({
 
         {hasTimeseriesData || isTimeseriesLoading ? (
           <Card
+            data-testid="analytics-overview-timeseries"
             variant={CardVariant.DEFAULT}
             isLoading={!hasTimeseriesData && isTimeseriesLoading}
             label={translate('timeseriesTitle')}

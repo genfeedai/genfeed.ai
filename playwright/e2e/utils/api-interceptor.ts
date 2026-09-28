@@ -2212,6 +2212,24 @@ export async function setupApiMocks(
     await handleTrendsRoute(r);
   });
 
+  // DashboardLayoutsService.findForPage checks `response.data.data === null`
+  // to mean "no saved layout, render the default page" — the generic
+  // fallback below returns `data: []` (an array) for this GET, which is
+  // truthy and not `null`, so callers treat it as a real (garbage) layout and
+  // WorkspaceOverviewContent's DashboardOpenUIRenderer shows "Unsupported
+  // dashboard output" instead of the default operational-home content.
+  await routeApi('/dashboard-layouts**', async (r) => {
+    if (r.request().method() !== 'GET') {
+      await r.fallback();
+      return;
+    }
+    await r.fulfill({
+      body: JSON.stringify({ data: null }),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await page.route('**/api/creative-patterns**', async (r) => {
     await r.fulfill({
       body: JSON.stringify({
