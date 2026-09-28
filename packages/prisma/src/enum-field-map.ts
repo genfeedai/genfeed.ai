@@ -4507,6 +4507,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'isAdvancedMode',
       'isAutoEvaluateEnabled',
       'isByokEnabled',
+      'isFastlaneEnabled',
       'isFirstLogin',
       'isFleetNsfwVisible',
       'isGenerateArticlesEnabled',
