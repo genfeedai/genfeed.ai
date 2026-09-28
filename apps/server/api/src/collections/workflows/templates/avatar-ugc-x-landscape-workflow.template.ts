@@ -44,7 +44,7 @@ export const AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE = {
     {
       id: 'edge-captioned-overlay',
       source: 'effect-captions',
-      sourceHandle: 'video',
+      sourceHandle: 'videoUrl',
       target: 'sound-overlay',
       targetHandle: 'videoUrl',
     },
