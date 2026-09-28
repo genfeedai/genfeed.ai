@@ -3,6 +3,7 @@ import {
   AgentThreadMode,
   type CredentialPlatform,
   IngredientCategory,
+  LibraryShelf,
   PostCategory,
   PostStatus,
   PostVisibility,
@@ -20,6 +21,7 @@ import type {
   AdsResearchItem,
   AdsResearchResponse,
   IChannelTarget,
+  ILibrarySummary,
   ISocialSource,
   ISourcePost,
   SocialSourcesResponse,
@@ -3487,10 +3489,46 @@ export async function mockAvatarIngredientActions(page: Page): Promise<{
   // go through OrganizationsService at all — useIngredientsList's non-org
   // branch calls IngredientsService (`/ingredients`, brand-scoped by auth
   // context, not a path segment). The org-scoped mock above never matches
-  // that request.
+  // that request. Only the list pathname is answered here; sub-resources such
+  // as `/ingredients/summary` get their own contract below.
   await routeApiPattern(page, '/ingredients**', async (route) => {
+    const { pathname } = new URL(route.request().url());
+    if (
+      route.request().method() !== 'GET' ||
+      !/\/ingredients$/.test(pathname)
+    ) {
+      await route.fallback();
+      return;
+    }
+
     await route.fulfill({
       body: avatarIngredientsListBody,
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
+  // LibrarySidebarNav's counters (useLibrarySummary): plain ILibrarySummary,
+  // not JSON:API. Both seeded avatars are unfoldered, un-reviewed assets.
+  const avatarLibrarySummary: ILibrarySummary = {
+    byCategory: { [IngredientCategory.AVATAR]: 2 },
+    byShelf: {
+      [LibraryShelf.APPROVED]: 0,
+      [LibraryShelf.ARCHIVED]: 0,
+      [LibraryShelf.FAILED]: 0,
+      [LibraryShelf.GENERATING]: 0,
+      [LibraryShelf.NEEDS_REVIEW]: 2,
+      [LibraryShelf.UNSORTED]: 2,
+    },
+    starredCount: 0,
+    storageBytes: 0,
+    total: 2,
+    trashedCount: 0,
+  };
+
+  await routeApiPattern(page, '/ingredients/summary**', async (route) => {
+    await route.fulfill({
+      body: JSON.stringify(avatarLibrarySummary),
       contentType: 'application/json',
       status: 200,
     });

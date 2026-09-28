@@ -71,6 +71,13 @@ test.describe('Avatar Library', () => {
     await expect(
       authenticatedPage.locator('tr', { hasText: 'Avatar Action Video' }),
     ).toBeVisible({ timeout: 30000 });
+
+    // Library sidebar counters come from /ingredients/summary (ILibrarySummary).
+    await expect(
+      authenticatedPage
+        .getByRole('complementary', { exact: true, name: 'Navigation' })
+        .getByRole('link', { exact: true, name: 'Needs review' }),
+    ).toContainText('2');
   });
 
   test('opens avatar source details with default-avatar actions', async ({
