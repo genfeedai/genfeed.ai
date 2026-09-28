@@ -3083,7 +3083,89 @@
   },
   "platformSettings": {
     "typedDecisionLabel": "Typed-decision provider",
-    "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy."
+    "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy.",
+    "features": {
+      "intro": "Product feature switches. Changes apply to every server within 15 seconds, with no deploy.",
+      "modes": {
+        "off": "Off",
+        "shadow": "Shadow — record only",
+        "live": "Live — act on answers"
+      },
+      "confidenceHelp": "Minimum confidence between 0 and 1. Lower answers keep the deterministic path.",
+      "invalidNumber": "Enter a number from {min} to {max}",
+      "invalidInteger": "Enter a whole number from {min} to {max}",
+      "invalidSubmit": "Fix the highlighted feature switch values before saving",
+      "media": {
+        "heading": "Media checks",
+        "perceptionLabel": "Media perception",
+        "perceptionHelp": "Workers extract frames, on-screen text, transcripts and a scene description from new media. Off stops the sweep from queueing assets.",
+        "frameCountLabel": "Frames sampled per video",
+        "lookbackLabel": "Perception lookback (hours)",
+        "visionModelLabel": "Scene-description model",
+        "visionModelHelp": "Leave empty to use the default fast text model.",
+        "visionGateLabel": "Vision flags",
+        "visionGateHelp": "Live sends flagged assets to review. Costs one vision call per perceived asset.",
+        "textGateLabel": "Media text decisions",
+        "textGateHelp": "Brand safety and on-brand checks over transcripts and scene descriptions. Needs a typed-decision provider.",
+        "textGateConfidenceLabel": "Media text minimum confidence"
+      },
+      "moderation": {
+        "heading": "Moderation",
+        "providerLabel": "Moderation provider",
+        "providerHelp": "None sends no media off the server. OpenAI needs OPENAI_API_KEY on the server.",
+        "providers": {
+          "none": "None",
+          "openai": "OpenAI omni-moderation"
+        },
+        "modeLabel": "Moderation mode",
+        "modeHelp": "Shadow stores scores and logs what would flag. Live sends flagged assets to review.",
+        "thresholdsLabel": "Category thresholds",
+        "thresholdsHelp": "Leave a category empty to keep its default. Lower is stricter.",
+        "categories": {
+          "drugs": "Drugs",
+          "graphic": "Graphic",
+          "harassment": "Harassment",
+          "hate": "Hate",
+          "self_harm": "Self-harm",
+          "sexual": "Sexual",
+          "sexual_minors": "Sexual (minors)",
+          "spam": "Spam",
+          "violence": "Violence",
+          "weapons": "Weapons"
+        }
+      },
+      "decisions": {
+        "heading": "Typed decisions",
+        "agentAutoRoutingLabel": "Agent auto-routing",
+        "agentAutoRoutingHelp": "Picks the chat model from the admin model registry. Shadow logs the pick without using it.",
+        "modelDiscoveryLabel": "Model discovery category",
+        "modelDiscoveryConfidenceLabel": "Model discovery minimum confidence",
+        "patternAnalyzerLabel": "Pattern analyzer labels",
+        "patternAnalyzerConfidenceLabel": "Pattern analyzer minimum confidence",
+        "replyBotIntentLabel": "Reply-bot intent",
+        "replyBotIntentConfidenceLabel": "Reply-bot intent minimum confidence",
+        "taskRoutingLabel": "Task routing output type",
+        "taskRoutingConfidenceLabel": "Task routing minimum confidence",
+        "untrustedContentLabel": "Untrusted-content gate",
+        "untrustedContentConfidenceLabel": "Untrusted-content minimum confidence",
+        "shadowCappedHelp": "Live is not available for this decision yet."
+      },
+      "agent": {
+        "heading": "Agent",
+        "contextCompressionLabel": "Context compression",
+        "contextCompressionHelp": "Summarise older thread turns so long conversations fit the model context.",
+        "tokenStreamingLabel": "Token streaming",
+        "tokenStreamingHelp": "Stream model output token by token instead of simulated word chunks."
+      },
+      "platform": {
+        "heading": "Accounts and alerts",
+        "emailVerificationLabel": "Require email verification",
+        "emailVerificationHelp": "Email and password accounts must verify their address before signing in. Needs a working notifications service to send the email.",
+        "systemEventsLabel": "Record system events",
+        "systemEventsHelp": "Records signup and billing events for operator alerts. Events before recording started are never replayed.",
+        "systemEventsSince": "Recording since {date}"
+      }
+    }
   },
   "adminUsers": {
     "columns": {
