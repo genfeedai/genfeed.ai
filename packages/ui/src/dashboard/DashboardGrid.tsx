@@ -1,4 +1,4 @@
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricCardGrid } from '@ui/dashboard/MetricCardGrid';
 import type { ReactNode } from 'react';
 
 interface DashboardGridProps {
