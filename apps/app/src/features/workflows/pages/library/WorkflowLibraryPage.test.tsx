@@ -472,6 +472,29 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeInTheDocument();
   });
 
+  it.each(['list', 'grid'])(
+    'only permits removing existing favorites from read-only team rows in %s',
+    (view) => {
+      mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
+      const { rerender } = render(<WorkflowLibraryPage />);
+      if (view === 'grid')
+        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      const team = within(screen.getByTestId('workflow-section-most-used'));
+      expect(
+        team.queryByRole('button', { name: 'Add to favorites' }),
+      ).toBeNull();
+      mocks.favoriteIds = ['workflow-1'];
+      rerender(<WorkflowLibraryPage />);
+      fireEvent.click(
+        team.getByRole('button', { name: 'Remove from favorites' }),
+      );
+      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'workflow-1' }),
+      );
+      expect(team.queryByRole('button', { name: 'Duplicate' })).toBeNull();
+    },
+  );
+
   it('keeps the library usable when Favorites fails', () => {
     mocks.favoriteError = true;
     render(<WorkflowLibraryPage />);

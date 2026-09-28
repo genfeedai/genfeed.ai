@@ -85,6 +85,59 @@ describe('workflow library highlights', () => {
     expect(result.current.mostUsed.items[0].executionCount).toBe(25);
   });
 
+  it('preserves readable favorites and can remove an inaccessible id through settings', async () => {
+    mocks.settings.mockResolvedValue({
+      favoriteWorkflowIds: ['favorite-1', 'inaccessible'],
+    });
+    mocks.get.mockImplementation(async (id: string) => {
+      if (id === 'inaccessible') throw new Error('Not found');
+      return workflow;
+    });
+    mocks.save.mockResolvedValue({ favoriteWorkflowIds: ['favorite-1'] });
+    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
+
+    expect(result.current.favorites.hasError).toBe(false);
+    expect(result.current.favorites.items.map((item) => item.id)).toEqual([
+      'favorite-1',
+    ]);
+    expect(result.current.favoriteIds).toEqual(['favorite-1', 'inaccessible']);
+
+    await act(async () =>
+      result.current.toggleFavorite({
+        ...result.current.favorites.items[0],
+        id: 'inaccessible',
+      }),
+    );
+    expect(mocks.save).toHaveBeenCalledWith(['favorite-1']);
+    expect(result.current.favoriteIds).toEqual(['favorite-1']);
+    expect(result.current.favorites.items.map((item) => item.id)).toEqual([
+      'favorite-1',
+    ]);
+  });
+
+  it('keeps saved ids editable when workflow service access fails', async () => {
+    mocks.getWorkflows.mockRejectedValue(new Error('Unavailable'));
+    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
+    expect(result.current.favorites.hasError).toBe(false);
+    expect(result.current.favorites.items).toEqual([]);
+    expect(result.current.favoriteIds).toEqual(['favorite-1']);
+  });
+
+  it('reports a settings read failure and prevents overwriting unknown favorites', async () => {
+    mocks.settings.mockRejectedValueOnce(new Error('Unavailable'));
+    const { result } = renderHook(() => useWorkflowLibraryHighlights());
+    await waitFor(() => expect(result.current.favorites.isLoading).toBe(false));
+    expect(result.current.favorites.hasError).toBe(true);
+    expect(result.current.favorites.items).toEqual([]);
+    expect(result.current.mostUsed.items).toHaveLength(1);
+    await act(async () =>
+      result.current.toggleFavorite({ ...workflow, nodeCount: 0 }),
+    );
+    expect(mocks.save).not.toHaveBeenCalled();
+  });
+
   it('keeps favorites available when team usage fails', async () => {
     mocks.mostUsed.mockRejectedValue(new Error('Unavailable'));
     const { result } = renderHook(() => useWorkflowLibraryHighlights());

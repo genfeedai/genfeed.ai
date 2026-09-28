@@ -205,7 +205,10 @@ export default function WorkflowLibraryPage() {
       onToggleSelected: () => toggleSelected(workflow.id),
       openHref: getWorkflowHref(workflow.id),
       overflowActions: getOverflowActions(workflow, isSystemWorkflow).filter(
-        (action) => !isReadOnly || action.id === 'favorite',
+        (action) =>
+          !isReadOnly ||
+          (action.id === 'favorite' &&
+            highlights.favoriteIds.includes(workflow.id)),
       ),
       workflow,
     };

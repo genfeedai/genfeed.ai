@@ -55,14 +55,17 @@ export function useWorkflowLibraryHighlights() {
         if (controller.signal.aborted) return;
         const ids = settings.favoriteWorkflowIds ?? [];
         setFavoriteIds(ids);
-        const workflows = await getWorkflows();
-        const items = await Promise.all(
+        const results = await Promise.allSettled(
           ids.map(async (id) => {
+            const workflows = await getWorkflows();
             const workflow = await workflows.get(id);
             return { ...workflow, nodeCount: workflow.nodes.length };
           }),
         );
         if (!controller.signal.aborted) {
+          const items = results.flatMap((result) =>
+            result.status === 'fulfilled' ? [result.value] : [],
+          );
           setFavorites({ items, isLoading: false, hasError: false });
         }
       } catch {
