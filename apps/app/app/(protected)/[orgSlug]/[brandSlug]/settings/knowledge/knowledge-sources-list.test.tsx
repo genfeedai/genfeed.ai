@@ -19,6 +19,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   addSheetSubmit: null as null | ((request: unknown) => Promise<void>),
   archive: vi.fn(),
+  detailArchive: null as null | (() => Promise<void>),
+  detailClose: null as null | (() => void),
   detailRefresh: null as null | (() => Promise<void>),
   loggerError: vi.fn(),
   refreshSource: vi.fn(),
@@ -27,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   notificationSuccess: vi.fn(),
   refresh: vi.fn(),
   retry: vi.fn(),
+  reveal: vi.fn(),
   useKnowledgeLibrary: vi.fn(),
 }));
 
@@ -34,6 +37,10 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+vi.mock('@contexts/ui/context-sidebar-context', () => ({
+  useContextSidebar: () => ({ reveal: mocks.reveal }),
+}));
 
 vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(''),
@@ -93,13 +100,21 @@ vi.mock('./knowledge-add-source-sheet', () => ({
 vi.mock('./knowledge-source-detail-panel', () => ({
   default: ({
     row,
+    onArchive,
+    onClose,
     onRefresh,
   }: {
     row: { source: { id: string; title: string } } | null;
+    onArchive: (source: { id: string; title: string }) => Promise<void>;
+    onClose: () => void;
     onRefresh: (source: { id: string; title: string }) => Promise<void>;
   }) => {
+    mocks.detailArchive = row ? () => onArchive(row.source) : null;
+    mocks.detailClose = row ? onClose : null;
     mocks.detailRefresh = row ? () => onRefresh(row.source) : null;
-    return row ? <div data-testid="detail">{row.source.title}</div> : null;
+    return row ? (
+      <div data-testid="detail">Detail {row.source.title}</div>
+    ) : null;
   },
 }));
 
@@ -149,6 +164,8 @@ describe('KnowledgeSourcesList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.refreshSource.mockReset().mockResolvedValue({});
+    mocks.detailArchive = null;
+    mocks.detailClose = null;
     mocks.detailRefresh = null;
     mocks.refresh.mockResolvedValue(undefined);
     mocks.useKnowledgeLibrary.mockReturnValue({
@@ -368,5 +385,79 @@ describe('KnowledgeSourcesList', () => {
     expect(mocks.notificationSuccess).toHaveBeenCalledWith('Refresh queued');
     expect(mocks.refresh).toHaveBeenCalledOnce();
     expect(mocks.loggerError).not.toHaveBeenCalled();
+  });
+
+  function showSources(ids: string[]) {
+    mocks.useKnowledgeLibrary.mockReturnValue({
+      error: null,
+      isLoading: false,
+      refresh: mocks.refresh,
+      rows: ids.map((id) => row(id, KnowledgeProcessingState.READY)),
+      spaces: [],
+    });
+    renderList();
+  }
+
+  it('deselects the source when its details close', () => {
+    showSources(['a']);
+    fireEvent.click(screen.getByText('Source a'));
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
+
+    act(() => {
+      mocks.detailClose?.();
+    });
+
+    expect(screen.queryByTestId('detail')).toBeNull();
+  });
+
+  it('reopens collapsed details when the selected source is clicked again', () => {
+    showSources(['a', 'b']);
+
+    fireEvent.click(screen.getByText('Source a'));
+    expect(mocks.reveal).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText('Source a'));
+    expect(mocks.reveal).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source a');
+
+    fireEvent.click(screen.getByText('Source b'));
+    expect(mocks.reveal).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
+  });
+
+  it('keeps a newer selection when an earlier archive completes', async () => {
+    let finishArchive: () => void = () => undefined;
+    mocks.archive.mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishArchive = resolve;
+      }),
+    );
+    showSources(['a', 'b']);
+    fireEvent.click(screen.getByText('Source a'));
+
+    let pendingArchive: Promise<void> | undefined;
+    act(() => {
+      pendingArchive = mocks.detailArchive?.();
+    });
+    fireEvent.click(screen.getByText('Source b'));
+    await act(async () => {
+      finishArchive();
+      await pendingArchive;
+    });
+
+    expect(mocks.archive).toHaveBeenCalledWith('a', 'brand-1');
+    expect(screen.getByTestId('detail')).toHaveTextContent('Source b');
+  });
+
+  it('deselects the archived source when it is still selected', async () => {
+    mocks.archive.mockResolvedValue(undefined);
+    showSources(['a']);
+    fireEvent.click(screen.getByText('Source a'));
+
+    await act(async () => {
+      await mocks.detailArchive?.();
+    });
+
+    expect(screen.queryByTestId('detail')).toBeNull();
   });
 });

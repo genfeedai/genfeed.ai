@@ -9,6 +9,7 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import AnalyticsWorkSurfaceAdapter, {
   AnalyticsScopedExportButton,
 } from '@/../app/(protected)/[orgSlug]/[brandSlug]/analytics/_surface/analytics-work-surface-adapter';
@@ -16,11 +17,12 @@ import AnalyticsWorkSurfaceAdapter, {
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
   const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
     useAnalyticsContext();
+  const translate = useTranslations('pages.analytics.layout');
 
   return (
     <Container
-      label="Organization Analytics"
-      description="Aggregate analytics across all brands"
+      label={translate('organization.title')}
+      description={translate('organization.description')}
       icon={ChartColumn}
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -36,8 +38,8 @@ function OrgAnalyticsLayoutContent({ children }: LayoutProps) {
       }
     >
       <ErrorBoundary
-        title="Analytics Error"
-        description="Failed to load organization analytics."
+        title={translate('errorTitle')}
+        description={translate('organization.errorDescription')}
       >
         {children}
       </ErrorBoundary>

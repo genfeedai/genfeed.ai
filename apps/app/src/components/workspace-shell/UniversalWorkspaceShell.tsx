@@ -1042,13 +1042,9 @@ function UniversalWorkspaceShellContent({
       inspectorScope: conversationScope.inspectorScope,
     },
     route: {
-      activeThreadContextVersion: activeThread?.contextVersion,
-      effectiveThreadId,
       fullConversationHref,
       isAgentRoute,
       isOverlayState: state === 'overlay',
-      rawPathname,
-      searchParamsString,
     },
   };
 

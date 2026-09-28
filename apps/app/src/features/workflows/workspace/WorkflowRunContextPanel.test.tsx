@@ -73,14 +73,26 @@ function ShellProbe() {
   );
 }
 
-function renderPanel() {
-  return render(
+function panelTree() {
+  return (
     <ContextSidebarProvider>
       <ShellProbe />
       <ContextSidebarOutlet testId="context-sidebar-outlet" />
       <WorkflowRunContextPanel />
-    </ContextSidebarProvider>,
+    </ContextSidebarProvider>
   );
+}
+
+function renderPanel() {
+  const view = render(panelTree());
+
+  return {
+    ...view,
+    navigateTo: (pathname: string) => {
+      navigation.pathname = pathname;
+      view.rerender(panelTree());
+    },
+  };
 }
 
 describe('WorkflowRunContextPanel', () => {
@@ -122,6 +134,31 @@ describe('WorkflowRunContextPanel', () => {
   it('registers nothing on list routes', () => {
     navigation.pathname = '/acme/moonrise/automation/workflows';
     renderPanel();
+
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('none');
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+  });
+
+  it('follows navigation between workflows and clears on the list', () => {
+    const { navigateTo } = renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle sidebar' }));
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent(
+      'Workflow:open',
+    );
+
+    navigateTo('/acme/moonrise/automation/workflows/workflow-2');
+
+    // A different workflow is a new selection: it starts closed again.
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent(
+      'Workflow:closed',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle sidebar' }));
+    expect(screen.getByText('Workflow surface inspector')).toHaveAttribute(
+      'data-inspector-pathname',
+      '/acme/moonrise/automation/workflows/workflow-2',
+    );
+
+    navigateTo('/acme/moonrise/automation/workflows');
 
     expect(screen.getByTestId('sidebar-state')).toHaveTextContent('none');
     expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();

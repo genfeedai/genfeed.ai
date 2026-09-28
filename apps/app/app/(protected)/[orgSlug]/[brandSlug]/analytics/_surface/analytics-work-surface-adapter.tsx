@@ -257,6 +257,7 @@ function AnalyticsWorkSurfaceBridge({
   const { brands, organizationId } = useBrand();
   const { brandSlug, orgSlug } = useOrgUrl();
   const { openExport } = useExportModal();
+  const translateExport = useTranslations('pages.analytics.scopedExport');
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
   );
@@ -357,13 +358,13 @@ function AnalyticsWorkSurfaceBridge({
           startDate: queryReference.dateRange.startDate,
         });
         downloadAnalyticsExport(data, format);
-        NotificationsService.getInstance().success('Scoped analytics exported');
+        NotificationsService.getInstance().success(translateExport('success'));
       } catch (error) {
         logger.error('Scoped analytics export failed', { error });
-        NotificationsService.getInstance().error('Analytics export');
+        NotificationsService.getInstance().error(translateExport('error'));
       }
     },
-    [getAnalyticsService, queryReference],
+    [getAnalyticsService, queryReference, translateExport],
   );
   const handleOpenExport = useCallback(() => {
     openExport({ onExport: handleExport });

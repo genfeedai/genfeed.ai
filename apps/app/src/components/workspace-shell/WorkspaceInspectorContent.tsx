@@ -63,13 +63,9 @@ type WorkspaceInspectorChromeModel = {
 };
 
 type WorkspaceInspectorRoute = {
-  readonly activeThreadContextVersion?: number;
-  readonly effectiveThreadId: string | null;
   readonly fullConversationHref: string;
   readonly isAgentRoute: boolean;
   readonly isOverlayState: boolean;
-  readonly rawPathname: string;
-  readonly searchParamsString: string;
 };
 
 type WorkspaceInspectorContentProps = {
@@ -92,7 +88,6 @@ type WorkspaceInspectorContextPaneProps = {
   readonly agentPanelSlot?: ReactNode;
   readonly bodyKind: WorkspaceInspectorBodyKind;
   readonly effectiveSurfaceAdapter: AnalyticsWorkspaceSurfaceAdapterState | null;
-  readonly effectiveThreadId: string | null;
   readonly inspectorBreadcrumbLabel: string;
   readonly inspectorScope: ReactNode;
   readonly isAgentOwned: boolean;
@@ -102,11 +97,8 @@ type WorkspaceInspectorContextPaneProps = {
   readonly onReturnToConversation: () => void;
   readonly paneKind: WorkspaceInspectorPaneKind;
   readonly productSurfaceAdapter: ProductWorkspaceSurfaceAdapter | null;
-  readonly rawPathname: string;
-  readonly searchParamsString: string;
   readonly showOverlayPreview: boolean;
   readonly surfacePresentationAdapter: WorkspaceSurfacePresentationAdapter | null;
-  readonly threadContextVersion?: number;
   readonly workspaceSurfaceAdapter: ActiveWorkspaceSurfaceAdapter | null;
 };
 
@@ -412,18 +404,14 @@ function WorkspaceInspectorContextPane(
       <WorkspaceInspectorWorkspaceBody
         bodyKind={props.bodyKind}
         effectiveSurfaceAdapter={props.effectiveSurfaceAdapter}
-        effectiveThreadId={props.effectiveThreadId}
         inspectorBreadcrumbLabel={props.inspectorBreadcrumbLabel}
         inspectorScope={props.inspectorScope}
         onOpenOverlay={props.onOpenOverlay}
         onOpenWorkflowPicker={props.onOpenWorkflowPicker}
         onReturnToConversation={props.onReturnToConversation}
         paneKind={props.paneKind}
-        rawPathname={props.rawPathname}
-        searchParamsString={props.searchParamsString}
         showOverlayPreview={props.showOverlayPreview}
         surfacePresentationAdapter={props.surfacePresentationAdapter}
-        threadContextVersion={props.threadContextVersion}
         workspaceSurfaceAdapter={props.workspaceSurfaceAdapter}
       />
     </div>
@@ -467,7 +455,6 @@ function WorkspaceInspectorContent({
       agentPanelSlot={agentPanelSlot}
       bodyKind={bodyKind}
       effectiveSurfaceAdapter={adapters.effectiveSurfaceAdapter}
-      effectiveThreadId={route.effectiveThreadId}
       inspectorBreadcrumbLabel={chrome.inspectorBreadcrumbLabel}
       inspectorScope={chrome.inspectorScope}
       isAgentOwned={isAgentOwned}
@@ -477,11 +464,8 @@ function WorkspaceInspectorContent({
       onReturnToConversation={actions.onReturnToConversation}
       paneKind={paneKind}
       productSurfaceAdapter={adapters.productSurfaceAdapter}
-      rawPathname={route.rawPathname}
-      searchParamsString={route.searchParamsString}
       showOverlayPreview={showOverlayPreview}
       surfacePresentationAdapter={adapters.surfacePresentationAdapter}
-      threadContextVersion={route.activeThreadContextVersion}
       workspaceSurfaceAdapter={adapters.workspaceSurfaceAdapter}
     />
   );

@@ -9,6 +9,7 @@ import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
 import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { ChartColumn } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import AnalyticsWorkSurfaceAdapter, {
   AnalyticsScopedExportButton,
@@ -17,11 +18,12 @@ import AnalyticsWorkSurfaceAdapter, {
 function AnalyticsLayoutContent({ children }: LayoutProps) {
   const { dateRange, setDateRange, toolbarNode, triggerRefresh, isRefreshing } =
     useAnalyticsContext();
+  const translate = useTranslations('pages.analytics.layout');
 
   return (
     <Container
-      label="Analytics"
-      description="Track your brand performance, content analytics, and growth metrics"
+      label={translate('brand.title')}
+      description={translate('brand.description')}
       icon={ChartColumn}
       right={
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -37,8 +39,8 @@ function AnalyticsLayoutContent({ children }: LayoutProps) {
       }
     >
       <ErrorBoundary
-        title="Analytics Error"
-        description="Failed to load analytics."
+        title={translate('errorTitle')}
+        description={translate('brand.errorDescription')}
       >
         {children}
       </ErrorBoundary>
