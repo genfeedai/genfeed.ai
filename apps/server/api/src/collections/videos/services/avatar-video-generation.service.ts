@@ -92,6 +92,8 @@ interface ResolvedAudioSource {
   audioDuration: number;
   audioUrl?: string;
   heygenVoiceId?: string;
+  /** Speech synthesized on Genfeed's ElevenLabs key, so the run is billable even with HeyGen BYOK. */
+  isPlatformFundedSpeech?: boolean;
 }
 
 @Injectable()
@@ -179,7 +181,7 @@ export class AvatarVideoGenerationService {
         params.text,
         context.organizationId,
       );
-      const { audioDuration, audioUrl, heygenVoiceId } =
+      const { audioDuration, audioUrl, heygenVoiceId, isPlatformFundedSpeech } =
         await this.resolveAudioSource(params, context, materializedIdentity);
 
       const heygenByokKey = await this.byokService.resolveApiKey(
@@ -208,7 +210,9 @@ export class AvatarVideoGenerationService {
         }),
       );
 
-      if (!heygenByokKey && !placeholderScope?.settleCreditsExternally) {
+      const isFullyByokFunded =
+        Boolean(heygenByokKey) && !isPlatformFundedSpeech;
+      if (!isFullyByokFunded && !placeholderScope?.settleCreditsExternally) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
           context.userId,
@@ -600,6 +604,7 @@ export class AvatarVideoGenerationService {
       return {
         audioDuration: audioResult.duration,
         audioUrl: audioResult.audioUrl,
+        isPlatformFundedSpeech: !elevenLabsByokKey,
       };
     }
 

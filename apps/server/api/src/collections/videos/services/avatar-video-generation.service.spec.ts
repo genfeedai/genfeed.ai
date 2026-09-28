@@ -2,7 +2,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { VoiceProvider } from '@genfeedai/contracts';
+import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -200,6 +200,38 @@ describe('AvatarVideoGenerationService', () => {
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
       ).toHaveBeenCalledTimes(isByok ? 0 : 1);
+    },
+  );
+
+  it.each([
+    [false, 1],
+    [true, 0],
+  ])(
+    'with HeyGen BYOK, charges for ElevenLabs speech unless that is BYOK too (ElevenLabs BYOK: %s)',
+    async (isElevenLabsByok, expectedDeductions) => {
+      const { service, brandsService, byokService, creditsUtilsService } =
+        createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      byokService.resolveApiKey.mockImplementation(
+        async (_organizationId: string, provider: ByokProvider) =>
+          provider === ByokProvider.HEYGEN || isElevenLabsByok
+            ? { apiKey: `${provider}-byok-test-key` }
+            : null,
+      );
+      await service.generateAvatarVideo(
+        {
+          elevenlabsVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Founder update',
+        },
+        context,
+      );
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(expectedDeductions);
     },
   );
 
