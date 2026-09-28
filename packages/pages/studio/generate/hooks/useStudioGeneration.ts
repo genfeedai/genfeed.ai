@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type {
   IModel,
   KnowledgeSelection,
@@ -67,11 +67,12 @@ export interface UseStudioGenerationReturn {
   jobs: readonly StudioGenerateJob[];
   rehydratePending: (jobs: readonly StudioGenerateJob[]) => void;
   removeJob: (id: string) => void;
+  /** Resolves `true` once the provider accepted the request. */
   submit: (
     promptText: string,
     references?: StudioGenerationReferences,
     options?: StudioGenerationOptions,
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 }
 
 export interface StudioGenerationOptions {
@@ -205,7 +206,14 @@ export function useStudioGeneration({
   }, []);
 
   const resolveFetchService = useCallback(
-    async (jobType: StudioGenerateType): Promise<AssetQueryService> => {
+    async (
+      jobType: StudioGenerateType,
+      category?: IngredientCategory,
+    ): Promise<AssetQueryService> => {
+      // A GIF renders as an image card, but `/images/:id` only serves images.
+      if (category === IngredientCategory.GIF) {
+        return await getIngredientsService();
+      }
       switch (jobType) {
         case 'image':
           return await getImagesService();
@@ -453,7 +461,10 @@ export function useStudioGeneration({
         for (const job of pending) {
           if (controller.signal.aborted) return;
           try {
-            const service = await resolveFetchService(job.type);
+            const service = await resolveFetchService(
+              job.type,
+              job.ingredient?.category,
+            );
             const ingredient = await service.findOne(
               job.ingredientId ?? job.id,
               undefined,
@@ -519,12 +530,12 @@ export function useStudioGeneration({
       options?: StudioGenerationOptions,
     ) => {
       if (submittingRef.current) {
-        return;
+        return false;
       }
 
       if (!brandId) {
         notificationsService.error('Please set up a brand before generating');
-        return;
+        return false;
       }
 
       const config = getStudioGenerateTypeConfig(type);
@@ -542,7 +553,7 @@ export function useStudioGeneration({
             ? 'A prompt or a script is required'
             : 'Prompt is required',
         );
-        return;
+        return false;
       }
 
       if (
@@ -554,7 +565,7 @@ export function useStudioGeneration({
             ? 'Pick an avatar before generating'
             : 'Pick a voice before generating',
         );
-        return;
+        return false;
       }
 
       const modelKey = resolveModelKey(
@@ -576,6 +587,7 @@ export function useStudioGeneration({
         type,
       };
 
+      let isAccepted = false;
       submittingRef.current = true;
       setIsGenerating(true);
       setJobs((previous) => [
@@ -621,6 +633,7 @@ export function useStudioGeneration({
             );
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
             break;
           }
 
@@ -651,6 +664,7 @@ export function useStudioGeneration({
             );
             const data = (await service.post(payload)) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
             break;
           }
 
@@ -677,6 +691,7 @@ export function useStudioGeneration({
               payload as Parameters<MusicsService['post']>[0],
             )) as GenerationResponse;
             trackPendingIds(resolvePendingIds(data), pendingContext);
+            isAccepted = true;
             break;
           }
 
@@ -695,6 +710,7 @@ export function useStudioGeneration({
               voiceId: settings.voiceId,
             });
             trackPendingIds([resolveJsonApiIngredientId(data)], pendingContext);
+            isAccepted = true;
             break;
           }
 
@@ -713,7 +729,7 @@ export function useStudioGeneration({
               voiceId: settings.voiceId,
             });
 
-            if (activeBrandRef.current !== brandId) return;
+            if (activeBrandRef.current !== brandId) return false;
             setJobs((previous) => [
               {
                 createdAt: Date.now(),
@@ -731,6 +747,7 @@ export function useStudioGeneration({
               ...previous.filter((job) => job.runId !== runId),
             ]);
             onGeneratedRef.current?.();
+            isAccepted = true;
             break;
           }
 
@@ -738,7 +755,7 @@ export function useStudioGeneration({
             logger.error(`Unsupported Studio generation type: ${type}`);
         }
       } catch (error) {
-        if (activeBrandRef.current !== brandId) return;
+        if (activeBrandRef.current !== brandId) return false;
         logger.error('Studio generation failed', error);
         const message = toErrorMessage(
           error,
@@ -767,6 +784,8 @@ export function useStudioGeneration({
         submittingRef.current = false;
         setIsGenerating(false);
       }
+
+      return isAccepted;
     },
     [
       brandId,

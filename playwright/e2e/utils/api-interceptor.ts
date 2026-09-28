@@ -2230,6 +2230,31 @@ export async function setupApiMocks(
     });
   });
 
+  // Studio's composer draft is one resource per user and brand. No saved
+  // draft is `data: null` (the collection fallback's `[]` is not a draft);
+  // a save answers with the stored payload.
+  await routeApi('/studio-generate-drafts/**', async (r) => {
+    if (r.request().method() === 'GET') {
+      await r.fulfill({
+        body: JSON.stringify({ data: null }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+    await r.fulfill({
+      body: JSON.stringify(
+        wrapInJsonApi(
+          { ...(r.request().postDataJSON() ?? {}), droppedReferenceIds: [] },
+          'studio-generate-draft',
+          'mock-studio-generate-draft',
+        ),
+      ),
+      contentType: 'application/json',
+      status: 200,
+    });
+  });
+
   await page.route('**/api/creative-patterns**', async (r) => {
     await r.fulfill({
       body: JSON.stringify({

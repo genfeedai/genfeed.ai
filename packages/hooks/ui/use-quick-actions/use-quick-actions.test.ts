@@ -65,6 +65,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createMoreOptionsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('more-options', 'More', false) : null,
   ),
+  createOpenInEditorAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('open-in-editor', 'Open in Editor') : null,
+  ),
   createPortraitAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('portrait', 'Portrait') : null,
   ),
@@ -73,6 +76,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   ),
   createPublishAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('publish', 'Publish') : null,
+  ),
+  createResizeAction: vi.fn((_ingredient, format, handler) =>
+    handler ? createAction(`resize-${format}`, `Resize to ${format}`) : null,
   ),
   createReverseAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('reverse', 'Reverse') : null,
@@ -270,6 +276,67 @@ describe('useQuickActions', () => {
       'trim',
       'captions',
     ]);
+  });
+
+  it('offers Open in Editor and resize to every other format on videos when opted in', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: {
+          ...mockHandlers,
+          onOpenInEditor: vi.fn(),
+          onResize: vi.fn(),
+        },
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+          ingredientFormat: IngredientFormat.PORTRAIT,
+        }),
+      }),
+    );
+
+    const ids = result.current.menuActions.map((action) => action.id);
+    expect(ids).toContain('open-in-editor');
+    expect(ids).toEqual(
+      expect.arrayContaining(['resize-square', 'resize-landscape']),
+    );
+    expect(ids).not.toContain('resize-portrait');
+  });
+
+  it('leaves Open in Editor and resize off surfaces that do not opt in', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: mockHandlers,
+        isVideo: true,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient({
+          category: IngredientCategory.VIDEO,
+        }),
+      }),
+    );
+
+    const ids = result.current.actions.map((action) => action.id);
+    expect(ids).not.toContain('open-in-editor');
+    expect(ids.some((id) => id.startsWith('resize-'))).toBe(false);
+  });
+
+  it('never offers video resize on images', () => {
+    const { result } = renderHook(() =>
+      useQuickActions({
+        handlers: {
+          ...mockHandlers,
+          onOpenInEditor: vi.fn(),
+          onResize: vi.fn(),
+        },
+        isVideo: false,
+        loadingStates: mockLoadingStates,
+        selectedIngredient: createMockIngredient(),
+      }),
+    );
+
+    const ids = result.current.actions.map((action) => action.id);
+    expect(ids).not.toContain('open-in-editor');
+    expect(ids.some((id) => id.startsWith('resize-'))).toBe(false);
   });
 
   it('uses processing-safe primary actions', () => {

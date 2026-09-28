@@ -26,9 +26,11 @@ import {
   createMarkValidatedAction,
   createMirrorAction,
   createMoreOptionsAction,
+  createOpenInEditorAction,
   createPortraitAction,
   createPromptAction,
   createPublishAction,
+  createResizeAction,
   createReverseAction,
   createSeeDetailsAction,
   createSetAsBannerAction,
@@ -60,6 +62,12 @@ export interface UseQuickActionsParams {
   hasStatusControl?: boolean;
 }
 
+const RESIZE_FORMATS: readonly IngredientFormat[] = [
+  IngredientFormat.PORTRAIT,
+  IngredientFormat.SQUARE,
+  IngredientFormat.LANDSCAPE,
+];
+
 const MENU_SECTION_ORDER: MenuSection[] = [
   'Transform',
   'Branding',
@@ -76,6 +84,9 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   'convert-to-video': 'Transform',
   'copy-prompt': 'Library',
   remix: 'Transform',
+  'resize-landscape': 'Transform',
+  'resize-portrait': 'Transform',
+  'resize-square': 'Transform',
   delete: 'Danger',
   download: 'Library',
   edit: 'Library',
@@ -86,6 +97,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   'mark-rejected': 'Review',
   'mark-validated': 'Review',
   'manage-tags': 'Library',
+  'open-in-editor': 'Library',
   mirror: 'Transform',
   portrait: 'Transform',
   prompt: 'Library',
@@ -318,6 +330,17 @@ export function useQuickActions({
           selectedIngredient,
           handlers.onConvertToGif,
           loadingStates.isConverting,
+        ),
+        createOpenInEditorAction(selectedIngredient, handlers.onOpenInEditor),
+        ...RESIZE_FORMATS.filter(
+          (format) => format !== selectedIngredient.ingredientFormat,
+        ).map((format) =>
+          createResizeAction(
+            selectedIngredient,
+            format,
+            handlers.onResize,
+            loadingStates.isResizing,
+          ),
         ),
       );
     } else {

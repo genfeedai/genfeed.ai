@@ -6,6 +6,7 @@ import type {
   RouterPriority,
 } from '../..';
 import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
+import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
 
 export type StudioLookAssetType = 'image' | 'video';
 
@@ -234,6 +235,11 @@ export interface StudioGenerateJob {
    */
   ingredientId?: string;
   modelKey?: string;
+  /**
+   * Source ingredient a transformation (extend, upscale, reframe, resize,
+   * GIF) was produced from. Absent on first-generation outputs.
+   */
+  parentId?: string;
   prompt: string;
   /**
    * Enriched prompt payload stamped at submit. Survives session rehydrate so
@@ -270,3 +276,52 @@ export interface StudioGenerateAssetFacts {
   durationSeconds?: number;
   modelLabel?: string;
 }
+
+/** How a composer reference feeds the generation request. */
+export type StudioGenerateReferenceRole =
+  | 'reference'
+  | 'startFrame'
+  | 'endFrame'
+  | 'videoReference';
+
+/** One Library asset the composer draft points at, with its role. */
+export interface StudioGenerateDraftReference {
+  id: string;
+  role: StudioGenerateReferenceRole;
+}
+
+/**
+ * The Generate composer as it is autosaved per user and brand. Settings are
+ * stored per asset type so switching Image → Video restores both setups on
+ * another device; `attachments` are composer uploads, already Library assets.
+ */
+export interface StudioGenerateDraftPayload {
+  attachments: StudioGenerateDraftReference[];
+  knowledgeSelection: KnowledgeSelection;
+  prompt: string;
+  references: StudioGenerateDraftReference[];
+  settingsByType: Partial<
+    Record<StudioGenerateType, Partial<StudioGenerateSettings>>
+  >;
+  type: StudioGenerateType;
+}
+
+export interface IStudioGenerateDraft
+  extends StudioGenerateDraftPayload,
+    IBaseEntity {
+  brandId: string;
+  /**
+   * Reference and attachment ids removed from this response because the
+   * asset was deleted or is outside the draft's organization and brand.
+   */
+  droppedReferenceIds: string[];
+  organizationId: string;
+  userId: string;
+}
+
+/** Autosave state of the composer draft, shown next to the prompt bar. */
+export type StudioGenerateDraftSaveStatus =
+  | 'idle'
+  | 'saving'
+  | 'saved'
+  | 'error';

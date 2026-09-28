@@ -707,6 +707,7 @@ model User {
   contentVersionPins        ContentVersionPin[]
   publishApprovals          PublishApproval[]
   studioLooks               StudioLook[]
+  studioGenerateDrafts      StudioGenerateDraft[]
   savedAds                  SavedAd[]
   billingAccountMembers     BillingAccountMember[]
   referralCodes             ReferralCode[]
@@ -904,6 +905,7 @@ model Organization {
   contentVersionPins            ContentVersionPin[]
   publishApprovals              PublishApproval[]
   studioLooks                   StudioLook[]
+  studioGenerateDrafts          StudioGenerateDraft[]
 
   @@index([isDefault])
   @@index([category])
@@ -1084,6 +1086,7 @@ model Brand {
   bots                       Bot[]
   livestreamBotSessions      LivestreamBotSession[]
   studioLooks                StudioLook[]
+  studioGenerateDrafts       StudioGenerateDraft[]
   ownedSkills                Skill[]                      @relation("skill_owner_brand")
   receivedSkillGrants        SkillGrant[]                 @relation("skill_grant_recipient_brand")
   skillAssignments           SkillAssignment[]            @relation("skill_assignment_brand")
@@ -1277,6 +1280,31 @@ model StudioLook {
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "studio_looks_scope_created_idx")
   @@map("studio_looks")
+}
+
+/// One autosaved Generate composer per user and brand (#5465). Settings,
+/// reference ids and the Knowledge pick are opaque JSON validated by the API;
+/// referenced ingredients are re-checked against the brand on every read.
+model StudioGenerateDraft {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  brandId            String
+  brand              Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId             String
+  user               User         @relation(fields: [userId], references: [id])
+  type               String
+  prompt             String       @default("")
+  settingsByType     Json         @default("{}")
+  references         Json         @default("[]")
+  attachments        Json         @default("[]")
+  knowledgeSelection Json         @default("{}")
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([organizationId, brandId, userId], map: "studio_generate_drafts_scope_key")
+  @@map("studio_generate_drafts")
 }
 
 /// Durable research-only creative snapshot saved from Discovery → Ads.

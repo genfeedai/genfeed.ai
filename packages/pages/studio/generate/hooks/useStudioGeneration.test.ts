@@ -221,10 +221,17 @@ describe('useStudioGeneration request payloads', () => {
     'forwards a per-request override to %s without making it sticky',
     async (type) => {
       const { result } = renderStudioGeneration({ type });
+      let isAccepted: boolean | undefined;
       await act(async () => {
-        await result.current.submit('Reviewed result', {}, { harness: false });
+        isAccepted = await result.current.submit(
+          'Reviewed result',
+          {},
+          { harness: false },
+        );
       });
       const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      // Accepted by the provider: the composer may clear its draft.
+      expect(isAccepted).toBe(true);
       expect(post.mock.calls[0]?.[0]).toMatchObject({ harness: false });
       await act(async () => {
         await result.current.submit('Other prompt');
@@ -574,11 +581,14 @@ describe('useStudioGeneration failures', () => {
     // retyping the prompt.
     mockImagesPost.mockRejectedValue(new Error('Insufficient credits'));
     const { result } = renderStudioGeneration();
+    let isAccepted: boolean | undefined;
 
     await act(async () => {
-      await result.current.submit('A founder at a desk');
+      isAccepted = await result.current.submit('A founder at a desk');
     });
 
+    // The composer keeps the prompt so the operator can retry it.
+    expect(isAccepted).toBe(false);
     expect(result.current.jobs).toHaveLength(1);
     expect(result.current.jobs[0]).toMatchObject({
       error: 'Insufficient credits',
@@ -625,11 +635,13 @@ describe('useStudioGeneration failures', () => {
 
   it('refuses to submit an empty prompt', async () => {
     const { result } = renderStudioGeneration();
+    let isAccepted: boolean | undefined;
 
     await act(async () => {
-      await result.current.submit('   ');
+      isAccepted = await result.current.submit('   ');
     });
 
+    expect(isAccepted).toBe(false);
     expect(mockImagesPost).not.toHaveBeenCalled();
     expect(mockNotificationsError).toHaveBeenCalledWith('Prompt is required');
   });

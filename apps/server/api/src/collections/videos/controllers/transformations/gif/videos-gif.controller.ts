@@ -50,7 +50,11 @@ export class VideosGifController {
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
   ) {
-    const video = await this.videosService.findOne({ id: videoId });
+    const video = await this.videosService.findOne({
+      id: videoId,
+      isDeleted: false,
+      organizationId: user.organizationId,
+    });
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
     }
@@ -63,11 +67,15 @@ export class VideosGifController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.createMediaDocuments(user, {
+        // The GIF belongs with its source video, so it lands in that brand's
+        // Library and Generate gallery linked back to it.
+        brandId: video.brandId ?? user.brandId,
         category: IngredientCategory.GIF,
         extension: MetadataExtension.GIF,
         externalId: jobResponse.jobId,
         externalProvider: 'video-to-gif',
         label: generateLabel(),
+        parentId: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });

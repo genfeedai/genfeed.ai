@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { IngredientFormat } from '../..';
 import type { IIngredient } from '../index';
 
 export interface IActionHandlers {
@@ -47,6 +48,8 @@ export interface IActionHandlers {
   onSetAsLogo?: (ingredient: IIngredient) => void;
   onSetAsBanner?: (ingredient: IIngredient) => void;
   onManageTags?: (ingredient: IIngredient) => void;
+  onOpenInEditor?: (ingredient: IIngredient) => void;
+  onResize?: (ingredient: IIngredient, format: IngredientFormat) => void;
 }
 
 export type TooltipPositionType = 'top' | 'bottom' | 'left' | 'right';
@@ -101,4 +104,5 @@ export interface ILoadingStates {
   isMarkingRejected?: boolean;
   isSettingAsLogo?: boolean;
   isSettingAsBanner?: boolean;
+  isResizing?: boolean;
 }

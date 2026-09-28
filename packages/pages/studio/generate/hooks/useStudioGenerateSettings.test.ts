@@ -1,7 +1,13 @@
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { STUDIO_GENERATE_STORAGE_KEY } from '@pages/studio/generate/utils/studio-generate-storage';
+import {
+  getDefaultStudioGenerateState,
+  STUDIO_GENERATE_STORAGE_KEY,
+} from '@pages/studio/generate/utils/studio-generate-storage';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { useGenerationSetupStore } from '@ui/dropdowns/generation-setup/generation-setup.store';
+import {
+  buildStudioGenerationSetupScope,
+  useGenerationSetupStore,
+} from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useStudioGenerateSettings } from './useStudioGenerateSettings';
 
@@ -100,5 +106,40 @@ describe('useStudioGenerateSettings', () => {
       instrumental: undefined,
       lyrics: undefined,
     });
+  });
+
+  it('restores a saved draft for every type and reports all types back', async () => {
+    const { result } = renderHook(() => useStudioGenerateSettings());
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    const saved = getDefaultStudioGenerateState();
+
+    act(() =>
+      result.current.restoreSettings({
+        settingsByType: {
+          ...saved.settingsByType,
+          image: {
+            ...saved.settingsByType.image,
+            aspectRatio: '16:9',
+            blacklist: ['blurry'],
+          },
+          video: { ...saved.settingsByType.video, aspectRatio: '9:16' },
+        },
+        type: 'video',
+      }),
+    );
+
+    expect(result.current.type).toBe('video');
+    expect(result.current.settings.aspectRatio).toBe('9:16');
+    expect(result.current.settingsByType.image).toMatchObject({
+      aspectRatio: '16:9',
+      blacklist: ['blurry'],
+    });
+    // Unchanged fields stay default-owned so recommendations still apply.
+    const imageSetup =
+      useGenerationSetupStore.getState().setupByScope[
+        buildStudioGenerationSetupScope('image')
+      ];
+    expect(imageSetup?.sources.aspectRatio).toBe('user');
+    expect(imageSetup?.sources.outputs).toBeUndefined();
   });
 });

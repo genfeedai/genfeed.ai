@@ -1,4 +1,4 @@
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   IActionHandlers,
@@ -8,6 +8,7 @@ import {
   Archive,
   ArrowLeftRight,
   CircleCheck,
+  Clapperboard,
   Clipboard,
   Copy,
   Download,
@@ -24,6 +25,7 @@ import {
   RectangleHorizontal,
   RectangleVertical,
   RefreshCw,
+  Scaling,
   Scissors,
   Share2,
   Sparkles,
@@ -425,6 +427,52 @@ export const createGifAction = (
     },
     isLoading,
   );
+
+export const createOpenInEditorAction = (
+  ingredient: IIngredient,
+  handler?: IActionHandlers['onOpenInEditor'],
+): IQuickAction | null =>
+  createStandardAction(ingredient, handler, {
+    icon: <Clapperboard className={ICON_CLASS} />,
+    id: 'open-in-editor',
+    label: 'Open in Editor',
+    showInMenu: true,
+    tooltip: 'Open in the Studio editor',
+    tooltipPosition: 'top',
+  });
+
+const RESIZE_FORMAT_LABELS: Record<IngredientFormat, string> = {
+  [IngredientFormat.LANDSCAPE]: 'Landscape',
+  [IngredientFormat.PORTRAIT]: 'Portrait',
+  [IngredientFormat.SQUARE]: 'Square',
+};
+
+/**
+ * Rescales to the target format's dimensions. Distinct from the Reframe
+ * actions, which re-compose the shot with an AI model.
+ */
+export const createResizeAction = (
+  ingredient: IIngredient,
+  format: IngredientFormat,
+  handler?: IActionHandlers['onResize'],
+  isLoading?: boolean,
+): IQuickAction | null => {
+  if (!handler) {
+    return null;
+  }
+
+  const formatLabel = RESIZE_FORMAT_LABELS[format];
+  return {
+    icon: <Scaling className={ICON_CLASS} />,
+    id: `resize-${format}`,
+    isLoading,
+    label: `Resize to ${formatLabel}`,
+    onClick: () => handler(ingredient, format),
+    showInMenu: true,
+    tooltip: `Resize to ${formatLabel}`,
+    tooltipPosition: 'top',
+  };
+};
 
 export const createVideoAction = (
   ingredient: IIngredient,

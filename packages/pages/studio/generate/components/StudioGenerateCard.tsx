@@ -25,7 +25,13 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { AlertTriangle, ImageOff, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  AlertTriangle,
+  GitBranch,
+  ImageOff,
+  RotateCcw,
+  Trash2,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type MouseEvent,
@@ -111,6 +117,7 @@ export default function StudioGenerateCard({
   job,
   onReprompt,
   onSelect,
+  parentJob,
   view,
 }: StudioGenerateCardProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
@@ -167,6 +174,28 @@ export default function StudioGenerateCard({
     [job, onSelect],
   );
 
+  // Transformations (extend, upscale, reframe, resize, GIF) point back at the
+  // asset they came from; the link selects that card's inspector.
+  function renderSourceAction(className: string): ReactElement | null {
+    if (!parentJob) {
+      return null;
+    }
+
+    return (
+      <Button
+        ariaLabel={translate('sourceAssetAria', { type: label.toLowerCase() })}
+        className={className}
+        data-testid={`studio-asset-source-${job.id}`}
+        icon={<GitBranch className="size-3.5" />}
+        label={translate('sourceAsset')}
+        onClick={() => onSelect(parentJob)}
+        size={ButtonSize.SM}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  }
+
   function renderDetails(showLifecycleActions = false): ReactElement {
     return (
       <div
@@ -195,9 +224,10 @@ export default function StudioGenerateCard({
           {job.prompt}
         </p>
 
-        {showLifecycleActions ? (
+        {showLifecycleActions || parentJob ? (
           <div className="flex items-center gap-1 border-t border-border pt-2">
-            {isFailed ? (
+            {renderSourceAction('px-2 text-xs')}
+            {showLifecycleActions && isFailed ? (
               <Button
                 ariaLabel={translate('removeGenerationAria', {
                   prompt: job.prompt || job.id,
@@ -212,19 +242,21 @@ export default function StudioGenerateCard({
                 withWrapper={false}
               />
             ) : null}
-            <Button
-              ariaLabel={translate('repromptGenerationAria', {
-                prompt: job.prompt || job.id,
-                type: label,
-              })}
-              className="px-2 text-xs"
-              icon={<RotateCcw className="size-3.5" />}
-              label={translate('reprompt')}
-              onClick={() => onReprompt(job)}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
+            {showLifecycleActions ? (
+              <Button
+                ariaLabel={translate('repromptGenerationAria', {
+                  prompt: job.prompt || job.id,
+                  type: label,
+                })}
+                className="px-2 text-xs"
+                icon={<RotateCcw className="size-3.5" />}
+                label={translate('reprompt')}
+                onClick={() => onReprompt(job)}
+                size={ButtonSize.SM}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -235,9 +267,12 @@ export default function StudioGenerateCard({
     return (
       <AssetHoverDetails
         actions={
-          showLifecycleActions ? (
+          showLifecycleActions || parentJob ? (
             <>
-              {isFailed ? (
+              {renderSourceAction(
+                'h-auto px-2 text-xs text-foreground/75 hover:text-foreground',
+              )}
+              {showLifecycleActions && isFailed ? (
                 <Button
                   ariaLabel={translate('removeGenerationAria', {
                     prompt: job.prompt || job.id,
@@ -252,19 +287,21 @@ export default function StudioGenerateCard({
                   withWrapper={false}
                 />
               ) : null}
-              <Button
-                ariaLabel={translate('repromptGenerationAria', {
-                  prompt: job.prompt || job.id,
-                  type: label,
-                })}
-                className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
-                icon={<RotateCcw className="size-3.5" />}
-                label={translate('reprompt')}
-                onClick={() => onReprompt(job)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
-              />
+              {showLifecycleActions ? (
+                <Button
+                  ariaLabel={translate('repromptGenerationAria', {
+                    prompt: job.prompt || job.id,
+                    type: label,
+                  })}
+                  className="h-auto px-2 text-xs text-foreground/75 hover:text-foreground"
+                  icon={<RotateCcw className="size-3.5" />}
+                  label={translate('reprompt')}
+                  onClick={() => onReprompt(job)}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
+                />
+              ) : null}
             </>
           ) : undefined
         }
@@ -327,6 +364,8 @@ export default function StudioGenerateCard({
               {...sharedProps}
               video={masonryIngredient as IVideo}
               onMediaError={handleMediaError}
+              onOpenInEditor={assetActions.onOpenInEditor}
+              onResize={assetActions.onResize}
             />
           )}
         </div>

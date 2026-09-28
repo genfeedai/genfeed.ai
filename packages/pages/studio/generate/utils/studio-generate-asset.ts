@@ -1,7 +1,4 @@
-import {
-  type IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import type {
   StudioGenerateAssetFacts,
@@ -11,12 +8,14 @@ import type {
 import { resolveAspectRatioFromDimensions } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { listStudioGenerateTypeConfigs } from '@pages/studio/generate/utils/studio-generate-types';
 
-const CATEGORY_TO_TYPE = new Map<IngredientCategory, StudioGenerateType>(
-  listStudioGenerateTypeConfigs().map((config) => [
-    config.ingredientCategory,
-    config.type,
-  ]),
-);
+const CATEGORY_TO_TYPE = new Map<IngredientCategory, StudioGenerateType>([
+  ...listStudioGenerateTypeConfigs().map(
+    (config) => [config.ingredientCategory, config.type] as const,
+  ),
+  // A GIF is produced from a Generate video and renders as an image card,
+  // with the masonry's own GIF eligibility rules.
+  [IngredientCategory.GIF, 'image'],
+]);
 
 export const STUDIO_GENERATE_CATEGORIES: readonly IngredientCategory[] =
   listStudioGenerateTypeConfigs().map((config) => config.ingredientCategory);
@@ -162,6 +161,7 @@ export function toStudioGenerateJob(
     id: String(ingredient.id),
     ingredient,
     ingredientId: String(ingredient.id),
+    parentId: ingredient.parentId ?? undefined,
     modelKey:
       (typeof ingredient.metadata === 'object'
         ? ingredient.metadata?.model

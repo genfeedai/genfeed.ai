@@ -51,6 +51,8 @@ export default function MasonryVideo({
   onMediaError,
   onScopeChange,
   onRefresh,
+  onOpenInEditor,
+  onResize,
   isDragEnabled = true,
   onHoverChange,
 }: MasonryVideoProps) {
@@ -187,6 +189,8 @@ export default function MasonryVideo({
         onRefresh={onRefresh}
         onReverse={onReverse}
         onMirror={onMirror}
+        onOpenInEditor={onOpenInEditor}
+        onResize={onResize}
       />
     </div>
   );

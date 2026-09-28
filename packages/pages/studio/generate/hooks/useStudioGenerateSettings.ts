@@ -5,17 +5,22 @@ import type {
   StudioGenerateSettings,
   StudioGenerateType,
 } from '@pages/studio/generate/types';
-import type { StudioGenerateSettingsByType } from '@pages/studio/generate/utils/studio-generate-storage';
+import type {
+  StudioGeneratePersistedState,
+  StudioGenerateSettingsByType,
+} from '@pages/studio/generate/utils/studio-generate-storage';
 import {
   getDefaultStudioGenerateState,
   readStudioGenerateState,
   writeStudioGenerateState,
 } from '@pages/studio/generate/utils/studio-generate-storage';
+import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-generate-types';
 import {
   generationSetupValuesToStudioSettingsPatch,
   getDefaultGenerationSetupValues,
   seedGenerationSetupFromLegacyStudioSettings,
   splitStudioSettingsPatch,
+  studioSettingsFieldsToGenerationSetupPatch,
 } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   buildStudioGenerationSetupScope,
@@ -33,7 +38,15 @@ export interface UseStudioGenerateSettingsReturn {
   ) => void;
   isHydrated: boolean;
   resetSettings: () => void;
+  /**
+   * Applies a saved draft's setups for every type. Only fields that differ
+   * from the current setup are written, so agent-owned defaults stay agent
+   * owned.
+   */
+  restoreSettings: (state: StudioGeneratePersistedState) => void;
   settings: StudioGenerateSettings;
+  /** Every type's effective settings, for the server-side composer draft. */
+  settingsByType: StudioGenerateSettingsByType;
   setType: (type: StudioGenerateType) => void;
   type: StudioGenerateType;
   updateSettings: (patch: Partial<StudioGenerateSettings>) => void;
@@ -81,7 +94,8 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
   const scope = useMemo(() => buildStudioGenerationSetupScope(type), [type]);
   const defaults = useMemo(() => getDefaultGenerationSetupValues(type), [type]);
 
-  const setup = useGenerationSetupStore((state) => state.setupByScope[scope]);
+  const setupByScope = useGenerationSetupStore((state) => state.setupByScope);
+  const setup = setupByScope[scope];
   const values = normalizeGenerationSetupValues(setup?.values ?? defaults);
 
   // Runs once on mount only: rehydrates the residual local settings and
@@ -110,6 +124,22 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
       ...generationSetupValuesToStudioSettingsPatch(values),
     }),
     [residualByType, type, values],
+  );
+
+  const settingsByType = useMemo(
+    () =>
+      STUDIO_GENERATE_TYPES.reduce((accumulator, settingsType) => {
+        const typeValues = normalizeGenerationSetupValues(
+          setupByScope[buildStudioGenerationSetupScope(settingsType)]?.values ??
+            getDefaultGenerationSetupValues(settingsType),
+        );
+        accumulator[settingsType] = {
+          ...residualByType[settingsType],
+          ...generationSetupValuesToStudioSettingsPatch(typeValues),
+        };
+        return accumulator;
+      }, {} as StudioGenerateSettingsByType),
+    [residualByType, setupByScope],
   );
 
   const updateSettings = useCallback(
@@ -146,6 +176,45 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
     [],
   );
 
+  const restoreSettings = useCallback((state: StudioGeneratePersistedState) => {
+    const { setupByScope: currentSetups } = useGenerationSetupStore.getState();
+
+    for (const settingsType of STUDIO_GENERATE_TYPES) {
+      const typeScope = buildStudioGenerationSetupScope(settingsType);
+      const typeDefaults = getDefaultGenerationSetupValues(settingsType);
+      const current = normalizeGenerationSetupValues(
+        currentSetups[typeScope]?.values ?? typeDefaults,
+      );
+      const restored = studioSettingsFieldsToGenerationSetupPatch(
+        state.settingsByType[settingsType],
+      );
+      const changed = Object.fromEntries(
+        Object.entries(restored).filter(
+          ([key, value]) =>
+            current[key as keyof GenerationSetupValues] !== value,
+        ),
+      ) as Partial<GenerationSetupValues>;
+      if (Object.keys(changed).length > 0) {
+        applyBridgedPatch(typeScope, changed, typeDefaults);
+      }
+    }
+
+    setResidualByType((previous) =>
+      STUDIO_GENERATE_TYPES.reduce(
+        (accumulator, settingsType) => {
+          accumulator[settingsType] = {
+            ...previous[settingsType],
+            ...splitStudioSettingsPatch(state.settingsByType[settingsType])
+              .residual,
+          };
+          return accumulator;
+        },
+        { ...previous },
+      ),
+    );
+    setTypeState(state.type);
+  }, []);
+
   const resetSettings = useCallback(() => {
     resetGenerationSetupAll(scope, defaults);
     setResidualByType((previous) => ({
@@ -162,7 +231,9 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
     applyTypeSettings,
     isHydrated,
     resetSettings,
+    restoreSettings,
     settings,
+    settingsByType,
     setType,
     type,
     updateSettings,

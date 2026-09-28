@@ -1,4 +1,8 @@
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   openIngredientOverlay: vi.fn(),
   openPostBatchModal: vi.fn(),
   patch: vi.fn(),
+  postResize: vi.fn(),
   push: vi.fn(),
 }));
 
@@ -20,6 +25,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     bulkDelete: mocks.bulkDelete,
     patch: mocks.patch,
+    postResize: mocks.postResize,
   }),
 }));
 
@@ -41,6 +47,10 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@services/content/ingredients.service', () => ({
   IngredientsService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@services/ingredients/videos.service', () => ({
+  VideosService: { getInstance: vi.fn() },
 }));
 
 vi.mock('@services/core/clipboard.service', () => ({
@@ -115,6 +125,62 @@ describe('useStudioGenerateAssetActions', () => {
     expect(onAttachReference).toHaveBeenNthCalledWith(2, ingredient, 'video');
     expect(mocks.push).toHaveBeenCalledWith(
       '/default/default/studio/storyboard?mode=scenes&referenceImageId=ingredient-1&format=portrait',
+    );
+  });
+
+  it('opens a video in the Studio editor through the editor route', () => {
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({
+        onAttachReference: vi.fn(),
+        onRefresh: vi.fn(),
+      }),
+    );
+
+    act(() => result.current.onOpenInEditor({ ...ingredient, id: 'video-1' }));
+
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/default/default/studio/edit/new?video=video-1',
+    );
+  });
+
+  it('resizes a video to the target format dimensions and refreshes the gallery', async () => {
+    mocks.postResize.mockResolvedValueOnce({ id: 'resized-1' });
+    const onRefresh = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({ onAttachReference: vi.fn(), onRefresh }),
+    );
+
+    await act(async () => {
+      await result.current.onResize(
+        { ...ingredient, id: 'video-1' },
+        IngredientFormat.SQUARE,
+      );
+    });
+
+    expect(mocks.postResize).toHaveBeenCalledWith('video-1', {
+      height: 1080,
+      width: 1080,
+    });
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
+      'Resizing to square. The result appears here when it is ready.',
+    );
+  });
+
+  it('reports a failed resize without refreshing', async () => {
+    mocks.postResize.mockRejectedValueOnce(new Error('queue down'));
+    const onRefresh = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioGenerateAssetActions({ onAttachReference: vi.fn(), onRefresh }),
+    );
+
+    await act(async () => {
+      await result.current.onResize(ingredient, IngredientFormat.LANDSCAPE);
+    });
+
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(mocks.notificationsError).toHaveBeenCalledWith(
+      'Failed to resize video',
     );
   });
 

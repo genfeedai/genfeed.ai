@@ -10,8 +10,10 @@ import type {
   AgentStudioHandoffPayload,
   IModel,
 } from '@genfeedai/contracts/interfaces';
-import type { StudioGenerateReferenceRole } from '@genfeedai/props/studio/studio-generate.props';
-import type { StudioGenerateSettings } from '@pages/studio/generate/types';
+import type {
+  StudioGenerateReferenceRole,
+  StudioGenerateSettings,
+} from '@pages/studio/generate/types';
 import {
   getDefaultStudioGenerateSettings,
   getStudioAspectRatios,

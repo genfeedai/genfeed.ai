@@ -169,6 +169,33 @@ describe('VideosGifController', () => {
     );
   });
 
+  it('looks the source video up inside the caller organization only', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    await controller.createGif(mockRequest, mockUser, videoId);
+    expect(mockServices.videosService.findOne).toHaveBeenCalledWith({
+      id: videoId,
+      isDeleted: false,
+      organizationId,
+    });
+  });
+
+  it('links the GIF to its source video and that video brand', async () => {
+    mockServices.videosService.findOne.mockResolvedValue({
+      ...mockVideo,
+      brandId: 'cmbrand000000000000000002',
+    });
+    await controller.createGif(mockRequest, mockUser, videoId);
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
+      mockUser,
+      expect.objectContaining({
+        brandId: 'cmbrand000000000000000002',
+        parentId: videoId,
+      }),
+    );
+  });
+
   it('should include jobId in metadata of saved document', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     await controller.createGif(mockRequest, mockUser, videoId);
