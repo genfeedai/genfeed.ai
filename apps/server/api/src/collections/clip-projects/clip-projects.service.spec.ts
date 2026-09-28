@@ -957,18 +957,55 @@ describe('ClipProjectsService', () => {
     });
   });
 
-  it('returns only a pending project to draft when its start fails', async () => {
+  it('returns a failed start to draft with a retryable source', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {
+        draft: { sourceKind: 'upload' },
+        source: {
+          jobId: 'clip-analysis-draft-1',
+          kind: 'upload',
+          status: 'queued',
+        },
+      },
+      id: 'draft-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      progress: 0,
+      readiness: {},
+      status: 'pending',
+    });
     prisma.clipProject.updateMany.mockResolvedValue({ count: 1 });
 
     await expect(service.releaseDraft('draft-1', 'org-1')).resolves.toBe(true);
-    expect(prisma.clipProject.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({ status: 'draft' }),
-      where: {
-        id: 'draft-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-        status: 'pending',
-      },
+
+    const call = prisma.clipProject.updateMany.mock.calls[0]?.[0];
+    expect(call.where).toEqual({
+      id: 'draft-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: 'pending',
+    });
+    expect(call.data.status).toBe('draft');
+    expect(call.data.config.source).toEqual({
+      kind: 'upload',
+      status: 'uploading',
+    });
+    expect(call.data.config.draft).toEqual({ sourceKind: 'upload' });
+  });
+
+  it('claims a draft only at the version the caller validated', async () => {
+    const validatedAt = new Date('2026-09-28T10:00:00.000Z');
+    prisma.clipProject.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.claimDraft('draft-1', 'org-1', validatedAt),
+    ).resolves.toBe(false);
+    expect(prisma.clipProject.updateMany.mock.calls[0]?.[0].where).toEqual({
+      id: 'draft-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: 'draft',
+      updatedAt: validatedAt,
     });
   });
 });

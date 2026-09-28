@@ -37,6 +37,7 @@ import {
 } from '@nestjs/common';
 
 const DEFAULT_CLIP_SOURCE_MAX_RETRIES = 3;
+const DRAFT_CLAIM_ATTEMPTS = 3;
 
 export interface ClipProjectAnalysisResult {
   identity: AgentClipRunIdentity;
@@ -110,18 +111,23 @@ export class ClipProjectIngestionService {
     const estimatedClips = dto.maxClips ?? 10;
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
     const provider = dto.avatarProvider ?? 'heygen';
+    const brandId = await this.resolveStartBrandId(
+      orgId,
+      dto.draftProjectId,
+      dto.brandId,
+    );
     const identity = await this.resolveBrandAndIdentity({
       avatarId: dto.avatarId,
       avatarProvider: dto.avatarProvider,
-      brandId: dto.brandId,
+      brandId,
       mode,
       organizationId: orgId,
       provider,
       voiceId: dto.voiceId,
     });
-    const runReferences = dto.brandId
+    const runReferences = brandId
       ? await this.clipGenerationRequestService.resolveRunReferences(
-          dto.brandId,
+          brandId,
           orgId,
         )
       : [];
@@ -146,7 +152,7 @@ export class ClipProjectIngestionService {
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'quick');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
-      brandId: dto.brandId,
+      brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ??
@@ -217,14 +223,19 @@ export class ClipProjectIngestionService {
   ): Promise<ClipProjectAnalysisResult> {
     const orgId = user.organizationId;
     const userId = user.userId ?? user.id;
+    const brandId = await this.resolveStartBrandId(
+      orgId,
+      dto.draftProjectId,
+      dto.brandId,
+    );
     const identity = await this.clipIdentityResolutionService.resolve({
-      brandId: dto.brandId,
+      brandId,
       organizationId: orgId,
     });
 
     const source = this.buildYoutubeSource(dto.youtubeUrl, 'review');
     const project = await this.createOrStartDraft(orgId, dto.draftProjectId, {
-      brandId: dto.brandId,
+      brandId,
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
@@ -560,7 +571,11 @@ export class ClipProjectIngestionService {
     const draftProjectId = isDraftStart ? projectId : undefined;
 
     if (flow === 'review') {
-      await this.claimDraftIfStarting(draftProjectId, user.organizationId);
+      await this.claimDraftIfStarting(
+        draftProjectId,
+        user.organizationId,
+        project,
+      );
       const batchJobId = await this.dispatchOrReleaseDraft(
         draftProjectId,
         user.organizationId,
@@ -635,7 +650,11 @@ export class ClipProjectIngestionService {
       throw new InsufficientCreditsException(estimatedClips, currentBalance);
     }
 
-    await this.claimDraftIfStarting(draftProjectId, user.organizationId);
+    await this.claimDraftIfStarting(
+      draftProjectId,
+      user.organizationId,
+      project,
+    );
     const batchJobId = await this.dispatchOrReleaseDraft(
       draftProjectId,
       user.organizationId,
@@ -694,30 +713,95 @@ export class ClipProjectIngestionService {
       () =>
         this.clipProjectsService.patch(
           draftProjectId,
-          { ...input },
+          // Omitted fields keep the draft's saved values (brand included).
+          Object.fromEntries(
+            Object.entries(input).filter(([, value]) => value !== undefined),
+          ),
           [],
           organizationId,
         ),
     );
   }
 
+  /**
+   * Claims a draft for a start. With `validated`, the claim is a
+   * compare-and-set on that read, so a source attached after validation
+   * (another tab preparing a different upload) is refused rather than run
+   * with the wrong media; other edits, such as an autosave, are re-read and
+   * the claim is retried.
+   */
   private async claimDraftIfStarting(
     draftProjectId: string | undefined,
     organizationId: string,
+    validated?: ClipProjectDocument,
   ): Promise<void> {
     if (!draftProjectId) {
       return;
     }
 
-    const isClaimed = await this.clipProjectsService.claimDraft(
-      draftProjectId,
-      organizationId,
-    );
-    if (!isClaimed) {
-      throw new ConflictException(
-        'This clip project draft was already started or no longer exists.',
+    let expected = validated;
+    for (let attempt = 0; attempt < DRAFT_CLAIM_ATTEMPTS; attempt += 1) {
+      const isClaimed = await this.clipProjectsService.claimDraft(
+        draftProjectId,
+        organizationId,
+        expected?.updatedAt,
       );
+      if (isClaimed) {
+        return;
+      }
+      if (!expected) {
+        break;
+      }
+
+      const current = await this.clipProjectsService.findOne({
+        id: draftProjectId,
+        isDeleted: false,
+        organizationId,
+      });
+      if (current?.status !== 'draft') {
+        break;
+      }
+      if (!this.hasSameSource(current, expected)) {
+        throw new ConflictException(
+          "This draft's source changed while it was starting. Start it again.",
+        );
+      }
+      expected = current;
     }
+
+    throw new ConflictException(
+      'This clip project draft was already started or no longer exists.',
+    );
+  }
+
+  private hasSameSource(
+    current: ClipProjectDocument,
+    validated: ClipProjectDocument,
+  ): boolean {
+    return (
+      current.source?.fingerprint === validated.source?.fingerprint &&
+      current.source?.ingredientId === validated.source?.ingredientId &&
+      current.sourceVideoS3Key === validated.sourceVideoS3Key &&
+      current.sourceVideoUrl === validated.sourceVideoUrl
+    );
+  }
+
+  /** A draft start without a brand keeps the brand the draft was saved with. */
+  private async resolveStartBrandId(
+    organizationId: string,
+    draftProjectId: string | undefined,
+    brandId: string | undefined,
+  ): Promise<string | undefined> {
+    if (brandId || !draftProjectId) {
+      return brandId;
+    }
+
+    const draft = await this.clipProjectsService.findOne({
+      id: draftProjectId,
+      isDeleted: false,
+      organizationId,
+    });
+    return draft?.brandId ?? undefined;
   }
 
   /**

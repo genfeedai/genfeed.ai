@@ -1092,6 +1092,95 @@ describe('ClipProjectIngestionService', () => {
       status: 'UPLOADED',
     };
 
+    it('refuses to start a draft whose upload changed after validation', async () => {
+      const validated = {
+        ...quickUploadDraft,
+        sourceVideoS3Key: 'videos/upload-a',
+        updatedAt: new Date('2026-09-28T10:00:00.000Z'),
+      } as ClipProjectDocument;
+      clipProjectsService.findOne
+        .mockResolvedValueOnce(validated)
+        .mockResolvedValueOnce({
+          ...validated,
+          sourceVideoS3Key: 'videos/upload-b',
+          updatedAt: new Date('2026-09-28T10:00:01.000Z'),
+        } as ClipProjectDocument);
+      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
+      clipProjectsService.claimDraft.mockResolvedValue(false);
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).rejects.toThrow("This draft's source changed");
+
+      expect(clipProjectsService.claimDraft).toHaveBeenCalledWith(
+        'draft-1',
+        'org-1',
+        validated.updatedAt,
+      );
+      expect(clipFactoryWorkflowQueue.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('retries the claim when only an autosave touched the draft', async () => {
+      const validated = {
+        ...quickUploadDraft,
+        updatedAt: new Date('2026-09-28T10:00:00.000Z'),
+      } as ClipProjectDocument;
+      const autosaved = {
+        ...validated,
+        updatedAt: new Date('2026-09-28T10:00:01.000Z'),
+      } as ClipProjectDocument;
+      clipProjectsService.findOne
+        .mockResolvedValueOnce(validated)
+        .mockResolvedValueOnce(autosaved);
+      ingredientsService.findOne.mockResolvedValue(uploadedIngredient);
+      clipProjectsService.claimDraft
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+
+      await expect(
+        service.finalizeUpload(currentUser as never, 'draft-1'),
+      ).resolves.toMatchObject({ status: 'processing' });
+
+      expect(clipProjectsService.claimDraft).toHaveBeenLastCalledWith(
+        'draft-1',
+        'org-1',
+        autosaved.updatedAt,
+      );
+      expect(clipFactoryWorkflowQueue.enqueue).toHaveBeenCalledOnce();
+    });
+
+    it('keeps the saved draft brand when a YouTube start omits it', async () => {
+      clipProjectsService.findOne.mockResolvedValue({
+        brandId: 'brand-9',
+        id: 'draft-1',
+        status: 'draft',
+      } as ClipProjectDocument);
+      clipProjectsService.patch.mockResolvedValue({
+        id: 'draft-1',
+      } as ClipProjectDocument);
+
+      await service.analyzeYoutube(currentUser as never, {
+        draftProjectId: 'draft-1',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
+
+      expect(clipIdentityResolutionService.resolve).toHaveBeenCalledWith({
+        brandId: 'brand-9',
+        organizationId: 'org-1',
+      });
+      expect(clipProjectsService.patch).toHaveBeenNthCalledWith(
+        1,
+        'draft-1',
+        expect.objectContaining({ brandId: 'brand-9' }),
+        [],
+        'org-1',
+      );
+      const startPatch = clipProjectsService.patch.mock.calls[0]?.[1];
+      expect(
+        Object.values(startPatch as Record<string, unknown>),
+      ).not.toContain(undefined);
+    });
+
     it('keeps an upload draft startable when credits run out at finalize', async () => {
       clipProjectsService.findOne.mockResolvedValue(quickUploadDraft);
       ingredientsService.findOne.mockResolvedValue(uploadedIngredient);

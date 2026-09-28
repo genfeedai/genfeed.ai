@@ -314,6 +314,7 @@ export class ClipProjectsService extends BaseService<
   async claimDraft(
     projectId: string,
     organizationId: string,
+    expectedUpdatedAt?: Date,
   ): Promise<boolean> {
     const result = await this.prisma.clipProject.updateMany({
       data: {
@@ -331,6 +332,9 @@ export class ClipProjectsService extends BaseService<
         isDeleted: false,
         organizationId,
         status: 'draft',
+        // Compare-and-set on the version the caller validated; omitted when
+        // the start carries its own source.
+        updatedAt: expectedUpdatedAt,
       },
     });
 
@@ -411,8 +415,34 @@ export class ClipProjectsService extends BaseService<
     projectId: string,
     organizationId: string,
   ): Promise<boolean> {
+    const project = await this.findOne({
+      id: projectId,
+      isDeleted: false,
+      organizationId,
+      status: 'pending',
+    });
+    if (!project) {
+      return false;
+    }
+
+    // The failed start may already have marked the source queued with a job
+    // id; put it back to its pre-start state so the next start dispatches.
+    const config = this.readRecord((project as Record<string, unknown>).config);
+    const source = this.readRecord(config.source);
+    const { jobId: _jobId, ...retryableSource } = source;
     const result = await this.prisma.clipProject.updateMany({
       data: {
+        config: toPrismaJson({
+          ...config,
+          ...(Object.keys(source).length > 0
+            ? {
+                source: {
+                  ...retryableSource,
+                  status: source.kind === 'upload' ? 'uploading' : 'queued',
+                },
+              }
+            : {}),
+        }),
         readiness: toPrismaJson(
           buildClipProjectReadiness({
             status: 'draft',
