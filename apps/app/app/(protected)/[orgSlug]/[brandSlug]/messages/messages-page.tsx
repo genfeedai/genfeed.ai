@@ -376,9 +376,7 @@ export default function MessagesPage() {
     handleRejectDraft,
     handleStatusChange,
     handleSync,
-    handleToggleConversationReference,
     handleToggleMessageReference,
-    isConversationReferenced,
     isMessageReferenced,
     notice,
     references,
@@ -418,13 +416,7 @@ export default function MessagesPage() {
     return href(`${APP_ROUTES.AUTOMATION.WORKFLOWS_NEW}?${params.toString()}`);
   }, [href, selectedConversation]);
 
-  useMessagesSurfaceAdapter({
-    canAttachReferences,
-    isConversationReferenced,
-    onToggleConversationReference: handleToggleConversationReference,
-    references,
-    selectedConversation,
-  });
+  useMessagesSurfaceAdapter({ references });
 
   // A DM has no post or comment behind it, so the thread reads top-to-bottom
   // on its own instead of hanging off a source-content anchor.

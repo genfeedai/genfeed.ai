@@ -101,7 +101,6 @@ function ProductRegistration(): null {
     () => ({
       contextLabel: 'Studio · Storyboard · v3',
       references: [],
-      renderInspector: () => <p>Studio inspector</p>,
       scope: {
         brandId: 'brand-1',
         organizationId: 'organization-1',
@@ -119,7 +118,6 @@ function ProductAdapterProbe(): ReactElement {
   return (
     <div>
       <span>{registration?.contextLabel ?? 'No adapter'}</span>
-      {registration?.renderInspector()}
     </div>
   );
 }
@@ -201,7 +199,6 @@ describe('WorkspaceSurfaceAdapterContext', () => {
     );
 
     expect(screen.getByText('Studio · Storyboard · v3')).toBeInTheDocument();
-    expect(screen.getByText('Studio inspector')).toBeInTheDocument();
 
     rerender(
       <WorkspaceSurfaceAdapterProvider>
@@ -213,7 +210,6 @@ describe('WorkspaceSurfaceAdapterContext', () => {
   });
 
   it('keeps product registration safe outside the shell provider', () => {
-    render(<ProductRegistration />);
-    expect(screen.queryByText('Studio inspector')).toBeNull();
+    expect(() => render(<ProductRegistration />)).not.toThrow();
   });
 });

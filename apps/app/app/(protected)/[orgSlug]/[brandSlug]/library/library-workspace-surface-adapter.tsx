@@ -9,8 +9,6 @@ import {
   useRegisterWorkspaceSurfaceAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 
-const renderNoInspector = () => null;
-
 /**
  * Renders the library's selected asset into the context sidebar and hands it
  * to the conversation composer as a typed reference. The grid publishes its
@@ -52,7 +50,6 @@ export default function LibraryWorkspaceSurfaceAdapter() {
     () => ({
       contextLabel,
       references,
-      renderInspector: renderNoInspector,
       scope: {
         ...(brandId ? { brandId } : {}),
         organizationId: organizationId ?? '',

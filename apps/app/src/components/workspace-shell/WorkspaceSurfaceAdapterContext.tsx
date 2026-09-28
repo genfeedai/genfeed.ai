@@ -20,7 +20,6 @@ import {
 
 export interface WorkspaceSurfacePresentationAdapter {
   readonly contextLabel: string;
-  readonly inspector: ReactNode;
   readonly surfaceKey: WorkspaceShellSurfaceKey;
 }
 
@@ -49,7 +48,6 @@ export interface WorkspaceSurfaceComposerReference {
 export interface ProductWorkspaceSurfaceAdapter {
   readonly contextLabel: string;
   readonly references: readonly WorkspaceSurfaceComposerReference[];
-  readonly renderInspector: () => ReactNode;
   readonly scope: {
     readonly brandId?: string;
     readonly organizationId: string;

@@ -5,7 +5,7 @@ import type {
 } from '@genfeedai/contracts/interfaces/ui/workspace-shell.interface';
 import {
   buildWorkspaceShellHref,
-  resolveWorkspaceShellOverlayRequest,
+  createOverlayRequest,
 } from './workspace-shell-location';
 import {
   getWorkspaceShellOverlayRegistration,
@@ -44,45 +44,17 @@ function createUnavailableLaunch(
   };
 }
 
-function encodeOverlayReference(
-  overlay: WorkspaceShellOverlayRequest,
-  registration: NonNullable<
-    ReturnType<typeof getWorkspaceShellOverlayRegistration>
-  >,
-): string | null | undefined {
-  if (
-    !overlay.parameters ||
-    typeof overlay.parameters !== 'object' ||
-    Array.isArray(overlay.parameters)
-  ) {
-    return undefined;
-  }
-
-  if (registration.parameterContract.kind === 'none') {
-    return Object.keys(overlay.parameters).length === 0 ? null : undefined;
-  }
-
-  if (
-    Object.keys(overlay.parameters).some((key) => key !== 'reference') ||
-    !Object.hasOwn(overlay.parameters, 'reference')
-  ) {
-    return undefined;
-  }
-
-  const { reference } = overlay.parameters;
-  if (reference === null) {
-    return null;
-  }
-  if (
-    !reference ||
-    typeof reference !== 'object' ||
-    typeof reference.id !== 'string' ||
-    typeof reference.kind !== 'string'
-  ) {
-    return undefined;
-  }
-
-  return `${reference.kind}:${reference.id}`;
+/**
+ * Every registered overlay takes no parameters. A proposed overlay whose
+ * `parameters` carries any key is untrusted and fails closed.
+ */
+function hasValidParameters(overlay: WorkspaceShellOverlayRequest): boolean {
+  return (
+    Boolean(overlay.parameters) &&
+    typeof overlay.parameters === 'object' &&
+    !Array.isArray(overlay.parameters) &&
+    Object.keys(overlay.parameters).length === 0
+  );
 }
 
 /**
@@ -95,7 +67,6 @@ export function resolveWorkspaceOverlayLaunch({
   currentHref,
   invocation,
   overlay,
-  resolveOverlayReferenceAccess,
 }: ResolveWorkspaceOverlayLaunchParams): WorkspaceOverlayLaunch {
   const currentUrl = parseInternalHref(currentHref);
   if (!currentUrl) {
@@ -122,30 +93,18 @@ export function resolveWorkspaceOverlayLaunch({
     return createUnavailableLaunch(currentUrl);
   }
 
-  const encodedReference = encodeOverlayReference(overlay, registration);
-  if (encodedReference === undefined) {
+  if (!hasValidParameters(overlay)) {
     return createUnavailableLaunch(currentUrl);
   }
-  const resolution = resolveWorkspaceShellOverlayRequest(
-    registration,
-    encodedReference,
-    resolveOverlayReferenceAccess,
-  );
-  if (resolution.failure || !resolution.overlay) {
-    return createUnavailableLaunch(currentUrl);
-  }
+  const resolvedOverlay = createOverlayRequest(registration);
 
   const currentOverlayKey = currentUrl.searchParams.get('overlay');
-  const currentOverlayReference = currentUrl.searchParams.get('overlayRef');
-  if (
-    currentOverlayKey === resolution.overlay.key &&
-    currentOverlayReference === encodedReference
-  ) {
+  if (currentOverlayKey === resolvedOverlay.key) {
     return {
       announcement: `${registration.presentation.title} is already open.`,
       history: 'none',
       href: toRelativeHref(currentUrl),
-      overlay: resolution.overlay,
+      overlay: resolvedOverlay,
     };
   }
 
@@ -159,8 +118,8 @@ export function resolveWorkspaceOverlayLaunch({
     announcement: registration.presentation.openAnnouncement,
     history: isReplacingOverlay ? 'replace' : 'push',
     href: buildWorkspaceShellHref(toRelativeHref(currentUrl), {
-      overlay: resolution.overlay,
+      overlay: resolvedOverlay,
     }),
-    overlay: resolution.overlay,
+    overlay: resolvedOverlay,
   };
 }

@@ -3,19 +3,16 @@ import { AgentFullPageMobileBar } from '@genfeedai/agent/components/AgentFullPag
 import { AgentFullPageMobileDrawers } from '@genfeedai/agent/components/AgentFullPageMobileDrawers';
 import { AgentFullPageOnboardingChrome } from '@genfeedai/agent/components/AgentFullPageOnboardingChrome';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
-import { AgentSetupPanel } from '@genfeedai/agent/components/AgentSetupPanel';
 import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
-import AgentThreadContextPanel from '@genfeedai/agent/components/AgentThreadContextPanel';
-import { useConversationInspectorShell } from '@genfeedai/agent/components/ConversationInspectorShellContext';
 import { useAgentFullPage } from '@genfeedai/agent/components/useAgentFullPage';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { ContextSidebarPanel } from '@genfeedai/contexts/ui/context-sidebar-context';
 import type { MemberRole } from '@genfeedai/contracts';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useTranslations } from 'next-intl';
 import type { ReactElement, ReactNode } from 'react';
-import { useEffect } from 'react';
-import { createPortal } from 'react-dom';
 
 const showOnboardingChecklistChrome = false;
 
@@ -63,6 +60,7 @@ export function AgentFullPage({
   onSelectCreditPack,
   userRole,
 }: AgentFullPageProps): ReactElement {
+  const translate = useTranslations('agent.fullPage');
   const {
     activeThreadStatus,
     agentSetup,
@@ -96,50 +94,6 @@ export function AgentFullPage({
     onboardingMode,
     userRole,
   });
-
-  // Inside the workspace shell the context panels belong to the shell's
-  // inspector rail — the conversation column must not paint a second
-  // right-hand column next to it. Standalone (no provider) keeps the panels
-  // inline, which is what the onboarding route and unit tests render.
-  const inspectorShell = useConversationInspectorShell();
-
-  // Outputs win once the thread has produced something, setup wins while the
-  // brand is still incomplete, and thread context is the floor — the rail is
-  // never empty, because a conversation always has a brand, channels, and a
-  // history worth showing.
-  const contextPanel = hasThreadOutputs ? (
-    <AgentOutputsPanel className="h-full w-full" />
-  ) : showSetupPanel ? (
-    <AgentSetupPanel
-      className="h-full w-full"
-      brand={agentSetup.brand}
-      connectedConnections={agentSetup.connectedConnections}
-      connectedPlatformsCount={agentSetup.connectedPlatformsCount}
-      onOAuthConnect={onOAuthConnect}
-    />
-  ) : (
-    <AgentThreadContextPanel
-      brand={agentSetup.brand}
-      className="h-full w-full"
-      completenessScore={agentSetup.completenessScore}
-      connectedConnections={agentSetup.connectedConnections}
-      threadId={threadId}
-    />
-  );
-
-  const setInspectorHasPanel = inspectorShell?.setHasPanel;
-  const hasProjectedContextPanel =
-    !onboardingMode && inspectorShell?.isActive === true;
-
-  useEffect(() => {
-    if (!setInspectorHasPanel) {
-      return;
-    }
-
-    setInspectorHasPanel(hasProjectedContextPanel);
-
-    return () => setInspectorHasPanel(false);
-  }, [hasProjectedContextPanel, setInspectorHasPanel]);
 
   return (
     <div
@@ -210,12 +164,20 @@ export function AgentFullPage({
         </div>
       </div>
 
-      {hasProjectedContextPanel && inspectorShell?.portalTarget && contextPanel
-        ? createPortal(
-            <div className="min-h-0 w-full">{contextPanel}</div>,
-            inspectorShell.portalTarget,
-          )
-        : null}
+      {/* Inside the workspace shell the thread's outputs are the context
+        sidebar's selection; the sidebar stays closed until there are any. */}
+      {!onboardingMode && hasThreadOutputs ? (
+        <ContextSidebarPanel
+          selection={{
+            id: `thread-outputs:${threadId ?? 'new'}`,
+            kind: 'thread',
+            origin: 'automatic',
+            title: translate('outputs'),
+          }}
+        >
+          <AgentOutputsPanel className="h-full w-full" />
+        </ContextSidebarPanel>
+      ) : null}
 
       {showOnboardingChecklistChrome && onboardingMode && (
         <AgentFullPageOnboardingChrome

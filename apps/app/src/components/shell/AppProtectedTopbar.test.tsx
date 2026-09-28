@@ -15,15 +15,6 @@ const mockPush = vi.hoisted(() => vi.fn());
 const mockPathname = vi.hoisted(() => ({
   value: '/acme/brand/workspace',
 }));
-const workspaceInspectorState = vi.hoisted(() => ({
-  value: null as {
-    isMobileOpen: boolean;
-    isOpen: boolean;
-    isRegistered: boolean;
-    setIsMobileOpen: (isMobileOpen: boolean) => void;
-    toggle: () => void;
-  } | null,
-}));
 const contextSidebarState = vi.hoisted(() => ({
   value: null as {
     isMobileOpen: boolean;
@@ -154,10 +145,6 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
-  useWorkspaceInspector: () => workspaceInspectorState.value,
-}));
-
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
   useContextSidebar: () => contextSidebarState.value,
 }));
@@ -248,7 +235,6 @@ describe('AppProtectedTopbar', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';
-    workspaceInspectorState.value = null;
     contextSidebarState.value = null;
     brandSwitcherSpy.mockClear();
     brandContextState.brands = [
@@ -419,46 +405,59 @@ describe('AppProtectedTopbar', () => {
     ).toBeNull();
   });
 
-  it('exposes the inspector toggle as a controlled disclosure', () => {
-    const toggle = vi.fn();
-    workspaceInspectorState.value = {
+  function selectAsset(
+    overrides: Partial<NonNullable<typeof contextSidebarState.value>> = {},
+  ) {
+    const state = {
       isMobileOpen: false,
       isOpen: true,
-      isRegistered: true,
+      selection: {
+        id: 'asset-1',
+        kind: 'asset' as const,
+        title: 'Launch still',
+      },
       setIsMobileOpen: vi.fn(),
-      toggle,
+      toggle: vi.fn(),
+      ...overrides,
     };
+    contextSidebarState.value = state;
+    return state;
+  }
+
+  it('exposes the details toggle as a controlled disclosure', () => {
+    const { toggle } = selectAsset();
 
     render(<AppProtectedTopbar />);
 
-    const inspectorToggle = screen.getByTestId('topbar-inspector-toggle');
-    expect(inspectorToggle).toHaveAccessibleName(
-      'Collapse workspace inspector',
-    );
-    expect(inspectorToggle).toHaveAttribute(
+    const railToggle = screen.getByTestId('topbar-inspector-toggle');
+    expect(railToggle).toHaveAccessibleName('Collapse details');
+    expect(railToggle).toHaveAttribute(
       'aria-controls',
       'workspace-context-inspector',
     );
-    expect(inspectorToggle).toHaveAttribute('aria-expanded', 'true');
+    expect(railToggle).toHaveAttribute('aria-expanded', 'true');
 
-    fireEvent.click(inspectorToggle);
+    fireEvent.click(railToggle);
     expect(toggle).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the inspector drawer from the below-xl toggle variant', () => {
-    const setIsMobileOpen = vi.fn();
-    workspaceInspectorState.value = {
-      isMobileOpen: false,
-      isOpen: true,
-      isRegistered: true,
-      setIsMobileOpen,
-      toggle: vi.fn(),
-    };
+  it('expands collapsed details from the rail toggle', () => {
+    selectAsset({ isOpen: false });
+
+    render(<AppProtectedTopbar />);
+
+    const railToggle = screen.getByTestId('topbar-inspector-toggle');
+    expect(railToggle).toHaveAccessibleName('Expand details');
+    expect(railToggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('opens the details drawer from the below-xl toggle variant', () => {
+    const { setIsMobileOpen } = selectAsset();
 
     render(<AppProtectedTopbar />);
 
     const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(drawerToggle).toHaveAccessibleName('Open workspace inspector');
+    expect(drawerToggle).toHaveAccessibleName('Open details');
     expect(drawerToggle).toHaveAttribute(
       'aria-controls',
       'workspace-context-inspector-drawer',
@@ -474,61 +473,20 @@ describe('AppProtectedTopbar', () => {
     expect(setIsMobileOpen).toHaveBeenCalledWith(true);
   });
 
-  it('toggles the inspector drawer closed when it is already open', () => {
-    const setIsMobileOpen = vi.fn();
-    workspaceInspectorState.value = {
-      isMobileOpen: true,
-      isOpen: true,
-      isRegistered: true,
-      setIsMobileOpen,
-      toggle: vi.fn(),
-    };
+  it('toggles the details drawer closed when it is already open', () => {
+    const { setIsMobileOpen } = selectAsset({ isMobileOpen: true });
 
     render(<AppProtectedTopbar />);
 
     const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(drawerToggle).toHaveAccessibleName('Close workspace inspector');
+    expect(drawerToggle).toHaveAccessibleName('Close details');
     expect(drawerToggle).toHaveAttribute('aria-expanded', 'true');
 
     fireEvent.click(drawerToggle);
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
   });
 
-  it('drives the context sidebar instead of the inspector while a selection is registered', () => {
-    const toggle = vi.fn();
-    const setIsMobileOpen = vi.fn();
-    const inspectorToggle = vi.fn();
-    workspaceInspectorState.value = {
-      isMobileOpen: false,
-      isOpen: true,
-      isRegistered: true,
-      setIsMobileOpen: vi.fn(),
-      toggle: inspectorToggle,
-    };
-    contextSidebarState.value = {
-      isMobileOpen: false,
-      isOpen: false,
-      selection: { id: 'asset-1', kind: 'asset', title: 'Launch still' },
-      setIsMobileOpen,
-      toggle,
-    };
-
-    render(<AppProtectedTopbar />);
-
-    const railToggle = screen.getByTestId('topbar-inspector-toggle');
-    expect(railToggle).toHaveAccessibleName('Expand details');
-    expect(railToggle).toHaveAttribute('aria-expanded', 'false');
-    fireEvent.click(railToggle);
-    expect(toggle).toHaveBeenCalledTimes(1);
-    expect(inspectorToggle).not.toHaveBeenCalled();
-
-    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
-    expect(drawerToggle).toHaveAccessibleName('Open details');
-    fireEvent.click(drawerToggle);
-    expect(setIsMobileOpen).toHaveBeenCalledWith(true);
-  });
-
-  it('hides the toggle when nothing is selected and no inspector is mounted', () => {
+  it('hides the toggle when nothing is selected', () => {
     contextSidebarState.value = {
       isMobileOpen: false,
       isOpen: false,

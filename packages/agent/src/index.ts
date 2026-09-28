@@ -40,11 +40,6 @@ export {
   useConversationComposerShell,
 } from '@genfeedai/agent/components/ConversationComposerShellContext';
 export { ConversationInspectorPanel } from '@genfeedai/agent/components/ConversationInspectorPanel';
-export {
-  type ConversationInspectorShellContextValue,
-  ConversationInspectorShellProvider,
-  useConversationInspectorShell,
-} from '@genfeedai/agent/components/ConversationInspectorShellContext';
 export { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
 export { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
 export { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';

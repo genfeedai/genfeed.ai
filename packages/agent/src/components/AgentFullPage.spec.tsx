@@ -1,11 +1,14 @@
 import { conversationHydrationFlights } from '@genfeedai/agent/utils/conversation-hydration-flight';
 import { THREAD_SWITCH_DEBOUNCE_MS } from '@genfeedai/agent/utils/plan-thread-switch-fetches';
+import {
+  ContextSidebarOutlet,
+  ContextSidebarProvider,
+} from '@genfeedai/contexts/ui/context-sidebar-context';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ConversationInspectorShellProvider } from './ConversationInspectorShellContext';
 
 vi.mock('@ui/primitives', () => ({
   Drawer: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
@@ -216,10 +219,6 @@ vi.mock('@genfeedai/agent/components/useAgentSetupStatus', () => ({
 
 vi.mock('@genfeedai/agent/components/AgentSetupPanel', () => ({
   AgentSetupPanel: () => <div>agent-setup-panel</div>,
-}));
-
-vi.mock('@genfeedai/agent/components/AgentThreadContextPanel', () => ({
-  default: () => <div>agent-thread-context-panel</div>,
 }));
 
 let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;
@@ -960,7 +959,16 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
-  it('projects outputs only while the conversation owns the shell inspector', async () => {
+  function renderInShell() {
+    return render(
+      <ContextSidebarProvider>
+        <ContextSidebarOutlet testId="context-sidebar-outlet" />
+        <AgentFullPage apiService={createApiService() as never} />
+      </ContextSidebarProvider>,
+    );
+  }
+
+  it('shows thread outputs in the context sidebar once the thread has any', async () => {
     storeState.messages = [
       {
         content: 'Generated something useful',
@@ -980,67 +988,25 @@ describe('AgentFullPage', () => {
         threadId: 'thread-1',
       },
     ];
-    const portalTarget = document.createElement('div');
-    document.body.append(portalTarget);
-    const onPanelPresenceChange = vi.fn();
 
-    const view = render(
-      <ConversationInspectorShellProvider
-        isActive
-        onPanelPresenceChange={onPanelPresenceChange}
-        portalTarget={portalTarget}
-      >
-        <AgentFullPage apiService={createApiService() as never} />
-      </ConversationInspectorShellProvider>,
-    );
+    renderInShell();
 
     await waitFor(() => {
-      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(true);
+      expect(
+        within(screen.getByTestId('context-sidebar-outlet')).getByText(
+          'agent-outputs-panel',
+        ),
+      ).toBeInTheDocument();
     });
-    expect(portalTarget).toHaveTextContent('agent-outputs-panel');
-
-    view.rerender(
-      <ConversationInspectorShellProvider
-        isActive={false}
-        onPanelPresenceChange={onPanelPresenceChange}
-        portalTarget={portalTarget}
-      >
-        <AgentFullPage apiService={createApiService() as never} />
-      </ConversationInspectorShellProvider>,
-    );
-
-    await waitFor(() => {
-      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(false);
-    });
-    expect(portalTarget).toBeEmptyDOMElement();
-    portalTarget.remove();
   });
 
-  it('projects thread context into the inspector when there are no outputs and no setup panel', async () => {
-    // The rail used to fall through to a placeholder sentence in exactly this
-    // state — a finished (or brandless) setup with a conversation that has not
-    // produced outputs yet. Context is the floor, so the rail is never empty.
-    setupStatusState.showSetupPanel = false;
+  it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {
+    setupStatusState.showSetupPanel = true;
     storeState.messages = [];
-    const portalTarget = document.createElement('div');
-    document.body.append(portalTarget);
-    const onPanelPresenceChange = vi.fn();
 
-    render(
-      <ConversationInspectorShellProvider
-        isActive
-        onPanelPresenceChange={onPanelPresenceChange}
-        portalTarget={portalTarget}
-      >
-        <AgentFullPage apiService={createApiService() as never} />
-      </ConversationInspectorShellProvider>,
-    );
+    renderInShell();
 
-    await waitFor(() => {
-      expect(onPanelPresenceChange).toHaveBeenLastCalledWith(true);
-    });
-    expect(portalTarget).toHaveTextContent('agent-thread-context-panel');
-    portalTarget.remove();
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
   });
 
   it('prefers latest assistant completion recos over static page-context actions', () => {

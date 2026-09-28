@@ -34,7 +34,7 @@ describe('Workspace overview surface adapters', () => {
     scope.organizationId = 'organization-1';
   });
 
-  it('registers the organization inspector under its independent route key', async () => {
+  it('registers the organization overview under its independent route key', async () => {
     render(
       <WorkspaceSurfaceAdapterProvider>
         <PresentationProbe />
@@ -51,7 +51,7 @@ describe('Workspace overview surface adapters', () => {
     });
   });
 
-  it('keeps the brand inspector registered under the brand overview key', async () => {
+  it('keeps the brand overview registered under the brand overview key', async () => {
     render(
       <WorkspaceSurfaceAdapterProvider>
         <PresentationProbe />
