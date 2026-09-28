@@ -274,6 +274,73 @@ describe('EvaluationsOperationsService', () => {
       );
     });
 
+    describe('late frame upload after a sampling timeout', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      it('sweeps the frame keys again so a late upload is not orphaned', async () => {
+        vi.useFakeTimers();
+        mockServices.filesClientService.generateThumbnail
+          .mockResolvedValueOnce({ thumbnailUrl: 'https://cdn.test/a.jpg' })
+          .mockRejectedValueOnce(new Error('timeout of 30000ms exceeded'));
+
+        await expect(
+          service.evaluateVideo(
+            'https://example.com/video.mp4',
+            {},
+            organizationId,
+          ),
+        ).rejects.toThrow(ExternalServiceException);
+
+        expect(deletedKeys()).toHaveLength(2);
+
+        await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+
+        expect(deletedKeys()).toHaveLength(4);
+        expect(deletedKeys().slice(2)).toEqual(deletedKeys().slice(0, 2));
+      });
+
+      it('does not schedule a second sweep when sampling succeeds', async () => {
+        vi.useFakeTimers();
+
+        await service.evaluateVideo(
+          'https://example.com/video.mp4',
+          {},
+          organizationId,
+        );
+        await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+
+        expect(deletedKeys()).toHaveLength(4);
+      });
+
+      it('logs a failed late sweep without throwing', async () => {
+        vi.useFakeTimers();
+        mockServices.filesClientService.generateThumbnail.mockRejectedValueOnce(
+          new Error('timeout of 30000ms exceeded'),
+        );
+
+        await expect(
+          service.evaluateVideo(
+            'https://example.com/video.mp4',
+            {},
+            organizationId,
+          ),
+        ).rejects.toThrow(ExternalServiceException);
+        mockServices.filesClientService.deleteStoredObject.mockRejectedValue(
+          new Error('storage down'),
+        );
+        mockServices.loggerService.warn.mockClear();
+
+        await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+
+        expect(mockServices.loggerService.warn).toHaveBeenCalledWith(
+          expect.stringContaining('frame'),
+          expect.objectContaining({ storageKey: expect.any(String) }),
+        );
+      });
+    });
+
     it('deletes frames when the model call fails', async () => {
       mockServices.replicateService.generateTextCompletionSync.mockRejectedValue(
         new Error('provider down'),

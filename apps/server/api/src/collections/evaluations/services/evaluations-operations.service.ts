@@ -83,6 +83,13 @@ const VIDEO_EVALUATION_FRAME_COUNT = 4;
 const VIDEO_EVALUATION_FRAME_WIDTH = 512;
 /** Where the files service stores a thumbnail generated under a given id. */
 const THUMBNAIL_STORAGE_PREFIX = 'ingredients/thumbnails/';
+/**
+ * The files client gives up on a frame after 30s, but the files service may
+ * still finish and upload it afterwards, past the cleanup. A failed sample
+ * sweeps its keys again after this grace period; the bucket lifecycle rule on
+ * the evaluation-frame prefix is the durable backstop if the sweep is lost.
+ */
+const LATE_FRAME_SWEEP_DELAY_MS = 5 * 60 * 1000;
 
 type EvaluationPromptOptions = PromptBuilderParams & {
   isThread?: boolean;
@@ -300,12 +307,28 @@ export class EvaluationsOperationsService {
       return frameUrls;
     } catch (error: unknown) {
       this.logger.error('Video frame sampling failed', { error });
+      this.scheduleLateFrameSweep(frameStorageKeys);
       throw new ExternalServiceException(
         'Files',
         'Video frame sampling failed',
         error,
       );
     }
+  }
+
+  /**
+   * A failed sample can leave a frame upload still in flight (the client
+   * timed out, the files service did not). Delete the keys once more after a
+   * grace period so a late upload does not outlive the evaluation.
+   */
+  private scheduleLateFrameSweep(storageKeys: readonly string[]) {
+    if (storageKeys.length === 0) {
+      return;
+    }
+    const keys = [...storageKeys];
+    setTimeout(() => {
+      void this.deleteVideoFrames(keys);
+    }, LATE_FRAME_SWEEP_DELAY_MS).unref();
   }
 
   /** Sampled frames are transient: a failed delete is logged, never thrown. */
