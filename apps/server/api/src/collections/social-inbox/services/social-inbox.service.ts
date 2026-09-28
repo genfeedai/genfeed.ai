@@ -69,12 +69,12 @@ export class SocialInboxService {
   markConversationRead(
     scope: SocialInboxScope,
     conversationId: string,
-    unreadCountSeen?: number,
+    seenInboundSequence?: number,
   ): Promise<SocialConversationDocument> {
     return this.readStateService.markConversationRead(
       scope,
       conversationId,
-      unreadCountSeen,
+      seenInboundSequence,
     );
   }
 

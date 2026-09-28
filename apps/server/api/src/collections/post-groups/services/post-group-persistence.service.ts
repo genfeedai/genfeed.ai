@@ -16,10 +16,15 @@ import {
   matchesReleaseListQuery,
   toSyntheticReleaseGroup,
 } from '@api/collections/post-groups/services/post-group-release-projection.util';
+import { postCategoryForIngredientCategories } from '@api/collections/posts/services/channel-target-schedule-validation.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ReleaseAttachmentKind, ReleaseStatus } from '@genfeedai/contracts';
+import {
+  PostCategory,
+  ReleaseAttachmentKind,
+  ReleaseStatus,
+} from '@genfeedai/contracts';
 import type { ChannelTargetValidationResult } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
@@ -268,6 +273,11 @@ export class PostGroupPersistenceService {
     params: CreatePostGroupParams,
     context: CreatePostGroupTargetsContext,
   ): Promise<SchedulerPostTarget[]> {
+    const category = await this.resolveTargetCategory(
+      tx,
+      params.organizationId,
+      params.input.media,
+    );
     const targets: SchedulerPostTarget[] = [];
     for (const [index, target] of params.input.targets.entries()) {
       const credential = context.credentials.get(target.credentialId);
@@ -306,6 +316,7 @@ export class PostGroupPersistenceService {
             agentThreadId: params.provenance.agentThreadId,
           }),
           brandId: context.brandId,
+          category,
           credentialId: target.credentialId,
           description: this.contractService.readTargetCaption(
             target.caption,
@@ -372,6 +383,29 @@ export class PostGroupPersistenceService {
     }
 
     return targets;
+  }
+
+  /**
+   * Targets share the release media, so their Post category comes from the
+   * linked ingredients' own categories. Left at the column default (TEXT), a
+   * video target reads as an image to channel validation and publishers.
+   */
+  private async resolveTargetCategory(
+    tx: SchedulerTx,
+    organizationId: string,
+    media: CreatePostGroupParams['input']['media'],
+  ): Promise<PostCategory> {
+    const ingredientIds = (media ?? []).map((item) => item.assetId);
+    if (ingredientIds.length === 0) {
+      return PostCategory.TEXT;
+    }
+    const ingredients = await tx.ingredient.findMany({
+      select: { category: true },
+      where: scopedWhere(organizationId, { id: { in: ingredientIds } }),
+    });
+    return postCategoryForIngredientCategories(
+      ingredients.map((ingredient) => ingredient.category),
+    );
   }
 
   async findByIdempotencyKey(

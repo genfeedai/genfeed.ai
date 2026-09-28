@@ -4282,6 +4282,10 @@ model SocialConversation {
   status                 String       @default("open")
   priority               String       @default("normal")
   unreadCount            Int          @default(0)
+  /// Monotonic count of inbound messages ingested into this thread. A read
+  /// receipt names the value it rendered, so replies ingested after that
+  /// view stay unread no matter how stale the receipt is.
+  inboundSequence        Int          @default(0)
   needsReview            Boolean      @default(false)
   automationState        String       @default("manual")
   assignedOwnerId        String?

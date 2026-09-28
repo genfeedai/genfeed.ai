@@ -301,15 +301,14 @@ export class SocialInboxActionService implements OnModuleInit {
     );
 
     const data: Prisma.SocialConversationUpdateInput = {};
-    // Resolving/archiving clears unread too, atomically bounded by what was seen (see clearSeenUnreadCount).
-    let seenUnreadCount = 0;
+    // Resolve/archive reads through this view; later replies stay unread.
+    let isReadThrough = false;
 
     if (patch.status !== undefined) {
       data.status = patch.status;
       data.needsReview = patch.status === 'needs_review';
-      if (patch.status === 'resolved' || patch.status === 'archived') {
-        seenUnreadCount = conversation.unreadCount;
-      }
+      isReadThrough =
+        patch.status === 'resolved' || patch.status === 'archived';
     }
 
     if (patch.tags !== undefined) {
@@ -331,12 +330,12 @@ export class SocialInboxActionService implements OnModuleInit {
       where: { id: conversationId },
     });
 
-    // Shared with mark-read (clearSeenUnreadCount); it emits its own realtime update.
-    if (seenUnreadCount > 0) {
-      return this.readStateService.clearSeenUnreadCount(
+    // Shared with mark-read (markReadThrough), which emits its own update.
+    if (isReadThrough && updated.unreadCount > 0) {
+      return this.readStateService.markReadThrough(
         scope,
         updated,
-        seenUnreadCount,
+        conversation.inboundSequence,
       );
     }
 

@@ -38,6 +38,7 @@ export class SocialConversationModel implements SocialConversation {
   status!: SocialConversationStatus;
   priority!: string;
   unreadCount!: number;
+  inboundSequence!: number;
   needsReview!: boolean;
   automationState!: SocialAutomationState;
   assignedOwnerId?: string | null;

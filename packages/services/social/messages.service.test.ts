@@ -238,7 +238,7 @@ describe('SocialMessagesService', () => {
       expect(result).toMatchObject({ id: 'brand-1', unreadCount: 4 });
     });
 
-    it('markRead patches the conversation read route with no body when the seen count is omitted', async () => {
+    it('markRead patches the conversation read route with no body when the seen sequence is omitted', async () => {
       http.patch.mockResolvedValue(
         axiosResponse(
           resourceDocument({ unreadCount: 0 }, { id: conversationId }),
@@ -255,7 +255,7 @@ describe('SocialMessagesService', () => {
       expect(result).toBeInstanceOf(SocialConversationModel);
     });
 
-    it('markRead sends the unread count the caller saw', async () => {
+    it('markRead sends the inbound sequence the caller rendered', async () => {
       http.patch.mockResolvedValue(
         axiosResponse(
           resourceDocument({ unreadCount: 0 }, { id: conversationId }),
@@ -266,7 +266,7 @@ describe('SocialMessagesService', () => {
 
       expect(http.patch).toHaveBeenCalledWith(
         `/${conversationId}/read`,
-        { unreadCountSeen: 3 },
+        { seenInboundSequence: 3 },
         { signal: undefined },
       );
     });

@@ -25,6 +25,7 @@ export const socialConversationAttributes = createEntityAttributes([
   'status',
   'priority',
   'unreadCount',
+  'inboundSequence',
   'needsReview',
   'automationState',
   'assignedOwnerId',

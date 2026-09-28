@@ -2,8 +2,9 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/webhooks.replicate.constants';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
 import {
   REPLICATE_POLL_MAX_ATTEMPTS,
   REPLICATE_POLL_QUEUE,
@@ -21,6 +22,7 @@ export class ReplicatePollProcessor extends WorkerHost {
   private readonly logContext = ReplicatePollProcessor.name;
 
   constructor(
+    private readonly byok: ByokService,
     private readonly ingredients: IngredientsService,
     private readonly logger: LoggerService,
     private readonly pollQueue: ReplicatePollQueueService,
@@ -40,8 +42,26 @@ export class ReplicatePollProcessor extends WorkerHost {
       return;
     }
 
+    let apiKeyOverride: string | undefined;
+    if (job.data.isByok) {
+      apiKeyOverride = (
+        await this.byok.resolveApiKey(
+          job.data.organizationId,
+          ByokProvider.REPLICATE,
+        )
+      )?.apiKey;
+      if (!apiKeyOverride) {
+        await this.webhooks.handleFailedGenerationForIngredient(
+          job.data.ingredientId,
+          'The Replicate key that started this generation is no longer available',
+        );
+        return;
+      }
+    }
+
     const prediction = (await this.replicate.getPrediction(
       job.data.externalId,
+      apiKeyOverride,
     )) as Record<string, unknown>;
     const status =
       typeof prediction.status === 'string' ? prediction.status : '';

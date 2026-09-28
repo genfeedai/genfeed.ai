@@ -10,6 +10,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
+const MAX_READ_RECEIPT_ATTEMPTS = 3;
+
 /**
  * Read receipts for the social inbox. Keeps a conversation's unread counter
  * and the organization's `social.reply` bell items in step.
@@ -25,43 +27,26 @@ export class SocialInboxReadStateService {
   ) {}
 
   /**
-   * A member opened the thread: clear the unread counter down by exactly
-   * what the client saw, and clear every member's reply notifications once
-   * every thread they cover is read.
+   * A member opened the thread: clear what their view showed, and clear
+   * every member's reply notifications once every thread they cover is read.
    *
-   * `unreadCountSeen` is the unread count the client actually rendered
-   * before it issued this request — not re-derived here from a fresh read,
-   * which would still be racing the client's view by the network round
-   * trip. Falls back to a just-read snapshot for callers that omit it
-   * (e.g. older clients), which narrows but does not close that race.
-   *
-   * The clear is a conditional, atomic decrement guarded by that seen
-   * count — never a hard reset to zero. A reply landing after the client's
-   * view (but before or during this request) must stay counted, or the
-   * badge would hide a message nobody has actually seen yet. When the guard
-   * doesn't match (someone else's write already moved the counter), this
-   * still re-reads and returns the current row instead of the value fetched
-   * before the attempt.
+   * `seenInboundSequence` is the conversation's `inboundSequence` the client
+   * rendered. Omitting it reads the thread as of this request.
    */
   async markConversationRead(
     scope: SocialInboxScope,
     conversationId: string,
-    unreadCountSeen?: number,
+    seenInboundSequence?: number,
   ): Promise<SocialConversationDocument> {
     const conversation = await this.queryService.getConversation(
       scope,
       conversationId,
     );
 
-    const seenUnreadCount =
-      typeof unreadCountSeen === 'number'
-        ? Math.max(0, Math.min(unreadCountSeen, conversation.unreadCount))
-        : conversation.unreadCount;
-
-    const updated = await this.clearSeenUnreadCount(
+    const updated = await this.markReadThrough(
       scope,
       conversation,
-      seenUnreadCount,
+      seenInboundSequence ?? conversation.inboundSequence,
     );
 
     await this.clearReplyNotifications(scope, conversation.id);
@@ -71,46 +56,57 @@ export class SocialInboxReadStateService {
 
   /**
    * Shared by mark-read and the resolve/archive path in
-   * {@link SocialInboxActionService.updateConversation}: atomically
-   * decrements a conversation's unread counter by exactly `seenUnreadCount`,
-   * guarded by the counter still being at least that value — never a hard
-   * reset. A reply landing in the gap between the caller's read and this
-   * write must stay counted, or the badge would hide a message nobody has
-   * actually seen yet.
+   * {@link SocialInboxActionService.updateConversation}: marks the thread
+   * read through the view identified by `seenInboundSequence`.
    *
-   * Always re-reads and returns the row's current state when
-   * `seenUnreadCount` is positive, whether or not the guard matched: a
-   * concurrent write may have already changed the row, and the caller must
-   * never see the value fetched before this attempt.
+   * Every inbound message ingested after that view stays unread, so the
+   * counter can only drop to `inboundSequence - seenInboundSequence`, and it
+   * never rises. A stale receipt from another tab therefore cannot clear a
+   * reply its view never displayed. The write is guarded by the
+   * `inboundSequence` it was computed from and retried when an ingest moves
+   * it in between.
+   *
+   * Returns the row's current state after any write, never the value
+   * fetched before the attempt.
    */
-  async clearSeenUnreadCount(
+  async markReadThrough(
     scope: SocialInboxScope,
     conversation: SocialConversationDocument,
-    seenUnreadCount: number,
+    seenInboundSequence: number,
   ): Promise<SocialConversationDocument> {
-    if (seenUnreadCount <= 0) {
-      return conversation;
-    }
-
-    const cleared = await this.prisma.socialConversation.updateMany({
-      data: { unreadCount: { decrement: seenUnreadCount } },
-      where: scopedWhere(scope.organizationId, {
-        id: conversation.id,
-        unreadCount: { gte: seenUnreadCount },
-      }),
-    });
-    const updated = await this.queryService.getConversation(
-      scope,
-      conversation.id,
-    );
-    if (cleared.count > 0) {
-      await this.realtimeService.emit(
-        updated.organizationId,
-        updated.id,
-        'conversation-updated',
+    let current = conversation;
+    for (let attempt = 0; attempt < MAX_READ_RECEIPT_ATTEMPTS; attempt += 1) {
+      const seen = Math.min(
+        Math.max(0, seenInboundSequence),
+        current.inboundSequence,
       );
+      const remainingUnread = Math.min(
+        current.unreadCount,
+        current.inboundSequence - seen,
+      );
+      if (remainingUnread >= current.unreadCount) {
+        return current;
+      }
+
+      const cleared = await this.prisma.socialConversation.updateMany({
+        data: { unreadCount: remainingUnread },
+        where: scopedWhere(scope.organizationId, {
+          id: current.id,
+          inboundSequence: current.inboundSequence,
+          unreadCount: { gt: remainingUnread },
+        }),
+      });
+      current = await this.queryService.getConversation(scope, current.id);
+      if (cleared.count > 0) {
+        await this.realtimeService.emit(
+          current.organizationId,
+          current.id,
+          'conversation-updated',
+        );
+        return current;
+      }
     }
-    return updated;
+    return current;
   }
 
   /**

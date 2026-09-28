@@ -6,6 +6,7 @@ import {
 } from '@api/post-lifecycle/post-lifecycle.service';
 import {
   CredentialPlatform,
+  IngredientCategory,
   PostCategory,
   PostStatus,
   PostVisibility,
@@ -411,7 +412,10 @@ describe('PostLifecycleService', () => {
 
     function createSchedulingTransaction(
       current: typeof schedulableTarget,
-      ingredients: readonly { id: string }[] = [],
+      ingredients: readonly {
+        category?: IngredientCategory;
+        id: string;
+      }[] = [],
     ) {
       const findFirst = vi
         .fn()
@@ -473,6 +477,53 @@ describe('PostLifecycleService', () => {
 
       expect(result.kind).toBe('transitioned');
       expect(transaction.post.updateMany).toHaveBeenCalled();
+    });
+
+    it('schedules a release video target whose Post category was left at the TEXT default', async () => {
+      const transaction = createSchedulingTransaction(schedulableTarget, [
+        { category: IngredientCategory.VIDEO, id: 'ingredient-1' },
+      ]);
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      const result = await service.transition(
+        {
+          nextState: TargetExecutionState.SCHEDULED,
+          organizationId: 'org-1',
+          postId: 'post-1',
+        },
+        transaction as never,
+      );
+
+      expect(result.kind).toBe('transitioned');
+      expect(transaction.post.findFirst).toHaveBeenNthCalledWith(2, {
+        select: { ingredients: { select: { category: true, id: true } } },
+        where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
+    it('classifies media by the linked ingredient even when the Post category claims video', async () => {
+      const transaction = createSchedulingTransaction(
+        { ...schedulableTarget, category: PostCategory.VIDEO },
+        [{ category: IngredientCategory.IMAGE, id: 'ingredient-1' }],
+      );
+      const service = new PostLifecycleService(
+        {} as never,
+        { warn: vi.fn() } as never,
+      );
+
+      await expect(
+        service.transition(
+          {
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId: 'org-1',
+            postId: 'post-1',
+          },
+          transaction as never,
+        ),
+      ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
     });
 
     it('re-validates an already-scheduled target when the credential swaps and its media no longer resolves', async () => {

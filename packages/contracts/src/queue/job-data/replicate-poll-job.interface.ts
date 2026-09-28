@@ -9,6 +9,12 @@ export interface ReplicatePollJobData {
   category: IngredientCategory;
   externalId: string;
   ingredientId: string;
+  /**
+   * The prediction was created with the organization's own Replicate key
+   * (BYOK). Polling must re-resolve that key; the platform key cannot read a
+   * prediction that belongs to the customer's Replicate account.
+   */
+  isByok?: boolean;
   organizationId: string;
   outputIndex?: number;
 }
