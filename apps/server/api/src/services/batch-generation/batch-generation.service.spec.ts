@@ -14,6 +14,7 @@ import { BatchGenerationCreationService } from '@api/services/batch-generation/b
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
 import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { BatchReviewLockService } from '@api/services/batch-generation/batch-review-lock';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -55,6 +56,10 @@ describe('BatchGenerationService approval version pins', () => {
     createForCurrentPost: ReturnType<typeof vi.fn>;
     invalidatePost: ReturnType<typeof vi.fn>;
     toPublicInterface: ReturnType<typeof vi.fn>;
+  };
+  let reviewLocks: {
+    assertActive: ReturnType<typeof vi.fn>;
+    run: ReturnType<typeof vi.fn>;
   };
 
   const createBatchRecord = (items: unknown[]) => ({
@@ -109,6 +114,16 @@ describe('BatchGenerationService approval version pins', () => {
       invalidatePost: vi.fn().mockResolvedValue(undefined),
       toPublicInterface: vi.fn((value) => value),
     };
+    reviewLocks = {
+      assertActive: vi.fn(),
+      run: vi.fn(
+        async (
+          _batchIds: string[],
+          _organizationId: string,
+          operation: () => Promise<unknown>,
+        ) => operation(),
+      ),
+    };
     postLifecycleService = {
       transition: vi.fn().mockResolvedValue({
         kind: 'transitioned',
@@ -145,6 +160,7 @@ describe('BatchGenerationService approval version pins', () => {
           },
         },
         { provide: PostLifecycleService, useValue: postLifecycleService },
+        { provide: BatchReviewLockService, useValue: reviewLocks },
         {
           provide: ActivityRecorderService,
           useValue: { afterCommit: vi.fn(), recordInTransaction: vi.fn() },
@@ -252,6 +268,14 @@ describe('BatchGenerationService approval version pins', () => {
       publishApprovalsService.createForCurrentPost.mock.invocationCallOrder[0],
     ).toBeLessThan(
       postLifecycleService.transition.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(reviewLocks.run).toHaveBeenCalledWith(
+      ['batch-1'],
+      'org-1',
+      expect.any(Function),
+    );
+    expect(reviewLocks.run.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.$transaction.mock.invocationCallOrder[0] ?? 0,
     );
   });
 

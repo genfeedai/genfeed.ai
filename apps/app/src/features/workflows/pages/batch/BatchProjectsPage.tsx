@@ -17,7 +17,7 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { createBatchProjectsApi } from './batch-projects-api';
 
 export default function BatchProjectsPage() {
@@ -149,7 +149,7 @@ export default function BatchProjectsPage() {
         <CollectionSection title={t('recent')} itemCount={recent.length}>
           <CollectionList>
             {recent.map((project) => (
-              <div key={project.id}>{row(project)}</div>
+              <Fragment key={project.id}>{row(project)}</Fragment>
             ))}
           </CollectionList>
         </CollectionSection>

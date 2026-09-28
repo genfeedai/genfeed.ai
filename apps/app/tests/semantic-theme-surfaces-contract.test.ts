@@ -147,13 +147,26 @@ describe('semantic theme surface contracts', () => {
     expect(source).toContain('hsl(var(--background) / 0.8)');
   });
 
+  // Batch projects list through `ListRow`s inside a `CollectionList`: each row
+  // draws its own theme-token divider and drops it on the last child, so a row
+  // must be a direct list child (a wrapper would make every row "last").
   it('uses the theme border token for batch job dividers', () => {
-    const source = readSource(
-      'src/features/workflows/pages/batch/BatchHistoryList.tsx',
+    const page = readSource(
+      'src/features/workflows/pages/batch/BatchProjectsPage.tsx',
+    );
+    const listRow = readSource(
+      '../../packages/ui/src/components/lists/list-row/ListRow.tsx',
     );
 
-    expect(source).not.toContain('divide-white');
-    expect(source).toContain('divide-border');
+    expect(page).not.toMatch(/\b(?:divide|border)-white\b/u);
+    expect(page).toContain('<CollectionList>');
+    expect(page).toContain('<ListRow');
+    expect(page).toContain(
+      '<Fragment key={project.id}>{row(project)}</Fragment>',
+    );
+    expect(listRow).toContain('border-b border-border');
+    expect(listRow).toContain('last:border-b-0');
+    expect(listRow).not.toMatch(/\b(?:divide|border)-white\b/u);
   });
 
   it.each(LIGHT_THEME_CRITICAL_SOURCES)(

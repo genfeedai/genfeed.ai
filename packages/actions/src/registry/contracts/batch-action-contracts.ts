@@ -200,7 +200,36 @@ const PLAN = closedObjectSchema(
   ['items', 'startedAt'],
 );
 
+const BATCH_PROJECT_IDEA_DISPATCH_JOB = closedObjectSchema(
+  {
+    itemId: STRING_SCHEMA,
+    key: STRING_SCHEMA,
+    organizationId: STRING_SCHEMA,
+    projectId: STRING_SCHEMA,
+    userId: STRING_SCHEMA,
+  },
+  ['itemId', 'key', 'organizationId', 'projectId', 'userId'],
+);
+
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
+  'batch-project.idea.dispatch-item': {
+    inputSchema: closedObjectSchema({ job: BATCH_PROJECT_IDEA_DISPATCH_JOB }, [
+      'job',
+    ]),
+    outputSchema: closedObjectSchema(
+      { status: enumSchema(['dispatched', 'failed', 'skipped'] as const) },
+      ['status'],
+    ),
+  },
+  'batch-project.idea.fail-item': {
+    inputSchema: closedObjectSchema({ job: BATCH_PROJECT_IDEA_DISPATCH_JOB }, [
+      'job',
+    ]),
+    outputSchema: closedObjectSchema(
+      { status: { const: 'failed', type: 'string' } },
+      ['status'],
+    ),
+  },
   'batch.generation.mark-queued': {
     inputSchema: closedObjectSchema({ request: GENERATION_REQUEST }, [
       'request',

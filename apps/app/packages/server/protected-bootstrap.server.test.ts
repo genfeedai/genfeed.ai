@@ -1,7 +1,9 @@
+import { DEFAULT_PLATFORM_FLAGS } from '@genfeedai/contracts/constants';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getBetterAuthServerTokenMock = vi.fn();
 const getBootstrapMock = vi.fn();
+const getPlatformFlagsMock = vi.fn();
 const getInstanceMock = vi.fn(() => ({
   getBootstrap: getBootstrapMock,
 }));
@@ -23,6 +25,14 @@ vi.mock('next/headers', () => ({
 vi.mock('@services/auth/auth.service', () => ({
   AuthService: {
     getInstance: getInstanceMock,
+  },
+}));
+
+vi.mock('@services/external/public.service', () => ({
+  PublicService: {
+    getInstance: vi.fn(() => ({
+      getPlatformFlags: getPlatformFlagsMock,
+    })),
   },
 }));
 
@@ -56,6 +66,7 @@ describe('loadProtectedBootstrap', () => {
     });
     headersMock.mockResolvedValue(new Headers());
     getBetterAuthServerTokenMock.mockResolvedValue('token_123');
+    getPlatformFlagsMock.mockResolvedValue(DEFAULT_PLATFORM_FLAGS);
     getBootstrapMock.mockResolvedValue({
       access: {
         brandId: 'brand_123',
@@ -95,9 +106,27 @@ describe('loadProtectedBootstrap', () => {
       currentUser: { id: 'user_123' },
       fleetCapabilities: { brandEnabled: true },
       organizationId: 'org_123',
+      platformFlags: DEFAULT_PLATFORM_FLAGS,
       settings: { organization: 'org_123' },
       streak: { currentStreak: 6 },
     });
+  });
+
+  it('keeps the shell bootstrap when platform flags fail to load', async () => {
+    getPlatformFlagsMock.mockRejectedValue(new Error('flags unavailable'));
+
+    const { loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+        platformFlags: null,
+      }),
+    );
+    expect(getBootstrapMock).toHaveBeenCalledTimes(1);
   });
 
   it('still loads bootstrap in hybrid mode without an EE license key', async () => {

@@ -102,6 +102,15 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
+// The overview view renders the real `BrandDetailOverview`, whose copy
+// resolves through `pages.brandDetailOverview` in the app's English catalog.
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../apps/app/tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/buttons/base/Button', () => ({
   __esModule: true,
   default: ({

@@ -176,6 +176,9 @@ const adminRouteBuckets: RouteBucket[] = [
   routeBucket('admin content', adminRoutes, (route) =>
     route.startsWith('/admin/content'),
   ),
+  routeBucket('admin flags', adminRoutes, (route) =>
+    route.startsWith('/admin/flags'),
+  ),
   routeBucket('admin library media', adminRoutes, (route) =>
     /^\/admin\/(folders|images|library|videos)(\/|$)/.test(route),
   ),
