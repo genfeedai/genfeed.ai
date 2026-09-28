@@ -90,7 +90,7 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 513,
+    "actual": 506,
     "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
