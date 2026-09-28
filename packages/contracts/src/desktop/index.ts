@@ -50,6 +50,48 @@ export function parseDesktopAssetUrl(rawUrl: string): string | null {
   }
 }
 
+export const DESKTOP_APP_PROTOCOL_SCHEME = 'genfeedai-desktop';
+export const DESKTOP_THREAD_LINK_HOST = 'thread';
+
+const DESKTOP_THREAD_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+
+/**
+ * Deep link that opens an agent thread in Genfeed Desktop, e.g. so a thread
+ * bound to a local CLI runtime can be continued where that CLI can run.
+ */
+export function buildDesktopThreadLink(threadId: string): string {
+  if (!DESKTOP_THREAD_ID_PATTERN.test(threadId)) {
+    throw new Error('Invalid desktop thread id.');
+  }
+
+  return `${DESKTOP_APP_PROTOCOL_SCHEME}://${DESKTOP_THREAD_LINK_HOST}/${encodeURIComponent(threadId)}`;
+}
+
+/** The thread id of a `buildDesktopThreadLink` URL, or null for anything else. */
+export function parseDesktopThreadLink(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl);
+    const threadId = decodeURIComponent(url.pathname.slice(1));
+
+    if (
+      url.protocol !== `${DESKTOP_APP_PROTOCOL_SCHEME}:` ||
+      url.hostname !== DESKTOP_THREAD_LINK_HOST ||
+      url.username.length > 0 ||
+      url.password.length > 0 ||
+      url.port.length > 0 ||
+      url.search.length > 0 ||
+      url.hash.length > 0 ||
+      !DESKTOP_THREAD_ID_PATTERN.test(threadId)
+    ) {
+      return null;
+    }
+
+    return threadId;
+  } catch {
+    return null;
+  }
+}
+
 export const DESKTOP_IPC_CHANNELS = {
   agentRuntimeCancelTurn: 'desktop:agentRuntime:cancelTurn',
   agentRuntimeEvent: 'desktop:agentRuntime:event',

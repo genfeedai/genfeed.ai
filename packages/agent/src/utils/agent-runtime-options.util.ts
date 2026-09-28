@@ -11,6 +11,16 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IDesktopLocalToolReadiness } from '@genfeedai/contracts/desktop';
 
+/** The credit-billed Genfeed runtime a local CLI thread can be moved to. */
+export const HOSTED_GENFEED_RUNTIME_OPTION: AgentRuntimeOption = {
+  category: 'hosted',
+  description: 'Genfeed hosted runtime',
+  key: 'hosted/genfeed',
+  label: 'Genfeed',
+  provider: 'genfeed',
+  requestedModel: '',
+};
+
 const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
   {
     category: 'auto',
@@ -20,14 +30,7 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
     provider: 'genfeed',
     requestedModel: '',
   },
-  {
-    category: 'hosted',
-    description: 'Genfeed hosted runtime',
-    key: 'hosted/genfeed',
-    label: 'Genfeed',
-    provider: 'genfeed',
-    requestedModel: '',
-  },
+  HOSTED_GENFEED_RUNTIME_OPTION,
   {
     // Same model as the Genfeed runtime on purpose — these two options differ
     // by provider, not by model, and `openrouter/auto` is retired. `key` is the
@@ -165,6 +168,18 @@ export function getDesktopCliRuntimeOption(
     : DESKTOP_CODEX_CLI_RUNTIME_OPTION;
 }
 
+function resolveBoundCliRuntimeKey(params: {
+  activeThreadId: string | null;
+  draftRuntimeKey?: string | null;
+  thread?: Pick<AgentThread, 'runtimeKey'> | null;
+}): AgentExternalRuntimeKey | null {
+  const key = params.activeThreadId
+    ? params.thread?.runtimeKey
+    : params.draftRuntimeKey;
+
+  return isDesktopCliRuntimeKey(key) ? key : null;
+}
+
 /**
  * The local CLI runtime the active thread (or the draft runtime for a new
  * thread) is bound to in Desktop, or null for the hosted API path. It stays
@@ -182,11 +197,26 @@ export function resolveDesktopCliRuntimeKey(params: {
     return null;
   }
 
-  const key = params.activeThreadId
-    ? params.thread?.runtimeKey
-    : params.draftRuntimeKey;
+  return resolveBoundCliRuntimeKey(params);
+}
 
-  return isDesktopCliRuntimeKey(key) ? key : null;
+/**
+ * The local CLI runtime the active thread (or the draft) is bound to when this
+ * is NOT Desktop. A plain browser cannot run it, so sends are blocked (see
+ * `useDesktopCliAgentChat`) until the user moves the thread to a hosted
+ * runtime or opens it in Desktop; they never silently spend Genfeed credits.
+ */
+export function resolveWebCliRuntimeKey(params: {
+  activeThreadId: string | null;
+  draftRuntimeKey?: string | null;
+  hasDesktopBridge: boolean;
+  thread?: Pick<AgentThread, 'runtimeKey'> | null;
+}): AgentExternalRuntimeKey | null {
+  if (params.hasDesktopBridge) {
+    return null;
+  }
+
+  return resolveBoundCliRuntimeKey(params);
 }
 
 /**

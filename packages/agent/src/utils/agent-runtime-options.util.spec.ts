@@ -5,6 +5,7 @@ import {
   resolveDesktopCliRuntimeBlocker,
   resolveDesktopCliRuntimeKey,
   resolveThreadRuntimeOption,
+  resolveWebCliRuntimeKey,
 } from './agent-runtime-options.util';
 
 function readiness(
@@ -153,6 +154,43 @@ describe('buildAgentRuntimeCatalog', () => {
         .filter((option) => option.category === 'local')
         .map((option) => option.key),
     ).toEqual(['local/codex-cli']);
+  });
+});
+
+describe('resolveWebCliRuntimeKey', () => {
+  it('reports the local CLI a thread is bound to when there is no desktop bridge', () => {
+    expect(
+      resolveWebCliRuntimeKey({
+        activeThreadId: 'thread-1',
+        hasDesktopBridge: false,
+        thread: { runtimeKey: 'local/claude-cli' },
+      }),
+    ).toBe('local/claude-cli');
+    expect(
+      resolveWebCliRuntimeKey({
+        activeThreadId: null,
+        draftRuntimeKey: 'local/codex-cli',
+        hasDesktopBridge: false,
+        thread: null,
+      }),
+    ).toBe('local/codex-cli');
+  });
+
+  it('never reports a hosted thread or a Desktop window', () => {
+    expect(
+      resolveWebCliRuntimeKey({
+        activeThreadId: 'thread-1',
+        hasDesktopBridge: false,
+        thread: { runtimeKey: 'hosted/genfeed' },
+      }),
+    ).toBeNull();
+    expect(
+      resolveWebCliRuntimeKey({
+        activeThreadId: 'thread-1',
+        hasDesktopBridge: true,
+        thread: { runtimeKey: 'local/claude-cli' },
+      }),
+    ).toBeNull();
   });
 });
 

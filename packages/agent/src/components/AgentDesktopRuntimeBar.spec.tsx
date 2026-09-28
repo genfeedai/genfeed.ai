@@ -34,6 +34,8 @@ function buildSelection(
       provider: 'genfeed',
       requestedModel: '',
     },
+    switchToHosted: vi.fn(),
+    webBlockedRuntime: null,
   };
 }
 

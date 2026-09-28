@@ -375,5 +375,13 @@
     "emptyTitle": "Start a conversation",
     "emptyDescription": "Ask about this page.",
     "placeholder": "Ask about this page..."
+  },
+  "localCliRuntime": {
+    "creditsNote": "Hosted runtimes use Genfeed credits instead of your {runtime} subscription.",
+    "notice": "{runtime} runs on your own computer, so this thread cannot send from the browser. Nothing was sent and your draft is kept.",
+    "openInDesktop": "Open in Desktop",
+    "switchToHosted": "Switch this thread to hosted",
+    "title": "This thread runs on {runtime}",
+    "webBlocked": "This thread runs on {runtime}, which only runs in Genfeed Desktop. Your draft is kept. Switch this thread to hosted (uses Genfeed credits) or open it in Genfeed Desktop."
   }
 }

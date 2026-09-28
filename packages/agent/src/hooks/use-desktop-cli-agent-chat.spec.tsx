@@ -110,13 +110,59 @@ describe('useDesktopCliAgentChat transport selection', () => {
     expect(result.current.isEnabled).toBe(false);
   });
 
-  it('stays on the API stream in a browser even for a CLI thread', () => {
+  it('blocks a CLI thread in a browser instead of sending it to the hosted stream', async () => {
     setActiveThread('local/claude-cli');
 
     const { result } = renderHook(() => useDesktopCliAgentChat());
 
-    expect(result.current.isEnabled).toBe(false);
+    // Enabled so every send path (follow-ups, retries) hits the blocker.
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.runtimeKey).toBeNull();
+    expect(result.current.blockedReason).toContain('Claude Code');
+    expect(result.current.blockedReason).toContain('Genfeed Desktop');
+    expect(result.current.blockedReason).toContain('credits');
     expect(result.current.cancelActiveTurn()).toBe(false);
+
+    await act(async () => {
+      await result.current.sendMessage('Draft a launch post');
+    });
+    expect(useAgentChatStore.getState().error).toBe(
+      result.current.blockedReason,
+    );
+    expect(useAgentChatStore.getState().messages).toEqual([]);
+  });
+
+  it('blocks a draft bound to a CLI in a browser', () => {
+    useAgentChatStore.setState({ draftRuntimeKey: 'local/codex-cli' });
+
+    const { result } = renderHook(() => useDesktopCliAgentChat());
+
+    expect(result.current.isEnabled).toBe(true);
+    expect(result.current.blockedReason).toContain('Codex');
+  });
+
+  it('keeps hosted threads unblocked in a browser', () => {
+    setActiveThread('hosted/genfeed');
+
+    const { result } = renderHook(() => useDesktopCliAgentChat());
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.blockedReason).toBeNull();
+  });
+
+  it('unblocks a browser thread once it is moved to a hosted runtime', () => {
+    setActiveThread('local/claude-cli');
+    const { result } = renderHook(() => useDesktopCliAgentChat());
+    expect(result.current.blockedReason).not.toBeNull();
+
+    act(() => {
+      useAgentChatStore
+        .getState()
+        .updateThread('thread-1', { runtimeKey: 'hosted/genfeed' });
+    });
+
+    expect(result.current.isEnabled).toBe(false);
+    expect(result.current.blockedReason).toBeNull();
   });
 
   it('keeps a thread bound to a missing CLI off the hosted stream and blocks sends', async () => {
