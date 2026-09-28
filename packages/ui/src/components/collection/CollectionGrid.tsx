@@ -7,7 +7,7 @@ import {
 
 /** Card grid whose columns follow the collection's width, not the viewport. */
 export default function CollectionGrid({
-  maxColumns = 3,
+  maxColumns = 4,
   density = 'card',
   className,
   children,

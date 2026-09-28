@@ -24,6 +24,18 @@ describe('CollectionGrid', () => {
     expect(grid.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):grid-cols/);
   });
 
+  it('climbs to four columns by default', () => {
+    render(
+      <CollectionGrid data-testid="grid">
+        <div>a</div>
+      </CollectionGrid>,
+    );
+
+    expect(screen.getByTestId('grid').firstElementChild).toHaveClass(
+      '@[80rem]:grid-cols-4',
+    );
+  });
+
   it('caps the ladder at the requested column count', () => {
     render(
       <CollectionGrid data-testid="grid" maxColumns={2}>

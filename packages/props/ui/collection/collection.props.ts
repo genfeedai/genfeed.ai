@@ -10,6 +10,18 @@ export type CollectionMaxColumns = 2 | 3 | 4;
 /** `card` walls space at gap-4, `tile` (stat tiles, type tiles) at gap-3. */
 export type CollectionGridDensity = 'card' | 'tile';
 
+export interface UseCollectionViewPreferenceOptions {
+  /** Stable surface id, e.g. `automation.agents`. One preference per surface. */
+  surface: string;
+  /** List for text-first collections, grid for visual-first ones. */
+  defaultView: CollectionViewType;
+}
+
+export interface UseCollectionViewPreferenceReturn {
+  view: CollectionViewType;
+  setView: (view: CollectionViewType) => void;
+}
+
 export interface CollectionSectionProps {
   /** Section heading. Rendered as an h2 so sections are page landmarks. */
   title: ReactNode;

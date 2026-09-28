@@ -1,7 +1,12 @@
 import { ViewType } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import CollectionView from '@ui/collection/CollectionView';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    key === 'loadingItem' ? 'Loading item' : key,
+}));
 
 const ITEMS = [
   { id: 'a', name: 'Alpha' },
@@ -61,6 +66,7 @@ describe('CollectionView', () => {
     );
     expect(screen.queryByTestId('list-rows-skeleton')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('skeleton-card')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Loading item')).toHaveLength(3);
   });
 
   it('renders the empty state when there are no items', () => {

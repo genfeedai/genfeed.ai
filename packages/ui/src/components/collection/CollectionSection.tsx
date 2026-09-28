@@ -1,5 +1,6 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionSectionProps } from '@genfeedai/props/ui/collection/collection.props';
+import Card from '@ui/card/Card';
 import { useId } from 'react';
 
 /**
@@ -61,11 +62,10 @@ export default function CollectionSection({
       </div>
 
       {error ? (
-        <div
-          className="rounded-card bg-card px-4 py-3 text-sm text-muted-foreground shadow-border"
-          role="alert"
-        >
-          {error}
+        <div role="alert">
+          <Card bodyClassName="px-4 py-3 text-sm text-muted-foreground">
+            {error}
+          </Card>
         </div>
       ) : (
         children

@@ -1,9 +1,10 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionListProps } from '@genfeedai/props/ui/collection/collection.props';
+import Card from '@ui/card/Card';
 
 /**
- * One card surface holding a column of `ListRow`s. Rows draw their own
- * dividers, so the surface only supplies the plane and the edge.
+ * One card holding a column of `ListRow`s. Rows draw their own dividers, so
+ * the card body drops its padding and gap and only supplies plane and edge.
  */
 export default function CollectionList({
   className,
@@ -11,14 +12,12 @@ export default function CollectionList({
   'data-testid': dataTestId,
 }: CollectionListProps) {
   return (
-    <div
-      className={cn(
-        'overflow-hidden rounded-card bg-card text-card-foreground shadow-border',
-        className,
-      )}
+    <Card
+      bodyClassName="gap-0 p-0"
+      className={cn('overflow-hidden', className)}
       data-testid={dataTestId}
     >
       {children}
-    </div>
+    </Card>
   );
 }

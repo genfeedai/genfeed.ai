@@ -1,12 +1,26 @@
+// Storage is a preference cache, never a source of truth: a browser policy
+// that blocks it, or a full quota, must leave callers on their in-memory state.
 export function readLocalStorageItem(key: string): string | null {
-  return typeof window === 'undefined'
-    ? null
-    : window.localStorage.getItem(key);
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
 export function writeLocalStorageItem(key: string, value: string): void {
-  if (typeof window !== 'undefined') {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
     window.localStorage.setItem(key, value);
+  } catch {
+    // Blocked or full storage keeps the caller's in-memory value.
   }
 }
 

@@ -5,6 +5,7 @@ import CollectionList from '@ui/collection/CollectionList';
 import { COLLECTION_DEFAULT_SKELETON_COUNT } from '@ui/collection/collection.constants';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
+import { useTranslations } from 'next-intl';
 import { Fragment } from 'react';
 
 /**
@@ -17,7 +18,7 @@ export default function CollectionView<TItem>({
   getItemKey,
   renderListItem,
   renderGridItem,
-  maxColumns = 3,
+  maxColumns = 4,
   density = 'card',
   isLoading = false,
   skeletonCount = COLLECTION_DEFAULT_SKELETON_COUNT,
@@ -25,6 +26,7 @@ export default function CollectionView<TItem>({
   className,
   'data-testid': dataTestId,
 }: CollectionViewProps<TItem>) {
+  const translate = useTranslations('ui.collection');
   const isList = view === ViewType.LIST;
 
   if (isLoading) {
@@ -42,6 +44,7 @@ export default function CollectionView<TItem>({
         {Array.from({ length: skeletonCount }, (_, index) => (
           <SkeletonCard
             key={`collection-skeleton-${index}`}
+            label={translate('loadingItem')}
             showImage={false}
           />
         ))}

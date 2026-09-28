@@ -161,6 +161,7 @@
     "clearAll": "Clear all",
     "grid": "Grid",
     "list": "List",
+    "loadingItem": "Loading item",
     "moreActions": "More actions",
     "removeFilter": "Remove filter {label}",
     "removeFilterFallback": "Remove filter"
