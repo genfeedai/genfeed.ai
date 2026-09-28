@@ -124,6 +124,29 @@ describe('Card', () => {
     expect(container.firstChild).toHaveClass('overflow-hidden');
   });
 
+  it('announces the toggle state of a clickable card', () => {
+    const { rerender } = render(
+      <Card isPressed label="Video" onClick={() => undefined} />,
+    );
+    expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    rerender(
+      <Card isPressed={false} label="Video" onClick={() => undefined} />,
+    );
+    expect(screen.getByRole('button', { name: 'Video' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    rerender(<Card label="Video" onClick={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'Video' })).not.toHaveAttribute(
+      'aria-pressed',
+    );
+  });
+
   it('draws the bordered variant with a CSS border on the card plane', () => {
     const { container } = render(
       <Card variant={CardVariant.BORDERED}>Body</Card>,

@@ -35,6 +35,7 @@ const Card = memo(function Card({
   description,
   isDisabled,
   isLoading = false,
+  isPressed,
   loadingLabel,
   onClick,
   onDescriptionClick,
@@ -153,6 +154,7 @@ const Card = memo(function Card({
     return (
       <Button
         aria-label={typeof label === 'string' ? label : undefined}
+        aria-pressed={isPressed}
         data-card-index={index}
         data-testid={dataTestId}
         id={id}

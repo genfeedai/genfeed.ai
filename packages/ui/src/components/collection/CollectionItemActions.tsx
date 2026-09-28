@@ -23,15 +23,12 @@ import { useTranslations } from 'next-intl';
  * keeps its link affordances; a command runs `onSelect` in place.
  */
 function OverflowItem({ action, className }: CollectionOverflowItemProps) {
-  if (action.href !== undefined) {
+  // A disabled destination renders no link at all: Radix blocks selection on
+  // a disabled item, but a delivered click on an anchor would still navigate.
+  if (action.href !== undefined && !action.isDisabled) {
     return (
-      <DropdownMenuItem
-        asChild
-        className={className}
-        disabled={action.isDisabled}
-      >
+      <DropdownMenuItem asChild className={className}>
         <Link
-          aria-disabled={action.isDisabled || undefined}
           href={action.href}
           rel={action.isExternal ? 'noopener noreferrer' : undefined}
           target={action.isExternal ? '_blank' : undefined}

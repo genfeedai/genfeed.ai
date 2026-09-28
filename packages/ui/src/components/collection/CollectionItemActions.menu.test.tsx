@@ -1,12 +1,48 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
-import { describe, expect, it, vi } from 'vitest';
+import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) =>
     key === 'moreActions' ? 'More actions' : key,
 }));
+
+// jsdom cannot navigate, so this Link records every activation that would
+// reach the router. Unlike the shared setup mock it forwards all props, so
+// Radix can turn the anchor into a menu item.
+const navigate = vi.fn();
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    onClick,
+    ...props
+  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a
+      {...props}
+      href={href}
+      onClick={(event: MouseEvent<HTMLAnchorElement>) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) {
+          navigate(href);
+        }
+        event.preventDefault();
+      }}
+    >
+      {children}
+    </a>
+  ),
+}));
+
+beforeEach(() => {
+  navigate.mockClear();
+});
 
 // Drives the real Radix menu: the mocked suite proves ordering and styling,
 // this one proves the menu a keyboard user actually gets.
@@ -91,5 +127,68 @@ describe('CollectionItemActions with the real menu', () => {
     expect(source).toHaveAttribute('href', 'https://example.com/post');
     expect(source).toHaveAttribute('target', '_blank');
     expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('navigates when a destination is clicked and closes the menu', async () => {
+    const user = userEvent.setup();
+    renderActions();
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Runs' }));
+
+    expect(navigate).toHaveBeenCalledWith('/org/brand/automation/runs');
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+  });
+
+  it.each([
+    ['Enter', '{Enter}'],
+    ['Space', ' '],
+  ])('activates a destination with %s', async (_key, keystroke) => {
+    const user = userEvent.setup();
+    renderActions();
+
+    screen.getByRole('button', { name: 'More actions' }).focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+
+    // Items: Rename, Runs, Open source — step from the first to Runs.
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Runs' })).toHaveFocus();
+
+    await user.keyboard(keystroke);
+
+    expect(navigate).toHaveBeenCalledWith('/org/brand/automation/runs');
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('renders a disabled destination as an inert item with no link', async () => {
+    const user = userEvent.setup();
+    render(
+      <CollectionItemActions
+        overflow={[
+          {
+            href: '/org/brand/automation/runs',
+            id: 'runs',
+            isDisabled: true,
+            label: 'Runs',
+          },
+          { id: 'rename', label: 'Rename', onSelect: vi.fn() },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'More actions' }));
+    const runs = await screen.findByRole('menuitem', { name: 'Runs' });
+
+    expect(runs.tagName).not.toBe('A');
+    expect(runs).not.toHaveAttribute('href');
+    expect(runs).toHaveAttribute('aria-disabled', 'true');
+
+    runs.click();
+    expect(navigate).not.toHaveBeenCalled();
   });
 });

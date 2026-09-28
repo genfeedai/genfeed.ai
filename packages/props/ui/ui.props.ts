@@ -45,6 +45,11 @@ export interface CardProps {
   label?: ReactNode;
   description?: string;
   isDisabled?: boolean;
+  /**
+   * Toggle state of a clickable card (e.g. a selected filter tile), announced
+   * as `aria-pressed`. Ignored when the card has no `onClick`.
+   */
+  isPressed?: boolean;
   onClick?: () => void;
   onDescriptionClick?: () => void;
   'data-testid'?: string;
