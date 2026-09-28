@@ -4,9 +4,10 @@ Primary architecture references for planning/reporting.
 
 ## Repo Structure
 
-- **Apps (server):** `apps/server/{api,discord,files,images,mcp,notifications,slack,telegram,videos,voices,workers}` are current service workspaces. `apps/server/clips/` exists in the tree but is not currently a package workspace.
-- **Apps (frontend):** `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`, `apps/extensions/{browser,ide}/app`
-- **Packages:** `packages/*` (`@genfeedai/*` scope)
+Canonical, verified inventory: `../context/project-structure.md`. Summary: `apps/server/{api,discord,files,mcp,notifications,slack,telegram,workers}`
+are the current backend workspaces (`clips`/`images`/`videos`/`voices` do not exist as directories or
+workspaces); frontend apps are `apps/app`, `apps/docs`, `apps/website`, `apps/desktop/app`, `apps/mobile/app`,
+`apps/extensions/{browser,ide}/app`; shared packages are `packages/*` (`@genfeedai/*` scope).
 
 ## Desktop Architecture Boundary
 

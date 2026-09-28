@@ -269,8 +269,35 @@
     "startDate": "Start Date *",
     "status": {
       "active": "Active",
+      "completed": "Completed",
       "draft": "Draft",
-      "label": "Status"
+      "label": "Status",
+      "paused": "Paused"
+    },
+    "collection": {
+      "agents": "{count, plural, one {# agent} other {# agents}}",
+      "all": "All programs",
+      "credits": "{used} / {allocated} credits",
+      "creditsProgress": "{percent}% of credits used",
+      "lastRun": "Last run {time}",
+      "loadError": "Programs couldn't load.",
+      "needsYou": "Needs you",
+      "needsYouDescription": "Paused, or out of allocated credits.",
+      "open": "Open",
+      "openLabel": "Open {label}",
+      "retry": "Retry",
+      "review": "Review",
+      "reviewLabel": "Review {label}"
+    },
+    "relativeTime": {
+      "daysAgo": "{days}d ago",
+      "dueNow": "due now",
+      "hoursAgo": "{hours}h ago",
+      "inDays": "in {days}d",
+      "inHours": "in {hours}h",
+      "inMinutes": "in {minutes}m",
+      "justNow": "just now",
+      "minutesAgo": "{minutes}m ago"
     },
     "template": {
       "blankDescription": "Coordinate only the existing agents you select below.",
@@ -624,52 +651,17 @@
       }
     }
   },
-  "workspaceInspector": {
-    "chooseWorkflow": "Choose workflow",
-    "fullManagement": "Full management remains available on this canonical route.",
-    "openOverlayPreview": "Open overlay preview",
-    "returnToConversation": "Return to conversation",
-    "tabs": {
-      "chat": "Chat",
-      "panels": "Inspector panels",
-      "browser": "Browser",
-      "browserEmptyDescription": "Page and generation previews appear here when you open them.",
-      "browserEmptyTitle": "Open a preview to get started",
-      "context": "Context",
-      "conversation": "Conversation",
-      "files": "Files",
-      "filesEmptyDescription": "Library assets for this brand appear here when you inspect them.",
-      "filesEmptyTitle": "Open a file to get started"
-    },
-    "filesPane": {
-      "categoryAria": "Library media type",
-      "empty": "No {category} available",
-      "emptyHint": "Add media in Library, then return here.",
-      "error": "Library sources could not be loaded.",
-      "gifs": "GIFs",
-      "images": "Images",
-      "loadMore": "Load more",
-      "loading": "Loading Library sources",
-      "loadingMore": "Loading more\u2026",
-      "manage": "Manage Library",
-      "permissionDenied": "Library sources are unavailable for the effective brand.",
-      "retry": "Retry",
-      "select": "Select {label}",
-      "sourcesAvailable": "{count} Library sources available",
-      "stale": "That source is no longer available. Your conversation and picker state were preserved.",
-      "unauthorized": "That source is not available to the effective brand. Choose another source or open Library management.",
-      "verifyError": "The source could not be verified. Retry without losing your current context.",
-      "verifying": "Verifying source\u2026",
-      "videos": "Videos"
-    },
-    "browserPane": {
-      "emptyDescription": "Select a library file to preview it here, or open a published page.",
-      "emptyTitle": "Open a preview to get started",
-      "openFiles": "Open Files",
-      "openLibrary": "Open in Library",
-      "openPage": "Open page",
-      "pagePreview": "Preview of {host}"
-    }
+  "workspaceOverlay": {
+    "noContent": "No content configured for this overlay."
+  },
+  "agentDock": {
+    "close": "Close agent",
+    "description": "Chat with the agent without leaving this page.",
+    "label": "Agent",
+    "open": "Open agent",
+    "openFullPage": "Open full page",
+    "resize": "Resize agent",
+    "title": "Agent"
   },
   "contextSidebar": {
     "close": "Close details",
@@ -832,7 +824,10 @@
       "dropPlaceholder": "drop it here?",
       "queueFull": "Follow-up queue is full. Remove a prompt or wait until one sends.",
       "uploadInProgress": "Wait for attachments to finish uploading, then send again.",
-      "knowledgeSelected": "Knowledge · {count} selected"
+      "knowledgeSelected": "Knowledge · {count} selected",
+      "referencedContent": "Referenced content: {label}",
+      "removeAttachment": "Remove {name}",
+      "removeReference": "Remove reference {label}"
     },
     "composerFollowUpQueue": {
       "collapse": "Hide queued follow-ups",
@@ -972,6 +967,23 @@
       "unavailable": "Unavailable",
       "untitledPost": "Untitled post",
       "usage": "Usage"
+    },
+    "organizationOverview": {
+      "brandsTitle": "Brands",
+      "description": "Workflows, agents, and run history across every brand in this organization",
+      "emptyAction": "Go to brands",
+      "emptyDescription": "Automation runs against a brand. Create your first brand, then open Automation to build workflows and autopilot policies for it.",
+      "emptyTitle": "Automation needs a brand",
+      "loadingBrand": "Loading brand",
+      "moreActions": "More automation for {brand}",
+      "openAutomation": "Open Automation",
+      "platformCount": "{count, plural, one {# platform} other {# platforms}}",
+      "surfaces": {
+        "agents": "Agents",
+        "analytics": "Analytics",
+        "runs": "Runs",
+        "workflows": "Workflows"
+      }
     },
     "brandEmpty": {
       "action": "Manage brands",
@@ -1344,6 +1356,13 @@
     "transcriptIngestion": "Transcript Ingestion"
   },
   "messages": {
+    "agent": {
+      "askConversation": "Ask Agent about this",
+      "askMessage": "Ask Agent",
+      "attachMessage": "Attach message to the agent",
+      "attached": "Attached",
+      "removeMessage": "Remove message from the agent"
+    },
     "actions": {
       "approve": "Approve",
       "automation": "Automation",

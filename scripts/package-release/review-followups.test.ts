@@ -222,7 +222,9 @@ describe('package and worktree review follow-ups', () => {
   it('requires npm 11.5.1 in both release jobs', () => {
     const workflow = readText('.github/workflows/publish-packages.yml');
     const guards = Array.from(
-      workflow.matchAll(/node -e '\n([\s\S]*?)\n\s+' "\$\(npm --version\)"/g),
+      workflow.matchAll(
+        /NPM_VERSION="\$\(npm --version\)" node -e '\n([\s\S]*?)\n\s+'\n/g,
+      ),
       (match) => match[1],
     );
 
@@ -394,8 +396,11 @@ function listWorktrees(repository: string): string[] {
     .map((line) => line.slice('worktree '.length));
 }
 
+// The version travels in NPM_VERSION, not argv: under Bun's `node` shim,
+// `node -e <source> <arg>` drops the extra argument.
 function runNodeGuard(source: string, version: string) {
-  return spawnSync('node', ['-e', source, version], {
+  return spawnSync('node', ['-e', source], {
     encoding: 'utf8',
+    env: { ...process.env, NPM_VERSION: version },
   });
 }

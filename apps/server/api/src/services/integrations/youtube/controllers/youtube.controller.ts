@@ -91,7 +91,11 @@ export class YoutubeController {
         brand,
         user.userId ?? user.id,
         CredentialPlatform.YOUTUBE,
-        { isConnected: false },
+        {
+          isConnected: false,
+          isHistoryImportRequested:
+            createCredentialDto.isHistoryImportRequested,
+        },
         createCredentialDto.credentialId,
       );
 

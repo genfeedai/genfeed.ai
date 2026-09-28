@@ -173,7 +173,7 @@ function AgentChatInputToolbarInner({
   return (
     <div
       className={cn(
-        // min-w-0 + wrap: narrow inspector rails must not stack labels on icons.
+        // min-w-0 + wrap: narrow dock rails must not stack labels on icons.
         'mt-0.5 flex min-w-0 items-center justify-between gap-2',
         isCompact ? 'min-h-8 flex-wrap pt-0.5' : 'min-h-9 pt-1',
       )}

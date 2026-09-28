@@ -101,4 +101,22 @@ describe('useRailKeys', () => {
     rerender({ itemCount: 0 });
     expect(result.current.activeIndex).toBe(0);
   });
+
+  it('leaves modified keys to app shortcuts such as ⌘J', () => {
+    const { result } = renderHook(() => useRailKeys({ itemCount: 3 }));
+
+    for (const modifier of ['metaKey', 'ctrlKey', 'altKey'] as const) {
+      const event = new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        key: 'j',
+        [modifier]: true,
+      });
+      act(() => {
+        window.dispatchEvent(event);
+      });
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(result.current.activeIndex).toBe(0);
+  });
 });

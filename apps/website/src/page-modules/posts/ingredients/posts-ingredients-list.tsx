@@ -2,7 +2,7 @@
 
 import { ITEMS_PER_PAGE } from '@genfeedai/contracts/constants';
 import type { Ingredient } from '@models/content/ingredient.model';
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import { PublicService } from '@services/external/public.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -50,7 +50,7 @@ export default function PostsIngredientsList({
         setIngredients(data);
         setIsLoading(false);
       } catch (error) {
-        logger.error('Failed to fetch ingredients:', error);
+        deferredLogger.error('Failed to fetch ingredients:', error);
         setIsLoading(false);
       }
     },

@@ -202,6 +202,29 @@ describe('TwitterController', () => {
       expect(mockCredentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
     });
 
+    it('stores a declined history import on the pending credential', async () => {
+      const brand = {
+        id: brandId,
+        organizationId: orgId,
+        userId: 'test-object-id',
+      };
+      mockBrandsService.findOne.mockResolvedValue(brand);
+
+      await controller.connect(
+        mockRequest,
+        mockUser as unknown as import('@api/auth/interfaces/authenticated-user.interface').AuthenticatedUser,
+        { brandId, isHistoryImportRequested: false },
+      );
+
+      expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        brand,
+        'test-object-id',
+        'twitter',
+        { isConnected: false, isHistoryImportRequested: false },
+        undefined,
+      );
+    });
+
     it('should throw FORBIDDEN when brand not found', async () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 

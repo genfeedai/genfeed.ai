@@ -54,24 +54,24 @@ describe('overlay telemetry and focus helpers', () => {
       resolveOverlayTelemetryUpdate({
         currentTelemetryClass: null,
         isOverlayCompleted: false,
-        overlayTelemetryClass: 'shell-preview',
+        overlayTelemetryClass: 'library_picker',
         previousState: 'canvas',
         state: 'overlay',
       }),
     ).toEqual({
       abandonedTelemetryClass: null,
       nextCompleted: false,
-      nextTelemetryClass: 'shell-preview',
+      nextTelemetryClass: 'library_picker',
     });
     expect(
       resolveOverlayTelemetryUpdate({
-        currentTelemetryClass: 'shell-preview',
+        currentTelemetryClass: 'library_picker',
         isOverlayCompleted: false,
         overlayTelemetryClass: null,
         previousState: 'overlay',
         state: 'canvas',
       }).abandonedTelemetryClass,
-    ).toBe('shell-preview');
+    ).toBe('library_picker');
   });
 
   it('restores canvas focus unless the overlay trigger still owns it', () => {

@@ -119,10 +119,7 @@ export type ConversationShellTransition =
 
 export type ConversationShellRestorationFailureReason =
   | 'invalid_overlay'
-  | 'invalid_overlay_reference'
-  | 'invalid_thread'
-  | 'stale_overlay_reference'
-  | 'unauthorized_overlay_reference';
+  | 'invalid_thread';
 
 export type ConversationShellDeploymentMode =
   | 'community'
@@ -171,7 +168,6 @@ export interface AnalyticsEventProperties {
     readonly overlayClass:
       | 'library_picker'
       | 'notifications'
-      | 'shell_preview'
       | 'workflow_picker';
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_APPROVAL]: {

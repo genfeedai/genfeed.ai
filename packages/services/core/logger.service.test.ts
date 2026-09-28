@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   mockCaptureException,
   mockCaptureMessage,
+  mockGetClient,
   mockPinoDebug,
   mockPinoError,
   mockPinoInfo,
@@ -11,6 +12,8 @@ const {
 } = vi.hoisted(() => ({
   mockCaptureException: vi.fn(),
   mockCaptureMessage: vi.fn(),
+  // A started SDK by default; the held-report tests below clear it.
+  mockGetClient: vi.fn<() => object | undefined>(() => ({})),
   mockPinoDebug: vi.fn(),
   mockPinoError: vi.fn(),
   mockPinoInfo: vi.fn(),
@@ -20,6 +23,7 @@ const {
 vi.mock('@sentry/nextjs', () => ({
   captureException: mockCaptureException,
   captureMessage: mockCaptureMessage,
+  getClient: mockGetClient,
 }));
 
 vi.mock('pino', () => ({
@@ -33,6 +37,7 @@ vi.mock('pino', () => ({
 
 // Import after mocks
 import { logger } from '@services/core/logger.service';
+import { takeHeldSentryReports } from '@services/core/sentry-held-reports';
 
 describe('logger.service', () => {
   beforeEach(() => {
@@ -339,6 +344,69 @@ describe('logger.service', () => {
           url: 'http://genfeed.localhost/default/default/workspace/overview',
         }),
       );
+    });
+  });
+
+  // The website starts Sentry once the page is idle; a boundary can catch a
+  // render error before that. Those reports are held, not dropped.
+  describe('before Sentry has started in the browser', () => {
+    beforeEach(() => {
+      vi.stubGlobal('window', {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mockGetClient.mockReturnValueOnce(undefined);
+      takeHeldSentryReports();
+    });
+
+    it('holds an error report for the deferred start to replay', () => {
+      const error = new Error('Render failed');
+
+      logger.error('ErrorBoundary caught an error', {
+        error,
+        tags: { errorBoundary: 'true' },
+      });
+
+      expect(mockCaptureException).not.toHaveBeenCalled();
+      expect(takeHeldSentryReports()).toEqual([
+        {
+          context: expect.objectContaining({
+            level: 'error',
+            tags: { errorBoundary: 'true' },
+          }),
+          error,
+          kind: 'exception',
+        },
+      ]);
+    });
+
+    it('holds a warning report the same way', () => {
+      logger.warn('Slow boot', { tags: { area: 'boot' } });
+
+      expect(mockCaptureMessage).not.toHaveBeenCalled();
+      expect(takeHeldSentryReports()).toEqual([
+        {
+          context: expect.objectContaining({
+            level: 'warning',
+            tags: { area: 'boot' },
+          }),
+          kind: 'message',
+          message: 'Slow boot',
+        },
+      ]);
+    });
+
+    it('sends straight to Sentry once it has a client', () => {
+      mockGetClient.mockReset();
+      mockGetClient.mockReturnValue({});
+      const error = new Error('Later failure');
+
+      logger.error('Failed', error);
+
+      expect(mockCaptureException).toHaveBeenCalledWith(
+        error,
+        expect.objectContaining({ level: 'error' }),
+      );
+      expect(takeHeldSentryReports()).toEqual([]);
     });
   });
 });

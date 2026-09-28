@@ -2,22 +2,13 @@
 
 import type { WorkspaceOverlayHostProps } from '@genfeedai/props/ui/workspace-overlay-host.props';
 import ContextInspector from '@ui/overlays/context-inspector/ContextInspector';
+import { useTranslations } from 'next-intl';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
-
-function formatOverlayParameters(
-  overlay: WorkspaceOverlayHostProps['overlay'],
-): string {
-  if (overlay?.key !== 'shell-preview' || !overlay.parameters.reference) {
-    return 'No resource reference selected';
-  }
-
-  return `${overlay.parameters.reference.kind} reference selected`;
-}
 
 /**
  * The only context-inspector host owned by the universal workspace shell.
  * Product entity inspection sheets remain outside this host and registered
- * shell overlays may contribute only their trusted metadata and typed parameters.
+ * shell overlays may contribute only their trusted metadata.
  */
 export default function WorkspaceOverlayHost({
   composerPortalRef,
@@ -30,6 +21,7 @@ export default function WorkspaceOverlayHost({
   registration,
   returnFocusRef,
 }: WorkspaceOverlayHostProps) {
+  const translate = useTranslations('common.workspaceOverlay');
   const isResolved = Boolean(
     overlay && registration && overlay.key === registration.key,
   );
@@ -71,7 +63,7 @@ export default function WorkspaceOverlayHost({
               <LibraryPickerOverlay onSelect={onSelectLibraryReference} />
             ) : (
               <div className="p-5 pb-2 text-sm text-muted-foreground">
-                {formatOverlayParameters(overlay)}
+                {translate('noContent')}
               </div>
             ))}
           <div

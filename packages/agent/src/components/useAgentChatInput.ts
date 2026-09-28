@@ -30,10 +30,13 @@ import type {
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
+  CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
   readConversationComposerDraft,
+  readDismissedSurfaceReferenceKeys,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
+  writeDismissedSurfaceReferenceKeys,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { applyComposerDocument } from '@genfeedai/agent/utils/apply-composer-document.util';
@@ -45,9 +48,11 @@ import {
   SkillSurface,
 } from '@genfeedai/contracts';
 import type {
+  AgentArtifactRecordKind,
   AgentArtifactReference,
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
+import { AGENT_ARTIFACT_SERIALIZER_BY_KIND } from '@genfeedai/contracts/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -165,6 +170,44 @@ function normalizeSurfaceArtifactReference(
   };
 }
 
+function artifactReferenceKey(reference: AgentArtifactReference): string {
+  return `${reference.kind}:${reference.recordId}`;
+}
+
+/**
+ * A record attached from a page (e.g. Studio "Ask Agent about this") becomes a
+ * typed artifact reference on send. Only ingredients qualify: they come from
+ * the brand the conversation is bound to. Content-picker posts span every
+ * brand in the organization, and the server rejects the whole turn when a
+ * reference's brand differs from the thread's, so they stay display-only
+ * until the picker is brand-scoped.
+ */
+function buildContentReferenceArtifact(
+  contentReference: PersistedConversationComposerContentReference,
+  organizationId: string,
+  brandId: string | undefined,
+): AgentArtifactReference | null {
+  if (contentReference.kind !== 'ingredient') {
+    return null;
+  }
+
+  // A record keeps the brand it was attached from. One from another brand
+  // than the composer is bound to, or with no known brand while the composer
+  // is bound to one, is left out rather than relabelled.
+  const recordBrandId = contentReference.brandId;
+  if (brandId && recordBrandId !== brandId) {
+    return null;
+  }
+
+  return {
+    kind: 'ingredient',
+    organizationId,
+    recordId: contentReference.id,
+    serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
+    ...(recordBrandId ? { brandId: recordBrandId } : {}),
+  };
+}
+
 export {
   areAgentChatMentionReferencesEqual,
   extractMentions,
@@ -232,11 +275,40 @@ export function useAgentChatInput({
   const translate = useTranslations('common.agent.composer');
   // Org "Voice Control" (admin setting, default false). Matches studio PromptBar
   // gating so in-app STT is opt-in; Wispr / OS dictation still types into the field.
-  const { settings: organizationSettings } = useBrand();
+  const { organizationId, settings: organizationSettings } = useBrand();
   const isVoiceControlEnabled =
     organizationSettings?.isVoiceControlEnabled === true;
   const surfaceArtifactReferences =
     composerShell?.artifactReferences ?? EMPTY_SURFACE_ARTIFACT_REFERENCES;
+  const normalizedSurfaceArtifactReferences = useMemo(
+    () => surfaceArtifactReferences.map(normalizeSurfaceArtifactReference),
+    [surfaceArtifactReferences],
+  );
+  // Dismissed surface chips (research/asset context handed in by the host
+  // surface) are hidden from the tray and left out of the next send, until
+  // the next successful send resets them. They live per draft scope, so a
+  // remounted composer keeps them.
+  const [dismissedSurfaceArtifactKeys, setDismissedSurfaceArtifactKeys] =
+    useState<ReadonlySet<string>>(() =>
+      readDismissedSurfaceReferenceKeys(composerShell?.draftScopeKey ?? null),
+    );
+  const visibleSurfaceArtifactReferences = useMemo(
+    () =>
+      normalizedSurfaceArtifactReferences.filter(
+        (item) =>
+          !dismissedSurfaceArtifactKeys.has(
+            artifactReferenceKey(item.reference),
+          ),
+      ),
+    [dismissedSurfaceArtifactKeys, normalizedSurfaceArtifactReferences],
+  );
+  const surfaceArtifactKindByRecordId = useMemo(() => {
+    const map = new Map<string, AgentArtifactRecordKind>();
+    for (const item of normalizedSurfaceArtifactReferences) {
+      map.set(item.reference.recordId, item.reference.kind);
+    }
+    return map;
+  }, [normalizedSurfaceArtifactReferences]);
   const draftScopeKey = composerShell?.draftScopeKey ?? null;
   const restoredDraft = useMemo(
     () => readConversationComposerDraft(draftScopeKey),
@@ -597,6 +669,51 @@ export function useAgentChatInput({
   }, [editor]);
 
   useEffect(() => {
+    setDismissedSurfaceArtifactKeys(
+      readDismissedSurfaceReferenceKeys(draftScopeKey),
+    );
+  }, [draftScopeKey]);
+
+  // A record attached to this scope's draft from elsewhere in the app (e.g.
+  // Library "Add to conversation") while this composer is mounted — merge it
+  // in live instead of waiting for a remount to re-read the draft.
+  useEffect(() => {
+    if (typeof window === 'undefined' || draftScopeKey === null) {
+      return;
+    }
+
+    const handleDraftUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ scopeKey: string | null }>).detail;
+      if (detail?.scopeKey !== draftScopeKey) {
+        return;
+      }
+
+      const draft = readConversationComposerDraft(draftScopeKey);
+      setContentReferences((current) => {
+        const byId = new Map(current.map((item) => [item.id, item] as const));
+        for (const item of draft.contentReferences) {
+          if (!byId.has(item.id)) {
+            byId.set(item.id, item);
+          }
+        }
+        return [...byId.values()];
+      });
+      editorRef.current?.commands.focus('end');
+    };
+
+    window.addEventListener(
+      CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
+      handleDraftUpdated,
+    );
+    return () => {
+      window.removeEventListener(
+        CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
+        handleDraftUpdated,
+      );
+    };
+  }, [draftScopeKey]);
+
+  useEffect(() => {
     if (!editor || !composerSeed) {
       return;
     }
@@ -707,17 +824,41 @@ export function useAgentChatInput({
       generationMode,
       prompt: promptContent,
     });
+    // Records attached from a page were display-only mentions; the agent needs
+    // them as artifact references to resolve the underlying record.
+    // Surface-provided references are the existing scope context, so they win
+    // a dedupe collision over one built from a content reference.
+    const artifactReferencesByKey = new Map<string, AgentArtifactReference>();
+    for (const item of visibleSurfaceArtifactReferences) {
+      artifactReferencesByKey.set(
+        artifactReferenceKey(item.reference),
+        item.reference,
+      );
+    }
+    if (organizationId) {
+      for (const contentReference of contentReferences) {
+        const artifact = buildContentReferenceArtifact(
+          contentReference,
+          organizationId,
+          composerShell?.brandId,
+        );
+        if (!artifact) {
+          continue;
+        }
+        const key = artifactReferenceKey(artifact);
+        if (!artifactReferencesByKey.has(key)) {
+          artifactReferencesByKey.set(key, artifact);
+        }
+      }
+    }
+    const mergedArtifactReferences = [...artifactReferencesByKey.values()];
     const accepted = await onSend(
       promptContent,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
       {
-        ...(surfaceArtifactReferences.length > 0
-          ? {
-              artifactReferences: surfaceArtifactReferences.map(
-                (item) => normalizeSurfaceArtifactReference(item).reference,
-              ),
-            }
+        ...(mergedArtifactReferences.length > 0
+          ? { artifactReferences: mergedArtifactReferences }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
         generationMode: sendMode,
@@ -736,6 +877,8 @@ export function useAgentChatInput({
     }
     editor.commands.clearContent();
     setContentReferences([]);
+    writeDismissedSurfaceReferenceKeys(draftScopeKey, new Set());
+    setDismissedSurfaceArtifactKeys(new Set());
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
@@ -757,7 +900,8 @@ export function useAgentChatInput({
     generationSettings,
     knowledgeSelection,
     clearAllAttachments,
-    surfaceArtifactReferences,
+    organizationId,
+    visibleSurfaceArtifactReferences,
     translate,
   ]);
 
@@ -876,9 +1020,33 @@ export function useAgentChatInput({
     (reference: AgentChatReferenceItem) => {
       if (reference.type === 'content') {
         handleRemoveContentReference(reference.id);
+        return;
+      }
+
+      // Surface artifact ('asset') chips are dismissible — the host surface
+      // that provided them is still scoped, so dismissal is a per-composer
+      // preference, not a mutation of the surface's own reference list.
+      if (reference.type === 'asset') {
+        const kind = surfaceArtifactKindByRecordId.get(reference.id);
+        if (!kind) {
+          return;
+        }
+        const key = `${kind}:${reference.id}`;
+        // Without a scope nothing is stored, so build on this composer's own set.
+        const current = draftScopeKey
+          ? readDismissedSurfaceReferenceKeys(draftScopeKey)
+          : dismissedSurfaceArtifactKeys;
+        const next = current.has(key) ? current : new Set([...current, key]);
+        writeDismissedSurfaceReferenceKeys(draftScopeKey, next);
+        setDismissedSurfaceArtifactKeys(next);
       }
     },
-    [handleRemoveContentReference],
+    [
+      dismissedSurfaceArtifactKeys,
+      draftScopeKey,
+      handleRemoveContentReference,
+      surfaceArtifactKindByRecordId,
+    ],
   );
 
   const selectedContentIds = useMemo(
@@ -917,20 +1085,19 @@ export function useAgentChatInput({
       }
     }
 
-    for (const item of surfaceArtifactReferences) {
-      const normalizedItem = normalizeSurfaceArtifactReference(item);
-      const referenceId = normalizedItem.reference.recordId;
+    for (const item of visibleSurfaceArtifactReferences) {
+      const referenceId = item.reference.recordId;
       if (!referencesById.has(referenceId)) {
         referencesById.set(referenceId, {
           id: referenceId,
-          label: normalizedItem.label,
+          label: item.label,
           type: 'asset',
         });
       }
     }
 
     return [...referencesById.values()];
-  }, [references, surfaceArtifactReferences]);
+  }, [references, visibleSurfaceArtifactReferences]);
 
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 

@@ -1,7 +1,7 @@
 export enum CardVariant {
   DEFAULT = 'default',
-  WHITE = 'white',
-  BLACK = 'black',
+  /** CSS `border-border` edge instead of the inset hairline. */
+  BORDERED = 'bordered',
 }
 
 export enum CardSize {

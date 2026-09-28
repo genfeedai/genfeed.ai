@@ -11,7 +11,7 @@ export function AgentChatInputStyles(): ReactElement {
           overflow-y: auto;
           outline: none;
         }
-        [data-density='inspector'] .ProseMirror {
+        [data-density='dock'] .ProseMirror {
           min-height: 56px;
         }
         .ProseMirror p.is-editor-empty:first-child::before {

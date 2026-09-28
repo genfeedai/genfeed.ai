@@ -4,6 +4,9 @@ import {
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
+  TransformationCategory,
+  WebSocketEventStatus,
+  WebSocketEventType,
 } from '@genfeedai/contracts';
 import type { IResizeBodyParams } from '@genfeedai/contracts/interfaces';
 import { HttpException } from '@nestjs/common';
@@ -161,18 +164,135 @@ describe('VideosResizeController', () => {
     ).rejects.toThrow(HttpException);
   });
 
-  it('should query video with OR for user and organization ownership', async () => {
+  describe('resizeVideo source lookup', () => {
+    const deletedVideoId = 'cmvideo0000000000000000003';
+    const foreignVideoId = 'cmvideo0000000000000000004';
+    const videoRows = [
+      { ...mockVideo, isDeleted: false },
+      { ...mockVideo, id: deletedVideoId, isDeleted: true },
+      {
+        ...mockVideo,
+        id: foreignVideoId,
+        isDeleted: false,
+        organizationId: 'cmorganization000000000000002',
+      },
+    ];
+
+    type VideoRow = (typeof videoRows)[number];
+    type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+
+    const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
+          : row[key as keyof VideoRow] === value,
+      );
+
+    beforeEach(() => {
+      mockServices.videosService.findOne.mockImplementation(
+        async (where: VideoWhere) =>
+          videoRows.find((row) => matchesWhere(row, where)) ?? null,
+      );
+    });
+
+    it('scopes the lookup to the caller organization and live videos', async () => {
+      const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
+      await controller.resizeVideo(
+        mockRequest,
+        mockUser,
+        videoId,
+        resizeParams,
+      );
+      expect(mockServices.videosService.findOne).toHaveBeenCalledWith({
+        id: videoId,
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
+    it('returns NOT_FOUND for a soft-deleted video', async () => {
+      const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
+      await expect(
+        controller.resizeVideo(
+          mockRequest,
+          mockUser,
+          deletedVideoId,
+          resizeParams,
+        ),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    it('returns NOT_FOUND for a video owned by the user in another organization', async () => {
+      const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
+      await expect(
+        controller.resizeVideo(
+          mockRequest,
+          mockUser,
+          foreignVideoId,
+          resizeParams,
+        ),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+  });
+
+  it('publishes VIDEO_RESIZED after the resized ingredient is generated', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.filesClientService.uploadToS3.mockResolvedValue({
+      height: 1080,
+      width: 1920,
+    });
     const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
     await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
-    expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        OR: expect.arrayContaining([
-          expect.objectContaining({ userId }),
-          expect.objectContaining({ organizationId }),
-        ]),
-      }),
+
+    await vi.waitFor(() =>
+      expect(
+        mockServices.websocketService.publishVideoComplete,
+      ).toHaveBeenCalledOnce(),
     );
+    expect(
+      mockServices.websocketService.publishVideoComplete,
+    ).toHaveBeenCalledWith(
+      `/videos/${ingredientId}`,
+      {
+        eventType: WebSocketEventType.VIDEO_RESIZED,
+        id: ingredientId,
+        status: WebSocketEventStatus.COMPLETED,
+        transformation: TransformationCategory.RESIZED,
+      },
+      mockUser.id,
+      `user:${mockUser.id}`,
+    );
+    expect(mockServices.ingredientsService.patch).toHaveBeenCalledWith(
+      ingredientId,
+      {
+        status: IngredientStatus.GENERATED,
+        transformations: [TransformationCategory.RESIZED],
+      },
+    );
+    expect(
+      mockServices.ingredientsService.patch.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      mockServices.websocketService.publishVideoComplete.mock
+        .invocationCallOrder[0],
+    );
+  });
+
+  it('does not publish VIDEO_RESIZED when the resize job fails', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.fileQueueService.waitForJob.mockRejectedValueOnce(
+      new Error('ffmpeg failed'),
+    );
+    const resizeParams: IResizeBodyParams = { height: 1080, width: 1920 };
+    await controller.resizeVideo(mockRequest, mockUser, videoId, resizeParams);
+
+    await vi.waitFor(() =>
+      expect(mockServices.loggerService.error).toHaveBeenCalledOnce(),
+    );
+    expect(
+      mockServices.websocketService.publishVideoComplete,
+    ).not.toHaveBeenCalled();
   });
 
   it('should create ingredient with PROCESSING status and VIDEO category', async () => {
@@ -213,6 +333,61 @@ describe('VideosResizeController', () => {
     await expect(
       controller.resizeToPortrait(mockRequest, mockUser, 'nonexistent'),
     ).rejects.toThrow(HttpException);
+  });
+
+  describe('resizeToPortrait source lookup', () => {
+    const deletedVideoId = 'cmvideo0000000000000000003';
+    const foreignVideoId = 'cmvideo0000000000000000004';
+    const videoRows = [
+      { ...mockVideo, isDeleted: false },
+      { ...mockVideo, id: deletedVideoId, isDeleted: true },
+      {
+        ...mockVideo,
+        id: foreignVideoId,
+        isDeleted: false,
+        organizationId: 'cmorganization000000000000002',
+      },
+    ];
+
+    type VideoRow = (typeof videoRows)[number];
+    type VideoWhere = Record<string, unknown> & { OR?: VideoWhere[] };
+
+    const matchesWhere = (row: VideoRow, where: VideoWhere): boolean =>
+      Object.entries(where).every(([key, value]) =>
+        key === 'OR'
+          ? (value as VideoWhere[]).some((branch) => matchesWhere(row, branch))
+          : row[key as keyof VideoRow] === value,
+      );
+
+    beforeEach(() => {
+      mockServices.videosService.findOne.mockImplementation(
+        async (where: VideoWhere) =>
+          videoRows.find((row) => matchesWhere(row, where)) ?? null,
+      );
+    });
+
+    it('scopes the lookup to the caller organization and live videos', async () => {
+      await controller.resizeToPortrait(mockRequest, mockUser, videoId);
+      expect(mockServices.videosService.findOne).toHaveBeenCalledWith({
+        id: videoId,
+        isDeleted: false,
+        organizationId,
+      });
+    });
+
+    it('returns NOT_FOUND for a soft-deleted video', async () => {
+      await expect(
+        controller.resizeToPortrait(mockRequest, mockUser, deletedVideoId),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
+
+    it('returns NOT_FOUND for a video owned by the user in another organization', async () => {
+      await expect(
+        controller.resizeToPortrait(mockRequest, mockUser, foreignVideoId),
+      ).rejects.toThrow(HttpException);
+      expect(mockServices.fileQueueService.processVideo).not.toHaveBeenCalled();
+    });
   });
 
   it('should set parent to original video for resize', async () => {

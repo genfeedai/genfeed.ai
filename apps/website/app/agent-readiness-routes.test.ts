@@ -23,6 +23,17 @@ import {
 import { GET as getProtectedResourceMetadata } from './.well-known/oauth-protected-resource/route';
 
 describe('website discovery routes', () => {
+  it('keeps retired demo links out of the generated LLM discovery index', () => {
+    const source = readFileSync(
+      join(import.meta.dirname, '../scripts/generate-llms-txt.ts'),
+      'utf8',
+    );
+
+    expect(source).toMatch(/\$\{BASE_URL\}\/contact/);
+    expect(source).not.toMatch(/\$\{BASE_URL\}\/demo/);
+    expect(source).not.toContain('https://genfeed.ai/demo');
+  });
+
   it.each([
     '.well-known/auth.md/route.ts',
     '.well-known/mcp.json/route.ts',

@@ -17,7 +17,7 @@ export default function AccountRowActionsMenu({
   connection,
   isReconnectDisabled,
   onDisconnect,
-  onPostingTimes,
+  onOpenSettings,
   onReconnect,
 }: AccountRowActionsMenuProps) {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -42,8 +42,8 @@ export default function AccountRowActionsMenu({
         >
           {translate('reconnect')}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => onPostingTimes(connection)}>
-          {translate('postingTimes')}
+        <DropdownMenuItem onSelect={() => onOpenSettings(connection)}>
+          {translate('settings')}
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"

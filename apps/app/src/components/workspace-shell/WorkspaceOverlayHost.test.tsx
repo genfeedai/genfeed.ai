@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { getWorkspaceShellOverlayRegistration } from '@/lib/workspace-shell/workspace-shell-registry';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@/features/library-remix/LibraryPickerOverlay', () => ({
   default: ({
     onSelect,
@@ -76,7 +81,7 @@ describe('WorkspaceOverlayHost', () => {
   it('renders one coherently named trusted dialog and dismisses through its owner', () => {
     const onDismiss = vi.fn();
     const returnFocusRef = createRef<HTMLElement>();
-    const registration = getWorkspaceShellOverlayRegistration('shell-preview');
+    const registration = getWorkspaceShellOverlayRegistration('notifications');
 
     render(
       <WorkspaceOverlayHost
@@ -84,8 +89,8 @@ describe('WorkspaceOverlayHost', () => {
         isOpen
         onDismiss={onDismiss}
         overlay={{
-          key: 'shell-preview',
-          parameters: { reference: null },
+          key: 'notifications',
+          parameters: {},
         }}
         registration={registration}
         returnFocusRef={returnFocusRef}
@@ -94,14 +99,16 @@ describe('WorkspaceOverlayHost', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Temporary workspace overlay' }),
+      screen.getByRole('heading', { name: 'Notifications' }),
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        /trusted placeholder demonstrates restorable overlay state/i,
+        /review workspace notifications without leaving the active conversation/i,
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('No resource reference selected')).toBeVisible();
+    expect(
+      screen.getByText('No content configured for this overlay.'),
+    ).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
@@ -200,7 +207,9 @@ describe('WorkspaceOverlayHost', () => {
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('Authorized workflow choices')).toBeVisible();
-    expect(screen.queryByText('No resource reference selected')).toBeNull();
+    expect(
+      screen.queryByText('No content configured for this overlay.'),
+    ).toBeNull();
   });
 
   it('renders the trusted Library adapter and returns the canonical reference', () => {

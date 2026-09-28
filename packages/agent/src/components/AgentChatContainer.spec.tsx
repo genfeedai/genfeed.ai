@@ -1172,7 +1172,7 @@ describe('AgentChatContainer', () => {
       <ConversationComposerShellProvider
         contextLabel="Workspace"
         draftScopeKey="acme:thread-1:3"
-        placement="inspector"
+        placement="dock"
         portalTarget={portalTarget}
         shellState="canvas"
       >
@@ -1187,7 +1187,7 @@ describe('AgentChatContainer', () => {
     expect(portaled?.getAttribute('data-show-top-fade')).toBe('true');
     expect(screen.getByTestId('chat-input')).toHaveAttribute(
       'data-density',
-      'inspector',
+      'dock',
     );
     portalTarget.remove();
   });
@@ -2703,7 +2703,7 @@ describe('AgentChatContainer', () => {
     portalTarget.remove();
   });
 
-  it('docks the inspector empty-state composer into the shell slot', () => {
+  it('docks the empty-state composer into the dock slot', () => {
     const apiService = createApiService();
     const portalTarget = document.createElement('div');
     document.body.append(portalTarget);
@@ -2715,7 +2715,7 @@ describe('AgentChatContainer', () => {
       <ConversationComposerShellProvider
         contextLabel="Workspace"
         draftScopeKey="acme:thread-1:3"
-        placement="inspector"
+        placement="dock"
         portalTarget={portalTarget}
         shellState="canvas"
       >
@@ -2727,6 +2727,39 @@ describe('AgentChatContainer', () => {
     );
 
     expect(screen.getByText('Start a conversation')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="agent-chat-input-shell"]'),
+    ).toBeNull();
+    expect(
+      portalTarget.querySelector('[data-layout-mode="inflow"]'),
+    ).not.toBeNull();
+
+    portalTarget.remove();
+  });
+
+  it('keeps an empty conversation composer in an overlay slot', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:new:0"
+        placement="overlay"
+        portalTarget={portalTarget}
+        shellState="overlay"
+      >
+        <AgentChatContainer
+          apiService={apiService as never}
+          emptyStateTitle="Start a conversation"
+        />
+      </ConversationComposerShellProvider>,
+    );
+
     expect(
       container.querySelector('[data-testid="agent-chat-input-shell"]'),
     ).toBeNull();

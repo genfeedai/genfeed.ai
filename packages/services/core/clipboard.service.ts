@@ -1,4 +1,4 @@
-import { logger } from '@services/core/logger.service';
+import { deferredLogger } from '@services/core/deferred-logger';
 import { NotificationsService } from '@services/core/notifications.service';
 
 function canUseClipboardApi(): boolean {
@@ -73,7 +73,7 @@ export class ClipboardService {
       if (writeTextViaExecCommand(payload)) {
         this.notificationsService.success('Copied to clipboard');
       } else {
-        logger.error('Copy to clipboard failed', error);
+        deferredLogger.error('Copy to clipboard failed', error);
         this.notificationsService.error('Copy to clipboard failed');
       }
     } finally {
@@ -113,7 +113,7 @@ export class ClipboardService {
       if (writeTextViaExecCommand(text)) {
         this.notificationsService.success('Copied to clipboard');
       } else {
-        logger.error('Copy rich text to clipboard failed', error);
+        deferredLogger.error('Copy rich text to clipboard failed', error);
         this.notificationsService.error('Copy to clipboard failed');
       }
     } finally {

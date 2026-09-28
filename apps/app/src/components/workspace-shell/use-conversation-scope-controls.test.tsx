@@ -164,7 +164,6 @@ function Harness({
       <span>{state.contextLabel}</span>
       <span>{state.isConsequentiallyBlocked ? 'blocked' : 'ready'}</span>
       {state.scopeControls}
-      {state.inspectorScope}
     </div>
   );
 }

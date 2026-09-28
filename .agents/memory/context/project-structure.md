@@ -16,7 +16,7 @@ full inventory; this file records only what `ls` cannot tell you.
 
 - **`apps/server/api/`** is the shared server tree (`@genfeedai/api`, alias `@api/*`).
   #4348 folded `@genfeedai/server` back into api. Do not recreate `apps/server/server`.
-  The name "core" stays retired — see `rules/server_not_core.md`.
+  The name "core" stays retired — enforced by `bun run check:retired-core-names`.
 - **`apps/server/{clips,images,videos,voices}/` are not services.** Clip/media code lives under
   API, files, and packages. Do not recreate those directories or `@clips`/`@images`/`@videos`/`@voices` aliases.
 - **`packages/contracts` (`@genfeedai/contracts`)** is the shared contracts workspace

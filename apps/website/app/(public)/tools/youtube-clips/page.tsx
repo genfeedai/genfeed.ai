@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import YoutubeClipsContent from '@public/tools/youtube-clips/youtube-clips-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'YouTube Transcript to Clips — Free AI Tool | Genfeed',
+  'YouTube Transcript to Clips — Free AI Tool',
   'Turn a public YouTube video into a timestamped transcript, three clip recommendations, and one free preview clip.',
   '/tools/youtube-clips',
 );

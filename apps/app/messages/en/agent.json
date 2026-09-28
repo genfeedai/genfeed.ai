@@ -5,6 +5,9 @@
     "title": "Agent",
     "unsupportedCard": "This card type is not supported yet."
   },
+  "fullPage": {
+    "outputs": "Outputs"
+  },
   "activityFeed": {
     "budget": "Budget",
     "completed": "Completed",
@@ -362,5 +365,10 @@
     "openDraft": "Open draft",
     "openDraftAria": "Open {platform} draft in review",
     "remainingInReview": "+{count} more {count, plural, one {post} other {posts}} in review"
+  },
+  "dock": {
+    "emptyTitle": "Start a conversation",
+    "emptyDescription": "Ask about this page.",
+    "placeholder": "Ask about this page..."
   }
 }

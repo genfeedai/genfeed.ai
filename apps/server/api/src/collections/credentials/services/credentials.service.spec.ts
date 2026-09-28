@@ -1058,6 +1058,36 @@ describe('CredentialsService', () => {
     });
 
     it.each([
+      { chosen: false, incumbentChoice: null, expected: false },
+      { chosen: true, incumbentChoice: false, expected: true },
+      { chosen: null, incumbentChoice: false, expected: false },
+      { chosen: null, incumbentChoice: null, expected: null },
+    ])(
+      'settles the history-import choice onto the surviving account %j',
+      async ({ chosen, incumbentChoice, expected }) => {
+        const row = {
+          ...pendingCredential,
+          isDeleted: false,
+          isHistoryImportRequested: chosen,
+        };
+        const incumbent = {
+          ...row,
+          id: 'incumbent',
+          externalId: 'account-1',
+          isHistoryImportRequested: incumbentChoice,
+        };
+        useStoredRows([row, incumbent]);
+
+        const result = await service.updateExternalProfile(row.id, orgId, {
+          id: 'account-1',
+        });
+
+        expect(result.id).toBe('incumbent');
+        expect(incumbent.isHistoryImportRequested).toBe(expected);
+      },
+    );
+
+    it.each([
       { organizationId: 'other-org' },
       { brandId: 'other-brand' },
       { platform: 'FACEBOOK' },
