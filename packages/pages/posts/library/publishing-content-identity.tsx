@@ -1,9 +1,7 @@
 'use client';
 
-import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { Globe, Mail, Share2 } from 'lucide-react';
 import Link from 'next/link';
-import { formatPublishingContentChannel } from './publishing-content-library.helpers';
+import PublishingContentChannels from './publishing-content-channels';
 
 type PublishingContentIdentityProps = {
   channels: string[];
@@ -18,33 +16,9 @@ export default function PublishingContentIdentity({
   summary,
   titleHref,
 }: PublishingContentIdentityProps) {
-  const uniqueChannels = [...new Set(channels.length ? channels : ['social'])];
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div className="flex shrink-0 -space-x-2">
-        {uniqueChannels.slice(0, 3).map((channel) => {
-          const Icon =
-            getPlatformIconComponent(channel) ??
-            (channel === 'email' ? Mail : channel === 'web' ? Globe : Share2);
-          const label = formatPublishingContentChannel(channel);
-          return (
-            <span
-              key={channel}
-              role="img"
-              aria-label={label}
-              title={label}
-              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-background"
-            >
-              <Icon className="size-4" />
-            </span>
-          );
-        })}
-        {uniqueChannels.length > 3 ? (
-          <span className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-xs">
-            +{uniqueChannels.length - 3}
-          </span>
-        ) : null}
-      </div>
+      <PublishingContentChannels channels={channels} />
       <div className="min-w-0 max-w-xl">
         {titleHref ? (
           <Link
