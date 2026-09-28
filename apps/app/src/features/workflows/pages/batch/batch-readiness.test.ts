@@ -13,13 +13,14 @@ function makeCredential(platform: string): ICredential {
     isConnected: true,
     externalId: 'ext-1',
     externalHandle: 'handle',
-    brand: 'brand-1',
+    brandId: 'brand-1',
+    organizationId: 'org-1',
+    userId: 'user-1',
     user: {} as ICredential['user'],
     organization: {} as ICredential['organization'],
     isDeleted: false,
     createdAt: '',
     updatedAt: '',
-    token: '',
   };
 }
 
@@ -37,13 +38,12 @@ function makeBrand(overrides: Partial<IBrand> = {}): IBrand {
     isDefault: false,
     isFleetEnabled: false,
     isActive: true,
-    isSelected: true,
     scope: 'brand' as IBrand['scope'],
     user: {} as IBrand['user'],
     organization: {} as IBrand['organization'],
     credentials: [],
     links: [],
-    references: [{ id: 'ref-1' } as IBrand['references'][0]],
+    references: [{ id: 'ref-1' } as NonNullable<IBrand['references']>[0]],
     agentConfig: {
       voice: { tone: 'professional' },
     },

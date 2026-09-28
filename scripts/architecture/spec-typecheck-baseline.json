@@ -6981,7 +6981,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -6989,7 +6989,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "997d3dd44ab0fe1e5fc1",
-      "message": "Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -9246,30 +9246,6 @@
       "file": "packages/pages/research/work-surface/research-work-surface.types.test.ts",
       "fingerprint": "bf7bb241591e09d75cd3",
       "message": "Type '\"tiktok\"' is not assignable to type 'AdsPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/fastlane/utils/brand-readiness.test.ts",
-      "fingerprint": "9af8874e076391914e51",
-      "message": "Type 'string' is not assignable to type 'IBrand'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "packages/pages/studio/fastlane/utils/brand-readiness.test.ts",
-      "fingerprint": "103a3e37aba58f0cc625",
-      "message": "Property '0' does not exist on type 'IAsset[] | undefined'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2561,
-      "count": 1,
-      "file": "packages/pages/studio/fastlane/utils/brand-readiness.test.ts",
-      "fingerprint": "4104b87f9d16c58b321c",
-      "message": "Object literal may only specify known properties, but 'isSelected' does not exist in type 'IBrand'. Did you mean to write 'isDeleted'?",
       "workspace": "pages"
     },
     {
