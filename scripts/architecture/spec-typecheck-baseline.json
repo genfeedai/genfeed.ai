@@ -11449,14 +11449,6 @@
       "workspace": "pages"
     },
     {
-      "code": 7006,
-      "count": 1,
-      "file": "packages/pages/agents/campaigns/AgentCampaignsPage.tsx",
-      "fingerprint": "c107aff12bd61292261b",
-      "message": "Parameter 'campaign' implicitly has an 'any' type.",
-      "workspace": "pages"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/pages/agents/campaigns/OutreachCampaignDetail.test.tsx",
