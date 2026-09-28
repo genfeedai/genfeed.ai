@@ -67,4 +67,26 @@ describe('useDeferredIsSignedIn', () => {
     unmount();
     expect(cancelIdle).toHaveBeenCalledWith(7);
   });
+
+  it('picks up a sign-in from another tab when the page is shown again', async () => {
+    runIdleImmediately();
+    getSession.mockResolvedValue({ data: null });
+
+    const { result, unmount } = renderHook(() => useDeferredIsSignedIn());
+    await waitFor(() => expect(getSession).toHaveBeenCalledTimes(1));
+    expect(result.current).toBe(false);
+
+    getSession.mockResolvedValue({ data: { session: { id: 's1' } } });
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      value: 'visible',
+    });
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    await waitFor(() => expect(result.current).toBe(true));
+
+    unmount();
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(getSession).toHaveBeenCalledTimes(2);
+  });
 });

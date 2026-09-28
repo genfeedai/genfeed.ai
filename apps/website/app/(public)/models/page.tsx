@@ -4,10 +4,11 @@ import { getPublicModels } from '@public/models/models-loader';
 
 /**
  * The catalog is the same for every visitor, so the page is rendered once and
- * served from the full route cache instead of re-rendering per request. Five
- * minutes keeps a registry change (or a render made while the API was down,
- * which shows the catalog-unavailable state) short-lived; the catalog fetch
- * itself stays in the data cache for an hour.
+ * served from the full route cache instead of re-rendering per request. The
+ * route regenerates every five minutes, which bounds how long a render made
+ * while the API was down (the catalog-unavailable state) is served. Registry
+ * changes can take up to an hour to appear: `getPublicModels` keeps the
+ * catalog fetch in the data cache for that long, as it did before.
  */
 export const revalidate = 300;
 

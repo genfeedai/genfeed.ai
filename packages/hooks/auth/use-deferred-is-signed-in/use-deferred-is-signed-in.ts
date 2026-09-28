@@ -39,6 +39,18 @@ export function useDeferredIsSignedIn(): boolean {
         });
     };
 
+    // A visitor who signs in (or out) in another tab comes back to this one
+    // without a remount, so check again whenever the page is shown.
+    document.addEventListener(
+      'visibilitychange',
+      () => {
+        if (document.visibilityState === 'visible') {
+          check();
+        }
+      },
+      { signal: controller.signal },
+    );
+
     if (typeof window.requestIdleCallback === 'function') {
       const handle = window.requestIdleCallback(check, {
         timeout: SESSION_IDLE_TIMEOUT_MS,
