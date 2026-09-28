@@ -271,6 +271,7 @@ describe('proactive organization to strategy run and attributed draft integratio
       {} as never,
       schedules as never,
       {} as never,
+      {} as never,
     );
 
     await prisma.organization.create({

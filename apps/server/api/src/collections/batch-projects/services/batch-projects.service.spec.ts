@@ -93,7 +93,7 @@ describe('BatchProjectsService', () => {
     credential: { findMany: vi.fn() },
     ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
     organizationSetting: { findFirst: vi.fn() },
-    post: { findFirst: vi.fn(), updateMany: vi.fn() },
+    post: { findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const reconcileService = {
@@ -134,6 +134,8 @@ describe('BatchProjectsService', () => {
     prisma.batchProjectItem.findMany.mockResolvedValue([]);
     prisma.brand.findFirst.mockResolvedValue({ id: 'brand-1' });
     prisma.post.findFirst.mockResolvedValue(null);
+    prisma.post.findMany.mockResolvedValue([]);
+    prisma.post.updateMany.mockResolvedValue({ count: 1 });
   });
 
   describe('create', () => {
@@ -250,6 +252,42 @@ describe('BatchProjectsService', () => {
       ).rejects.toThrow('Workflow batches accept images and videos');
     });
 
+    it('changes inputs under the project lock and rechecks the draft inside it', async () => {
+      useProject(makeProject());
+      reconcileService.runExclusive.mockImplementationOnce(
+        async (_projectId: string, operation: () => Promise<unknown>) => {
+          // A start wins the lock first.
+          useProject(makeProject({ status: BatchProjectStatus.GENERATING }));
+          return await operation();
+        },
+      );
+
+      await expect(
+        service.addItems(
+          'project-1',
+          { inputs: [{ ingredientId: 'input-1' }] },
+          scope,
+        ),
+      ).rejects.toThrow('Inputs can only change before the batch starts');
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+      expect(prisma.batchProjectItem.createMany).not.toHaveBeenCalled();
+    });
+
+    it('removes an input under the project lock', async () => {
+      useProject(makeProject());
+      prisma.batchProjectItem.findFirst.mockResolvedValue(makeItem());
+
+      await service.removeItem('project-1', 'item-1', scope);
+
+      expect(reconcileService.runExclusive).toHaveBeenCalledWith(
+        'project-1',
+        expect.any(Function),
+      );
+    });
+
     it('refuses to change inputs once the batch started', async () => {
       useProject(makeProject({ status: BatchProjectStatus.GENERATING }));
 
@@ -260,6 +298,52 @@ describe('BatchProjectsService', () => {
           scope,
         ),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('updateItem', () => {
+    it('writes a caption edit to the review draft so both surfaces agree', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
+      prisma.batchProjectItem.findFirst.mockResolvedValue(
+        makeItem({
+          postId: 'review-post-1',
+          status: BatchProjectItemStatus.READY,
+        }),
+      );
+
+      await service.updateItem(
+        'project-1',
+        'item-1',
+        { caption: 'Edited in Batch' },
+        scope,
+      );
+
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        data: { description: 'Edited in Batch' },
+        where: expect.objectContaining({
+          id: 'review-post-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      });
+    });
+  });
+
+  describe('list', () => {
+    it('refreshes review decisions of projects in review before counting', async () => {
+      prisma.batchProject.findMany.mockResolvedValue([
+        { ...makeProject({ status: BatchProjectStatus.REVIEWING }), items: [] },
+      ]);
+      prisma.batchProject.count.mockResolvedValue(1);
+
+      await service.list(scope, { limit: 20, page: 1 } as never);
+
+      expect(reconcileService.syncReviewDecisions).toHaveBeenCalledWith(
+        'project-1',
+        'org-1',
+      );
+      expect(prisma.batchProject.findMany).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -679,10 +763,12 @@ describe('BatchProjectsService', () => {
             expect.objectContaining({
               credentialId: 'credential-tiktok',
               postId: 'review-post-1',
+              status: 'scheduled',
             }),
             expect.objectContaining({
               credentialId: 'credential-instagram',
               postId: 'clone-post-1',
+              status: 'scheduled',
             }),
           ],
         },
@@ -766,6 +852,7 @@ describe('BatchProjectsService', () => {
               credentialId: 'credential-tiktok',
               postId: 'review-post-1',
               scheduledAt: '2026-09-28T11:00:00.000Z',
+              status: 'scheduled',
             },
           ],
         },
@@ -792,6 +879,115 @@ describe('BatchProjectsService', () => {
       );
     });
 
+    it('keeps the caption the review inbox approved when there is no override', async () => {
+      prisma.post.findMany.mockImplementation(
+        async (args: { select?: Record<string, boolean> }) =>
+          args.select?.description
+            ? [{ description: 'Rewritten in the inbox', id: 'review-post-1' }]
+            : [],
+      );
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            {
+              credentialId: 'credential-tiktok',
+              platform: 'tiktok',
+              scheduledDate: '2026-10-01T09:00:00.000Z',
+            },
+          ],
+        },
+        scope,
+      );
+
+      expect(postsService.batchSchedule).toHaveBeenCalledWith(
+        [expect.objectContaining({ text: 'Rewritten in the inbox' })],
+        'org-1',
+        expect.anything(),
+        'user-1',
+      );
+    });
+
+    it('binds each post to its destination before scheduling and keeps partial successes', async () => {
+      postsService.batchSchedule.mockRejectedValueOnce(
+        new Error('Media readiness failed for one approval'),
+      );
+      prisma.post.findMany.mockImplementation(
+        async (args: { select?: Record<string, boolean> }) =>
+          args.select?.targetExecutionState
+            ? [
+                {
+                  credentialId: 'credential-tiktok',
+                  id: 'review-post-1',
+                  publishApprovalId: 'approval-1',
+                  targetExecutionState: TargetExecutionState.SCHEDULED,
+                },
+              ]
+            : [],
+      );
+
+      const result = await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      const bindingWrite = prisma.batchProjectItem.updateMany.mock.calls.find(
+        ([args]) =>
+          Array.isArray(args.data.scheduledTargets) &&
+          args.data.scheduledTargets.some(
+            (entry: { status: string }) => entry.status === 'pending',
+          ),
+      );
+      expect(bindingWrite).toBeDefined();
+      expect(
+        prisma.batchProjectItem.updateMany.mock.invocationCallOrder[0],
+      ).toBeLessThan(postsService.batchSchedule.mock.invocationCallOrder[0]);
+      expect(result).toEqual({ failedCount: 0, scheduledCount: 2 });
+      const [secondItems] = postsService.batchSchedule.mock.calls[1];
+      expect(secondItems[0].postId).toBe('clone-post-1');
+    });
+
+    it('reuses the post bound to a destination whose first attempt failed', async () => {
+      useProject(makeProject({ status: BatchProjectStatus.PARTIAL_FAILURE }), [
+        {
+          ...approvedItem,
+          scheduledTargets: [
+            {
+              credentialId: 'credential-instagram',
+              postId: 'review-post-1',
+              status: 'failed',
+            },
+          ],
+        },
+      ]);
+
+      await service.schedule(
+        'project-1',
+        {
+          targets: [
+            { credentialId: 'credential-tiktok', platform: 'tiktok' },
+            { credentialId: 'credential-instagram', platform: 'instagram' },
+          ],
+        },
+        scope,
+      );
+
+      const calls = postsService.batchSchedule.mock.calls.map(
+        ([items, , target]) => [items[0].postId, target.credentialId],
+      );
+      expect(calls).toEqual([
+        ['clone-post-1', 'credential-tiktok'],
+        ['review-post-1', 'credential-instagram'],
+      ]);
+    });
+
     it('counts a destination the channel rejects as failed', async () => {
       postsService.batchSchedule.mockResolvedValue({
         invalidTargetPostIds: ['review-post-1'],
@@ -808,7 +1004,19 @@ describe('BatchProjectsService', () => {
       );
 
       expect(result).toEqual({ failedCount: 1, scheduledCount: 0 });
-      expect(prisma.batchProjectItem.updateMany).not.toHaveBeenCalled();
+      expect(prisma.batchProjectItem.updateMany).toHaveBeenLastCalledWith({
+        data: {
+          scheduledAt: null,
+          scheduledTargets: [
+            {
+              credentialId: 'credential-tiktok',
+              postId: 'review-post-1',
+              status: 'failed',
+            },
+          ],
+        },
+        where: expect.objectContaining({ id: 'item-1' }),
+      });
     });
 
     it('rejects an account that is not connected to the brand', async () => {

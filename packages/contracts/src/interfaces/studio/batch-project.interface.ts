@@ -57,11 +57,16 @@ export interface IBatchProjectItemCounts {
   scheduled: number;
 }
 
-/** One destination an item has scheduled to. */
+/**
+ * One destination an item is bound to: the post that destination uses and
+ * the outcome of its last scheduling attempt. A post is bound before it is
+ * scheduled so no other destination can take it over.
+ */
 export interface IBatchProjectScheduledTarget {
   credentialId: string;
   postId: string;
-  scheduledAt: string;
+  status: 'pending' | 'scheduled' | 'failed';
+  scheduledAt?: string;
 }
 
 export interface IBatchProjectItem {

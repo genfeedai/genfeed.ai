@@ -125,20 +125,38 @@ export function mergeBatchProjectSettings(
   };
 }
 
-/** Parse the destinations an item has already scheduled to. */
+const SCHEDULE_BINDING_STATUSES = new Set<string>([
+  'failed',
+  'pending',
+  'scheduled',
+]);
+
+/** Parse an item's destination bindings and their outcomes. */
 export function parseScheduledTargets(
   value: unknown,
 ): IBatchProjectScheduledTarget[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.flatMap((entry) => {
+  return value.flatMap((entry): IBatchProjectScheduledTarget[] => {
     const record = readRecord(entry);
     const credentialId = readString(record?.credentialId);
     const postId = readString(record?.postId);
+    const status = readString(record?.status);
+    if (!credentialId || !postId || !status) {
+      return [];
+    }
+    if (!SCHEDULE_BINDING_STATUSES.has(status)) {
+      return [];
+    }
     const scheduledAt = readString(record?.scheduledAt);
-    return credentialId && postId && scheduledAt
-      ? [{ credentialId, postId, scheduledAt }]
-      : [];
+    return [
+      {
+        credentialId,
+        postId,
+        status: status as IBatchProjectScheduledTarget['status'],
+        ...(scheduledAt ? { scheduledAt } : {}),
+      },
+    ];
   });
 }

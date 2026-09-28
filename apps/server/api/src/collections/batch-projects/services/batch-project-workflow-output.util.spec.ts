@@ -15,6 +15,14 @@ describe('batch project workflow output', () => {
     ).toEqual(['final-video', 'node-output', 'early-image']);
   });
 
+  it('reads an explicit output ingredient id first', () => {
+    expect(
+      readWorkflowOutputIngredientIds([
+        { outputIngredientId: 'stitched', video: 'https://cdn/x.mp4' },
+      ]),
+    ).toEqual(['stitched']);
+  });
+
   it('ignores outputs that carry no id', () => {
     expect(
       readWorkflowOutputIngredientIds([null, 'text', { url: 'x' }]),

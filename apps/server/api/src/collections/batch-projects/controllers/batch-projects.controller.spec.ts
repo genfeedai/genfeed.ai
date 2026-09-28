@@ -47,7 +47,7 @@ describe('BatchProjectsController publishing scopes', () => {
           {
             credentialId: 'credential-1',
             platform: 'tiktok',
-            scheduledDate: '2026-10-01T09:00:00.000Z',
+            scheduledDate: '2099-10-01T09:00:00.000Z',
           },
         ],
       }),
@@ -66,6 +66,25 @@ describe('BatchProjectsController publishing scopes', () => {
     expect(service.schedule).not.toHaveBeenCalled();
   });
 
+  it('treats a destination date that is already due as publishing now', async () => {
+    await expect(
+      controller.schedule(
+        apiKeyUser([ApiKeyScope.POSTS_SCHEDULE]),
+        'project-1',
+        {
+          targets: [
+            {
+              credentialId: 'credential-1',
+              platform: 'tiktok',
+              scheduledDate: '2020-01-01T00:00:00.000Z',
+            },
+          ],
+        },
+      ),
+    ).rejects.toThrow(ForbiddenException);
+    expect(service.schedule).not.toHaveBeenCalled();
+  });
+
   it('schedules for an API key holding the schedule scope', async () => {
     await controller.schedule(
       apiKeyUser([ApiKeyScope.POSTS_SCHEDULE]),
@@ -75,7 +94,7 @@ describe('BatchProjectsController publishing scopes', () => {
           {
             credentialId: 'credential-1',
             platform: 'tiktok',
-            scheduledDate: '2026-10-01T09:00:00.000Z',
+            scheduledDate: '2099-10-01T09:00:00.000Z',
           },
         ],
       },

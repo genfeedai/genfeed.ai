@@ -67,6 +67,11 @@ const RECONCILED_STATUSES = new Set<string>([
   BatchProjectStatus.REVIEWING,
   BatchProjectStatus.SCHEDULED,
 ]);
+const SCHEDULED_EXECUTION_STATES = new Set<string>([
+  TargetExecutionState.PUBLISHED,
+  TargetExecutionState.PUBLISHING,
+  TargetExecutionState.SCHEDULED,
+]);
 const REVIEWABLE_STATUSES = new Set<string>([
   BatchProjectItemStatus.APPROVED,
   BatchProjectItemStatus.READY,
@@ -105,21 +110,42 @@ export class BatchProjectsService {
     const where = scopedWhere(scope.organizationId, {
       ...(query.brandId ? { brandId: query.brandId } : {}),
     });
-    const [rows, total] = await Promise.all([
-      this.prisma.batchProject.findMany({
-        include: {
-          items: {
-            select: { scheduledAt: true, status: true },
-            where: { isDeleted: false, organizationId: scope.organizationId },
+    const readPage = () =>
+      Promise.all([
+        this.prisma.batchProject.findMany({
+          include: {
+            items: {
+              select: { scheduledAt: true, status: true },
+              where: { isDeleted: false, organizationId: scope.organizationId },
+            },
           },
-        },
-        orderBy: { updatedAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        where,
-      }),
-      this.prisma.batchProject.count({ where }),
-    ]);
+          orderBy: { updatedAt: 'desc' },
+          skip: (page - 1) * limit,
+          take: limit,
+          where,
+        }),
+        this.prisma.batchProject.count({ where }),
+      ]);
+    let [rows, total] = await readPage();
+
+    // Decisions made in the review inbox change a project's counts; pick them
+    // up before listing instead of waiting for the project to be opened.
+    const reviewing = rows.filter(
+      (row) => row.status === BatchProjectStatus.REVIEWING,
+    );
+    if (reviewing.length > 0) {
+      for (const row of reviewing) {
+        await this.reconcileService.syncReviewDecisions(
+          row.id,
+          scope.organizationId,
+        );
+        await this.reconcileService.refreshProjectStatus(
+          row.id,
+          scope.organizationId,
+        );
+      }
+      [rows, total] = await readPage();
+    }
 
     return {
       docs: rows.map((row) => ({
@@ -223,7 +249,21 @@ export class BatchProjectsService {
     ]);
   }
 
-  async addItems(
+  /**
+   * Inputs change under the project lock start also takes, and the draft is
+   * rechecked inside it, so an input can never land after the batch started.
+   */
+  addItems(
+    id: string,
+    dto: AddBatchProjectItemsDto,
+    scope: IBatchProjectScope,
+  ): Promise<IBatchProject> {
+    return this.reconcileService.runExclusive(id, () =>
+      this.addItemsLocked(id, dto, scope),
+    );
+  }
+
+  private async addItemsLocked(
     id: string,
     dto: AddBatchProjectItemsDto,
     scope: IBatchProjectScope,
@@ -266,24 +306,37 @@ export class BatchProjectsService {
       },
       where: scopedWhere(scope.organizationId, { id: itemId, projectId: id }),
     });
+    if (dto.caption !== undefined && item.postId) {
+      // The review draft is the canonical caption the inbox shows and
+      // scheduling publishes; keep it in step with Batch edits.
+      await this.prisma.post.updateMany({
+        data: { description: dto.caption },
+        where: scopedWhere(scope.organizationId, {
+          id: item.postId,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      });
+    }
     await this.touchProject(id, scope);
     return this.loadProject(id, scope);
   }
 
-  async removeItem(
+  removeItem(
     id: string,
     itemId: string,
     scope: IBatchProjectScope,
   ): Promise<IBatchProject> {
-    const project = await this.requireProject(id, scope);
-    this.assertDraft(project);
-    await this.requireItem(id, itemId, scope);
-    await this.prisma.batchProjectItem.updateMany({
-      data: { isDeleted: true },
-      where: scopedWhere(scope.organizationId, { id: itemId, projectId: id }),
+    return this.reconcileService.runExclusive(id, async () => {
+      const project = await this.requireProject(id, scope);
+      this.assertDraft(project);
+      await this.requireItem(id, itemId, scope);
+      await this.prisma.batchProjectItem.updateMany({
+        data: { isDeleted: true },
+        where: scopedWhere(scope.organizationId, { id: itemId, projectId: id }),
+      });
+      await this.touchProject(id, scope);
+      return this.loadProject(id, scope);
     });
-    await this.touchProject(id, scope);
-    return this.loadProject(id, scope);
   }
 
   /**
@@ -672,15 +725,38 @@ export class BatchProjectsService {
     }
 
     const now = new Date();
-    const scheduledTargetsByItem = new Map<
-      string,
-      IBatchProjectScheduledTarget[]
-    >(
+    const reviewPostIds = approved.flatMap((item) =>
+      item.postId ? [item.postId] : [],
+    );
+    const reviewPosts = await this.prisma.post.findMany({
+      select: { description: true, id: true },
+      where: scopedWhere(scope.organizationId, { id: { in: reviewPostIds } }),
+    });
+    const reviewedCaptionByPostId = new Map(
+      reviewPosts.map((post) => [post.id, post.description]),
+    );
+    const bindingsByItem = new Map<string, IBatchProjectScheduledTarget[]>(
       approved.map((item) => [
         item.id,
         parseScheduledTargets(item.scheduledTargets),
       ]),
     );
+    const writeBindings = async (
+      item: BatchProjectItem,
+      bindings: IBatchProjectScheduledTarget[],
+    ) => {
+      bindingsByItem.set(item.id, bindings);
+      const hasScheduled = bindings.some(
+        (binding) => binding.status === 'scheduled',
+      );
+      await this.prisma.batchProjectItem.updateMany({
+        data: {
+          scheduledAt: item.scheduledAt ?? (hasScheduled ? now : null),
+          scheduledTargets: toPrismaJson(bindings),
+        },
+        where: scopedWhere(scope.organizationId, { id: item.id }),
+      });
+    };
     let scheduledCount = 0;
     let failedCount = 0;
 
@@ -689,9 +765,10 @@ export class BatchProjectsService {
       const platform = fromPrismaCredentialPlatform(credential?.platform);
       const due = approved.filter(
         (item) =>
-          !scheduledTargetsByItem
+          bindingsByItem
             .get(item.id)
-            ?.some((done) => done.credentialId === target.credentialId),
+            ?.find((binding) => binding.credentialId === target.credentialId)
+            ?.status !== 'scheduled',
       );
       if (due.length === 0) {
         continue;
@@ -707,12 +784,21 @@ export class BatchProjectsService {
         postId: string;
       }> = [];
       for (const item of due) {
-        const caption = this.resolveCaption(item, dto.captions);
-        const isReviewPostUsed = scheduledTargetsByItem
-          .get(item.id)
-          ?.some((done) => done.postId === item.postId);
+        const caption = this.resolveCaption(
+          item,
+          dto.captions,
+          reviewedCaptionByPostId,
+        );
+        const bindings = bindingsByItem.get(item.id) ?? [];
+        const bound = bindings.find(
+          (binding) => binding.credentialId === credential.id,
+        );
+        const isReviewPostBound = bindings.some(
+          (binding) => binding.postId === item.postId,
+        );
         const postId =
-          item.postId && !isReviewPostUsed
+          bound?.postId ??
+          (item.postId && !isReviewPostBound
             ? item.postId
             : await this.resolveDestinationDraft(
                 project,
@@ -720,11 +806,19 @@ export class BatchProjectsService {
                 credential.id,
                 caption,
                 scope,
-              );
+              ));
+        // Bind the post to this destination before scheduling it, so even a
+        // partially failed call can never hand it to another destination.
+        await writeBindings(item, [
+          ...bindings.filter(
+            (binding) => binding.credentialId !== credential.id,
+          ),
+          { credentialId: credential.id, postId, status: 'pending' },
+        ]);
         entries.push({ caption, item, postId });
       }
 
-      let scheduledPostIds = new Set<string>();
+      let scheduledPostIds: Set<string>;
       try {
         const result = await this.postsService.batchSchedule(
           entries.map((entry) => ({
@@ -751,30 +845,36 @@ export class BatchProjectsService {
             organizationId: scope.organizationId,
           },
         );
+        // Part of the call may have committed; read what actually scheduled.
+        scheduledPostIds = await this.readScheduledPostIds(
+          entries.map((entry) => entry.postId),
+          credential.id,
+          scope,
+        );
       }
 
       for (const entry of entries) {
-        if (!scheduledPostIds.has(entry.postId)) {
+        const isScheduled = scheduledPostIds.has(entry.postId);
+        if (isScheduled) {
+          scheduledCount += 1;
+        } else {
           failedCount += 1;
-          continue;
         }
-        scheduledCount += 1;
-        const scheduledTargets = [
-          ...(scheduledTargetsByItem.get(entry.item.id) ?? []),
-          {
-            credentialId: credential.id,
-            postId: entry.postId,
-            scheduledAt: now.toISOString(),
-          },
-        ];
-        scheduledTargetsByItem.set(entry.item.id, scheduledTargets);
-        await this.prisma.batchProjectItem.updateMany({
-          data: {
-            scheduledAt: entry.item.scheduledAt ?? now,
-            scheduledTargets: toPrismaJson(scheduledTargets),
-          },
-          where: scopedWhere(scope.organizationId, { id: entry.item.id }),
-        });
+        const bindings = bindingsByItem.get(entry.item.id) ?? [];
+        await writeBindings(
+          entry.item,
+          bindings.map(
+            (binding): IBatchProjectScheduledTarget =>
+              binding.credentialId === credential.id
+                ? {
+                    credentialId: binding.credentialId,
+                    postId: binding.postId,
+                    status: isScheduled ? 'scheduled' : 'failed',
+                    ...(isScheduled ? { scheduledAt: now.toISOString() } : {}),
+                  }
+                : binding,
+          ),
+        );
       }
     }
 
@@ -807,16 +907,54 @@ export class BatchProjectsService {
     return { failedCount, scheduledCount };
   }
 
+  /**
+   * An explicit override wins; otherwise the review draft's current caption
+   * (what the review inbox approved, including rewrites made there).
+   */
   private resolveCaption(
     item: BatchProjectItem,
     captions: Record<string, string> | undefined,
+    reviewedCaptionByPostId: ReadonlyMap<string, string>,
   ): string {
     const override = captions?.[item.id];
+    const reviewed = item.postId
+      ? reviewedCaptionByPostId.get(item.postId)
+      : undefined;
     const caption =
       typeof override === 'string'
         ? override
-        : (item.caption ?? readBatchProjectIdea(item.idea)?.caption ?? '');
+        : (reviewed ??
+          item.caption ??
+          readBatchProjectIdea(item.idea)?.caption ??
+          '');
     return caption.trim();
+  }
+
+  /** Posts that really are scheduled on the destination, approval bound. */
+  private async readScheduledPostIds(
+    postIds: string[],
+    credentialId: string,
+    scope: IBatchProjectScope,
+  ): Promise<Set<string>> {
+    const posts = await this.prisma.post.findMany({
+      select: {
+        credentialId: true,
+        id: true,
+        publishApprovalId: true,
+        targetExecutionState: true,
+      },
+      where: scopedWhere(scope.organizationId, { id: { in: postIds } }),
+    });
+    return new Set(
+      posts
+        .filter(
+          (post) =>
+            post.credentialId === credentialId &&
+            Boolean(post.publishApprovalId) &&
+            SCHEDULED_EXECUTION_STATES.has(String(post.targetExecutionState)),
+        )
+        .map((post) => post.id),
+    );
   }
 
   /** The one draft an item uses for one extra destination account. */

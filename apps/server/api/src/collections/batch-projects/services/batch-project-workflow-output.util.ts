@@ -4,7 +4,7 @@ import { buildForEachChildIdempotencyKey } from '@api/collections/workflows/syst
 export const BATCH_WORKFLOW_FOR_EACH_NODE_ID = 'execute-items';
 
 const OUTPUT_MEDIA_KEYS = ['video', 'image'] as const;
-const OUTPUT_ID_KEYS = ['ingredientId', 'id'] as const;
+const OUTPUT_ID_KEYS = ['outputIngredientId', 'ingredientId', 'id'] as const;
 
 function readRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -30,7 +30,9 @@ export function readWorkflowOutputIngredientIds(
   const ids: string[] = [];
   for (const nodeOutput of [...nodeOutputs].reverse()) {
     const output = readRecord(nodeOutput);
+    // An explicit output id on the node wins over nested media payloads.
     const candidates = [
+      { outputIngredientId: output.outputIngredientId },
       ...OUTPUT_MEDIA_KEYS.map((key) => readRecord(output[key])),
       output,
     ];

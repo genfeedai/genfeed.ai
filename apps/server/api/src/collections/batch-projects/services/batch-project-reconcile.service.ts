@@ -163,8 +163,11 @@ export class BatchProjectReconcileService {
         orderBy: { id: 'asc' },
         select: { id: true, organizationId: true },
         take: SWEEP_BATCH_SIZE,
-        where: { isDeleted: false, status: BatchProjectStatus.GENERATING },
-        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        where: {
+          isDeleted: false,
+          status: BatchProjectStatus.GENERATING,
+          ...(cursor ? { id: { gt: cursor } } : {}),
+        },
       });
 
       for (const project of projects) {
@@ -478,22 +481,16 @@ export class BatchProjectReconcileService {
     return outcomes;
   }
 
+  /**
+   * The child run's output: an ingredient id its nodes return (last node
+   * first, tenant-validated), else the newest media ingredient linked to the
+   * run. Ids win so a node that returns its final output (e.g. a stitched
+   * video) is never shadowed by an earlier intermediate clip.
+   */
   private async findOutputIngredient(
     organizationId: string,
     childExecutionId: string,
   ): Promise<OutputIngredient | null> {
-    const linked = await this.prisma.ingredient.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { category: true, id: true },
-      where: scopedWhere(organizationId, {
-        category: { in: OUTPUT_CATEGORIES },
-        workflowExecutionId: childExecutionId,
-      }),
-    });
-    if (linked) {
-      return linked;
-    }
-
     const nodeResults = await this.prisma.workflowExecutionNodeResult.findMany({
       orderBy: { completedAt: 'asc' },
       select: { output: true },
@@ -502,26 +499,33 @@ export class BatchProjectReconcileService {
     const candidateIds = readWorkflowOutputIngredientIds(
       nodeResults.map((nodeResult) => nodeResult.output),
     );
-    if (candidateIds.length === 0) {
-      return null;
+    if (candidateIds.length > 0) {
+      const candidates = await this.prisma.ingredient.findMany({
+        select: { category: true, id: true },
+        where: scopedWhere(organizationId, {
+          category: { in: OUTPUT_CATEGORIES },
+          id: { in: candidateIds },
+        }),
+      });
+      const candidatesById = new Map(
+        candidates.map((candidate) => [candidate.id, candidate]),
+      );
+      for (const id of candidateIds) {
+        const candidate = candidatesById.get(id);
+        if (candidate) {
+          return candidate;
+        }
+      }
     }
-    const candidates = await this.prisma.ingredient.findMany({
+
+    return this.prisma.ingredient.findFirst({
+      orderBy: { createdAt: 'desc' },
       select: { category: true, id: true },
       where: scopedWhere(organizationId, {
         category: { in: OUTPUT_CATEGORIES },
-        id: { in: candidateIds },
+        workflowExecutionId: childExecutionId,
       }),
     });
-    const candidatesById = new Map(
-      candidates.map((candidate) => [candidate.id, candidate]),
-    );
-    for (const id of candidateIds) {
-      const candidate = candidatesById.get(id);
-      if (candidate) {
-        return candidate;
-      }
-    }
-    return null;
   }
 
   /**
@@ -636,7 +640,10 @@ export class BatchProjectReconcileService {
     return summary;
   }
 
-  /** Mirror review-inbox decisions onto the project's reviewable items. */
+  /**
+   * Mirror review-inbox decisions and caption edits onto the project's
+   * reviewable items, so both surfaces show the same state.
+   */
   async syncReviewDecisions(
     projectId: string,
     organizationId: string,
@@ -665,17 +672,34 @@ export class BatchProjectReconcileService {
         parseReviewDecision(row.reviewDecision).decision,
       ]),
     );
+    const postIds = items.flatMap((item) => (item.postId ? [item.postId] : []));
+    const posts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({
+            select: { description: true, id: true },
+            where: scopedWhere(organizationId, { id: { in: postIds } }),
+          })
+        : [];
+    const captionByPostId = new Map(
+      posts.map((post) => [post.id, post.description]),
+    );
 
     for (const item of items) {
       const decision = item.reviewItemId
         ? decisionById.get(item.reviewItemId)
         : undefined;
-      if (decision === undefined) {
-        continue;
-      }
-      const next = toItemStatus(decision);
-      if (next !== item.status) {
-        await this.updateItemIfStatus(item, item.status, { status: next });
+      const next =
+        decision === undefined ? item.status : toItemStatus(decision);
+      const reviewedCaption = item.postId
+        ? captionByPostId.get(item.postId)
+        : undefined;
+      const hasCaptionEdit =
+        typeof reviewedCaption === 'string' && reviewedCaption !== item.caption;
+      if (next !== item.status || hasCaptionEdit) {
+        await this.updateItemIfStatus(item, item.status, {
+          ...(next !== item.status ? { status: next } : {}),
+          ...(hasCaptionEdit ? { caption: reviewedCaption } : {}),
+        });
       }
     }
   }
@@ -690,6 +714,7 @@ export class BatchProjectReconcileService {
     data: Partial<
       Pick<
         BatchProjectItem,
+        | 'caption'
         | 'error'
         | 'outputCategory'
         | 'outputIngredientId'

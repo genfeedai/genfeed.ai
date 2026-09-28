@@ -1,5 +1,6 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
+import { ContentFormat } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
 describe('BatchGenerationCreationService manual review Post linking', () => {
@@ -361,7 +362,7 @@ describe('BatchGenerationCreationService.appendManualReviewItems', () => {
     items: [
       {
         caption: 'Second output',
-        format: 'video' as const,
+        format: ContentFormat.VIDEO,
         ingredientId: 'ingredient-2',
       },
     ],
@@ -443,7 +444,7 @@ describe('BatchGenerationCreationService.appendManualReviewItems', () => {
         items: [
           {
             caption: 'Second output',
-            format: 'video' as const,
+            format: ContentFormat.VIDEO,
             ingredientId: 'ingredient-2',
             sourceActionId: 'batch-project-item:project-item-2',
           },

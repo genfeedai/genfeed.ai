@@ -68,6 +68,7 @@ describe('BatchProjectReconcileService', () => {
     },
     batchProjectItem: { findMany: vi.fn(), updateMany: vi.fn() },
     ingredient: { findFirst: vi.fn(), findMany: vi.fn() },
+    post: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
     workflowExecution: { findFirst: vi.fn(), findMany: vi.fn() },
     workflowExecutionNodeResult: { findMany: vi.fn() },
@@ -116,6 +117,7 @@ describe('BatchProjectReconcileService', () => {
     prisma.batchProjectItem.updateMany.mockResolvedValue({ count: 1 });
     prisma.ingredient.findFirst.mockResolvedValue(null);
     prisma.ingredient.findMany.mockResolvedValue([]);
+    prisma.post.findMany.mockResolvedValue([]);
     prisma.workflow.findFirst.mockResolvedValue({ label: 'Upscale' });
     prisma.workflowExecution.findFirst.mockResolvedValue({
       error: null,
@@ -468,6 +470,77 @@ describe('BatchProjectReconcileService', () => {
     });
   });
 
+  it('prefers the output id a node returns over earlier linked clips', async () => {
+    useProject(makeProject([makeItem()]));
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        error: null,
+        id: 'child-1',
+        idempotencyKey: batchChildExecutionKey({
+          childWorkflowVersionId: 'version-1',
+          index: 0,
+          parentExecutionId: 'parent-1',
+        }),
+        status: WorkflowExecutionStatus.COMPLETED,
+      },
+    ]);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.VIDEO,
+      id: 'earlier-clip',
+    });
+    prisma.workflowExecutionNodeResult.findMany.mockResolvedValue([
+      {
+        output: { outputIngredientId: 'stitched-video', videoUrl: 'https://x' },
+      },
+    ]);
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: IngredientCategory.VIDEO, id: 'stitched-video' },
+    ]);
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ ingredientId: 'stitched-video' })],
+      }),
+      'user-1',
+      'org-1',
+    );
+  });
+
+  it('carries caption edits made in the review inbox back onto the item', async () => {
+    useProject(makeProject([], { status: BatchProjectStatus.REVIEWING }));
+    prisma.batchProjectItem.findMany.mockResolvedValue([
+      makeItem({
+        caption: 'Original caption',
+        postId: 'post-1',
+        reviewItemId: 'review-1',
+        status: BatchProjectItemStatus.READY,
+      }),
+    ]);
+    prisma.batchItem.findMany.mockResolvedValue([
+      { id: 'review-1', reviewDecision: 'APPROVED' },
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      { description: 'Rewritten in the inbox', id: 'post-1' },
+    ]);
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['post-1'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+    expect(updatedItem('item-1')).toContainEqual(
+      expect.objectContaining({ caption: 'Rewritten in the inbox' }),
+    );
+  });
+
   it('does nothing while another reconcile holds the project', async () => {
     cacheService.withLock.mockResolvedValueOnce(null);
 
@@ -518,10 +591,12 @@ describe('BatchProjectReconcileService', () => {
     expect(prisma.batchProject.findMany).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        cursor: { id: 'project-049' },
         orderBy: { id: 'asc' },
-        skip: 1,
+        where: expect.objectContaining({ id: { gt: 'project-049' } }),
       }),
+    );
+    expect(prisma.batchProject.findMany.mock.calls[1][0]).not.toHaveProperty(
+      'skip',
     );
   });
 

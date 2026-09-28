@@ -238,11 +238,15 @@ export class BatchProjectsController {
     @Param('id') id: string,
     @Body() body: ScheduleBatchProjectDto,
   ) {
-    // A destination without a date publishes now, which needs publish scope.
-    if (body.targets.some((target) => target.scheduledDate)) {
+    // A destination without a date, or with one already due, publishes now,
+    // which needs publish scope.
+    const now = Date.now();
+    const isDueNow = (scheduledDate?: string) =>
+      !scheduledDate || Date.parse(scheduledDate) <= now;
+    if (body.targets.some((target) => !isDueNow(target.scheduledDate))) {
       assertApiKeyPublishingScope(user, 'schedule');
     }
-    if (body.targets.some((target) => !target.scheduledDate)) {
+    if (body.targets.some((target) => isDueNow(target.scheduledDate))) {
       assertApiKeyPublishingScope(user, 'publish');
     }
     return this.batchProjectsService.schedule(
