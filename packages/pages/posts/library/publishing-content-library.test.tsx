@@ -306,7 +306,7 @@ describe('PublishingContentLibrary', () => {
               id: 'target-soon',
               platform: Platform.INSTAGRAM,
               executionState: TargetExecutionState.SCHEDULED,
-              scheduledDate: new Date(Date.now() + 3600000).toISOString(),
+              scheduledAt: new Date(Date.now() + 3600000).toISOString(),
             },
           ],
         },

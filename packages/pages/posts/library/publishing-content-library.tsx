@@ -372,7 +372,7 @@ export default function PublishingContentLibrary({
         item.release?.targets?.some(
           (target) =>
             target.executionState === TargetExecutionState.FAILED ||
-            needsPostAttention(target.executionState, target.scheduledDate),
+            needsPostAttention(target.executionState, target.scheduledAt),
         )),
   );
   const retryItem = async (item: PublishingContentLibraryItem) => {
