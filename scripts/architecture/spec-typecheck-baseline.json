@@ -6881,14 +6881,6 @@
       "workspace": "app"
     },
     {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/app/src/features/workflows/pages/library/WorkflowLibraryPage.test.tsx",
-      "fingerprint": "ff7039ee12420a606d95",
-      "message": "Object literal may only specify known properties, and 'createdAt' does not exist in type '{ id: string; }'.",
-      "workspace": "app"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/app/tests/post-detail-context-handoff.test.tsx",
