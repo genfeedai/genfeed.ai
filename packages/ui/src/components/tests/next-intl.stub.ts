@@ -360,6 +360,7 @@ const UI_TEST_MESSAGES = {
   pages: {
     library: {
       inspector: {
+        openPreview: 'Open full-size preview',
         type: 'Type',
       },
       otherAssets: 'Other assets',
