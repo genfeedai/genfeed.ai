@@ -2109,6 +2109,18 @@ function isSystemCatalogRequest(route: Route): boolean {
 }
 
 /**
+ * `GET /workflows/featured` (#5511) is the plain `{ data: [] }` Featured row,
+ * not a workflow by id — the `/workflows/*` CRUD pattern would otherwise answer
+ * it with a single JSON:API workflow resource and break `listFeatured()`.
+ */
+function isFeaturedWorkflowsRequest(route: Route): boolean {
+  return (
+    route.request().method() === 'GET' &&
+    /\/workflows\/featured\/?$/.test(new URL(route.request().url()).pathname)
+  );
+}
+
+/**
  * Mock for workflow CRUD operations
  */
 export async function mockWorkflowCrud(
@@ -2143,6 +2155,14 @@ export async function mockWorkflowCrud(
         return;
       }
       await route.fallback();
+      return;
+    }
+    if (isFeaturedWorkflowsRequest(route)) {
+      await route.fulfill({
+        body: JSON.stringify({ data: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
       return;
     }
     if (url.includes('/workflows/templates')) {
@@ -2207,6 +2227,14 @@ export async function mockWorkflowCrud(
         return;
       }
       await route.fallback();
+      return;
+    }
+    if (isFeaturedWorkflowsRequest(route)) {
+      await route.fulfill({
+        body: JSON.stringify({ data: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
       return;
     }
     if (url.includes('/workflows/templates')) {
