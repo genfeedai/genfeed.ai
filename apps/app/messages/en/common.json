@@ -166,6 +166,46 @@
         "title": "Choose an account"
       }
     },
+    "consent": {
+      "callbackHost": {
+        "unknownClient": "the requesting client"
+      },
+      "clientName": {
+        "fallback": "An MCP client"
+      },
+      "description": "Review what this client can access before continuing.",
+      "errors": {
+        "decisionFailed": "The authorization request could not be completed.",
+        "sessionExpired": "Your session expired. Sign in and try again."
+      },
+      "footer": "Access is limited to the Genfeed MCP resource and can be revoked from API key settings.",
+      "invalid": {
+        "description": "Required OAuth parameters are missing. Restart the connection from your MCP client.",
+        "title": "Invalid authorization request"
+      },
+      "request": {
+        "actions": {
+          "authorize": "Authorize",
+          "authorizing": "Authorizing\u2026",
+          "deny": "Deny"
+        },
+        "clientLabel": "Requesting client",
+        "returnsTo": "Returns to {host}",
+        "scopesLabel": "Wants to access"
+      },
+      "result": {
+        "approvedTitle": "Authorization sent",
+        "deniedTitle": "Access denied",
+        "description": "Return to {clientName} to continue. You can close this tab.",
+        "returnAction": "Return to {clientName}"
+      },
+      "signIn": {
+        "action": "Sign in to continue",
+        "description": "Sign in to review and authorize this connection.",
+        "title": "Sign in required"
+      },
+      "title": "Authorize Genfeed access"
+    },
     "cli": {
       "actions": {
         "copied": "Copied",
