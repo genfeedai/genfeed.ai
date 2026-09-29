@@ -92,7 +92,7 @@ export class DashboardPage {
       .locator(`a[href*="${APP_ROUTES.WORKSPACE.ACTIVITY}"]`)
       .first();
     this.navEditor = this.sidebar
-      .locator(`a[href*="${APP_ROUTES.STUDIO.EDIT}"]`)
+      .locator(`a[href*="${APP_ROUTES.STUDIO.EDITOR}"]`)
       .first();
     this.navSettings = this.sidebar
       .locator(`a[href*="${APP_ROUTES.SETTINGS.ROOT}"]`)
@@ -258,8 +258,8 @@ export class DashboardPage {
   async navigateToEditor(): Promise<void> {
     await this.#gotoOrClick(
       this.navEditor,
-      APP_ROUTES.STUDIO.EDIT,
-      /studio\/edit/,
+      APP_ROUTES.STUDIO.EDITOR,
+      /studio\/editor/,
     );
   }
 

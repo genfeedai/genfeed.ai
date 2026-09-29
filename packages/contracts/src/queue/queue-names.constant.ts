@@ -36,6 +36,17 @@ export const PLATFORM_SYSTEM_WORKFLOW_QUEUE = 'platform-system-workflow';
  * option, so a new producer that omits it fails to compile.
  */
 export const WORKFLOW_BACKGROUND_QUEUE = 'workflow-background';
+/**
+ * Live agent-conversation turns (`agent.turn.execute`,
+ * `agent.thread.ui-action`, `agent.thread.input-response`): the only work a
+ * user is actively watching a spinner for. Split from
+ * `WORKFLOW_EXECUTION_QUEUE` in #5622 after a legacy ~110k-job backlog there
+ * (drained at that queue's 20 jobs/minute limiter) left every new turn waiting
+ * days behind it. A queue that nothing else produces to cannot be backlogged by
+ * an unrelated producer, and it carries no rate limiter — the 20/min cap was
+ * sized for sweep traffic, not for interactive turns.
+ */
+export const AGENT_TURN_QUEUE = 'agent-turn';
 
 // ---------- Distribution & messaging ----------
 export const NOTIFICATION_DELIVERY_QUEUE = 'notification-delivery';
@@ -68,6 +79,7 @@ export const ALL_QUEUE_NAMES = [
   WORKFLOW_EXECUTION_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
+  AGENT_TURN_QUEUE,
   NOTIFICATION_DELIVERY_QUEUE,
   WEBHOOK_CLIENT_QUEUE,
   HEYGEN_POLL_QUEUE,

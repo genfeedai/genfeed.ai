@@ -110,6 +110,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [ADR-EARS-ON-EVERY-ISSUE](architecture/ADR-EARS-ON-EVERY-ISSUE.md) — EARS required on every public issue form; triage rewrites, never bounces
 - [ADR-OSS-DISCOVERY-BOUNDARY](architecture/ADR-OSS-DISCOVERY-BOUNDARY.md) — homepage never mentions OSS; discovery via docs + footer; Sponsors on the org
 - [ADR-CLA-FLA-2-1](architecture/ADR-CLA-FLA-2-1.md) — FSFE FLA 2.1 CLA via CLA Assistant (`ICLA.md`/`CCLA.md`), DCO retired, `ee/` maintainer-only
+- [agent-thread-status-push](decisions-agent-thread-status-push.md) — server pushes per-thread run status on the `agent-chat` channel; owner-within-org rooms; sequence-guarded client apply (#5636)
 - Glossary for OSS launch vocabulary lives at repo root [CONTEXT.md](../../CONTEXT.md)
 
 ## Specs and decisions (per issue)

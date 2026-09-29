@@ -120,8 +120,8 @@ export function WorkspaceTaskInspectorHeader({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={buildTaskLaunchHref(task, 'edit')}>
-                  {translate('openInEdit')}
+                <Link href={buildTaskLaunchHref(task, 'editor')}>
+                  {translate('openInEditor')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

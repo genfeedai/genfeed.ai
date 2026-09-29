@@ -1,6 +1,7 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -29,6 +30,45 @@ export class ImageGenerationAdmissionService {
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
   ) {}
+
+  /**
+   * Brief compilers write reference ids into the provider dispatch; providers
+   * need URLs. Ids that do not resolve for this organization (foreign,
+   * deleted, or missing) are dropped so they never reach the provider.
+   */
+  async resolveDispatchReferences(
+    compiled: {
+      brief?: { references: readonly { assetId: string }[] };
+      dispatch?: Record<string, unknown>;
+    },
+    organizationId: string,
+  ): Promise<Record<string, unknown> | undefined> {
+    if (!compiled.dispatch) {
+      return undefined;
+    }
+
+    const urlByReferenceId = new Map<string, string>();
+    const unresolvedReferenceIds = new Set<string>();
+    const referenceIds = new Set(
+      compiled.brief?.references.map((reference) => reference.assetId),
+    );
+    for (const referenceId of referenceIds) {
+      const [url] = await this.resolveReferenceImageUrls(organizationId, [
+        referenceId,
+      ]);
+      if (url) {
+        urlByReferenceId.set(referenceId, url);
+      } else {
+        unresolvedReferenceIds.add(referenceId);
+      }
+    }
+
+    return replaceDispatchReferenceIds(
+      compiled.dispatch,
+      urlByReferenceId,
+      unresolvedReferenceIds,
+    );
+  }
 
   resolveReferenceImageUrls(
     organizationId: string,

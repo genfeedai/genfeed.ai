@@ -8,7 +8,7 @@ describe('STUDIO_MENU_ITEMS', () => {
       'Storyboard',
       'Clips',
       'Batch',
-      'Edit',
+      'Editor',
     ]);
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
     expect(STUDIO_MENU_ITEMS.map((item) => item.href)).toEqual([
@@ -16,7 +16,7 @@ describe('STUDIO_MENU_ITEMS', () => {
       '/studio/storyboard',
       '/studio/clips',
       '/studio/batch',
-      '/studio/edit',
+      '/studio/editor',
     ]);
   });
 
@@ -40,7 +40,8 @@ describe('STUDIO_MENU_ITEMS', () => {
 
     expect(hrefs).toContain('/studio/generate');
     expect(hrefs).toContain('/studio/clips');
-    expect(hrefs).toContain('/studio/edit');
+    expect(hrefs).toContain('/studio/editor');
+    expect(hrefs).not.toContain('/studio/edit');
     expect(hrefs).not.toContain('/studio/audio');
     expect(hrefs).not.toContain('/library/voices');
   });
@@ -53,18 +54,20 @@ describe('STUDIO_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('exposes the merged editor as Studio Edit (path /studio/edit)', () => {
-    // #2309: the Remotion editor stopped being a core app; Studio's nav is now
-    // its only menu entry. Label matches the URL segment.
-    const edit = STUDIO_MENU_ITEMS.find((item) => item.href === '/studio/edit');
+  it('exposes the Remotion timeline as Studio Editor (path /studio/editor)', () => {
+    // #5461: the finishing surface is named Editor in nav and route alike; the
+    // old `/studio/edit` path is gone.
+    const editor = STUDIO_MENU_ITEMS.find(
+      (item) => item.href === '/studio/editor',
+    );
     const batch = STUDIO_MENU_ITEMS.find(
       (item) => item.href === '/studio/batch',
     );
 
-    expect(edit).toMatchObject({
-      href: '/studio/edit',
-      label: 'Edit',
-      matchPaths: ['/studio/edit', '/studio/edit/new'],
+    expect(editor).toMatchObject({
+      href: '/studio/editor',
+      label: 'Editor',
+      matchPaths: ['/studio/editor', '/studio/editor/new'],
     });
     expect(batch).toMatchObject({
       href: '/studio/batch',

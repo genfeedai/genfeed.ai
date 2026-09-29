@@ -86,7 +86,7 @@ test.describe('Dashboard Navigation', () => {
       await expect(authenticatedPage).toHaveURL(ACTIVITY_URL);
     });
 
-    test('should navigate to the Studio Edit timeline', async ({
+    test('should navigate to the Studio Editor timeline', async ({
       authenticatedPage,
     }) => {
       const dashboardPage = new DashboardPage(authenticatedPage);
@@ -96,7 +96,7 @@ test.describe('Dashboard Navigation', () => {
       await dashboardPage.waitForPageLoad();
 
       await dashboardPage.navigateToEditor();
-      await expect(authenticatedPage).toHaveURL(/studio\/edit/);
+      await expect(authenticatedPage).toHaveURL(/studio\/editor/);
     });
 
     test('should navigate to Settings', async ({ authenticatedPage }) => {

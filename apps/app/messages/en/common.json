@@ -673,12 +673,14 @@
     "open": "Open agent",
     "openFullPage": "Open full page",
     "resize": "Resize agent",
-    "title": "Agent"
+    "title": "Agent",
+    "unavailable": "Agent is the main view here"
   },
   "contextSidebar": {
     "close": "Close details",
     "collapse": "Collapse details",
     "drawerDescription": "Details for the selected item.",
+    "empty": "Select an item to see details",
     "expand": "Expand details",
     "label": "Selection details",
     "open": "Open details",
@@ -1890,6 +1892,7 @@
     "apps": "Apps",
     "navigation": "App navigation",
     "goTo": "Go to {app}",
+    "help": "Help",
     "opening": "Opening app.",
     "locked": "{app} — locked. Generate your first asset to unlock.",
     "workspaceBadge": "{count, plural, one {# unread task needing attention} other {# unread tasks needing attention}}",

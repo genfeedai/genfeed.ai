@@ -34,20 +34,6 @@ import {
 interface AgentThreadListRowProps {
   conv: AgentThread;
   activeThreadId: string | null;
-  activeRunStatus:
-    | 'idle'
-    | 'running'
-    | 'cancelling'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'awaiting_input'
-    | 'awaiting_confirmation'
-    | 'interrupted'
-    | 'restoring'
-    | null
-    | undefined;
-  isStreaming: boolean;
   threadUiBusyById: Record<string, boolean>;
   openMenuThreadId: string | null;
   renamingThreadId: string | null;
@@ -128,8 +114,6 @@ function ThreadActivityIndicator({
 export function AgentThreadListRow({
   conv,
   activeThreadId,
-  activeRunStatus,
-  isStreaming,
   threadUiBusyById,
   openMenuThreadId,
   renamingThreadId,
@@ -161,25 +145,11 @@ export function AgentThreadListRow({
   // must still render with archived chrome.
   const isArchived =
     isArchivedView || conv.status === AgentThreadStatus.ARCHIVED;
-  // Treat local streaming/busy as running so the glyph stays current.
-  const statusMetaBase = getThreadStatusMeta(conv, {
-    activeRunStatus: activeRunStatus ?? undefined,
-    activeThreadId,
+  // Same resolver as the sidebar groups, so the glyph can never disagree with
+  // the section the row sits in.
+  const statusMeta = getThreadStatusMeta(conv, {
+    isLocallyBusy: threadUiBusyById[conv.id] === true,
   });
-  const isLocallyWorking =
-    isActiveConversation &&
-    (isStreaming ||
-      activeRunStatus === 'running' ||
-      activeRunStatus === 'cancelling' ||
-      threadUiBusyById[conv.id] === true);
-  const statusMeta =
-    statusMetaBase ??
-    (isLocallyWorking
-      ? {
-          label: translate('running'),
-          tone: 'running' as const,
-        }
-      : null);
 
   const relativeTime = formatRelativeTime(
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,

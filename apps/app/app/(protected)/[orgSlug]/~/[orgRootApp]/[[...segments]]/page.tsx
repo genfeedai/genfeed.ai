@@ -43,9 +43,9 @@ import PublishingPostPage from '../../../[brandSlug]/publishing/posts/[id]/page'
 import PublishingLayoutContent from '../../../[brandSlug]/publishing/publishing-layout-content';
 import { renderPostsListPage } from '../../../[brandSlug]/publishing/publishing-list-page';
 import PostsReviewPage from '../../../[brandSlug]/publishing/review/page';
-import EditorDetailPage from '../../../[brandSlug]/studio/edit/[id]/page';
-import EditorProjectsPage from '../../../[brandSlug]/studio/edit/editor-projects-page';
-import EditorNewPage from '../../../[brandSlug]/studio/edit/new/page';
+import EditorDetailPage from '../../../[brandSlug]/studio/editor/[id]/page';
+import EditorProjectsPage from '../../../[brandSlug]/studio/editor/editor-projects-page';
+import EditorNewPage from '../../../[brandSlug]/studio/editor/new/page';
 import OrganizationAutomationBrandEmptyState from '../../automation/OrganizationAutomationBrandEmptyState';
 
 const ORG_LIBRARY_PRESET_ROUTE_BY_SEGMENT: Readonly<Record<string, string>> = {
@@ -132,12 +132,12 @@ async function resolveLastUsedStudioBrandSlug(
 
 // Async because the detail surface is an async server component: it has to be
 // awaited here, not handed to the tree as an unresolved promise child.
-async function renderStudioEditSurface(section?: string) {
+async function renderStudioEditorSurface(section?: string) {
   if (section === 'new') {
     return <EditorNewPage />;
   }
 
-  // Reserved index segment: /~/studio/edit/projects mirrors the edit root
+  // Reserved index segment: /~/studio/editor/projects mirrors the Editor root
   // (projects). Without this guard it would fall into the detail branch below
   // and request an editor project with id 'projects'.
   if (section === 'projects') {
@@ -298,12 +298,12 @@ export default async function OrgRootAppPage({
   }
 
   if (orgRootApp === 'studio') {
-    // `edit` is Studio's timeline surface, not a generate type. It mirrors the
-    // brand-scoped static `studio/edit` segment, which wins over `studio/[type]`.
-    if (segments?.[0] === 'edit') {
-      const editSurface = await renderStudioEditSurface(segments[1]);
+    // `editor` is Studio's timeline surface, not a generate type. It mirrors
+    // the brand-scoped static `studio/editor` segment.
+    if (segments?.[0] === 'editor') {
+      const editorSurface = await renderStudioEditorSurface(segments[1]);
 
-      return <ErrorBoundary>{editSurface}</ErrorBoundary>;
+      return <ErrorBoundary>{editorSurface}</ErrorBoundary>;
     }
 
     // The bare app-rail destination (no type segment): try the operator's

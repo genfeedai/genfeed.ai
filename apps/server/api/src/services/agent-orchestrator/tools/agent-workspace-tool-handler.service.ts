@@ -428,7 +428,8 @@ const UPLOAD_CATEGORY_TO_INGREDIENT = {
 
 /**
  * Library upload limits (`getMaxFileSize` / `getAcceptedTypes` in the upload
- * modal) plus the MIME types the presigned PUT signs.
+ * modal) plus the MIME types the presigned PUT signs, narrowed to the types
+ * `MetadataExtension` can store (no MKV, AAC, FLAC, or OGG).
  */
 const UPLOAD_CONSTRAINTS: Record<
   UploadCategoryName,
@@ -439,16 +440,8 @@ const UPLOAD_CONSTRAINTS: Record<
   }
 > = {
   audio: {
-    contentTypes: [
-      'audio/aac',
-      'audio/flac',
-      'audio/mpeg',
-      'audio/mp3',
-      'audio/ogg',
-      'audio/wav',
-      'audio/x-wav',
-    ],
-    extensions: ['.aac', '.flac', '.mp3', '.ogg', '.wav'],
+    contentTypes: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav'],
+    extensions: ['.mp3', '.wav'],
     maxBytes: 25 * 1024 * 1024,
   },
   image: {
@@ -463,16 +456,8 @@ const UPLOAD_CONSTRAINTS: Record<
     maxBytes: 10 * 1024 * 1024,
   },
   music: {
-    contentTypes: [
-      'audio/aac',
-      'audio/flac',
-      'audio/mpeg',
-      'audio/mp3',
-      'audio/ogg',
-      'audio/wav',
-      'audio/x-wav',
-    ],
-    extensions: ['.aac', '.flac', '.mp3', '.ogg', '.wav'],
+    contentTypes: ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav'],
+    extensions: ['.mp3', '.wav'],
     maxBytes: 25 * 1024 * 1024,
   },
   video: {
@@ -480,10 +465,9 @@ const UPLOAD_CONSTRAINTS: Record<
       'video/mp4',
       'video/quicktime',
       'video/webm',
-      'video/x-matroska',
       'video/x-msvideo',
     ],
-    extensions: ['.avi', '.mkv', '.mov', '.mp4', '.webm'],
+    extensions: ['.avi', '.mov', '.mp4', '.webm'],
     maxBytes: 50 * 1024 * 1024,
   },
 };

@@ -46,13 +46,13 @@ import {
   pickOperatorTaskContextSearchParams,
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
-import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
 
 import {
   isPersonalSettingsPage as computeIsPersonalSettingsPage,
   resolveSettingsScope,
 } from './app-protected-layout.settings-scope';
+import { useOpenTaskComposer } from './useOpenTaskComposer';
 
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
   'executions',
@@ -62,8 +62,8 @@ const AUTOMATION_WORKFLOW_RESERVED = new Set([
 
 export function isProtectedEditorCanvasRoute(pathname: string): boolean {
   return (
-    pathname === APP_ROUTES.STUDIO.EDIT_NEW ||
-    /^\/studio\/edit\/[^/]+$/.test(pathname) ||
+    pathname === APP_ROUTES.STUDIO.EDITOR_NEW ||
+    /^\/studio\/editor\/[^/]+$/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATION.WORKFLOWS_NEW ||
     (/^\/automation\/workflows\/([^/]+)$/.test(pathname) &&
       !AUTOMATION_WORKFLOW_RESERVED.has(pathname.split('/')[3] ?? ''))
@@ -164,6 +164,7 @@ export function useAppProtectedLayout(
     isConversationRoute || isUniversalWorkspaceShell;
 
   const { push, refresh } = useRouter();
+  const openTaskComposer = useOpenTaskComposer();
   const { getToken, isLoaded: isAuthLoaded, isSignedIn } = useOptionalAuth();
   const prevIsSignedInRef = useRef(false);
   useEffect(() => {
@@ -267,13 +268,13 @@ export function useAppProtectedLayout(
         event.key.toLowerCase() === 'n'
       ) {
         event.preventDefault();
-        dispatchOpenTaskComposer();
+        openTaskComposer();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [openTaskComposer]);
 
   // Studio is production-only now — one-off generation moved to the Agent, so
   // no menu item maps to a generation category. Idea batches enforce their own org flag.
