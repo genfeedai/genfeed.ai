@@ -79,17 +79,32 @@ describe('resolveRunSummaryPatch', () => {
     ).toBeNull();
   });
 
-  it('returns null when the summary already matches', () => {
+  it('leaves a summary that already agrees on the run status alone', () => {
+    for (const runStatus of ['queued', 'running'] as const) {
+      expect(
+        resolveRunSummaryPatch(
+          'running',
+          createThread({ attentionState: 'running', runStatus }),
+        ),
+      ).toBeNull();
+    }
+    expect(
+      resolveRunSummaryPatch('failed', createThread({ runStatus: 'failed' })),
+    ).toBeNull();
+    expect(
+      resolveRunSummaryPatch(
+        'awaiting_input',
+        createThread({ runStatus: 'waiting_input' }),
+      ),
+    ).toBeNull();
+  });
+
+  it('still clears pending input when running resumes a waiting summary', () => {
     expect(
       resolveRunSummaryPatch(
         'running',
-        createThread({
-          attentionState: null,
-          pendingInputCount: 0,
-          runStatus: 'running',
-          runtimeState: 'running',
-        }),
+        createThread({ pendingInputCount: 1, runStatus: 'running' }),
       ),
-    ).toBeNull();
+    ).toMatchObject({ pendingInputCount: 0, runStatus: 'running' });
   });
 });

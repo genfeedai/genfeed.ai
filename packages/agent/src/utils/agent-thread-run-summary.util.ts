@@ -60,11 +60,14 @@ export function resolveRunSummaryPatch(
       return null;
   }
 
-  const isUnchanged =
-    patch.attentionState === (thread.attentionState ?? null) &&
-    patch.pendingInputCount === thread.pendingInputCount &&
-    patch.runStatus === thread.runStatus &&
-    patch.runtimeState === thread.runtimeState;
+  // Only fill in what the summary disagrees on. A writer that already agreed
+  // on the run status (stream events set `attentionState: 'running'` for the
+  // same run) keeps its own write, so its update stays a single store change.
+  const isRunningAlready =
+    patch.runStatus === 'running' &&
+    (thread.runStatus === 'queued' || thread.runStatus === 'running') &&
+    (thread.pendingInputCount ?? 0) === 0;
+  const isUnchanged = isRunningAlready || patch.runStatus === thread.runStatus;
 
   return isUnchanged ? null : patch;
 }
