@@ -7467,73 +7467,9 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "packages/pages/studio/generate/StudioGenerateWorkspace.test.tsx",
-      "fingerprint": "0a8466cba9f7cea260dc",
-      "message": "Conversion of type '{ brand: { contextMode: \"brand\"; id: string; name: string; }; draft: { fidelityMode: \"guided\"; identity: {}; intent: { objective: string; }; output: { aspectRatio: string; count: number; durationSeconds: number; kind: \"video\"; }; references: { ...; }[]; reviewRequired: true; target: { ...; }; }; ... 5 more ...; sour...' to type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brand: { contextMode: \"brand\"; id: string; name: string; }; draft: { fidelityMode: \"guided\"; identity: {}; intent: { objective: string; }; output: { aspectRatio: string; count: number; durationSeconds: number; kind: \"video\"; }; references: { ...; }[]; reviewRequired: true; target: { ...; }; }; ... 5 more ...; sour...' is missing the following properties from type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...': brandId, contract, createdAt, status, and 2 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2352,
-      "count": 1,
       "file": "packages/pages/studio/generate/components/StudioGenerateInspector.test.tsx",
       "fingerprint": "f911ff1612c1d5c7934b",
       "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioRemixRunPanel.test.tsx",
-      "fingerprint": "19cceb7b13ea3d04f833",
-      "message": "Type '{ draft: { target: { kind: \"paid\"; platform: \"meta\"; }; fidelityMode: \"off\" | \"guided\" | \"strict\"; identity: Record<string, never> | { avatarAssetId: string; speechVoiceId: string; }; ... 5 more ...; identityPersonaId?: string | undefined; }; ... 23 more ...; source?: ContentRunSource | undefined; }' is not assignable to type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...'.   The types of 'draft.target' are incompatible between these types.     Type '{ kind: \"paid\"; platform: \"meta\"; }' is not assignable to type '{ kind: \"organic\"; platform: BrandRemixOrganicPlatform; credentialId?: string | undefined; } | { kind: \"paid\"; platform: BrandRemixAdPlatform; channel?: \"all\" | ... 3 more ... | undefined; credentialId?: string | undefined; placement?: string | undefined; }'.       Type '{ kind: \"paid\"; platform: \"meta\"; }' is not assignable to type '{ kind: \"paid\"; platform: BrandRemixAdPlatform; channel?: \"all\" | \"search\" | \"youtube\" | \"display\" | undefined; credentialId?: string | undefined; placement?: string | undefined; }'.         Types of property 'platform' are incompatible.           Type '\"meta\"' is not assignable to type 'BrandRemixAdPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioRemixRunPanel.test.tsx",
-      "fingerprint": "53fafdbffe224f03fb1c",
-      "message": "Type '{ phase: \"approved\"; review: { approvedPostIds: string[]; batchId: string; postIds: string[]; workflowExecutionId: string; workflowId: string; }; draft: { target: { kind: \"paid\"; platform: \"meta\"; }; fidelityMode: \"off\" | ... 1 more ... | \"strict\"; ... 6 more ...; identityPersonaId?: string | undefined; }; ... 21 mo...' is not assignable to type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...'.   The types of 'draft.target' are incompatible between these types.     Type '{ kind: \"paid\"; platform: \"meta\"; }' is not assignable to type '{ kind: \"organic\"; platform: BrandRemixOrganicPlatform; credentialId?: string | undefined; } | { kind: \"paid\"; platform: BrandRemixAdPlatform; channel?: \"all\" | ... 3 more ... | undefined; credentialId?: string | undefined; placement?: string | undefined; }'.       Type '{ kind: \"paid\"; platform: \"meta\"; }' is not assignable to type '{ kind: \"paid\"; platform: BrandRemixAdPlatform; channel?: \"all\" | \"search\" | \"youtube\" | \"display\" | undefined; credentialId?: string | undefined; placement?: string | undefined; }'.         Types of property 'platform' are incompatible.           Type '\"meta\"' is not assignable to type 'BrandRemixAdPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioRemixRunPanel.test.tsx",
-      "fingerprint": "9fc85d13544ce09b3e53",
-      "message": "Type '\"meta\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioRemixRunPanel.test.tsx",
-      "fingerprint": "d754b0b8818de7d98f8d",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "packages/pages/studio/generate/components/StudioRemixRunPanel.test.tsx",
-      "fingerprint": "ff328bfe106c0850a58a",
-      "message": "Conversion of type '{ brand: { contextMode: \"brand\"; id: string; name: string; }; draft: { identity: {}; output: { aspectRatio: string; count: number; kind: \"video\"; }; references: { assetId: string; role: \"product\"; source: \"brand_default\"; }[]; target: { ...; }; }; ... 6 more ...; sourceSnapshot: { ...; }; }' to type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brand: { contextMode: \"brand\"; id: string; name: string; }; draft: { identity: {}; output: { aspectRatio: string; count: number; kind: \"video\"; }; references: { assetId: string; role: \"product\"; source: \"brand_default\"; }[]; target: { ...; }; }; ... 6 more ...; sourceSnapshot: { ...; }; }' is missing the following properties from type '{ brand: { contextMode: \"brand\" | \"organization_defaults\"; id: string; name: string; }; brandId: string; contract: \"brand-remix-run\"; createdAt: string; draft: { fidelityMode: \"off\" | \"guided\" | \"strict\"; ... 7 more ...; identityPersonaId?: string | undefined; }; ... 19 more ...; source?: ContentRunSource | undefine...': brandId, contract, createdAt, status, and 2 more.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/hooks/useStudioRemixRun.test.ts",
-      "fingerprint": "03ad1395bf70a6d1e5dd",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixSourcePlatform'.",
-      "workspace": "pages"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "packages/pages/studio/generate/hooks/useStudioRemixRun.test.ts",
-      "fingerprint": "b76bc4b4547ea5b9cfea",
-      "message": "Type '\"tiktok\"' is not assignable to type 'BrandRemixAdPlatform | BrandRemixOrganicPlatform'.",
       "workspace": "pages"
     },
     {
