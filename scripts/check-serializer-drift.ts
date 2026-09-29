@@ -471,6 +471,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'pendingInputCount',
     'runStatus',
     'runtimeState',
+    'statusSequence',
   ],
   'announcement:Announcement': [
     'authorId',
