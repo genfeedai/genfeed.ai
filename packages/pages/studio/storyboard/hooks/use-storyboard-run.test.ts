@@ -1,7 +1,8 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
-import type {
-  BrandRemixDraftEdits,
-  BrandRemixRunView,
+import {
+  type BrandRemixDraftEdits,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -81,7 +82,7 @@ const run: BrandRemixRunView = {
       },
     ],
     reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   execution: {
     actualCount: 0,
@@ -119,7 +120,7 @@ const run: BrandRemixRunView = {
     evidence: ['Proof lands before the reveal.'],
     metrics: { views: 123000 },
     pattern: { hook: 'Proof before promise' },
-    platform: 'tiktok',
+    platform: BrandRemixOrganicPlatform.TIKTOK,
     selector: {
       kind: 'trend_reference',
       sourceReferenceId: 'reference-1',

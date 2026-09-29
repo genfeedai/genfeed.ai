@@ -1,4 +1,9 @@
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StoryboardRunPanel from './StoryboardRunPanel';
@@ -16,13 +21,16 @@ vi.mock('next-intl', async () => {
 
 const run = {
   brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
+  brandId: 'brand-1',
+  contract: 'brand-remix-run',
+  createdAt: '2026-08-20T10:00:00.000Z',
   draft: {
     identity: {},
     output: { aspectRatio: '9:16', count: 2, kind: 'video' },
     references: [
       { assetId: 'reference-1', role: 'product', source: 'brand_default' },
     ],
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   execution: {
     actualCount: 1,
@@ -48,6 +56,9 @@ const run = {
   readiness: { issues: [], state: 'ready' },
   recipeVersion: 1,
   revision: 2,
+  status: ContentRunStatus.RUNNING,
+  updatedAt: '2026-08-20T10:00:00.000Z',
+  version: 1,
   sourceSnapshot: {
     // `selector` is required on the view contract and the panel reads
     // `sourceSnapshot.selector.kind` directly — omitting it only type-checked
@@ -198,7 +209,7 @@ describe('StoryboardRunPanel', () => {
       ...run,
       draft: {
         ...run.draft,
-        target: { kind: 'paid' as const, platform: 'meta' as const },
+        target: { kind: 'paid' as const, platform: BrandRemixAdPlatform.META },
       },
       phase: 'in_review' as const,
       sourceSnapshot: {
@@ -208,7 +219,7 @@ describe('StoryboardRunPanel', () => {
           adId: 'ad-1',
           credentialId: 'credential-1',
           kind: 'connected_ad' as const,
-          platform: 'meta' as const,
+          platform: BrandRemixAdPlatform.META,
         },
       },
       review: {
@@ -271,7 +282,7 @@ describe('StoryboardRunPanel', () => {
           ...run,
           draft: {
             ...run.draft,
-            target: { kind: 'paid', platform: 'meta' },
+            target: { kind: 'paid', platform: BrandRemixAdPlatform.META },
           },
           phase: 'approved',
           review: {
@@ -288,7 +299,7 @@ describe('StoryboardRunPanel', () => {
               adId: 'tiktok-ad-1',
               credentialId: 'credential-1',
               kind: 'connected_ad',
-              platform: 'tiktok',
+              platform: BrandRemixAdPlatform.TIKTOK,
             },
           },
         }}

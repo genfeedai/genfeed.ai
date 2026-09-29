@@ -1,4 +1,8 @@
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { StoryboardRunRecipe } from '@genfeedai/contracts/interfaces';
 import type {
   StoryboardRunPanelProps,
@@ -84,7 +88,7 @@ const run = {
     output: { aspectRatio: '9:16', count: 1, kind: 'image' },
     references: [],
     reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   id: 'run-1',
   revision: 3,
@@ -94,7 +98,7 @@ const run = {
       adId: 'ad-1',
       credentialId: 'credential-1',
       kind: 'connected_ad',
-      platform: 'meta',
+      platform: BrandRemixAdPlatform.META,
     },
     title: 'Proof-led hook',
   },
