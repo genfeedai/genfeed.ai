@@ -147,9 +147,11 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 const { AppRail } = await import('./AppRail');
 
 describe('AppRail', () => {
-  it('shows the same numbered shortcut in the tooltip and palette', () => {
+  it('keeps the web G-then-N shortcut in the palette, not the tooltip', () => {
     render(<AppRail orgSlug="acme" />);
-    expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('G 1');
+    expect(
+      screen.getAllByTestId('rail-tooltip')[0].querySelector('kbd'),
+    ).toBeNull();
     expect(commands.registerCommands.mock.lastCall?.[0][0].shortcut).toEqual([
       'G',
       '1',

@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Kbd } from '@genfeedai/ui';
 import { useNavigationPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import { Plus } from 'lucide-react';
@@ -24,6 +25,7 @@ export default function MenuSharedConversations({
   newAgentThreadHref,
   onCollapsedChange,
 }: MenuSharedConversationsProps) {
+  const isDesktop = useIsDesktopClient();
   const prefetchNewAgentThreadHref = useNavigationPrefetch(newAgentThreadHref);
 
   return (
@@ -61,12 +63,14 @@ export default function MenuSharedConversations({
             <span className="text-sm font-medium tracking-[-0.01em] text-foreground/88">
               New Thread
             </span>
-            <Kbd
-              variant="ghost"
-              className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-            >
-              ⌘⇧N
-            </Kbd>
+            {isDesktop ? (
+              <Kbd
+                variant="ghost"
+                className="ml-auto rounded-md border border-border bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+              >
+                ⌘⇧N
+              </Kbd>
+            ) : null}
           </Link>
         </div>
         <div className={cn(!isConversationsCollapsed && 'min-h-0 flex-1')}>
