@@ -973,13 +973,13 @@ describe('AppRail', () => {
     ).not.toHaveAttribute('aria-current');
   });
 
-  it('highlights Studio for the merged edit surface', () => {
+  it('highlights Studio for the Editor surface', () => {
     // #2309: the editor is no longer a publish-adjacent surface.
     render(
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/edit/new"
+        currentPath="/acme/my-brand/studio/editor/new"
       />,
     );
 

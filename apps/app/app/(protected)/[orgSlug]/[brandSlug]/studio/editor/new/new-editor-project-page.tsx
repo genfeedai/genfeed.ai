@@ -46,14 +46,14 @@ function NewEditorProjectPageContent() {
           return;
         }
 
-        replace(href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`));
+        replace(href(`${APP_ROUTES.STUDIO.EDITOR}/${project.id}`));
       } catch (error) {
         if (controller.signal.aborted) {
           return;
         }
         logger.error('Failed to create editor project', error);
         creating.current = false;
-        replace(href(APP_ROUTES.STUDIO.EDIT));
+        replace(href(APP_ROUTES.STUDIO.EDITOR));
       }
     })();
 

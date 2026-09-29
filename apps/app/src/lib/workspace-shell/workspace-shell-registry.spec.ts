@@ -97,9 +97,9 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/studio/clips/new', 'Studio', 'New project'],
     ['/acme/moonrise/studio/clips/project-1', 'Studio', 'Project'],
     ['/acme/moonrise/studio/storyboard', 'Studio', 'Storyboard'],
-    ['/acme/moonrise/studio/edit', 'Studio', 'Edit'],
-    ['/acme/moonrise/studio/edit/project-1', 'Studio', 'Project'],
-    ['/acme/~/studio/edit', 'Studio', 'Edit'],
+    ['/acme/moonrise/studio/editor', 'Studio', 'Editor'],
+    ['/acme/moonrise/studio/editor/project-1', 'Studio', 'Project'],
+    ['/acme/~/studio/editor', 'Studio', 'Editor'],
     ['/acme/moonrise/analytics/trends', 'Analytics', 'Trends'],
     [
       '/acme/moonrise/analytics/trends/detail/trend-1',
@@ -303,16 +303,16 @@ describe('workspace shell trusted registry', () => {
     }
   });
 
-  it('resolves the merged edit surface in brand and organization scope', () => {
+  it('resolves the Editor surface in brand and organization scope', () => {
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-editor' });
     expect(
-      resolveWorkspaceShellRoute('/acme/moonrise/studio/edit/project-1'),
-    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-edit' });
-    expect(resolveWorkspaceShellRoute('/acme/~/studio/edit')).toMatchObject({
+      resolveWorkspaceShellRoute('/acme/moonrise/studio/editor/project-1'),
+    ).toMatchObject({ mode: 'canvas', surfaceKey: 'studio-editor' });
+    expect(resolveWorkspaceShellRoute('/acme/~/studio/editor')).toMatchObject({
       scope: 'organization',
-      surfaceKey: 'studio-edit',
+      surfaceKey: 'studio-editor',
     });
   });
 

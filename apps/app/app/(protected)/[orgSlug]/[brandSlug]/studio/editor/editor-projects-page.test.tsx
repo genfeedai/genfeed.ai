@@ -252,7 +252,7 @@ describe('EditorProjectsPage', () => {
     expect(await screen.findByText('Create Your First Project')).toBeVisible();
     expect(screen.getByText('Start New Project')).toHaveAttribute(
       'href',
-      '/acme/~/studio/edit/new',
+      '/acme/~/studio/editor/new',
     );
     expect(
       screen.getAllByRole('link', { name: /new project/i }).length,

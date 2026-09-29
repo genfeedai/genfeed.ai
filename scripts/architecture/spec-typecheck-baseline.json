@@ -4819,7 +4819,7 @@
     {
       "code": 2322,
       "count": 7,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorPreview.test.tsx",
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorPreview.test.tsx",
       "fingerprint": "ee12fb345c3d40fb9b52",
       "message": "Type '\"blur\"' is not assignable to type 'EditorEffectType'.",
       "workspace": "app"
@@ -4827,7 +4827,7 @@
     {
       "code": 2741,
       "count": 4,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorPreview.test.tsx",
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorPreview.test.tsx",
       "fingerprint": "ca1a083cf3b01744f2b2",
       "message": "Property 'ingredientId' is missing in type '{ durationFrames: number; effects: never[]; id: string; ingredientUrl: string; sourceEndFrame: number; sourceStartFrame: number; startFrame: number; textOverlay: { backgroundColor: string; color: string; ... 4 more ...; text: string; }; }' but required in type 'IEditorClip'.",
       "workspace": "app"
@@ -4835,7 +4835,7 @@
     {
       "code": 2739,
       "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorPropertiesPanel.test.tsx",
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorPropertiesPanel.test.tsx",
       "fingerprint": "d6e343338cc50528ffe5",
       "message": "Type '{}' is missing the following properties from type 'EditorPropertiesPanelProps': tracks, fps, selectedTrackId, selectedClipId, onTrackUpdate",
       "workspace": "app"
@@ -4843,7 +4843,7 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorTimeline.test.tsx",
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTimeline.test.tsx",
       "fingerprint": "02b8636eb2ffc5e16587",
       "message": "Type '{ currentFrame: number; fps: number; onClipMove: Mock<Procedure>; onClipResize: Mock<Procedure>; onClipSelect: Mock<Procedure>; ... 5 more ...; zoom: number; }' is not assignable to type 'EditorTimelineProps'.   Types of property 'tracks' are incompatible.     Type '({ clips: { durationFrames: number; id: string; startFrame: number; textOverlay: { text: string; }; thumbnailUrl: string; }[]; id: string; isLocked: boolean; isMuted: boolean; name: string; type: EditorTrackType; } | { ...; })[]' is not assignable to type 'IEditorTrack[]'.       Type '{ clips: { durationFrames: number; id: string; startFrame: number; textOverlay: { text: string; }; thumbnailUrl: string; }[]; id: string; isLocked: boolean; isMuted: boolean; name: string; type: EditorTrackType; } | { ...; }' is not assignable to type 'IEditorTrack'.         Property 'volume' is missing in type '{ clips: { durationFrames: number; id: string; startFrame: number; textOverlay: { text: string; }; thumbnailUrl: string; }[]; id: string; isLocked: boolean; isMuted: boolean; name: string; type: EditorTrackType; }' but required in type 'IEditorTrack'.",
       "workspace": "app"
@@ -4851,7 +4851,7 @@
     {
       "code": 2739,
       "count": 1,
-      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/editor-page-content.test.tsx",
+      "file": "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/editor-page-content.test.tsx",
       "fingerprint": "a5e02e4a0f7239124984",
       "message": "Type '{ pause: Mock<Procedure>; play: Mock<Procedure>; seekToFrame: Mock<Procedure>; }' is missing the following properties from type 'EditorPreviewRef': toggle, getCurrentFrame",
       "workspace": "app"

@@ -12,12 +12,12 @@ import {
 } from '../../utils/route-assertions';
 
 /**
- * E2E Tests for Studio Edit (the Remotion timeline, merged into Studio in #2309)
+ * E2E Tests for Studio Editor (the Remotion timeline, merged into Studio in #2309)
  *
  * CRITICAL: All tests use mocked API responses.
  * No real backend calls occur during tests.
  *
- * Tests verify the edit surface load, new project creation, toolbar
+ * Tests verify the Editor surface load, new project creation, toolbar
  * visibility, and save/publish controls.
  *
  * Every route is visited with the explicit E2E org+brand slugs (brandPath),
@@ -26,10 +26,10 @@ import {
  * deterministic across parallel workers sharing one dev server.
  */
 
-const EDIT_ROUTE = brandPath(APP_ROUTES.STUDIO.EDIT);
-const EDIT_NEW_ROUTE = brandPath(APP_ROUTES.STUDIO.EDIT_NEW);
+const EDIT_ROUTE = brandPath(APP_ROUTES.STUDIO.EDITOR);
+const EDIT_NEW_ROUTE = brandPath(APP_ROUTES.STUDIO.EDITOR_NEW);
 const PROJECT_ID = 'editor-project-1';
-const PROJECT_ROUTE = brandPath(`${APP_ROUTES.STUDIO.EDIT}/${PROJECT_ID}`);
+const PROJECT_ROUTE = brandPath(`${APP_ROUTES.STUDIO.EDITOR}/${PROJECT_ID}`);
 const EDITOR_PROJECTS_PATTERN = '**/api.genfeed.ai/*/editor-projects**';
 // EditorToolbar's FORMAT_OPTIONS label for IngredientFormat.LANDSCAPE.
 const LANDSCAPE_FORMAT_LABEL = '16:9';
@@ -163,7 +163,7 @@ async function expectProjectEditor(page: Page): Promise<void> {
 const newProjectLink = (page: Page) =>
   page.getByRole('link', { exact: true, name: 'New Project' });
 
-test.describe('Studio Edit', () => {
+test.describe('Studio Editor', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,
@@ -171,7 +171,7 @@ test.describe('Studio Edit', () => {
     });
   });
 
-  test.describe('Studio Edit Projects Page', () => {
+  test.describe('Studio Editor Projects Page', () => {
     test('should list existing projects with a New Project action', async ({
       authenticatedPage,
     }) => {
@@ -246,9 +246,9 @@ test.describe('Studio Edit', () => {
   });
 
   /**
-   * /studio/edit/new (new-editor-project-page.tsx) is a transient redirect: it
-   * POSTs a new project on mount and replaces the URL with `/studio/edit/:id`
-   * on success, or back to `/studio/edit` if the create call fails.
+   * /studio/editor/new (new-editor-project-page.tsx) is a transient redirect: it
+   * POSTs a new project on mount and replaces the URL with `/studio/editor/:id`
+   * on success, or back to `/studio/editor` if the create call fails.
    */
   test.describe('New Editor Project', () => {
     test('creates a project and lands on its editor with real toolbar controls', async ({
@@ -290,7 +290,7 @@ test.describe('Studio Edit', () => {
     });
   });
 
-  test.describe('Studio Edit Navigation', () => {
+  test.describe('Studio Editor Navigation', () => {
     test('should navigate from studio hub to editor', async ({
       authenticatedPage,
     }) => {
@@ -299,10 +299,10 @@ test.describe('Studio Edit', () => {
 
       await assertRouteRenders(authenticatedPage, studioPage.url);
 
-      // The Studio app nav (studio-menu-items.config.ts) links to Edit.
+      // The Studio app nav (studio-menu-items.config.ts) links to Editor.
       await authenticatedPage
         .getByRole('complementary', { exact: true, name: 'Navigation' })
-        .getByRole('link', { exact: true, name: 'Edit' })
+        .getByRole('link', { exact: true, name: 'Editor' })
         .click();
 
       await expect(authenticatedPage).toHaveURL(new RegExp(`${EDIT_ROUTE}$`));
@@ -366,11 +366,11 @@ test.describe('Studio Edit', () => {
   });
 });
 
-test.describe('Studio Edit — Unauthenticated Access', () => {
+test.describe('Studio Editor — Unauthenticated Access', () => {
   test('should redirect editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.STUDIO.EDIT, {
+    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.STUDIO.EDITOR, {
       allowRedirectToLogin: true,
     });
 
@@ -382,9 +382,13 @@ test.describe('Studio Edit — Unauthenticated Access', () => {
   test('should redirect new editor page to login', async ({
     unauthenticatedPage,
   }) => {
-    await assertRouteRenders(unauthenticatedPage, APP_ROUTES.STUDIO.EDIT_NEW, {
-      allowRedirectToLogin: true,
-    });
+    await assertRouteRenders(
+      unauthenticatedPage,
+      APP_ROUTES.STUDIO.EDITOR_NEW,
+      {
+        allowRedirectToLogin: true,
+      },
+    );
 
     await expect(unauthenticatedPage).toHaveURL(/\/login\?callbackUrl=/, {
       timeout: 10000,
@@ -396,7 +400,7 @@ test.describe('Studio Edit — Unauthenticated Access', () => {
   }) => {
     await assertRouteRenders(
       unauthenticatedPage,
-      `${APP_ROUTES.STUDIO.EDIT}/test-project-id`,
+      `${APP_ROUTES.STUDIO.EDITOR}/test-project-id`,
       {
         allowRedirectToLogin: true,
       },
