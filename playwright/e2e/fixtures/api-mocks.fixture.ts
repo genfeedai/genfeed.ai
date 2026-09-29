@@ -2109,14 +2109,17 @@ function isSystemCatalogRequest(route: Route): boolean {
 }
 
 /**
- * `GET /workflows/featured` (#5511) is the plain `{ data: [] }` Featured row,
- * not a workflow by id — the `/workflows/*` CRUD pattern would otherwise answer
- * it with a single JSON:API workflow resource and break `listFeatured()`.
+ * `GET /workflows/featured` (#5511) and `GET /workflows/most-used` are
+ * collection reads, not workflows by id — the `/workflows/*` CRUD pattern would
+ * otherwise answer them with a single JSON:API workflow resource and break
+ * `listFeatured()` / `listMostUsed()`.
  */
-function isFeaturedWorkflowsRequest(route: Route): boolean {
+function isWorkflowCollectionRead(route: Route): boolean {
   return (
     route.request().method() === 'GET' &&
-    /\/workflows\/featured\/?$/.test(new URL(route.request().url()).pathname)
+    /\/workflows\/(featured|most-used)\/?$/.test(
+      new URL(route.request().url()).pathname,
+    )
   );
 }
 
@@ -2157,7 +2160,7 @@ export async function mockWorkflowCrud(
       await route.fallback();
       return;
     }
-    if (isFeaturedWorkflowsRequest(route)) {
+    if (isWorkflowCollectionRead(route)) {
       await route.fulfill({
         body: JSON.stringify({ data: [] }),
         contentType: 'application/json',
@@ -2229,7 +2232,7 @@ export async function mockWorkflowCrud(
       await route.fallback();
       return;
     }
-    if (isFeaturedWorkflowsRequest(route)) {
+    if (isWorkflowCollectionRead(route)) {
       await route.fulfill({
         body: JSON.stringify({ data: [] }),
         contentType: 'application/json',
