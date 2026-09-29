@@ -62,12 +62,12 @@ const run = {
   sourceSnapshot: {
     // `selector` is required on the view contract and the panel reads
     // `sourceSnapshot.selector.kind` directly — omitting it only type-checked
-    // because of the `as BrandRemixRunView` cast.
+    // because of the partial-fixture cast.
     pattern: { hook: 'Proof before promise' },
     selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
     title: 'Proof-led TikTok hook',
   },
-} as BrandRemixRunView;
+} as unknown as BrandRemixRunView;
 
 describe('StoryboardRunPanel', () => {
   it('shows durable recipe lineage and groups every variation under the run', () => {

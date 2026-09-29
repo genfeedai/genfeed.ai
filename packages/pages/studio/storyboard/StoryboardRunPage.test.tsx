@@ -102,7 +102,7 @@ const run = {
     },
     title: 'Proof-led hook',
   },
-} as BrandRemixRunView;
+} as unknown as BrandRemixRunView;
 
 describe('StoryboardRunPage', () => {
   beforeEach(() => {
