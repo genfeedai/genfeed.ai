@@ -123,9 +123,13 @@ export class CreditsInterceptor implements NestInterceptor {
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
-        metadata: currentCreditsConfig.pricingMetadata
-          ? { ...currentCreditsConfig.pricingMetadata }
-          : undefined,
+        metadata:
+          currentCreditsConfig.pricingMetadata || settlementAssetId
+            ? {
+                ...currentCreditsConfig.pricingMetadata,
+                ...(settlementAssetId ? { assetId: settlementAssetId } : {}),
+              }
+            : undefined,
         ...(sourceActionId
           ? {
               idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,

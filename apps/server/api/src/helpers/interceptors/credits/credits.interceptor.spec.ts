@@ -360,6 +360,34 @@ describe('CreditsInterceptor', () => {
       });
     });
 
+    it('should stamp the generated asset id without changing the charge identity', async () => {
+      mockRequest.creditsConfig = {
+        amount: 4,
+        description: 'Image generation',
+        pricingMetadata: { pricingType: 'per-image' },
+        reservationId: 'reservation-1',
+        source: ActivitySource.IMAGE_GENERATION,
+      } as CreditsConfig;
+      mockRequest.user = { id: 'user_123', organizationId, userId };
+      const handler = {
+        handle: () => of({ data: { id: 'asset-9' } }),
+      } as CallHandler;
+
+      interceptor.intercept(mockContext, handler).subscribe();
+
+      await vi.waitFor(() => {
+        const job = creditDeductionQueueService.queueDeduction.mock.calls[0][0];
+        expect(job).toMatchObject({
+          amount: 4,
+          metadata: { assetId: 'asset-9', pricingType: 'per-image' },
+          reservationId: 'reservation-1',
+        });
+        expect(job).not.toHaveProperty('idempotencyKey');
+        expect(job).not.toHaveProperty('referenceId');
+        expect(job).not.toHaveProperty('settlementAssetId');
+      });
+    });
+
     it('should queue BYOK usage when isByokBypass is true', async () => {
       mockRequest.creditsConfig = {
         amount: 5,

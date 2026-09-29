@@ -96,6 +96,7 @@ export class CreditDeductionProcessor extends WorkerHost {
             actualAmount: amount,
             actorUserId: userId,
             description,
+            metadata: job.data.metadata,
             organizationId,
             reservationId: job.data.reservationId,
             source,

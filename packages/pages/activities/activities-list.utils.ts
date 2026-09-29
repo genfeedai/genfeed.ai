@@ -213,6 +213,16 @@ export function getActivityMediaPreviewUrl(
   return undefined;
 }
 
+/** Credits a generation was charged, stamped on its activity when it settled. */
+export function getGenerationCreditAmount(
+  activity: Pick<IActivity, 'value'>,
+): number | null {
+  const credits = parseActivityValue(activity.value ?? '')?.credits;
+  return typeof credits === 'number' && Number.isFinite(credits) && credits > 0
+    ? credits
+    : null;
+}
+
 export function getActivityCreditAmount(
   activity: Pick<IActivity, 'value'>,
 ): number | null {
