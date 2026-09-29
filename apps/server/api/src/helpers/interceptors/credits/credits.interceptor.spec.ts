@@ -364,7 +364,11 @@ describe('CreditsInterceptor', () => {
       mockRequest.creditsConfig = {
         amount: 4,
         description: 'Image generation',
-        pricingMetadata: { pricingType: 'per-image' },
+        pricingMetadata: {
+          marginMultiplier: 1,
+          pricingType: 'per-image',
+          providerCostUsd: 0.04,
+        },
         reservationId: 'reservation-1',
         source: ActivitySource.IMAGE_GENERATION,
       } as CreditsConfig;
@@ -376,7 +380,8 @@ describe('CreditsInterceptor', () => {
       interceptor.intercept(mockContext, handler).subscribe();
 
       await vi.waitFor(() => {
-        const job = creditDeductionQueueService.queueDeduction.mock.calls[0][0];
+        const job = vi.mocked(creditDeductionQueueService.queueDeduction).mock
+          .calls[0][0];
         expect(job).toMatchObject({
           amount: 4,
           metadata: { assetId: 'asset-9', pricingType: 'per-image' },

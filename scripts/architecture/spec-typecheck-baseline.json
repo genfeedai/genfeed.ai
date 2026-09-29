@@ -7113,14 +7113,6 @@
       "workspace": "notifications"
     },
     {
-      "code": 2739,
-      "count": 1,
-      "file": "packages/pages/activities/activities-list.test.tsx",
-      "fingerprint": "b973835c32cebcd01e82",
-      "message": "Type '{ scope: PageScope.ORGANIZATION; }' is missing the following properties from type 'ActivitiesListProps': isStatsEnabled, isFiltersEnabled",
-      "workspace": "pages"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "packages/pages/agents/campaigns/OutreachCampaignDetail.test.tsx",

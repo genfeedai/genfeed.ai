@@ -94,7 +94,8 @@ describe('semantic theme surface contracts', () => {
     const source = readSource('app/(onboarding)/onboarding/(wizard)/page.tsx');
 
     expect(source).not.toContain('border-t-white');
-    expect(source).toContain('border-t-foreground');
+    expect(source).toContain('<Spinner');
+    expect(source).toContain('text-foreground');
   });
 
   it('lets the workflow editor inherit global semantic theme tokens', () => {
