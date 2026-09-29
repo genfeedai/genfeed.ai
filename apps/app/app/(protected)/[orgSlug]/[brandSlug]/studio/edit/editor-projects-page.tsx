@@ -93,7 +93,7 @@ export default function EditorProjectsPage() {
   const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const [projects, setProjects] = useState<IEditorProject[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [hasError, setHasError] = useState(false);
   const [renameTarget, setRenameTarget] = useState<IEditorProject | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [isRenaming, setIsRenaming] = useState(false);
@@ -102,7 +102,7 @@ export default function EditorProjectsPage() {
     surface: COLLECTION_SURFACE,
   });
 
-  const isLoading = projects === null && error === null;
+  const isLoading = projects === null && !hasError;
   const hasProjects = projects !== null && projects.length > 0;
 
   const recentProjects = useMemo(
@@ -120,15 +120,15 @@ export default function EditorProjectsPage() {
   const loadProjects = useCallback(async () => {
     try {
       setProjects(null);
-      setError(null);
+      setHasError(false);
       const service = await getEditorService();
       const allProjects = await service.findAll();
       setProjects(allProjects);
     } catch (error) {
       logger.error('Failed to load editor projects', error);
-      setError(translate('loadFailed'));
+      setHasError(true);
     }
-  }, [getEditorService, translate]);
+  }, [getEditorService]);
 
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
@@ -340,7 +340,7 @@ export default function EditorProjectsPage() {
             ? translate('yourProjects')
             : translate('editor')
       }
-      right={error ? undefined : newProjectButton}
+      right={hasError ? undefined : newProjectButton}
       titleVisibility="sr-only"
       // `right` disappears on error, which would otherwise flip Container
       // between module chrome and the classic layout as the page moves
@@ -365,10 +365,10 @@ export default function EditorProjectsPage() {
             view={view}
           />
         </CollectionSection>
-      ) : error ? (
+      ) : hasError ? (
         <ErrorFallback
           title={translate('loadFailedTitle')}
-          description={error}
+          description={translate('loadFailed')}
           resetErrorBoundary={loadProjects}
         />
       ) : hasProjects ? (

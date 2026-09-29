@@ -41,8 +41,13 @@ test.describe('Admin Content Management', () => {
 
       await admin.assertPageVisible();
       await expect(adminPage).toHaveURL(/library\/voices/);
+      // Catalog controls are the shared CollectionToolbar (search, provider
+      // filter, sync actions, view toggle), not a titled surface.
       await expect(
-        adminPage.locator('[data-testid="voices-library-controls-surface"]'),
+        adminPage.getByRole('combobox', { name: 'Provider' }),
+      ).toBeVisible();
+      await expect(
+        adminPage.getByRole('button', { name: 'Sync All' }),
       ).toBeVisible();
       await expect(
         adminPage.locator('[data-testid="voices-library-results-surface"]'),

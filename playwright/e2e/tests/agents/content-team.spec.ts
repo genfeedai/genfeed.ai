@@ -28,8 +28,13 @@ test.describe('Agents — Content Team', () => {
     });
 
     await expect(authenticatedPage).toHaveURL(/\/automation\/agents/);
+    // The page title is the sr-only h1 owned by SectionTopbar; the visible
+    // "Your agents" section heading also contains "agents", so scope to the
+    // topbar and match exactly.
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Agents' }),
+      authenticatedPage
+        .getByTestId('section-topbar')
+        .getByRole('heading', { name: 'Agents', exact: true }),
     ).toBeVisible();
     await expect(
       authenticatedPage.getByRole('button', {
