@@ -23,12 +23,21 @@ describe('desktop boot screen', () => {
     const html = buildDesktopLoadingScreenHtml();
 
     expect(html).toContain('aria-label="Genfeed is loading"');
-    expect(html).toContain('aria-label="Genfeed"');
     expect(html).toContain('viewBox="0 0 500 500"');
     expect(html).toContain('M2360 4944');
     expect(html).not.toContain('viewBox="0 0 760 160"');
-    expect(html).toContain('@keyframes boot-pulse');
-    expect(html).toContain('@keyframes boot-spin');
+    expect(html).toContain('@keyframes boot-draw');
+    expect(html).toContain('@keyframes boot-fill');
+  });
+
+  it('uses the animated mark as the only loader, without a separate spinner', () => {
+    const html = buildDesktopLoadingScreenHtml();
+
+    expect(html).not.toContain('spinner');
+    expect(html).not.toContain('boot-spin');
+    expect(html).not.toContain('boot-pulse');
+    expect(html).toContain('class="logo-trace"');
+    expect(html).toContain('prefers-reduced-motion: reduce');
   });
 
   it('keeps the failure screen on the same adaptive shell surface', () => {
