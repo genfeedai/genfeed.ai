@@ -1,3 +1,4 @@
+import type { IFeaturedWorkflowSummary } from '@genfeedai/contracts/interfaces';
 import type { EdgeStyle } from '@genfeedai/contracts/types';
 import type {
   Workflow as PrismaWorkflow,
@@ -55,6 +56,18 @@ export type WorkflowVersionGraph = {
   edgeStyle?: EdgeStyle;
   edges: WorkflowEdge[];
   lockedNodeIds: string[];
+  nodes: WorkflowVisualNode[];
+};
+
+/**
+ * Org-facing read of a pinned Featured workflow (#5511): display fields plus
+ * the sanitized graph. Everything else on the source row — organization,
+ * user, brand, config, schedule, locks, run history — stays behind.
+ */
+export type FeaturedWorkflowDocument = IFeaturedWorkflowSummary & {
+  edgeStyle?: EdgeStyle;
+  edges: WorkflowEdge[];
+  inputVariables: WorkflowInputVariable[];
   nodes: WorkflowVisualNode[];
 };
 

@@ -44,6 +44,7 @@ import {
   WebSocketGateway as WSGateway,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { countAgentThreadStatus } from './agent-thread-status.metrics';
 import { getOrganizationUserRoomName, getUserRoomName } from './room-name.util';
 
 @Injectable()
@@ -450,6 +451,7 @@ export class WebSocketGateway
   private handleAgentThreadStatus(data: Partial<AgentThreadStatusEvent>): void {
     const { organizationId, threadId, userId } = data;
     if (!organizationId || !userId) {
+      countAgentThreadStatus('dropped', 1, { reason: 'missing_scope' });
       this.logger.warn('Dropped thread status without organization or user', {
         ...this.context,
         threadId,
@@ -466,6 +468,10 @@ export class WebSocketGateway
       : this.server.to(room);
 
     target.emit(AGENT_THREAD_STATUS_EVENT_TYPE, data);
+    countAgentThreadStatus(
+      'delivered',
+      this.server.sockets?.adapter?.rooms?.get(room)?.size ?? 0,
+    );
 
     this.logger.debug(`Sent thread status to ${room} for thread ${threadId}`);
   }

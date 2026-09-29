@@ -3,9 +3,11 @@ import type {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type {
+  IFeaturedWorkflowSummary,
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
   WorkflowAccounting,
+  WorkflowTemplateExampleOutput,
 } from '@genfeedai/contracts/interfaces';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
@@ -106,8 +108,12 @@ export interface CreateWorkflowInput {
   isScheduleEnabled?: boolean;
   metadata?: Record<string, unknown>;
   schedule?: string;
-  /** When `system-catalog`, installs the catalog entry named by `templateId`. */
-  sourceType?: 'system-catalog' | 'seeded-template';
+  /**
+   * When `system-catalog`, installs the catalog entry named by `templateId`.
+   * When `featured-workflow`, copies the admin-pinned Featured workflow named
+   * by `sourceWorkflowId` into the active organization (#5511).
+   */
+  sourceType?: 'system-catalog' | 'seeded-template' | 'featured-workflow';
   templateId?: string;
   /** Clone an existing workflow via POST /workflows { sourceWorkflowId }. */
   sourceWorkflowId?: string;
@@ -270,6 +276,8 @@ export interface SystemWorkflowCatalogEntry {
   category: string;
   changeSummary: string;
   description: string;
+  /** What the workflow produces; previewed instead of its graph (#5498). */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   family: string;
   icon?: string;
   installable: boolean;
@@ -282,6 +290,16 @@ export interface SystemWorkflowCatalogEntry {
   version: number;
 }
 
+/**
+ * Admin-pinned Featured workflow from GET /workflows/featured (#5511): display
+ * fields plus the graph. Rows arrive in pin order.
+ */
+export interface FeaturedWorkflow extends IFeaturedWorkflowSummary {
+  nodes: Node[];
+  edges: Edge[];
+  inputVariables: WorkflowInputVariable[];
+}
+
 /** Workflow template returned from GET /workflows/templates */
 export interface WorkflowTemplate {
   id: string;
@@ -289,8 +307,8 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   changeSummary?: string;
-  /** Featured-row position (1 = first); present only on showcase templates. */
-  featuredRank?: number;
+  /** What the template produces; previewed instead of its graph (#5498). */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: WorkflowInputVariable[];

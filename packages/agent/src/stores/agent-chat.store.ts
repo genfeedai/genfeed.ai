@@ -14,7 +14,10 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
-import { resolveRunSummaryPatch } from '@genfeedai/agent/utils/agent-thread-run-summary.util';
+import {
+  resolveRunSummaryPatch,
+  resolveStatusPushPatch,
+} from '@genfeedai/agent/utils/agent-thread-run-summary.util';
 import {
   deriveLatestProposedPlan,
   resolveLatestProposedPlan,
@@ -26,6 +29,7 @@ import {
   DEFAULT_AGENT_THREAD_MODE,
 } from '@genfeedai/contracts';
 import {
+  type AgentThreadStatusEvent,
   deriveAgentUiActionStates,
   isAgentUiActionSourceOwner,
 } from '@genfeedai/contracts/interfaces';
@@ -396,6 +400,17 @@ interface AgentChatActions {
   resetStreamState: () => void;
   setSocketConnectionState: (state: AgentSocketConnectionState) => void;
   updateThread: (threadId: string, update: Partial<AgentThread>) => void;
+  /**
+   * Apply a server-pushed run status to a thread's row, in place: position and
+   * `updatedAt` do not move (#5636). Applies only when `event.sequence` is
+   * newer than what the row holds (`statusSequence`) and than
+   * `streamSequenceFloor`, the thread event sequence a live stream this client
+   * owns has already reached. Returns why an event did not apply.
+   */
+  applyThreadStatusPush: (
+    event: AgentThreadStatusEvent,
+    streamSequenceFloor?: number,
+  ) => 'applied' | 'stale' | 'unknown-thread';
   clearThreadAttention: (threadId: string) => void;
   seedComposer: (content: string, threadId?: string | null) => void;
   clearComposerSeed: () => void;
@@ -1495,6 +1510,25 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           ),
         },
       })),
+    applyThreadStatusPush: (event, streamSequenceFloor = 0) => {
+      const thread = get().threads.find((item) => item.id === event.threadId);
+      if (!thread) {
+        return 'unknown-thread';
+      }
+      if (
+        event.sequence <=
+        Math.max(thread.statusSequence ?? 0, streamSequenceFloor)
+      ) {
+        return 'stale';
+      }
+      const patch = resolveStatusPushPatch(event, thread);
+      set((state) => ({
+        threads: state.threads.map((item) =>
+          item.id === event.threadId ? { ...item, ...patch } : item,
+        ),
+      }));
+      return 'applied';
+    },
     updateThread: (threadId, update) =>
       set((state) => ({
         threads: sortThreads(

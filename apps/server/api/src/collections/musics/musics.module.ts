@@ -13,7 +13,6 @@ import { MusicsController } from '@api/collections/musics/controllers/musics.con
 import { MusicsOperationsController } from '@api/collections/musics/controllers/musics-operations.controller';
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
-import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
 import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
@@ -68,7 +67,6 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     MusicsService,
-    MusicGenerationCreditsService,
     MusicGenerationNotificationsService,
     MusicGenerationProviderRegistryService,
     FalMusicGenerationProviderAdapter,

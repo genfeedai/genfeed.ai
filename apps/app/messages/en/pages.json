@@ -2263,7 +2263,7 @@
       "moreActions": "More actions",
       "openInWrite": "Open in Write",
       "openInGenerate": "Open in Generate",
-      "openInEdit": "Open in Edit",
+      "openInEditor": "Open in Editor",
       "openInAutomation": "Open in Automation",
       "openIssue": "Open Issue",
       "openTool": "Open Tool",
@@ -2354,6 +2354,7 @@
     },
     "templates": {
       "actions": {
+        "copying": "Copying…",
         "install": "Install",
         "installing": "Installing…",
         "tryAgain": "Try again",
@@ -2398,10 +2399,16 @@
       "emptyCatalog": "No workflow templates are available yet.",
       "errors": {
         "bootstrap": "Failed to install workflow template",
+        "copyFeatured": "Failed to copy the featured workflow",
         "install": "Failed to install system workflow",
         "load": "Templates could not be loaded.",
         "loadCatalog": "Official workflows could not be loaded.",
+        "loadFeatured": "Featured workflows could not be loaded.",
         "loadTemplates": "Starter templates could not be loaded."
+      },
+      "exampleOutput": {
+        "imageAlt": "Example output from {name}",
+        "videoLabel": "Example output video from {name}"
       },
       "noMatches": "No workflows match these filters.",
       "retry": "Retry",
@@ -2419,7 +2426,8 @@
         "available": "Available",
         "installed": "Installed"
       },
-      "templateCount": "{count, plural, one {# template} other {# templates}}"
+      "templateCount": "{count, plural, one {# template} other {# templates}}",
+      "untitledWorkflow": "Untitled workflow"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",
@@ -2848,9 +2856,9 @@
       "title": "Batch",
       "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
     },
-    "studioEdit": {
-      "title": "Edit",
-      "body": "Long-form editing for articles and newsletters, with the agent as a co-writer."
+    "studioEditor": {
+      "title": "Editor",
+      "body": "Finish videos on a timeline: trim clips, sync dialogue and music against picture, and add text overlays and effects."
     },
     "messagesInbox": {
       "title": "Messages",
@@ -3492,6 +3500,40 @@
     "variables": "Variables:",
     "open": "Open template {name}",
     "details": "View details"
+  },
+  "adminWorkflows": {
+    "actions": {
+      "delete": "Delete",
+      "more": "Actions for {label}",
+      "moveDown": "Move {label} down",
+      "moveUp": "Move {label} up",
+      "pin": "Pin to Featured",
+      "retry": "Retry",
+      "unpin": "Unpin",
+      "unpinNamed": "Unpin {label} from Featured"
+    },
+    "created": "Created:",
+    "deleted": "Workflow deleted",
+    "description": "Create multi-step automation pipelines for content generation and publishing",
+    "empty": "No workflows found",
+    "errors": {
+      "delete": "Deleting the workflow",
+      "featured": "Updating Featured",
+      "load": "Loading workflows"
+    },
+    "featured": {
+      "badge": "Featured",
+      "description": "Every organization sees these workflows, in this order, in the Featured row of its templates page. Only the name, description, thumbnail and graph are shared; using one copies it into that organization.",
+      "loadError": "Featured workflows could not be loaded.",
+      "pinned": "Pinned to Featured",
+      "position": "Position {position}",
+      "reordered": "Featured order saved",
+      "title": "Featured",
+      "unpinned": "Removed from Featured"
+    },
+    "listTitle": "Automation Workflows",
+    "title": "Workflows",
+    "untitled": "Untitled workflow"
   },
   "adminVoices": {
     "unknown": "Unknown",

@@ -40,4 +40,5 @@ export class PlatformSettingEntity
   declare readonly systemEventsEnabledAt: Date | null;
   declare readonly isEmailVerificationRequired: boolean;
   declare readonly flags: Prisma.JsonValue;
+  declare readonly featuredWorkflowIds: string[];
 }

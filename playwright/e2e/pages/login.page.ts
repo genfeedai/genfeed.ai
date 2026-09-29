@@ -254,7 +254,7 @@ export class LoginPage {
       '/overview',
       '/studio',
       '/g',
-      '/studio/edit',
+      '/studio/editor',
       '/automation/workflows',
       '/',
     ];

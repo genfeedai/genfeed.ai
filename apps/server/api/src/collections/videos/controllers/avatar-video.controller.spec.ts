@@ -68,6 +68,39 @@ describe('AvatarVideoController', () => {
       expect(result).toEqual({ id: 'ingredient-123' });
     });
 
+    it.each([
+      ['a reserved platform charge', { creditsConfig: { amount: 1 } }, true],
+      [
+        'a BYOK bypass',
+        { creditsConfig: { amount: 1, isByokBypass: true } },
+        false,
+      ],
+      ['no credits config', {}, false],
+    ])(
+      'tells generation whether the request pipeline bills it (%s)',
+      async (_label, request, settleCreditsExternally) => {
+        mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({
+          externalId: 'heygen-task-123',
+          ingredientId: 'ingredient-123',
+          status: 'processing',
+        });
+        mockVideosService.findOne.mockResolvedValue({ id: 'ingredient-123' });
+
+        await controller.createAvatarVideo(request as never, mockUser, {
+          audioUrl: 'https://example.com/audio.mp3',
+          photoUrl: 'https://example.com/photo.jpg',
+          text: 'Hello world',
+        });
+
+        expect(
+          mockAvatarVideoGenerationService.generateAvatarVideo,
+        ).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({ settleCreditsExternally }),
+        );
+      },
+    );
+
     it('throws when the ingredient cannot be reloaded for serialization', async () => {
       mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({
         externalId: 'heygen-task-123',

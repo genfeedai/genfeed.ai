@@ -8,6 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import {
   PLATFORM_SETTING_KEY,
   type PlatformFlagKey,
+  parseFeaturedWorkflowIds,
   parsePlatformFeatureSettings,
   TYPED_DECISION_PROVIDER_LABELS,
   UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
@@ -27,6 +28,7 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   type OnModuleInit,
@@ -282,6 +284,42 @@ export class PlatformSettingsService
     setRuntimeMarginMultiplier(updated.marginMultiplierGeneration);
     setRuntimeAgentChatMarginMultiplier(updated.marginMultiplierAgentChat);
     return updated;
+  }
+
+  /**
+   * Replace the pinned Featured workflow ids (#5511). `resolveNext` receives
+   * the pins as stored right now (not the cached copy) and returns the new
+   * ordered list, throwing to refuse the change. The write only lands if the
+   * column still holds what was read, so two operators pinning at the same
+   * moment cannot overwrite each other: the later one gets a conflict and
+   * reloads. Returns the pins as stored after the write.
+   */
+  async updateFeaturedWorkflowIds(
+    resolveNext: (current: readonly string[]) => Promise<readonly string[]>,
+  ): Promise<readonly string[]> {
+    const current = await this.getSingleton();
+    const next = parseFeaturedWorkflowIds(
+      await resolveNext(parseFeaturedWorkflowIds(current.featuredWorkflowIds)),
+    );
+
+    const { count } = await this.prisma.platformSetting.updateMany({
+      data: { featuredWorkflowIds: next },
+      where: {
+        featuredWorkflowIds: { equals: current.featuredWorkflowIds },
+        id: current.id,
+        isDeleted: false,
+      },
+    });
+    if (count === 0) {
+      throw new ConflictException(
+        'Featured workflows changed since they were loaded. Reload and try again.',
+      );
+    }
+
+    const updated = await this.getSingleton();
+    this.featureSettingsGeneration += 1;
+    this.cacheFeatureSettings(parsePlatformFeatureSettings(updated));
+    return parseFeaturedWorkflowIds(updated.featuredWorkflowIds);
   }
 
   /**

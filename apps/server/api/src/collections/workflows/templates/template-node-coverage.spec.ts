@@ -12,10 +12,8 @@ import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collection
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-  WORKFLOW_TEMPLATES,
-} from '@api/collections/workflows/templates/workflow-templates';
+import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { isWorkflowInputNodeType } from '@api/collections/workflows/workflow-node-predicates';
 import { isKnowledgeWorkflowAction } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
 import {
@@ -367,7 +365,7 @@ describe('workflow template wiring guard (#5533)', () => {
   });
 
   it('keeps every showcase template off the known-defect baselines', () => {
-    const showcaseIds = new Set<string>(SHOWCASE_WORKFLOW_TEMPLATE_IDS);
+    const showcaseIds = new Set<string>(ENGINE_VERIFIED_TEMPLATE_IDS);
     const baselinedShowcase = [
       ...KNOWN_UNRESOLVED_SOURCE_HANDLES,
       ...KNOWN_UNDECLARED_PLACEHOLDERS,

@@ -1,10 +1,14 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import { MediaType } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WorkflowTemplate } from '@/features/workflows/services/workflow-api';
+import type {
+  FeaturedWorkflow,
+  WorkflowTemplate,
+} from '@/features/workflows/services/workflow-api';
 import WorkflowTemplatesPage, {
   cadenceLabel,
   categoryLabel,
@@ -16,11 +20,13 @@ type Translator = (
 ) => string;
 
 const mocks = vi.hoisted(() => ({
+  copyFeatured: vi.fn(),
   create: vi.fn(),
   getService: vi.fn(),
   href: vi.fn((path: string) => `/demo/FUDNEWS${path}`),
   installSystemCatalog: vi.fn(),
   list: vi.fn(),
+  listFeatured: vi.fn(),
   listSystemCatalog: vi.fn(),
   listTemplates: vi.fn(),
   replace: vi.fn(),
@@ -55,7 +61,6 @@ function translateWithOverrides(overrides: Record<string, string>) {
 
 const POST_HARD_CUT_TEMPLATE = {
   category: 'social',
-  featuredRank: 2,
   changeSummary: 'Uses action-backed workflow nodes.',
   description: 'Post to every social channel at once.',
   edges: [],
@@ -75,6 +80,18 @@ const POST_HARD_CUT_TEMPLATE = {
   ],
   version: 1,
 } satisfies WorkflowTemplate;
+
+/** A workflow a superadmin pinned to Featured (#5511). */
+const PINNED_WORKFLOW = {
+  description: 'A pinned founder thread.',
+  edges: [],
+  featuredRank: 1,
+  id: 'wf-pinned',
+  inputVariables: [],
+  label: 'Founder thread',
+  nodes: POST_HARD_CUT_TEMPLATE.nodes,
+  thumbnail: null,
+} satisfies FeaturedWorkflow;
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: mocks.href }),
@@ -305,14 +322,18 @@ describe('WorkflowTemplatesPage', () => {
     mocks.searchParams = new URLSearchParams();
     mocks.useTranslations.mockImplementation(translateFromCatalog);
     mocks.listTemplates.mockResolvedValue([POST_HARD_CUT_TEMPLATE]);
+    mocks.listFeatured.mockResolvedValue([PINNED_WORKFLOW]);
+    mocks.copyFeatured.mockResolvedValue({ id: 'wf-copy' });
     mocks.list.mockResolvedValue([]);
     mocks.listSystemCatalog.mockResolvedValue([DAILY_DIGEST_ENTRY]);
     mocks.installSystemCatalog.mockResolvedValue({ id: 'wf-installed' });
     mocks.create.mockResolvedValue({ id: 'wf-created' });
     mocks.getService.mockResolvedValue({
+      copyFeatured: mocks.copyFeatured,
       create: mocks.create,
       installSystemCatalog: mocks.installSystemCatalog,
       list: mocks.list,
+      listFeatured: mocks.listFeatured,
       listSystemCatalog: mocks.listSystemCatalog,
       listTemplates: mocks.listTemplates,
     });
@@ -354,56 +375,176 @@ describe('WorkflowTemplatesPage', () => {
     ).toEqual(['Featured', 'Browse by type', 'All templates']);
   });
 
-  // Example-output previews remain #5498; showcase cards use workflow graphs.
-  it('features ranked showcase templates and excludes the system catalog', async () => {
+  it('features the admin-pinned workflows, never catalog entries (#5511)', async () => {
     await renderLoadedPage();
     const featured = featuredSection();
-    expect(within(featured).getByText('Social blast')).toBeInTheDocument();
+    expect(within(featured).getByText('Founder thread')).toBeInTheDocument();
+    expect(
+      within(featured).queryByText('Social blast'),
+    ).not.toBeInTheDocument();
     expect(
       within(featured).queryByText('Daily digest'),
     ).not.toBeInTheDocument();
     expect(
       within(featured).getByRole('img', {
-        name: 'Social blast workflow diagram',
+        name: 'Founder thread workflow diagram',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(allSection()).queryByText('Founder thread'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('previews a pinned workflow by its thumbnail, else by its graph (#5498)', async () => {
+    mocks.listFeatured.mockResolvedValue([
+      {
+        ...PINNED_WORKFLOW,
+        thumbnail: 'https://cdn.example.com/examples/founder-thread.png',
+      },
+      {
+        ...PINNED_WORKFLOW,
+        featuredRank: 2,
+        id: 'wf-graph-only',
+        label: 'Graph only',
+      },
+    ]);
+    await renderLoadedPage();
+
+    await waitFor(() => {
+      expect(
+        within(featuredSection()).getAllByTestId('workflow-template-card'),
+      ).toHaveLength(2);
+    });
+    const [exampleCard, graphCard] = within(featuredSection()).getAllByTestId(
+      'workflow-template-card',
+    );
+    expect(
+      within(exampleCard as HTMLElement).getByRole('img', {
+        name: 'Example output from Founder thread',
+      }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/founder-thread.png',
+    );
+    expect(
+      within(graphCard as HTMLElement).getByRole('img', {
+        name: 'Graph only workflow diagram',
       }),
     ).toBeInTheDocument();
   });
 
-  it('sorts Featured by rank and omits unranked templates', async () => {
+  it('previews a catalog template by its example output in the grid (#5498)', async () => {
+    const user = userEvent.setup();
     mocks.listTemplates.mockResolvedValue([
-      POST_HARD_CUT_TEMPLATE,
       {
         ...POST_HARD_CUT_TEMPLATE,
-        id: 'first',
-        name: 'First showcase',
-        featuredRank: 1,
-      },
-      {
-        ...POST_HARD_CUT_TEMPLATE,
-        id: 'unranked',
-        name: 'Unranked',
-        featuredRank: undefined,
+        exampleOutput: {
+          mediaType: MediaType.IMAGE,
+          url: 'https://cdn.example.com/examples/social-blast.png',
+        },
       },
     ]);
     await renderLoadedPage();
+
+    await user.click(within(allSection()).getByRole('radio', { name: 'Grid' }));
+
+    const exampleCard = within(allSection())
+      .getAllByTestId('workflow-template-card')
+      .find((card) => within(card).queryByText('Social blast'));
     expect(
-      within(featuredSection())
-        .getAllByTestId('workflow-template-card')
-        .map((card) => within(card).getByRole('heading').textContent),
-    ).toEqual(['First showcase', 'Social blast']);
+      within(exampleCard as HTMLElement).getByRole('img', {
+        name: 'Example output from Social blast',
+      }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/social-blast.png',
+    );
     expect(
-      within(featuredSection()).queryByText('Unranked'),
+      within(exampleCard as HTMLElement).queryByRole('img', {
+        name: 'Social blast workflow diagram',
+      }),
     ).not.toBeInTheDocument();
   });
 
-  it('hides Featured when no curated showcase templates exist', async () => {
-    mocks.listTemplates.mockResolvedValue([
-      { ...POST_HARD_CUT_TEMPLATE, featuredRank: undefined },
+  it('shows Featured in pin order', async () => {
+    mocks.listFeatured.mockResolvedValue([
+      { ...PINNED_WORKFLOW, id: 'wf-first', label: 'First pin' },
+      { ...PINNED_WORKFLOW, featuredRank: 2, id: 'wf-second', label: null },
     ]);
+    await renderLoadedPage();
+    await waitFor(() => {
+      expect(
+        within(featuredSection())
+          .getAllByTestId('workflow-template-card')
+          .map((card) => within(card).getByRole('heading').textContent),
+      ).toEqual(['First pin', 'Untitled workflow']);
+    });
+  });
+
+  it('hides Featured when nothing is pinned', async () => {
+    mocks.listFeatured.mockResolvedValue([]);
     await renderLoadedPage();
     expect(
       screen.queryByRole('region', { name: 'Featured' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['Browse by type', 'All templates']);
+  });
+
+  it('copies a Featured workflow into the organization and opens the copy', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    await user.click(
+      within(featuredSection()).getByRole('button', { name: 'Use template' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/demo/FUDNEWS/automation/workflows/wf-copy',
+      );
+    });
+    expect(mocks.copyFeatured).toHaveBeenCalledWith('wf-pinned');
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.installSystemCatalog).not.toHaveBeenCalled();
+  });
+
+  it('keeps the viewer on the page when copying a Featured workflow fails', async () => {
+    const user = userEvent.setup();
+    mocks.copyFeatured.mockRejectedValueOnce(new Error('Copy refused'));
+    await renderLoadedPage();
+
+    await user.click(
+      within(featuredSection()).getByRole('button', { name: 'Use template' }),
+    );
+
+    expect(await screen.findByText('Copy refused')).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
+    expect(
+      within(featuredSection()).getByRole('button', { name: 'Use template' }),
+    ).toBeEnabled();
+  });
+
+  it('scopes a Featured load failure to Featured, with its own retry', async () => {
+    const user = userEvent.setup();
+    mocks.listFeatured.mockRejectedValueOnce(new Error('featured down'));
+    await renderLoadedPage();
+
+    const alert = within(featuredSection()).getByRole('alert');
+    expect(alert).toHaveTextContent('Featured workflows could not be loaded.');
+    expect(within(allSection()).queryByRole('alert')).toBeNull();
+
+    await user.click(within(alert).getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(
+        within(featuredSection()).getByText('Founder thread'),
+      ).toBeInTheDocument();
+    });
+    expect(mocks.listFeatured).toHaveBeenCalledTimes(2);
+    expect(mocks.listTemplates).toHaveBeenCalledTimes(1);
+    expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(1);
   });
 
   it('hides Browse by type when the catalog has a single type', async () => {
@@ -426,6 +567,7 @@ describe('WorkflowTemplatesPage', () => {
   it('renders no sections and one empty state for an empty catalog', async () => {
     mocks.listTemplates.mockResolvedValue([]);
     mocks.listSystemCatalog.mockResolvedValue([]);
+    mocks.listFeatured.mockResolvedValue([]);
     render(<WorkflowTemplatesPage />);
 
     expect(
@@ -599,7 +741,7 @@ describe('WorkflowTemplatesPage', () => {
     await renderLoadedPage();
 
     const description = within(featuredSection()).getByText(
-      POST_HARD_CUT_TEMPLATE.description,
+      PINNED_WORKFLOW.description,
     );
     expect(description.tagName).toBe('P');
     expect(description.closest('button')).toBeNull();
@@ -723,9 +865,8 @@ describe('WorkflowTemplatesPage', () => {
         within(allSection()).getByText('Daily digest'),
       ).toBeInTheDocument();
     });
-    expect(within(featuredSection()).getByRole('alert')).toHaveTextContent(
-      'Starter templates could not be loaded.',
-    );
+    // Featured reads admin pins, not starter templates (#5511).
+    expect(within(featuredSection()).queryByRole('alert')).toBeNull();
 
     const alert = within(allSection()).getByRole('alert');
     expect(alert).toHaveTextContent('Starter templates could not be loaded.');
@@ -757,7 +898,7 @@ describe('WorkflowTemplatesPage', () => {
     });
 
     expect(
-      within(featuredSection()).getByText('Social blast'),
+      within(featuredSection()).getByText('Founder thread'),
     ).toBeInTheDocument();
     expect(within(featuredSection()).queryByRole('alert')).toBeNull();
     const catalogAlert = within(allSection()).getByRole('alert');
@@ -782,12 +923,13 @@ describe('WorkflowTemplatesPage', () => {
     const user = userEvent.setup();
     mocks.listTemplates.mockRejectedValueOnce(new Error('templates down'));
     mocks.listSystemCatalog.mockRejectedValueOnce(new Error('catalog down'));
+    mocks.listFeatured.mockRejectedValueOnce(new Error('featured down'));
     render(<WorkflowTemplatesPage />);
 
     const allAlert = await within(allSection()).findByRole('alert');
     expect(allAlert).toHaveTextContent('Templates could not be loaded.');
     expect(within(featuredSection()).getByRole('alert')).toHaveTextContent(
-      'Starter templates could not be loaded.',
+      'Featured workflows could not be loaded.',
     );
     expect(
       screen.queryByText('No workflow templates are available yet.'),
@@ -803,7 +945,9 @@ describe('WorkflowTemplatesPage', () => {
         within(allSection()).getByText('Daily digest'),
       ).toBeInTheDocument();
     });
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(within(allSection()).queryByRole('alert')).toBeNull();
+    // The catalog retry leaves Featured to its own retry.
+    expect(mocks.listFeatured).toHaveBeenCalledTimes(1);
   });
 
   it('localizes category, chip and cadence labels and follows translation changes', async () => {

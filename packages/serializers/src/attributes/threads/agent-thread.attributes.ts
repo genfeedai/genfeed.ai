@@ -12,6 +12,7 @@ export const agentThreadAttributes = createEntityAttributes([
   'pendingInputCount',
   'runStatus',
   'runtimeState',
+  'statusSequence',
   'decisionHref',
   'externalRuntime',
   'organization',
