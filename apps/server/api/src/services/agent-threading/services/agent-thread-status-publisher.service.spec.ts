@@ -231,6 +231,7 @@ describe('AgentThreadStatusPublisherService', () => {
     await record('thread.turn_requested');
     // queued -> running moves the snapshot but not the derived status.
     await record('tool.started', { toolCallId: 't1' });
+    expect(publishedEvents()).toHaveLength(1);
     publish.mockClear();
     vi.mocked(threadsService.findOne).mockClear();
 
