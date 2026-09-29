@@ -22,7 +22,7 @@ export const ROLE_WORKFLOW_TEMPLATE_BY_TYPE: Partial<
   [AgentType.ARTICLE_WRITER]: 'founder-newsletter',
   [AgentType.LINKEDIN_CONTENT]: 'founder-newsletter',
   [AgentType.ADS_SCRIPT_WRITER]: 'founder-x-post',
-  [AgentType.SHORT_FORM_WRITER]: 'tiktok-slideshow-automation',
+  [AgentType.SHORT_FORM_WRITER]: 'founder-x-post',
   [AgentType.CTA_CONTENT]: 'founder-x-post',
   [AgentType.YOUTUBE_SCRIPT]: 'youtube-thumbnail-script',
   [AgentType.BRAND_INTERVIEW]: 'founder-newsletter',

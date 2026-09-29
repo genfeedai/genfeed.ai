@@ -1,4 +1,5 @@
 import { getNodeDefinition } from '@api/collections/workflows/registry/node-registry-adapter';
+import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
 import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
 import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
@@ -47,10 +48,6 @@ const KNOWN_UNDECLARED_PLACEHOLDERS: readonly string[] = [
   'daily-image-generation:prompt',
   'motivational-quote-image:quote',
   'scheduled-video-creation:prompt',
-  'social-media-video-series:prompt',
-  'tiktok-slideshow-automation:niche',
-  'tiktok-slideshow-automation:product',
-  'webhook-notification:GENFEEDAI_WEBHOOKS_URL',
   'weekly-article-batch:topic',
 ];
 
@@ -105,7 +102,8 @@ function presentDependency<T>(): T {
 /**
  * The engine as production wires it: every API registrar (see
  * `WorkflowEngineExecutorRegistryService`), the runner's own control actions,
- * and the agent-tool bridge. Catalog templates install as customer workflows,
+ * the domain services that register catalog actions through the runner, and
+ * the agent-tool bridge. Catalog templates install as customer workflows,
  * and the bridge (`AgentToolExecutorService.onModuleInit`) only runs Knowledge
  * actions there — every other agent tool requires an authenticated agent
  * runtime and fails in a customer workflow, so only Knowledge actions count.
@@ -212,12 +210,15 @@ function createProductionEngine(): WorkflowEngine {
     registerExecutor: (nodeType, executor) =>
       engine.registerExecutor(nodeType, executor),
   };
-  const moduleRef = { get: () => engineAdapter } as unknown as ModuleRef;
-  const runner = new SystemWorkflowRunnerService(
-    presentDependency(),
-    moduleRef,
-  );
+  let runner: SystemWorkflowRunnerService | undefined;
+  const moduleRef = {
+    get: (token: unknown) =>
+      token === SystemWorkflowRunnerService ? runner : engineAdapter,
+  } as unknown as ModuleRef;
+  runner = new SystemWorkflowRunnerService(presentDependency(), moduleRef);
   runner.onModuleInit();
+  // Domain owners that register the actions a catalog template runs.
+  new DailyPublishingService(presentDependency(), moduleRef).onModuleInit();
   for (const tool of getToolsForSurface('agent')) {
     const definition = getToolByName(tool.name);
     if (
@@ -292,6 +293,7 @@ describe('workflow template wiring guard (#5533)', () => {
 
     expect(registeredActionIds).toEqual(
       expect.arrayContaining([
+        'daily-publishing.resolve',
         'effect-captions',
         'imageGen',
         'publish',
