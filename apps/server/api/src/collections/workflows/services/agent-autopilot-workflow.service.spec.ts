@@ -1,7 +1,28 @@
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { getActionDefinition } from '@genfeedai/actions';
 import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
+
+const PROVENANCE = {
+  nodeId: 'discover-credit-resets',
+  runId: 'run',
+  workflowId: 'workflow',
+  workflowVersionId: 'v1',
+};
+
+function compileOutputContract(actionId: string) {
+  const action = getActionDefinition(actionId);
+  return compileActionContract(actionId, {
+    inputSchema: (action?.inputSchema ?? {}) as Readonly<
+      Record<string, unknown>
+    >,
+    outputSchema: (action?.outputSchema ?? {}) as Readonly<
+      Record<string, unknown>
+    >,
+  });
+}
 
 describe('AgentAutopilotWorkflowService atomic actions', () => {
   it('discovers and resets one due credit window without iterating strategies internally', async () => {
@@ -54,6 +75,21 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
       state: { acquired: true },
     });
     expect(discovery.items).toEqual([strategySnapshot]);
+
+    // Prod regression: the closed output contract rejected `baseInput.now`,
+    // failing every sweep that took the lock.
+    const contract = compileOutputContract(
+      'agent.autopilot.discover-credit-resets',
+    );
+    expect(() => contract.validateOutput(discovery, PROVENANCE)).not.toThrow();
+    const unacquired = await service.discoverCreditResetStrategies('org-1', {
+      state: { acquired: false },
+    });
+    expect(unacquired).toEqual({
+      baseInput: { organizationId: 'org-1' },
+      items: [],
+    });
+    expect(() => contract.validateOutput(unacquired, PROVENANCE)).not.toThrow();
 
     await service.resetCreditWindow('org-1', {
       item: strategySnapshot,
