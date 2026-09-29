@@ -11,10 +11,11 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { runWithActionOrigin } from '@api/index';
 import { ActionOrigin, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import { isActionContractFailureMessage } from '@genfeedai/workflows/engine';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 
 /**
  * BullMQ processor for workflow execution jobs.
@@ -112,7 +113,11 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       return await this.executeSystemRun(job, systemRun);
     } catch (error: unknown) {
       const attempts = Math.max(job.opts.attempts ?? 1, 1);
-      const isTerminalAttempt = (job.attemptsMade ?? 0) + 1 >= attempts;
+      // An UnrecoverableError never gets another attempt, whatever `attempts`
+      // says, so the failure workflow must run now or never.
+      const isTerminalAttempt =
+        error instanceof UnrecoverableError ||
+        (job.attemptsMade ?? 0) + 1 >= attempts;
       if (!systemRun.failureWorkflow || !isTerminalAttempt) {
         throw error;
       }
@@ -175,10 +180,15 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       );
     }
     if (result.execution.status === WorkflowExecutionStatus.FAILED) {
-      throw new Error(
+      const failure =
         result.execution.error ??
-          `System workflow ${systemRun.input.canonicalId} failed`,
-      );
+        `System workflow ${systemRun.input.canonicalId} failed`;
+      // A contract violation is deterministic: retrying re-runs the same graph
+      // with the same input and only multiplies load on a shared, rate-limited
+      // queue (#5622).
+      throw isActionContractFailureMessage(failure)
+        ? new UnrecoverableError(failure)
+        : new Error(failure);
     }
     if (result.execution.status === WorkflowExecutionStatus.CANCELLED) {
       throw new Error(

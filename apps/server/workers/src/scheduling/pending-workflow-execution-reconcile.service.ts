@@ -21,6 +21,20 @@ const STALE_PENDING_THRESHOLD_MS = 5 * 60 * 1000;
  */
 const RECONCILE_LOOKBACK_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * An interactive agent turn still `PENDING` this long after acceptance whose
+ * job no worker has started is surfaced as failed instead of left "Running"
+ * (#5622). A healthy queue starts a turn within seconds: the busiest healthy
+ * queue in production over the incident window, `workflow-background`
+ * (concurrency 8, 60/min), never showed an oldest-waiting job older than 92s.
+ * 2 minutes is above that with headroom, and short enough that a user is not
+ * left watching a spinner for an hour.
+ */
+const AGENT_TURN_START_DEADLINE_MS = 2 * 60 * 1000;
+
+const AGENT_TURN_NEVER_STARTED_ERROR_MESSAGE =
+  'This turn waited in the queue and never started. Send it again.';
+
 const NEVER_CLAIMED_ERROR_MESSAGE =
   'This run was queued but no worker ever picked it up. Send a new message to retry.';
 
@@ -113,6 +127,8 @@ export class PendingWorkflowExecutionReconcileService {
     const staleBefore = new Date(now - STALE_PENDING_THRESHOLD_MS);
     const createdAfter = new Date(now - RECONCILE_LOOKBACK_MS);
 
+    await this.reconcileUnstartedAgentTurns(now, createdAfter);
+
     const recent = await this.sweepCohort(this.recentLap, {
       fetchBoundary: () =>
         this.staleExecutionFinder.findUpperBoundary(staleBefore, createdAfter),
@@ -133,6 +149,71 @@ export class PendingWorkflowExecutionReconcileService {
     this.ancientLap = ancient.lap;
     for (const candidate of ancient.candidates) {
       await this.reconcileCandidate(candidate, 'cancel');
+    }
+  }
+
+  /**
+   * The one place a still-claimable job is NOT left alone: a live agent turn
+   * that is `PENDING` past `AGENT_TURN_START_DEADLINE_MS` with its job waiting
+   * behind a backlog. The generic path below never surfaces that (the job is
+   * claimable), so the user waits forever. The job is withdrawn first so the
+   * turn cannot run later, after the user was told it failed and resent it; a
+   * job a worker has already started is never touched.
+   */
+  private async reconcileUnstartedAgentTurns(
+    now: number,
+    createdAfter: Date,
+  ): Promise<void> {
+    try {
+      const candidates =
+        await this.staleExecutionFinder.findStalledInteractiveAgentTurns(
+          new Date(now - AGENT_TURN_START_DEADLINE_MS),
+          createdAfter,
+          SWEEP_PAGE_SIZE,
+        );
+      for (const candidate of candidates) {
+        await this.failUnstartedAgentTurn(candidate);
+      }
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.logContext} failed to sweep unstarted agent turns`,
+        { error },
+      );
+    }
+  }
+
+  private async failUnstartedAgentTurn(candidate: {
+    id: string;
+    organizationId: string;
+  }): Promise<void> {
+    try {
+      const outcome =
+        await this.queueService.withdrawUnstartedSystemWorkflowJob(
+          `system-workflow-${candidate.id}`,
+        );
+      if (outcome === 'started') return;
+
+      await this.workflowExecutions.completeExecution(
+        candidate.id,
+        AGENT_TURN_NEVER_STARTED_ERROR_MESSAGE,
+      );
+      this.logger.error(
+        `${this.logContext} surfaced an agent turn that never started`,
+        {
+          executionId: candidate.id,
+          isJobWithdrawn: outcome === 'removed',
+          organizationId: candidate.organizationId,
+        },
+      );
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.logContext} failed to surface an unstarted agent turn`,
+        {
+          error,
+          executionId: candidate.id,
+          organizationId: candidate.organizationId,
+        },
+      );
     }
   }
 

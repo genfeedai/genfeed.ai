@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_TURN_QUEUE,
   ALL_QUEUE_NAMES,
   BATCH_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
@@ -26,6 +27,7 @@ describe('queue-names.constant', () => {
     expect(WORKFLOW_EXECUTION_QUEUE).toBe('workflow-execution');
     expect(PLATFORM_SYSTEM_WORKFLOW_QUEUE).toBe('platform-system-workflow');
     expect(WORKFLOW_BACKGROUND_QUEUE).toBe('workflow-background');
+    expect(AGENT_TURN_QUEUE).toBe('agent-turn');
     expect(MEDIA_PERCEPTION_QUEUE).toBe('media-perception');
     expect(MEDIA_MODERATION_QUEUE).toBe('media-moderation');
     expect(BATCH_REWRITE_QUEUE).toBe('batch-rewrite');

@@ -14,6 +14,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import {
+  AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
@@ -76,19 +77,27 @@ describe('WorkflowExecutionQueueService', () => {
   let mockQueue: ReturnType<typeof createMockQueue>;
   let mockPlatformQueue: ReturnType<typeof createMockQueue>;
   let mockBackgroundQueue: ReturnType<typeof createMockQueue>;
+  let mockAgentTurnQueue: ReturnType<typeof createMockQueue>;
   let mockLogger: ReturnType<typeof createMockLogger>;
 
   beforeEach(() => {
     mockQueue = createMockQueue();
     mockPlatformQueue = createMockQueue();
     mockBackgroundQueue = createMockQueue();
+    mockAgentTurnQueue = createMockQueue();
     mockLogger = createMockLogger();
 
     service = new (
       WorkflowExecutionQueueService as unknown as new (
         ...args: unknown[]
       ) => WorkflowExecutionQueueService
-    )(mockQueue, mockPlatformQueue, mockBackgroundQueue, mockLogger);
+    )(
+      mockQueue,
+      mockPlatformQueue,
+      mockBackgroundQueue,
+      mockAgentTurnQueue,
+      mockLogger,
+    );
   });
 
   describe('queueTriggerEvent', () => {
@@ -357,12 +366,12 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockPlatformQueue.add).not.toHaveBeenCalled();
     });
 
-    it('keeps an interactive dispatch on the interactive queue (#5271)', async () => {
+    it('keeps a non-agent interactive dispatch on the interactive queue (#5271)', async () => {
       const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
         organizationId: 'org-1',
-        source: 'agent',
+        source: 'voice',
         userId: 'user-1',
       };
 
@@ -377,6 +386,54 @@ describe('WorkflowExecutionQueueService', () => {
       );
       expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
       expect(mockPlatformQueue.add).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      'agent.turn.execute',
+      'agent.thread.ui-action',
+      'agent.thread.input-response',
+    ])(
+      'routes a live %s turn to the dedicated agent-turn queue (#5622)',
+      async (canonicalId) => {
+        const input = {
+          actionType: canonicalId,
+          canonicalId,
+          organizationId: 'org-1',
+          source: 'AgentTurnAcceptanceService.accept',
+          userId: 'user-1',
+        };
+
+        await service.queueSystemWorkflow(input, 'system-workflow-exec-agent', {
+          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
+        });
+
+        expect(mockAgentTurnQueue.add).toHaveBeenCalledWith(
+          'system-run',
+          expect.anything(),
+          expect.objectContaining({ jobId: 'system-workflow-exec-agent' }),
+        );
+        expect(mockQueue.add).not.toHaveBeenCalled();
+        expect(mockBackgroundQueue.add).not.toHaveBeenCalled();
+        expect(mockPlatformQueue.add).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps a proactive agent turn off the agent-turn queue (platform-sourced, #5622)', async () => {
+      const input = {
+        actionType: 'agent.turn.execute',
+        canonicalId: 'agent.turn.execute',
+        organizationId: 'org-1',
+        source: 'proactive',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-pro', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        usePlatformQueue: true,
+      });
+
+      expect(mockPlatformQueue.add).toHaveBeenCalled();
+      expect(mockAgentTurnQueue.add).not.toHaveBeenCalled();
     });
 
     it('a platform-sourced BACKGROUND dispatch still routes to the platform queue, not the background one (#5271)', async () => {
@@ -472,6 +529,21 @@ describe('WorkflowExecutionQueueService', () => {
   });
 
   describe('queueDelayedResume', () => {
+    it('keeps a delayed resume on the agent-turn queue it started on (#5622)', async () => {
+      await service.queueDelayedResume(
+        createDelayResumeData(),
+        1000,
+        AGENT_TURN_QUEUE,
+      );
+
+      expect(mockAgentTurnQueue.add).toHaveBeenCalledWith(
+        'delay-resume',
+        expect.anything(),
+        expect.anything(),
+      );
+      expect(mockQueue.add).not.toHaveBeenCalled();
+    });
+
     it.each([WORKFLOW_BACKGROUND_QUEUE, PLATFORM_SYSTEM_WORKFLOW_QUEUE])(
       'retains the %s queue for a delayed resume',
       async (queueName) => {
@@ -770,6 +842,16 @@ describe('WorkflowExecutionQueueService', () => {
       ).resolves.toBe(true);
     });
 
+    it('returns true when the agent-turn queue has a claimable job (#5622)', async () => {
+      mockAgentTurnQueue.getJob.mockResolvedValue({
+        getState: vi.fn().mockResolvedValue('waiting'),
+      });
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-10c'),
+      ).resolves.toBe(true);
+    });
+
     it('returns false when a job exists but is sitting in a terminal state (#5162)', async () => {
       // A stuck PENDING execution whose job already finished (or failed and
       // was cleaned up by removeOnFail) is exactly the case the bounded-
@@ -781,6 +863,64 @@ describe('WorkflowExecutionQueueService', () => {
       await expect(
         service.hasClaimableSystemWorkflowJob('system-workflow-exec-11'),
       ).resolves.toBe(false);
+    });
+  });
+  describe('withdrawUnstartedSystemWorkflowJob (#5622)', () => {
+    function jobIn(
+      state: string,
+      remove = vi.fn().mockResolvedValue(undefined),
+    ) {
+      return { getState: vi.fn().mockResolvedValue(state), remove };
+    }
+
+    it('removes a job still waiting behind a backlog', async () => {
+      const job = jobIn('waiting');
+      mockAgentTurnQueue.getJob.mockResolvedValue(job);
+
+      await expect(
+        service.withdrawUnstartedSystemWorkflowJob('system-workflow-exec-w1'),
+      ).resolves.toBe('removed');
+      expect(job.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('finds the job on the legacy interactive queue too', async () => {
+      const job = jobIn('waiting');
+      mockQueue.getJob.mockResolvedValue(job);
+
+      await expect(
+        service.withdrawUnstartedSystemWorkflowJob('system-workflow-exec-w2'),
+      ).resolves.toBe('removed');
+      expect(job.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('never touches a job a worker has already started', async () => {
+      const job = jobIn('active');
+      mockAgentTurnQueue.getJob.mockResolvedValue(job);
+
+      await expect(
+        service.withdrawUnstartedSystemWorkflowJob('system-workflow-exec-w3'),
+      ).resolves.toBe('started');
+      expect(job.remove).not.toHaveBeenCalled();
+    });
+
+    it('reports started when a worker takes the lock between the state read and remove()', async () => {
+      const job = jobIn(
+        'waiting',
+        vi.fn().mockRejectedValue(new Error('job is locked')),
+      );
+      mockAgentTurnQueue.getJob.mockResolvedValue(job);
+
+      await expect(
+        service.withdrawUnstartedSystemWorkflowJob('system-workflow-exec-w4'),
+      ).resolves.toBe('started');
+    });
+
+    it('reports absent when there is no job, or only a terminal one', async () => {
+      mockQueue.getJob.mockResolvedValue(jobIn('failed'));
+
+      await expect(
+        service.withdrawUnstartedSystemWorkflowJob('system-workflow-exec-w5'),
+      ).resolves.toBe('absent');
     });
   });
 });

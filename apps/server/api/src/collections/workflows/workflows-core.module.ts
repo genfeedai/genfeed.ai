@@ -3,6 +3,7 @@ import { WorkflowsService } from '@api/collections/workflows/services/workflows.
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { SYSTEM_WORKFLOW_RUNNER } from '@api/collections/workflows/workflows.tokens';
 import {
+  AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   WORKFLOW_BACKGROUND_QUEUE,
   WORKFLOW_EXECUTION_QUEUE,
@@ -55,6 +56,14 @@ import { Module } from '@nestjs/common';
           removeOnFail: 100,
         },
         name: WORKFLOW_BACKGROUND_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: AGENT_TURN_QUEUE,
       },
     ),
   ],
