@@ -1,6 +1,10 @@
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class {},
 }));
+const metrics = vi.hoisted(() => ({ count: vi.fn() }));
+vi.mock('@libs/websockets/agent-thread-status.metrics', () => ({
+  countAgentThreadStatus: metrics.count,
+}));
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -141,6 +145,7 @@ describe('AgentThreadStatusPublisherService', () => {
   };
 
   beforeEach(() => {
+    metrics.count.mockReset();
     sequence = 0;
     database = createDatabase();
     publish = vi.fn().mockResolvedValue(undefined);
@@ -338,6 +343,86 @@ describe('AgentThreadStatusPublisherService', () => {
       // The terminal execution already decided the derived status, which is
       // why recovery must record the event first.
       expect(publish).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('volume and metrics', () => {
+    it('publishes a handful of events for a run with hundreds of ticks', async () => {
+      await record('thread.turn_requested');
+      for (let tick = 0; tick < 300; tick += 1) {
+        await record('tool.started', { toolCallId: `t${tick}` });
+        await record('tool.progress', { toolCallId: `t${tick}` });
+        await record('tool.completed', { toolCallId: `t${tick}` });
+        await record('assistant.delta', { delta: 'x' });
+      }
+      await record('run.completed');
+
+      expect(publishedEvents().map((event) => event.runStatus)).toEqual([
+        'running',
+        'completed',
+      ]);
+    });
+
+    it('publishes only status changes across many concurrent threads', async () => {
+      const threadIds = Array.from(
+        { length: 200 },
+        (_, index) => `${String(index).padStart(2, '0')}${'e'.repeat(22)}`,
+      );
+      vi.mocked(threadsService.findOne).mockImplementation(
+        async (query: never) =>
+          ({
+            ...thread,
+            id: (query as { id: string }).id,
+          }) as never,
+      );
+
+      const startedAt = performance.now();
+      for (const id of threadIds) {
+        for (const type of [
+          'thread.turn_requested',
+          'tool.started',
+          'tool.progress',
+          'tool.completed',
+          'input.requested',
+          'input.resolved',
+          'run.completed',
+        ] as const) {
+          await engine.appendEvent({
+            commandId: `${id}:${type}`,
+            organizationId: orgId,
+            payload: { requestId: 'r1' },
+            runId,
+            threadId: id,
+            type,
+            userId,
+          });
+        }
+      }
+
+      // running, waiting_input, running, completed per thread.
+      expect(publishedEvents()).toHaveLength(threadIds.length * 4);
+      expect(performance.now() - startedAt).toBeLessThan(10_000);
+    });
+
+    it('counts each published status change and each failed publish', async () => {
+      await record('thread.turn_requested');
+      expect(metrics.count).toHaveBeenCalledWith('published', 1, {
+        runStatus: 'running',
+      });
+
+      publish.mockRejectedValue(new Error('redis down'));
+      await record('run.completed');
+      expect(metrics.count).toHaveBeenCalledWith('publish_failed');
+    });
+
+    it('counts nothing for events that do not change the status', async () => {
+      await record('thread.turn_requested');
+      metrics.count.mockClear();
+
+      await record('tool.progress');
+      await record('assistant.delta');
+
+      expect(metrics.count).not.toHaveBeenCalled();
     });
   });
 

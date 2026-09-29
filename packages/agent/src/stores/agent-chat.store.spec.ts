@@ -765,4 +765,33 @@ describe('agent-chat.store applyThreadStatusPush (#5636)', () => {
       pendingInputCount: 1,
     });
   });
+
+  it('applies a burst of events across many threads quickly and in order', () => {
+    const ids = Array.from({ length: 200 }, (_, index) => `t-${index}`);
+    useAgentChatStore.getState().setThreads(ids.map((id) => thread(id)));
+
+    const startedAt = performance.now();
+    for (let sequence = 1; sequence <= 10; sequence += 1) {
+      for (const id of ids) {
+        useAgentChatStore
+          .getState()
+          .applyThreadStatusPush(event({ sequence, threadId: id }));
+      }
+    }
+    // A replay of the whole burst changes nothing.
+    for (const id of ids) {
+      expect(
+        useAgentChatStore
+          .getState()
+          .applyThreadStatusPush(event({ sequence: 10, threadId: id })),
+      ).toBe('stale');
+    }
+
+    expect(performance.now() - startedAt).toBeLessThan(2_000);
+    expect(
+      useAgentChatStore
+        .getState()
+        .threads.every((row) => row.statusSequence === 10),
+    ).toBe(true);
+  });
 });

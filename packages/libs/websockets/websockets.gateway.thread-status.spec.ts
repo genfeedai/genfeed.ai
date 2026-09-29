@@ -17,6 +17,10 @@ const IDENTITIES: Record<string, { organizationId?: string; sub: string }> = {
 };
 
 const verifyMock = vi.hoisted(() => vi.fn());
+const metrics = vi.hoisted(() => ({ count: vi.fn() }));
+vi.mock('@libs/websockets/agent-thread-status.metrics', () => ({
+  countAgentThreadStatus: metrics.count,
+}));
 
 vi.mock('@libs/auth/better-auth-jwks.verifier', async (importOriginal) => {
   const actual =
@@ -89,6 +93,7 @@ describe('WebSocketGateway agent thread status (#5636)', () => {
   const settle = () => new Promise((resolve) => setTimeout(resolve, 100));
 
   beforeEach(async () => {
+    metrics.count.mockReset();
     clients = [];
     received = new Map();
     isCloud = true;
@@ -200,5 +205,29 @@ describe('WebSocketGateway agent thread status (#5636)', () => {
 
     expect(received.get('dave-no-org')).toHaveLength(1);
     expect(received.get('bob-in-org-a')).toEqual([]);
+  });
+
+  it('counts each socket a status event is delivered to', async () => {
+    await connectAs('alice-in-org-a');
+
+    publish(statusEvent());
+    await settle();
+
+    expect(metrics.count).toHaveBeenCalledWith('delivered', 1);
+  });
+
+  it('counts an event dropped for missing scope', async () => {
+    await connectAs('alice-in-org-a');
+
+    publish(statusEvent({ organizationId: undefined }));
+    await settle();
+
+    expect(metrics.count).toHaveBeenCalledWith('dropped', 1, {
+      reason: 'missing_scope',
+    });
+    expect(metrics.count).not.toHaveBeenCalledWith(
+      'delivered',
+      expect.anything(),
+    );
   });
 });
