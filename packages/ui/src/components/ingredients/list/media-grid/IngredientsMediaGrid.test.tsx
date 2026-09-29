@@ -82,16 +82,21 @@ describe('IngredientsMediaGrid', () => {
     expect(screen.getByTestId('video-tile-video-1')).toBeInTheDocument();
   });
 
-  it('lays tiles out in CSS columns so ratios stay intact', () => {
+  it('deals tiles across columns left to right so newest-first order reads across', () => {
     const { container } = render(
       <IngredientsMediaGrid {...baseProps} items={items} />,
     );
 
-    const column = container.querySelector<HTMLElement>('[style*="column"]');
+    const columns = container.querySelectorAll<HTMLElement>(
+      '[data-masonry-column]',
+    );
 
-    expect(column?.style.columnCount).toBe('5');
-    expect(screen.getByTestId('image-tile-image-1').parentElement).toHaveClass(
-      'break-inside-avoid',
+    expect(columns).toHaveLength(5);
+    expect(columns[0]).toContainElement(
+      screen.getByTestId('image-tile-image-1'),
+    );
+    expect(columns[1]).toContainElement(
+      screen.getByTestId('video-tile-video-1'),
     );
   });
 
