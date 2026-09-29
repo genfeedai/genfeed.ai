@@ -38,7 +38,6 @@ export function useAgentThreadList({
   const threads = useAgentChatStore((s) => s.threads);
   const setThreads = useAgentChatStore((s) => s.setThreads);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
-  const activeRunStatus = useAgentChatStore((s) => s.activeRunStatus);
   const threadUiBusyById = useAgentChatStore((s) => s.threadUiBusyById);
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const setError = useAgentChatStore((s) => s.setError);
@@ -59,7 +58,6 @@ export function useAgentThreadList({
   const restoreCachedConversation = useAgentChatStore(
     (s) => s.restoreCachedConversation,
   );
-  const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
   // Bumped after every successful/failed load so soft refreshes still re-render
@@ -713,8 +711,6 @@ export function useAgentThreadList({
   return {
     threads: renderableThreads,
     activeThreadId,
-    activeRunStatus,
-    isStreaming,
     threadUiBusyById,
     isLoading,
     authError,

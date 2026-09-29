@@ -1,5 +1,6 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { buildThreadSummaryFromSnapshot } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
@@ -8,7 +9,6 @@ import {
   groupAgentThreads,
   groupAgentThreadsByBrand,
   ORGANIZATION_THREAD_GROUP_LABEL,
-  resolveThreadActivity,
   resolveThreadListPreview,
 } from './agent-thread-list.helpers';
 
@@ -50,90 +50,17 @@ describe('groupAgentThreads', () => {
     expect(groups.recent.map(({ id }) => id)).toEqual(['recent']);
   });
 
-  it('keeps a running active thread in Working when the store reset its run status to idle', () => {
-    const thread = createThread('active', { runStatus: 'running' });
+  it('ignores the global run status: only the thread summary decides', () => {
+    const running = createThread('running', { runStatus: 'running' });
+    const completed = createThread('completed', { runStatus: 'completed' });
 
-    const groups = groupAgentThreads([thread], {
-      activeRunStatus: 'idle',
-      activeThreadId: 'active',
-      filter: 'all',
-      isStreaming: false,
-      searchQuery: '',
-    });
-
-    expect(groups.working).toEqual([thread]);
-    expect(groups.recent).toEqual([]);
-  });
-
-  it('moves the active thread out of Working once its summary says the run ended', () => {
-    const thread = createThread('active', { runStatus: 'completed' });
-
-    const groups = groupAgentThreads([thread], {
-      activeRunStatus: 'idle',
-      activeThreadId: 'active',
+    const groups = groupAgentThreads([running, completed], {
       filter: 'all',
       searchQuery: '',
     });
 
-    expect(groups.working).toEqual([]);
-    expect(groups.recent).toEqual([thread]);
-  });
-
-  it('lets a definite settled local status clear a stale running summary', () => {
-    const thread = createThread('active', { runStatus: 'running' });
-
-    for (const activeRunStatus of [
-      'completed',
-      'failed',
-      'cancelled',
-      'interrupted',
-    ] as const) {
-      const groups = groupAgentThreads([thread], {
-        activeRunStatus,
-        activeThreadId: 'active',
-        filter: 'all',
-        searchQuery: '',
-      });
-
-      expect(groups.working).toEqual([]);
-    }
-  });
-
-  it('keeps cancelling and streaming active threads in Working', () => {
-    const thread = createThread('active');
-
-    for (const options of [
-      { activeRunStatus: 'cancelling' as const },
-      { activeRunStatus: 'idle' as const, isStreaming: true },
-    ]) {
-      const groups = groupAgentThreads([thread], {
-        ...options,
-        activeThreadId: 'active',
-        filter: 'all',
-        searchQuery: '',
-      });
-
-      expect(groups.working).toEqual([thread]);
-    }
-  });
-
-  it('sends an active thread awaiting input or confirmation to Needs you, not Working', () => {
-    const thread = createThread('active', { runStatus: 'running' });
-
-    for (const activeRunStatus of [
-      'awaiting_input',
-      'awaiting_confirmation',
-    ] as const) {
-      const groups = groupAgentThreads([thread], {
-        activeRunStatus,
-        activeThreadId: 'active',
-        filter: 'all',
-        searchQuery: '',
-      });
-
-      expect(groups.needsYou).toEqual([thread]);
-      expect(groups.working).toEqual([]);
-    }
+    expect(groups.working).toEqual([running]);
+    expect(groups.recent).toEqual([completed]);
   });
 
   it('sends a summary waiting on input to Needs you even while it is running', () => {
@@ -143,8 +70,6 @@ describe('groupAgentThreads', () => {
     });
 
     const groups = groupAgentThreads([thread], {
-      activeRunStatus: 'running',
-      activeThreadId: 'waiting',
       filter: 'all',
       searchQuery: '',
     });
@@ -153,29 +78,10 @@ describe('groupAgentThreads', () => {
     expect(groups.working).toEqual([]);
   });
 
-  it('does not let the open thread status leak onto other threads', () => {
-    const groups = groupAgentThreads(
-      [
-        createThread('active'),
-        createThread('background', { runStatus: 'running' }),
-      ],
-      {
-        activeRunStatus: 'completed',
-        activeThreadId: 'active',
-        filter: 'all',
-        searchQuery: '',
-      },
-    );
-
-    expect(groups.working.map(({ id }) => id)).toEqual(['background']);
-  });
-
   it('counts a locally busy thread as Working', () => {
     const thread = createThread('busy');
 
     const groups = groupAgentThreads([thread], {
-      activeRunStatus: 'idle',
-      activeThreadId: 'busy',
       filter: 'all',
       searchQuery: '',
       threadUiBusyById: { busy: true },
@@ -321,61 +227,44 @@ describe('resolveThreadListPreview', () => {
 });
 
 describe('getThreadStatusMeta', () => {
-  it('marks a running background thread Running', () => {
-    const thread = createThread('background', {
-      attentionState: 'running',
-      runStatus: 'running',
-    });
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'idle',
-        activeThreadId: 'other',
-      }),
-    ).toEqual({
-      label: 'Running',
-      tone: 'running',
-    });
+  it('marks a running thread Running whatever its attention state', () => {
+    for (const attentionState of ['running', null] as const) {
+      expect(
+        getThreadStatusMeta(
+          createThread('t', { attentionState, runStatus: 'running' }),
+        ),
+      ).toEqual({ label: 'Running', tone: 'running' });
+    }
   });
 
-  it('keeps the glyph running after attention was cleared by opening the thread', () => {
-    const thread = createThread('opened', {
-      attentionState: null,
-      runStatus: 'running',
-    });
-
+  it('shows nothing for a settled thread', () => {
     expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'idle',
-        activeThreadId: 'opened',
-      }),
-    ).toEqual({ label: 'Running', tone: 'running' });
-  });
-
-  it('settles the active thread glyph from a definite local terminal status', () => {
-    const thread = createThread('active', {
-      attentionState: 'running',
-      runStatus: 'running',
-    });
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'completed',
-        activeThreadId: 'active',
-      }),
+      getThreadStatusMeta(createThread('t', { runStatus: 'completed' })),
     ).toBeNull();
   });
 
-  it('labels an active thread awaiting confirmation from local state', () => {
+  it('shows Failed only from the summary, never from another thread', () => {
     expect(
-      getThreadStatusMeta(createThread('active', { runStatus: 'running' }), {
-        activeRunStatus: 'awaiting_confirmation',
-        activeThreadId: 'active',
-      }),
-    ).toEqual({ label: 'Awaiting confirmation', tone: 'warning' });
+      getThreadStatusMeta(createThread('t', { runStatus: 'failed' })),
+    ).toEqual({ label: 'Failed', tone: 'failed' });
+    expect(getThreadStatusMeta(createThread('other'))).toBeNull();
   });
 
-  it('agrees with the grouping for every combination of summary and local status', () => {
+  it('labels what the thread is waiting for', () => {
+    expect(
+      getThreadStatusMeta(
+        createThread('t', {
+          pendingInputCount: 1,
+          runtimeState: 'awaiting_confirmation',
+        }),
+      ),
+    ).toEqual({ label: 'Awaiting confirmation', tone: 'warning' });
+    expect(
+      getThreadStatusMeta(createThread('t', { runStatus: 'waiting_input' })),
+    ).toEqual({ label: 'Needs input', tone: 'warning' });
+  });
+
+  it('agrees with the grouping for every summary state', () => {
     const runStatuses: AgentThread['runStatus'][] = [
       undefined,
       'idle',
@@ -386,51 +275,23 @@ describe('getThreadStatusMeta', () => {
       'failed',
       'cancelled',
     ];
-    const localStatuses = [
-      undefined,
-      'idle',
-      'running',
-      'cancelling',
-      'completed',
-      'failed',
-      'cancelled',
-      'awaiting_input',
-      'awaiting_confirmation',
-      'interrupted',
-      'restoring',
-    ] as const;
 
     for (const runStatus of runStatuses) {
-      for (const activeRunStatus of localStatuses) {
-        for (const isActive of [true, false]) {
-          const thread = createThread('t', { runStatus });
-          const options = {
-            activeRunStatus,
-            activeThreadId: isActive ? 't' : 'other',
-          };
+      for (const pendingInputCount of [0, 1]) {
+        for (const isLocallyBusy of [false, true]) {
+          const thread = createThread('t', { pendingInputCount, runStatus });
           const groups = groupAgentThreads([thread], {
-            ...options,
             filter: 'all',
             searchQuery: '',
+            threadUiBusyById: { t: isLocallyBusy },
           });
-          const tone = getThreadStatusMeta(thread, options)?.tone;
+          const tone = getThreadStatusMeta(thread, { isLocallyBusy })?.tone;
 
           expect(groups.working.length === 1).toBe(tone === 'running');
           expect(groups.needsYou.length === 1).toBe(tone === 'warning');
         }
       }
     }
-  });
-
-  it('does not leak the active thread failure status onto every thread', () => {
-    const thread = createThread('background');
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'failed',
-        activeThreadId: 'active-thread',
-      }),
-    ).toBeNull();
   });
 });
 
@@ -447,16 +308,30 @@ describe('getThreadStatusKey', () => {
   });
 });
 
-describe('thread activity across thread switches (real store)', () => {
-  const activeGroups = () => {
-    const state = useAgentChatStore.getState();
-    return groupAgentThreads(state.threads, {
-      activeRunStatus: state.activeRunStatus,
-      activeThreadId: state.activeThreadId,
+describe('sidebar thread activity across thread switches (real store)', () => {
+  const groupsNow = () =>
+    groupAgentThreads(useAgentChatStore.getState().threads, {
       filter: 'all',
-      isStreaming: state.stream.isStreaming,
       searchQuery: '',
     });
+  const workingIds = () => groupsNow().working.map(({ id }) => id);
+
+  const cacheOneMessage = (threadId: string) => {
+    const store = useAgentChatStore.getState();
+    store.setMessagesPage({
+      hasMore: false,
+      messages: [
+        {
+          content: 'hello',
+          createdAt: '2026-07-28T08:00:00.000Z',
+          id: 'm-1',
+          role: 'user',
+          threadId,
+        },
+      ],
+      nextCursor: null,
+    });
+    store.cacheConversation(threadId);
   };
 
   beforeEach(() => {
@@ -473,55 +348,111 @@ describe('thread activity across thread switches (real store)', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('a');
     store.setActiveRun('run-a');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
-
     store.setActiveThread('b');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual(['a']);
 
     store.clearThreadAttention('a');
     store.setActiveThread('a');
     expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
-    expect(activeGroups().recent.map(({ id }) => id)).toEqual(['b']);
+    expect(workingIds()).toEqual(['a']);
+    expect(groupsNow().recent.map(({ id }) => id)).toEqual(['b']);
   });
 
   it('keeps a running thread in Working after a fresh-cache switch that skips the snapshot', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('a');
-    store.setMessagesPage({
-      hasMore: false,
-      messages: [
-        {
-          content: 'hello',
-          createdAt: '2026-07-28T08:00:00.000Z',
-          id: 'm-1',
-          role: 'user',
-          threadId: 'a',
-        },
-      ],
-      nextCursor: null,
-    });
-    store.cacheConversation('a');
+    cacheOneMessage('a');
     store.setActiveThread('b');
     store.setActiveThread('a');
 
     expect(store.restoreCachedConversation('a')).toBe(true);
     expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual(['a']);
+  });
+
+  it('never writes the post-switch idle into the summary', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('a');
+    store.setActiveRun('run-a');
+    store.resetStreamState();
+    store.resetActiveConversationState();
+    store.clearMessages();
+
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+    expect(workingIds()).toEqual(['a']);
+  });
+
+  it('moves the open thread out of Working when its run completes, fails or is cancelled', () => {
+    for (const status of ['completed', 'failed', 'cancelled'] as const) {
+      useAgentChatStore.setState({
+        threads: [
+          createThread('a', {
+            attentionState: 'running',
+            runStatus: 'running',
+          }),
+        ],
+      });
+      const store = useAgentChatStore.getState();
+      store.setActiveThread('b');
+      store.setActiveThread('a');
+      store.setActiveRun('run-a');
+      store.setActiveRunStatus(status);
+
+      expect(workingIds()).toEqual([]);
+      expect(useAgentChatStore.getState().threads[0]?.runStatus).toBe(status);
+      store.setActiveRun(null);
+    }
+  });
+
+  it('moves the open thread out of Working when an error settles its run', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('a');
+    store.setActiveRun('run-a');
+    store.setError('Out of credits');
+
+    expect(workingIds()).toEqual([]);
+    expect(useAgentChatStore.getState().threads[0]?.runStatus).toBe('failed');
+  });
+
+  it('sends the open thread to Needs you when its run awaits input, and back to Working when resumed', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('a');
+    store.setActiveRun('run-a');
+    store.setActiveRunStatus('awaiting_confirmation');
+
+    expect(groupsNow().needsYou.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual([]);
+
+    store.setActiveRunStatus('running');
+    expect(groupsNow().needsYou).toEqual([]);
+    expect(workingIds()).toEqual(['a']);
+  });
+
+  it('keeps a thread waiting on the user in Needs you when the run then completes', () => {
+    const store = useAgentChatStore.getState();
+    store.setActiveThread('a');
+    store.updateThread('a', {
+      attentionState: 'needs-input',
+      pendingInputCount: 1,
+      runStatus: 'waiting_input',
+    });
+    store.setActiveRun('run-a', { status: 'completed' });
+
+    expect(groupsNow().needsYou.map(({ id }) => id)).toEqual(['a']);
   });
 
   it('moves a background thread to Recent when its run finishes while another is open', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('b');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual(['a']);
 
     store.updateThread('a', {
       attentionState: 'updated',
       runStatus: 'completed',
     });
 
-    expect(activeGroups().working).toEqual([]);
-    expect(activeGroups().recent.map(({ id }) => id)).toEqual(['a', 'b']);
+    expect(workingIds()).toEqual([]);
+    expect(groupsNow().recent.map(({ id }) => id)).toEqual(['a', 'b']);
   });
 
   it('moves a background thread to Needs you when it starts waiting for input', () => {
@@ -534,20 +465,30 @@ describe('thread activity across thread switches (real store)', () => {
       runStatus: 'waiting_input',
     });
 
-    expect(activeGroups().needsYou.map(({ id }) => id)).toEqual(['a']);
-    expect(activeGroups().working).toEqual([]);
+    expect(groupsNow().needsYou.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual([]);
   });
 
   it('clears a stale running summary once the snapshot reports the run ended', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('b');
     store.setActiveThread('a');
-    expect(activeGroups().working.map(({ id }) => id)).toEqual(['a']);
+    expect(workingIds()).toEqual(['a']);
 
-    store.updateThread('a', { attentionState: null, runStatus: 'completed' });
-    store.setActiveRun(null, { status: 'completed' });
+    store.upsertThread({
+      ...createThread('a'),
+      ...buildThreadSummaryFromSnapshot(
+        {
+          activeRun: { runId: 'run-a', startedAt: 'x', status: 'completed' },
+          lastSequence: 1,
+          pendingInputRequests: [],
+          threadId: 'a',
+        } as never,
+        { isVisible: true },
+      ),
+    });
 
-    expect(activeGroups().working).toEqual([]);
+    expect(workingIds()).toEqual([]);
   });
 
   it('settles the summary when the stale active run is cleared', () => {
@@ -558,15 +499,6 @@ describe('thread activity across thread switches (real store)', () => {
 
     store.clearStaleActiveRun();
 
-    expect(activeGroups().working).toEqual([]);
-  });
-});
-
-describe('resolveThreadActivity', () => {
-  it('treats a missing context as summary-only', () => {
-    expect(
-      resolveThreadActivity(createThread('t', { runStatus: 'queued' })),
-    ).toBe('working');
-    expect(resolveThreadActivity(createThread('t'))).toBe('idle');
+    expect(workingIds()).toEqual([]);
   });
 });
