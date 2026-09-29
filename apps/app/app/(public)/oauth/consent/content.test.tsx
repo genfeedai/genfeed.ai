@@ -11,6 +11,15 @@ const useSearchParamsMock = vi.fn();
 const resolveAuthTokenMock = vi.fn();
 const redirectMock = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../tests/next-intl.stub'
+  );
+  const translate = translateFromCatalog('common.oauth.consent');
+
+  return { useTranslations: () => translate };
+});
+
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => useAuthMock(),
 }));

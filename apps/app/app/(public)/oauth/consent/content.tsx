@@ -18,6 +18,7 @@ import { Button } from '@ui/primitives/button';
 import { ArrowUpRight, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { redirectToOAuthClient } from './redirect';
@@ -31,9 +32,12 @@ function getRequestedScopeLabels(scope: string | null): string[] {
   ).map((option) => option.label);
 }
 
-function getCallbackHost(redirectUri: string | null): string {
+function getCallbackHost(
+  redirectUri: string | null,
+  unknownClientLabel: string,
+): string {
   if (!redirectUri) {
-    return 'the requesting client';
+    return unknownClientLabel;
   }
   try {
     const url = new URL(redirectUri);
@@ -44,11 +48,12 @@ function getCallbackHost(redirectUri: string | null): string {
     // receiving app by the scheme, so show it alongside the host.
     return url.host ? `${url.protocol}//${url.host}` : url.protocol;
   } catch {
-    return 'the requesting client';
+    return unknownClientLabel;
   }
 }
 
 export default function OAuthConsentContent() {
+  const translate = useTranslations('common.oauth.consent');
   const searchParams = useSearchParams();
   const { getToken, isLoaded, isSignedIn } = useAuthIdentity();
   const controllerRef = useRef<AbortController | null>(null);
@@ -60,7 +65,8 @@ export default function OAuthConsentContent() {
 
   const callbackPath = `/oauth/consent?${searchParams.toString()}`;
   const loginHref = `/login?callbackUrl=${encodeURIComponent(callbackPath)}`;
-  const clientName = searchParams.get('client_name') || 'An MCP client';
+  const clientName =
+    searchParams.get('client_name') || translate('clientName.fallback');
   const redirectUri = searchParams.get('redirect_uri');
   const scopeLabels = useMemo(
     () => getRequestedScopeLabels(searchParams.get('scope')),
@@ -106,7 +112,7 @@ export default function OAuthConsentContent() {
     try {
       const token = await resolveAuthToken(getToken);
       if (!token) {
-        throw new Error('Your session expired. Sign in and try again.');
+        throw new Error(translate('errors.sessionExpired'));
       }
 
       const response = await fetch(
@@ -136,7 +142,7 @@ export default function OAuthConsentContent() {
         throw new Error(
           data.error_description ||
             data.error ||
-            'The authorization request could not be completed.',
+            translate('errors.decisionFailed'),
         );
       }
       setConsentState({
@@ -156,7 +162,7 @@ export default function OAuthConsentContent() {
         error:
           error instanceof Error
             ? error.message
-            : 'The authorization request could not be completed.',
+            : translate('errors.decisionFailed'),
         isSubmitting: false,
         result: null,
       });
@@ -171,29 +177,28 @@ export default function OAuthConsentContent() {
 
   return (
     <AuthFormLayout
-      description="Review what this client can access before continuing."
+      description={translate('description')}
       logoSize="compact"
-      title="Authorize Genfeed access"
+      title={translate('title')}
     >
       <div className="space-y-6">
         {!hasRequiredParams ? (
           <div className="space-y-2">
-            <h2 className="font-semibold">Invalid authorization request</h2>
+            <h2 className="font-semibold">{translate('invalid.title')}</h2>
             <p className="text-sm text-muted-foreground">
-              Required OAuth parameters are missing. Restart the connection from
-              your MCP client.
+              {translate('invalid.description')}
             </p>
           </div>
         ) : !isSignedIn ? (
           <div className="space-y-4">
             <div className="space-y-2">
-              <h2 className="font-semibold">Sign in required</h2>
+              <h2 className="font-semibold">{translate('signIn.title')}</h2>
               <p className="text-sm text-muted-foreground">
-                Sign in to review and authorize this connection.
+                {translate('signIn.description')}
               </p>
             </div>
             <Button asChild className="w-full" withWrapper={false}>
-              <Link href={loginHref}>Sign in to continue</Link>
+              <Link href={loginHref}>{translate('signIn.action')}</Link>
             </Button>
           </div>
         ) : result ? (
@@ -201,16 +206,16 @@ export default function OAuthConsentContent() {
             <div className="space-y-2">
               <h2 className="font-semibold">
                 {result.decision === 'approved'
-                  ? 'Authorization sent'
-                  : 'Access denied'}
+                  ? translate('result.approvedTitle')
+                  : translate('result.deniedTitle')}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Return to {clientName} to continue. You can close this tab.
+                {translate('result.description', { clientName })}
               </p>
             </div>
             <Button asChild className="w-full" withWrapper={false}>
               <a href={result.redirectUrl}>
-                Return to {clientName}
+                {translate('result.returnAction', { clientName })}
                 <ArrowUpRight className="size-4" />
               </a>
             </Button>
@@ -226,19 +231,26 @@ export default function OAuthConsentContent() {
               </div>
               <div className="min-w-0">
                 <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Requesting client
+                  {translate('request.clientLabel')}
                 </p>
                 <h2 className="truncate text-base font-semibold">
                   {clientName}
                 </h2>
                 <p className="truncate text-xs text-muted-foreground">
-                  Returns to {getCallbackHost(redirectUri)}
+                  {translate('request.returnsTo', {
+                    host: getCallbackHost(
+                      redirectUri,
+                      translate('callbackHost.unknownClient'),
+                    ),
+                  })}
                 </p>
               </div>
             </Card>
 
             <div className="space-y-3">
-              <p className="text-sm font-medium">Wants to access</p>
+              <p className="text-sm font-medium">
+                {translate('request.scopesLabel')}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {scopeLabels.map((label) => (
                   <span
@@ -265,7 +277,7 @@ export default function OAuthConsentContent() {
                 withWrapper={false}
                 onClick={() => submitDecision(false)}
               >
-                Deny
+                {translate('request.actions.deny')}
               </Button>
               <Button
                 className="w-full"
@@ -273,15 +285,16 @@ export default function OAuthConsentContent() {
                 withWrapper={false}
                 onClick={() => submitDecision(true)}
               >
-                {consentState.isSubmitting ? 'Authorizing…' : 'Authorize'}
+                {consentState.isSubmitting
+                  ? translate('request.actions.authorizing')
+                  : translate('request.actions.authorize')}
               </Button>
             </div>
           </>
         )}
 
         <p className="text-center text-2xs leading-relaxed text-muted-foreground/60">
-          Access is limited to the Genfeed MCP resource and can be revoked from
-          API key settings.
+          {translate('footer')}
         </p>
       </div>
     </AuthFormLayout>
