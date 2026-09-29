@@ -165,9 +165,7 @@ export class ImageGenerationService {
       rawOutputs: createImageDto.outputs,
     });
 
-    const referenceIds: string[] = Array.isArray(createImageDto.references)
-      ? createImageDto.references.map((id) => id.toString())
-      : [];
+    const referenceIds = (createImageDto.references ?? []).map(String);
 
     const referenceImageUrls =
       await this.admissionService.resolveReferenceImageUrls(
