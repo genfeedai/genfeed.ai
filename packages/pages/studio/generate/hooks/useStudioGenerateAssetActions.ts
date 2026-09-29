@@ -198,7 +198,9 @@ export function useStudioGenerateAssetActions({
   // so a rename of the editor route carries through here.
   const onOpenInEditor = useCallback(
     (ingredient: IIngredient) => {
-      router.push(href(`${APP_ROUTES.STUDIO.EDIT_NEW}?video=${ingredient.id}`));
+      router.push(
+        href(`${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${ingredient.id}`),
+      );
     },
     [href, router],
   );

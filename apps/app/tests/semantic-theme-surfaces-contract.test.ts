@@ -26,7 +26,7 @@ const DIVIDER_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-thread-card.tsx',
-  'app/(protected)/[orgSlug]/[brandSlug]/studio/edit/[id]/EditorTextTrackList.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTextTrackList.tsx',
   'app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-rewards-card.tsx',
 ] as const;
 

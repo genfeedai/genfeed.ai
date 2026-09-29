@@ -48,6 +48,11 @@ type AgentThreadSummary = Partial<{
   runId: string;
   runStatus: AgentThreadRunStatus;
   runtimeState: AgentRuntimeState;
+  /**
+   * The thread event sequence this summary was read at: the baseline a status
+   * push (`AgentThreadStatusEvent.sequence`) must beat to be newer (#5636).
+   */
+  statusSequence: number;
 }>;
 
 type ThreadGeneratedAsset = {
@@ -622,6 +627,7 @@ export class AgentThreadsService extends BaseService<
         runId: latestExecution?.id,
         runStatus,
         runtimeState,
+        statusSequence: 0,
       };
     }
 
@@ -674,6 +680,7 @@ export class AgentThreadsService extends BaseService<
       runId: latestExecution?.id ?? this.readString(activeRun, 'runId'),
       runStatus,
       runtimeState,
+      statusSequence: snapshot.lastSequence ?? 0,
     };
   }
 

@@ -72,7 +72,7 @@ const storyTrack: IEditorTrack = {
 };
 
 function projectRoute(id: string): string {
-  return brandPath(`${APP_ROUTES.STUDIO.EDIT}/${id}`);
+  return brandPath(`${APP_ROUTES.STUDIO.EDITOR}/${id}`);
 }
 
 function toDocument(project: StoredProject) {
@@ -183,7 +183,7 @@ async function mockEditorBackend(page: Page): Promise<EditorBackend> {
   return backend;
 }
 
-test.describe('Studio Edit — locked template projects', () => {
+test.describe('Studio Editor — locked template projects', () => {
   test.beforeEach(async ({ authenticatedPage }) => {
     await mockActiveSubscription(authenticatedPage, {
       credits: 1000,

@@ -285,7 +285,7 @@ export class ClipHandoffWorkflowService implements OnModuleInit {
     return {
       clipProjectId: input.projectId,
       clipResultId: String(clipResult.id),
-      editorPath: `/studio/edit/${editorProjectId}`,
+      editorPath: `/studio/editor/${editorProjectId}`,
       editorProjectId,
       videoUrl,
     };

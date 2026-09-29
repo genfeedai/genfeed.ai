@@ -210,9 +210,11 @@ vi.mock('./EditorPreview', () => ({
     ref?: Ref<EditorPreviewRef>;
   }) => {
     useImperativeHandle(ref, () => ({
+      getCurrentFrame: () => 0,
       pause: mocks.pause,
       play: mocks.play,
       seekToFrame: mocks.seekToFrame,
+      toggle: vi.fn(),
     }));
 
     return (
@@ -542,7 +544,9 @@ describe('EditorPageContent', () => {
     await renderLoadedEditor();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/acme/brand/demo/studio/editor',
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
@@ -554,7 +558,9 @@ describe('EditorPageContent', () => {
       }),
     );
     mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/acme/brand/demo/studio/editor',
+    );
   });
 
   it('supports keyboard shortcuts without hijacking form inputs', async () => {
@@ -601,7 +607,9 @@ describe('EditorPageContent', () => {
 
     expect(await screen.findByText('Project not found')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Go Back' }));
-    expect(mocks.push).toHaveBeenCalledWith('/org/acme/brand/demo/studio/edit');
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/org/acme/brand/demo/studio/editor',
+    );
   });
 
   describe('locked template projects', () => {
@@ -662,7 +670,7 @@ describe('EditorPageContent', () => {
       await waitFor(() => {
         expect(mocks.duplicate).toHaveBeenCalledWith('editor-123');
         expect(mocks.push).toHaveBeenCalledWith(
-          '/org/acme/brand/demo/studio/edit/editor-copy',
+          '/org/acme/brand/demo/studio/editor/editor-copy',
         );
       });
     });

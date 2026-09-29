@@ -588,7 +588,7 @@ export function useEditorPageContent(projectId: string) {
     try {
       const service = await getEditorService();
       const copy = await service.duplicate(sourceId);
-      push(href(`${APP_ROUTES.STUDIO.EDIT}/${copy.id}`));
+      push(href(`${APP_ROUTES.STUDIO.EDITOR}/${copy.id}`));
     } catch (error) {
       logger.error('Failed to duplicate project', error);
       notificationsService.error('Failed to duplicate project');
@@ -613,12 +613,12 @@ export function useEditorPageContent(projectId: string) {
         message:
           'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
         onConfirm: () => {
-          push(href(APP_ROUTES.STUDIO.EDIT));
+          push(href(APP_ROUTES.STUDIO.EDITOR));
         },
       });
       return;
     }
-    push(href(APP_ROUTES.STUDIO.EDIT));
+    push(href(APP_ROUTES.STUDIO.EDITOR));
   }, [state.isDirty, push, openConfirm, href]);
 
   const handleFrameChange = useCallback((frame: number) => {
