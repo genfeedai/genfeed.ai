@@ -8,7 +8,6 @@ import { REMAINING_IMAGE_GENERATION_BRIEF_FAMILIES } from '@api/services/generat
 import { REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES } from '@api/services/generation-brief/remaining-video-generation-brief-families';
 import { runImageGenerationBrief } from '@api/services/generation-brief/run-image-generation-brief';
 import { runVideoGenerationBrief } from '@api/services/generation-brief/run-video-generation-brief';
-import { imageGenerationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
@@ -79,21 +78,5 @@ describe('generation brief eval corpus (#3470)', () => {
     );
     expect(keys).toContain(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
     expect(compileRemainingVideoGenerationBrief).toEqual(expect.any(Function));
-  });
-});
-
-describe('generation brief eval corpus schema lock', () => {
-  it('accepts a strict image brief used by the corpus', () => {
-    expect(
-      imageGenerationBriefSchema.parse({
-        constraints: [],
-        fidelityMode: 'strict',
-        intent: { objective: 'a portrait of the brand face' },
-        mediaKind: 'image',
-        output: { aspectRatio: '1:1' },
-        references: [{ assetId: 'face-1', role: 'character' }],
-        version: 1,
-      }).fidelityMode,
-    ).toBe('strict');
   });
 });

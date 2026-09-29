@@ -56,26 +56,6 @@ describe('FalMusicGenerationProviderAdapter', () => {
         expect(falService.run).not.toHaveBeenCalled();
       },
     );
-
-    it('still dispatches a valid endpoint with a different case', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(
-        buildRequest({ modelEndpoint: 'FAL/elevenlabs/music' }),
-      );
-
-      expect(falService.run).toHaveBeenCalledWith(
-        'elevenlabs/music',
-        expect.objectContaining({ prompt: 'upbeat electronic music' }),
-      );
-    });
   });
 
   describe('generate — Eleven Music', () => {
@@ -103,49 +83,6 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(result.externalId).toEqual(expect.any(String));
     });
 
-    it('clamps duration below the model minimum (10s)', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(buildRequest({ duration: 4 }));
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ music_length_ms: 10_000 }),
-      );
-    });
-
-    it('passes through the instrumental flag from the DTO', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(
-        buildRequest({
-          createMusicDto: Object.assign(new CreateMusicDto(), {
-            instrumental: true,
-            text: 'music',
-          }),
-        }),
-      );
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ force_instrumental: true }),
-      );
-    });
-
     it('folds explicit lyrics into the prompt (no dedicated fal field)', async () => {
       const falService = {
         run: vi
@@ -170,32 +107,6 @@ describe('FalMusicGenerationProviderAdapter', () => {
         expect.objectContaining({
           prompt: expect.stringContaining('Verse one\nChorus'),
         }),
-      );
-    });
-
-    it('drops lyrics when instrumental is requested', async () => {
-      const falService = {
-        run: vi
-          .fn()
-          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
-      };
-      const adapter = new FalMusicGenerationProviderAdapter(
-        falService as never,
-      );
-
-      await adapter.generate(
-        buildRequest({
-          createMusicDto: Object.assign(new CreateMusicDto(), {
-            instrumental: true,
-            lyrics: 'Verse one',
-            text: 'music',
-          }),
-        }),
-      );
-
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ prompt: 'upbeat electronic music' }),
       );
     });
   });

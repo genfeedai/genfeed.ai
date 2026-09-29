@@ -70,10 +70,6 @@ describe('PersonasController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('patch (member assignment)', () => {
     const mockRequest = {
       get: vi.fn().mockReturnValue('localhost'),

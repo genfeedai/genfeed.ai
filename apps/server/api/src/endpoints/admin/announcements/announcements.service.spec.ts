@@ -118,10 +118,6 @@ describe('AdminAnnouncementsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('broadcast', () => {
     it('should broadcast to discord and persist announcement', async () => {
       const dto: BroadcastAnnouncementDto = {
@@ -289,14 +285,6 @@ describe('AdminAnnouncementsService', () => {
 
       expect(announcementsCollectionService.getAll).toHaveBeenCalled();
       expect(result).toBe(mockAnnouncements);
-    });
-
-    it('should return empty array when no announcements exist', async () => {
-      announcementsCollectionService.getAll.mockResolvedValue([]);
-
-      const result = await service.getHistory();
-
-      expect(result).toEqual([]);
     });
   });
 });

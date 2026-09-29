@@ -196,10 +196,6 @@ describe('VideosCaptionsController', () => {
         captionRows.find((row) => matchesWhere(row, where)) ?? null,
     );
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('getCaptions', () => {
     it('should call videosService.findOne and return captions', async () => {
       const mockCaptionsData = { docs: [{ content: 'Test caption' }] };

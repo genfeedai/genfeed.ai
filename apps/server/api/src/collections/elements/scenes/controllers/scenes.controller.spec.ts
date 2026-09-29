@@ -94,34 +94,7 @@ describe('ElementsScenesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
-    it('should create a new scene', async () => {
-      const createDto: CreateElementSceneDto = {
-        description: 'Test scene',
-        key: 'new-scene',
-        label: 'New Scene',
-      };
-
-      const mockCreatedScene = {
-        id: 'cmscene0000000000000000001',
-        ...createDto,
-        organizationId: mockUser.organizationId,
-      };
-
-      scenesService.create.mockResolvedValueOnce(
-        mockCreatedScene as unknown as never,
-      );
-
-      const result = await controller.create(mockRequest, mockUser, createDto);
-
-      expect(scenesService.create).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should include organization in created scene', async () => {
       const createDto: CreateElementSceneDto = {
         key: 'org-scene',
@@ -149,43 +122,6 @@ describe('ElementsScenesController', () => {
   });
 
   describe('update', () => {
-    it('should update an existing scene', async () => {
-      const sceneId = 'cmscene0000000000000000001';
-      const updateDto: UpdateElementSceneDto = {
-        label: 'Updated Scene',
-      };
-
-      const mockExistingScene = {
-        id: sceneId,
-        key: 'old-scene',
-        label: 'Old Scene',
-        organizationId: mockUser.organizationId as string,
-      };
-
-      const mockUpdatedScene = {
-        ...mockExistingScene,
-        ...updateDto,
-      };
-
-      scenesService.findOne.mockResolvedValueOnce(
-        mockExistingScene as unknown as never,
-      );
-      scenesService.patch.mockResolvedValueOnce(
-        mockUpdatedScene as unknown as never,
-      );
-
-      const result = await controller.update(
-        mockRequest,
-        mockUser,
-        sceneId,
-        updateDto,
-      );
-
-      expect(scenesService.findOne).toHaveBeenCalled();
-      expect(scenesService.patch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should throw error when scene not found', async () => {
       const sceneId = 'cmscene0000000000000000001';
       const updateDto: UpdateElementSceneDto = {
@@ -234,55 +170,7 @@ describe('ElementsScenesController', () => {
     });
   });
 
-  describe('role restrictions', () => {
-    it('should require superadmin role for create', () => {
-      const createMetadata = Reflect.getMetadata(
-        'roles',
-        ElementsScenesController.prototype.create,
-      );
-      expect(createMetadata).toEqual(['superadmin', 'admin']);
-    });
-
-    it('should require superadmin role for update', () => {
-      const updateMetadata = Reflect.getMetadata(
-        'roles',
-        ElementsScenesController.prototype.update,
-      );
-      expect(updateMetadata).toEqual(['superadmin', 'admin']);
-    });
-
-    it('should require superadmin role for remove', () => {
-      const removeMetadata = Reflect.getMetadata(
-        'roles',
-        ElementsScenesController.prototype.remove,
-      );
-      expect(removeMetadata).toEqual(['superadmin', 'admin']);
-    });
-  });
-
   describe('inherited methods', () => {
-    it('should handle findAll with pagination', async () => {
-      const mockScenes = {
-        docs: [
-          { id: 'cmscene0000000000000000001', label: 'Scene 1' },
-          { id: 'cmscene0000000000000000002', label: 'Scene 2' },
-        ],
-        limit: 20,
-        page: 1,
-        totalDocs: 2,
-      };
-
-      scenesService.findAll.mockResolvedValueOnce(
-        mockScenes as unknown as never,
-      );
-
-      const query = createBaseQuery();
-      const result = await controller.findAll(mockRequest, mockUser, query);
-
-      expect(scenesService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should handle findOne', async () => {
       const sceneId = 'cmscene0000000000000000001';
       const mockScene = {

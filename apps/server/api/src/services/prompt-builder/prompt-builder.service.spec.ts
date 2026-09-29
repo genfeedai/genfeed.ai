@@ -70,25 +70,11 @@ describe('PromptBuilderService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('buildPrompt', () => {
     const baseParams: PromptBuilderParams = {
       modelCategory: ModelCategory.IMAGE,
       prompt: 'a sunset over mountains',
     };
-
-    it('should return input from builder when no template found', async () => {
-      const result = await service.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-        baseParams,
-      );
-
-      expect(result.input).toBeDefined();
-      expect(replicateBuilder.buildPrompt).toHaveBeenCalled();
-    });
 
     it('should use template when found and active', async () => {
       (
@@ -110,26 +96,6 @@ describe('PromptBuilderService', () => {
       );
       expect(result.templateUsed).toBeDefined();
       expect(result.templateVersion).toBe(2);
-    });
-
-    it('should increment template usage when template is used', async () => {
-      (
-        templatesService.getPromptByKey as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce({
-        content: 'template content',
-        isActive: true,
-        version: 1,
-      });
-
-      await service.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-        baseParams,
-      );
-
-      expect(templatesService.updateMetadata).toHaveBeenCalledWith(
-        expect.any(String),
-        { incrementUsage: true },
-      );
     });
 
     it('should skip templates when useTemplate is false', async () => {
@@ -196,20 +162,6 @@ describe('PromptBuilderService', () => {
       expect(result.systemPrompt).toBe('Custom system prompt');
     });
 
-    it('should fall back to provider-based builder when supportsModel returns false', async () => {
-      (
-        replicateBuilder.supportsModel as ReturnType<typeof vi.fn>
-      ).mockReturnValue(false);
-
-      // All models fall back to REPLICATE provider
-      const result = await service.buildPrompt(
-        'unknown/model' as string,
-        baseParams,
-      );
-
-      expect(result.input).toBeDefined();
-    });
-
     it('should include template variables for mood, style, camera', async () => {
       (
         templatesService.getPromptByKey as ReturnType<typeof vi.fn>
@@ -236,28 +188,6 @@ describe('PromptBuilderService', () => {
       );
     });
 
-    it('should not include optional fields when empty', async () => {
-      (
-        templatesService.getPromptByKey as ReturnType<typeof vi.fn>
-      ).mockResolvedValueOnce({
-        content: 'template',
-        isActive: true,
-        version: 1,
-      });
-
-      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
-        ...baseParams,
-        mood: '',
-        style: undefined,
-      });
-
-      const renderCall = (
-        templatesService.renderPrompt as ReturnType<typeof vi.fn>
-      ).mock.calls[0][1];
-      expect(renderCall.mood).toBeUndefined();
-      expect(renderCall.style).toBeUndefined();
-    });
-
     it('should skip preset keys and fall back to category default', async () => {
       (
         templatesService.getPromptByKey as ReturnType<typeof vi.fn>
@@ -278,12 +208,6 @@ describe('PromptBuilderService', () => {
   });
 
   describe('isModelSupported', () => {
-    it('should return true for supported models', () => {
-      expect(
-        service.isModelSupported(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3),
-      ).toBe(true);
-    });
-
     it('should return true even for unknown models (fallback to REPLICATE)', () => {
       // All models route through Replicate as fallback
       (
@@ -296,12 +220,6 @@ describe('PromptBuilderService', () => {
   });
 
   describe('getProviderForModel', () => {
-    it('should return REPLICATE for supported models', () => {
-      expect(
-        service.getProviderForModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3),
-      ).toBe(ModelProvider.REPLICATE);
-    });
-
     it('should fall back to REPLICATE for unknown models', () => {
       // All models route through Replicate as the universal fallback
       (

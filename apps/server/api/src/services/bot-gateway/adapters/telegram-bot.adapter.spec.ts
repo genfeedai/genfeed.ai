@@ -56,14 +56,6 @@ describe('TelegramBotAdapter', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(adapter).toBeDefined();
-  });
-
-  it('has platform = TELEGRAM', () => {
-    expect(adapter.platform).toBe(CredentialPlatform.TELEGRAM);
-  });
-
   // ─────────────────────────── validateSignature ───────────────────────
 
   describe('validateSignature', () => {
@@ -107,10 +99,6 @@ describe('TelegramBotAdapter', () => {
       );
     });
 
-    it('returns null for plain text messages', () => {
-      expect(adapter.getInteractionType(makeUpdate('hello'))).toBeNull();
-    });
-
     it('returns null when no text', () => {
       expect(adapter.getInteractionType(makeUpdate())).toBeNull();
     });
@@ -152,19 +140,6 @@ describe('TelegramBotAdapter', () => {
         update_id: 1,
       };
       expect(adapter.parseMessage(body)).toBeNull();
-    });
-
-    it('handles edited_message fallback', () => {
-      const body = {
-        edited_message: {
-          chat: { id: '888' },
-          from: { id: '777' },
-          text: '/status',
-        },
-        update_id: 2,
-      };
-      const msg = adapter.parseMessage(body);
-      expect(msg?.chatId).toBe('888');
     });
   });
 

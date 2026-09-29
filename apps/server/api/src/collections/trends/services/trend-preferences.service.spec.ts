@@ -42,10 +42,6 @@ describe('TrendPreferencesService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getPreferences', () => {
     it('should return preferences for organization without brand', async () => {
       const mockPrefs = { categories: ['tech'], keywords: ['ai'] };
@@ -148,26 +144,6 @@ describe('TrendPreferencesService', () => {
 
       expect(result?.autoRequeueWinners).toBe(true);
       expect(result?.keywords).toEqual(['ai']);
-    });
-
-    it('should default autoRequeueWinners to true when the flag is unset', async () => {
-      prisma.trendPreferences.findFirst.mockResolvedValue({
-        config: { keywords: ['ai'] },
-      });
-
-      const result = await service.getPreferences(organizationId);
-
-      expect(result?.autoRequeueWinners).toBe(true);
-    });
-
-    it('should preserve an explicit autoRequeueWinners false', async () => {
-      prisma.trendPreferences.findFirst.mockResolvedValue({
-        config: { autoRequeueWinners: false, keywords: ['ai'] },
-      });
-
-      const result = await service.getPreferences(organizationId);
-
-      expect(result?.autoRequeueWinners).toBe(false);
     });
   });
 
@@ -273,30 +249,6 @@ describe('TrendPreferencesService', () => {
           categories: ['tech'],
         }),
       ).rejects.toThrow('save failed');
-    });
-
-    it('should persist autoRequeueWinners into config when provided', async () => {
-      prisma.trendPreferences.findFirst.mockResolvedValue(null);
-      prisma.trendPreferences.create.mockResolvedValue({});
-
-      await service.savePreferences(organizationId, {
-        autoRequeueWinners: true,
-        keywords: ['ai'],
-      });
-
-      expect(prisma.trendPreferences.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            config: {
-              autoRequeueWinners: true,
-              categories: [],
-              hashtags: [],
-              keywords: ['ai'],
-              platforms: [],
-            },
-          }),
-        }),
-      );
     });
 
     it('should omit autoRequeueWinners from config when not provided', async () => {

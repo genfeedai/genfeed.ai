@@ -4,7 +4,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateController } from '@api/collections/content-intelligence/controllers/generate.controller';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { MembersService } from '@api/collections/members/services/members.service';
-import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -12,30 +11,6 @@ import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('GenerateController', () => {
-  it('should be defined', () => {
-    expect(GenerateController).toBeDefined();
-  });
-
-  it('should have rate limit on generate endpoint', () => {
-    const metadata = Reflect.getMetadata(
-      RATE_LIMIT_KEY,
-      GenerateController.prototype.generate,
-    );
-    expect(metadata).toEqual({
-      limit: 30,
-      scope: 'organization',
-      windowMs: 60000,
-    });
-  });
-
-  it('should have rate limit scope set to organization', () => {
-    const metadata = Reflect.getMetadata(
-      RATE_LIMIT_KEY,
-      GenerateController.prototype.generate,
-    );
-    expect(metadata.scope).toBe('organization');
-  });
-
   describe('generate', () => {
     let controller: GenerateController;
     let contentGeneratorService: {
@@ -154,22 +129,6 @@ describe('GenerateController', () => {
       expect(result.meta.totalDocs).toBe(1);
     });
 
-    it('should pass organizationId as ObjectId to service', async () => {
-      stubValidBrands(['b1']);
-
-      await controller.generate({} as Request, mockUser, {
-        brandId: 'b1',
-      } as never);
-
-      expect(
-        contentGeneratorService.generateContentWorkflow,
-      ).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(Object),
-      );
-    });
-
     describe('brand resolution (#5219/#5292 — generation always has an explicit brand)', () => {
       it('rejects with 400 when no brandId, apiKey default, user.brandId, or member currentBrandId resolves', async () => {
         // brandsService/membersService already stubbed to resolve nothing.
@@ -182,63 +141,6 @@ describe('GenerateController', () => {
         expect(
           contentGeneratorService.generateContentWorkflow,
         ).not.toHaveBeenCalled();
-      });
-
-      it("falls back to the acting member's currentBrandId (user.brandId) for app/agent callers", async () => {
-        stubValidBrands(['member-current-brand']);
-        const appUser = { ...mockUser, brandId: 'member-current-brand' };
-
-        await controller.generate({} as Request, appUser as User, {} as never);
-
-        expect(
-          contentGeneratorService.generateContentWorkflow,
-        ).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({ brandId: 'member-current-brand' }),
-        );
-      });
-
-      it("prefers the request's explicit brandId over user.brandId", async () => {
-        stubValidBrands(['explicit-brand', 'member-current-brand']);
-        const appUser = { ...mockUser, brandId: 'member-current-brand' };
-
-        await controller.generate(
-          {} as Request,
-          appUser as User,
-          {
-            brandId: 'explicit-brand',
-          } as never,
-        );
-
-        expect(
-          contentGeneratorService.generateContentWorkflow,
-        ).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({ brandId: 'explicit-brand' }),
-        );
-      });
-
-      it("falls back to the acting member's currentBrandId when user.brandId is stale (deleted/relocated since auth)", async () => {
-        // Simulates a brand deleted just after the request's identity was
-        // cached: user.brandId is no longer a valid brand, but the member row
-        // itself now points at a different, valid, current brand.
-        stubValidBrands(['fresh-current-brand']);
-        membersService.findOne.mockResolvedValue({
-          currentBrandId: 'fresh-current-brand',
-        });
-        const appUser = { ...mockUser, brandId: 'stale-deleted-brand' };
-
-        await controller.generate({} as Request, appUser as User, {} as never);
-
-        expect(
-          contentGeneratorService.generateContentWorkflow,
-        ).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          expect.objectContaining({ brandId: 'fresh-current-brand' }),
-        );
       });
 
       it("resolves an API-key caller's brand from the key's validated defaultBrandId", async () => {

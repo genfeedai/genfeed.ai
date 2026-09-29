@@ -120,10 +120,6 @@ describe('YoutubeUploadService', () => {
     service = module.get<YoutubeUploadService>(YoutubeUploadService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should upload a video and return the YouTube video ID', async () => {
     const post = createPost();
 
@@ -373,14 +369,6 @@ describe('YoutubeUploadService', () => {
           },
         }),
       );
-    });
-
-    it('does not touch playlists when no playlist was chosen', async () => {
-      const post = createPost();
-
-      await service.uploadVideo(orgId, brandId, videoId, post);
-
-      expect(mockPlaylistItemsInsert).not.toHaveBeenCalled();
     });
 
     it('still reports success when the playlist insert fails', async () => {

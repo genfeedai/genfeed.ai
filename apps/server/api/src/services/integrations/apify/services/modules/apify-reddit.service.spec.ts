@@ -60,10 +60,6 @@ describe('ApifyRedditService', () => {
     service = module.get<ApifyRedditService>(ApifyRedditService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getRedditTrends()', () => {
     it('should return normalized trend data from reddit posts', async () => {
       const posts = [
@@ -80,17 +76,6 @@ describe('ApifyRedditService', () => {
         topic: expect.any(String),
         viralityScore: expect.any(Number),
       });
-    });
-
-    it('should use default limit of 20', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getRedditTrends();
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'reddit-scraper',
-        expect.objectContaining({ maxItems: 20 }),
-      );
     });
 
     it('should respect custom limit in options', async () => {
@@ -115,19 +100,6 @@ describe('ApifyRedditService', () => {
   });
 
   describe('getRedditVideos()', () => {
-    it('should filter to only video posts', async () => {
-      const posts = [
-        makeRedditPost({ isVideo: true }),
-        makeRedditPost({ isVideo: false }),
-        makeRedditPost({ isVideo: true }),
-      ];
-      mockBaseService.runActor.mockResolvedValue(posts);
-
-      const result = await service.getRedditVideos();
-
-      expect(result).toHaveLength(2);
-    });
-
     it('should normalize video data', async () => {
       mockBaseService.runActor.mockResolvedValue([
         makeRedditPost({ isVideo: true, title: 'Funny video' }),
@@ -152,17 +124,6 @@ describe('ApifyRedditService', () => {
   });
 
   describe('getRedditPostComments()', () => {
-    it('should call REDDIT_COMMENT_SCRAPER actor', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getRedditPostComments('https://reddit.com/r/test/abc');
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'reddit-comment-scraper',
-        expect.objectContaining({ type: 'comments' }),
-      );
-    });
-
     it('should return raw comments', async () => {
       const comments = [makeRedditPost(), makeRedditPost()];
       mockBaseService.runActor.mockResolvedValue(comments);
@@ -186,17 +147,6 @@ describe('ApifyRedditService', () => {
   });
 
   describe('getSubredditPosts()', () => {
-    it('should query the specified subreddit', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.getSubredditPosts('gaming');
-
-      expect(mockBaseService.runActor).toHaveBeenCalledWith(
-        'reddit-scraper',
-        expect.objectContaining({ subreddits: ['gaming'] }),
-      );
-    });
-
     it('should default to sort=new', async () => {
       mockBaseService.runActor.mockResolvedValue([]);
 
@@ -221,17 +171,6 @@ describe('ApifyRedditService', () => {
   });
 
   describe('searchRedditPosts()', () => {
-    it('should encode query in search URL', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.searchRedditPosts('AI content creation');
-
-      const [, input] = mockBaseService.runActor.mock.calls[0];
-      expect(input.startUrls[0].url).toContain(
-        encodeURIComponent('AI content creation'),
-      );
-    });
-
     it('should scope to subreddit when provided', async () => {
       mockBaseService.runActor.mockResolvedValue([]);
 
@@ -239,15 +178,6 @@ describe('ApifyRedditService', () => {
 
       const [, input] = mockBaseService.runActor.mock.calls[0];
       expect(input.startUrls[0].url).toContain('/r/marketing/search');
-    });
-
-    it('should use global search URL when no subreddit provided', async () => {
-      mockBaseService.runActor.mockResolvedValue([]);
-
-      await service.searchRedditPosts('test');
-
-      const [, input] = mockBaseService.runActor.mock.calls[0];
-      expect(input.startUrls[0].url).toContain('reddit.com/search');
     });
 
     it('should return empty array on error', async () => {

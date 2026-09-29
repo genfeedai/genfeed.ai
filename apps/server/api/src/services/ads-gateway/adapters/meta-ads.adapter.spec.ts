@@ -46,10 +46,6 @@ describe('MetaAdsAdapter', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(adapter).toBeDefined();
-  });
-
   it('exposes platform as "meta"', () => {
     expect(adapter.platform).toBe('meta');
   });

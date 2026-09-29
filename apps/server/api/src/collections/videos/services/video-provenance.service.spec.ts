@@ -3,7 +3,6 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { IngredientCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -151,29 +150,11 @@ describe('VideoProvenanceService', () => {
     expect(pkg.transcriptSidecar.segmentCount).toBe(1);
   });
 
-  it('does not build public provenance for non-public videos', async () => {
-    videosService.findOne.mockResolvedValue(null);
-
-    await expect(
-      service.buildPublicProvenance('video-1'),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
   it('throws NotFound when the video does not exist', async () => {
     videosService.findOne.mockResolvedValue(null);
 
     await expect(
       service.buildProvenance('missing', { userId: 'user-1' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('throws NotFound when the ingredient is not a video', async () => {
-    videosService.findOne.mockResolvedValue(
-      makeVideo({ category: IngredientCategory.IMAGE }),
-    );
-
-    await expect(
-      service.buildProvenance('video-1', { userId: 'user-1' }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 

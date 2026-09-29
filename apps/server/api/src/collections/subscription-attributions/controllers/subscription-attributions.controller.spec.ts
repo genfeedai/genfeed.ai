@@ -57,10 +57,6 @@ describe('SubscriptionAttributionsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('trackSubscription', () => {
     it('should track a subscription attribution', async () => {
       const dto: TrackSubscriptionDto = {

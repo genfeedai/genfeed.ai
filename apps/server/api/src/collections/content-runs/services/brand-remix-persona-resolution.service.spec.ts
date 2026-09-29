@@ -223,16 +223,6 @@ describe('BrandRemixPersonaResolutionService', () => {
     },
   );
 
-  it('blocks multiple complete personas instead of selecting the first', async () => {
-    prisma.persona.findMany.mockResolvedValue([
-      persona,
-      { ...persona, id: 'persona-2' },
-    ]);
-    await expect(resolver.resolve(input)).rejects.toThrow(
-      'multiple active personas',
-    );
-  });
-
   it('never combines an avatar and voice from separate personas', async () => {
     prisma.persona.findMany.mockResolvedValue([
       { ...persona, voiceIngredientId: null },

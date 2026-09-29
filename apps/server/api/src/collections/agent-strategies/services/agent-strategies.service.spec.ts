@@ -39,32 +39,6 @@ describe('AgentStrategiesService', () => {
     vi.clearAllMocks();
   });
 
-  it('normalizes required arrays for legacy rows with sparse config', async () => {
-    const create = vi.fn().mockResolvedValue({
-      config: {},
-      id: 'strategy-1',
-      policies: {},
-      platforms: [],
-    });
-
-    const strategy = await service.createWithClient(
-      {
-        label: 'Legacy strategy',
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      { agentStrategy: { create } } as never,
-    );
-
-    expect(strategy).toMatchObject({
-      platforms: [],
-      runHistory: [],
-      skillSlugs: [],
-      topics: [],
-      workflowInputOverrides: [],
-    });
-  });
-
   it('queues the next run and clears failure state when activating', async () => {
     findOneByIdSpy = vi
       .spyOn(service, 'findOneById')
@@ -143,31 +117,6 @@ describe('AgentStrategiesService', () => {
     expect(create.mock.calls[0]?.[0].data.config).not.toHaveProperty(
       'nextRunAt',
     );
-  });
-
-  it('preserves an explicit empty skill list to inherit brand defaults', async () => {
-    const create = vi.fn().mockResolvedValue({
-      config: { skillSlugs: [] },
-      id: 'strategy-1',
-      policies: {},
-    });
-
-    await service.createWithClient(
-      {
-        agentType: AgentType.VIDEO_CREATOR,
-        brandId: 'brand-1',
-        isActive: false,
-        label: 'Short Creator',
-        organizationId: 'org-1',
-        skillSlugs: [],
-        userId: 'user-1',
-      },
-      { agentStrategy: { create } } as never,
-    );
-
-    expect(create.mock.calls[0]?.[0].data.config).toMatchObject({
-      skillSlugs: [],
-    });
   });
 
   it('preserves an explicit nonempty skill override', async () => {

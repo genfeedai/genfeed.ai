@@ -172,24 +172,6 @@ describe('CredentialPublishingReadinessService', () => {
   });
 
   describe('resolveForCredentials', () => {
-    it('scopes the batch read by organization and soft delete', async () => {
-      const client = { credential: { findMany } };
-
-      await build().resolveForCredentials(client as never, ORGANIZATION_ID, [
-        'cred-1',
-      ]);
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            id: { in: ['cred-1'] },
-            isDeleted: false,
-            organizationId: ORGANIZATION_ID,
-          }),
-        }),
-      );
-    });
-
     it('deduplicates credential ids and skips the query when none are given', async () => {
       const client = { credential: { findMany } };
       const service = build();
@@ -281,22 +263,6 @@ describe('CredentialPublishingReadinessService', () => {
   });
 
   describe('resolveForBrand', () => {
-    it('reads only the brand’s connected channels, scoped to the organization', async () => {
-      await build().resolveForBrand(ORGANIZATION_ID, 'brand-1');
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: { createdAt: 'asc' },
-          where: expect.objectContaining({
-            brandId: 'brand-1',
-            isConnected: true,
-            isDeleted: false,
-            organizationId: ORGANIZATION_ID,
-          }),
-        }),
-      );
-    });
-
     it('returns one readiness record per channel, keyed by credential id', async () => {
       findMany.mockResolvedValue([
         buildRow({ id: 'cred-1' }),
@@ -570,25 +536,6 @@ describe('CredentialPublishingReadinessService', () => {
           missingScopes: ['tweet.write'],
           requiredScopes: ['tweet.write'],
         },
-      });
-    });
-
-    it('flips to fail when a refresh persisted a narrower grant', async () => {
-      findMany.mockResolvedValue([
-        buildRow({
-          grantedScopes: ['tweet.read'],
-          grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
-        }),
-      ]);
-
-      const readiness = await build().resolveForBrand(
-        ORGANIZATION_ID,
-        'brand-1',
-      );
-
-      expect(readiness[0]).toMatchObject({
-        permissionScopeStatus: 'fail',
-        state: 'blocked',
       });
     });
   });

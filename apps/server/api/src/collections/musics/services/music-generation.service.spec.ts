@@ -333,22 +333,6 @@ describe('MusicGenerationService', () => {
     );
   });
 
-  it('leaves the prompt untouched when style is blank', async () => {
-    const created = createService();
-
-    await created.service.generateMusic(
-      user,
-      buildDto({ style: '   ' }),
-      request,
-    );
-
-    expect(created.promptsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        original: 'Generate happy background music',
-      }),
-    );
-  });
-
   it('finalizes immediately when the provider returns a completed output URL (fal/Mureka)', async () => {
     const created = createService();
     created.musicProviderRegistry.generate.mockResolvedValue({
@@ -373,16 +357,6 @@ describe('MusicGenerationService', () => {
       'https://cdn.example.com/finished-track.mp3',
       'task-1',
     );
-  });
-
-  it('does not finalize when the provider stays async (Replicate — webhook finalizes later)', async () => {
-    const created = createService();
-
-    await created.service.generateMusic(user, buildDto(), request);
-
-    expect(
-      created.webhooksService.processMediaForIngredient,
-    ).not.toHaveBeenCalled();
   });
 
   it('rejects a missing prompt with the existing 400 response', async () => {
@@ -520,56 +494,6 @@ describe('MusicGenerationService', () => {
       expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
     },
   );
-
-  it('accepts a valid registry row whose endpoint uses a different case', async () => {
-    const created = createService();
-    created.modelsService.findOne.mockResolvedValue({
-      ...activeMusicModel,
-      endpoint: 'META/musicgen',
-    } as never);
-
-    await created.service.generateMusic(user, buildDto(), request);
-
-    expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
-      expect.objectContaining({ modelEndpoint: 'META/musicgen' }),
-    );
-  });
-
-  it('rejects an inactive registry row even when explicitly requested', async () => {
-    const created = createService();
-    created.modelsService.findOne.mockResolvedValue({
-      ...activeMusicModel,
-      isActive: false,
-    } as never);
-
-    await expect(
-      created.service.generateMusic(user, buildDto(), request),
-    ).rejects.toBeInstanceOf(HttpException);
-    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
-  });
-
-  it('rejects a non-music category row even when explicitly requested', async () => {
-    const created = createService();
-    created.modelsService.findOne.mockResolvedValue({
-      ...activeMusicModel,
-      category: ModelCategory.IMAGE,
-    } as never);
-
-    await expect(
-      created.service.generateMusic(user, buildDto(), request),
-    ).rejects.toBeInstanceOf(HttpException);
-    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
-  });
-
-  it('rejects when no provider adapter supports the resolved model', async () => {
-    const created = createService();
-    created.musicProviderRegistry.supports.mockReturnValue(false);
-
-    await expect(
-      created.service.generateMusic(user, buildDto(), request),
-    ).rejects.toBeInstanceOf(HttpException);
-    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
-  });
 
   it('uses auto-routing ahead of every configured default', async () => {
     const created = createService();

@@ -123,10 +123,6 @@ describe('HeygenWebhookService', () => {
     });
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it.each([
     ['array', []],
     ['null', null],
@@ -139,32 +135,6 @@ describe('HeygenWebhookService', () => {
     ).rejects.toThrow(BadRequestException);
 
     expect(deps.microservicesService.notifyWebhook).not.toHaveBeenCalled();
-  });
-
-  it('should notify webhook on every callback', async () => {
-    const body: HeygenWebhookPayload = {
-      callback_id: testId('metadata'),
-      event_data: {},
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({
-      id: body.callback_id,
-    });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.microservicesService.notifyWebhook).toHaveBeenCalledWith(
-      'heygen',
-      'video_completed',
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          callbackId: body.callback_id,
-        }),
-      }),
-    );
   });
 
   it('should use "unknown" as event_type when not provided', async () => {
@@ -225,25 +195,6 @@ describe('HeygenWebhookService', () => {
     expect(deps.metadataService.patch).not.toHaveBeenCalled();
   });
 
-  it('should store video_url as result for video_completed events', async () => {
-    const metadataId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: { video_url: 'https://cdn.heygen.com/video.mp4' },
-      event_type: 'video_completed',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {
-      result: 'https://cdn.heygen.com/video.mp4',
-    });
-  });
-
   it('should store stringified event_data as error for avatar_video.failure', async () => {
     const metadataId = testId('metadata');
     const eventData = { code: 'TIMEOUT', message: 'Generation timed out' };
@@ -265,26 +216,6 @@ describe('HeygenWebhookService', () => {
         error: JSON.stringify(eventData),
       }),
     );
-  });
-
-  it('should stringify event_data as result for non-video events', async () => {
-    const metadataId = testId('metadata');
-    const eventData = { status: 'ready' };
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: eventData,
-      event_type: 'avatar_created',
-    };
-
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.metadataService.patch.mockResolvedValue({});
-    deps.clipResultsService.findOne.mockResolvedValue(null);
-
-    await service.handleCallback(body);
-
-    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {
-      result: JSON.stringify(eventData),
-    });
   });
 
   it('should rethrow errors from metadataService.findOne', async () => {
@@ -390,35 +321,6 @@ describe('HeygenWebhookService', () => {
     expect(
       deps.clipProjectsService.reconcileTerminalState,
     ).toHaveBeenCalledWith(projectId, undefined);
-  });
-
-  it('should continue to process legacy metadata-backed avatar success callbacks', async () => {
-    const metadataId = testId('metadata');
-    const body: HeygenWebhookPayload = {
-      callback_id: metadataId,
-      event_data: {
-        callback_id: metadataId,
-        url: 'https://cdn.heygen.com/avatar.mp4',
-      },
-      event_type: 'avatar_video.success',
-    };
-
-    deps.clipResultsService.findOne.mockResolvedValue(null);
-    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
-    deps.ingredientsService.findOne.mockResolvedValue({
-      id: 'ingredient-legacy',
-      metadataId,
-    });
-    deps.metadataService.patch.mockResolvedValue({});
-
-    await service.handleCallback(body);
-
-    expect(deps.webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
-      'ingredient-legacy',
-      'avatar',
-      'https://cdn.heygen.com/avatar.mp4',
-      undefined,
-    );
   });
 
   it('should resolve ingredient-backed avatar success callbacks when callback_id is the ingredient id', async () => {

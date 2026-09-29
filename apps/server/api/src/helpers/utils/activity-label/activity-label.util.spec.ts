@@ -100,9 +100,5 @@ describe('ActivityLabelUtil', () => {
       expect(getActivityResultType(ActivityKey.MUSIC_GENERATED)).toBe('MUSIC');
       expect(getActivityResultType(ActivityKey.MUSIC_FAILED)).toBe('MUSIC');
     });
-
-    it('should return undefined for unmapped keys', () => {
-      expect(getActivityResultType(ActivityKey.CREDITS_ADD)).toBeUndefined();
-    });
   });
 });

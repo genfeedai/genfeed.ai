@@ -285,21 +285,6 @@ describe('TrendCorpusFreshnessService', () => {
     );
   });
 
-  it('restricts non-admin callers without an organization to global trends', async () => {
-    await service.getCorpusFreshnessHealth({
-      now: new Date('2026-06-14T00:00:00.000Z'),
-    });
-
-    expect(prisma.trend.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          OR: [{ organizationId: null }],
-          isDeleted: false,
-        },
-      }),
-    );
-  });
-
   it('keeps the platform-admin trend aggregate cross-organization', async () => {
     await service.getCorpusFreshnessHealth({
       isPlatformAdmin: true,

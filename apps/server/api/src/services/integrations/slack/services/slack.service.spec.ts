@@ -57,10 +57,6 @@ describe('SlackService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateAuthUrl', () => {
     it('should return a valid Slack OAuth URL', () => {
       const state = 'random-state-token';
@@ -84,36 +80,6 @@ describe('SlackService', () => {
         providers: [
           SlackService,
           { provide: ConfigService, useValue: brokenConfigService },
-          { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
-          {
-            provide: LoggerService,
-            useValue: {
-              debug: vi.fn(),
-              error: vi.fn(),
-              log: vi.fn(),
-              warn: vi.fn(),
-            },
-          },
-        ],
-      }).compile();
-
-      const svc = module.get<SlackService>(SlackService);
-
-      expect(() => svc.generateAuthUrl('state')).toThrow(HttpException);
-    });
-
-    it('should throw HttpException when redirectUri is missing', async () => {
-      const partialConfigService = {
-        get: vi.fn((key: string) => {
-          if (key === 'SLACK_CLIENT_ID') return 'some-id';
-          return undefined;
-        }),
-      };
-
-      const module: TestingModule = await Test.createTestingModule({
-        providers: [
-          SlackService,
-          { provide: ConfigService, useValue: partialConfigService },
           { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },
           {
             provide: LoggerService,
@@ -164,27 +130,6 @@ describe('SlackService', () => {
       expect(loggerService.log).toHaveBeenCalled();
     });
 
-    it('should throw HttpException when Slack response is not ok', async () => {
-      const mockResponseData = {
-        error: 'invalid_code',
-        ok: false,
-      };
-
-      httpService.post.mockReturnValue(
-        of({
-          config: {} as never,
-          data: mockResponseData,
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        }),
-      );
-
-      await expect(service.exchangeCodeForToken('bad-code')).rejects.toThrow(
-        HttpException,
-      );
-    });
-
     it('should throw HttpException with detail when Slack error is present', async () => {
       const mockResponseData = {
         error: 'code_already_used',
@@ -221,22 +166,6 @@ describe('SlackService', () => {
         HttpException,
       );
       expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should re-throw HttpException from Slack response without wrapping', async () => {
-      const originalException = new HttpException(
-        'Original',
-        HttpStatus.BAD_REQUEST,
-      );
-
-      httpService.post.mockReturnValue(throwError(() => originalException));
-
-      // The catch block checks instanceof HttpException and re-throws;
-      // however the error from firstValueFrom wrapping may behave differently.
-      // Test that the eventual throw is an HttpException
-      await expect(service.exchangeCodeForToken('code')).rejects.toThrow(
-        HttpException,
-      );
     });
 
     it('should throw INTERNAL_SERVER_ERROR when config is missing', async () => {

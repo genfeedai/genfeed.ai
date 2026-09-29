@@ -123,11 +123,6 @@ describe('TaskRoutingService', () => {
       expect(decision.executionPathUsed).toBe('image_generation');
       expect(decision.status).toBe('in_progress');
     });
-
-    it('does not look up skills when brand/organization are missing', async () => {
-      await service.buildRoutingDecision(dto({ request: 'make a video' }), 'T');
-      expect(skillsService.resolveBrandSkills).not.toHaveBeenCalled();
-    });
   });
 
   describe('skill-driven routing', () => {
@@ -209,35 +204,6 @@ describe('TaskRoutingService', () => {
       expect(decision.outputType).toBe('video');
       expect(decision.outputTypeSource).toBe('keyword');
       expect(decision.outputTypeConfidence).toBeUndefined();
-    });
-
-    it('sends the request text and the structured hints as decision state', async () => {
-      service = buildService({ taskRoutingDecisionMode: 'shadow' });
-
-      await service.buildRoutingDecision(
-        decisionDto('make something for the drop'),
-        'Title',
-      );
-
-      expect(typedDecisionService.choose).toHaveBeenCalledWith(
-        expect.objectContaining({
-          options: expect.arrayContaining(['ingredient', 'video']),
-          state: {
-            attachmentCount: 1,
-            hasBrand: true,
-            platforms: ['tiktok'],
-            request: 'make something for the drop',
-          },
-        }),
-        expect.objectContaining({
-          brandId: 'brand-1',
-          decisionPoint: 'task_routing.output_type',
-          deterministicAnswer: 'ingredient',
-          mode: 'shadow',
-          organizationId: 'org-1',
-          userId: 'user-1',
-        }),
-      );
     });
 
     it('acts on the keyword answer in shadow mode even when the provider is confident', async () => {

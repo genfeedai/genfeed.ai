@@ -52,10 +52,6 @@ describe('HedraService', () => {
     service = module.get<HedraService>(HedraService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('generates character video', async () => {
     postSpy.mockReturnValueOnce(
       of({

@@ -31,10 +31,6 @@ describe('VercelWebhookService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('validateSignature', () => {
     it('should return true for valid signature', () => {
       const payload = { type: 'deployment.ready' };

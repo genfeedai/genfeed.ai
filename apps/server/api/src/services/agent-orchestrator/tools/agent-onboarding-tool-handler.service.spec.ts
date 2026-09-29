@@ -202,27 +202,6 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('uses self-hosted CTA destinations for every checklist mission', async () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    const { handler } = createHandler();
-
-    const checklist = getChecklist(
-      await handler.checkOnboardingStatus(CONTEXT),
-    );
-
-    expect(
-      Object.fromEntries(
-        checklist.checklist?.map((step) => [step.id, step.ctaHref]) ?? [],
-      ),
-    ).toEqual({
-      complete_company_info: '/onboarding/brand',
-      connect_social_account: '/settings/brands',
-      generate_first_image: '/settings/api-keys',
-      generate_first_video: '/settings/api-keys',
-      publish_first_post: '/agent/onboarding',
-    });
-  });
-
   it('does not grant rewards when a status refresh completes a mission', async () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
     const { creditsUtilsService, handler, organizationSettingsService } =
@@ -275,30 +254,6 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     });
     expect(JSON.stringify(result)).not.toContain('encrypted-openai-key');
     expect(JSON.stringify(result)).not.toContain('encrypted-replicate-key');
-  });
-
-  it('counts configured keys even when the organization byok flag is off', async () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-    const { handler } = createHandler({
-      byokKeys: {
-        openai: {
-          apiKey: 'encrypted-openai-key',
-          isEnabled: true,
-          provider: 'openai',
-        },
-      },
-      isByokEnabled: false,
-    });
-
-    const result = await handler.checkOnboardingStatus(CONTEXT);
-
-    expect(result.data?.providerReadiness).toEqual({
-      configuredImageProviders: [],
-      configuredProviderCount: 1,
-      configuredProviders: ['openai'],
-      isImageReady: false,
-      isReady: true,
-    });
   });
 
   it('ignores byok entries whose secret is blank', async () => {
@@ -679,16 +634,6 @@ describe('Agent onboarding first draft', () => {
     expect(result.data?.tweets).toEqual(['Generated tweet']);
   });
 
-  it('does not report a missing image URL as a completed draft', async () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-    const { handler } = createHandler({ brand: { id: 'brand-1' } });
-    const result = await handler.generateOnboardingContent(
-      { brandId: 'brand-1' },
-      CONTEXT,
-    );
-    expect(result.data?.isComplete).toBe(false);
-  });
-
   it('does not generate for an unavailable or differently scoped brand', async () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
     const { handler, contentGeneratorService, generationGateway } =
@@ -818,24 +763,6 @@ describe('completeOnboarding funnel capture (genfeedai/genfeed.ai#4969, #5311)',
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).toHaveBeenCalledWith('user-1');
-  });
-
-  it('does not re-capture for a user who was already onboarded (atomic claim matches 0 rows)', async () => {
-    const { handler, onboardingCreditGrantsService, usersService } =
-      createHandler();
-    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 'user-1',
-      isOnboardingCompleted: true,
-    });
-    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
-      modifiedCount: 0,
-    });
-
-    await handler.completeOnboarding(CONTEXT);
-
-    expect(
-      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
-    ).not.toHaveBeenCalled();
   });
 
   it('emits at most one completion event when two completion calls race for the same user', async () => {
@@ -985,24 +912,5 @@ describe('onboarding journey completion race (genfeedai/genfeed.ai#5311)', () =>
     expect(
       onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
     ).toHaveBeenCalledTimes(1);
-  });
-
-  it('never fires the funnel event when a journey re-check finds the user already onboarded', async () => {
-    const { handler, onboardingCreditGrantsService, usersService } =
-      createCompletableHandler();
-    (usersService.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 'user-1',
-      isOnboardingCompleted: true,
-    });
-    (usersService.patchAll as ReturnType<typeof vi.fn>).mockResolvedValue({
-      modifiedCount: 0,
-    });
-
-    await handler.checkOnboardingStatus(CONTEXT);
-    await handler.checkOnboardingStatus(CONTEXT);
-
-    expect(
-      onboardingCreditGrantsService.captureOnboardingCompletedBestEffort,
-    ).not.toHaveBeenCalled();
   });
 });

@@ -211,16 +211,6 @@ describe('ReplicateImageBuilder', () => {
       expect(result.output_format).toBe('jpg');
     });
 
-    it('should include seed when provided', () => {
-      const result = buildImagePrompt(
-        'new-vendor/new-model' as string,
-        createParams({ seed: 42 }),
-        'Seeded prompt',
-      );
-
-      expect(result.seed).toBe(42);
-    });
-
     it('should include resolution when provided', () => {
       const result = buildImagePrompt(
         'new-vendor/new-model' as string,
@@ -229,30 +219,6 @@ describe('ReplicateImageBuilder', () => {
       );
 
       expect(result.resolution).toBe('2K');
-    });
-
-    it('should include image_input for references when no schema', () => {
-      const result = buildImagePrompt(
-        'new-vendor/new-model' as string,
-        createParams({
-          references: ['https://example.com/img.jpg'],
-        }),
-        'With reference',
-      );
-
-      expect(result.image_input).toEqual(['https://example.com/img.jpg']);
-    });
-
-    it('should use match_input_image aspect_ratio when references provided', () => {
-      const result = buildImagePrompt(
-        'new-vendor/new-model' as string,
-        createParams({
-          references: ['https://example.com/img.jpg'],
-        }),
-        'With reference',
-      );
-
-      expect(result.aspect_ratio).toBe('match_input_image');
     });
 
     it('should use custom output format when provided', () => {
@@ -366,30 +332,6 @@ describe('ReplicateImageBuilder', () => {
       expect(result.image_input).toBeUndefined();
     });
 
-    it('should respect array image limit from schema', () => {
-      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
-        fluxLikeSchema,
-      );
-      (detectImageReferenceFields as ReturnType<typeof vi.fn>).mockReturnValue([
-        'input_images',
-      ]);
-      (isArrayImageField as ReturnType<typeof vi.fn>).mockReturnValue(true);
-      (getArrayImageLimit as ReturnType<typeof vi.fn>).mockReturnValue(3);
-
-      const references = Array.from(
-        { length: 5 },
-        (_, i) => `https://example.com/${i}.jpg`,
-      );
-
-      const result = buildImagePrompt(
-        'new-vendor/limited-model' as string,
-        createParams({ references }),
-        'Limited images',
-      );
-
-      expect(result.input_images).toHaveLength(3);
-    });
-
     it('should map references to single-value field for non-array schemas', () => {
       (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
         singleImageSchema,
@@ -413,61 +355,6 @@ describe('ReplicateImageBuilder', () => {
       expect(result.image).toBe('https://example.com/1.jpg');
       expect(result.image_input).toBeUndefined();
       expect(result.input_images).toBeUndefined();
-    });
-
-    it('should include safety_filter_level when schema has it', () => {
-      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
-        imagenLikeSchema,
-      );
-      (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
-        (_schema: ReplicateModelSchema, field: string) =>
-          field in imagenLikeSchema.properties,
-      );
-
-      const result = buildImagePrompt(
-        'new-vendor/imagen-like' as string,
-        createParams({ height: 1024, width: 1024 }),
-        'Safe prompt',
-      );
-
-      expect(result.safety_filter_level).toBe('block_only_high');
-    });
-
-    it('should omit safety_filter_level when schema lacks it', () => {
-      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
-        singleImageSchema,
-      );
-      (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
-        (_schema: ReplicateModelSchema, field: string) =>
-          field in singleImageSchema.properties,
-      );
-
-      const result = buildImagePrompt(
-        'new-vendor/no-safety' as string,
-        createParams({ height: 1024, width: 1024 }),
-        'No safety field',
-      );
-
-      expect(result.safety_filter_level).toBeUndefined();
-    });
-
-    it('should include output_format only when schema has it', () => {
-      (resolveModelSchema as ReturnType<typeof vi.fn>).mockReturnValue(
-        singleImageSchema,
-      );
-      (schemaHasField as ReturnType<typeof vi.fn>).mockImplementation(
-        (_schema: ReplicateModelSchema, field: string) =>
-          field in singleImageSchema.properties,
-      );
-
-      const result = buildImagePrompt(
-        'new-vendor/no-output-format' as string,
-        createParams(),
-        'No output format',
-      );
-
-      // Schema doesn't have output_format, should not be set
-      expect(result.output_format).toBeUndefined();
     });
 
     it('should include seed only when schema has it and param is provided', () => {

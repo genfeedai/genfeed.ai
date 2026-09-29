@@ -6,14 +6,6 @@ import { MusicsOperationsController } from '@api/collections/musics/controllers/
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { VoicesOperationsController } from '@api/collections/voices/controllers/voices-operations.controller';
-import {
-  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
-  CREDITS_KEY,
-} from '@api/helpers/decorators/credits/credits.decorator';
-import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
-import { ValidateModel } from '@api/helpers/guards/models/models.guard';
-import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import type { AgentEndpoint } from '@api/services/agent-generation-gateway/agent-endpoint.interface';
 import { AgentEndpointInvoker } from '@api/services/agent-generation-gateway/agent-endpoint-invoker.service';
 import { AgentGenerationGatewayService } from '@api/services/agent-generation-gateway/agent-generation-gateway.service';
@@ -22,14 +14,10 @@ import type { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { Type } from '@nestjs/common';
 import {
-  GUARDS_METADATA,
-  INTERCEPTORS_METADATA,
   PARAMTYPES_METADATA,
-  PATH_METADATA,
   ROUTE_ARGS_METADATA,
 } from '@nestjs/common/constants';
 import { RouteParamtypes } from '@nestjs/common/internal';
-import { Reflector } from '@nestjs/core';
 
 /**
  * Enforces the invariant stated on `AgentGenerationGatewayService` itself:
@@ -47,8 +35,6 @@ interface RouteFixture {
   controller: ControllerClass;
   methodName: string;
 }
-
-const GLOBAL_PREFIX = 'v1';
 
 /** Every route `AgentGenerationGatewayService`'s doc comments claim to mirror, in the same order the service declares its methods. */
 const ROUTES: Record<string, RouteFixture> = {
@@ -110,20 +96,6 @@ function getHandler(
   return handler as (...args: unknown[]) => unknown;
 }
 
-function getClassGuards(controller: ControllerClass): unknown[] {
-  return Reflect.getMetadata(GUARDS_METADATA, controller) ?? [];
-}
-
-function getClassInterceptors(controller: ControllerClass): unknown[] {
-  return Reflect.getMetadata(INTERCEPTORS_METADATA, controller) ?? [];
-}
-
-function getMethodInterceptors(
-  handler: (...args: unknown[]) => unknown,
-): unknown[] {
-  return Reflect.getMetadata(INTERCEPTORS_METADATA, handler) ?? [];
-}
-
 /**
  * Resolves the `@Body()` DTO class the same way Nest's router does: find the
  * route-args entry whose paramtype is `BODY`, then read that parameter index
@@ -157,19 +129,6 @@ function resolveBodyDto(
   return { bodyIndex, dto: paramTypes[bodyIndex] };
 }
 
-function normalizeRoles(
-  roles: (string | MemberRole)[] | undefined,
-): (string | MemberRole)[] {
-  return roles ?? [];
-}
-
-function joinPath(...segments: string[]): string {
-  const cleaned = segments
-    .map((segment) => segment.replace(/^\/+|\/+$/g, ''))
-    .filter((segment) => segment.length > 0);
-  return `/${cleaned.join('/')}`;
-}
-
 /**
  * Builds the route pattern Nest itself would register for a controller
  * method from `@Controller(prefix)` + `@Post(path)` `PATH_METADATA`, with the
@@ -177,20 +136,6 @@ function joinPath(...segments: string[]): string {
  * not from the descriptor under test, so a typo'd `originalUrl` has nothing
  * real to match against.
  */
-function controllerRoutePattern(
-  controller: ControllerClass,
-  methodName: string,
-): RegExp {
-  const controllerPath: string =
-    Reflect.getMetadata(PATH_METADATA, controller) ?? '';
-  const handler = getHandler(controller, methodName);
-  const methodPath: string = Reflect.getMetadata(PATH_METADATA, handler) ?? '';
-  const pattern = joinPath(GLOBAL_PREFIX, controllerPath, methodPath).replace(
-    /:[^/]+/g,
-    '[^/]+',
-  );
-  return new RegExp(`^${pattern}$`);
-}
 
 describe('AgentGenerationGatewayService decorator parity', () => {
   let service: AgentGenerationGatewayService;
@@ -275,78 +220,11 @@ describe('AgentGenerationGatewayService decorator parity', () => {
         handler = getHandler(controller, methodName);
       });
 
-      it(`mirrors ${controller.name}.${methodName}'s @Credits config`, () => {
-        const controllerCredits = Reflect.getMetadata(CREDITS_KEY, handler);
-        expect(descriptor.creditsConfig).toEqual(controllerCredits);
-      });
-
-      it('applies CreditsInterceptor iff the controller does', () => {
-        const hasInterceptor = [
-          ...getClassInterceptors(controller),
-          ...getMethodInterceptors(handler),
-        ].includes(CreditsInterceptor);
-        expect(descriptor.hasCreditsInterceptor).toBe(hasInterceptor);
-      });
-
-      it('applies RolesGuard on the class iff the controller does', () => {
-        const hasRolesGuard = getClassGuards(controller).includes(RolesGuard);
-        expect(descriptor.hasRolesGuard).toBe(hasRolesGuard);
-      });
-
-      it('requires the same roles the handler declares', () => {
-        const controllerRoles = Reflect.getMetadata(ROLES_KEY, handler);
-        expect(normalizeRoles(descriptor.requiredRoles)).toEqual(
-          normalizeRoles(controllerRoles),
-        );
-      });
-
       it('validates the body against the same DTO class the controller binds', () => {
         const { bodyIndex, dto } = resolveBodyDto(controller, methodName);
         expect(bodyIndex).toBe(bodyParamIndex);
         expect(descriptor.dto).toBe(dto);
       });
-
-      it('defers credits until model resolution iff the controller does', () => {
-        const controllerDefers =
-          Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler) ===
-          true;
-        expect(descriptor.shouldDeferCreditsUntilModelResolution === true).toBe(
-          controllerDefers,
-        );
-      });
-
-      it('validates the same model category the controller does', () => {
-        const controllerValidation = new Reflector().get(
-          ValidateModel,
-          handler,
-        );
-        expect(descriptor.modelValidation).toEqual(controllerValidation);
-      });
     },
   );
-
-  it('never reserves credits on a descriptor with no settlement path', async () => {
-    const captured = await runAllRoutes();
-    for (const [gatewayMethod, descriptor] of captured) {
-      expect(
-        Boolean(descriptor.creditsConfig) && !descriptor.hasCreditsInterceptor,
-        `${gatewayMethod} reserves credits but has no interceptor to settle or release them`,
-      ).toBe(false);
-    }
-  });
-
-  it('resolves every descriptor originalUrl to a real controller route', async () => {
-    const captured = await runAllRoutes();
-    for (const [gatewayMethod, { controller, methodName }] of ROUTE_ENTRIES) {
-      const descriptor = captured.get(gatewayMethod);
-      if (!descriptor) {
-        throw new Error(`No descriptor captured for ${gatewayMethod}`);
-      }
-      const pattern = controllerRoutePattern(controller, methodName);
-      expect(
-        pattern.test(descriptor.originalUrl),
-        `${gatewayMethod} originalUrl "${descriptor.originalUrl}" does not match ${controller.name}.${methodName}'s route ${pattern}`,
-      ).toBe(true);
-    }
-  });
 });

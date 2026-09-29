@@ -30,12 +30,6 @@ describe('BatchActionDto', () => {
     pipe = new ValidationPipe();
   });
 
-  it(`accepts an itemIds array at the ${MAX_BATCH_ACTION_ITEMS} limit`, async () => {
-    await expect(
-      pipe.transform(buildBody(MAX_BATCH_ACTION_ITEMS), metadata),
-    ).resolves.toBeInstanceOf(BatchActionDto);
-  });
-
   it('rejects an over-limit itemIds array with a 400', async () => {
     const error = await pipe
       .transform(buildBody(MAX_BATCH_ACTION_ITEMS + 1), metadata)

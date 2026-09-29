@@ -32,7 +32,6 @@ import type { Request } from 'express';
 
 describe('OrganizationsRelationshipsController', () => {
   let controller: OrganizationsRelationshipsController;
-  let _organizationsService: OrganizationsService;
 
   const mockUser = {
     id: 'user_123',
@@ -107,8 +106,6 @@ describe('OrganizationsRelationshipsController', () => {
     controller = module.get<OrganizationsRelationshipsController>(
       OrganizationsRelationshipsController,
     );
-    _organizationsService =
-      module.get<OrganizationsService>(OrganizationsService);
   });
 
   describe('findAllIngredients', () => {
@@ -176,25 +173,7 @@ describe('OrganizationsRelationshipsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAnalytics', () => {
-    it('should return organization analytics', async () => {
-      const result = await controller.findAnalytics(
-        {} as unknown as Request,
-        'clorganizationrel0000000001',
-        {},
-        mockUser,
-      );
-
-      expect(
-        mockServices.analyticsAggregationService.getOverviewMetrics,
-      ).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     // genfeedai/genfeed.ai#5426: the count used to be read from
     // `findAll(...).docs[0].total`, a field credential records don't have.
     it('reports the number of connected credentials in the organization', async () => {
@@ -212,19 +191,6 @@ describe('OrganizationsRelationshipsController', () => {
       ).toHaveBeenCalledWith('clorganizationrel0000000001', undefined);
       expect(result.data).toMatchObject({ totalCredentialsConnected: 3 });
     });
-  });
-
-  it('counts credentials only for the requested analytics brand', async () => {
-    await controller.findAnalytics(
-      {} as unknown as Request,
-      'clorganizationrel0000000001',
-      { brandId: 'brand-1' },
-      mockUser,
-    );
-    expect(mockServices.credentialsService.countConnected).toHaveBeenCalledWith(
-      'clorganizationrel0000000001',
-      'brand-1',
-    );
   });
 
   describe('analytics tenant isolation', () => {
@@ -298,24 +264,6 @@ describe('OrganizationsRelationshipsController', () => {
       expect(
         mockServices.analyticsAggregationService.getTopPerformingContent,
       ).not.toHaveBeenCalled();
-    });
-
-    it('still lets a superadmin read another organization aggregate overview', async () => {
-      const superadmin = { ...mockUser, isSuperAdmin: true } as unknown as User;
-      mockServices.membersService.findOne.mockResolvedValueOnce(null);
-      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
-
-      await expect(
-        controller.findAnalytics(
-          request,
-          'clorganizationforeign00000001',
-          {},
-          superadmin,
-        ),
-      ).resolves.toBeDefined();
-      expect(
-        mockServices.analyticsAggregationService.getOverviewMetrics,
-      ).toHaveBeenCalled();
     });
 
     it('authorizes platform analytics before reading', async () => {

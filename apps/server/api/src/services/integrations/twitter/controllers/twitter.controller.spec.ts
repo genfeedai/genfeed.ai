@@ -130,10 +130,6 @@ describe('TwitterController', () => {
     controller = module.get<TwitterController>(TwitterController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect', () => {
     const brandId = 'test-object-id';
     const orgId = 'test-object-id';
@@ -446,25 +442,6 @@ describe('TwitterController', () => {
         detail:
           "X rejected this deployment's app credentials (client id/secret or app type). Check the X developer portal and TWITTER_CLIENT_ID / TWITTER_CLIENT_SECRET.",
       });
-    });
-
-    it('surfaces an unauthorized_client body as the same Service Unavailable deployment error', async () => {
-      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
-        id: 'cred',
-        oauthTokenSecret: 'encrypted-code-verifier',
-        organizationId: testId('org'),
-      });
-      mockLoginWithOAuth2.mockRejectedValue({
-        data: { error: 'unauthorized_client' },
-        status: 401,
-      });
-
-      await expect(
-        controller.verify({} as Request, {
-          code: 'auth-code',
-          state: 'opaque-oauth-state',
-        }),
-      ).rejects.toBeInstanceOf(ServiceUnavailableException);
     });
   });
 

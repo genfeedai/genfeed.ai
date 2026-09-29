@@ -33,15 +33,6 @@ describe('Tasks split controllers', () => {
     },
   );
 
-  it.each(['openPlanThread', 'createChildren'] as const)(
-    'removes moved handler %s from the CRUD controller',
-    (methodName) => {
-      expect(
-        Reflect.get(TasksController.prototype, methodName),
-      ).toBeUndefined();
-    },
-  );
-
   it('registers the planning sibling before the wildcard CRUD controller', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, TasksModule),

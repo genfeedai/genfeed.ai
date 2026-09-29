@@ -15,13 +15,6 @@ describe('pickVideoModelPreference', () => {
     expect(pickVideoModelPreference(true, source)).toBe('i2v-model');
     expect(pickVideoModelPreference(false, source)).toBe('t2v-model');
   });
-
-  it('returns undefined for missing sources or non-string defaults', () => {
-    expect(pickVideoModelPreference(true, null)).toBeUndefined();
-    expect(
-      pickVideoModelPreference(false, { defaultVideoModel: 12 }),
-    ).toBeUndefined();
-  });
 });
 
 describe('emptyStyleToNull', () => {

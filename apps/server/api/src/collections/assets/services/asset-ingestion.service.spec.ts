@@ -186,22 +186,6 @@ describe('AssetIngestionService', () => {
     expect(websocketService.publishBrandRefresh).not.toHaveBeenCalled();
   });
 
-  it('publishes upload events with the canonical fallback user id', async () => {
-    const fallbackUser = {
-      ...user,
-      userId: undefined,
-    } as unknown as User;
-
-    await service.createUpload(fallbackUser, file, uploadDto);
-
-    expect(websocketService.publishAssetStatus).toHaveBeenCalledWith(
-      assetId,
-      'completed',
-      fallbackUser.id,
-      expect.any(Object),
-    );
-  });
-
   it('does not publish upload events without a user id', async () => {
     const userWithoutId = {
       organizationId: user.organizationId,

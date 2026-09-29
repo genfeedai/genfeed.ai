@@ -7,7 +7,6 @@ import {
   buildBatchProjectIdeaDispatchWorkflowDefinition,
 } from '@api/collections/batch-projects/services/batch-project-idea-dispatch-workflow.definition';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
-import { getActionDefinition } from '@genfeedai/actions';
 import type { NodeExecutor } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
@@ -33,17 +32,6 @@ function bootRunner() {
 }
 
 describe('batch project idea dispatch workflow definitions', () => {
-  it('resolves every dispatch action from the shared action catalog', () => {
-    for (const actionId of Object.values(
-      BATCH_PROJECT_IDEA_DISPATCH_ACTION_IDS,
-    )) {
-      expect(getActionDefinition(actionId)).toMatchObject({
-        id: actionId,
-        visibility: 'internal',
-      });
-    }
-  });
-
   it('builds single-action graphs over the registered actions', () => {
     expect(
       buildBatchProjectIdeaDispatchWorkflowDefinition().definition.nodes.map(

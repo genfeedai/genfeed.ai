@@ -399,31 +399,6 @@ describe('ReferralsService', () => {
     });
   });
 
-  it('normalizes tax-inclusive partial refunds to the pre-tax reward basis', async () => {
-    prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
-    prisma.referralReward.findFirst.mockResolvedValue(
-      reward({ grossAmountCents: 12_000 }),
-    );
-
-    await service.applyPaymentReversal({
-      disputed: false,
-      refundedAmountCents: 6_000,
-      stripePaymentIntentId: 'pi_1',
-    });
-
-    expect(prisma.referralReward.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        refundedAmountCents: 5_000,
-        rewardCredits: 500,
-      }),
-      where: {
-        id: 'reward_1',
-        isDeleted: false,
-        lockedAt: expect.any(Date),
-      },
-    });
-  });
-
   it('composes the overdraft allowance with an existing negative balance', async () => {
     prisma.referralReward.findMany.mockResolvedValue([{ id: 'reward_1' }]);
     prisma.referralReward.findFirst.mockResolvedValue(

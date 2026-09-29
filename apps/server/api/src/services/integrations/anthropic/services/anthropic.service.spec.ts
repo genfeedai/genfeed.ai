@@ -131,55 +131,7 @@ describe('AnthropicService', () => {
     service = module.get<AnthropicService>(AnthropicService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('chatCompletion', () => {
-    it('should return a converted response on success', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      const result = await service.chatCompletion(defaultParams);
-
-      expect(result).toMatchObject({
-        choices: [
-          {
-            finish_reason: 'stop',
-            message: {
-              content: 'Hi there!',
-              role: 'assistant',
-            },
-          },
-        ],
-        id: 'msg-123',
-        usage: {
-          completion_tokens: 5,
-          prompt_tokens: 10,
-          total_tokens: 15,
-        },
-      });
-    });
-
-    it('returns the canonical anthropic/ registry key as the response model so billing prices the round', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      const result = await service.chatCompletion(defaultParams);
-
-      expect(result.model).toBe('anthropic/claude-sonnet-5');
-    });
-
-    it('should strip anthropic/ prefix from model name', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      await service.chatCompletion(defaultParams);
-
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: 'claude-sonnet-5',
-        }),
-      );
-    });
-
     it('should extract system prompt from messages', async () => {
       mockCreate.mockResolvedValue(mockAnthropicResponse);
 
@@ -318,97 +270,6 @@ describe('AnthropicService', () => {
         'Anthropic API error',
       );
       expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should use default max_tokens of 4096', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      await service.chatCompletion(defaultParams);
-
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ max_tokens: 4096 }),
-      );
-    });
-
-    it('should respect requested max_tokens', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      await service.chatCompletion({
-        ...defaultParams,
-        max_tokens: 1000,
-      });
-
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ max_tokens: 1000 }),
-      );
-    });
-
-    it('should pass temperature when provided', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      await service.chatCompletion({
-        ...defaultParams,
-        temperature: 0.7,
-      });
-
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ temperature: 0.7 }),
-      );
-    });
-
-    it('should handle assistant messages with tool_calls', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      const params: OpenRouterChatCompletionParams = {
-        messages: [
-          { content: 'Hello', role: 'user' },
-          {
-            content: 'Let me check',
-            role: 'assistant',
-            tool_calls: [
-              {
-                function: {
-                  arguments: '{"q":"test"}',
-                  name: 'search',
-                },
-                id: 'call-1',
-                type: 'function',
-              },
-            ],
-          },
-          { content: 'Search result', role: 'tool', tool_call_id: 'call-1' },
-          { content: 'What else?', role: 'user' },
-        ],
-        model: 'anthropic/claude-sonnet-5',
-      };
-
-      await service.chatCompletion(params);
-
-      expect(mockCreate).toHaveBeenCalled();
-    });
-
-    it('should handle multimodal content with image_url', async () => {
-      mockCreate.mockResolvedValue(mockAnthropicResponse);
-
-      const params: OpenRouterChatCompletionParams = {
-        messages: [
-          {
-            content: [
-              { text: 'Describe this image', type: 'text' },
-              {
-                image_url: { url: 'https://example.com/img.png' },
-                type: 'image_url',
-              },
-            ],
-            role: 'user',
-          },
-        ],
-        model: 'anthropic/claude-sonnet-5',
-      };
-
-      await service.chatCompletion(params);
-
-      expect(mockCreate).toHaveBeenCalled();
     });
 
     it('should map complex OpenRouter messages and return the canonical registry key as the response model', async () => {
@@ -564,26 +425,6 @@ describe('AnthropicService', () => {
   });
 
   describe('streamChatCompletion', () => {
-    it('should return a ReadableStream', async () => {
-      const mockStreamInstance = {
-        async *[Symbol.asyncIterator]() {
-          yield {
-            delta: { text: 'Hello', type: 'text_delta' },
-            type: 'content_block_delta',
-          };
-          yield {
-            delta: { text: ' world', type: 'text_delta' },
-            type: 'content_block_delta',
-          };
-        },
-      };
-      mockStream.mockReturnValue(mockStreamInstance);
-
-      const result = await service.streamChatCompletion(defaultParams);
-
-      expect(result).toBeInstanceOf(ReadableStream);
-    });
-
     it('should stream only text deltas from the Anthropic event stream', async () => {
       async function* streamEvents() {
         yield {

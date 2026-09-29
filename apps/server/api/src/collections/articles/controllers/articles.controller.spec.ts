@@ -125,10 +125,6 @@ describe('ArticlesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findOne', () => {
     it('queries the canonical article id and enforces organization access', async () => {
       const articleId = mockArticle.id;

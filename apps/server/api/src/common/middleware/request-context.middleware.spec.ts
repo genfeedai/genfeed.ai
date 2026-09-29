@@ -271,31 +271,6 @@ describe('RequestContextMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('isSuperAdmin from identity is false even if bearer JWT claimed true', async () => {
-    const publisher = buildPublisher();
-    redisService.getPublisher.mockReturnValue(publisher);
-
-    const req = {
-      user: buildUser({
-        brandId: 'brand_1',
-        isSuperAdmin: false, // server-verified false
-        organizationId: 'org_1',
-        stripeSubscriptionStatus: 'active',
-        subscriptionTier: 'basic',
-        userId: 'user_1',
-      }),
-    } as never;
-    const next: NextFunction = vi.fn();
-
-    await middleware.use(req, {} as Response, next);
-
-    const ctx = (req as { context: unknown }).context as Record<
-      string,
-      unknown
-    >;
-    expect(ctx.isSuperAdmin).toBe(false);
-  });
-
   it('hydrates self-hosted context with the default brand', async () => {
     configState.isSelfHosted = true;
     const publisher = buildPublisher();

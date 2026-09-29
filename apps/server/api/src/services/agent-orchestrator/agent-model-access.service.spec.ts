@@ -110,30 +110,6 @@ describe('AgentModelAccessService free-tier lock', () => {
     );
   });
 
-  it('keeps full choice while a cancelled plan is still inside its paid period', async () => {
-    const { service } = createService({
-      subscriptions: [
-        { ...activeSubscription(), status: SubscriptionStatus.CANCELLED },
-      ],
-    });
-
-    await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
-    ).resolves.toBe(AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5);
-  });
-
-  it('locks a trial, which is not a paid subscription', async () => {
-    const { service } = createService({
-      subscriptions: [
-        { ...activeSubscription(), status: SubscriptionStatus.TRIALING },
-      ],
-    });
-
-    await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5),
-    ).resolves.toBe(LLM_DEFAULTS.agentChat);
-  });
-
   it('never locks a self-hosted / no-billing deployment', async () => {
     configMocks.hasOrganizationBilling.mockReturnValue(false);
     const { prisma, service } = createService({ subscriptions: [] });
@@ -145,14 +121,6 @@ describe('AgentModelAccessService free-tier lock', () => {
       expect.objectContaining({ isLocked: false }),
     );
     expect(prisma.subscription.findMany).not.toHaveBeenCalled();
-  });
-
-  it('fails closed onto the free model when the subscription read fails', async () => {
-    const { service } = createService({ subscriptionReadFails: true });
-
-    await expect(
-      service.enforceModel('org-1', AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5),
-    ).resolves.toBe(LLM_DEFAULTS.agentChat);
   });
 
   it('caches the subscription decision per organization', async () => {

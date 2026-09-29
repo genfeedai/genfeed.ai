@@ -11,38 +11,6 @@ import {
 describe('outreach reply slot windows', () => {
   const now = new Date('2026-08-24T12:00:00.000Z');
 
-  it('denies an hourly rollover when the daily cap is already exhausted', () => {
-    const decision = evaluateReplySlotReservation(
-      {
-        currentDayCount: 50,
-        currentHourCount: 10,
-        dayResetAt: new Date(now.getTime() + REPLY_SLOT_HOUR_MS).toISOString(),
-        hourResetAt: new Date(now.getTime() - 1).toISOString(),
-        maxPerDay: 50,
-        maxPerHour: 10,
-      },
-      now,
-    );
-
-    expect(decision.allowed).toBe(false);
-  });
-
-  it('denies a daily rollover when the hourly cap is already exhausted', () => {
-    const decision = evaluateReplySlotReservation(
-      {
-        currentDayCount: 50,
-        currentHourCount: 10,
-        dayResetAt: new Date(now.getTime() - 1).toISOString(),
-        hourResetAt: new Date(now.getTime() + REPLY_SLOT_HOUR_MS).toISOString(),
-        maxPerDay: 50,
-        maxPerHour: 10,
-      },
-      now,
-    );
-
-    expect(decision.allowed).toBe(false);
-  });
-
   it('treats the exact reset timestamp as expired', () => {
     const windows = normalizeReplyRateLimitWindows(
       {

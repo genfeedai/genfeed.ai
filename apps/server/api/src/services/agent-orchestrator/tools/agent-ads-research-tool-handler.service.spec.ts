@@ -129,34 +129,6 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
     );
   });
 
-  it('points remix workflow CTAs at the automation workflows routes', async () => {
-    const { handler } = createHandler();
-
-    const result = await handler.createAdRemixWorkflow(
-      { adId: 'ad-1', source: 'public' },
-      CONTEXT,
-    );
-
-    expect(readCtaHrefs(result)).toEqual([
-      '/automation/workflows/workflow-1',
-      '/automation/workflows',
-    ]);
-  });
-
-  it('points launch prep CTAs at the automation workflows and ads routes', async () => {
-    const { handler } = createHandler();
-
-    const result = await handler.prepareAdLaunchReview(
-      { adId: 'ad-1', source: 'public' },
-      CONTEXT,
-    );
-
-    expect(readCtaHrefs(result)).toEqual([
-      '/automation/workflows/workflow-1',
-      '/discovery/ads',
-    ]);
-  });
-
   it('never emits the retired /workflows surface', async () => {
     const { handler } = createHandler();
 

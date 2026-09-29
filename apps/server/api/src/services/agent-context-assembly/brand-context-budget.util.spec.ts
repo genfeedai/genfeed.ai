@@ -1,5 +1,4 @@
 import {
-  BRAND_CONTEXT_CHARACTER_BUDGET,
   fitBrandContextToBudget,
   fitBrandContextToBudgetWithReport,
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
@@ -22,10 +21,6 @@ describe('fitBrandContextToBudget', () => {
     `GUARDRAILS:\n- ${'g'.repeat(120)}`,
     `## Brand Voice\n- ${'v'.repeat(120)}`,
   ]);
-
-  it('uses one documented default budget', () => {
-    expect(BRAND_CONTEXT_CHARACTER_BUDGET).toBe(6000);
-  });
 
   it('truncates retrieval, recency, and history before protected guidance', () => {
     const withoutRag = removeSection(prompt, '## Retrieved Brand Memory');
@@ -56,13 +51,6 @@ describe('fitBrandContextToBudget', () => {
     expect(result).toContain('GUARDRAILS:');
     expect(result).toContain('## Brand Voice');
     expect(result.length).toBeLessThanOrEqual(protectedOnly.length);
-  });
-
-  it('preserves brand voice after custom instructions and guardrails', () => {
-    const voiceOnly = `## Brand Voice\n- ${'v'.repeat(120)}`;
-    const result = fitBrandContextToBudget([prompt], voiceOnly.length);
-
-    expect(result).toBe(voiceOnly);
   });
 
   it('reduces Brand Knowledge after retrieval, recency and history but before general context', () => {

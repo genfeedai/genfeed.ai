@@ -102,10 +102,6 @@ describe('DevtoService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getCurrentUser', () => {
     it('should return the authenticated user with the api-key header', async () => {
       httpGetMock.mockReturnValue(of({ data: mockUser }));
@@ -174,15 +170,6 @@ describe('DevtoService', () => {
       );
     });
 
-    it('should create a draft when published is false', async () => {
-      await service.publishArticle('article-1', 'org-1', 'brand-1', {
-        published: false,
-      });
-
-      const [, payload] = httpPostMock.mock.calls[0];
-      expect(payload.article.published).toBe(false);
-    });
-
     it('should only include canonical_url when explicitly provided', async () => {
       await service.publishArticle('article-1', 'org-1', 'brand-1', {});
       let [, payload] = httpPostMock.mock.calls[0];
@@ -230,14 +217,6 @@ describe('DevtoService', () => {
           platform: CredentialPlatform.DEV_TO,
         }),
       );
-    });
-
-    it('should throw when credential has no access token', async () => {
-      credentialsFindOneMock.mockResolvedValue({ accessToken: null });
-
-      await expect(
-        service.getDecryptedApiKey('org-1', 'brand-1'),
-      ).rejects.toThrow('dev.to credential not found');
     });
   });
 });

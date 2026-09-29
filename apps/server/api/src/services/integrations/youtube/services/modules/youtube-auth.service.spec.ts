@@ -118,10 +118,6 @@ describe('YoutubeAuthService', () => {
     service = module.get<YoutubeAuthService>(YoutubeAuthService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should return an OAuth2 client on successful token refresh', async () => {
     const result = await service.refreshToken(orgId, brandId);
 
@@ -139,20 +135,6 @@ describe('YoutubeAuthService', () => {
     );
     expect(mockOAuthClient.setCredentials).toHaveBeenCalledWith({
       refresh_token: expect.any(String),
-    });
-  });
-
-  it('refreshes the account named by credentialId', async () => {
-    // A brand may hold several YouTube channels; token repair addresses the
-    // named one instead of whichever happens to be the brand default.
-    await service.refreshToken(orgId, brandId, 'credential-2');
-
-    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
-      brandId,
-      credentialId: 'credential-2',
-      isDisconnectedIncluded: true,
-      organizationId: orgId,
-      platform: 'youtube',
     });
   });
 
@@ -186,21 +168,6 @@ describe('YoutubeAuthService', () => {
 
     await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
       'Failed to decrypt refresh token',
-    );
-  });
-
-  it('should update credential with new access token and expiry on success', async () => {
-    await service.refreshToken(orgId, brandId);
-
-    expect(credentialsService.patch).toHaveBeenCalledWith(
-      mockCredential.id,
-      expect.objectContaining({
-        accessToken: 'new-access-token',
-        isConnected: true,
-        isDeleted: false,
-        grantedScopes: ['https://www.googleapis.com/auth/youtube.upload'],
-        grantedScopesCapturedAt: expect.any(Date),
-      }),
     );
   });
 

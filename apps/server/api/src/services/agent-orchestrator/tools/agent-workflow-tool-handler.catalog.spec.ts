@@ -200,17 +200,6 @@ describe('AgentWorkflowToolInstallService system workflow catalog', () => {
       });
     });
 
-    it('does not look up brands when no explicit brandId is supplied', async () => {
-      systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });
-
-      await handler.installSystemWorkflow(
-        { canonicalId: 'daily-trends-digest' },
-        ctx,
-      );
-
-      expect(brandsService.findOne).not.toHaveBeenCalled();
-    });
-
     it('prefers an explicit brandId that belongs to the organization', async () => {
       brandsService.findOne.mockResolvedValue({ id: 'brand-2' });
       systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });

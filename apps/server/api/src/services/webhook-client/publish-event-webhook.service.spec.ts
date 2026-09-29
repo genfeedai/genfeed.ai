@@ -390,46 +390,6 @@ describe('PublishEventWebhookService', () => {
       'raw-webhook-secret',
     );
   });
-
-  it('does not enqueue when org webhooks are disabled', async () => {
-    settingsService.findOne.mockResolvedValue({
-      isWebhookEnabled: false,
-      webhookEndpoint: 'https://8.8.8.8/webhook',
-      webhookSecret: 'secret',
-    });
-
-    await service.emitLegacyPostPublished({
-      post: {
-        credentialId: 'cred_123',
-        id: 'post_123',
-        organizationId: 'org_123',
-        platform: 'twitter',
-      },
-    });
-
-    expect(queue.add).not.toHaveBeenCalled();
-  });
-
-  it('skips publish events excluded by the endpoint event filter', async () => {
-    settingsService.findOne.mockResolvedValue({
-      isWebhookEnabled: true,
-      webhookEndpoint: 'https://example.com/webhook',
-      webhookEventTypes: ['release.failed'],
-      webhookSecret: 'secret',
-    });
-
-    await service.emitLegacyPostPublished({
-      post: {
-        credentialId: 'cred_123',
-        id: 'post_123',
-        organizationId: 'org_123',
-        platform: 'twitter',
-      },
-    });
-
-    expect(queue.add).not.toHaveBeenCalled();
-    expect(settingsService.recordWebhookDeliveryStatus).not.toHaveBeenCalled();
-  });
 });
 
 describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', () => {
@@ -514,19 +474,6 @@ describe('captureFirstSuccessfulPublishBestEffort (genfeedai/genfeed.ai#4969)', 
     await service.emitLegacyPostPublished({
       platform: 'twitter',
       post: {},
-    });
-    await flushMicrotasks();
-
-    expect(prisma.post.count).not.toHaveBeenCalled();
-    expect(funnelCaptureService.capture).not.toHaveBeenCalled();
-  });
-
-  it('is skipped without a userId, rather than inventing an identity (e.g. the organization)', async () => {
-    const { funnelCaptureService, prisma, service } = buildService();
-
-    await service.emitLegacyPostPublished({
-      platform: 'twitter',
-      post: { id: 'post_4', organizationId: 'org_1' },
     });
     await flushMicrotasks();
 

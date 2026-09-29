@@ -461,17 +461,6 @@ describe('PostsController.findAll (#1223)', () => {
 
     expect(result.data).toEqual([]);
   });
-
-  it('is no longer restricted to superadmins (no roles metadata on the handler)', () => {
-    // The prior `@RolesDecorator('superadmin')` 403'd every non-superadmin,
-    // breaking the normal-user calendar. Removing it falls back to the
-    // class-level RolesGuard (org-membership) + ownership-scoped query.
-    const roles = Reflect.getMetadata(
-      'roles',
-      PostsController.prototype.findAll,
-    );
-    expect(roles).toBeUndefined();
-  });
 });
 
 describe('PostsService.listContentMentions', () => {

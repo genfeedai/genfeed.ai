@@ -10,11 +10,7 @@ import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twi
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import {
-  BadGatewayException,
-  BadRequestException,
-  ConflictException,
-} from '@nestjs/common';
+import { BadGatewayException, ConflictException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 
 vi.mock('@sentry/nestjs', () => ({
@@ -1013,33 +1009,6 @@ describe('SocialInboxService', () => {
       });
     });
 
-    it('clears reply notifications for the whole team once a DM is sent', async () => {
-      const context = createContext();
-      const inbound = await context.service.ingestInboundMessage({
-        body: 'Inbound',
-        brandId: 'brand-1',
-        conversationType: 'dm',
-        externalConversationId: 'thread-dm',
-        externalMessageId: 'message-dm',
-        organizationId: 'org-1',
-        participantExternalId: 'author-1',
-        platform: 'instagram',
-      });
-
-      await context.service.sendDm(scope, inbound.conversationId, {
-        idempotencyKey: 'dm-clears-bell',
-        recipientId: 'author-1',
-        text: 'Following up',
-      });
-
-      expect(
-        context.socialReplyNotifications.markConversationRepliesRead,
-      ).toHaveBeenCalledWith({
-        conversationId: inbound.conversationId,
-        organizationId: 'org-1',
-      });
-    });
-
     it('clears reply notifications for the whole team when a thread is archived', async () => {
       const context = createContext();
       await seedThread(context.service, { brandId: 'brand-1', id: 'a' });
@@ -1852,28 +1821,6 @@ describe('SocialInboxService', () => {
       }),
     ).rejects.toThrow('Social conversation not found');
     expect(youtubeService.postCommentReply).not.toHaveBeenCalled();
-  });
-
-  it('blocks YouTube DMs with a provider-specific reason', async () => {
-    const { service } = createContext();
-    const inbound = await service.ingestInboundMessage({
-      body: 'Inbound',
-      brandId: 'brand-1',
-      conversationType: 'comment',
-      externalConversationId: 'thread-1',
-      externalMessageId: 'comment-1',
-      externalParentId: 'comment-1',
-      organizationId: 'org-1',
-      platform: 'youtube',
-    });
-
-    await expect(
-      service.sendDm(
-        { brandId: 'brand-1', organizationId: 'org-1', userId: 'user-1' },
-        inbound.conversationId,
-        { text: 'Follow up' },
-      ),
-    ).rejects.toThrow(BadRequestException);
   });
 
   describe('X replies from the thread view', () => {

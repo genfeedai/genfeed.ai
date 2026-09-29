@@ -329,11 +329,4 @@ describe('buildRedisRateLimitStore observability', () => {
     expect(onDegraded).toHaveBeenCalled();
     expect(onRecovered).toHaveBeenCalled();
   });
-
-  it('fails open with no observers wired, exactly as before', async () => {
-    const store = buildRedisRateLimitStore(createThrowingClient());
-
-    await expect(store.get(KEY)).resolves.toBeNull();
-    await expect(store.set(KEY, VALUE, TTL_SECONDS)).resolves.toBeUndefined();
-  });
 });

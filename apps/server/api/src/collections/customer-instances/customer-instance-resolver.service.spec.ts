@@ -46,20 +46,6 @@ describe('CustomerInstanceResolverService', () => {
     });
   });
 
-  it('accepts a dedicated full-role instance for any fleet role', async () => {
-    findFirst.mockResolvedValue({
-      config: {
-        apiUrl: 'https://full.example',
-        role: 'full',
-        tier: 'dedicated',
-      },
-    });
-
-    await expect(service.findRunningForOrg('org-1', 'videos')).resolves.toEqual(
-      { apiUrl: 'https://full.example' },
-    );
-  });
-
   it('returns null when no dedicated instance matches', async () => {
     findFirst.mockResolvedValue(null);
 

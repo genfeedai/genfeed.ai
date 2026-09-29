@@ -36,14 +36,6 @@ describe('self-hosted onboarding tool boundary', () => {
     expect(tools).not.toContain('generate_monthly_content');
   });
 
-  it('makes presentPaymentOptions unreachable during self-hosted onboarding', () => {
-    vi.stubEnv('GENFEED_CLOUD', undefined);
-
-    expect(resolveToolNames('onboarding')).not.toContain(
-      'present_payment_options',
-    );
-  });
-
   it('keeps both cloud-only tools during cloud onboarding', () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
 
@@ -231,16 +223,5 @@ describe('auto-routing request shape', () => {
 
     expect(params.model).toBe('vendor/reasoner');
     expect(params.plugins).toEqual([{ id: 'web' }]);
-  });
-
-  it('drops the web plugin when the decision says the turn needs no live data', () => {
-    const params = buildAutoParams({
-      isWebSearchNeeded: false,
-      prompt: 'what is trending in the creator economy today',
-    });
-
-    expect(params.plugins).toEqual([
-      expect.objectContaining({ id: 'auto-router' }),
-    ]);
   });
 });

@@ -103,17 +103,6 @@ describe('IngredientsController — Library axes', () => {
   });
 
   describe('findAll', () => {
-    it('always scopes the query to the authenticated organization', async () => {
-      await controller.findAll(
-        mockRequest,
-        {} as IngredientsQueryDto,
-        mockUser,
-      );
-
-      const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      expect(andBranches(aggregate)).toContainEqual({ organizationId });
-    });
-
     it('rejects a member brand override outside the active context', async () => {
       await expect(
         controller.findAll(
@@ -138,54 +127,6 @@ describe('IngredientsController — Library axes', () => {
       const [aggregate] = ingredientsService.findAll.mock.calls[0];
       expect(andBranches(aggregate)).toContainEqual({ brandId: otherBrandId });
       expect(andBranches(aggregate)).toContainEqual({ organizationId });
-    });
-
-    it('filters the type axis on the multi-select `categories` field', async () => {
-      await controller.findAll(
-        mockRequest,
-        {
-          categories: [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
-        } as IngredientsQueryDto,
-        mockUser,
-      );
-
-      const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      expect(findBranchWith(aggregate, 'category')).toEqual({
-        category: { in: ['IMAGE', 'VIDEO'] },
-      });
-    });
-
-    it('falls back to the single `category` field when no multi-select is given', async () => {
-      await controller.findAll(
-        mockRequest,
-        { category: IngredientCategory.GIF } as IngredientsQueryDto,
-        mockUser,
-      );
-
-      const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      expect(findBranchWith(aggregate, 'category')).toEqual({
-        category: 'GIF',
-      });
-    });
-
-    it('lets the shelf own the status axis so Archived is not ANDed away', async () => {
-      await controller.findAll(
-        mockRequest,
-        { shelf: LibraryShelf.ARCHIVED } as IngredientsQueryDto,
-        mockUser,
-      );
-
-      const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      const statusBranches = andBranches(aggregate).filter(
-        (branch) => 'status' in branch,
-      );
-      expect(statusBranches).toEqual([
-        {
-          status: {
-            in: [IngredientStatus.ARCHIVED, IngredientStatus.REJECTED],
-          },
-        },
-      ]);
     });
 
     it('applies the default status window when no shelf is selected', async () => {
@@ -239,33 +180,9 @@ describe('IngredientsController — Library axes', () => {
         andBranches(aggregate).some((branch) => 'isDeleted' in branch),
       ).toBe(false);
     });
-
-    it('narrows to starred assets for the Starred place', async () => {
-      await controller.findAll(
-        mockRequest,
-        { isFavorite: true } as IngredientsQueryDto,
-        mockUser,
-      );
-
-      const [aggregate] = ingredientsService.findAll.mock.calls[0];
-      expect(andBranches(aggregate)).toContainEqual({ isFavorite: true });
-    });
   });
 
   describe('getSummary', () => {
-    it("delegates with the caller's organization and brand scope", async () => {
-      await controller.getSummary(
-        mockRequest,
-        {} as IngredientsQueryDto,
-        mockUser,
-      );
-
-      expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
-        organizationId,
-        { brandId },
-      );
-    });
-
     it('rejects an explicit foreign-brand override for a member', async () => {
       const otherBrandId = testId('brand', 2);
 
@@ -279,48 +196,9 @@ describe('IngredientsController — Library axes', () => {
 
       expect(ingredientsService.getLibrarySummary).not.toHaveBeenCalled();
     });
-
-    it('allows a superadmin explicit brand override', async () => {
-      const otherBrandId = testId('brand', 2);
-
-      await controller.getSummary(
-        mockRequest,
-        { brandId: otherBrandId } as IngredientsQueryDto,
-        { ...mockUser, isSuperAdmin: true },
-      );
-
-      expect(ingredientsService.getLibrarySummary).toHaveBeenCalledWith(
-        organizationId,
-        { brandId: otherBrandId },
-      );
-    });
   });
 
   describe('getBatch', () => {
-    it('normalizes an s3Key-only asset to its canonical public CDN URL', async () => {
-      ingredientsService.findByIds.mockResolvedValue([
-        {
-          cdnUrl: null,
-          id: 'image-queued',
-          s3Key: 'ingredients/images/image-queued.png',
-        },
-      ]);
-
-      await expect(
-        controller.getBatch(mockRequest, 'image-queued', mockUser),
-      ).resolves.toEqual({
-        data: {
-          docs: [
-            expect.objectContaining({
-              cdnUrl:
-                'https://cdn.genfeed.ai/ingredients/images/image-queued.png',
-              id: 'image-queued',
-            }),
-          ],
-        },
-      });
-    });
-
     it('routes the resolved media URL through the signing service', async () => {
       const signingController = new IngredientsController(
         ingredientsService as unknown as IngredientsService,

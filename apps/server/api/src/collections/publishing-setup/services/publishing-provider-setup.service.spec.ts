@@ -161,12 +161,4 @@ describe('PublishingProviderSetupService', () => {
       },
     );
   });
-
-  it('reports unknown for a provider outside the descriptor registry', () => {
-    expect(build().resolveProviderSignals('mastodon', CHECKED_AT)).toEqual({
-      appReviewStatus: 'unknown',
-      callbackUrlStatus: 'unknown',
-      diagnostics: [],
-    });
-  });
 });

@@ -23,7 +23,6 @@ import { validate } from 'class-validator';
  * Production holds legacy Better Auth base62 user IDs beside UUIDs (#5410).
  * This one fails every Genfeed entity-id shape (UUID, cuid, cuid2, ULID).
  */
-const LEGACY_USER_ID = 'LegacyBetterAuthUserIdBase62Abcd';
 
 class OrganizationalCreateExampleDto extends OrganizationalCreateDto {}
 class OrganizationalUpdateExampleDto extends OrganizationalUpdateDto {}
@@ -70,15 +69,6 @@ async function errorsFor(
 }
 
 describe('user ID fields are opaque', () => {
-  it.each(USER_ID_FIELDS)(
-    '$dto.name.$property accepts a legacy Better Auth user ID',
-    async ({ dto, isArray, property }) => {
-      const value = isArray ? [LEGACY_USER_ID] : LEGACY_USER_ID;
-
-      expect(await errorsFor(dto, property, value)).toEqual([]);
-    },
-  );
-
   it.each(USER_ID_FIELDS)(
     '$dto.name.$property rejects an empty user ID',
     async ({ dto, isArray, property }) => {

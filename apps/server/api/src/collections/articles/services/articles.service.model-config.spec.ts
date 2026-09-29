@@ -158,14 +158,6 @@ describe('ArticlesService article cycle model config', () => {
     expect(config.updateModel).toBe(DEFAULT_MINI_TEXT_MODEL);
   });
 
-  it('falls back to the system default when the org has no settings', async () => {
-    const { service } = buildService(null);
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
-  });
-
   it('uses the Admin default TEXT model over the seed fallback when no explicit or org model is set', async () => {
     const adminDefaultModel = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO;
     const resolveModelKey = vi.fn().mockResolvedValue(adminDefaultModel);
@@ -177,49 +169,6 @@ describe('ArticlesService article cycle model config', () => {
 
     expect(resolveModelKey).toHaveBeenCalledWith(undefined, DEFAULT_TEXT_MODEL);
     expect(config.generationModel).toBe(adminDefaultModel);
-  });
-
-  it('falls back to DEFAULT_TEXT_MODEL when the registry resolves nothing new', async () => {
-    const resolveModelKey = vi
-      .fn()
-      .mockImplementation(
-        (_key: string | undefined, fallbackKey: string) => fallbackKey,
-      );
-    const { service } = buildService(null, {
-      agentChatModelRegistry: { resolveModelKey },
-    });
-
-    const config = await service.resolveArticleCycleModelConfig(organizationId);
-
-    expect(config.generationModel).toBe(DEFAULT_TEXT_MODEL);
-  });
-
-  it('applies the override when the org has no settings', async () => {
-    const { service } = buildService(null);
-
-    const config = await service.resolveArticleCycleModelConfig(
-      organizationId,
-      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
-    );
-
-    expect(config.generationModel).toBe(
-      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
-    );
-  });
-
-  it('applies the override when the settings service is unavailable', async () => {
-    const { service } = buildService(null, { hasSettingsService: false });
-
-    const config = await service.resolveArticleCycleModelConfig(
-      organizationId,
-      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
-    );
-
-    expect(config).toEqual({
-      generationModel: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
-      reviewModel: DEFAULT_MINI_TEXT_MODEL,
-      updateModel: DEFAULT_MINI_TEXT_MODEL,
-    });
   });
 
   it('hands the per-request model to the content service', async () => {

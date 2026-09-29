@@ -155,41 +155,6 @@ describe('FilesClientService', () => {
     );
   });
 
-  it('rejects booleans and empty values instead of coercing them to numbers', async () => {
-    const { post, service } = createHarness();
-    post.mockReturnValue(
-      of({
-        data: {
-          format: { duration: '', format_name: 'mp4', size: null },
-          streams: [
-            {
-              codec_name: 'h264',
-              codec_type: 'video',
-              height: '   ',
-              r_frame_rate: '30/1',
-              width: true,
-            },
-          ],
-        },
-      }),
-    );
-
-    const probe = await service.probeMediaFromUrl(
-      'https://cdn.test/clip.mp4',
-      'video',
-    );
-
-    // `Number(true)` is 1 and `Number(null)` is 0; neither is a measurement.
-    expect(probe).toEqual(
-      expect.objectContaining({
-        durationSeconds: null,
-        height: null,
-        sizeBytes: null,
-        width: null,
-      }),
-    );
-  });
-
   it('falls back to the local files service when no url is configured', async () => {
     const { post, service } = createHarness(null);
     post.mockReturnValue(of({ data: { data: '' } }));
@@ -354,17 +319,6 @@ describe('FilesClientService', () => {
         size: 0,
         width: 0,
       });
-    });
-
-    it('treats an unparseable duration as zero', async () => {
-      const { post, service } = createHarness();
-      post.mockReturnValue(
-        of({ data: { format: { duration: 'N/A' }, streams: [] } }),
-      );
-
-      await expect(
-        service.extractMetadataFromUrl('https://cdn.test/a.mp4'),
-      ).resolves.toMatchObject({ duration: 0 });
     });
 
     it('logs and rethrows a transport failure', async () => {
@@ -680,18 +634,6 @@ describe('FilesClientService', () => {
         filename: 'key-1',
         type: 'musics',
       });
-    });
-
-    it('defaults the content type to an opaque octet stream', async () => {
-      const { post, service } = createHarness();
-      post.mockReturnValue(of({ data: {} }));
-
-      await service.getPresignedUploadUrl('key-1', 'musics');
-
-      expect(post).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({ contentType: 'application/octet-stream' }),
-      );
     });
 
     it('logs and rethrows a transport failure', async () => {

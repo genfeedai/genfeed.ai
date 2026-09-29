@@ -12,10 +12,6 @@ describe('ReplicateMediaBuilder', () => {
     builder = new ReplicateMediaBuilder(configService);
   });
 
-  it('should be defined', () => {
-    expect(builder).toBeDefined();
-  });
-
   describe('getProvider', () => {
     it('should return REPLICATE', () => {
       expect(builder.getProvider()).toBe(ModelProvider.REPLICATE);

@@ -91,10 +91,6 @@ describe('TrackedLinksController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('generateLink', () => {
     it('should generate a tracking link', async () => {
       const dto: CreateTrackedLinkDto = {
@@ -321,10 +317,6 @@ describe('RedirectController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
   });
 
   describe('redirect', () => {

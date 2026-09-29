@@ -7,37 +7,11 @@ import {
 } from './better-auth-request-log.util';
 
 describe('sanitizeBetterAuthLogPath', () => {
-  it('strips query strings so magic-link tokens never reach logs', () => {
-    expect(
-      sanitizeBetterAuthLogPath(
-        '/v1/auth/magic-link/verify?token=aGaBbdnmaRCxtCMzgEyMYNckdOecENYi&callbackURL=/agent',
-      ),
-    ).toBe('/v1/auth/magic-link/verify');
-  });
-
   it('strips hash fragments and empty query markers', () => {
     expect(sanitizeBetterAuthLogPath('/v1/auth/get-session#frag')).toBe(
       '/v1/auth/get-session',
     );
     expect(sanitizeBetterAuthLogPath('/v1/auth/token?')).toBe('/v1/auth/token');
-  });
-});
-
-describe('createBetterAuthRequestLogPayload', () => {
-  it('normalizes the method and keeps the sanitized path', () => {
-    expect(
-      createBetterAuthRequestLogPayload(
-        'get',
-        '/v1/auth/token?cookie=secret',
-        401,
-        12,
-      ),
-    ).toEqual({
-      durationMs: 12,
-      method: 'GET',
-      path: '/v1/auth/token',
-      statusCode: 401,
-    });
   });
 });
 

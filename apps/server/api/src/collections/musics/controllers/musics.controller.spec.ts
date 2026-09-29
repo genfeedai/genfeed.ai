@@ -79,54 +79,7 @@ describe('MusicsController', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  it('should have constructorName set to MusicsController', () => {
-    expect(controller.constructorName).toBe('MusicsController');
-  });
-
   describe('buildFindAllQuery', () => {
-    it('should build a query with default filters', () => {
-      const user = createMockUser();
-      const inputQuery = {};
-      const query = controller.buildFindAllQuery(
-        user as never,
-        inputQuery as never,
-      );
-
-      expect(query).toEqual({
-        orderBy: { createdAt: -1 },
-        where: {
-          OR: expect.arrayContaining([
-            expect.objectContaining({
-              brandId: defaultMockId,
-              category: 'MUSIC',
-              isDeleted: false,
-              organizationId: defaultMockId,
-              userId: defaultMockId,
-            }),
-            expect.objectContaining({
-              category: 'MUSIC',
-              isDeleted: false,
-            }),
-          ]),
-        },
-      });
-    });
-
-    it('should include user and default music branches', () => {
-      const user = createMockUser();
-      const inputQuery = {};
-      const query = controller.buildFindAllQuery(
-        user as never,
-        inputQuery as never,
-      );
-
-      expect(query.where.OR).toHaveLength(2);
-    });
-
     it('should not add a required-scope not-null filter to the default music branch', () => {
       const user = createMockUser();
       const inputQuery = {};
@@ -160,17 +113,6 @@ describe('MusicsController', () => {
     it('should apply custom sort when specified', () => {
       const user = createMockUser();
       const inputQuery = { sort: 'createdAt' };
-      const query = controller.buildFindAllQuery(
-        user as never,
-        inputQuery as never,
-      );
-
-      expect(query.orderBy).toEqual({ createdAt: -1 });
-    });
-
-    it('should default to createdAt desc sort', () => {
-      const user = createMockUser();
-      const inputQuery = {};
       const query = controller.buildFindAllQuery(
         user as never,
         inputQuery as never,

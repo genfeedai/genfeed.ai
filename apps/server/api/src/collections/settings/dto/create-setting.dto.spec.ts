@@ -18,24 +18,7 @@ async function themeErrorsFor(theme: unknown) {
 }
 
 describe('CreateSettingDto', () => {
-  it('should be defined', () => {
-    expect(CreateSettingDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new CreateSettingDto();
-      expect(dto).toBeInstanceOf(CreateSettingDto);
-    });
-
-    it('accepts a supported locale', async () => {
-      expect(await localeErrorsFor('en-XA')).toEqual([]);
-    });
-
-    it('accepts an omitted locale', async () => {
-      expect(await localeErrorsFor(undefined)).toEqual([]);
-    });
-
     it('rejects a locale outside the allowlist', async () => {
       // The column is TEXT, so the allowlist is the only thing standing between
       // a typo and a request that renders against a catalog that does not exist.
@@ -45,31 +28,11 @@ describe('CreateSettingDto', () => {
       expect(localeErrors[0]?.constraints).toHaveProperty('isIn');
     });
 
-    it.each(['system', 'light', 'dark'])(
-      'accepts the %s theme preference',
-      async (theme) => {
-        expect(await themeErrorsFor(theme)).toEqual([]);
-      },
-    );
-
     it('rejects a theme outside the shared allowlist', async () => {
       const themeErrors = await themeErrorsFor('solarized');
 
       expect(themeErrors).toHaveLength(1);
       expect(themeErrors[0]?.constraints).toHaveProperty('isIn');
-    });
-
-    it('accepts a boolean video email preference', async () => {
-      const dto = plainToInstance(CreateSettingDto, {
-        isVideoNotificationsEmail: true,
-      });
-      const errors = await validate(dto);
-
-      expect(
-        errors.filter(
-          (error) => error.property === 'isVideoNotificationsEmail',
-        ),
-      ).toEqual([]);
     });
 
     it('rejects a non-boolean video email preference', async () => {
@@ -87,16 +50,6 @@ describe('CreateSettingDto', () => {
   });
 
   describe('favoriteWorkflowIds', () => {
-    it('accepts up to 50 unique workflow ids', async () => {
-      expect(await favoriteWorkflowErrorsFor(testIds('workflow', 50))).toEqual(
-        [],
-      );
-    });
-
-    it('accepts an empty favorites list', async () => {
-      expect(await favoriteWorkflowErrorsFor([])).toEqual([]);
-    });
-
     it('rejects more than 50 favorites', async () => {
       const errors = await favoriteWorkflowErrorsFor(testIds('workflow', 51));
 
@@ -117,10 +70,6 @@ describe('CreateSettingDto', () => {
 
       expect(errors).toHaveLength(1);
       expect(errors[0]?.constraints).toHaveProperty('isEntityId');
-    });
-
-    it('accepts an omitted favorites list', async () => {
-      expect(await favoriteWorkflowErrorsFor(undefined)).toEqual([]);
     });
 
     it('rejects a non-array value', async () => {

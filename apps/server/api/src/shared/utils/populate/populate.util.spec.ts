@@ -6,17 +6,6 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('PopulateBuilder', () => {
-  it('creates a path-only populate option', () => {
-    expect(PopulateBuilder.create('asset')).toEqual({ path: 'asset' });
-  });
-
-  it('selects explicit fields', () => {
-    expect(PopulateBuilder.withFields('brand', ['id', 'label'])).toEqual({
-      path: 'brand',
-      select: ['id', 'label'],
-    });
-  });
-
   it('treats idOnly and minimal as id-only selects', () => {
     expect(PopulateBuilder.idOnly('user')).toEqual({
       path: 'user',

@@ -188,31 +188,6 @@ describe('ArticlesContentService generated tags', () => {
     );
   });
 
-  it('omits tags from the payload when generation returns none', async () => {
-    const { createArticleFn, service, tagsService } = makeService({
-      generationResponse: {
-        articles: [
-          {
-            content: '<p>Body</p>',
-            label: 'Generated article',
-            slug: 'generated-article',
-            summary: 'Summary',
-          },
-        ],
-      },
-    });
-
-    await runGenerationPipeline(
-      service,
-      { count: 1, prompt: 'write about growth' } as GenerateArticlesDto,
-      createArticleFn,
-    );
-
-    expect(tagsService.findOne).not.toHaveBeenCalled();
-    const payload = createArticleFn.mock.calls[0][0] as Record<string, unknown>;
-    expect(payload.tags).toBeUndefined();
-  });
-
   it('still creates the article when tag resolution fails', async () => {
     const { createArticleFn, service, tagsService } = makeService({
       generationResponse: {

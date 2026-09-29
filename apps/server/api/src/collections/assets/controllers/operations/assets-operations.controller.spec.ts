@@ -131,10 +131,6 @@ describe('AssetsOperationsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('generate', () => {
     it('should generate an asset for a brand parent', async () => {
       const generateDto: GenerateAssetDto = {

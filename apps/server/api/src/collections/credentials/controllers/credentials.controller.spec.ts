@@ -84,10 +84,6 @@ describe('CredentialsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
     it('should return credentials for the current user', async () => {
       credentialsService.findAll.mockResolvedValue({
@@ -163,28 +159,6 @@ describe('CredentialsController', () => {
   });
 
   describe('refreshCredentialToken', () => {
-    it('should refresh token for supported platform', async () => {
-      credentialsService.findOne
-        .mockResolvedValueOnce({
-          brandId: brandEntityId,
-          id: credId,
-          organizationId: orgId,
-          platform: CredentialPlatform.TWITTER,
-        })
-        .mockResolvedValueOnce({
-          id: credId,
-          platform: CredentialPlatform.TWITTER,
-        });
-
-      const result = await controller.refreshCredentialToken(
-        mockRequest,
-        credId,
-        mockUser,
-      );
-
-      expect(result).toBeDefined();
-    });
-
     it('refreshes a Prisma SCREAMING twitter credential', async () => {
       credentialsService.findOne
         .mockResolvedValueOnce({
@@ -267,26 +241,6 @@ describe('CredentialsController', () => {
   });
 
   describe('update', () => {
-    it('should update allowed fields on a credential', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        id: credId,
-      });
-      credentialsService.patch.mockResolvedValue({
-        id: credId,
-        label: 'Updated',
-      });
-
-      const result = await controller.update(
-        mockRequest,
-        credId,
-        { label: 'Updated' } as never,
-        mockUser,
-      );
-
-      expect(credentialsService.patch).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should throw when credential not found for update', async () => {
       credentialsService.findOne.mockResolvedValue(null);
       const missingId = testId('missing');

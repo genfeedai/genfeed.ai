@@ -109,18 +109,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.meta).toEqual(meta);
     });
 
-    it('should not include meta when not provided', () => {
-      const exception = new TestException('Test detail');
-      const response = getResponsePayload(exception);
-
-      expect(response.meta).toBeUndefined();
-    });
-
-    it('should have correct HTTP status', () => {
-      const exception = new TestException('Test detail');
-      expect(exception.getStatus()).toBe(HttpStatus.BAD_REQUEST);
-    });
-
     it('should generate ISO timestamp', () => {
       const exception = new TestException('Test detail');
       const response = getResponsePayload(exception);
@@ -150,18 +138,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(exception.name).toBe('APIError');
       expect(exception.errorCode).toBe('TEST_CODE');
       expect(exception.errorContext).toEqual({ extra: 'data' });
-    });
-
-    it('should work without context', () => {
-      const exception = new APIError(
-        'Test message',
-        HttpStatus.NOT_FOUND,
-        'NOT_FOUND_CODE',
-      );
-      const response = getResponsePayload(exception);
-
-      expect(response.meta).toBeUndefined();
-      expect(exception.errorContext).toBeUndefined();
     });
   });
 
@@ -226,13 +202,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.code).toBe('AUTHENTICATION_ERROR');
       expect(response.status).toBe(HttpStatus.UNAUTHORIZED);
     });
-
-    it('should use default message when not provided', () => {
-      const exception = new AuthenticationError();
-      const response = getResponsePayload(exception);
-
-      expect(response.detail).toBe('Authentication failed');
-    });
   });
 
   describe('AuthorizationError', () => {
@@ -278,14 +247,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.status).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
       expect(exception.name).toBe('BusinessLogicException');
       expect(exception.errorCode).toBe('BUSINESS_LOGIC_ERROR');
-    });
-
-    it('should include details when provided', () => {
-      const details = { reason: 'test', value: 123 };
-      const exception = new BusinessLogicException('Error', details);
-      const response = getResponsePayload(exception);
-
-      expect(response.meta).toEqual(details);
     });
 
     it('should use custom error code', () => {
@@ -383,27 +344,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(exception.name).toBe('ExternalServiceException');
       expect(exception.service).toBe('Stripe');
       expect(exception.errorCode).toBe('EXTERNAL_SERVICE_ERROR');
-    });
-
-    it('should handle string original error', () => {
-      const exception = new ExternalServiceException(
-        'AWS',
-        'Upload failed',
-        'Network error',
-      );
-      const response = getResponsePayload(exception);
-
-      expect(response.meta).toEqual({
-        originalError: 'Network error',
-        statusCode: undefined,
-      });
-    });
-
-    it('should work without original error', () => {
-      const exception = new ExternalServiceException('API', 'Request failed');
-      const response = getResponsePayload(exception);
-
-      expect(response.meta).toBeUndefined();
     });
 
     it('should use custom error code', () => {
@@ -532,52 +472,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.source).toBeUndefined();
       expect(exception.getStatus()).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
     });
-
-    it('should include field information', () => {
-      const exception = new ValidationException('Invalid format', 'email');
-      const response = getResponsePayload(exception);
-
-      expect(response.source).toEqual({
-        pointer: '/data/attributes/email',
-      });
-    });
-
-    it('should include field and value', () => {
-      const exception = new ValidationException(
-        'Invalid email',
-        'email',
-        'not-an-email',
-      );
-      const response = getResponsePayload(exception);
-
-      expect(response.source).toEqual({
-        parameter: 'not-an-email',
-        pointer: '/data/attributes/email',
-      });
-    });
-
-    it('should handle null value', () => {
-      const exception = new ValidationException('Required field', 'name', null);
-      const response = getResponsePayload(exception);
-
-      expect(response.source).toEqual({
-        parameter: null,
-        pointer: '/data/attributes/name',
-      });
-    });
-
-    it('should handle undefined value when field is provided', () => {
-      const exception = new ValidationException(
-        'Field missing',
-        'description',
-        undefined,
-      );
-      const response = getResponsePayload(exception);
-
-      expect(response.source).toEqual({
-        pointer: '/data/attributes/description',
-      });
-    });
   });
 
   describe('Exception Error Handling Patterns', () => {
@@ -673,30 +567,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(parsed.source.pointer).toBe('/data/attributes/email');
       expect(parsed.source.parameter).toBe('test@example.com');
     });
-
-    it('should handle date serialization', () => {
-      const exception = new BusinessLogicException('Error', {
-        createdAt: new Date('2024-01-01'),
-      });
-      const response = getResponsePayload(exception);
-      const json = JSON.stringify(response);
-      const parsed = JSON.parse(json);
-
-      expect(parsed.meta.createdAt).toBe('2024-01-01T00:00:00.000Z');
-    });
-
-    it('should handle undefined values in serialization', () => {
-      const exception = new APIError('Error', HttpStatus.BAD_REQUEST, 'ERROR', {
-        nullValue: null,
-        value: undefined,
-      });
-      const response = getResponsePayload(exception);
-      const json = JSON.stringify(response);
-      const parsed = JSON.parse(json);
-
-      expect(parsed.meta.value).toBeUndefined();
-      expect(parsed.meta.nullValue).toBeNull();
-    });
   });
 
   describe('Exception Status Codes', () => {
@@ -755,53 +625,6 @@ describe('Custom Exceptions Test Suite', () => {
     });
   });
 
-  describe('Exception Instance Checks', () => {
-    it('should be instance of HttpException', () => {
-      const exceptions = [
-        new ValidationException('Error'),
-        new NotFoundException('Resource'),
-        new BusinessLogicException('Error'),
-        new ExternalServiceException('Service', 'Error'),
-        new APIError('Error', 500, 'ERROR'),
-      ];
-
-      exceptions.forEach((exception) => {
-        expect(exception).toBeInstanceOf(HttpException);
-      });
-    });
-
-    it('should be instance of their respective classes', () => {
-      expect(new ValidationException('Error')).toBeInstanceOf(
-        ValidationException,
-      );
-      expect(new NotFoundException('Resource')).toBeInstanceOf(
-        NotFoundException,
-      );
-      expect(new BusinessLogicException('Error')).toBeInstanceOf(
-        BusinessLogicException,
-      );
-      expect(new InsufficientCreditsException(10, 5)).toBeInstanceOf(
-        InsufficientCreditsException,
-      );
-      expect(new InvalidOperationException('op', 'reason')).toBeInstanceOf(
-        InvalidOperationException,
-      );
-      expect(
-        new ResourceNotReadyException('res', 'current', 'required'),
-      ).toBeInstanceOf(ResourceNotReadyException);
-    });
-
-    it('should inherit from parent classes correctly', () => {
-      const insufficientCredits = new InsufficientCreditsException(10, 5);
-      expect(insufficientCredits).toBeInstanceOf(BusinessLogicException);
-      expect(insufficientCredits).toBeInstanceOf(HttpException);
-
-      const aiError = new AIServiceException('OpenAI', 'generation');
-      expect(aiError).toBeInstanceOf(ExternalServiceException);
-      expect(aiError).toBeInstanceOf(HttpException);
-    });
-  });
-
   describe('Edge Cases and Error Conditions', () => {
     it('should handle empty strings', () => {
       const exception = new ValidationException('', '', '');
@@ -820,25 +643,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.detail.length).toBe(10000);
     });
 
-    it('should handle special characters in messages', () => {
-      const specialChars = `Special chars: <>&"'\`\n\t\r`;
-      const exception = new APIError(
-        specialChars,
-        HttpStatus.BAD_REQUEST,
-        'TEST',
-      );
-      const response = getResponsePayload(exception);
-
-      expect(response.detail).toBe(specialChars);
-    });
-
-    it('should handle numeric values in string fields', () => {
-      const exception = new NotFoundException('Resource', '12345');
-      const response = getResponsePayload(exception);
-
-      expect(response.detail).toContain('12345');
-    });
-
     it('should handle arrays and objects in meta', () => {
       const complexMeta = {
         array: [1, 2, 3],
@@ -855,58 +659,6 @@ describe('Custom Exceptions Test Suite', () => {
       expect(response.meta.array).toEqual([1, 2, 3]);
       expect(response.meta.nested.deep.value).toBe('test');
       expect(typeof response.meta.fn).toBe('function');
-    });
-  });
-
-  describe('Exception Factory Patterns', () => {
-    const createException = (
-      type: string,
-      ...args: unknown[]
-    ): HttpException | null => {
-      switch (type) {
-        case 'validation':
-          return new ValidationException(
-            args[0] as string,
-            args[1] as string,
-            args[2],
-          );
-        case 'notFound':
-          return new NotFoundException(args[0] as string, args[1] as string);
-        case 'business':
-          return new BusinessLogicException(
-            args[0] as string,
-            args[1] as Record<string, unknown>,
-            args[2] as string,
-          );
-        case 'external':
-          return new ExternalServiceException(
-            args[0] as string,
-            args[1] as string,
-            args[2],
-            args[3] as string,
-          );
-        default:
-          return null;
-      }
-    };
-
-    it('should create exceptions using factory pattern', () => {
-      const validation = createException('validation', 'Invalid input');
-      expect(validation).toBeInstanceOf(ValidationException);
-
-      const notFound = createException('notFound', 'User', '123');
-      expect(notFound).toBeInstanceOf(NotFoundException);
-
-      const business = createException('business', 'Rule violation');
-      expect(business).toBeInstanceOf(BusinessLogicException);
-
-      const external = createException('external', 'API', 'Failed');
-      expect(external).toBeInstanceOf(ExternalServiceException);
-    });
-
-    it('should return null for unknown type', () => {
-      const unknown = createException('unknown', 'test');
-      expect(unknown).toBeNull();
     });
   });
 

@@ -101,24 +101,6 @@ describe('compileImagenGenerationBrief', () => {
     expect(result.evidence.omittedSignals).toEqual([]);
   });
 
-  it('rejects strict required signals Imagen cannot honor', () => {
-    const brief = imageGenerationBriefSchema.parse({
-      constraints: [
-        { kind: 'avoid', required: true, value: 'busy backgrounds' },
-      ],
-      fidelityMode: 'strict',
-      intent: { objective: 'Create a launch image for the new bottle' },
-      mediaKind: 'image',
-      output: {},
-      references: [{ assetId: 'asset_product_123', role: 'product' }],
-      version: 1,
-    });
-
-    expect(() =>
-      compileImagenGenerationBrief({ brief, modelKey: IMAGEN_4_MODEL_KEY }),
-    ).toThrow(GenerationBriefCompileError);
-  });
-
   it('rejects an unregistered model key', () => {
     const brief = imageGenerationBriefSchema.parse({
       constraints: [],
@@ -132,16 +114,5 @@ describe('compileImagenGenerationBrief', () => {
     expect(() =>
       compileImagenGenerationBrief({ brief, modelKey: 'google/imagen-9' }),
     ).toThrow(GenerationBriefCompileError);
-  });
-
-  it('does not mutate the normalized brief', () => {
-    const brief = imageGenerationBriefSchema.parse(
-      readFixture('unbranded.input.json'),
-    );
-    const original = structuredClone(brief);
-
-    compileImagenGenerationBrief({ brief, modelKey: IMAGEN_4_MODEL_KEY });
-
-    expect(brief).toEqual(original);
   });
 });

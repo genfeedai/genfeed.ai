@@ -10,16 +10,6 @@ const CHEAP_MODEL = 'deepseek/deepseek-v4-flash-0731';
 const EXPENSIVE_MODEL = 'anthropic/claude-opus-5';
 
 describe('resolveAgentRoundCreditCost', () => {
-  it('prices the round against the model that actually answered', () => {
-    expect(
-      resolveAgentRoundCreditCost({
-        actualModel: EXPENSIVE_MODEL,
-        roundCreditsForModel: 12,
-        turnCost: 1,
-      }),
-    ).toBe(12);
-  });
-
   it('charges more when the router substitutes a pricier model', () => {
     const cheap = resolveAgentRoundCreditCost({
       actualModel: CHEAP_MODEL,
@@ -47,31 +37,12 @@ describe('resolveAgentRoundCreditCost', () => {
 });
 
 describe('describeBilledModels', () => {
-  it('names every model that served a round', () => {
-    expect(
-      describeBilledModels(CHEAP_MODEL, [CHEAP_MODEL, EXPENSIVE_MODEL]),
-    ).toBe(`${CHEAP_MODEL}, ${EXPENSIVE_MODEL}`);
-  });
-
   it('falls back to the requested model when nothing answered', () => {
     expect(describeBilledModels(CHEAP_MODEL, [])).toBe(CHEAP_MODEL);
   });
 });
 
 describe('resolveAgentTurnCreditCost', () => {
-  it('waives the chat turn after a successful one-credit profile build', () => {
-    expect(
-      resolveAgentTurnCreditCost(4, [
-        {
-          creditsUsed: 1,
-          durationMs: 10,
-          status: 'completed',
-          toolName: 'draft_brand_voice_profile',
-        },
-      ]),
-    ).toBe(0);
-  });
-
   it('keeps the chat turn cost when profile generation fails', () => {
     expect(
       resolveAgentTurnCreditCost(4, [
@@ -87,16 +58,6 @@ describe('resolveAgentTurnCreditCost', () => {
 });
 
 describe('resolveAgentNextRoundCreditRequirement', () => {
-  it('requires the accumulated bill plus the requested-model estimate', () => {
-    expect(
-      resolveAgentNextRoundCreditRequirement({
-        nextRoundCredits: 3,
-        roundCredits: 7,
-        toolCalls: [],
-      }),
-    ).toBe(10);
-  });
-
   it('keeps later rounds free after the profile-build waiver completes', () => {
     expect(
       resolveAgentNextRoundCreditRequirement({

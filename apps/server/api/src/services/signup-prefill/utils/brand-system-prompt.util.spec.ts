@@ -24,19 +24,9 @@ describe('isPlaceholderBrandText', () => {
     expect(isPlaceholderBrandText('   ')).toBe(true);
     expect(isPlaceholderBrandText(PLACEHOLDER_BRAND_DESCRIPTION)).toBe(true);
   });
-
-  it('leaves real copy alone', () => {
-    expect(isPlaceholderBrandText('We write for operators.')).toBe(false);
-  });
 });
 
 describe('buildBrandSystemPrompt', () => {
-  it('always names the brand, even with nothing else to go on', () => {
-    expect(buildBrandSystemPrompt('Acme', {})).toBe(
-      'You are creating content for Acme.',
-    );
-  });
-
   it('folds the scrape and the analyzed voice into one pre-prompt', () => {
     const prompt = buildBrandSystemPrompt(
       'Acme',

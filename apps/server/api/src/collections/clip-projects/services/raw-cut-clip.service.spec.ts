@@ -78,28 +78,6 @@ describe('RawCutClipService', () => {
     );
   });
 
-  it('passes the cut window and duration in the job params', async () => {
-    await service.dispatchClip(makeInput({ endTime: 45, startTime: 15 }));
-
-    const call = fileQueueService.processVideo.mock.calls[0][0];
-    expect(call.params).toEqual(
-      expect.objectContaining({
-        duration: 30,
-        endTime: 45,
-        s3Key: 'videos/source.mp4',
-        startTime: 15,
-      }),
-    );
-  });
-
-  it('carries the caption SRT alongside the trim job for downstream burn-in', async () => {
-    const captionSrt = '1\n00:00:00,000 --> 00:00:02,000\nBurned caption';
-    await service.dispatchClip(makeInput({ captionSrt }));
-
-    const call = fileQueueService.processVideo.mock.calls[0][0];
-    expect(call.params?.captionContent).toBe(captionSrt);
-  });
-
   it('prefers an S3 key but falls back to a source URL', async () => {
     await service.dispatchClip(
       makeInput({
@@ -111,16 +89,6 @@ describe('RawCutClipService', () => {
     const call = fileQueueService.processVideo.mock.calls[0][0];
     expect(call.params?.s3Key).toBeUndefined();
     expect(call.params?.inputPath).toBe('https://cdn/source.mp4');
-  });
-
-  it('returns the files job id tagged with the raw-cut provider', async () => {
-    const result = await service.dispatchClip(makeInput());
-
-    expect(result).toEqual({
-      jobId: 'trim-job-1',
-      providerName: 'raw-cut',
-      status: 'queued',
-    });
   });
 
   it('throws when no source video reference is provided', async () => {

@@ -74,10 +74,6 @@ describe('OrganizationsIntegrationsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     const createDto: CreateIntegrationDto = {
       botToken: 'bot-token-123',

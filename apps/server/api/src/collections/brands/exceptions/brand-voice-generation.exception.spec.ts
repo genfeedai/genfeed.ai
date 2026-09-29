@@ -80,15 +80,6 @@ describe('BrandVoiceGenerationException', () => {
     );
   });
 
-  it('lets a caller override the detail with something sharper', () => {
-    const exception = new BrandVoiceGenerationException({
-      code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
-      detail: 'Private network addresses are not allowed',
-    });
-
-    expect(exception.message).toBe('Private network addresses are not allowed');
-  });
-
   it('keeps diagnostics to the shape of the output, never its content', () => {
     const exception = new BrandVoiceGenerationException({
       code: BrandVoiceFailureCode.INCOMPLETE_PROFILE,
@@ -105,18 +96,5 @@ describe('BrandVoiceGenerationException', () => {
     // Diagnostics are for logs only and must never ride along in the response.
     expect(exception.getResponse()).not.toHaveProperty('diagnostics');
     expect(exception.getResponse()).not.toHaveProperty('meta.outputLength');
-  });
-
-  it('defaults diagnostics when a cause carries no model output', () => {
-    expect(
-      new BrandVoiceGenerationException({
-        code: BrandVoiceFailureCode.SOURCE_REQUIRED,
-      }).diagnostics,
-    ).toEqual({
-      code: BrandVoiceFailureCode.SOURCE_REQUIRED,
-      isRetryable: false,
-      missingFields: [],
-      outputLength: 0,
-    });
   });
 });

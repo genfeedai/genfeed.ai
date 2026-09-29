@@ -117,10 +117,6 @@ describe('CreatorsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
     it('should return creators for organization', async () => {
       const mockData = { docs: [mockCreator], totalDocs: 1 };
@@ -213,22 +209,6 @@ describe('CreatorsController', () => {
   });
 
   describe('importCreators', () => {
-    it('should import multiple creators', async () => {
-      mockContentIntelligenceService.findByHandle.mockResolvedValue(null);
-      mockContentIntelligenceService.addCreator.mockResolvedValue(mockCreator);
-
-      await controller.importCreators(mockRequest, mockUser, {
-        creators: [
-          { handle: '@creator1', platform: 'twitter' },
-          { handle: '@creator2', platform: 'instagram' },
-        ],
-      } as unknown as ImportCreatorsDto);
-
-      expect(mockContentIntelligenceService.addCreator).toHaveBeenCalledTimes(
-        2,
-      );
-    });
-
     it('should skip existing creators', async () => {
       mockContentIntelligenceService.findByHandle
         .mockResolvedValueOnce(mockCreator)

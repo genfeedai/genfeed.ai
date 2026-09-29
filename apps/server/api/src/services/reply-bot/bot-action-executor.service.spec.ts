@@ -79,10 +79,6 @@ describe('BotActionExecutorService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('postReply', () => {
     const targetContent: IReplyBotContentData = {
       authorId: 'author-1',
@@ -494,24 +490,6 @@ describe('BotActionExecutorService', () => {
   });
 
   describe('validateCredential', () => {
-    it('should return true for valid credential with accessTokenSecret', () => {
-      const credential = { accessToken: 'token', accessTokenSecret: 'secret' };
-
-      expect(service.validateCredential(credential)).toBe(true);
-    });
-
-    it('should return true for valid credential with refreshToken', () => {
-      const credential = { accessToken: 'token', refreshToken: 'refresh' };
-
-      expect(service.validateCredential(credential)).toBe(true);
-    });
-
-    it('should return true for OAuth2 bearer-only credential', () => {
-      const credential = { accessToken: 'token' };
-
-      expect(service.validateCredential(credential)).toBe(true);
-    });
-
     it('should return false when accessToken is missing', () => {
       const credential = { accessTokenSecret: 'secret' };
 

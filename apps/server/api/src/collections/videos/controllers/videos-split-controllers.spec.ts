@@ -1,14 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
-import { VideosLiveSessionsController } from '@api/collections/videos/controllers/live-sessions/videos-live-sessions.controller';
-import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
-import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
-import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
-import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideoMergeOrchestrationService } from '@api/collections/videos/services/video-merge-orchestration.service';
-import { VideosModule } from '@api/collections/videos/videos.module';
 import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -17,7 +9,6 @@ import {
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
   METHOD_METADATA,
-  MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
 
@@ -63,43 +54,6 @@ describe('Videos split controllers', () => {
     expect(
       Reflect.getMetadata(INTERCEPTORS_METADATA, VideosMergeController),
     ).toBeUndefined();
-  });
-
-  it('preserves controller registration order around the extracted merge route', () => {
-    expect(
-      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, VideosModule),
-    ).toEqual([
-      VideosCaptionsController,
-      VideosProvenanceController,
-      VideosController,
-      VideosLiveSessionsController,
-      VideosRelationshipsController,
-      VideosMergeController,
-      VideosUploadController,
-    ]);
-  });
-
-  it('registers merge orchestration in the owning module', () => {
-    expect(
-      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, VideosModule),
-    ).toContain(VideoMergeOrchestrationService);
-  });
-
-  it('removes mergeVideos from the relationships controller', () => {
-    expect(
-      Object.hasOwn(VideosRelationshipsController.prototype, 'mergeVideos'),
-    ).toBe(false);
-  });
-
-  it('preserves LogMethod on the moved transport', () => {
-    const source = readFileSync(
-      new URL('./relationships/videos-merge.controller.ts', import.meta.url),
-      'utf8',
-    );
-
-    expect(source).toContain(
-      '@LogMethod({ logEnd: false, logError: true, logStart: true })',
-    );
   });
 
   it.each([

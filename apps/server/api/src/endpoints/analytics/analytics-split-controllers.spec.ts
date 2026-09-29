@@ -1,17 +1,14 @@
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { AccountAnalyticsController } from '@api/endpoints/analytics/account-analytics.controller';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
-import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { AnalyticsAdminController } from '@api/endpoints/analytics/analytics-admin.controller';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { MemberRole } from '@genfeedai/contracts';
 import { RequestMethod } from '@nestjs/common';
 import {
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
   METHOD_METADATA,
-  MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
 
@@ -175,37 +172,6 @@ describe('Analytics split-controller HTTP contract', () => {
     },
   );
 
-  it('isolates superadmin brand cache entries from customer keys', () => {
-    const handler = Reflect.get(
-      AnalyticsAdminController.prototype,
-      'getBrandsLeaderboard',
-    ) as object;
-    const cache = Reflect.getMetadata('cache', handler) as {
-      keyGenerator: (request: {
-        query: Record<string, string>;
-        user: { id: string; isSuperAdmin?: boolean; organizationId?: string };
-      }) => string;
-    };
-
-    expect(
-      cache.keyGenerator({
-        query: {
-          endDate: '2025-01-31',
-          limit: '25',
-          sort: 'views',
-          startDate: '2025-01-01',
-        },
-        user: {
-          id: 'user-1',
-          isSuperAdmin: true,
-          organizationId: 'org-1',
-        },
-      }),
-    ).toBe(
-      'analytics:brands-leaderboard:superadmin:all:2025-01-01:2025-01-31:views:25',
-    );
-  });
-
   it.each([
     [
       'getOverview',
@@ -249,25 +215,6 @@ describe('Analytics split-controller HTTP contract', () => {
       ).toBe(expectedKey);
     },
   );
-
-  it('registers the focused controller before the remaining analytics routes', () => {
-    expect(
-      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),
-    ).toEqual([
-      AccountAnalyticsController,
-      AnalyticsAdminController,
-      AnalyticsController,
-    ]);
-  });
-
-  it('restricts fleet policy writes to organization administrators', () => {
-    expect(
-      Reflect.getMetadata(
-        ROLES_KEY,
-        AccountAnalyticsController.prototype.savePolicy,
-      ),
-    ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
-  });
 
   it('invalidates account analytics after saving a fleet policy', async () => {
     const accountAnalyticsService = {

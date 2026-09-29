@@ -48,34 +48,4 @@ describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
       undefined,
     );
   });
-
-  it('forwards a resolved BYOK apiKeyOverride to the Fal dispatch call (#5294)', async () => {
-    const falService = {
-      generateImage: vi
-        .fn()
-        .mockResolvedValue({ url: 'https://cdn.test/out.png' }),
-    };
-    const adapter = new FalImageGenerationProviderAdapter(
-      falService as unknown as FalService,
-    );
-    const provider = await adapter.prepare({
-      apiKeyOverride: 'org-fal-key',
-      createImageDto: { seed: 7 },
-      height: 768,
-      model: 'fal/fal-ai/modern-image/edit',
-      modelEndpoint: 'fal-ai/modern-image/edit',
-      prompt: 'studio product shot',
-      promptId: 'prompt-1',
-      referenceImageUrls: ['https://cdn.test/ref.png'],
-      width: 1024,
-    } as unknown as ImageGenerationProviderRequest);
-
-    await provider.generate();
-
-    expect(falService.generateImage).toHaveBeenCalledWith(
-      'fal-ai/modern-image/edit',
-      expect.anything(),
-      'org-fal-key',
-    );
-  });
 });

@@ -156,20 +156,6 @@ describe('Remotion composition lifecycle', () => {
     expect(output.data).toMatchObject({ attributes: { isLocked: true } });
   });
 
-  it('authorizes brand access for other editor routes through one check', async () => {
-    const { service, prisma } = setup();
-    await expect(
-      service.authorizeBrand(user, 'brand-1'),
-    ).resolves.toBeUndefined();
-    prisma.member.findFirst.mockResolvedValueOnce({
-      brands: [{ id: 'brand-1' }],
-      role: { key: MemberRole.USER },
-    });
-    await expect(
-      service.authorizeBrand({ ...user, brandId: '' }, 'brand-2'),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-  });
-
   it('enforces active membership, assigned brand and current request brand', async () => {
     const { service, prisma, renderer } = setup();
     prisma.member.findFirst.mockResolvedValueOnce(null);

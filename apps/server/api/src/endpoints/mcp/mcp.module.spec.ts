@@ -48,20 +48,6 @@ describe('MCPModule', () => {
     }
   });
 
-  it('should be defined', () => {
-    expect(_module).toBeDefined();
-  });
-
-  it('should provide MCPController', () => {
-    const mcpController = _module.get<MCPController>(MCPController);
-    expect(mcpController).toBeDefined();
-  });
-
-  it('should provide VideosService', () => {
-    const service = _module.get<VideosService>(VideosService);
-    expect(service).toBeDefined();
-  });
-
   it('should provide AnalyticsService', () => {
     const service = _module.get<AnalyticsService>(AnalyticsService);
     expect(service).toBeDefined();

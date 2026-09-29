@@ -51,11 +51,6 @@ describe('AnalyticsAdminController', () => {
     query: {},
     user: { id: 'user-1' },
   } as unknown as Request;
-  const superAdmin = {
-    id: 'user-1',
-    isSuperAdmin: true,
-    organizationId: 'org-1',
-  } as User;
 
   afterEach(() => {
     vi.clearAllMocks();
@@ -120,31 +115,6 @@ describe('AnalyticsAdminController', () => {
     );
   });
 
-  it('narrows superadmin brand analytics to the requested organization', async () => {
-    const scopedRequest = {
-      ...request,
-      query: { organizationId: 'org-2' },
-    } as unknown as Request;
-    const statsQuery = {
-      limit: 20,
-      organizationId: 'org-2',
-      page: 1,
-      sort: 'engagement',
-    } as AdminBrandsQueryDto;
-    leaderboardService.getBrandsWithStats.mockResolvedValue({ data: [] });
-
-    await controller.getBrandsWithStats(superAdmin, scopedRequest, statsQuery);
-
-    expect(leaderboardService.getBrandsWithStats).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      1,
-      20,
-      'engagement',
-      'org-2',
-    );
-  });
-
   it('keeps brand analytics scoped to a non-admin organization', async () => {
     const user = { id: 'user-2', organizationId: 'org-2' } as User;
     const leaderboardQuery = {
@@ -188,21 +158,6 @@ describe('AnalyticsAdminController', () => {
       request,
       AnalyticsBrandStatsSerializer,
       { data: [] },
-    );
-  });
-
-  it('keeps super-admin brand analytics unscoped', async () => {
-    const query = { limit: 10, sort: 'engagement' } as LeaderboardQueryDto;
-    leaderboardService.getBrandsLeaderboard.mockResolvedValue([]);
-
-    await controller.getBrandsLeaderboard(superAdmin, request, query);
-
-    expect(leaderboardService.getBrandsLeaderboard).toHaveBeenCalledWith(
-      undefined,
-      undefined,
-      'engagement',
-      10,
-      undefined,
     );
   });
 

@@ -220,15 +220,6 @@ describe('WorkflowContentExecutorRegistrarService', () => {
     expect(userMessage?.content).toContain('"targetWordCount": 21');
   });
 
-  it('registers the talking-head executor even when OpenRouter is unavailable', () => {
-    const engine = new WorkflowEngine();
-    new WorkflowContentExecutorRegistrarService(createHelper()).register(
-      engine,
-    );
-
-    expect(engine.getRegisteredActionIds()).toContain('talkingHeadScript');
-  });
-
   it('persists a domain platform from a Prisma SCREAMING credential', async () => {
     const postsService = {
       create: vi.fn().mockResolvedValue({

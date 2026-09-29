@@ -102,10 +102,6 @@ describe('NewslettersController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
     it('should call findAllScoped and return serialized collection', async () => {
       const query = { limit: 10, page: 1, pagination: true } as never;

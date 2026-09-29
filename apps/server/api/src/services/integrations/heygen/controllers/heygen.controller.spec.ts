@@ -49,10 +49,6 @@ describe('HeyGenController', () => {
     controller = module.get<HeyGenController>(HeyGenController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // --- getVoices ---
   it('should return empty voices list when service returns empty array', async () => {
     const result = await controller.getVoices(mockUser);

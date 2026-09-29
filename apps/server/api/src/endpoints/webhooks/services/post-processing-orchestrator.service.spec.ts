@@ -84,42 +84,6 @@ describe('PostProcessingOrchestratorService', () => {
   });
 
   describe('triggerAutoEvaluationIfEnabled', () => {
-    it('should not crash when evaluationsService is not available', () => {
-      const serviceWithoutEval = new PostProcessingOrchestratorService(
-        botCallbackResponder as unknown as BotCallbackResponderService,
-        configService as unknown as ConfigService,
-        organizationSettingsService as unknown as OrganizationSettingsService,
-        loggerService as unknown as LoggerService,
-        undefined,
-      );
-
-      const ingredient = {
-        id: 'test-object-id',
-        category: IngredientCategory.IMAGE,
-        organizationId: 'test-object-id',
-        userId: 'test-object-id',
-      } as unknown as IngredientDocument;
-
-      expect(() =>
-        serviceWithoutEval.triggerAutoEvaluationIfEnabled(ingredient),
-      ).not.toThrow();
-    });
-
-    it('should not crash when org settings not found', () => {
-      organizationSettingsService.findOne.mockResolvedValue(null);
-
-      const ingredient = {
-        id: 'test-object-id',
-        category: IngredientCategory.IMAGE,
-        organizationId: 'test-object-id',
-        userId: 'test-object-id',
-      } as unknown as IngredientDocument;
-
-      expect(() =>
-        service.triggerAutoEvaluationIfEnabled(ingredient),
-      ).not.toThrow();
-    });
-
     it('scopes auto-evaluation with canonical scalar foreign keys', async () => {
       organizationSettingsService.findOne.mockResolvedValue({
         isAutoEvaluateEnabled: true,

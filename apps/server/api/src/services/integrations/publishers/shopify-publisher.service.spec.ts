@@ -107,10 +107,6 @@ describe('ShopifyPublisherService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should have correct platform capabilities', () => {
     expect(service.platform).toBe(CredentialPlatform.SHOPIFY);
     expect(service.supportsTextOnly).toBe(true);

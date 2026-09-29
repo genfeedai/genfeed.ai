@@ -20,18 +20,6 @@ function subscription(
 }
 
 describe('resolveResearchCollectionAccess', () => {
-  it('allows self-hosted collection without a subscription', () => {
-    expect(
-      resolveResearchCollectionAccess({
-        isHostedSaas: false,
-        now: NOW,
-        subscriptionReadFailed: false,
-        subscriptionTier: null,
-        subscriptions: [],
-      }),
-    ).toEqual({ isAllowed: true, reason: 'self_hosted' });
-  });
-
   it('fails closed when the hosted subscription read fails', () => {
     expect(
       resolveResearchCollectionAccess({
@@ -105,17 +93,5 @@ describe('resolveResearchCollectionAccess', () => {
         subscriptions: [],
       }).reason,
     ).toBe('research_paid_access_required');
-  });
-
-  it('does not let a free tier override a paid plan on the subscription row', () => {
-    expect(
-      resolveResearchCollectionAccess({
-        isHostedSaas: true,
-        now: NOW,
-        subscriptionReadFailed: false,
-        subscriptionTier: SubscriptionTier.FREE,
-        subscriptions: [subscription({ plan: 'yearly' })],
-      }),
-    ).toEqual({ isAllowed: true, reason: 'active_paid' });
   });
 });

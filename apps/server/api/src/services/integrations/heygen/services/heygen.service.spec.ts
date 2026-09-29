@@ -52,10 +52,6 @@ describe('HeyGenService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('creates an avatar', async () => {
     const id = await service.createAvatar('name', 'url');
     expect(id).toBe('123');

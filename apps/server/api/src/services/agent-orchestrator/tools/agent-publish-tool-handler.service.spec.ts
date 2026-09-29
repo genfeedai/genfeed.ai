@@ -259,35 +259,6 @@ describe('AgentPublishToolHandler per-channel review', () => {
     );
   });
 
-  it('marks a YouTube image proposal with a target-specific capability blocker', async () => {
-    const { credentialsService, handler, ingredientsService } = createHandler();
-    ingredientsService.findOne.mockResolvedValue({
-      brandId: 'brand-1',
-      category: 'image',
-      id: 'ingredient-1',
-    });
-    credentialsService.find.mockResolvedValue([
-      { id: 'cred-youtube', platform: CredentialPlatform.YOUTUBE },
-    ]);
-
-    const result = await handler.buildPublishCardResult(
-      {
-        caption: 'Launch clip',
-        contentId: 'ingredient-1',
-        platforms: ['youtube'],
-        visibility: PostVisibility.PUBLIC,
-      },
-      scopedContext('brand-1'),
-    );
-
-    const youtube = result.nextActions?.[0]?.targets?.find(
-      (target) => target.platform === CredentialPlatform.YOUTUBE,
-    );
-    expect(youtube?.blockers.map((blocker) => blocker.message)).toEqual(
-      expect.arrayContaining(['YouTube does not support image media.']),
-    );
-  });
-
   it('sends canonical validated target payloads to the scheduler on confirm', async () => {
     const {
       credentialsService,

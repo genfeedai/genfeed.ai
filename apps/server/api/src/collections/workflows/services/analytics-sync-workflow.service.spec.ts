@@ -91,33 +91,6 @@ describe('AnalyticsSyncWorkflowService', () => {
     );
   });
 
-  it('collects one child-workflow item without hidden fan-out', async () => {
-    const item = {
-      attemptKey: 'attempt-1',
-      brandId: 'brand-1',
-      credentialId: 'credential-1',
-      externalId: 'tweet-1',
-      id: 'post-1',
-      organizationId: 'org-1',
-      platform: CredentialPlatform.TWITTER,
-    };
-
-    await service.collectTwitter({ item });
-
-    expect(twitter.collect).toHaveBeenCalledWith({
-      attemptKey: 'attempt-1',
-      credentialId: 'credential-1',
-      posts: [
-        {
-          brandId: 'brand-1',
-          externalId: 'tweet-1',
-          id: 'post-1',
-          organizationId: 'org-1',
-        },
-      ],
-    });
-  });
-
   it('refreshes each successful account once after awaited results and reports partial failure', async () => {
     const result = await service.finalizeCollection('org-1', {
       collection: {

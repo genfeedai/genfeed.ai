@@ -77,10 +77,6 @@ describe('WorkflowGenerationService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateWorkflowFromDescription', () => {
     it('compiles generated presentation nodes into action-backed nodes', async () => {
       const result = await service.generateWorkflowFromDescription({

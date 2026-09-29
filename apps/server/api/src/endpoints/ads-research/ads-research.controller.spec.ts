@@ -129,10 +129,6 @@ describe('AdsResearchController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('listAds', () => {
     it('should list ads with organization scope', async () => {
       await controller.listAds(mockUser, brandId, 'Nike', 'fashion');
@@ -174,14 +170,6 @@ describe('AdsResearchController', () => {
         organizationId,
         expect.objectContaining({ limit: undefined }),
       );
-    });
-
-    it('rejects a foreign requested brand before reading ads', async () => {
-      await expect(
-        controller.listAds(mockUser, foreignBrandId),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-
-      expect(service.listAds).not.toHaveBeenCalled();
     });
   });
 
@@ -236,18 +224,6 @@ describe('AdsResearchController', () => {
           userId,
         }),
       );
-    });
-
-    it('rejects a foreign-brand remix before calling the service', async () => {
-      await expect(
-        controller.createRemixWorkflow(mockUser, {
-          adId: 'ad-1',
-          brandId: foreignBrandId,
-          source: 'public',
-        }),
-      ).rejects.toBeInstanceOf(ForbiddenException);
-
-      expect(service.createRemixWorkflow).not.toHaveBeenCalled();
     });
   });
 

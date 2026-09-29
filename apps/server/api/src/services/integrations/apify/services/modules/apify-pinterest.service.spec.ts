@@ -51,10 +51,6 @@ describe('ApifyPinterestService', () => {
     service = module.get<ApifyPinterestService>(ApifyPinterestService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getPinterestTrends()', () => {
     it('should return normalized trend data from pinterest pins', async () => {
       const pins = [

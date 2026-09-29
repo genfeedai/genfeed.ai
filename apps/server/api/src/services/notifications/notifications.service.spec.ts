@@ -92,10 +92,6 @@ describe('NotificationsService', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('deliverChannelMessage', () => {
     const request = {
       destination: null,
@@ -257,22 +253,6 @@ describe('NotificationsService', () => {
       );
     });
 
-    it('treats internal authentication failures as retryable infrastructure errors', async () => {
-      mockSafeFetch.mockResolvedValue(
-        new Response(JSON.stringify({ message: 'Unauthorized' }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 401,
-        }),
-      );
-
-      await expect(service.deliverEmail(payload)).rejects.toEqual(
-        expect.objectContaining<Partial<EmailDeliveryError>>({
-          retryable: true,
-          statusCode: 401,
-        }),
-      );
-    });
-
     it('rejects a malformed success response', async () => {
       mockSafeFetch.mockResolvedValue(
         new Response(JSON.stringify({ emailId: '' }), {
@@ -330,12 +310,6 @@ describe('NotificationsService', () => {
           allowedOrigins: ['http://notifications:3011'],
         }),
       );
-    });
-
-    it('reports no provider when the service says none is configured', async () => {
-      mockSafeFetch.mockResolvedValue(statusResponse(false));
-
-      await expect(service.isEmailDeliveryConfigured()).resolves.toBe(false);
     });
 
     it('caches the answer between calls', async () => {

@@ -1,11 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { ImagesController } from '@api/collections/images/controllers/images.controller';
-import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
-import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
+import { readFileSync } from 'node:fs';
 import { ImagesReframeController } from '@api/collections/images/controllers/transformations/images-reframe.controller';
 import { ImagesResizeController } from '@api/collections/images/controllers/transformations/images-resize.controller';
 import { ImagesUpscaleController } from '@api/collections/images/controllers/transformations/images-upscale.controller';
-import { ImagesUploadsController } from '@api/collections/images/controllers/upload/images-uploads.controller';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ImageReframeService } from '@api/collections/images/services/image-reframe.service';
 import { ImageResizeService } from '@api/collections/images/services/image-resize.service';
@@ -84,20 +80,6 @@ describe('Images split controllers', () => {
     ).toContain(CreditsInterceptor);
   });
 
-  it('registers transformation siblings in the established module order', () => {
-    expect(
-      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ImagesModule),
-    ).toEqual([
-      ImagesController,
-      ImagesOperationsController,
-      ImagesRelationshipsController,
-      ImagesResizeController,
-      ImagesReframeController,
-      ImagesUpscaleController,
-      ImagesUploadsController,
-    ]);
-  });
-
   it('registers extracted transformation orchestration in the owning module', () => {
     const providers = Reflect.getMetadata(
       MODULE_METADATA.PROVIDERS,
@@ -107,17 +89,6 @@ describe('Images split controllers', () => {
     expect(providers).toContain(ImageReframeService);
     expect(providers).toContain(ImageResizeService);
     expect(providers).toContain(ImageUpscaleService);
-  });
-
-  it('removes the empty legacy transformations controller file', () => {
-    expect(
-      existsSync(
-        new URL(
-          './transformations/images-transformations.controller.ts',
-          import.meta.url,
-        ),
-      ),
-    ).toBe(false);
   });
 
   it.each([

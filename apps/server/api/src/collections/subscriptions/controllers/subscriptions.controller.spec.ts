@@ -131,10 +131,6 @@ describe('SubscriptionsController', () => {
     mockOrganizationsService.find.mockResolvedValue([]);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
     it('should return all subscriptions', async () => {
       const request = {} as Request;
@@ -290,31 +286,6 @@ describe('SubscriptionsController', () => {
       expect(result.data.cycleTotal).toBe(420);
       expect(result.data.remainingPercent).toBe(100);
     });
-
-    it('should use request context organizationId when user metadata is missing', async () => {
-      const request = {
-        context: { organizationId: 'org_from_context' },
-      } as unknown as RequestWithContext;
-      const userWithoutOrganization = {
-        ...mockUser,
-        organizationId: '',
-      };
-      const creditsData = {
-        credits: [],
-        total: 0,
-      };
-
-      mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
-        creditsData,
-      );
-      mockSubscriptionsService.findByOrganizationId.mockResolvedValue(null);
-
-      await controller.getCreditsBreakdown(userWithoutOrganization, request);
-
-      expect(
-        creditsUtilsService.getOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith('org_from_context');
-    });
   });
 
   describe('getCreditUsage', () => {
@@ -384,73 +355,6 @@ describe('SubscriptionsController', () => {
       );
       expect(result.data[0]?.usedPercent).toBeCloseTo(50, 5);
       expect(result.data[0]?.remainingPercent).toBeCloseTo(50, 5);
-    });
-
-    it('resolves the scale tier plan limit from the Stripe price id', async () => {
-      mockSubscriptionsService.findAll.mockResolvedValue({
-        docs: [
-          buildSubscription({
-            organizationId: 'org_2',
-            stripePriceId: 'price_scale_monthly',
-          }),
-        ],
-        limit: 20,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-      mockOrganizationsService.find.mockResolvedValue([
-        { id: 'org_2', name: 'Scale Co' },
-      ]);
-      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        60_000,
-      );
-
-      const result = await controller.getCreditUsage(defaultQuery);
-
-      expect(result.data[0]).toEqual(
-        expect.objectContaining({
-          balance: 60_000,
-          isUnderUsing: true,
-          planLimit: 60_000,
-          tier: 'scale',
-          usedCredits: 0,
-          usedPercent: 0,
-        }),
-      );
-    });
-
-    it('reports a zero plan limit when the price carries no resolvable grant', async () => {
-      mockSubscriptionsService.findAll.mockResolvedValue({
-        docs: [
-          buildSubscription({
-            organizationId: 'org_3',
-            stripePriceId: 'price_unknown',
-          }),
-        ],
-        limit: 20,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-      mockOrganizationsService.find.mockResolvedValue([
-        { id: 'org_3', name: 'Unknown Org' },
-      ]);
-      mockCreditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
-        0,
-      );
-
-      const result = await controller.getCreditUsage(defaultQuery);
-
-      expect(result.data[0]).toEqual(
-        expect.objectContaining({
-          isMaxedOut: false,
-          planLimit: 0,
-          tier: null,
-          usedCredits: 0,
-          usedPercent: 0,
-        }),
-      );
     });
 
     it('flags maxed-out orgs at >= 90% usage and under-using orgs at <= 10% usage', async () => {

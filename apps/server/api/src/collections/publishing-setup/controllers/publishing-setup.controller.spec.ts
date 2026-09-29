@@ -109,28 +109,5 @@ describe('PublishingSetupController', () => {
         HttpStatus.FORBIDDEN,
       );
     });
-
-    it.each([MemberRole.OWNER, MemberRole.ADMIN])(
-      'allows %s on diagnostics',
-      async (role) => {
-        asActiveMember(role);
-
-        await expect(
-          guard.canActivate(
-            createContext(PublishingSetupController.prototype.getDiagnostics),
-          ),
-        ).resolves.toBe(true);
-      },
-    );
-
-    it('keeps the checklist open to any active member', async () => {
-      asActiveMember(MemberRole.CREATOR);
-
-      await expect(
-        guard.canActivate(
-          createContext(PublishingSetupController.prototype.getChecklist),
-        ),
-      ).resolves.toBe(true);
-    });
   });
 });

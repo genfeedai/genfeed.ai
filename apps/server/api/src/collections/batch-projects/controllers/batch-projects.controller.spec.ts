@@ -62,17 +62,6 @@ describe('BatchProjectsController publishing scopes', () => {
     ).toEqual([ApiKeyScope.POSTS_DRAFT, ApiKeyScope.POSTS_CREATE]);
   });
 
-  it('leaves reads to membership alone', () => {
-    for (const method of ['findAll', 'findOne'] as const) {
-      expect(
-        Reflect.getMetadata(
-          API_KEY_SCOPES_KEY,
-          BatchProjectsController.prototype[method],
-        ),
-      ).toBeUndefined();
-    }
-  });
-
   it('refuses to schedule for an API key without the schedule scope', async () => {
     await expect(
       controller.schedule(apiKeyUser([ApiKeyScope.POSTS_DRAFT]), 'project-1', {

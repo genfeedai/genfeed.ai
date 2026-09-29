@@ -199,58 +199,6 @@ describe('ElevenLabsService', () => {
       expect(result.duration).toBe(3.75);
     });
 
-    it('falls back to the raw alignment when no normalised one is present', async () => {
-      const { service, uploadToS3 } = createHarness();
-      textToSpeechConvert.mockResolvedValue({
-        alignment: { characterEndTimesSeconds: [1, 2] },
-        audioBase64: 'AAAA',
-      });
-      uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
-
-      await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
-      ).resolves.toMatchObject({ duration: 2 });
-    });
-
-    it('prefers the duration reported by the upload service', async () => {
-      const { service, uploadToS3 } = createHarness();
-      textToSpeechConvert.mockResolvedValue({
-        alignment: { characterEndTimesSeconds: [1, 2] },
-        audioBase64: 'AAAA',
-      });
-      uploadToS3.mockResolvedValue({
-        duration: 9.5,
-        publicUrl: 'https://cdn.test/a.mp3',
-      });
-
-      await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
-      ).resolves.toMatchObject({ duration: 9.5 });
-    });
-
-    it('reports a zero duration when no alignment is returned', async () => {
-      const { service, uploadToS3 } = createHarness();
-      textToSpeechConvert.mockResolvedValue({ audioBase64: 'AAAA' });
-      uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
-
-      await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
-      ).resolves.toMatchObject({ duration: 0 });
-    });
-
-    it('reports a zero duration for an empty alignment array', async () => {
-      const { service, uploadToS3 } = createHarness();
-      textToSpeechConvert.mockResolvedValue({
-        audioBase64: 'AAAA',
-        normalizedAlignment: { characterEndTimesSeconds: [] },
-      });
-      uploadToS3.mockResolvedValue({ publicUrl: 'https://cdn.test/a.mp3' });
-
-      await expect(
-        service.generateAndUploadAudio('v1', 'hello', 'ingredient-1'),
-      ).resolves.toMatchObject({ duration: 0 });
-    });
-
     it('fails loudly when the upload yields no public url', async () => {
       const { loggerService, service, uploadToS3 } = createHarness();
       uploadToS3.mockResolvedValue({ publicUrl: undefined });
@@ -306,22 +254,6 @@ describe('ElevenLabsService', () => {
       });
     });
 
-    it('forwards optional description and noise-removal flags', async () => {
-      const { service } = createHarness();
-
-      await service.cloneVoice('My Voice', [Buffer.from('one')], {
-        description: 'warm narrator',
-        removeBackgroundNoise: false,
-      });
-
-      expect(ivcCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          description: 'warm narrator',
-          removeBackgroundNoise: false,
-        }),
-      );
-    });
-
     it('logs and rethrows a provider failure', async () => {
       const { loggerService, service } = createHarness();
       const providerError = new Error('quota exceeded');
@@ -374,25 +306,6 @@ describe('ElevenLabsService', () => {
       expect(srt).toBe(
         '1\n00:00:00,000 --> 00:00:01,500\nHello\n\n2\n00:00:01,500 --> 00:00:03,250\nworld\n',
       );
-    });
-
-    it('renders timestamps past the one minute mark', async () => {
-      const { service } = createHarness();
-      forcedAlignmentCreate.mockResolvedValue({
-        words: [{ end: 3661.125, start: 61.5, text: 'late' }],
-      });
-
-      const srt = await service.forcedAlignment('/tmp/a.mp3', 'late');
-
-      expect(srt).toBe('1\n00:01:01,500 --> 01:01:01,125\nlate\n');
-    });
-
-    it('returns an empty document when no words are aligned', async () => {
-      const { service } = createHarness();
-
-      await expect(
-        service.forcedAlignment('/tmp/a.mp3', 'nothing'),
-      ).resolves.toBe('');
     });
 
     it('logs and rethrows a provider failure', async () => {

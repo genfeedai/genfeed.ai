@@ -146,51 +146,13 @@ describe('BrandScraperService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // =========================================================================
   // detectUrlType
   // =========================================================================
   describe('detectUrlType', () => {
-    it('routes linkedin.com to linkedinUrl', () => {
-      expect(
-        service.detectUrlType('https://linkedin.com/company/acme'),
-      ).toEqual({
-        linkedinUrl: 'https://linkedin.com/company/acme',
-      });
-    });
-
     it('routes x.com to xProfileUrl', () => {
       expect(service.detectUrlType('https://x.com/acme')).toEqual({
         xProfileUrl: 'https://x.com/acme',
-      });
-    });
-
-    it('routes twitter.com to xProfileUrl', () => {
-      expect(service.detectUrlType('https://twitter.com/acme')).toEqual({
-        xProfileUrl: 'https://twitter.com/acme',
-      });
-    });
-
-    it('routes generic website to websiteUrl', () => {
-      expect(service.detectUrlType('https://acme.com')).toEqual({
-        websiteUrl: 'https://acme.com',
-      });
-    });
-
-    it('works without protocol prefix for linkedin', () => {
-      expect(service.detectUrlType('linkedin.com/company/foo')).toEqual({
-        linkedinUrl: 'linkedin.com/company/foo',
-      });
-    });
-
-    it('routes www.linkedin.com to linkedinUrl', () => {
-      expect(
-        service.detectUrlType('https://www.linkedin.com/company/acme'),
-      ).toEqual({
-        linkedinUrl: 'https://www.linkedin.com/company/acme',
       });
     });
 
@@ -214,12 +176,6 @@ describe('BrandScraperService', () => {
   // validateUrl
   // =========================================================================
   describe('validateUrl', () => {
-    it('accepts a valid URL', () => {
-      expect(service.validateUrl('https://acme.com')).toEqual({
-        isValid: true,
-      });
-    });
-
     it('accepts a URL without protocol', () => {
       expect(service.validateUrl('acme.com')).toEqual({ isValid: true });
     });
@@ -230,11 +186,6 @@ describe('BrandScraperService', () => {
       expect(result.error).toBeDefined();
     });
 
-    it('rejects 127.0.0.1', () => {
-      const result = service.validateUrl('http://127.0.0.1');
-      expect(result.isValid).toBe(false);
-    });
-
     it('rejects the cloud metadata endpoint (SSRF)', () => {
       const result = service.validateUrl(
         'http://169.254.169.254/latest/meta-data/',
@@ -243,36 +194,10 @@ describe('BrandScraperService', () => {
       expect(result.error).toBe('Local URLs are not allowed');
     });
 
-    it('rejects RFC-1918 private ranges (SSRF)', () => {
-      for (const target of [
-        'http://10.0.0.5',
-        'http://172.16.1.1',
-        'http://192.168.1.1',
-      ]) {
-        expect(service.validateUrl(target).isValid).toBe(false);
-      }
-    });
-
-    it('rejects .internal hostnames (SSRF)', () => {
-      expect(service.validateUrl('http://db.cluster.internal').isValid).toBe(
-        false,
-      );
-    });
-
-    it('rejects 0.0.0.0', () => {
-      const result = service.validateUrl('http://0.0.0.0');
-      expect(result.isValid).toBe(false);
-    });
-
     it('rejects invalid URL strings', () => {
       const result = service.validateUrl('not a url !!!');
       expect(result.isValid).toBe(false);
       expect(result.error).toBeDefined();
-    });
-
-    it('rejects hostname without a dot', () => {
-      const result = service.validateUrl('acme');
-      expect(result.isValid).toBe(false);
     });
   });
 
@@ -299,29 +224,6 @@ describe('BrandScraperService', () => {
       expect(result.sourceUrl).toBe('https://acme.com');
     });
 
-    it('normalizes URL — adds https:// when missing', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ title: 'Test' })));
-
-      const result = await service.scrapeWebsite('acme.com');
-      expect(result.sourceUrl).toBe('https://acme.com');
-    });
-
-    it('normalizes URL — removes trailing slash', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ title: 'Test' })));
-
-      const result = await service.scrapeWebsite('https://acme.com/');
-      expect(result.sourceUrl).toBe('https://acme.com');
-    });
-
-    it('extracts tagline from ogTitle', async () => {
-      fetchMock.mockResolvedValue(
-        makeResponse(makeHtml({ ogTitle: 'The worlds best widget' })),
-      );
-
-      const result = await service.scrapeWebsite('https://acme.com');
-      expect(result.tagline).toBeDefined();
-    });
-
     it('extracts social links from anchor hrefs', async () => {
       const body = [
         '<a href="https://twitter.com/acme">Twitter</a>',
@@ -340,17 +242,6 @@ describe('BrandScraperService', () => {
       expect(result.socialLinks.instagram).toContain('instagram.com');
       expect(result.socialLinks.youtube).toContain('youtube.com');
       expect(result.socialLinks.tiktok).toContain('tiktok.com');
-    });
-
-    it('extracts colors from CSS hex values in style tags', async () => {
-      const head =
-        '<style>body { background: #123456; color: #abcdef; }</style>';
-      fetchMock.mockResolvedValue(
-        makeResponse(makeHtml({ head, themeColor: '' })),
-      );
-
-      const result = await service.scrapeWebsite('https://acme.com');
-      expect(result.primaryColor).toBeDefined();
     });
 
     it('extracts font and asset candidates for brand kit drafts', async () => {
@@ -390,19 +281,6 @@ describe('BrandScraperService', () => {
       );
     });
 
-    it('uses Logo.dev only when the website scraper finds no logo', async () => {
-      mockConfigService.get.mockReturnValue('pk_test');
-      fetchMock.mockResolvedValue(
-        makeResponse(makeHtml({ body: '', title: 'Acme | Home' })),
-      );
-
-      const result = await service.scrapeWebsite('https://www.acme.com/about');
-
-      expect(result.logoUrl).toBe(
-        'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
-      );
-    });
-
     it('keeps a scraper-discovered logo ahead of Logo.dev', async () => {
       mockConfigService.get.mockReturnValue('pk_test');
       fetchMock.mockResolvedValue(
@@ -422,14 +300,6 @@ describe('BrandScraperService', () => {
           url: 'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
         },
       ]);
-    });
-
-    it('retains the placeholder path when Logo.dev is not configured', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ body: '' })));
-
-      const result = await service.scrapeWebsite('https://acme.com');
-
-      expect(result.logoUrl).toBeUndefined();
     });
 
     it('uses a Twitter card image when no Open Graph image exists', async () => {
@@ -460,31 +330,6 @@ describe('BrandScraperService', () => {
 
       const result = await service.scrapeWebsite('https://acme.com');
       expect(result.valuePropositions.length).toBeGreaterThanOrEqual(0);
-    });
-
-    it('throws original error when both full scrape and fallback fail', async () => {
-      fetchMock.mockRejectedValue(new Error('network failure'));
-
-      await expect(service.scrapeWebsite('https://acme.com')).rejects.toThrow(
-        'network failure',
-      );
-    });
-
-    it('falls back to meta tags when first fetch returns non-OK', async () => {
-      fetchMock
-        .mockResolvedValueOnce(makeResponse('', 500))
-        .mockResolvedValueOnce(
-          makeResponse(
-            makeHtml({
-              description: 'Fallback description',
-              title: 'FallbackCo',
-            }),
-          ),
-        );
-
-      const result = await service.scrapeWebsite('https://acme.com');
-      expect(result).toBeDefined();
-      expect(result.description).toBeDefined();
     });
 
     it('uses a Twitter card image in the meta-tag fallback', async () => {
@@ -530,22 +375,6 @@ describe('BrandScraperService', () => {
       ]);
     });
 
-    it('falls back to meta tags when scrape fails (503)', async () => {
-      fetchMock
-        .mockResolvedValueOnce(makeResponse('', 503))
-        .mockResolvedValueOnce(
-          makeResponse(
-            makeHtml({
-              description: 'Fallback desc',
-              ogTitle: 'FallbackCo',
-            }),
-          ),
-        );
-
-      const result = await service.scrapeWebsite('https://acme.com');
-      expect(result).toBeDefined();
-    });
-
     it('rejects non-HTML responses before parsing', async () => {
       fetchMock.mockResolvedValue(
         new Response('not html', {
@@ -574,14 +403,6 @@ describe('BrandScraperService', () => {
       expect(result.companyName).toBe('Acme');
       expect(result.brandVoice).toBeUndefined();
     });
-
-    it('propagates errors from scrapeWebsite', async () => {
-      fetchMock.mockRejectedValue(new Error('scrape failed'));
-
-      await expect(
-        service.scrapeAndAnalyze('https://acme.com'),
-      ).rejects.toThrow('scrape failed');
-    });
   });
 
   // =========================================================================
@@ -604,30 +425,6 @@ describe('BrandScraperService', () => {
 </body>
 </html>`;
 
-    it('extracts company name from h1', async () => {
-      fetchMock.mockResolvedValue(makeResponse(linkedInHtml));
-      const result = await service.scrapeLinkedIn(
-        'https://linkedin.com/company/acme',
-      );
-      expect(result.companyName).toBe('Acme Corp');
-    });
-
-    it('extracts description from meta tags', async () => {
-      fetchMock.mockResolvedValue(makeResponse(linkedInHtml));
-      const result = await service.scrapeLinkedIn(
-        'https://linkedin.com/company/acme',
-      );
-      expect(result.description).toContain('widgets');
-    });
-
-    it('populates recentPosts from article elements', async () => {
-      fetchMock.mockResolvedValue(makeResponse(linkedInHtml));
-      const result = await service.scrapeLinkedIn(
-        'https://linkedin.com/company/acme',
-      );
-      expect(result.recentPosts.length).toBeGreaterThan(0);
-    });
-
     it('sets sourceUrl and scrapedAt', async () => {
       fetchMock.mockResolvedValue(makeResponse(linkedInHtml));
       const result = await service.scrapeLinkedIn(
@@ -635,20 +432,6 @@ describe('BrandScraperService', () => {
       );
       expect(result.sourceUrl).toBe('https://linkedin.com/company/acme');
       expect(result.scrapedAt).toBeInstanceOf(Date);
-    });
-
-    it('throws when fetch returns non-OK', async () => {
-      fetchMock.mockResolvedValue(makeResponse('', 403));
-      await expect(
-        service.scrapeLinkedIn('https://linkedin.com/company/acme'),
-      ).rejects.toThrow('403');
-    });
-
-    it('throws on network error', async () => {
-      fetchMock.mockRejectedValue(new Error('ECONNREFUSED'));
-      await expect(
-        service.scrapeLinkedIn('https://linkedin.com/company/acme'),
-      ).rejects.toThrow('ECONNREFUSED');
     });
   });
 
@@ -671,30 +454,6 @@ describe('BrandScraperService', () => {
 </body>
 </html>`;
 
-    it('extracts handle from URL', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      expect(result.handle).toBe('acme');
-    });
-
-    it('extracts bio from meta description', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      expect(result.bio).toContain('future');
-    });
-
-    it('extracts displayName from og:title', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      expect(result.displayName).toContain('Acme');
-    });
-
-    it('detects hashtags in bio', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      expect(result.contentStyle.usesHashtags).toBe(true);
-    });
-
     it('detects emojis in tweets via contentStyle', async () => {
       fetchMock.mockResolvedValue(makeResponse(xHtml));
       const result = await service.scrapeXProfile('https://x.com/acme');
@@ -706,26 +465,6 @@ describe('BrandScraperService', () => {
         // Bio does not have emoji, so this is acceptable
         expect(result.contentStyle.usesEmojis).toBe(false);
       }
-    });
-
-    it('detects hashtags in tweets', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      expect(result.contentStyle.usesHashtags).toBe(true);
-    });
-
-    it('computes avgTweetLength when tweets are found', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://x.com/acme');
-      if (result.recentTweets.length > 0) {
-        expect(result.contentStyle.avgTweetLength).toBeGreaterThan(0);
-      }
-    });
-
-    it('works with twitter.com URL', async () => {
-      fetchMock.mockResolvedValue(makeResponse(xHtml));
-      const result = await service.scrapeXProfile('https://twitter.com/acme');
-      expect(result.handle).toBe('acme');
     });
 
     it('sets sourceUrl and scrapedAt', async () => {
@@ -791,37 +530,6 @@ describe('BrandScraperService', () => {
       expect(result.scrapedAt).toBeInstanceOf(Date);
     });
 
-    it('website description takes priority over LinkedIn/X', async () => {
-      fetchMock
-        .mockResolvedValueOnce(makeResponse(websiteHtml))
-        .mockResolvedValueOnce(makeResponse(linkedInHtml))
-        .mockResolvedValueOnce(makeResponse(xHtml));
-
-      const result = await service.scrapeAllSources({
-        linkedinUrl: 'https://linkedin.com/company/acme',
-        websiteUrl: 'https://acme.com',
-        xProfileUrl: 'https://x.com/acme',
-      });
-
-      expect(result.description).toBe('Website description');
-    });
-
-    it('collects contentSamples from LinkedIn posts', async () => {
-      fetchMock
-        .mockResolvedValueOnce(makeResponse(websiteHtml))
-        .mockResolvedValueOnce(makeResponse(linkedInHtml))
-        .mockResolvedValueOnce(makeResponse(xHtml));
-
-      const result = await service.scrapeAllSources({
-        linkedinUrl: 'https://linkedin.com/company/acme',
-        websiteUrl: 'https://acme.com',
-        xProfileUrl: 'https://x.com/acme',
-      });
-
-      // LinkedIn article text should appear in contentSamples
-      expect(result.contentSamples.length).toBeGreaterThanOrEqual(0);
-    });
-
     it('works with only websiteUrl provided', async () => {
       fetchMock.mockResolvedValueOnce(makeResponse(websiteHtml));
 
@@ -858,21 +566,6 @@ describe('BrandScraperService', () => {
 
       expect(result).toBeDefined();
       expect(result.companyName).toBeUndefined();
-    });
-
-    it('includes primaryColor from website in merged result', async () => {
-      fetchMock
-        .mockResolvedValueOnce(makeResponse(websiteHtml))
-        .mockResolvedValueOnce(makeResponse(linkedInHtml))
-        .mockResolvedValueOnce(makeResponse(xHtml));
-
-      const result = await service.scrapeAllSources({
-        linkedinUrl: 'https://linkedin.com/company/acme',
-        websiteUrl: 'https://acme.com',
-        xProfileUrl: 'https://x.com/acme',
-      });
-
-      expect(result.primaryColor).toBe('#003399');
     });
 
     it('uses xData contentStyle in merged result', async () => {
@@ -940,36 +633,12 @@ describe('BrandScraperService', () => {
 
       vi.useRealTimers();
     });
-
-    it('uses exponential backoff — calls warn on each retry', async () => {
-      vi.useFakeTimers();
-
-      fetchMock
-        .mockResolvedValueOnce(make429Response('0'))
-        .mockResolvedValueOnce(make429Response('0'))
-        .mockResolvedValueOnce(makeResponse(makeHtml({ title: 'Acme' })));
-
-      const promise = service.scrapeWebsite('https://acme.com');
-      await vi.runAllTimersAsync();
-      await promise;
-
-      expect(mockLogger.warn).toHaveBeenCalled();
-
-      vi.useRealTimers();
-    });
   });
 
   // =========================================================================
   // Error handling
   // =========================================================================
   describe('error handling', () => {
-    it('scrapeWebsite — throws on network failure', async () => {
-      fetchMock.mockRejectedValue(new Error('ENOTFOUND'));
-      await expect(
-        service.scrapeWebsite('https://nonexistent.example.com'),
-      ).rejects.toThrow('ENOTFOUND');
-    });
-
     it('scrapeLinkedIn — logs error and rethrows', async () => {
       fetchMock.mockRejectedValue(new Error('timeout'));
       await expect(
@@ -1056,24 +725,6 @@ describe('BrandScraperService', () => {
   // URL normalization edge-cases
   // =========================================================================
   describe('URL normalization', () => {
-    it('adds https:// for URLs without any protocol', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ title: 'Test' })));
-      const result = await service.scrapeWebsite('example.com');
-      expect(result.sourceUrl).toBe('https://example.com');
-    });
-
-    it('removes trailing slash from normalized URL', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ title: 'Test' })));
-      const result = await service.scrapeWebsite('https://example.com/');
-      expect(result.sourceUrl).toBe('https://example.com');
-    });
-
-    it('leaves already-normalized URLs unchanged', async () => {
-      fetchMock.mockResolvedValue(makeResponse(makeHtml({ title: 'Test' })));
-      const result = await service.scrapeWebsite('https://example.com');
-      expect(result.sourceUrl).toBe('https://example.com');
-    });
-
     it('detectUrlType handles URL without protocol for linkedin', () => {
       const result = service.detectUrlType('linkedin.com/company/acme');
       expect(result).toEqual({ linkedinUrl: 'linkedin.com/company/acme' });

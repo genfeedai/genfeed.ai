@@ -16,19 +16,6 @@ describe('throwIfOAuthCallbackError', () => {
     vi.clearAllMocks();
   });
 
-  it('returns without querying when the callback has no error code', async () => {
-    await throwIfOAuthCallbackError(
-      credentialsService,
-      { state: 'opaque-state' },
-      CredentialPlatform.TWITTER,
-    );
-
-    expect(
-      credentialsService.findPendingOAuthCredential,
-    ).not.toHaveBeenCalled();
-    expect(credentialsService.patch).not.toHaveBeenCalled();
-  });
-
   it('persists access_denied onto the pending credential', async () => {
     credentialsService.findPendingOAuthCredential.mockResolvedValue({
       id: 'cred-1',

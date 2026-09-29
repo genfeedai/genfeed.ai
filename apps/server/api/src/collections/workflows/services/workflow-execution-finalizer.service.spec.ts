@@ -90,52 +90,6 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     );
   });
 
-  it('does not notify on a manual failure', async () => {
-    executionsService.completeExecution.mockResolvedValue({
-      id: 'exec-2',
-      organizationId: 'org-1',
-      trigger: WorkflowExecutionTrigger.MANUAL,
-      userId: 'user-1',
-      workflowId: 'wf-1',
-    });
-
-    await service.finalizeExecution({
-      completedAt: new Date('2026-08-14T08:00:00.000Z'),
-      executionId: 'exec-2',
-      finalStatus: WorkflowExecutionStatus.FAILED,
-      result: failedRunResult(),
-      workflowId: 'wf-1',
-      workflowStatus: WorkflowStatus.FAILED,
-    });
-
-    expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
-  });
-
-  it('does not notify on a scheduled completion', async () => {
-    executionsService.completeExecution.mockResolvedValue({
-      id: 'exec-3',
-      organizationId: 'org-1',
-      trigger: WorkflowExecutionTrigger.SCHEDULED,
-      userId: 'user-1',
-      workflowId: 'wf-1',
-    });
-
-    await service.finalizeExecution({
-      completedAt: new Date('2026-08-14T08:00:00.000Z'),
-      executionId: 'exec-3',
-      finalStatus: WorkflowExecutionStatus.COMPLETED,
-      result: {
-        ...failedRunResult(),
-        error: undefined,
-        status: 'completed',
-      },
-      workflowId: 'wf-1',
-      workflowStatus: WorkflowStatus.ACTIVE,
-    });
-
-    expect(notificationsPublisher.publishWorkflowStatus).not.toHaveBeenCalled();
-  });
-
   it('does not fail finalization when notification publish throws', async () => {
     executionsService.completeExecution.mockResolvedValue({
       id: 'exec-4',

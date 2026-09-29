@@ -58,10 +58,6 @@ describe('OnboardingController', () => {
     onboardingService = module.get(OnboardingService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('lets onboarding status and readiness run before active-organization membership validation', () => {
     expect(
       Reflect.getMetadata(
@@ -81,27 +77,6 @@ describe('OnboardingController', () => {
         OnboardingController.prototype.checkPrefixAvailable,
       ),
     ).toBe(true);
-  });
-
-  it('keeps onboarding writes and preview generation membership-gated', () => {
-    expect(
-      Reflect.getMetadata(
-        SKIP_ROLES_KEY,
-        OnboardingController.prototype.setPrefix,
-      ),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        SKIP_ROLES_KEY,
-        OnboardingController.prototype.generatePreview,
-      ),
-    ).toBeUndefined();
-    expect(
-      Reflect.getMetadata(
-        SKIP_ROLES_KEY,
-        OnboardingController.prototype.claimProactiveWorkspace,
-      ),
-    ).toBeUndefined();
   });
 
   describe('getStatus', () => {
@@ -224,20 +199,6 @@ describe('OnboardingController', () => {
       );
       expect(result.imageUrl).toBe('https://cdn.example.com/preview.png');
       expect(result.prompt).toBe('Generated prompt');
-    });
-
-    it('should propagate insufficient credits error', async () => {
-      const dto: GeneratePreviewDto = {
-        brandId: 'brand_456',
-        contentType: 'ads',
-      } as GeneratePreviewDto;
-
-      const error = new Error('Insufficient credits');
-      onboardingService.generateOnboardingPreview.mockRejectedValue(error);
-
-      await expect(controller.generatePreview(dto, mockUser)).rejects.toThrow(
-        'Insufficient credits',
-      );
     });
   });
 

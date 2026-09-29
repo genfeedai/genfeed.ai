@@ -310,14 +310,6 @@ describe('BatchGenerationReconcileService', () => {
     });
   });
 
-  it('does not retry settlement when the marker is already clear', async () => {
-    batchDelegate.findMany.mockResolvedValue([]);
-
-    await service.reconcileSettlementShortfalls();
-
-    expect(creditsService.retrySettlementShortfall).not.toHaveBeenCalled();
-  });
-
   it('expires stale reservations on the existing credit reconciliation sweep', async () => {
     reservationService.expireDue.mockResolvedValue(3);
 

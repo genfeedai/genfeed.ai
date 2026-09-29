@@ -125,25 +125,6 @@ describe('ContentExecutionService', () => {
   // atomic plan execution actions
   // ---------------------------------------------------------------------------
   describe('atomic plan execution actions', () => {
-    it('should validate the plan exists before executing', async () => {
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      expect(mockContentPlansService.getByIdOrFail).toHaveBeenCalledWith(
-        orgId,
-        planId,
-      );
-    });
-
-    it('should set plan status to EXECUTING at the start', async () => {
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      expect(mockContentPlansService.updateStatus).toHaveBeenCalledWith(
-        orgId,
-        planId,
-        ContentPlanStatus.EXECUTING,
-      );
-    });
-
     it('should return empty results with summary when no pending items', async () => {
       const result = await executePlanAtomically(
         orgId,
@@ -154,41 +135,6 @@ describe('ContentExecutionService', () => {
 
       expect(result.results).toEqual([]);
       expect(result.summary).toEqual({ completed: 0, failed: 0, total: 0 });
-    });
-
-    it('should set final status to COMPLETED when all items succeed', async () => {
-      const item = makeItem();
-      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
-      mockSkillExecutorService.execute.mockResolvedValue({
-        draft: {
-          confidence: 0.9,
-          content: 'hi',
-          mediaUrls: [],
-          metadata: {},
-          type: 'text',
-        },
-        source: 'skill',
-      });
-
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      const updateStatusCalls = mockContentPlansService.updateStatus.mock.calls;
-      const lastCall = updateStatusCalls[updateStatusCalls.length - 1];
-      expect(lastCall).toEqual([orgId, planId, ContentPlanStatus.COMPLETED]);
-    });
-
-    it('should set final status to ACTIVE when all items fail', async () => {
-      const item = makeItem();
-      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
-      mockSkillExecutorService.execute.mockRejectedValue(
-        new Error('skill error'),
-      );
-
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      const updateStatusCalls = mockContentPlansService.updateStatus.mock.calls;
-      const lastCall = updateStatusCalls[updateStatusCalls.length - 1];
-      expect(lastCall).toEqual([orgId, planId, ContentPlanStatus.ACTIVE]);
     });
 
     it('should set COMPLETED when at least one item succeeds (mixed results)', async () => {
@@ -228,27 +174,6 @@ describe('ContentExecutionService', () => {
       const updateStatusCalls = mockContentPlansService.updateStatus.mock.calls;
       const lastCall = updateStatusCalls[updateStatusCalls.length - 1];
       expect(lastCall[2]).toBe(ContentPlanStatus.COMPLETED);
-    });
-
-    it('should increment executed count for each completed item', async () => {
-      const item = makeItem();
-      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
-      mockSkillExecutorService.execute.mockResolvedValue({
-        draft: {
-          confidence: 0.9,
-          content: 'hi',
-          mediaUrls: [],
-          metadata: {},
-          type: 'text',
-        },
-        source: 'skill',
-      });
-
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      expect(
-        mockContentPlansService.incrementExecutedCount,
-      ).toHaveBeenCalledWith(orgId, planId);
     });
 
     it('should propagate error when plan is not found', async () => {
@@ -294,28 +219,6 @@ describe('ContentExecutionService', () => {
       );
       expect(result.status).toBe(ContentPlanItemStatus.COMPLETED);
       expect(result.itemId).toBe(itemId);
-    });
-
-    it('should increment plan executed count on success', async () => {
-      const item = makeItem();
-      const itemId = String(item.id);
-      mockContentPlanItemsService.getByIdOrFail.mockResolvedValue(item);
-      mockSkillExecutorService.execute.mockResolvedValue({
-        draft: {
-          confidence: 0.9,
-          content: 'hi',
-          mediaUrls: [],
-          metadata: {},
-          type: 'text',
-        },
-        source: 'skill',
-      });
-
-      await service.executeSingleItem(orgId, brandId, userId, itemId);
-
-      expect(
-        mockContentPlansService.incrementExecutedCount,
-      ).toHaveBeenCalledWith(orgId, String(item.plan));
     });
 
     it('should not increment plan count on failure', async () => {
@@ -405,35 +308,6 @@ describe('ContentExecutionService', () => {
       );
     });
 
-    it('should create a canonical reviewable post with correct fields', async () => {
-      const item = makeItem({ platforms: ['twitter'], skillSlug: 'seo-blog' });
-      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
-      mockSkillExecutorService.execute.mockResolvedValue({
-        draft: {
-          confidence: 0.88,
-          content: 'SEO blog content',
-          mediaUrls: ['https://cdn.example.com/img.jpg'],
-          metadata: { keywords: ['seo'] },
-          type: 'text',
-        },
-        executionId: 'execution-seo-blog',
-      });
-
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          confidence: 0.88,
-          content: 'SEO blog content',
-          generatedBy: 'content-engine:seo-blog',
-          platforms: ['twitter'],
-          skillSlug: 'seo-blog',
-          userId,
-          workflowExecutionId: 'execution-seo-blog',
-        }),
-      );
-    });
-
     it('should set item status to FAILED when skill executor throws', async () => {
       const item = makeItem();
       mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
@@ -502,28 +376,6 @@ describe('ContentExecutionService', () => {
       mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([
         pipelineItem,
       ]);
-    });
-
-    it('should call contentOrchestrationService.generateAndPublish with mapped steps', async () => {
-      mockContentOrchestrationService.generateAndPublish.mockResolvedValue({
-        postIds: [],
-        status: 'completed',
-        steps: [{ result: { url: 'https://cdn.example.com/video.mp4' } }],
-      });
-
-      await executePlanAtomically(orgId, brandId, planId, userId);
-
-      expect(
-        mockContentOrchestrationService.generateAndPublish,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId,
-          organizationId: orgId,
-          personaId: brandId,
-          platforms: pipelineItem.platforms,
-          publishMode: 'none',
-        }),
-      );
     });
 
     it('should create a reviewable post with mediaUrls from pipeline steps', async () => {

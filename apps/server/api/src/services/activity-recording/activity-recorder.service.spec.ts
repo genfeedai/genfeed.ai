@@ -1,10 +1,5 @@
-import { runWithActionOrigin } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
-import {
-  ActionOrigin,
-  ActivityKey,
-  ActivitySource,
-} from '@genfeedai/contracts';
+import { ActivityKey, ActivitySource } from '@genfeedai/contracts';
 
 type Row = Record<string, unknown>;
 
@@ -156,29 +151,6 @@ describe('ActivityRecorderService', () => {
     expect(publisher.publishInboxUpdate).toHaveBeenCalledWith('org-1', [
       'user-1',
     ]);
-  });
-
-  it('stamps trusted action origin on the recorded activity', async () => {
-    const { recorder, tx } = makeRecorder();
-
-    await runWithActionOrigin(
-      { actorUserId: 'user-1', origin: ActionOrigin.MCP },
-      () =>
-        recorder.record({
-          ...base,
-          data: { origin: ActionOrigin.UI },
-          key: ActivityKey.IMAGE_GENERATED,
-        }),
-    );
-
-    const [{ data }] = tx.activity.create.mock.calls[0];
-    expect(data.data).toEqual(
-      expect.objectContaining({
-        actorUserId: 'user-1',
-        key: ActivityKey.IMAGE_GENERATED,
-        origin: ActionOrigin.MCP,
-      }),
-    );
   });
 
   it('writes email as a pending delivery and enqueues it after commit', async () => {

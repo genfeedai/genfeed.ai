@@ -2,26 +2,10 @@ import {
   GenerateWorkflowWebhookDto,
   PatchWorkflowWebhookDto,
 } from '@api/collections/workflows/dto/webhook.dto';
-import { WorkflowWebhookAuthType } from '@genfeedai/contracts';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 describe('GenerateWorkflowWebhookDto', () => {
-  it('accepts an omitted authType', async () => {
-    const dto = plainToInstance(GenerateWorkflowWebhookDto, {});
-
-    expect(await validate(dto)).toHaveLength(0);
-  });
-
-  it.each(Object.values(WorkflowWebhookAuthType))(
-    'accepts the %s authType',
-    async (authType) => {
-      const dto = plainToInstance(GenerateWorkflowWebhookDto, { authType });
-
-      expect(await validate(dto)).toHaveLength(0);
-    },
-  );
-
   it.each([
     ['a differently-cased value', 'Secret'],
     ['an unsupported scheme', 'hmac'],
@@ -44,14 +28,6 @@ describe('GenerateWorkflowWebhookDto', () => {
 });
 
 describe('PatchWorkflowWebhookDto', () => {
-  it('accepts a boolean rotateSecret', async () => {
-    const dto = plainToInstance(PatchWorkflowWebhookDto, {
-      rotateSecret: true,
-    });
-
-    expect(await validate(dto)).toHaveLength(0);
-  });
-
   it('rejects a non-boolean rotateSecret', async () => {
     const dto = plainToInstance(PatchWorkflowWebhookDto, {
       rotateSecret: 'yes',

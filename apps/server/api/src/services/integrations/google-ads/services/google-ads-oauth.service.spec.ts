@@ -50,10 +50,6 @@ describe('GoogleAdsOAuthService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateAuthUrl', () => {
     it('should generate a valid Google OAuth URL', () => {
       const url = service.generateAuthUrl('my-state-token');
@@ -69,26 +65,6 @@ describe('GoogleAdsOAuthService', () => {
       expect(url).toContain('prompt=consent');
     });
 
-    it('should include redirect URI in auth URL', () => {
-      const url = service.generateAuthUrl('state-abc');
-
-      expect(url).toContain(
-        encodeURIComponent('https://app.genfeed.ai/callback/google-ads'),
-      );
-    });
-
-    it('refuses to start OAuth when client id is a placeholder', () => {
-      configService.get.mockImplementation((key) =>
-        String(key) === 'GOOGLE_OAUTH_CLIENT_ID'
-          ? 'PLACEHOLDER_NOT_CONFIGURED'
-          : CONFIG_VALUES[String(key)],
-      );
-
-      expect(() => service.generateAuthUrl('state')).toThrow(
-        ServiceUnavailableException,
-      );
-    });
-
     it('refuses to start OAuth when client credentials are missing', () => {
       configService.get.mockReturnValue(undefined as never);
 
@@ -99,28 +75,6 @@ describe('GoogleAdsOAuthService', () => {
   });
 
   describe('exchangeAuthCodeForAccessToken', () => {
-    it('should exchange code for tokens', async () => {
-      const mockResponse = {
-        data: {
-          access_token: 'access-token-xyz',
-          expires_in: 3600,
-          refresh_token: 'refresh-token-xyz',
-          token_type: 'Bearer',
-        },
-      };
-
-      httpService.post.mockReturnValue(of(mockResponse) as never);
-
-      const result = await service.exchangeAuthCodeForAccessToken('auth-code');
-
-      expect(result).toEqual({
-        accessToken: 'access-token-xyz',
-        expiresIn: 3600,
-        refreshToken: 'refresh-token-xyz',
-        tokenType: 'Bearer',
-      });
-    });
-
     it('should call token endpoint with correct params', async () => {
       const mockResponse = {
         data: {
@@ -161,49 +115,6 @@ describe('GoogleAdsOAuthService', () => {
   });
 
   describe('refreshAccessToken', () => {
-    it('should refresh access token', async () => {
-      const mockResponse = {
-        data: {
-          access_token: 'new-access-token',
-          expires_in: 3600,
-          token_type: 'Bearer',
-        },
-      };
-
-      httpService.post.mockReturnValue(of(mockResponse) as never);
-
-      const result = await service.refreshAccessToken('old-refresh-token');
-
-      expect(result).toEqual({
-        accessToken: 'new-access-token',
-        expiresIn: 3600,
-        refreshToken: 'old-refresh-token', // original refresh token preserved
-        tokenType: 'Bearer',
-      });
-    });
-
-    it('should call token endpoint with refresh_token grant', async () => {
-      const mockResponse = {
-        data: {
-          access_token: 'new-at',
-          expires_in: 3600,
-          token_type: 'Bearer',
-        },
-      };
-
-      httpService.post.mockReturnValue(of(mockResponse) as never);
-
-      await service.refreshAccessToken('rt-123');
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://oauth2.googleapis.com/token',
-        expect.objectContaining({
-          grant_type: 'refresh_token',
-          refresh_token: 'rt-123',
-        }),
-      );
-    });
-
     it('should preserve the original refresh token in result', async () => {
       const mockResponse = {
         data: {

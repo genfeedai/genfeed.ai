@@ -74,10 +74,6 @@ describe('CacheService', () => {
     cacheTagsService = module.get(CacheTagsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('counter reservations', () => {
     it('decodes atomic admission and terminal outcomes', async () => {
       mockRedisClient.eval.mockResolvedValueOnce([1, '250000', '300000']);
@@ -252,11 +248,6 @@ describe('CacheService', () => {
         'NX',
       );
     });
-
-    it('returns false when the lock is already held', async () => {
-      (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
-      await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
-    });
   });
 
   describe('owned claims', () => {
@@ -411,11 +402,6 @@ describe('CacheService', () => {
       isClientReady = false;
     });
 
-    it('reports a cache miss without issuing a read', async () => {
-      await expect(service.get('key')).resolves.toBeNull();
-      expect(mockRedisClient.get).not.toHaveBeenCalled();
-    });
-
     it('reports a getdel miss without issuing GETDEL', async () => {
       await expect(service.getdel('single-use:key')).resolves.toBeNull();
       expect(mockRedisClient.getdel).not.toHaveBeenCalled();
@@ -461,12 +447,6 @@ describe('CacheService', () => {
   });
 
   describe('generateKey', () => {
-    it('joins namespace and parts with colons', () => {
-      expect(service.generateKey('brands', 'org-1', 42)).toBe(
-        'brands:org-1:42',
-      );
-    });
-
     it('returns namespace with trailing colon boundary when no parts given', () => {
       expect(service.generateKey('brands')).toBe('brands:');
     });

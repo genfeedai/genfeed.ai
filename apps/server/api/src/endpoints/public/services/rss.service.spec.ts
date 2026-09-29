@@ -71,10 +71,6 @@ describe('RssService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateGlobalFeed', () => {
     it('should generate RSS feed with articles', async () => {
       const feed = await service.generateGlobalFeed();
@@ -87,22 +83,6 @@ describe('RssService', () => {
       expect(feed).toContain('Test Article 2');
       expect(feed).toContain(
         '<atom:link href="https://api.public.genfeed.ai/rss/articles"',
-      );
-    });
-
-    it('should query for public published articles', async () => {
-      await service.generateGlobalFeed();
-
-      expect(articlesService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            isDeleted: false,
-            publishedAt: { lte: expect.any(Date) },
-            scope: ArticleScope.PUBLIC,
-            status: 'PUBLISHED',
-          },
-        }),
-        { pagination: false },
       );
     });
 

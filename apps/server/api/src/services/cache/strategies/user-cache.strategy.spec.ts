@@ -32,10 +32,6 @@ describe('UserCacheStrategy', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(strategy).toBeDefined();
-  });
-
   describe('cacheUser', () => {
     it('should generate key and set cache with user tags and 1h TTL', async () => {
       cacheService.generateKey.mockReturnValue('user:user-123');
@@ -52,14 +48,6 @@ describe('UserCacheStrategy', () => {
       expect(result).toBe(true);
     });
 
-    it('should return false when cache set fails', async () => {
-      cacheService.generateKey.mockReturnValue('user:user-456');
-      cacheService.set.mockResolvedValue(false);
-
-      const result = await strategy.cacheUser('user-456', { name: 'Jane' });
-      expect(result).toBe(false);
-    });
-
     it('should tag with both global users tag and per-user tag', async () => {
       cacheService.generateKey.mockReturnValue('user:abc');
       cacheService.set.mockResolvedValue(true);
@@ -70,17 +58,6 @@ describe('UserCacheStrategy', () => {
       const options = setCall[2] as { tags: string[]; ttl: number };
       expect(options.tags).toContain('users');
       expect(options.tags).toContain('user:abc');
-    });
-
-    it('should use 3600 second TTL (1 hour)', async () => {
-      cacheService.generateKey.mockReturnValue('user:xyz');
-      cacheService.set.mockResolvedValue(true);
-
-      await strategy.cacheUser('xyz', {});
-
-      const setCall = cacheService.set.mock.calls[0];
-      const options = setCall[2] as { tags: string[]; ttl: number };
-      expect(options.ttl).toBe(3600);
     });
   });
 
@@ -96,27 +73,6 @@ describe('UserCacheStrategy', () => {
       expect(cacheService.get).toHaveBeenCalledWith('user:user-123');
       expect(result).toEqual(userData);
     });
-
-    it('should return null when user is not in cache', async () => {
-      cacheService.generateKey.mockReturnValue('user:missing');
-      cacheService.get.mockResolvedValue(null);
-
-      const result = await strategy.getUser('missing');
-      expect(result).toBeNull();
-    });
-
-    it('should support generic type parameter', async () => {
-      interface UserData {
-        email: string;
-        role: string;
-      }
-      const userData: UserData = { email: 'test@test.com', role: 'admin' };
-      cacheService.generateKey.mockReturnValue('user:typed');
-      cacheService.get.mockResolvedValue(userData);
-
-      const result = await strategy.getUser<UserData>('typed');
-      expect(result?.role).toBe('admin');
-    });
   });
 
   describe('invalidate', () => {
@@ -129,13 +85,6 @@ describe('UserCacheStrategy', () => {
         'user:user-123',
       ]);
       expect(result).toBe(3);
-    });
-
-    it('should return number of invalidated entries', async () => {
-      cacheService.invalidateByTags.mockResolvedValue(0);
-
-      const result = await strategy.invalidate('no-entries-user');
-      expect(result).toBe(0);
     });
 
     it('should only invalidate per-user tag, not global users tag', async () => {

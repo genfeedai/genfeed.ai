@@ -133,10 +133,6 @@ describe('PublicArticlesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findPublicArticles', () => {
     it('should return public articles', async () => {
       const request = {} as Request;

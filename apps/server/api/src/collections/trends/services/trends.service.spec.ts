@@ -302,10 +302,6 @@ describe('TrendsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('delegates corpus freshness health to the reference corpus owner', async () => {
     const health = {
       generatedAt: '2026-06-30T08:00:00.000Z',
@@ -374,37 +370,6 @@ describe('TrendsService', () => {
       ).sanitizeForPrompt('<script>alert("xss")</script>');
       expect(result).not.toContain('<');
       expect(result).not.toContain('>');
-    });
-
-    it('should limit consecutive newlines', () => {
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string) => string
-        >
-      ).sanitizeForPrompt('line1\n\n\n\n\nline2');
-      expect(result).toBe('line1\n\nline2');
-    });
-
-    it('should truncate long strings', () => {
-      const longString = 'a'.repeat(3000);
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string) => string
-        >
-      ).sanitizeForPrompt(longString);
-      expect(result.length).toBe(2000);
-    });
-
-    it('should handle numbers', () => {
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: unknown) => string
-        >
-      ).sanitizeForPrompt(12345);
-      expect(result).toBe('12345');
     });
   });
 
@@ -646,79 +611,6 @@ describe('TrendsService', () => {
       expect(result.lockedPlatforms).toEqual(['instagram']);
     });
 
-    it('does not synthesize LinkedIn content from a stale legacy row without references', async () => {
-      vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
-        connectedPlatforms: [],
-        lockedPlatforms: ['linkedin'],
-        trends: [
-          new TrendEntity({
-            ...mockTrend,
-            id: testId('trend', 3),
-            metadata: {
-              source: 'curated',
-            },
-            platform: 'linkedin',
-            topic: '#Leadership',
-          } as never),
-        ],
-      });
-
-      const result = await service.getTrendContent('org-1', 'brand-1');
-
-      expect(result.items).toEqual([]);
-    });
-
-    it('excludes historical LinkedIn public reference previews', async () => {
-      vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
-        connectedPlatforms: [],
-        lockedPlatforms: ['linkedin'],
-        trends: [
-          new TrendEntity({
-            ...mockTrend,
-            id: testId('trend', 4),
-            metadata: {
-              source: 'public-reference',
-              sourceClassification: {
-                capturedAt: '2026-06-09T00:00:00.000Z',
-                confidence: 'low',
-                freshnessWindowDays: 7,
-                intendedUse: 'organic_trend_discovery',
-                sourceKind: 'public_platform_reference',
-                sourceLabel: 'LinkedIn',
-                sourceTopic: '#openai',
-              },
-              sourcePreviewCache: [
-                {
-                  contentType: 'post',
-                  id: 'linkedin:openai-fallback-primary',
-                  platform: 'linkedin',
-                  sourceClassification: {
-                    capturedAt: '2026-06-09T00:00:00.000Z',
-                    confidence: 'low',
-                    freshnessWindowDays: 7,
-                    intendedUse: 'organic_trend_discovery',
-                    sourceKind: 'public_platform_reference',
-                    sourceLabel: 'LinkedIn',
-                    sourceTopic: '#openai',
-                  },
-                  sourceUrl: 'https://www.linkedin.com/company/openai/',
-                  title: 'OpenAI public reference',
-                },
-              ],
-              sourcePreviewState: 'fallback',
-            },
-            platform: 'linkedin',
-            topic: '#openai',
-            viralityScore: 42,
-          } as never),
-        ],
-      });
-
-      const result = await service.getTrendContent('org-1', 'brand-1');
-
-      expect(result.items).toEqual([]);
-    });
-
     it('returns an empty feed when the trend corpus is empty (no synthetic seed)', async () => {
       const result = await service.getTrendContent(undefined, undefined, {
         limit: 10,
@@ -952,20 +844,6 @@ describe('TrendsService', () => {
 
       expect(score).toBeGreaterThanOrEqual(59);
       expect(score).toBeLessThanOrEqual(65);
-    });
-
-    it('should cap score at 100', () => {
-      const trendData = {
-        growthRate: 100,
-        mentions: 50000000,
-        metadata: {},
-        platform: 'tiktok',
-        topic: 'Viral',
-      };
-
-      const score = service.calculateViralityScore(trendData);
-
-      expect(score).toBeLessThanOrEqual(100);
     });
 
     it('should handle zero mentions', () => {

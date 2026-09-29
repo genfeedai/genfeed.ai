@@ -33,10 +33,6 @@ describe('AiActionsController', () => {
     aiActionsService = module.get(AiActionsService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('execute', () => {
     it('should execute AI action successfully', async () => {
       const orgId = 'org_123';
@@ -88,19 +84,6 @@ describe('AiActionsController', () => {
 
       expect(result.isByok).toBe(true);
       expect(result.result).toBe('Improved hook text');
-    });
-
-    it('should propagate service errors', async () => {
-      const orgId = 'org_789';
-      const dto: ExecuteAiActionDto = {
-        action: 'invalid_action',
-        content: 'test',
-      };
-
-      const error = new Error('Unknown action type: invalid_action');
-      aiActionsService.execute.mockRejectedValue(error);
-
-      await expect(controller.execute(orgId, dto)).rejects.toThrow(error);
     });
   });
 });

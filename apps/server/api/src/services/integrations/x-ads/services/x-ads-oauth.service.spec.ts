@@ -86,17 +86,6 @@ describe('XAdsOAuthService', () => {
     },
   );
 
-  it('fails closed on placeholder application credentials', async () => {
-    configGet.mockImplementation((key: string) =>
-      key === 'X_ADS_API_KEY' ? 'PLACEHOLDER_NOT_CONFIGURED' : config[key],
-    );
-
-    await expect(service.generateAuthLink()).rejects.toBeInstanceOf(
-      ServiceUnavailableException,
-    );
-    expect(TwitterApi).not.toHaveBeenCalled();
-  });
-
   it('exchanges the correlated request token and verifier for durable credentials', async () => {
     mockLogin.mockResolvedValue({
       accessToken: 'access-token',

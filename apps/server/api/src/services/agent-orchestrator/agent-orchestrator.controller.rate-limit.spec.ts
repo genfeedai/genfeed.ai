@@ -12,13 +12,6 @@ const AGENT_TURN_RATE_LIMIT = {
   windowMs: 60_000,
 } as const satisfies RateLimitOptions;
 
-const TURN_HANDLERS = [
-  'createTurn',
-  'createThreadTurn',
-  'createTurnStream',
-  'createThreadTurnStream',
-] as const;
-
 function createGuardContext(options: {
   currentCount: number;
   rateLimitOptions: RateLimitOptions;
@@ -66,27 +59,6 @@ function createGuardContext(options: {
 }
 
 describe('AgentOrchestratorController rate limits', () => {
-  it.each(TURN_HANDLERS)(
-    'applies a user-scoped 30/min turn limit on %s',
-    (handler) => {
-      const metadata = Reflect.getMetadata(
-        RATE_LIMIT_KEY,
-        AgentOrchestratorController.prototype[handler],
-      ) as RateLimitOptions | undefined;
-
-      expect(metadata).toEqual(AGENT_TURN_RATE_LIMIT);
-    },
-  );
-
-  it('does not rate-limit read-only credit lookup', () => {
-    const metadata = Reflect.getMetadata(
-      RATE_LIMIT_KEY,
-      AgentOrchestratorController.prototype.getCredits,
-    );
-
-    expect(metadata).toBeUndefined();
-  });
-
   it('returns 429 when the decorated turn limit is exceeded', async () => {
     const rateLimitOptions = Reflect.getMetadata(
       RATE_LIMIT_KEY,

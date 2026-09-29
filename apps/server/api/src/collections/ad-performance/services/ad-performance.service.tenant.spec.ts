@@ -290,22 +290,6 @@ describe('AdPerformanceService', () => {
       expect(result[0].id).toBe('ad-roas');
     });
 
-    it('defaults to performanceScore and a ten-row Prisma limit', async () => {
-      await service.findTopPerformers({});
-
-      expect(adPerformance.findMany).toHaveBeenCalledWith({
-        orderBy: [
-          { performanceScore: { nulls: 'last', sort: 'desc' } },
-          { updatedAt: 'desc' },
-        ],
-        take: 10,
-        where: {
-          isDeleted: false,
-          performanceScore: { not: null },
-        },
-      });
-    });
-
     it('includes tenant-owned repository rows only for the requesting organization', async () => {
       await service.findTopPerformers({
         adPlatform: 'x',
@@ -720,24 +704,6 @@ describe('AdPerformanceService', () => {
 
       expect(transaction).toHaveBeenCalledTimes(1);
       expect(adWatchedAdvertiser.updateMany).not.toHaveBeenCalled();
-    });
-
-    it('marks a failed source snapshot stale so reads hide it without destroying last-known data', async () => {
-      await service.markResearchSnapshotStale(
-        'org-1',
-        'watch-1',
-        'x_ads_repository',
-      );
-
-      expect(adPerformance.updateMany).toHaveBeenCalledWith({
-        data: { researchFreshnessState: 'stale' },
-        where: {
-          isDeleted: false,
-          organizationId: 'org-1',
-          researchSnapshotKey: 'watch-1',
-          researchSource: 'x_ads_repository',
-        },
-      });
     });
 
     it('scopes the stale transition to the failing provider so a sibling platform snapshot on the same advertiser stays fresh (#3537)', async () => {

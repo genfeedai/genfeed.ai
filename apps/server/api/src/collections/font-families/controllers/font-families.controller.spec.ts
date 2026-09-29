@@ -78,10 +78,6 @@ describe('FontFamiliesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findOne', () => {
     it('should return a font family by id', async () => {
       const id = mockFontFamily.id;
@@ -174,13 +170,6 @@ describe('FontFamiliesController', () => {
 
       expect(query).toBeDefined();
       expect(query.where.OR).toEqual([{ organizationId: null }]);
-    });
-
-    it('should use default orderBy with label when no sort provided', () => {
-      const inputQuery = {};
-      const query = controller.buildFindAllQuery(mockUser, inputQuery as never);
-
-      expect(query.orderBy).toEqual({ createdAt: -1, label: 1 });
     });
   });
 });

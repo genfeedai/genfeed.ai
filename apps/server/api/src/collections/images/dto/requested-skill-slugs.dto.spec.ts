@@ -28,15 +28,4 @@ describe.each([
       errors.some((error) => error.property === 'requestedSkillSlugs'),
     ).toBe(true);
   });
-  it.each([undefined, [], ['Cinema', 'detail']].map((value) => [value]))(
-    'allows optional valid selections %j',
-    async (requestedSkillSlugs) => {
-      const errors = await validate(
-        Object.assign(new Dto(), { requestedSkillSlugs }),
-      );
-      expect(
-        errors.some((error) => error.property === 'requestedSkillSlugs'),
-      ).toBe(false);
-    },
-  );
 });

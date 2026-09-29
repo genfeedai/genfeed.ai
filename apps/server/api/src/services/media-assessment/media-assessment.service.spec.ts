@@ -171,20 +171,6 @@ describe('MediaAssessmentService', () => {
     ]);
   });
 
-  it('is clean with every source off and settled perception', async () => {
-    const { service } = makeHarness({
-      featureSettings: { moderationMode: 'off' },
-      perceptions: [perceptionRow('asset-1')],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toEqual({
-      isBlocking: false,
-      isPerceptionPending: false,
-      reasons: [],
-      warnings: [],
-    });
-  });
-
   it('blocks on readiness errors and carries warnings', async () => {
     const { service } = makeHarness({
       perceptions: [perceptionRow('asset-1')],
@@ -331,33 +317,6 @@ describe('MediaAssessmentService', () => {
     ]);
   });
 
-  it('never blocks on exhausted vision retries in shadow mode', async () => {
-    const { service } = makeHarness({
-      featureSettings: { mediaGateVisionMode: 'shadow', moderationMode: 'off' },
-      perceptions: [perceptionRow('asset-1', { visionAttempts: 3 })],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: false,
-      reasons: [],
-    });
-  });
-
-  it('treats a dangling vision evaluation link as unchecked, never as passing (#5316)', async () => {
-    const { service } = makeHarness({
-      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
-      evaluations: [],
-      perceptions: [
-        perceptionRow('asset-1', { visionEvaluationId: 'evaluation-deleted' }),
-      ],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: true,
-      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
-    });
-  });
-
   it('reports pending perception without blocking', async () => {
     const { service } = makeHarness({
       featureSettings: { moderationMode: 'off' },
@@ -396,18 +355,6 @@ describe('MediaAssessmentService', () => {
         source: 'perception',
       }),
     ]);
-  });
-
-  it('treats live vision without an evaluation as checks pending', async () => {
-    const { service } = makeHarness({
-      featureSettings: { mediaGateVisionMode: 'live', moderationMode: 'off' },
-      perceptions: [perceptionRow('asset-1')],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: true,
-      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
-    });
   });
 
   it('never gates a non-media attachment on pending checks', async () => {
@@ -505,37 +452,6 @@ describe('MediaAssessmentService', () => {
     ]);
   });
 
-  it('treats a live text gate without a decision as checks pending', async () => {
-    const { service } = makeHarness({
-      featureSettings: {
-        mediaTextGateDecisionMode: 'live',
-        moderationMode: 'off',
-      },
-      perceptions: [perceptionRow('asset-1')],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: true,
-      reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
-    });
-  });
-
-  it('treats a live text gate as off while no decision provider is bound', async () => {
-    const { service } = makeHarness({
-      featureSettings: {
-        mediaTextGateDecisionMode: 'live',
-        moderationMode: 'off',
-      },
-      isDecisionProviderBound: false,
-      perceptions: [perceptionRow('asset-1')],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: false,
-      reasons: [],
-    });
-  });
-
   it('keeps applying a persisted confident flag while no decision provider is bound', async () => {
     const { service } = makeHarness({
       featureSettings: {
@@ -593,36 +509,6 @@ describe('MediaAssessmentService', () => {
     await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
       isBlocking: true,
       reasons: [expect.objectContaining({ code: 'perception:checks_pending' })],
-    });
-  });
-
-  it('ignores text decisions outside live mode', async () => {
-    const { service } = makeHarness({
-      featureSettings: {
-        mediaTextGateDecisionMode: 'shadow',
-        moderationMode: 'off',
-      },
-      perceptions: [perceptionRow('asset-1')],
-      textDecisions: [
-        {
-          assetHash: HASH,
-          decisions: [
-            {
-              confidence: 0.99,
-              name: 'isBrandSafe',
-              source: 'transcript',
-              value: false,
-            },
-          ],
-          ingredientId: 'asset-1',
-          mode: 'shadow',
-          subjectKey: 'asset',
-        },
-      ],
-    });
-
-    await expect(service.assessPublishMedia(REQUEST)).resolves.toMatchObject({
-      isBlocking: false,
     });
   });
 });

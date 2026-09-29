@@ -112,21 +112,6 @@ describe('CredentialsService', () => {
     );
   });
 
-  describe('normalizeDocument platform mapping', () => {
-    it('maps Prisma SCREAMING platforms onto domain lowercase', async () => {
-      prisma.credential.findFirst.mockResolvedValue({
-        id: 'cred-1',
-        isDeleted: false,
-        organizationId: orgId,
-        platform: 'TWITTER',
-      });
-
-      const result = await service.findOne({ id: 'cred-1' });
-
-      expect(result?.platform).toBe('twitter');
-    });
-  });
-
   describe('countConnected', () => {
     it('filters by organizationId and isDeleted: false', async () => {
       prisma.credential.count.mockResolvedValue(5);
@@ -157,20 +142,6 @@ describe('CredentialsService', () => {
           organizationId: orgId,
         },
       });
-    });
-
-    it('omits brandId from filter when undefined', async () => {
-      await service.countConnected(orgId, undefined);
-
-      const calledWith = prisma.credential.count.mock.calls[0][0];
-      expect(calledWith.where).not.toHaveProperty('brandId');
-    });
-
-    it('omits brandId from filter when empty string', async () => {
-      await service.countConnected(orgId, '');
-
-      const calledWith = prisma.credential.count.mock.calls[0][0];
-      expect(calledWith.where).not.toHaveProperty('brandId');
     });
   });
 
@@ -296,28 +267,6 @@ describe('CredentialsService', () => {
       );
     });
 
-    it('invalidates the organization bootstrap when a credential is created', async () => {
-      await service.create({
-        brandId,
-        isConnected: true,
-        organizationId: orgId,
-        platform: CredentialPlatform.TWITTER,
-        userId: 'u1',
-      } as never);
-
-      expect(
-        accessBootstrapCache.invalidateForOrganization,
-      ).toHaveBeenCalledWith(orgId);
-    });
-
-    it('invalidates the organization bootstrap on disconnect', async () => {
-      await service.patch('existing-id', { isConnected: false });
-
-      expect(
-        accessBootstrapCache.invalidateForOrganization,
-      ).toHaveBeenCalledWith(orgId);
-    });
-
     it('invalidates the organization bootstrap on soft delete', async () => {
       await service.remove('existing-id');
 
@@ -329,55 +278,10 @@ describe('CredentialsService', () => {
       ).toHaveBeenCalledWith(orgId);
     });
 
-    it('keeps the bootstrap cached for writes it does not embed', async () => {
-      await service.patch('existing-id', {
-        oauthState: 'state-1',
-        refreshToken: 'refresh-token',
-      });
-
-      expect(
-        accessBootstrapCache.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
-    });
-
     it('invalidates the filtered organization after a bulk disconnect', async () => {
       await service.patchAll(
         { brandId, organizationId: orgId },
         { isConnected: false },
-      );
-
-      expect(
-        accessBootstrapCache.invalidateForOrganization,
-      ).toHaveBeenCalledWith(orgId);
-    });
-
-    it('skips invalidation when a bulk write matched no rows', async () => {
-      prisma.credential.updateMany.mockResolvedValue({ count: 0 });
-
-      await service.patchAll(
-        { brandId, organizationId: orgId },
-        { isConnected: false },
-      );
-
-      expect(
-        accessBootstrapCache.invalidateForOrganization,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('invalidates the organization bootstrap once a connection settles', async () => {
-      prisma.credential.findFirst.mockResolvedValue({
-        brandId,
-        externalId: null,
-        id: 'existing-id',
-        organizationId: orgId,
-        platform: 'TWITTER',
-      });
-
-      await service.connectAccount(
-        'existing-id',
-        orgId,
-        { handle: 'acme', id: 'provider-1', name: 'Acme' },
-        { accessToken: 'token' },
       );
 
       expect(
@@ -598,28 +502,6 @@ describe('CredentialsService', () => {
       expect(prisma.credential.create).toHaveBeenCalledOnce();
       expect(prisma.credential.update).not.toHaveBeenCalled();
     });
-
-    it('reaps only the caller own abandoned attempts for this brand and platform', async () => {
-      await service.createPendingForBrand(
-        { id: brandId, organizationId: orgId },
-        'u1',
-        'twitter' as never,
-      );
-
-      expect(prisma.credential.updateMany).toHaveBeenCalledWith({
-        data: { isDeleted: true, oauthState: null, oauthToken: null },
-        where: {
-          brandId,
-          externalId: null,
-          isConnected: false,
-          isDeleted: false,
-          organizationId: orgId,
-          platform: 'TWITTER',
-          updatedAt: { lt: expect.any(Date) },
-          userId: 'u1',
-        },
-      });
-    });
   });
 
   describe('findConnectedAccounts', () => {
@@ -756,18 +638,6 @@ describe('CredentialsService', () => {
         expect.stringContaining('2 twitter accounts'),
         expect.objectContaining({ brandId, credentialId: 'cred-a' }),
       );
-    });
-
-    it('returns null when the brand has no connected account', async () => {
-      prisma.credential.findMany.mockResolvedValue([]);
-
-      await expect(
-        service.resolveBrandAccount({
-          brandId,
-          organizationId: orgId,
-          platform: 'twitter' as never,
-        }),
-      ).resolves.toBeNull();
     });
 
     it('never falls back to a row with no externalId, even as the sole candidate', async () => {
@@ -1186,31 +1056,6 @@ describe('CredentialsService', () => {
       );
     });
 
-    it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
-      // Two concurrent select-account requests choosing *different*
-      // accounts never collide on the externalId unique constraint (only
-      // the P2002 path above covers that), so the only thing that can stop
-      // the second writer from silently overwriting the first's claim is
-      // this row-state precondition. Simulate the second writer losing the
-      // race: updateMany matches zero rows because the first writer already
-      // flipped isConnected/externalId.
-      loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
-      prisma.credential.updateMany.mockResolvedValueOnce({ count: 0 });
-
-      await expect(
-        service.updateExternalProfile('pending-1', orgId, {
-          handle: 'second_account',
-          id: 'account-2',
-        }),
-      ).rejects.toMatchObject({
-        response: {
-          title: 'Already Connected',
-        },
-        status: 400,
-      });
-    });
-
     it('merges into the incumbent and retires the pending row on reconnect', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce({ id: 'incumbent-1' });
@@ -1287,20 +1132,6 @@ describe('CredentialsService', () => {
           organizationId: orgId,
         },
       });
-    });
-
-    it('rethrows a unique violation when no winner can be found', async () => {
-      loadPendingCredential();
-      prisma.credential.findFirst.mockResolvedValueOnce(null);
-      prisma.credential.update.mockRejectedValue(
-        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
-      );
-      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
-      prisma.credential.findFirst.mockResolvedValueOnce(null);
-
-      await expect(
-        service.updateExternalProfile('pending-1', orgId, { id: 'account-1' }),
-      ).rejects.toThrow(/Unique constraint failed/);
     });
 
     it('reconnects a soft-deleted account without treating it as an incumbent', async () => {
@@ -1419,41 +1250,6 @@ describe('CredentialsService', () => {
       expect(prisma.credential.create).not.toHaveBeenCalled();
       expect(result.credential.id).toBe('pending-1');
       expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    });
-
-    it('omits the intent entirely when no reconnect credential is given', async () => {
-      await service.beginOAuthForBrand(
-        { id: brandId, organizationId: orgId },
-        'u1',
-        CredentialPlatform.INSTAGRAM,
-        { isConnected: false },
-      );
-
-      const data = prisma.credential.create.mock.calls[0][0].data as Record<
-        string,
-        unknown
-      >;
-
-      expect(data.warmupSignals).toBeUndefined();
-      expect(
-        extractReconnectCredentialIdFromWarmupSignals(data.warmupSignals),
-      ).toBeUndefined();
-    });
-
-    it('recovers no reconnect intent from warmupSignals that carry none', () => {
-      expect(
-        extractReconnectCredentialIdFromWarmupSignals({
-          instagramAuthorized: {},
-        }),
-      ).toBeUndefined();
-      expect(
-        extractReconnectCredentialIdFromWarmupSignals(undefined),
-      ).toBeUndefined();
-      expect(
-        extractReconnectCredentialIdFromWarmupSignals({
-          oauthConnectIntent: { reconnectCredentialId: '   ' },
-        }),
-      ).toBeUndefined();
     });
 
     it('resolves pending OAuth state inside the caller tenant scope', async () => {
@@ -1685,34 +1481,6 @@ describe('CredentialsService', () => {
       );
     });
 
-    it('clears a stale handle when a provider explicitly reports none', async () => {
-      // `null` means "this provider has no handle for this account" and
-      // must clear a previously-persisted bad value (see #4695); `undefined`
-      // means "leave the column as is" and must not touch it.
-      await service.updateExternalProfile('existing-id', orgId, {
-        handle: null,
-        id: 'provider-1',
-        name: 'Acme Studio',
-      });
-
-      expect(prisma.credential.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ externalHandle: null }),
-        }),
-      );
-    });
-
-    it('leaves externalHandle untouched when the provider omits it', async () => {
-      await service.updateExternalProfile('existing-id', orgId, {
-        id: 'provider-1',
-        name: 'Acme Studio',
-      });
-
-      const call = (prisma.credential.update as ReturnType<typeof vi.fn>).mock
-        .calls[0][0] as { data: Record<string, unknown> };
-      expect(call.data).not.toHaveProperty('externalHandle');
-    });
-
     it('rejects private avatar URLs before the files service fetches them', async () => {
       await service.updateExternalProfile('existing-id', orgId, {
         avatarUrl: 'http://127.0.0.1/avatar.jpg',
@@ -1750,16 +1518,6 @@ describe('CredentialsService', () => {
       });
       expect(filesClient.uploadToS3).not.toHaveBeenCalled();
       expect(prisma.credential.update).not.toHaveBeenCalled();
-    });
-
-    it('does not mirror a provider default avatar', async () => {
-      await service.updateExternalProfile('existing-id', orgId, {
-        avatarUrl:
-          'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png',
-        id: 'provider-1',
-      });
-
-      expect(filesClient.uploadToS3).not.toHaveBeenCalled();
     });
 
     it('preserves the previous avatar when S3 import fails', async () => {

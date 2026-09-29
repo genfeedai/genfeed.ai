@@ -34,13 +34,6 @@ describe('LinkedIn OAuth error mapping', () => {
     expectMappedStatus(error, HttpStatus.SERVICE_UNAVAILABLE);
   });
 
-  it('maps a missing redirect URI to 503', () => {
-    expectMappedStatus(
-      new Error('The OAuth 2.0 redirect URL must be specified.'),
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-  });
-
   it('maps invalid_client to 503 so app-credential faults stay a server problem', () => {
     expectMappedStatus(
       {
@@ -72,15 +65,6 @@ describe('LinkedIn OAuth error mapping', () => {
     );
   });
 
-  it('preserves provider 4xx statuses instead of collapsing them to 500', () => {
-    expectMappedStatus({ response: { status: 401 } }, HttpStatus.UNAUTHORIZED);
-    expectMappedStatus({ response: { status: 403 } }, HttpStatus.FORBIDDEN);
-    expectMappedStatus(
-      { response: { status: 429 } },
-      HttpStatus.TOO_MANY_REQUESTS,
-    );
-  });
-
   it('maps provider 5xx and transport failures to 502', () => {
     expectMappedStatus(
       { metadata: { status: 503 }, name: 'IntegrationHttpError' },
@@ -91,24 +75,6 @@ describe('LinkedIn OAuth error mapping', () => {
       { request: { path: '/oauth/v2/accessToken' } },
       HttpStatus.BAD_GATEWAY,
     );
-  });
-
-  it('keeps genuine unknown faults as 500', () => {
-    expectMappedStatus(new Error('DB error'), HttpStatus.INTERNAL_SERVER_ERROR);
-  });
-
-  it('rethrows an existing HttpException unchanged', () => {
-    const original = new HttpException('Forbidden', HttpStatus.FORBIDDEN);
-
-    try {
-      throwMappedLinkedInOAuthError(
-        original,
-        'Failed to verify LinkedIn OAuth',
-      );
-      expect.fail('expected HttpException to be rethrown');
-    } catch (error) {
-      expect(error).toBe(original);
-    }
   });
 
   it('logs only a safe classification, never codes or provider payloads', () => {

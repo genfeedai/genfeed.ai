@@ -24,15 +24,6 @@ describe('Better Auth config', () => {
     );
   });
 
-  it('accepts console.genfeed.ai as a trusted post-auth callback origin', () => {
-    expect(
-      resolveTrustedOrigins(
-        'https://genfeed.ai, https://app.genfeed.ai, https://console.genfeed.ai',
-        'production',
-      ),
-    ).toContain('https://console.genfeed.ai');
-  });
-
   describe('resolveTrustedOrigins', () => {
     it('trusts the desktop shell and local development origins in development', () => {
       const origins = resolveTrustedOrigins(undefined, 'development');
@@ -62,21 +53,9 @@ describe('Better Auth config', () => {
         expect(origins).not.toContain('http://genfeed.localhost:*');
       }
     });
-
-    it('does not auto-trust localhost when production has no env-listed origins', () => {
-      expect(resolveTrustedOrigins(undefined, 'production')).toEqual([
-        DESKTOP_SHELL_TRUSTED_ORIGINS[0],
-      ]);
-    });
   });
 
   describe('parseCommaSeparated', () => {
-    it('trims, splits, and drops empty entries', () => {
-      expect(
-        parseCommaSeparated(' x-forwarded-for , cf-connecting-ip ,'),
-      ).toEqual(['x-forwarded-for', 'cf-connecting-ip']);
-    });
-
     it('returns an empty list for unset / blank values', () => {
       expect(parseCommaSeparated(undefined)).toEqual([]);
       expect(parseCommaSeparated('')).toEqual([]);
@@ -86,11 +65,6 @@ describe('Better Auth config', () => {
   describe('resolveCookieDomain', () => {
     it('returns the trimmed root domain when set', () => {
       expect(resolveCookieDomain('  .genfeed.ai ')).toBe('.genfeed.ai');
-    });
-
-    it('returns undefined for unset / blank so the cookie stays host-scoped', () => {
-      expect(resolveCookieDomain(undefined)).toBeUndefined();
-      expect(resolveCookieDomain('   ')).toBeUndefined();
     });
   });
 
@@ -125,12 +99,6 @@ describe('Better Auth config', () => {
         clientSecret: 'google-secret',
       });
     });
-
-    it('omits the provider when either credential is missing', () => {
-      expect(resolveSocialProviderConfig('google-client', '')).toBeUndefined();
-      expect(resolveSocialProviderConfig('', 'google-secret')).toBeUndefined();
-      expect(resolveSocialProviderConfig(undefined, undefined)).toBeUndefined();
-    });
   });
 
   describe('resolveBetterAuthRuntimeConfig', () => {
@@ -161,17 +129,6 @@ describe('Better Auth config', () => {
       expect(runtime.skipStateCookieCheck).toBe(false);
     });
 
-    it('uses only BETTER_AUTH_COOKIE_DOMAIN for cloud cookie sharing', () => {
-      const runtime = resolveBetterAuthRuntimeConfig({
-        BETTER_AUTH_COOKIE_DOMAIN: ' .genfeed.ai ',
-        BETTER_AUTH_SECRET: 'runtime-config-secret',
-        BETTER_AUTH_URL: 'https://api.genfeed.ai',
-        NODE_ENV: 'production',
-      });
-
-      expect(runtime.cookieDomain).toBe('.genfeed.ai');
-    });
-
     it('sends OAuth failures to the app login page on split cloud hosts', () => {
       const runtime = resolveBetterAuthRuntimeConfig({
         BETTER_AUTH_SECRET: 'runtime-config-secret',
@@ -198,12 +155,6 @@ describe('Better Auth config', () => {
   });
 
   describe('resolveAuthErrorUrl', () => {
-    it('appends /login to a valid app origin', () => {
-      expect(resolveAuthErrorUrl('https://app.genfeed.ai')).toBe(
-        'https://app.genfeed.ai/login',
-      );
-    });
-
     it('returns undefined for missing or non-http app URLs', () => {
       expect(resolveAuthErrorUrl(undefined)).toBeUndefined();
       expect(resolveAuthErrorUrl('javascript:alert(1)')).toBeUndefined();

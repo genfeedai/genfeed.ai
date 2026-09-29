@@ -9,22 +9,6 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 describe('system workflow contract', () => {
-  it('stores canonical template version and change summary', () => {
-    const metadata = buildSystemWorkflowMetadata({
-      canonicalId: 'scheduled-post-publishing',
-      changeSummary: 'Route scheduled publishing through system workflows.',
-      sourceIssue: 1029,
-      version: 2,
-    });
-
-    expect(metadata).toMatchObject({
-      canonicalId: 'scheduled-post-publishing',
-      changeSummary: 'Route scheduled publishing through system workflows.',
-      sourceIssue: 1029,
-      version: 2,
-    });
-  });
-
   it('pins duplicate metadata to the source version without auto-upgrading it', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-07-01T12:00:00.000Z'));

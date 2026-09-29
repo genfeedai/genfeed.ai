@@ -14,45 +14,6 @@ describe('content-run-data.util', () => {
     expect(isContentRunRecord(['run-1'])).toBe(false);
   });
 
-  it('hydrates stored config while preserving row field precedence', () => {
-    expect(
-      hydrateContentRun({
-        brandId: 'brand-row',
-        config: {
-          source: 'hosted',
-          status: 'config-status',
-        },
-        id: 'run-1',
-        organizationId: 'org-row',
-        status: 'row-status',
-      }),
-    ).toEqual({
-      brandId: 'brand-row',
-      config: {
-        source: 'hosted',
-        status: 'config-status',
-      },
-      id: 'run-1',
-      organizationId: 'org-row',
-      source: 'hosted',
-      status: 'row-status',
-    });
-  });
-
-  it('does not synthesize persistence fields from config', () => {
-    expect(
-      hydrateContentRun({
-        config: {
-          status: 'config-status',
-        },
-        id: 'run-2',
-      }),
-    ).toMatchObject({
-      id: 'run-2',
-      status: 'config-status',
-    });
-  });
-
   it('keeps null runs out of hydrated run lists', () => {
     expect(hydrateContentRun(null)).toBeNull();
     expect(hydrateContentRuns([{ config: {}, id: 'run-1' }])).toHaveLength(1);

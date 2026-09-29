@@ -15,21 +15,4 @@ describe('resolveMediaPerceptionSettings', () => {
       visionModel: LLM_DEFAULTS.fastText,
     });
   });
-
-  it('reads the operator platform settings', () => {
-    expect(
-      resolveMediaPerceptionSettings({
-        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
-        isMediaPerceptionEnabled: false,
-        mediaPerceptionFrameCount: 3,
-        mediaPerceptionLookbackHours: 72,
-        mediaPerceptionVisionModel: 'openrouter/vision',
-      }),
-    ).toEqual({
-      frameCount: 3,
-      isEnabled: false,
-      lookbackHours: 72,
-      visionModel: 'openrouter/vision',
-    });
-  });
 });

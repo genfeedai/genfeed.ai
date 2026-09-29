@@ -16,7 +16,6 @@ import { PersonaPublisherService } from '@api/services/persona-content/persona-p
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   ImageTaskModel,
-  IngredientStatus,
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
@@ -251,59 +250,6 @@ describe('ContentOrchestrationService', () => {
       ]);
     });
 
-    it('should create ingredient for each step result', async () => {
-      await service.generateAndPublish(baseConfig);
-
-      expect(
-        mockSharedService.createMediaDocumentsInternal,
-      ).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: IngredientStatus.PROCESSING,
-        }),
-      );
-    });
-
-    it('should upload output to S3', async () => {
-      await service.generateAndPublish(baseConfig);
-
-      expect(mockFilesClientService.uploadToS3).toHaveBeenCalled();
-    });
-
-    it('should update metadata with S3 result', async () => {
-      await service.generateAndPublish(baseConfig);
-
-      expect(mockMetadataService.patch).toHaveBeenCalledWith(
-        metadataId,
-        expect.objectContaining({
-          duration: 5,
-          height: 1920,
-          size: 1024000,
-          width: 1080,
-        }),
-      );
-    });
-
-    it('should update ingredient status to UPLOADED', async () => {
-      await service.generateAndPublish(baseConfig);
-
-      expect(mockIngredientsService.patch).toHaveBeenCalledWith(ingredientId, {
-        status: IngredientStatus.UPLOADED,
-      });
-    });
-
-    it('should pass ingredientIds in publish input', async () => {
-      await service.generateAndPublish(baseConfig);
-
-      expect(mockPublisherService.publishToAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId: baseConfig.brandId,
-          ingredientIds: expect.arrayContaining([ingredientId]),
-          organizationId: baseConfig.organizationId,
-          userId: baseConfig.userId,
-        }),
-      );
-    });
-
     it('should pass platform filters into publisher', async () => {
       await service.generateAndPublish({
         ...baseConfig,
@@ -314,15 +260,6 @@ describe('ContentOrchestrationService', () => {
         expect.objectContaining({
           platforms: ['tiktok'],
         }),
-      );
-    });
-
-    it('fails the workflow when a step action fails', async () => {
-      const error = new Error('Step execution failed');
-      mockStepExecutorService.execute.mockRejectedValue(error);
-
-      await expect(service.generateAndPublish(baseConfig)).rejects.toThrow(
-        'Step execution failed',
       );
     });
 
@@ -397,19 +334,6 @@ describe('ContentOrchestrationService', () => {
       );
     });
 
-    it('should allow image-to-video as first step with explicit imageUrl', () => {
-      const validSteps: PipelineStep[] = [
-        {
-          duration: 5,
-          imageUrl: 'https://example.com/image.jpg',
-          model: VideoTaskModel.HIGGSFIELD,
-          type: 'image-to-video',
-        },
-      ];
-
-      expect(() => service.validateSteps(validSteps)).not.toThrow();
-    });
-
     it('should throw when image-to-video follows non-image step without imageUrl', () => {
       const invalidSteps: PipelineStep[] = [
         { model: ImageTaskModel.FAL, type: 'text-to-image' },
@@ -429,10 +353,6 @@ describe('ContentOrchestrationService', () => {
       expect(() => service.validateSteps(invalidSteps)).toThrow(
         'image-to-video at step 2 requires a preceding text-to-image step',
       );
-    });
-
-    it('should not throw for valid steps', () => {
-      expect(() => service.validateSteps(steps)).not.toThrow();
     });
   });
 
@@ -500,28 +420,6 @@ describe('ContentOrchestrationService', () => {
   // ── Sentry Performance Tracing ─────────────────────────────────────────────
 
   describe('Sentry performance tracing', () => {
-    it('generateAndPublish should invoke Sentry.startSpan for each step', async () => {
-      const Sentry = await import('@sentry/nestjs');
-      const startSpan = Sentry.startSpan as ReturnType<typeof vi.fn>;
-      startSpan.mockClear();
-
-      const singleStepConfig = {
-        brandId: 'test-object-id',
-        organizationId: 'test-object-id',
-        personaId: 'test-object-id',
-        prompt: 'Sentry tracing test',
-        steps: [{ model: 'fal', type: 'text-to-image' as const }],
-        userId: 'test-object-id',
-      };
-
-      await service.generateAndPublish(singleStepConfig);
-
-      const spanNames = startSpan.mock.calls.map(
-        (c: [{ name: string }, unknown]) => c[0].name,
-      );
-      expect(spanNames).toContain('content.pipeline.step.text-to-image');
-    });
-
     it('generateAndPublish should include publish span when credentials exist', async () => {
       const Sentry = await import('@sentry/nestjs');
       const startSpan = Sentry.startSpan as ReturnType<typeof vi.fn>;

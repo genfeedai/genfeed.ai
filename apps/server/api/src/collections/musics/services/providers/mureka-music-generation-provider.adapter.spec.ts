@@ -55,31 +55,6 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
     });
   });
 
-  it('passes through the instrumental flag from the DTO', async () => {
-    const murekaService = {
-      generateSong: vi.fn().mockResolvedValue({
-        audioUrl: 'https://mureka.example.com/song.mp3',
-        taskId: 'task-123',
-      }),
-    };
-    const adapter = new MurekaMusicGenerationProviderAdapter(
-      murekaService as never,
-    );
-
-    await adapter.generate(
-      buildRequest({
-        createMusicDto: Object.assign(new CreateMusicDto(), {
-          instrumental: true,
-          text: 'a song',
-        }),
-      }),
-    );
-
-    expect(murekaService.generateSong).toHaveBeenCalledWith(
-      expect.objectContaining({ instrumental: true }),
-    );
-  });
-
   it('passes through explicit lyrics from the DTO', async () => {
     const murekaService = {
       generateSong: vi.fn().mockResolvedValue({
@@ -102,32 +77,6 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
 
     expect(murekaService.generateSong).toHaveBeenCalledWith(
       expect.objectContaining({ lyrics: 'Verse one' }),
-    );
-  });
-
-  it('drops lyrics when instrumental is requested', async () => {
-    const murekaService = {
-      generateSong: vi.fn().mockResolvedValue({
-        audioUrl: 'https://mureka.example.com/song.mp3',
-        taskId: 'task-123',
-      }),
-    };
-    const adapter = new MurekaMusicGenerationProviderAdapter(
-      murekaService as never,
-    );
-
-    await adapter.generate(
-      buildRequest({
-        createMusicDto: Object.assign(new CreateMusicDto(), {
-          instrumental: true,
-          lyrics: 'Verse one',
-          text: 'a song',
-        }),
-      }),
-    );
-
-    expect(murekaService.generateSong).toHaveBeenCalledWith(
-      expect.objectContaining({ lyrics: undefined }),
     );
   });
 

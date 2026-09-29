@@ -151,10 +151,6 @@ describe('ImagesUploadsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('upload', () => {
     it('should upload an image file', async () => {
       const mockFile = {

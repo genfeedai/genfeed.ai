@@ -27,7 +27,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('TikTokPublisherService', () => {
   let service: TikTokPublisherService;
-  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let tiktokService: vi.Mocked<TiktokService>;
 
@@ -164,16 +163,11 @@ describe('TikTokPublisherService', () => {
     }).compile();
 
     service = module.get<TikTokPublisherService>(TikTokPublisherService);
-    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     tiktokService = module.get(TiktokService) as vi.Mocked<TiktokService>;
   });
 
   describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-
     it('should have correct platform', () => {
       expect(service.platform).toBe(CredentialPlatform.TIKTOK);
     });

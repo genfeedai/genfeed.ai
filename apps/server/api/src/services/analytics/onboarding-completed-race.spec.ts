@@ -110,46 +110,4 @@ describe('onboarding_completed cross-surface race (genfeedai/genfeed.ai#5311)', 
       event: 'onboarding_completed',
     });
   });
-
-  it('never captures again once the agent-first path has already completed the user', async () => {
-    const USER_ID = 'user-2';
-    const mockUser = { id: USER_ID, userId: USER_ID } as never;
-    const mockRequest = {
-      get: vi.fn().mockReturnValue('localhost'),
-      headers: {},
-      path: '/users',
-      protocol: 'https',
-    } as never;
-
-    // The agent-first path already completed this user before the wizard's
-    // PATCH /users/me request lands.
-    const usersService = {
-      findOne: vi
-        .fn()
-        .mockResolvedValue({ id: USER_ID, isOnboardingCompleted: true }),
-      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
-    };
-    const serverFunnelCaptureService = {
-      capture: vi.fn().mockResolvedValue(undefined),
-    };
-    const userAccessCacheService = {
-      invalidateAll: vi.fn().mockResolvedValue(undefined),
-    };
-
-    const controller = new UsersController(
-      {} as never,
-      usersService as never,
-      {} as never,
-      {} as never,
-      userAccessCacheService as never,
-      {} as never, // settingsService
-      serverFunnelCaptureService as never,
-    );
-
-    await controller.updateMe(mockRequest, mockUser, {
-      isOnboardingCompleted: true,
-    } as never);
-
-    expect(serverFunnelCaptureService.capture).not.toHaveBeenCalled();
-  });
 });

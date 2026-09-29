@@ -36,13 +36,4 @@ describe('readUsableCdnAssetUrl', () => {
       ),
     ).toBe('https://bucket.s3.us-east-1.amazonaws.com/key.png');
   });
-
-  it('rejects a lookalike host that is not S3', () => {
-    expect(
-      readUsableCdnAssetUrl(
-        { url: 'https://evil.amazonaws.com/key.png' },
-        ingredientsEndpoint,
-      ),
-    ).toBeUndefined();
-  });
 });

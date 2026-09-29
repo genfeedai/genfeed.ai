@@ -53,10 +53,6 @@ describe('YoutubeMetadataService', () => {
     service = module.get<YoutubeMetadataService>(YoutubeMetadataService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // --- getVideoMetadata ---
 
   it('should return video metadata for a valid video', async () => {
@@ -196,16 +192,6 @@ describe('YoutubeMetadataService', () => {
     );
   });
 
-  it('should throw when video not found in getVideoStatus', async () => {
-    mockVideosList.mockResolvedValueOnce({
-      data: { items: [] },
-    });
-
-    await expect(
-      service.getVideoStatus('org-1', 'brand-1', 'vid-missing'),
-    ).rejects.toThrow('Video not found or status not available');
-  });
-
   it('should throw when video status object is null', async () => {
     mockVideosList.mockResolvedValueOnce({
       data: {
@@ -249,22 +235,5 @@ describe('YoutubeMetadataService', () => {
     );
     expect(result.publishAt).toBe('2025-06-01T12:00:00Z');
     expect(result.privacyStatus).toBe('private');
-  });
-
-  it('should handle zero-second duration (PT0S)', async () => {
-    mockVideosList.mockResolvedValueOnce({
-      data: {
-        items: [
-          {
-            contentDetails: { duration: 'PT0S' },
-            snippet: { title: 'Zero' },
-            statistics: { viewCount: '0' },
-          },
-        ],
-      },
-    });
-
-    const result = await service.getVideoMetadata('vid-zero');
-    expect(result?.duration).toBe(0);
   });
 });

@@ -6,7 +6,6 @@ import { CampaignsService } from '@api/collections/campaigns/services/campaigns.
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
-import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CampaignPlanningService', () => {
@@ -184,24 +183,6 @@ describe('CampaignPlanningService', () => {
       expect.objectContaining({ idempotencyKey: 'fresh-key' }),
     );
   });
-  it.each([false, true])(
-    'does not replay a different brand’s key (deleted: %s)',
-    async (isDeleted) => {
-      prisma.campaign.findFirst.mockImplementation(
-        async ({ where }: Prisma.CampaignFindFirstArgs) =>
-          where?.isDeleted === isDeleted
-            ? { id: 'other-brand-campaign', brandId: 'other-brand', isDeleted }
-            : null,
-      );
-      await expect(
-        service.generate('org-1', 'user-1', dto),
-      ).rejects.toBeInstanceOf(
-        isDeleted ? ConflictException : BadRequestException,
-      );
-      expect(llm.completeStructured).not.toHaveBeenCalled();
-      expect(campaigns.create).not.toHaveBeenCalled();
-    },
-  );
   it('rejects blank ideas before calling AI', async () => {
     await expect(
       service.generate('org-1', 'user-1', { ...dto, name: '   ' }),

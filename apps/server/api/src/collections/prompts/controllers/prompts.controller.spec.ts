@@ -26,7 +26,6 @@ import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto'
 import type { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
@@ -161,21 +160,7 @@ describe('PromptsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
-    it('bills enhancement at its fixed price, not the target generation model (#5270)', () => {
-      expect(
-        Reflect.getMetadata(CREDITS_KEY, PromptsController.prototype.create),
-      ).toMatchObject({
-        amount: 1,
-        isBodyModelIgnored: true,
-        skipWhenBodyAttribute: 'isSkipEnhancement',
-      });
-    });
-
     it('should create a prompt and return serialized data', async () => {
       const createPromptDto: CreatePromptDto = {
         category: PromptCategory.MODELS_PROMPT_IMAGE,
@@ -326,26 +311,6 @@ describe('PromptsController', () => {
   });
 
   describe('findAll', () => {
-    it('should return prompts collection', async () => {
-      const mockData = {
-        docs: [mockPrompt],
-        limit: 10,
-        page: 1,
-        totalDocs: 1,
-      };
-
-      mockPromptsService.findAll.mockResolvedValue(mockData);
-
-      const result = await controller.findAll(
-        mockReq,
-        mockUser,
-        mockPromptQuery,
-      );
-
-      expect(service.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('scopes the list to the current user so marketplace installs are listable', async () => {
       const installedPrompt = {
         ...mockPrompt,

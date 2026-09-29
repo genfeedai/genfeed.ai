@@ -82,28 +82,6 @@ describe('TrendNotificationWorkflowService atomic actions', () => {
    * mapping now lives in `buildTrendDigestItems` — assert it still reaches
    * the digest through the read action.
    */
-  it('maps the field names the trend ingest actually stores', async () => {
-    const { service, trends } = buildService();
-    trends.getViralVideos.mockResolvedValue([
-      {
-        platform: 'tiktok',
-        title: 'Fast video',
-        videoUrl: 'https://example.com/video',
-        viewCount: 1000000,
-        viralScore: 91,
-      },
-    ]);
-
-    const result = await service.readTrendSummaryVideos({
-      state: { minViralScore: 70, status: 'prepared' },
-    });
-
-    expect(readTrends(result)[0]).toMatchObject({
-      topic: 'Fast video',
-      url: 'https://example.com/video',
-      usageCount: 1000000,
-    });
-  });
 
   it('drops trends the ingest could not name rather than shipping placeholders', async () => {
     const { service, trends } = buildService();

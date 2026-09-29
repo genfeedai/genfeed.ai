@@ -10,26 +10,6 @@ describe('chunkText', () => {
     expect(chunkText('   \n\t  ')).toEqual([]);
   });
 
-  it('returns a single chunk when the text fits in one window', () => {
-    expect(chunkText('Brand voice is calm and direct.')).toEqual([
-      'Brand voice is calm and direct.',
-    ]);
-  });
-
-  it('collapses whitespace before measuring length', () => {
-    expect(chunkText('  hello   \n\n  world  ')).toEqual(['hello world']);
-  });
-
-  it('splits long text into fixed-size windows with overlap', () => {
-    const text = 'abcdefghij';
-    expect(chunkText(text, { overlap: 2, size: 4 })).toEqual([
-      'abcd',
-      'cdef',
-      'efgh',
-      'ghij',
-    ]);
-  });
-
   it('keeps the final partial window', () => {
     expect(chunkText('abcdefg', { overlap: 1, size: 3 })).toEqual([
       'abc',

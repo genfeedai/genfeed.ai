@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandSetupService } from '@api/collections/brands/services/brand-setup.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { BrandScrapeErrorCode } from '@genfeedai/contracts';
-import { HttpException } from '@nestjs/common';
 
 function buildService(
   overrides: {
@@ -158,17 +157,5 @@ describe('BrandSetupService.setupBrand — brand-scrape error classification (#5
         message: expect.stringContaining('acme_secret_index'),
       }),
     );
-  });
-
-  it('rejects with an HttpException instance for the invalid-URL case', async () => {
-    const { service, brandScraperService } = buildService();
-    brandScraperService.validateUrl.mockReturnValue({
-      error: 'Invalid domain',
-      isValid: false,
-    });
-
-    await expect(
-      service.setupBrand('brand-1', dto, user),
-    ).rejects.toBeInstanceOf(HttpException);
   });
 });

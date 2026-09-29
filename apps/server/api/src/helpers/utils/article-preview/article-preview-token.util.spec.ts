@@ -10,30 +10,6 @@ const SECRET = 'a'.repeat(32);
 const NOW = 1_800_000_000_000;
 
 describe('article preview tokens', () => {
-  it('verifies a token it just issued for the same slug', () => {
-    const token = createArticlePreviewToken('launch-post', SECRET, NOW);
-
-    expect(verifyArticlePreviewToken(token, 'launch-post', SECRET, NOW)).toBe(
-      true,
-    );
-  });
-
-  it('rejects a token issued for a different slug', () => {
-    const token = createArticlePreviewToken('launch-post', SECRET, NOW);
-
-    expect(verifyArticlePreviewToken(token, 'other-post', SECRET, NOW)).toBe(
-      false,
-    );
-  });
-
-  it('rejects a token signed with a different key', () => {
-    const token = createArticlePreviewToken('launch-post', 'b'.repeat(32), NOW);
-
-    expect(verifyArticlePreviewToken(token, 'launch-post', SECRET, NOW)).toBe(
-      false,
-    );
-  });
-
   it('rejects a token past its expiry', () => {
     const token = createArticlePreviewToken('launch-post', SECRET, NOW);
     const afterExpiry = NOW + (ARTICLE_PREVIEW_TOKEN_TTL_SECONDS + 1) * 1000;

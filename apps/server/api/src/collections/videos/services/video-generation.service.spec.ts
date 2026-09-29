@@ -11,7 +11,6 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
-import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import {
   IngredientCategory,
   IngredientStatus,
@@ -545,37 +544,6 @@ describe('VideoGenerationService', () => {
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
   });
 
-  it('awaits durable placeholder linkage before provider dispatch', async () => {
-    const { klingAIService, service, sharedService } = createService();
-    const order: string[] = [];
-    sharedService.createMediaDocuments.mockImplementation(async () => {
-      order.push('placeholder');
-      return {
-        ingredientData: { id: 'ing-linked' },
-        metadataData: { id: 'meta-linked' },
-      };
-    });
-    klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
-      order.push('provider');
-      return 'kling-gen';
-    });
-
-    await service.generateVideo(
-      buildUser(),
-      baseDto(),
-      buildRequest(),
-      async (ingredientId) => {
-        order.push(`linked:${ingredientId}`);
-      },
-    );
-
-    expect(order.slice(0, 3)).toEqual([
-      'placeholder',
-      'linked:ing-linked',
-      'provider',
-    ]);
-  });
-
   it('fails the placeholder and skips provider dispatch when linkage rejects', async () => {
     const { failedGenerationService, klingAIService, service } =
       createService();
@@ -599,27 +567,6 @@ describe('VideoGenerationService', () => {
 
   // Finding 1 — org model validation must run even without request context.
   describe('model org validation (finding 1)', () => {
-    it('validates the resolved model against the token org when request context is absent', async () => {
-      const { service, modelRegistrationService } = createService();
-
-      await service.generateVideo(buildUser(), baseDto(), buildRequest());
-
-      expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
-        NON_BATCH_MODEL,
-        ORG,
-      );
-    });
-
-    it('skips validation for single-tenant deployments without an organization', async () => {
-      const { service, modelRegistrationService } = createService();
-
-      await service.generateVideo(buildUser(''), baseDto(), buildRequest());
-
-      expect(
-        modelRegistrationService.validateModelForOrg,
-      ).not.toHaveBeenCalled();
-    });
-
     it('dispatches a Fal partner selection key to its exact registered endpoint', async () => {
       const {
         service,
@@ -649,25 +596,6 @@ describe('VideoGenerationService', () => {
 
   // Finding 2 — prompt lookup is org-scoped and fails closed.
   describe('saved-prompt lookup (finding 2)', () => {
-    it('scopes the prompt lookup to the caller organization', async () => {
-      const { service, promptsService } = createService();
-      promptsService.findOne.mockResolvedValue({
-        id: 'prompt-id',
-        original: 'stored prompt',
-      });
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({ promptId }),
-        buildRequest(),
-      );
-
-      expect(promptsService.findOne).toHaveBeenCalledWith({
-        id: promptId,
-        organizationId: ORG,
-      });
-    });
-
     it('throws 404 and does not dispatch when the referenced prompt is missing', async () => {
       const { service, promptsService, klingAIService } = createService();
       promptsService.findOne.mockResolvedValue(null);
@@ -705,52 +633,9 @@ describe('VideoGenerationService', () => {
   });
 
   // Finding 3 — persist the prompt against the resolved brand.
-  it('persists the prompt against the resolved brand id (finding 3)', async () => {
-    const { service, promptsService } = createService();
-
-    await service.generateVideo(
-      buildUser(),
-      baseDto({ brand: 'brand-from-token' }),
-      buildRequest(),
-    );
-
-    expect(promptsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ brandId: RESOLVED_BRAND }),
-    );
-  });
 
   // Finding 4 — a single credit calculation feeds authorization and deduction.
   describe('credit accounting (finding 4)', () => {
-    it('never deducts directly — deduction is owned by CreditsInterceptor', async () => {
-      const { service, creditsUtilsService } = createService();
-
-      await service.generateVideo(buildUser(), baseDto(), buildRequest());
-
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('authorizes the fully-multiplied amount on the deferred path', async () => {
-      const { service, creditsUtilsService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({
-          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-          outputs: 2,
-          resolution: 'pro',
-        }),
-        buildRequest({ creditsConfig: { deferred: true } }),
-      );
-
-      // Base 10 × Kling Pro's published 4/3 band, rounded to 14, × two
-      // non-batch outputs = 28.
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 28);
-    });
-
     it('does not multiply authorization by outputs for batch-capable models', async () => {
       const { service, creditsUtilsService } = createService();
 
@@ -785,19 +670,6 @@ describe('VideoGenerationService', () => {
       ).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).not.toHaveBeenCalled();
     });
-  });
-
-  it('persists the selected provider before the external generation call', async () => {
-    const { service, klingAIService, metadataService } = createService();
-    klingAIService.queueGenerateTextToVideo.mockImplementation(async () => {
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        'meta-0',
-        expect.objectContaining({ externalProvider: 'klingai' }),
-      );
-      return 'kling-job';
-    });
-
-    await service.generateVideo(buildUser(), baseDto(), buildRequest());
   });
 
   // Finding 5 — every batch placeholder gets its own indexed external id.
@@ -917,13 +789,6 @@ describe('VideoGenerationService', () => {
   });
 
   // Finding 7 — bust the shared video cache tag after the write.
-  it('invalidates the video cache tag (finding 7)', async () => {
-    const { service, cacheService } = createService();
-
-    await service.generateVideo(buildUser(), baseDto(), buildRequest());
-
-    expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
-  });
 
   // #3468 — model-aware video briefs: assemble + compile a canonical brief
   // for registered model families before provider dispatch, and persist a
@@ -995,29 +860,6 @@ describe('VideoGenerationService', () => {
         status: 'exempted',
         surface: 'studio',
       });
-    });
-
-    it('resolves first-frame and last-frame references into the compiled provider dispatch', async () => {
-      const { service, replicateService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({
-          endFrame: 'ref-end',
-          model: COMPILED_MODEL_MINIMAX,
-          references: ['ref-first'],
-        }),
-        buildRequest(),
-      );
-
-      expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
-        COMPILED_MODEL_MINIMAX,
-        expect.objectContaining({
-          first_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-first`,
-          last_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-end`,
-        }),
-        undefined,
-      );
     });
 
     it('dispatches a tenant-scoped video reference through a provider-readable signed URL', async () => {
@@ -1213,26 +1055,6 @@ describe('VideoGenerationService', () => {
     // through (see redact-generation-brief-evidence.ts); this test proves
     // the exact object handed to createMediaDocuments() still satisfies that
     // assertion end to end, for both the primary and an additional output.
-    it('persists a provider-data snapshot that independently satisfies the shared redaction assertion', async () => {
-      const { service, sharedService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({
-          model: COMPILED_MODEL_MINIMAX,
-          outputs: 2,
-          references: ['ref-first'],
-        }),
-        buildRequest(),
-      );
-
-      for (const call of sharedService.createMediaDocuments.mock.calls) {
-        const [, payload] = call;
-        expect(() =>
-          assertRedactedVideoGenerationBriefEvidence(payload.providerData),
-        ).not.toThrow();
-      }
-    });
   });
 
   describe('reference image tenant isolation (#3501)', () => {

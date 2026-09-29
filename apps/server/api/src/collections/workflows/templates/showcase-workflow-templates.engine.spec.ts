@@ -501,20 +501,6 @@ describe('showcase workflow templates on the real engine', () => {
   });
 
   describe('negative controls: a handle the source output does not carry', () => {
-    it('fails a video edge that names `video` on the captions output', async () => {
-      const [run] = await runTemplate(
-        withEdgeSourceHandle(
-          requireTemplate('avatar-ugc-x-landscape-heygen'),
-          'edge-captioned-overlay',
-          'video',
-        ),
-      );
-
-      expect(run && findUnresolvedEdges(run)).toEqual([
-        'edge-captioned-overlay',
-      ]);
-    });
-
     it('fails an image edge that names `image` on the imageGen output', async () => {
       const [run] = await runTemplate(
         withEdgeSourceHandle(

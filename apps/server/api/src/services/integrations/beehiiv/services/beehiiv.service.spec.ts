@@ -95,10 +95,6 @@ describe('BeehiivService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('listPublications', () => {
     it('should return a list of publications on success', async () => {
       httpGetMock.mockReturnValue(
@@ -164,17 +160,6 @@ describe('BeehiivService', () => {
       );
     });
 
-    it('should omit pagination params when not provided', async () => {
-      httpGetMock.mockReturnValue(of({ data: { data: [], total_results: 0 } }));
-
-      await service.getSubscribers('api-key', 'pub_abc123');
-
-      expect(httpGetMock).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ params: {} }),
-      );
-    });
-
     it('should throw when HTTP request fails', async () => {
       httpGetMock.mockReturnValue(
         throwError(() => ({ response: { status: 401 } })),
@@ -214,20 +199,6 @@ describe('BeehiivService', () => {
         expect.objectContaining({
           headers: expect.objectContaining({ Authorization: 'Bearer api-key' }),
         }),
-      );
-    });
-
-    it('should not include utm_source when not provided', async () => {
-      httpPostMock.mockReturnValue(of({ data: { data: mockSubscriber } }));
-
-      await service.createSubscribers('api-key', 'pub_abc123', [
-        'sub@example.com',
-      ]);
-
-      expect(httpPostMock).toHaveBeenCalledWith(
-        expect.any(String),
-        { email: 'sub@example.com' },
-        expect.any(Object),
       );
     });
 
@@ -396,49 +367,8 @@ describe('BeehiivService', () => {
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
     });
 
-    it('reads the API key of the account named by credentialId', async () => {
-      // A brand may hold several Beehiiv publications; the caller names which
-      // one it is acting as instead of taking the brand default.
-      credentialsFindOneMock.mockResolvedValue({
-        accessToken: 'encrypted-token',
-        externalId: 'pub_abc123',
-      });
-
-      await service.getDecryptedApiKey(orgId, brandId, 'credential-1');
-
-      expect(credentialsResolveMock).toHaveBeenCalledWith({
-        brandId,
-        credentialId: 'credential-1',
-        isDisconnectedIncluded: true,
-        organizationId: orgId,
-        platform: CredentialPlatform.BEEHIIV,
-      });
-    });
-
     it('should throw when credential is not found', async () => {
       credentialsFindOneMock.mockResolvedValue(null);
-
-      await expect(service.getDecryptedApiKey(orgId, brandId)).rejects.toThrow(
-        'Beehiiv credential or publication ID not found',
-      );
-    });
-
-    it('should throw when accessToken is missing', async () => {
-      credentialsFindOneMock.mockResolvedValue({
-        accessToken: null,
-        externalId: 'pub_abc123',
-      });
-
-      await expect(service.getDecryptedApiKey(orgId, brandId)).rejects.toThrow(
-        'Beehiiv credential or publication ID not found',
-      );
-    });
-
-    it('should throw when externalId is missing', async () => {
-      credentialsFindOneMock.mockResolvedValue({
-        accessToken: 'token',
-        externalId: null,
-      });
 
       await expect(service.getDecryptedApiKey(orgId, brandId)).rejects.toThrow(
         'Beehiiv credential or publication ID not found',

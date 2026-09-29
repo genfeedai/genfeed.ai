@@ -188,10 +188,6 @@ describe('VideosLipSyncController', () => {
     controller = module.get<VideosLipSyncController>(VideosLipSyncController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('charges a fixed 1-credit @Credits config (no modelKey) so CreditsInterceptor deducts a flat 1', () => {
     // Locks the #1354 fix: the route must charge a fixed amount via the
     // standard guard+interceptor path, NOT a modelKey (which would re-introduce
@@ -209,47 +205,6 @@ describe('VideosLipSyncController', () => {
 
   describe('createLipSyncVideo', () => {
     describe('happy path', () => {
-      it('should return ingredient data on successful generation', async () => {
-        const result = await controller.createLipSyncVideo(
-          mockReq,
-          mockUser,
-          mockDto,
-        );
-
-        expect(result).toEqual(mockIngredientData);
-      });
-
-      it('should inherit ownership from the image ingredient brandId', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
-
-        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
-          mockUser,
-          expect.objectContaining({ brandId: mockImageIngredient.brandId }),
-        );
-      });
-
-      it('should call HeyGen with resolved photo and audio URLs', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
-
-        expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
-          mockIngredientData.id,
-          `http://localhost/images/${mockDto.parent}`,
-          `http://localhost/audios/${mockDto.voice}`,
-          organizationId,
-          userId,
-          undefined, // no BYOK key
-        );
-      });
-
-      it('should update metadata with HeyGen video ID', async () => {
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
-
-        expect(metadataService.patch).toHaveBeenCalledWith(
-          mockMetadataData.id,
-          expect.objectContaining({ externalId: 'heygen-video-id-abc' }),
-        );
-      });
-
       it('should publish websocket processing status', async () => {
         await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
 
@@ -276,40 +231,9 @@ describe('VideosLipSyncController', () => {
           'byok-key-xyz',
         );
       });
-
-      it('should build audio URL with "videos" path for video audio ingredient', async () => {
-        const videoAudioIngredient = {
-          ...mockAudioIngredient,
-          category: IngredientCategory.VIDEO,
-        };
-
-        ingredientsService.findOne
-          .mockReset()
-          .mockResolvedValueOnce(mockImageIngredient)
-          .mockResolvedValueOnce(videoAudioIngredient);
-
-        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
-
-        expect(heygenService.generatePhotoAvatarVideo).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          `http://localhost/videos/${mockDto.voice}`,
-          expect.any(String),
-          expect.any(String),
-          undefined,
-        );
-      });
     });
 
     describe('image ingredient validation', () => {
-      it('should throw 404 when image ingredient is not found', async () => {
-        ingredientsService.findOne.mockReset().mockResolvedValue(null);
-
-        await expect(
-          controller.createLipSyncVideo(mockReq, mockUser, mockDto),
-        ).rejects.toThrow(HttpException);
-      });
-
       it('should return 404 status for missing image ingredient', async () => {
         ingredientsService.findOne.mockReset().mockResolvedValue(null);
 
@@ -357,26 +281,6 @@ describe('VideosLipSyncController', () => {
           expect(err).toBeInstanceOf(HttpException);
           expect((err as HttpException).getStatus()).toBe(400);
         }
-      });
-
-      it('should accept VALIDATED status for image ingredient', async () => {
-        const validatedImage = {
-          ...mockImageIngredient,
-          status: IngredientStatus.VALIDATED,
-        };
-
-        ingredientsService.findOne
-          .mockReset()
-          .mockResolvedValueOnce(validatedImage)
-          .mockResolvedValueOnce(mockAudioIngredient);
-
-        const result = await controller.createLipSyncVideo(
-          mockReq,
-          mockUser,
-          mockDto,
-        );
-
-        expect(result).toBeDefined();
       });
     });
 

@@ -42,30 +42,4 @@ describe('reserveGenerationRequestCredits', () => {
       reservationId: 'retry-reservation',
     });
   });
-
-  it('keeps the price pinned by an existing source-action reservation', async () => {
-    const reserveCredits = vi.fn().mockResolvedValue({
-      amount: 7,
-      id: 'existing-reservation',
-      settledAmount: null,
-      status: CreditReservationStatus.RESERVED,
-    });
-    const request = {
-      body: { sourceActionId: 'source-action-1' },
-      creditsConfig: { amount: 10 },
-      user: { userId: 'user-1' },
-    };
-
-    await reserveGenerationRequestCredits({
-      amount: 10,
-      creditsUtilsService: { reserveCredits } as never,
-      organizationId: 'org-1',
-      request: request as never,
-    });
-
-    expect(request.creditsConfig).toMatchObject({
-      amount: 7,
-      reservationId: 'existing-reservation',
-    });
-  });
 });

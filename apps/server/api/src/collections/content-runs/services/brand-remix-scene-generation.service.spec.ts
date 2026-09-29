@@ -376,27 +376,6 @@ describe('canonical generated still to avatar boundary', () => {
     expect(avatars.generateAvatarVideo).not.toHaveBeenCalled();
     expect(billing.reserve).not.toHaveBeenCalled();
   });
-  it('ignores abandoned placeholders when adopting a retried attempt', async () => {
-    const claimed = config.scenePipeline;
-    if (!claimed) throw new Error('missing pipeline');
-    claimed.scenes.scene.replacedAssetIds = ['orphan'];
-    claimed.scenes.scene.video = {
-      ...claimed.scenes.scene.video,
-      state: 'claimed',
-      claimedAt: new Date().toISOString(),
-    };
-    prisma.ingredient.findFirst.mockResolvedValueOnce(null);
-    await service.step('org', 'run', 'operation');
-    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          groupId: 'clip-group',
-          id: { notIn: ['orphan'] },
-        }),
-        orderBy: { createdAt: 'desc' },
-      }),
-    );
-  });
   it('fails and releases an undispatched stage found while reconciling a cancellation', async () => {
     const cancelled = config.scenePipeline;
     if (!cancelled) throw new Error('missing pipeline');

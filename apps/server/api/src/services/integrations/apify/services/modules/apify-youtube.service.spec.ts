@@ -86,10 +86,6 @@ describe('ApifyYouTubeService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getYouTubeVideos', () => {
     it('should fetch and normalize videos from Apify actor', async () => {
       baseService.runActor.mockResolvedValue([mockRawVideo]);

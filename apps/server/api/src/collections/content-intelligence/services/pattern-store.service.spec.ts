@@ -44,16 +44,6 @@ describe('PatternStoreService organization scoping', () => {
   });
 
   describe('findByCreator', () => {
-    it('should scope the lookup to the organization and creator', async () => {
-      mocks.prisma.contentPattern.findMany.mockResolvedValue([]);
-
-      await service.findByCreator(creatorId, organizationId);
-
-      expect(mocks.prisma.contentPattern.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId, sourceCreatorId: creatorId },
-      });
-    });
-
     it('should not match a foreign organization', async () => {
       // A creator that belongs to another org yields no rows because the
       // organization filter is part of the where clause.

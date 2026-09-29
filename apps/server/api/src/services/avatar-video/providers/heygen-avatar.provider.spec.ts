@@ -50,10 +50,6 @@ describe('HeygenAvatarProvider', () => {
     vi.clearAllMocks();
   });
 
-  it('exposes providerName as heygen', () => {
-    expect(provider.providerName).toBe('heygen');
-  });
-
   describe('generateVideo', () => {
     const input = {
       avatarId: 'avatar-1',

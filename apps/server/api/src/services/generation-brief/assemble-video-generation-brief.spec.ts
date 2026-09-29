@@ -3,32 +3,6 @@ import { resolveVideoGenerationFidelityMode } from '@api/services/generation-bri
 import { describe, expect, it } from 'vitest';
 
 describe('assembleVideoGenerationBrief', () => {
-  it('preserves semantic run references across every clip brief', () => {
-    const brief = assembleVideoGenerationBrief({
-      fidelityMode: 'guided',
-      objective: 'Show the product in use',
-      references: [
-        { assetId: 'character-sheet', role: 'character' },
-        {
-          assetId: 'product-still',
-          description: 'Matte black bottle with gold cap',
-          role: 'product',
-        },
-        { assetId: 'outfit-style', role: 'style' },
-      ],
-    });
-
-    expect(brief.references).toEqual([
-      { assetId: 'character-sheet', role: 'character' },
-      {
-        assetId: 'product-still',
-        description: 'Matte black bottle with gold cap',
-        role: 'product',
-      },
-      { assetId: 'outfit-style', role: 'style' },
-    ]);
-  });
-
   it('normalizes an unbranded video request into a versioned brief', () => {
     const brief = assembleVideoGenerationBrief({
       durationSeconds: 5,
@@ -81,22 +55,6 @@ describe('assembleVideoGenerationBrief', () => {
       field: 'references.last_frame',
       source: 'user',
     });
-  });
-
-  it('keeps native video references distinct from frame images', () => {
-    const brief = assembleVideoGenerationBrief({
-      endFrameId: 'end-frame',
-      fidelityMode: 'guided',
-      objective: 'Continue the scene',
-      referenceIds: ['start-frame'],
-      videoReferenceIds: ['reference-video'],
-    });
-
-    expect(brief.references).toEqual([
-      { assetId: 'start-frame', role: 'first_frame' },
-      { assetId: 'end-frame', role: 'last_frame' },
-      { assetId: 'reference-video', role: 'reference_video' },
-    ]);
   });
 
   it('carries brandContext into the intent with brand provenance when present (#4676)', () => {

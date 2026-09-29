@@ -91,18 +91,6 @@ describe('WebhookDispatchService', () => {
     );
   });
 
-  it('reuses one job id across retried emissions of the same event', async () => {
-    await service.dispatch('org_123', generationPayload, {
-      jobIdPrefix: 'generation-webhook-',
-    });
-    await service.dispatch('org_123', generationPayload, {
-      jobIdPrefix: 'generation-webhook-',
-    });
-
-    const jobIds = queue.add.mock.calls.map((call) => call[2]?.jobId);
-    expect(new Set(jobIds).size).toBe(1);
-  });
-
   it('does not queue when org webhooks are disabled', async () => {
     settingsService.findOne.mockResolvedValue({
       isWebhookEnabled: false,

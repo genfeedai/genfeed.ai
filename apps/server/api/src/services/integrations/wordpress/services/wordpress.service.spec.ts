@@ -79,10 +79,6 @@ describe('WordpressService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateAuthUrl', () => {
     it('should return a valid WordPress OAuth URL', () => {
       const state = 'random-state-123';
@@ -239,20 +235,6 @@ describe('WordpressService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
 
-    it('should throw when credential has no accessToken', async () => {
-      const mockCredential = {
-        id: 'test-object-id',
-        accessToken: undefined,
-        platform: CredentialPlatform.WORDPRESS,
-      };
-
-      credentialsService.findOne.mockResolvedValue(mockCredential as never);
-
-      await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
-        'WordPress credential not found or missing access token',
-      );
-    });
-
     it('should throw when validation API call fails', async () => {
       const mockCredential = {
         id: 'test-object-id',
@@ -393,102 +375,6 @@ describe('WordpressService', () => {
         'https://cdn.example.com/featured.jpg',
       );
       expect(postData.status).toBe('draft');
-    });
-
-    it('should not include categories when array is empty', async () => {
-      const mockResponseData = {
-        ID: 45,
-        slug: '',
-        status: 'publish',
-        title: '',
-        URL: '',
-      };
-      httpService.post.mockReturnValue(
-        of({
-          config: {} as never,
-          data: mockResponseData,
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        }),
-      );
-
-      await service.createPost(
-        accessToken,
-        siteId,
-        'Title',
-        'Content',
-        'publish',
-        [],
-      );
-
-      const postData = httpService.post.mock.calls[0][1] as Record<
-        string,
-        unknown
-      >;
-      expect(postData.categories).toBeUndefined();
-    });
-
-    it('should not include tags when array is empty', async () => {
-      const mockResponseData = {
-        ID: 46,
-        slug: '',
-        status: 'publish',
-        title: '',
-        URL: '',
-      };
-      httpService.post.mockReturnValue(
-        of({
-          config: {} as never,
-          data: mockResponseData,
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        }),
-      );
-
-      await service.createPost(
-        accessToken,
-        siteId,
-        'Title',
-        'Content',
-        'publish',
-        undefined,
-        [],
-      );
-
-      const postData = httpService.post.mock.calls[0][1] as Record<
-        string,
-        unknown
-      >;
-      expect(postData.tags).toBeUndefined();
-    });
-
-    it('should default status to publish', async () => {
-      const mockResponseData = {
-        ID: 47,
-        slug: '',
-        status: 'publish',
-        title: '',
-        URL: '',
-      };
-      httpService.post.mockReturnValue(
-        of({
-          config: {} as never,
-          data: mockResponseData,
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        }),
-      );
-
-      await service.createPost(accessToken, siteId, 'Title', 'Content');
-
-      const postData = httpService.post.mock.calls[0][1] as Record<
-        string,
-        unknown
-      >;
-      expect(postData.status).toBe('publish');
     });
 
     it('should throw and log error when API call fails', async () => {

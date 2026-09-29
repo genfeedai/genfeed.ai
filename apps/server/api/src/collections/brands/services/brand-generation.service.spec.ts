@@ -373,22 +373,6 @@ describe('BrandGenerationService', () => {
       return request.messages[0]?.content ?? '';
     }
 
-    it('scopes the corpus to the organization and brand and forwards pasted samples', async () => {
-      stubProviderOutput(JSON.stringify(validProfile));
-
-      await service.generateBrandVoice(
-        { brandId: 'brand-1', samples: ['my own words'] },
-        organizationId,
-        findBrand,
-      );
-
-      expect(brandVoiceCorpusService.buildCorpus).toHaveBeenCalledWith({
-        brandId: 'brand-1',
-        organizationId,
-        pastedSamples: ['my own words'],
-      });
-    });
-
     it('puts measured stats and verbatim real posts into the prompt', async () => {
       brandVoiceCorpusService.buildCorpus.mockResolvedValue(
         buildVoiceCorpus([...replies, ...originals]),

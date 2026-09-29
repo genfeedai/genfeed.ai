@@ -121,10 +121,6 @@ describe('PublisherFactoryService', () => {
     service = module.get<PublisherFactoryService>(PublisherFactoryService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ─── getPublisher() ─────────────────────────────────────────────────────────
 
   describe('getPublisher()', () => {

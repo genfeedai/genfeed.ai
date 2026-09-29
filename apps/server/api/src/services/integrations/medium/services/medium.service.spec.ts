@@ -70,10 +70,6 @@ describe('MediumService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateAuthUrl', () => {
     it('encodes every OAuth parameter', () => {
       const url = new URL(service.generateAuthUrl('state with spaces&symbols'));

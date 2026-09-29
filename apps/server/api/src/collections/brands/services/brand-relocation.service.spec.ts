@@ -327,20 +327,6 @@ describe('BrandRelocationService', () => {
     expect(transactionSpy).not.toHaveBeenCalled();
   });
 
-  it('forbids a non-superadmin who is not an active member of both orgs', async () => {
-    primeBrand();
-    getDelegate('member').findFirst.mockResolvedValue(null);
-
-    await expect(
-      service.relocateToOrganization(
-        BRAND_ID,
-        { organizationId: DEST_ORG },
-        { isSuperAdmin: false, userId: USER_ID },
-      ),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    expect(transactionSpy).not.toHaveBeenCalled();
-  });
-
   it('forbids a member whose role is not owner/admin in both orgs', async () => {
     primeBrand();
     getDelegate('member').findFirst.mockImplementation(

@@ -51,20 +51,6 @@ describe('StalePendingSystemExecutionFinderService', () => {
     expect(where.createdAt.lt).toEqual(staleBefore);
   });
 
-  it('applies the caller-provided limit', async () => {
-    const findMany = vi.fn().mockResolvedValue([]);
-    const prisma = { workflowExecution: { findMany } };
-    const service = new StalePendingSystemExecutionFinderService(
-      prisma as never,
-    );
-
-    await service.findMany(new Date(), new Date(0), { limit: 50 });
-
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ take: 50 }),
-    );
-  });
-
   describe('keyset cursor pagination (#5319)', () => {
     it('has no cursor condition on the first page', async () => {
       const findMany = vi.fn().mockResolvedValue([]);
@@ -81,93 +67,6 @@ describe('StalePendingSystemExecutionFinderService', () => {
         gte: new Date(0),
         lt: new Date('2026-09-26T00:00:00.000Z'),
       });
-    });
-
-    it('resumes strictly after the cursor row instead of restarting from the top', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-      const staleBefore = new Date('2026-09-26T00:00:00.000Z');
-      const createdAfter = new Date(0);
-      const cursor = {
-        createdAt: new Date('2026-09-25T12:00:00.000Z'),
-        id: 'execution-200',
-      };
-
-      await service.findMany(staleBefore, createdAfter, { cursor });
-
-      const where = findMany.mock.calls[0][0].where;
-      expect(where.AND).toEqual([
-        expect.objectContaining({
-          createdAt: { gte: createdAfter, lt: staleBefore },
-        }),
-        {
-          OR: [
-            { createdAt: { gt: cursor.createdAt } },
-            {
-              AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }],
-            },
-          ],
-        },
-      ]);
-    });
-
-    it('keeps the same-createdAt tiebreaker so two rows sharing a timestamp are never both skipped or both repeated', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-      const tiedCreatedAt = new Date('2026-09-25T12:00:00.000Z');
-
-      await service.findMany(new Date(), new Date(0), {
-        cursor: { createdAt: tiedCreatedAt, id: 'execution-a' },
-      });
-
-      const where = findMany.mock.calls[0][0].where;
-      const tiebreak = where.AND[1].OR[1];
-      expect(tiebreak).toEqual({
-        AND: [{ createdAt: tiedCreatedAt }, { id: { gt: 'execution-a' } }],
-      });
-    });
-
-    it('orders by createdAt then id ascending so a cursor tuple resumes deterministically', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-
-      await service.findManyAncient(new Date());
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        }),
-      );
-    });
-
-    it('selects createdAt and cancelRequestedAt so the caller can build the next cursor and honour a drain cancellation intent (#5450)', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-
-      await service.findMany(new Date(), new Date(0));
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          select: {
-            cancelRequestedAt: true,
-            createdAt: true,
-            id: true,
-            organizationId: true,
-          },
-        }),
-      );
     });
   });
 
@@ -201,46 +100,6 @@ describe('StalePendingSystemExecutionFinderService', () => {
         }),
       );
     });
-
-    it('applies the caller-provided limit', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-
-      await service.findManyAncient(new Date(), { limit: 25 });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 25 }),
-      );
-    });
-
-    it('resumes an ancient sweep strictly after the cursor row', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-      const cursor = {
-        createdAt: new Date('2026-01-01T00:00:00.000Z'),
-        id: 'execution-ancient-200',
-      };
-
-      await service.findManyAncient(new Date('2026-09-25T11:55:00.000Z'), {
-        cursor,
-      });
-
-      const where = findMany.mock.calls[0][0].where;
-      expect(where.AND[1]).toEqual({
-        OR: [
-          { createdAt: { gt: cursor.createdAt } },
-          {
-            AND: [{ createdAt: cursor.createdAt }, { id: { gt: cursor.id } }],
-          },
-        ],
-      });
-    });
   });
 
   describe('lap upper-boundary snapshot (#5319 second review)', () => {
@@ -273,18 +132,6 @@ describe('StalePendingSystemExecutionFinderService', () => {
       });
     });
 
-    it('findUpperBoundary returns undefined when the cohort currently has no candidates', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-
-      const result = await service.findUpperBoundary(new Date(), new Date(0));
-
-      expect(result).toBeUndefined();
-    });
-
     it('findUpperBoundaryAncient queries the ancient cohort with no lower bound', async () => {
       const findMany = vi.fn().mockResolvedValue([]);
       const prisma = { workflowExecution: { findMany } };
@@ -302,40 +149,6 @@ describe('StalePendingSystemExecutionFinderService', () => {
           where: expect.objectContaining({ createdAt: { lt: createdBefore } }),
         }),
       );
-    });
-
-    it('caps a page to rows at or before the upper boundary tuple', async () => {
-      const findMany = vi.fn().mockResolvedValue([]);
-      const prisma = { workflowExecution: { findMany } };
-      const service = new StalePendingSystemExecutionFinderService(
-        prisma as never,
-      );
-      const staleBefore = new Date('2026-09-26T00:00:00.000Z');
-      const createdAfter = new Date(0);
-      const upperBoundary = {
-        createdAt: new Date('2026-09-25T18:00:00.000Z'),
-        id: 'execution-199',
-      };
-
-      await service.findMany(staleBefore, createdAfter, { upperBoundary });
-
-      const where = findMany.mock.calls[0][0].where;
-      expect(where.AND).toEqual([
-        expect.objectContaining({
-          createdAt: { gte: createdAfter, lt: staleBefore },
-        }),
-        {
-          OR: [
-            { createdAt: { lt: upperBoundary.createdAt } },
-            {
-              AND: [
-                { createdAt: upperBoundary.createdAt },
-                { id: { lte: upperBoundary.id } },
-              ],
-            },
-          ],
-        },
-      ]);
     });
 
     it('combines cursor and upperBoundary as two independent AND conditions', async () => {

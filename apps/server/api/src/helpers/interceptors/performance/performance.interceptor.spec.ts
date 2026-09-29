@@ -92,10 +92,6 @@ describe('PerformanceInterceptor', () => {
     mockCallHandler.handle.mockReset();
   });
 
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
   describe('intercept', () => {
     it('should log debug for fast requests', async () => {
       mockCallHandler.handle.mockReturnValue(of('success'));
@@ -456,10 +452,6 @@ describe('APIMetricsInterceptor', () => {
       debug: vi.fn(),
     } as unknown as vi.Mocked<LoggerService>;
     interceptor = new APIMetricsInterceptor(loggerService, true);
-  });
-
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
   });
 
   describe('intercept', () => {

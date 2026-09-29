@@ -77,10 +77,6 @@ describe('KlingWebhookController', () => {
     loggerService = module.get(LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('handleCallback', () => {
     it('should handle callback successfully', async () => {
       const body = { task_id: '123', task_status: 'failed' };

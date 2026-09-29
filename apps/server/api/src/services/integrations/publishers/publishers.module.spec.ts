@@ -4,10 +4,6 @@ import { PublishersModule } from '@api/services/integrations/publishers/publishe
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('PublishersModule', () => {
-  it('should be defined', () => {
-    expect(PublishersModule).toBeDefined();
-  });
-
   it('binds and exports the canonical publisher factory port', () => {
     const providers =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, PublishersModule) ?? [];

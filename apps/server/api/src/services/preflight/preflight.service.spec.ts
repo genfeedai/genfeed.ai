@@ -58,12 +58,6 @@ describe('PreflightService', () => {
     expect(r.checks.length).toBeGreaterThan(0);
   });
 
-  it('returns degraded when partial', async () => {
-    service = await buildModule({ OPENAI_API_KEY: 'sk' });
-    const r = await service.checkReadiness('studio');
-    expect(r.status).toBe('degraded');
-  });
-
   it('uses the Instagram app credentials consumed by the OAuth controller', async () => {
     service = await buildModule({
       DATABASE_URL: 'postgresql://localhost/genfeed_test',

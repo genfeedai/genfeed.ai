@@ -64,17 +64,6 @@ describe('MembersService', () => {
     });
   });
 
-  it('maps canonical brandIds to a Prisma relation set on patch', async () => {
-    prisma.member.update.mockResolvedValue({ id: 'member-1' });
-
-    await service.patch('member-1', { brandIds: [] });
-
-    expect(prisma.member.update).toHaveBeenCalledWith({
-      data: { brands: { set: [] } },
-      where: { id: 'member-1' },
-    });
-  });
-
   it('returns active organization members as team mentions', async () => {
     prisma.member.findMany.mockResolvedValue([
       {

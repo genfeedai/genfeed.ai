@@ -69,22 +69,6 @@ describe('CredentialHelper', () => {
       expect(service.findOne).not.toHaveBeenCalled();
     });
 
-    it('asks for the named account when a credential id is given', async () => {
-      // A brand holding several accounts on one platform acts as the account
-      // the caller named, never as whichever row the brand lists first.
-      const service = makeCredentialsService(mockCredential);
-      const credentialId = testId('credential');
-
-      await CredentialHelper.getDecryptedCredential(service as never, {
-        ...baseOptions,
-        credentialId,
-      });
-
-      expect(service.resolveBrandAccount).toHaveBeenCalledWith(
-        expect.objectContaining({ credentialId }),
-      );
-    });
-
     it('throws when credential is not found', async () => {
       const service = makeCredentialsService(null);
       await expect(

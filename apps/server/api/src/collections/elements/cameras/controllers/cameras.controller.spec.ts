@@ -99,10 +99,6 @@ describe('ElementsCamerasController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a camera for superadmin', async () => {
       const createDto: CreateElementCameraDto = {
@@ -207,37 +203,6 @@ describe('ElementsCamerasController', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated cameras', async () => {
-      const mockCameras = {
-        docs: [
-          { id: '1', key: 'camera-1', label: 'Camera 1' },
-          { id: '2', key: 'camera-2', label: 'Camera 2' },
-        ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 2,
-        totalPages: 1,
-      };
-
-      camerasService.findAll.mockResolvedValue(mockCameras as never);
-
-      const query = createBaseQuery();
-
-      const result = await controller.findAll(
-        mockRequest,
-        mockSuperAdminUser,
-        query,
-      );
-
-      expect(camerasService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should handle empty results', async () => {
       const mockCameras = {
         docs: [],

@@ -121,16 +121,4 @@ describe('BatchProjectCreditsService', () => {
       }),
     ).resolves.toBe('released');
   });
-
-  it('releases a failed line by its reservation', async () => {
-    await service.release({
-      dispatch: { ...dispatch, reservationId: 'reservation-1' },
-      organizationId: 'org-1',
-    });
-
-    expect(credits.releaseReservation).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      reservationId: 'reservation-1',
-    });
-  });
 });

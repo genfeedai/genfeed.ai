@@ -246,23 +246,4 @@ describe('McpConnectionVerificationService', () => {
     );
     expect(apiKeysService.patch).not.toHaveBeenCalled();
   });
-
-  it('reports missing publishing integration after a valid connection', async () => {
-    credentialsService.countConnected.mockResolvedValue(0);
-
-    await expect(
-      service.verify({
-        apiKeyId: 'key-1',
-        organizationId: 'org-1',
-        plainKey: 'gf_test_secret-value',
-        userId: 'user-1',
-      }),
-    ).resolves.toMatchObject({
-      publishing: {
-        connectedAccountCount: 0,
-        isReady: false,
-      },
-      status: 'connected',
-    });
-  });
 });

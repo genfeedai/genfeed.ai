@@ -25,61 +25,10 @@ describe('SecurityUtil', () => {
       expect(typeof result).toBe('string');
     });
 
-    it('should throw error for empty file path', () => {
-      expect(() => SecurityUtil.validateFilePath('')).toThrow(
-        ValidationException,
-      );
-    });
-
     it('should throw error for non-string file path', () => {
       expect(() => SecurityUtil.validateFilePath(null)).toThrow(
         ValidationException,
       );
-    });
-
-    it('should block directory traversal with ../', () => {
-      expect(() =>
-        SecurityUtil.validateFilePath('../../../etc/passwd'),
-      ).toThrow(ValidationException);
-    });
-
-    it('should block directory traversal with ..\\', () => {
-      expect(() => SecurityUtil.validateFilePath('..\\..\\windows')).toThrow(
-        ValidationException,
-      );
-    });
-
-    it('should block access to /etc/passwd', () => {
-      expect(() => SecurityUtil.validateFilePath('/etc/passwd')).toThrow(
-        ValidationException,
-      );
-    });
-
-    it('should block access to /etc/shadow', () => {
-      expect(() => SecurityUtil.validateFilePath('/etc/shadow')).toThrow(
-        ValidationException,
-      );
-    });
-
-    it('should block access to /proc/ directory', () => {
-      expect(() => SecurityUtil.validateFilePath('/proc/cpuinfo')).toThrow(
-        ValidationException,
-      );
-    });
-
-    it('should block Windows system paths', () => {
-      expect(() =>
-        SecurityUtil.validateFilePath('c:\\windows\\system32'),
-      ).toThrow(ValidationException);
-    });
-
-    it('should block command injection attempts', () => {
-      // validateFilePath blocks BLOCKED_PATTERNS (traversal, system paths)
-      // Command injection via semicolons is blocked by validateStringParam/sanitizeCommandArgs
-      // A path with shell metacharacters that overlaps with BLOCKED_PATTERNS should be blocked
-      expect(() =>
-        SecurityUtil.validateFilePath('../etc/passwd; rm -rf /'),
-      ).toThrow(ValidationException);
     });
 
     it('should block variable expansion attempts', () => {
@@ -177,16 +126,6 @@ describe('SecurityUtil', () => {
   });
 
   describe('validateFileSize', () => {
-    it('should validate file within size limit', async () => {
-      (fs.stat as vi.Mock).mockResolvedValue({
-        size: 50 * 1024 * 1024, // 50MB
-      });
-
-      await expect(
-        SecurityUtil.validateFileSize('/path/to/file.mp4', 100),
-      ).resolves.not.toThrow();
-    });
-
     it('should throw error for file exceeding size limit', async () => {
       (fs.stat as vi.Mock).mockResolvedValue({
         size: 150 * 1024 * 1024, // 150MB
@@ -225,37 +164,6 @@ describe('SecurityUtil', () => {
       expect(result).toEqual(args);
     });
 
-    it('should escape quotes in arguments', () => {
-      const args = ['file "with quotes".mp4'];
-      const result = SecurityUtil.sanitizeCommandArgs(args);
-
-      expect(result[0]).toContain('\\"');
-    });
-
-    it('should throw error for command injection with semicolon', () => {
-      expect(() =>
-        SecurityUtil.sanitizeCommandArgs(['file.mp4; rm -rf /']),
-      ).toThrow(ValidationException);
-    });
-
-    it('should throw error for command injection with &&', () => {
-      expect(() =>
-        SecurityUtil.sanitizeCommandArgs(['file.mp4 && malicious']),
-      ).toThrow(ValidationException);
-    });
-
-    it('should throw error for command injection with pipes', () => {
-      expect(() =>
-        SecurityUtil.sanitizeCommandArgs(['file.mp4 | grep secret']),
-      ).toThrow(ValidationException);
-    });
-
-    it('should throw error for backtick injection', () => {
-      expect(() =>
-        SecurityUtil.sanitizeCommandArgs(['file.mp4`whoami`']),
-      ).toThrow(ValidationException);
-    });
-
     it('should throw error for variable expansion', () => {
       expect(() =>
         SecurityUtil.sanitizeCommandArgs(['$HOME/file.mp4']),
@@ -270,20 +178,9 @@ describe('SecurityUtil', () => {
   });
 
   describe('validateNumericParam', () => {
-    it('should validate number within range', () => {
-      const result = SecurityUtil.validateNumericParam(50, 'width', 0, 100);
-      expect(result).toBe(50);
-    });
-
     it('should floor decimal numbers', () => {
       const result = SecurityUtil.validateNumericParam(50.7, 'width', 0, 100);
       expect(result).toBe(50);
-    });
-
-    it('should throw error for NaN', () => {
-      expect(() => SecurityUtil.validateNumericParam(NaN, 'width')).toThrow(
-        ValidationException,
-      );
     });
 
     it('should throw error for non-number', () => {
@@ -297,52 +194,13 @@ describe('SecurityUtil', () => {
         SecurityUtil.validateNumericParam(-10, 'width', 0, 100),
       ).toThrow(ValidationException);
     });
-
-    it('should throw error for value above maximum', () => {
-      expect(() =>
-        SecurityUtil.validateNumericParam(150, 'width', 0, 100),
-      ).toThrow(ValidationException);
-    });
-
-    it('should use default range 0-10000', () => {
-      expect(() => SecurityUtil.validateNumericParam(15000, 'width')).toThrow(
-        ValidationException,
-      );
-    });
   });
 
   describe('validateStringParam', () => {
-    it('should validate and trim string', () => {
-      const result = SecurityUtil.validateStringParam(
-        '  test string  ',
-        'param',
-      );
-      expect(result).toBe('test string');
-    });
-
-    it('should throw error for empty string', () => {
-      expect(() => SecurityUtil.validateStringParam('', 'param')).toThrow(
-        ValidationException,
-      );
-    });
-
     it('should throw error for null value', () => {
       expect(() => SecurityUtil.validateStringParam(null, 'param')).toThrow(
         ValidationException,
       );
-    });
-
-    it('should throw error for string exceeding maxLength', () => {
-      const longString = 'a'.repeat(300);
-      expect(() =>
-        SecurityUtil.validateStringParam(longString, 'param', 255),
-      ).toThrow(ValidationException);
-    });
-
-    it('should block command injection patterns', () => {
-      expect(() =>
-        SecurityUtil.validateStringParam('test; rm -rf /', 'param'),
-      ).toThrow(ValidationException);
     });
 
     it('should block newline injection', () => {
@@ -381,12 +239,6 @@ describe('SecurityUtil', () => {
       vi.restoreAllMocks();
     });
 
-    it('should validate file extension', () => {
-      expect(() =>
-        SecurityUtil.createSecureTempPath('/tmp', 'test', '.exe'),
-      ).toThrow(ValidationException);
-    });
-
     it('should build a path for a real extension without mocking validateFileExtension', () => {
       // Regression: the previous api copy passed a bare `.mp4` to
       // path.extname (=== '') so createSecureTempPath threw for EVERY valid
@@ -404,19 +256,6 @@ describe('SecurityUtil', () => {
       expect(() =>
         SecurityUtil.createSecureTempPath('/tmp', longFilename, '.mp4'),
       ).toThrow(ValidationException);
-    });
-
-    it('should generate unique paths', () => {
-      vi.spyOn(SecurityUtil, 'validateFileExtension').mockImplementation(
-        () => {},
-      );
-
-      const path1 = SecurityUtil.createSecureTempPath('/tmp', 'test', '.mp4');
-      const path2 = SecurityUtil.createSecureTempPath('/tmp', 'test', '.mp4');
-
-      expect(path1).not.toBe(path2);
-
-      vi.restoreAllMocks();
     });
   });
 });

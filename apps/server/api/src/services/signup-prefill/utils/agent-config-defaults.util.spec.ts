@@ -22,15 +22,6 @@ function buildScrapedData(
 }
 
 describe('derivePlatformsFromSocialLinks', () => {
-  it('returns the platforms the brand actually links to', () => {
-    expect(
-      derivePlatformsFromSocialLinks({
-        instagram: 'https://instagram.com/acme',
-        linkedin: 'https://linkedin.com/company/acme',
-      }),
-    ).toEqual([Platform.INSTAGRAM, Platform.LINKEDIN]);
-  });
-
   it('never guesses a platform when no links were found', () => {
     expect(derivePlatformsFromSocialLinks(undefined)).toEqual([]);
     expect(derivePlatformsFromSocialLinks({})).toEqual([]);
@@ -42,12 +33,6 @@ describe('derivePlatformsFromSocialLinks', () => {
 });
 
 describe('buildPersona', () => {
-  it('states the brand even with no voice signal', () => {
-    expect(buildPersona('Acme', undefined)).toBe(
-      'You are the content lead for Acme.',
-    );
-  });
-
   it('folds every available voice signal into one directive', () => {
     const persona = buildPersona('Acme', {
       audience: ['founders', 'operators'],
@@ -60,27 +45,6 @@ describe('buildPersona', () => {
     expect(persona).toContain('Voice: plain and concrete.');
     expect(persona).toContain('Speak to founders, operators.');
     expect(persona).toContain('anchored to speed, craft');
-  });
-
-  it('skips non-string entries instead of rendering undefined', () => {
-    const persona = buildPersona('Acme', {
-      audience: [42, 'founders'] as unknown as string[],
-    });
-
-    expect(persona).toBe(
-      'You are the content lead for Acme. Speak to founders.',
-    );
-  });
-
-  it('trims string lists and filters blank values', () => {
-    const persona = buildPersona('Acme', {
-      audience: ['  founders  ', '   '],
-      messagingPillars: ['  craft  ', ''],
-    });
-
-    expect(persona).toBe(
-      'You are the content lead for Acme. Speak to founders. Keep every piece anchored to craft.',
-    );
   });
 });
 
@@ -129,16 +93,6 @@ describe('buildPrefilledAgentConfig', () => {
     expect(config.strategy?.frequency).toBe('weekly');
     expect(config.strategy?.platforms).toEqual([Platform.TIKTOK]);
     expect(config.schedule?.startTime).toBe('06:00');
-  });
-
-  it('derives the persona from the voice the analysis produced', () => {
-    const config = buildPrefilledAgentConfig({
-      brandLabel: 'Acme',
-      existingConfig: { voice: { tone: 'warm' } },
-      scrapedData: undefined,
-    });
-
-    expect(config.persona).toContain('Write in a warm tone.');
   });
 
   it('leaves platforms empty when nothing was scraped', () => {

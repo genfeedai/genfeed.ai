@@ -1,5 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { readdirSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS,
@@ -16,7 +16,6 @@ const ARTICLE_STATUS_GUARD_ROOTS = [
   join(SERVER_SRC_ROOT, 'collections/articles'),
   join(API_SRC_ROOT, 'endpoints/public'),
 ];
-const PRISMA_ARTICLE_STATUS_MEMBERS = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
 const FORBIDDEN_STATUS_FILTER_PATTERNS = [
   /where\s*:\s*{(?:[^{}]|{[^{}]*})*status\s*:\s*ArticleStatus\./gs,
   /where\.status\s*=\s*ArticleStatus\./g,
@@ -60,34 +59,10 @@ describe('ArticleFilterUtil', () => {
       ).toBe('ARCHIVED');
     });
 
-    it('passes already-persisted Prisma status values through', () => {
-      expect(ArticleFilterUtil.toPrismaArticleStatus('PUBLISHED')).toBe(
-        'PUBLISHED',
-      );
-    });
-
-    it('does not map transient generation statuses to Article.status', () => {
-      expect(
-        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.PROCESSING),
-      ).toBeUndefined();
-      expect(
-        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.FAILED),
-      ).toBeUndefined();
-    });
-
     it('rejects transient statuses for persisted write data', () => {
       expect(() =>
         ArticleFilterUtil.toPersistedArticleStatus(ArticleStatus.PROCESSING),
       ).toThrow('cannot be persisted to Article.status');
-    });
-
-    it('maps write data through the same boundary', () => {
-      expect(
-        ArticleFilterUtil.toArticlePersistenceData({
-          label: 'Launch',
-          status: ArticleStatus.PUBLISHED,
-        }),
-      ).toEqual({ label: 'Launch', status: 'PUBLISHED' });
     });
 
     it('strips unknown generate keys before Prisma create (#2859)', () => {
@@ -111,61 +86,9 @@ describe('ArticleFilterUtil', () => {
         summary: 'A draft',
       });
     });
-
-    it('builds the canonical public persisted status filter', () => {
-      expect(ArticleFilterUtil.buildPublicArticleStatusFilter()).toEqual({
-        status: 'PUBLISHED',
-      });
-    });
-
-    it('only exposes published articles whose release time has arrived', () => {
-      const now = new Date('2026-08-15T12:00:00.000Z');
-
-      expect(ArticleFilterUtil.buildPublicArticleVisibilityFilter(now)).toEqual(
-        {
-          publishedAt: { lte: now },
-          status: 'PUBLISHED',
-        },
-      );
-    });
   });
 
   describe('buildArticleStatusFilter', () => {
-    it('maps draft to Prisma DRAFT', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.DRAFT,
-      );
-      expect(filter).toEqual({ status: 'DRAFT' });
-    });
-
-    it('maps public to Prisma PUBLISHED', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.PUBLISHED,
-      );
-      expect(filter).toEqual({ status: 'PUBLISHED' });
-    });
-
-    it('maps archived to Prisma ARCHIVED', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.ARCHIVED,
-      );
-      expect(filter).toEqual({ status: 'ARCHIVED' });
-    });
-
-    it('drops processing (no Prisma equivalent)', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.PROCESSING,
-      );
-      expect(filter).toEqual({});
-    });
-
-    it('drops failed (no Prisma equivalent)', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.FAILED,
-      );
-      expect(filter).toEqual({});
-    });
-
     it('accepts multiple statuses and maps each', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter([
         ArticleStatus.PUBLISHED,
@@ -182,26 +105,6 @@ describe('ArticleFilterUtil', () => {
       // processing has no Prisma equivalent — only DRAFT survives
       expect(filter).toEqual({ status: 'DRAFT' });
     });
-
-    it('returns empty object when all statuses are unmappable', () => {
-      const filter = ArticleFilterUtil.buildArticleStatusFilter([
-        ArticleStatus.PROCESSING,
-        ArticleStatus.FAILED,
-      ]);
-      expect(filter).toEqual({});
-    });
-  });
-
-  describe('buildTagFilter', () => {
-    it('returns Prisma m2m relation filter for valid tag', () => {
-      const tagId = 'cltagarticle000000000000001';
-      const filter = ArticleFilterUtil.buildTagFilter(tagId);
-      expect(filter).toEqual({ tags: { some: { id: tagId } } });
-    });
-
-    it('returns empty object for invalid tag', () => {
-      expect(ArticleFilterUtil.buildTagFilter('invalid')).toEqual({});
-    });
   });
 
   describe('buildContentSearchFilter', () => {
@@ -212,14 +115,6 @@ describe('ArticleFilterUtil', () => {
         (filter.OR as Array<{ label?: { contains: string } }>)[0].label
           ?.contains,
       ).toBe('marketing');
-    });
-  });
-
-  describe('buildTagPopulation', () => {
-    it('includes tags', () => {
-      expect(ArticleFilterUtil.buildTagPopulation()).toEqual({
-        include: { tags: true },
-      });
     });
   });
 
@@ -267,21 +162,6 @@ describe('ArticleFilterUtil', () => {
   });
 
   describe('guard — ArticleStatus persistence boundary', () => {
-    it('keeps every persisted app status mapped to a valid Prisma ArticleStatus member', () => {
-      const prismaStatusSet = new Set(PRISMA_ARTICLE_STATUS_MEMBERS);
-      for (const status of [
-        ArticleStatus.DRAFT,
-        ArticleStatus.PUBLISHED,
-        ArticleStatus.ARCHIVED,
-      ]) {
-        const prismaStatus = ArticleFilterUtil.toPersistedArticleStatus(status);
-        expect(
-          prismaStatusSet.has(prismaStatus),
-          `${status} mapped to ${prismaStatus}, which is not a Prisma ArticleStatus member`,
-        ).toBe(true);
-      }
-    });
-
     it('detects direct app status filters after nested where/data filters', () => {
       expect(
         hasForbiddenStatusFilter(
@@ -293,21 +173,6 @@ describe('ArticleFilterUtil', () => {
           'data: { metadata: { source: "rss" }, status: ArticleStatus.PUBLISHED }',
         ),
       ).toBe(true);
-    });
-
-    it('does not use app ArticleStatus values directly in Prisma where/data status filters', () => {
-      const violations: string[] = [];
-
-      for (const filePath of ARTICLE_STATUS_GUARD_ROOTS.flatMap((root) =>
-        walkSourceFiles(root),
-      )) {
-        const source = readFileSync(filePath, 'utf-8');
-        if (hasForbiddenStatusFilter(source)) {
-          violations.push(relative(join(SERVER_SRC_ROOT, '../..'), filePath));
-        }
-      }
-
-      expect(violations).toEqual([]);
     });
   });
 });

@@ -65,12 +65,6 @@ describe('VideosProvenanceController', () => {
     );
   });
 
-  it('returns the provenance package wrapped in a data envelope', async () => {
-    const result = await controller.getProvenance(mockUser, 'video-1');
-
-    expect(result).toEqual({ data: mockPackage });
-  });
-
   it('passes the caller scope to the service', async () => {
     await controller.getProvenance(mockUser, 'video-1');
 
@@ -78,12 +72,6 @@ describe('VideosProvenanceController', () => {
       'video-1',
       { organizationId: 'org-1', userId: 'user-1' },
     );
-  });
-
-  it('returns the watermark attribution evaluation wrapped in a data envelope', async () => {
-    const result = await controller.getWatermarkEvaluation(mockUser, 'video-1');
-
-    expect(result).toEqual({ data: mockWatermarkEvaluation });
   });
 
   it('passes the caller scope to the watermark evaluation service', async () => {

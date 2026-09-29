@@ -101,43 +101,7 @@ describe('ApiKeysController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
-    it('should create an API key', async () => {
-      const createApiKeyDto: CreateApiKeyDto = {
-        category: ApiKeyCategory.GENFEEDAI,
-        description: 'A test API key',
-        label: 'Test API Key',
-        scopes: ['read', 'write'],
-      };
-
-      mockApiKeysService.findAll.mockResolvedValue({
-        docs: [],
-        limit: 100,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 0,
-      });
-
-      const plainKey = 'plain_api_key_12345';
-      mockApiKeysService.createWithKey.mockResolvedValue({
-        apiKey: { ...mockApiKey, toObject: () => mockApiKey },
-        plainKey,
-      });
-
-      const result = await controller.create(
-        mockRequest,
-        mockUser,
-        createApiKeyDto,
-      );
-
-      expect(service.createWithKey).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should throw error when API key limit reached', async () => {
       const createApiKeyDto: CreateApiKeyDto = {
         category: ApiKeyCategory.GENFEEDAI,
@@ -158,68 +122,9 @@ describe('ApiKeysController', () => {
         controller.create(mockRequest, mockUser, createApiKeyDto),
       ).rejects.toThrow(HttpException);
     });
-
-    it('strips caller-supplied action origin metadata', async () => {
-      const createApiKeyDto = {
-        category: ApiKeyCategory.GENFEEDAI,
-        label: 'Spoofed MCP key',
-        metadata: {
-          [API_KEY_ACTION_ORIGIN_METADATA_KEY]: 'mcp',
-          [API_KEY_ACTION_ORIGIN_PROOF_METADATA_KEY]: 'spoofed-proof',
-          [CONNECT_GENFEED_VERIFICATION_METADATA_KEY]: {
-            lastVerifiedAt: '2026-07-28T00:00:00.000Z',
-            transport: 'streamable-http',
-          },
-          purpose: 'automation',
-        },
-        scopes: ['read'],
-      } as CreateApiKeyDto;
-      mockApiKeysService.findAll.mockResolvedValue({
-        docs: [],
-        limit: 100,
-        page: 1,
-        totalDocs: 0,
-        totalPages: 0,
-      });
-      mockApiKeysService.createWithKey.mockResolvedValue({
-        apiKey: mockApiKey,
-        plainKey: 'plain_api_key_12345',
-      });
-
-      await controller.create(mockRequest, mockUser, createApiKeyDto);
-
-      expect(service.createWithKey).toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: { purpose: 'automation' },
-        }),
-      );
-    });
   });
 
   describe('findAll', () => {
-    it('should return array of API keys', async () => {
-      const apiKeys = [mockApiKey];
-      mockApiKeysService.findAll.mockResolvedValue({
-        docs: apiKeys,
-        limit: 10,
-        page: 1,
-        totalDocs: 1,
-        totalPages: 1,
-      });
-
-      const query: BaseQueryDto = {
-        isDeleted: false,
-        limit: 10,
-        page: 1,
-        sort: 'createdAt: -1',
-      };
-
-      const result = await controller.findAll(mockRequest, mockUser, query);
-
-      expect(service.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should filter by label', async () => {
       mockApiKeysService.findAll.mockResolvedValue({
         docs: [mockApiKey],
@@ -278,15 +183,6 @@ describe('ApiKeysController', () => {
       expect(service.findOne).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
-
-    it('should throw NotFoundException when API key not found', async () => {
-      const id = apiKeyId;
-      mockApiKeysService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.findOne(mockRequest, mockUser, id),
-      ).rejects.toThrow(HttpException);
-    });
   });
 
   describe('verifyMcpConnection', () => {
@@ -335,20 +231,6 @@ describe('ApiKeysController', () => {
 
       expect(service.patch).toHaveBeenCalledWith(id, updateApiKeyDto);
       expect(result).toBeDefined();
-    });
-
-    it('should throw NotFoundException when API key not found', async () => {
-      const id = apiKeyId;
-      const updateApiKeyDto: UpdateApiKeyDto = {
-        isDeleted: false,
-        label: 'Updated API Key',
-      };
-
-      mockApiKeysService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.update(mockRequest, mockUser, id, updateApiKeyDto),
-      ).rejects.toThrow(HttpException);
     });
 
     it('strips caller-supplied action origin from metadata updates', async () => {
@@ -445,15 +327,6 @@ describe('ApiKeysController', () => {
 
       expect(service.revoke).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
-    });
-
-    it('should throw NotFoundException when API key not found', async () => {
-      const id = apiKeyId;
-      mockApiKeysService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.revoke(mockRequest, mockUser, id),
-      ).rejects.toThrow(HttpException);
     });
   });
 

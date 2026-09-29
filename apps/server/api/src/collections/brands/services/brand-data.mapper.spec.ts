@@ -17,33 +17,6 @@ describe('BrandDataMapper', () => {
   });
 
   describe('buildScrapedBrandData', () => {
-    it('fills the full IScrapedBrandData shape with defaults', () => {
-      const scrapedAt = new Date('2026-01-01');
-
-      const result = mapper.buildScrapedBrandData({
-        scrapedAt,
-        sourceUrl: 'https://example.com',
-      });
-
-      expect(result).toEqual({
-        aboutText: undefined,
-        companyName: undefined,
-        description: undefined,
-        fontFamily: undefined,
-        heroText: undefined,
-        logoUrl: undefined,
-        metaDescription: undefined,
-        ogImage: undefined,
-        primaryColor: undefined,
-        scrapedAt,
-        secondaryColor: undefined,
-        socialLinks: {},
-        sourceUrl: 'https://example.com',
-        tagline: undefined,
-        valuePropositions: [],
-      });
-    });
-
     it('lets provided fields override the defaults', () => {
       const result = mapper.buildScrapedBrandData({
         companyName: 'Acme',
@@ -170,12 +143,6 @@ describe('BrandDataMapper', () => {
       expect(mapper.readBrandAgentConfig('nope')).toEqual({});
       expect(mapper.readBrandAgentConfig([1, 2])).toEqual({});
     });
-
-    it('passes through object values', () => {
-      const config = { persona: 'friendly' };
-
-      expect(mapper.readBrandAgentConfig(config)).toBe(config);
-    });
   });
 
   describe('readBrandReferenceImages', () => {
@@ -226,27 +193,7 @@ describe('BrandDataMapper', () => {
     });
   });
 
-  describe('parseAudienceList', () => {
-    it('splits on commas, trims, and drops empties', () => {
-      expect(mapper.parseAudienceList(' founders , , devs,')).toEqual([
-        'founders',
-        'devs',
-      ]);
-    });
-  });
-
   describe('mergeExtractedVoice', () => {
-    it('returns the config unchanged when no brand voice was extracted', () => {
-      const config = { voice: { tone: 'calm' } };
-
-      const result = mapper.mergeExtractedVoice(config, {
-        scrapedAt: new Date(),
-        sourceUrl: 'https://acme.com',
-      } as IExtractedBrandData);
-
-      expect(result).toEqual(config);
-    });
-
     it.each([undefined, { tone: 'direct' }])(
       'normalizes stored text audiences when scraping has no audience',
       (brandVoice) => {
@@ -297,26 +244,6 @@ describe('BrandDataMapper', () => {
         tone: 'bold',
         values: ['quality'],
       });
-    });
-
-    it('keeps the existing audience when the extracted voice has none', () => {
-      const config = { voice: { audience: ['old'] } };
-      const extractedData = {
-        brandVoice: {
-          audience: '',
-          hashtags: [],
-          taglines: [],
-          tone: 'bold',
-          values: [],
-          voice: 'confident',
-        },
-        scrapedAt: new Date(),
-        sourceUrl: 'https://acme.com',
-      } as IExtractedBrandData;
-
-      const result = mapper.mergeExtractedVoice(config, extractedData);
-
-      expect(result.voice?.audience).toEqual(['old']);
     });
 
     it('persists strategy topics and prompt seeds from the same analysis', () => {

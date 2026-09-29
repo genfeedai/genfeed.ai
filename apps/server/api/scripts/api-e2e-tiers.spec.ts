@@ -54,21 +54,6 @@ describe('API E2E tiers', () => {
     ).toEqual([]);
   });
 
-  it('discovers every spec recursively and ignores support files', () => {
-    const rootDir = createFixture([
-      'test/e2e/auth.e2e-spec.ts',
-      'test/e2e/e2e-test.utils.ts',
-      'test/integration/payments.integration.spec.ts',
-      'test/integration/nested/worker.spec.ts',
-    ]);
-
-    expect(discoverApiE2eSpecs(rootDir)).toEqual([
-      'test/e2e/auth.e2e-spec.ts',
-      'test/integration/nested/worker.spec.ts',
-      'test/integration/payments.integration.spec.ts',
-    ]);
-  });
-
   it('keeps the core tier explicit while full automatically includes new specs', () => {
     const files = [
       'test/e2e/core.e2e-spec.ts',

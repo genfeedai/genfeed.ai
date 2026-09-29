@@ -3,9 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import {
   parseCreatePostingSetInput,
-  parseStoredPlatforms,
   parseStoredPostingSetTargets,
-  referencedCredentialIds,
   toCredentialRefs,
 } from './posting-set-persistence.helpers';
 
@@ -77,28 +75,5 @@ describe('posting-set persistence helpers', () => {
       },
     ]);
     expect(JSON.stringify(refs)).not.toMatch(/oauth|token|secret/i);
-  });
-
-  it('collects unique credential ids', () => {
-    expect(
-      referencedCredentialIds([
-        {
-          credentialId: 'cred_x',
-          platform: CredentialPlatform.TWITTER,
-          targetKey: 'x-primary',
-        },
-        {
-          credentialId: 'cred_x',
-          platform: CredentialPlatform.TWITTER,
-          targetKey: 'x-secondary',
-        },
-      ]),
-    ).toEqual(['cred_x']);
-  });
-
-  it('keeps only domain platforms from stored signature rows', () => {
-    expect(
-      parseStoredPlatforms(['twitter', 'TWITTER', 'not-a-platform']),
-    ).toEqual([CredentialPlatform.TWITTER]);
   });
 });

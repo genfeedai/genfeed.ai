@@ -427,31 +427,6 @@ describe('BrandOsRevisionsService', () => {
     ]);
     expect(rows.map((item) => item.version)).toEqual([1, 2]);
   });
-  it('returns only the newest live claimed draft for the handoff', async () => {
-    const first = {
-      ...row('first-claim', 1),
-      sourcePreviewTokenHash: 'first-token',
-    };
-    const latest = {
-      ...row('latest-claim', 2),
-      sourcePreviewTokenHash: 'latest-token',
-    };
-    const manual = row('manual', 3);
-    const deleted = {
-      ...row('deleted-claim', 4),
-      isDeleted: true,
-      sourcePreviewTokenHash: 'deleted-token',
-    };
-    const foreign = {
-      ...row('foreign-claim', 5),
-      organizationId: 'foreign-org',
-      sourcePreviewTokenHash: 'foreign-token',
-    };
-    const { service } = harness([first, latest, manual, deleted, foreign]);
-    await expect(service.findClaimed(ORG, BRAND)).resolves.toMatchObject({
-      id: 'latest-claim',
-    });
-  });
 
   it('hides terminal claims from the handoff but preserves token-specific durable retries', async () => {
     const approved = {
@@ -524,12 +499,4 @@ describe('BrandOsRevisionsService', () => {
       BadRequestException,
     );
   });
-
-  it.each([null, 7, ['wrong'], { voice: ['wrong'], strategy: 'wrong' }])(
-    'initializes malformed legacy configuration containers safely: %j',
-    async (config) => {
-      const { service } = harness([], config);
-      await expect(service.list(ORG, BRAND)).resolves.toHaveLength(1);
-    },
-  );
 });

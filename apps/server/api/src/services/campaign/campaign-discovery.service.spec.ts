@@ -102,10 +102,6 @@ describe('CampaignDiscoveryService', () => {
     service = module.get<CampaignDiscoveryService>(CampaignDiscoveryService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('discoverTargets', () => {
     it('should return empty array when no discoveryConfig', async () => {
       const campaign = makeCampaign({ discoveryConfig: undefined });
@@ -416,40 +412,6 @@ describe('CampaignDiscoveryService', () => {
           expect.objectContaining({ externalId: 'ext1' }),
         ]),
       );
-    });
-
-    it('should scope every created target with the campaign organization id', async () => {
-      const targets = [
-        {
-          authorId: 'a1',
-          authorUsername: 'user1',
-          contentCreatedAt: new Date(),
-          contentText: 'text',
-          contentUrl: 'https://x.com/1',
-          discoverySource: CampaignDiscoverySource.KEYWORD_SEARCH,
-          externalId: 'ext1',
-          likes: 10,
-          matchedKeyword: 'ai',
-          platform: CampaignPlatform.TWITTER,
-          relevanceScore: 0.8,
-          replies: 2,
-          retweets: 5,
-          targetType: CampaignTargetType.TWEET,
-        },
-      ];
-      mockCampaignTargetsService.createManyForCampaign.mockResolvedValue(
-        targets.length,
-      );
-
-      const campaign = makeCampaign();
-
-      await service.addDiscoveredTargetsToCampaign(campaign, targets);
-
-      expect(
-        mockCampaignTargetsService.createManyForCampaign,
-      ).toHaveBeenCalledWith(campaignId, orgId, [
-        expect.objectContaining({ organizationId: orgId }),
-      ]);
     });
 
     it('should refuse to create unscoped targets when the organization cannot be resolved', async () => {

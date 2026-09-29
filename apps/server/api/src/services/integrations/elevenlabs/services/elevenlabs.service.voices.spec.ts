@@ -85,10 +85,6 @@ describe('ElevenLabsService', () => {
     service = module.get<ElevenLabsService>(ElevenLabsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getVoices', () => {
     it('should return mapped voices from ElevenLabs API', async () => {
       voicesGetAllMock.mockResolvedValue({

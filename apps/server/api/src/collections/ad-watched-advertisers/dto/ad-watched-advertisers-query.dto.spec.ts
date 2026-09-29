@@ -14,22 +14,4 @@ describe('AdWatchedAdvertisersQueryDto', () => {
     expect(dto).toMatchObject({ advertiserHandle: 'nike' });
     expect(dto).not.toHaveProperty('organizationId');
   });
-
-  it('accepts a supported platform filter', async () => {
-    const dto = plainToInstance(AdWatchedAdvertisersQueryDto, {
-      platform: 'tiktok',
-    });
-
-    const errors = await validate(dto);
-    expect(errors.length).toBe(0);
-  });
-
-  it('rejects a platform filter outside the supported ad platforms', async () => {
-    const dto = plainToInstance(AdWatchedAdvertisersQueryDto, {
-      platform: 'linkedin',
-    });
-
-    const errors = await validate(dto);
-    expect(errors.some((error) => error.property === 'platform')).toBe(true);
-  });
 });

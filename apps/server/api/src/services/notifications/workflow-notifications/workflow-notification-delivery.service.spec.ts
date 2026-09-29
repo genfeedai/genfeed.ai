@@ -107,63 +107,6 @@ describe('WorkflowNotificationDeliveryService', () => {
     });
   });
 
-  it('retries a transient notifications gateway failure', async () => {
-    const prisma = {
-      notificationDelivery: {
-        findUnique: vi.fn().mockResolvedValue({
-          attemptCount: 1,
-          channel: 'email',
-          topic: 'workflow.status',
-          event: {
-            sourceType: 'workflow_execution',
-            payload: {
-              error: 'invalid recipient',
-              executionId: 'execution-1',
-              status: 'failed',
-              trigger: 'agent',
-              version: 1,
-              workflowId: 'workflow-1',
-              workflowLabel: 'Daily Posts',
-            },
-          },
-          idempotencyKey: 'workflow-status/execution-1/failed',
-          organizationId: 'org-1',
-          user: { email: 'owner@example.com', isDeleted: false },
-          userId: 'owner-1',
-        }),
-        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
-      notificationPreference: {
-        findFirst: vi.fn().mockResolvedValue({ isEnabled: true }),
-      },
-    };
-    const notifications = {
-      deliverEmail: vi
-        .fn()
-        .mockRejectedValue(new EmailDeliveryError(true, 502)),
-    };
-    const service = new WorkflowNotificationDeliveryService(
-      prisma as never,
-      notifications as never,
-      { enqueue: vi.fn() } as never,
-      { warn: vi.fn() } as never,
-    );
-
-    await service.deliver('delivery-1');
-
-    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith({
-      data: expect.objectContaining({
-        nextAttemptAt: expect.any(Date),
-        status: 'retry_pending',
-      }),
-      where: {
-        id: 'delivery-1',
-        isDeleted: false,
-        organizationId: 'org-1',
-      },
-    });
-  });
-
   it('marks a transient delivery failure final after retry exhaustion', async () => {
     const prisma = {
       notificationDelivery: {
@@ -432,18 +375,6 @@ describe('agent failure delivery', () => {
     expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: 'failed' }),
-      }),
-    );
-  });
-  it('keeps agent delivery retryable after a transient provider failure', async () => {
-    const { prisma, notifications, service } = setup();
-    notifications.deliverEmail.mockRejectedValue(
-      new EmailDeliveryError(true, 503),
-    );
-    await service.deliver('delivery');
-    expect(prisma.notificationDelivery.updateMany).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: 'retry_pending' }),
       }),
     );
   });

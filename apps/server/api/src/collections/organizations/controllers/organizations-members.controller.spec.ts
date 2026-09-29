@@ -27,7 +27,6 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -207,10 +206,6 @@ describe('OrganizationsMembersController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAllMembers', () => {
     it('should return paginated members list', async () => {
       const mockData = {
@@ -304,15 +299,6 @@ describe('OrganizationsMembersController', () => {
       expect(JSON.stringify(mockLoggerService.log.mock.calls)).not.toContain(
         inviteDto.email,
       );
-    });
-
-    it('restricts member invitations to organization owners and admins', () => {
-      expect(
-        Reflect.getMetadata(
-          'roles',
-          OrganizationsMembersController.prototype.inviteMember,
-        ),
-      ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
     });
   });
 

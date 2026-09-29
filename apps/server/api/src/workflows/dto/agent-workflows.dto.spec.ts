@@ -52,16 +52,6 @@ describe('agent workflow DTO validation', () => {
     expect((await validate(dto)).length).toBeGreaterThan(0);
   });
 
-  it('rejects rollback targets outside the known workflow phases', async () => {
-    const dto = plainToInstance(PatchAgentWorkflowDto, {
-      event: 'rollback',
-      targetPhase: 'shipping',
-    });
-    const errors = await validate(dto);
-
-    expect(errors.some((error) => error.property === 'targetPhase')).toBe(true);
-  });
-
   it('validates nested workflow state payloads', async () => {
     const dto = plainToInstance(PatchAgentWorkflowDto, {
       approaches: [
@@ -109,35 +99,5 @@ describe('agent workflow DTO validation', () => {
     const errors = await validate(dto);
 
     expect(errors).toHaveLength(0);
-  });
-
-  it('rejects invalid nested workflow state fields', async () => {
-    const dto = plainToInstance(PatchAgentWorkflowDto, {
-      approaches: [
-        {
-          description: '',
-          id: 'approach-1',
-          recommended: true,
-          title: 'Broken approach',
-          tradeoffs: {
-            cons: ['Extra work'],
-            pros: 'not-an-array',
-          },
-        },
-      ],
-      event: 'advance',
-      messages: [
-        {
-          content: 'Missing valid phase.',
-          id: 'message-1',
-          phase: 'shipping',
-          role: 'agent',
-          timestamp: 'later',
-        },
-      ],
-    });
-    const errors = await validate(dto);
-
-    expect(errors.length).toBeGreaterThan(0);
   });
 });

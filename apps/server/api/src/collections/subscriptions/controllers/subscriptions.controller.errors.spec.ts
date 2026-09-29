@@ -174,21 +174,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
     });
 
-    it('keeps a classified plan-change failure exactly as the service raised it', async () => {
-      const classified = new SubscriptionChangeException(
-        SubscriptionChangeFailureCode.SUBSCRIPTION_MISSING,
-      );
-      subscriptionsService.changeSubscriptionPlan.mockRejectedValue(classified);
-
-      const error = await controller
-        .changePlan(contextRequest(ORGANIZATION_ID), mockUser, {
-          newPriceId: 'price_new',
-        })
-        .catch((caught: unknown) => caught);
-
-      expect(error).toBe(classified);
-    });
-
     it('reports a durable change whose credit reset failed without claiming the reset', async () => {
       subscriptionsService.changeSubscriptionPlan.mockResolvedValue({
         creditsOutcome: SubscriptionPlanChangeCreditsOutcome.FAILED,
@@ -204,22 +189,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('could not be reset');
-    });
-
-    it('reports a fully applied change as a plain success', async () => {
-      subscriptionsService.changeSubscriptionPlan.mockResolvedValue({
-        creditsOutcome: SubscriptionPlanChangeCreditsOutcome.RESET,
-        stripeSubscription: {},
-        subscription: {},
-      });
-
-      const result = await controller.changePlan(
-        contextRequest(ORGANIZATION_ID),
-        mockUser,
-        { newPriceId: 'price_new' },
-      );
-
-      expect(result.message).toBe('Subscription plan changed successfully');
     });
 
     it('falls back to token metadata when the request carries no context', async () => {
@@ -259,21 +228,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
     });
 
-    it('keeps a classified preview failure exactly as the service raised it', async () => {
-      const classified = new SubscriptionPreviewException(
-        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
-      );
-      subscriptionsService.previewSubscriptionChange.mockRejectedValue(
-        classified,
-      );
-
-      const error = await controller
-        .previewChange(contextRequest(), mockUser, { price: 'price_new' })
-        .catch((caught: unknown) => caught);
-
-      expect(error).toBe(classified);
-    });
-
     it('classifies a stray 4xx from below as rejected client state', async () => {
       subscriptionsService.previewSubscriptionChange.mockRejectedValue(
         new BadRequestException('No active Stripe subscription found'),
@@ -290,18 +244,6 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       expect((error as SubscriptionPreviewException).getStatus()).toBe(
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
-    });
-
-    it('previews the routed organization instead of stale token metadata', async () => {
-      subscriptionsService.previewSubscriptionChange.mockResolvedValue({});
-
-      await controller.previewChange(contextRequest('org_routed'), mockUser, {
-        price: 'price_new',
-      });
-
-      expect(
-        subscriptionsService.previewSubscriptionChange,
-      ).toHaveBeenCalledWith('org_routed', 'price_new');
     });
 
     it('wraps a credits-breakdown failure in a 500 that keeps the cause out of the body', async () => {

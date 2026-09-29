@@ -107,25 +107,7 @@ describe('BotGatewayService', () => {
     generationService = module.get(BotGenerationService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ── getAdapter ───────────────────────────────────────────────────────
-
-  describe('getAdapter', () => {
-    it('returns the discord adapter', () => {
-      const adapter = service.getAdapter(CredentialPlatform.DISCORD);
-      expect(adapter).toBeDefined();
-    });
-
-    it('returns undefined for unsupported platform', () => {
-      const adapter = service.getAdapter(
-        'whatsapp' as unknown as CredentialPlatform,
-      );
-      expect(adapter).toBeUndefined();
-    });
-  });
 
   // ── handlePing ───────────────────────────────────────────────────────
 

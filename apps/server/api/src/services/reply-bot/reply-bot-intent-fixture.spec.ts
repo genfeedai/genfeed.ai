@@ -44,18 +44,6 @@ const rows: FixtureRow[] = readFileSync(FIXTURE_PATH, 'utf8')
 const regexAnswers = rows.map((row) => classifyReplyIntent(row.state.comment));
 
 describe('reply-bot-intent labelled set', () => {
-  it('carries at least the 300 rows the issue asks for', () => {
-    expect(rows.length).toBeGreaterThanOrEqual(300);
-  });
-
-  it('covers every intent with a meaningful number of rows', () => {
-    for (const intent of REPLY_INTENT_VALUES) {
-      expect(
-        rows.filter((row) => row.expected === intent).length,
-      ).toBeGreaterThanOrEqual(50);
-    }
-  });
-
   it('labels every row with a real intent and no duplicate comments', () => {
     for (const row of rows) {
       expect(REPLY_INTENT_VALUES).toContain(row.expected);

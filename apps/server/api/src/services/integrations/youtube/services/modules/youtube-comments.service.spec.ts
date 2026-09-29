@@ -63,10 +63,6 @@ describe('YoutubeCommentsService', () => {
     serviceInternals.youtubeAPI = mockYoutubeAPI;
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('postComment', () => {
     const orgId = testId('org');
     const brandId = testId('brand');

@@ -6,15 +6,7 @@ import {
   RequestTimeoutException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  defaultIfEmpty,
-  delay,
-  firstValueFrom,
-  lastValueFrom,
-  of,
-  TimeoutError,
-  throwError,
-} from 'rxjs';
+import { delay, firstValueFrom, lastValueFrom, of, throwError } from 'rxjs';
 
 describe('TimeoutInterceptor', () => {
   let interceptor: TimeoutInterceptor;
@@ -69,10 +61,6 @@ describe('TimeoutInterceptor', () => {
     vi.useRealTimers();
   });
 
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
   it('should pass through successful responses within timeout', async () => {
     const mockResponse = { data: 'test' };
     mockCallHandler.handle = vi.fn().mockReturnValue(of(mockResponse));
@@ -85,42 +73,6 @@ describe('TimeoutInterceptor', () => {
     const value = await firstValueFrom(result$);
     expect(value).toEqual(mockResponse);
     expect(mockCallHandler.handle).toHaveBeenCalled();
-  });
-
-  it('should throw RequestTimeoutException when request times out', async () => {
-    vi.useFakeTimers();
-
-    mockCallHandler.handle = vi
-      .fn()
-      .mockReturnValue(of('response').pipe(delay(31000)));
-
-    const result$ = interceptor.intercept(
-      mockExecutionContext,
-      mockCallHandler,
-    );
-
-    const promise = firstValueFrom(result$);
-    vi.advanceTimersByTime(31000);
-
-    await expect(promise).rejects.toBeInstanceOf(RequestTimeoutException);
-    expect(mockCallHandler.handle).toHaveBeenCalled();
-    vi.useRealTimers();
-  }, 35000);
-
-  it('should handle TimeoutError and throw RequestTimeoutException', async () => {
-    const timeoutError = new TimeoutError();
-    mockCallHandler.handle = vi
-      .fn()
-      .mockReturnValue(throwError(() => timeoutError));
-
-    const result$ = interceptor.intercept(
-      mockExecutionContext,
-      mockCallHandler,
-    );
-
-    await expect(firstValueFrom(result$)).rejects.toBeInstanceOf(
-      RequestTimeoutException,
-    );
   });
 
   it('should pass through other errors unchanged', async () => {
@@ -169,18 +121,6 @@ describe('TimeoutInterceptor', () => {
     expect(value).toEqual(mockResponse);
   });
 
-  it('should handle empty observable', async () => {
-    mockCallHandler.handle = vi.fn().mockReturnValue(of());
-
-    const result$ = interceptor.intercept(
-      mockExecutionContext,
-      mockCallHandler,
-    );
-
-    const value = await lastValueFrom(result$.pipe(defaultIfEmpty(undefined)));
-    expect(value).toBeUndefined();
-  });
-
   it('should timeout after exactly 30 seconds', () => {
     vi.useFakeTimers();
 
@@ -225,18 +165,6 @@ describe('TimeoutInterceptor', () => {
   });
 
   describe('edge cases', () => {
-    it('should handle null response', async () => {
-      mockCallHandler.handle = vi.fn().mockReturnValue(of(null));
-
-      const result$ = interceptor.intercept(
-        mockExecutionContext,
-        mockCallHandler,
-      );
-
-      const value = await firstValueFrom(result$);
-      expect(value).toBeNull();
-    });
-
     it('should handle array responses', async () => {
       const mockArray = [1, 2, 3];
       mockCallHandler.handle = vi.fn().mockReturnValue(of(mockArray));

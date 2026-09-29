@@ -20,10 +20,6 @@ describe('OptimizationCycleService', () => {
     } as unknown as PrismaService);
   });
 
-  it('does not expose generateNextBatchPrompts on the public surface', () => {
-    expect('generateNextBatchPrompts' in service).toBe(false);
-  });
-
   describe('runOptimizationCycle', () => {
     it('returns nextBatchSuggestions derived from winning hooks, platform, and content type', async () => {
       findMany.mockResolvedValue([

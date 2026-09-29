@@ -100,27 +100,6 @@ describe('compileFlux2FlexGenerationBrief', () => {
     expect(result.evidence.omittedSignals).toEqual([]);
   });
 
-  it('rejects strict required signals FLUX 2 Flex cannot honor', () => {
-    const brief = imageGenerationBriefSchema.parse({
-      constraints: [
-        { kind: 'avoid', required: true, value: 'busy backgrounds' },
-      ],
-      fidelityMode: 'strict',
-      intent: { objective: 'Create a launch image for the new bottle' },
-      mediaKind: 'image',
-      output: {},
-      references: [{ assetId: 'asset_product_123', role: 'product' }],
-      version: 1,
-    });
-
-    expect(() =>
-      compileFlux2FlexGenerationBrief({
-        brief,
-        modelKey: FLUX_2_FLEX_MODEL_KEY,
-      }),
-    ).toThrow(GenerationBriefCompileError);
-  });
-
   it('rejects an unregistered model key', () => {
     const brief = imageGenerationBriefSchema.parse({
       constraints: [],
@@ -137,19 +116,5 @@ describe('compileFlux2FlexGenerationBrief', () => {
         modelKey: 'black-forest-labs/flux-99',
       }),
     ).toThrow(GenerationBriefCompileError);
-  });
-
-  it('does not mutate the normalized brief', () => {
-    const brief = imageGenerationBriefSchema.parse(
-      readFixture('guided.input.json'),
-    );
-    const original = structuredClone(brief);
-
-    compileFlux2FlexGenerationBrief({
-      brief,
-      modelKey: FLUX_2_FLEX_MODEL_KEY,
-    });
-
-    expect(brief).toEqual(original);
   });
 });

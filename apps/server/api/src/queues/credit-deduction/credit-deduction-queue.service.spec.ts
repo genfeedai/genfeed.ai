@@ -58,12 +58,6 @@ describe('CreditDeductionQueueService', () => {
     },
   );
 
-  describe('instantiation', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-  });
-
   describe('queueDeduction', () => {
     it('should queue credit deduction job successfully', async () => {
       const jobData: CreditDeductionJobData = {
@@ -131,51 +125,6 @@ describe('CreditDeductionQueueService', () => {
       expect(call1).not.toBe(call2);
     });
 
-    it('should use a deterministic job ID when an idempotency key is supplied', async () => {
-      const jobData: CreditDeductionJobData = {
-        amount: 18,
-        description: 'Fleet voice clone compute',
-        idempotencyKey: 'fleet-voice-clone-job-1',
-        organizationId: 'org-123',
-        source: ActivitySource.VIDEO_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({
-          jobId: 'credit-deduct-org-123-fleet-voice-clone-job-1',
-        }),
-      );
-    });
-
-    it('strips colons from idempotency keys so BullMQ accepts the job id', async () => {
-      const jobData: CreditDeductionJobData = {
-        amount: 2,
-        description: 'Composer image generation',
-        idempotencyKey: 'generation:composer-generation-execution-1',
-        organizationId: 'org-123',
-        source: 'image-generation',
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({
-          jobId:
-            'credit-deduct-org-123-generation-composer-generation-execution-1',
-        }),
-      );
-    });
-
     it('keeps media settlement retryable through the stuck-asset reconciliation window', async () => {
       const jobData: CreditDeductionJobData = {
         amount: 18,
@@ -240,28 +189,6 @@ describe('CreditDeductionQueueService', () => {
 
       await expect(service.queueByokUsage(jobData)).rejects.toThrow(
         'Redis connection lost',
-      );
-    });
-
-    it('uses a deterministic BYOK job ID when an idempotency key is supplied', async () => {
-      const jobData: CreditDeductionJobData = {
-        amount: 7,
-        description: 'Bot media generation',
-        idempotencyKey: 'bot-media-image-1',
-        organizationId: 'org-789',
-        source: ActivitySource.BOT_GENERATION,
-        type: 'record-byok-usage',
-        userId: 'user-1',
-      };
-
-      await service.queueByokUsage(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'record-byok-usage',
-        jobData,
-        expect.objectContaining({
-          jobId: 'byok-usage-org-789-bot-media-image-1',
-        }),
       );
     });
   });

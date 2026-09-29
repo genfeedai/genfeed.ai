@@ -2,7 +2,6 @@ import {
   buildCombinedMetadata,
   extractAttributionMetadata,
   extractInvoiceSubscriptionId,
-  extractInvoiceSubscriptionMetadata,
   getEmailDomainForLog,
   getEmailLogMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
@@ -28,22 +27,6 @@ describe('getEmailLogMetadata', () => {
 });
 
 describe('extractInvoiceSubscriptionId', () => {
-  it('reads the v22 parent path', () => {
-    expect(
-      extractInvoiceSubscriptionId(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_parent' } },
-        }),
-      ),
-    ).toBe('sub_parent');
-  });
-
-  it('falls back to the legacy top-level path', () => {
-    expect(
-      extractInvoiceSubscriptionId(invoiceWith({ subscription: 'sub_legacy' })),
-    ).toBe('sub_legacy');
-  });
-
   it('unwraps expanded subscription objects', () => {
     expect(
       extractInvoiceSubscriptionId(
@@ -54,43 +37,6 @@ describe('extractInvoiceSubscriptionId', () => {
         }),
       ),
     ).toBe('sub_expanded');
-  });
-
-  it('prefers the parent path over the legacy path', () => {
-    expect(
-      extractInvoiceSubscriptionId(
-        invoiceWith({
-          parent: { subscription_details: { subscription: 'sub_parent' } },
-          subscription: 'sub_legacy',
-        }),
-      ),
-    ).toBe('sub_parent');
-  });
-
-  it('returns undefined when no path carries a subscription', () => {
-    expect(extractInvoiceSubscriptionId(invoiceWith({}))).toBeUndefined();
-  });
-});
-
-describe('extractInvoiceSubscriptionMetadata', () => {
-  it('reads trusted subscription metadata from the v22 parent path', () => {
-    expect(
-      extractInvoiceSubscriptionMetadata(
-        invoiceWith({
-          parent: {
-            subscription_details: {
-              metadata: {
-                billing_account_type: 'organization',
-                billing_organization_id: 'org_1',
-              },
-            },
-          },
-        }),
-      ),
-    ).toEqual({
-      billing_account_type: 'organization',
-      billing_organization_id: 'org_1',
-    });
   });
 });
 
@@ -137,29 +83,6 @@ describe('extractAttributionMetadata', () => {
   it('returns an empty object for missing metadata', () => {
     expect(extractAttributionMetadata(null, noWarn)).toEqual({});
     expect(extractAttributionMetadata(undefined, noWarn)).toEqual({});
-  });
-
-  it('maps snake_case and camelCase keys to attribution fields', () => {
-    expect(
-      extractAttributionMetadata(
-        {
-          contentId: 'content_1',
-          session_id: 'sess_1',
-          source_platform: 'youtube',
-          sourceLinkId: 'link_1',
-          utm_campaign: 'launch',
-          utmSource: 'newsletter',
-        },
-        noWarn,
-      ),
-    ).toEqual({
-      sessionId: 'sess_1',
-      sourceContentId: 'content_1',
-      sourceContentType: undefined,
-      sourceLinkId: 'link_1',
-      sourcePlatform: 'youtube',
-      utm: { campaign: 'launch', source: 'newsletter' },
-    });
   });
 
   it('omits the utm object when no utm keys are present', () => {

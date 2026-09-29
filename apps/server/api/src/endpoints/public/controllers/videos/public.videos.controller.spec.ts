@@ -91,16 +91,7 @@ describe('PublicVideosController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // --- findPublicVideos ---
-  it('should return public videos collection', async () => {
-    const result = await controller.findPublicVideos(mockRequest, {} as never);
-    expect(result).toBeDefined();
-    expect(mockVideosService.findAll).toHaveBeenCalled();
-  });
 
   it('should pass the brand filter when a valid entity ID is provided', async () => {
     await controller.findPublicVideos(
@@ -219,13 +210,5 @@ describe('PublicVideosController', () => {
       HttpException,
     );
     expect(mockVideosService.findOne).not.toHaveBeenCalled();
-  });
-
-  it('should throw NOT_FOUND when video does not exist for stream', async () => {
-    mockVideosService.findOne.mockResolvedValue(null);
-    const mockRes = { set: vi.fn() } as unknown as ExpressResponse;
-    await expect(controller.getVideo(videoId, mockRes)).rejects.toThrow(
-      HttpException,
-    );
   });
 });

@@ -68,10 +68,6 @@ describe('AnalyticsSyncController', () => {
     controller = module.get(AnalyticsSyncController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('triggerSync', () => {
     it('should enqueue analytics sync job', async () => {
       const result = await controller.triggerSync({}, mockUser);

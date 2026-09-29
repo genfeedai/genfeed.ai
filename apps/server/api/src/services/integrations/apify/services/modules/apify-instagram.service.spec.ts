@@ -79,10 +79,6 @@ describe('ApifyInstagramService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('getInstagramTrends normalizes hashtags to trend format', async () => {
     baseService.runActor.mockResolvedValue([mockHashtag]);
     const result = await service.getInstagramTrends({ limit: 5 });

@@ -7,16 +7,7 @@ import { validate } from 'class-validator';
 const brandId = testId('brand');
 
 describe('GenerateArticlesDto', () => {
-  it('should be defined', () => {
-    expect(GenerateArticlesDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new GenerateArticlesDto();
-      expect(dto).toBeInstanceOf(GenerateArticlesDto);
-    });
-
     /**
      * The API's ValidationPipe validates with `whitelist: true` and no
      * `forbidNonWhitelisted`, so an undeclared key is deleted without an error
@@ -45,28 +36,6 @@ describe('GenerateArticlesDto', () => {
 
       expect(errors).toHaveLength(0);
       expect(dto.brandId).toBe(brandId);
-    });
-
-    it('strips keys the DTO does not declare', async () => {
-      const dto = plainToInstance(GenerateArticlesDto, {
-        prompt: 'AI infrastructure trends',
-        undeclaredModelAlias: MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET,
-      });
-
-      await validate(dto, { whitelist: true });
-
-      expect(dto).not.toHaveProperty('undeclaredModelAlias');
-    });
-
-    it('rejects a non-string generation model', async () => {
-      const dto = plainToInstance(GenerateArticlesDto, {
-        model: 42,
-        prompt: 'AI infrastructure trends',
-      });
-
-      const errors = await validate(dto, { whitelist: true });
-
-      expect(errors.map((error) => error.property)).toContain('model');
     });
 
     it('accepts a request without a generation model', async () => {

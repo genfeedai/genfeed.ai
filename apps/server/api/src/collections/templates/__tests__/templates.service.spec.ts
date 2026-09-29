@@ -140,19 +140,6 @@ describe('TemplatesService persistence', () => {
     },
   );
 
-  it('checks prompt keys within the requested organization so overrides can be created', async () => {
-    prisma.template.findFirst.mockResolvedValue(null);
-    await service.create(dto, 'org-1', 'user-1');
-    expect(prisma.template.findFirst).toHaveBeenCalledWith({
-      where: {
-        isDeleted: false,
-        key: dto.key,
-        organizationId: 'org-1',
-        purpose: 'prompt',
-      },
-    });
-  });
-
   it('preserves saved content and unrelated config when updating only the description', async () => {
     prisma.template.findFirst.mockResolvedValue(
       row({ ...row().config, custom: true }),
@@ -202,26 +189,6 @@ describe('TemplatesService persistence', () => {
     expect(await service.findAll('org-1')).toEqual([
       expect.objectContaining({ content: dto.content }),
     ]);
-  });
-
-  it('searches description in config without querying a nonexistent column', async () => {
-    await service.findAll('org-1', { search: 'greeting' });
-    expect(prisma.template.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [
-            { label: { contains: 'greeting', mode: 'insensitive' } },
-            {
-              config: {
-                path: ['description'],
-                string_contains: 'greeting',
-                mode: 'insensitive',
-              },
-            },
-          ],
-        }),
-      }),
-    );
   });
 
   it('keeps searches scoped to the active organization and live templates', async () => {

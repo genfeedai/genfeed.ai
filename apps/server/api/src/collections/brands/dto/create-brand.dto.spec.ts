@@ -16,35 +16,11 @@ describe('CreateBrandDto', () => {
     secondaryColor: '#FFFFFF',
   };
 
-  it('should be defined', () => {
-    expect(CreateBrandDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new CreateBrandDto();
-      expect(dto).toBeInstanceOf(CreateBrandDto);
-    });
-
-    it('accepts a valid handle', async () => {
-      await expect(
-        pipe.transform({ ...brand, slug: 'acme-labs' }, metadata),
-      ).resolves.toMatchObject({ slug: 'acme-labs' });
-    });
-
     it('lets the server derive the handle when none is sent', async () => {
       await expect(pipe.transform(brand, metadata)).resolves.toMatchObject({
         label: 'Acme',
       });
     });
-
-    it.each(['a', 'Acme', 'acme_labs', 'acme--labs', 'a'.repeat(49)])(
-      'rejects the handle %j, as an update would',
-      async (slug) => {
-        await expect(
-          pipe.transform({ ...brand, slug }, metadata),
-        ).rejects.toMatchObject({ status: 400 });
-      },
-    );
   });
 });

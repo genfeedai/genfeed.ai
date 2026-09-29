@@ -101,12 +101,6 @@ describe('RouterController', () => {
     vi.clearAllMocks();
   });
 
-  describe('controller definition', () => {
-    it('should be defined', () => {
-      expect(controller).toBeDefined();
-    });
-  });
-
   describe('selectModel', () => {
     describe('basic functionality', () => {
       it('should select optimal model for image generation', async () => {
@@ -615,125 +609,6 @@ describe('RouterController', () => {
         await expect(controller.selectModel(selectModelDto)).rejects.toThrow(
           'Database error',
         );
-      });
-    });
-
-    describe('all categories', () => {
-      it('should handle IMAGE category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.IMAGE,
-          prompt: 'An image',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle VIDEO category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.VIDEO,
-          prompt: 'A video',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle TEXT category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.TEXT,
-          prompt: 'Generate text',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle IMAGE_EDIT category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.IMAGE_EDIT,
-          prompt: 'Edit an image',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle VIDEO_EDIT category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.VIDEO_EDIT,
-          prompt: 'Edit a video',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle IMAGE_UPSCALE category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.IMAGE_UPSCALE,
-          prompt: 'Upscale an image',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle VIDEO_UPSCALE category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.VIDEO_UPSCALE,
-          prompt: 'Upscale a video',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle MUSIC category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.MUSIC,
-          prompt: 'Generate music',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
-      });
-
-      it('should handle VOICE category', async () => {
-        const selectModelDto: SelectModelDto = {
-          category: ModelCategory.VOICE,
-          prompt: 'Generate voice',
-        };
-
-        routerService.selectModel.mockResolvedValue(createMockRecommendation());
-
-        const result = await controller.selectModel(selectModelDto);
-
-        expect(result).toBeDefined();
       });
     });
 

@@ -3,16 +3,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 describe('IngredientsQueryDto', () => {
-  it('should be defined', () => {
-    expect(IngredientsQueryDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new IngredientsQueryDto();
-      expect(dto).toBeInstanceOf(IngredientsQueryDto);
-    });
-
     it('should accept repeated status query keys as an array', async () => {
       // Express parses ?status=a&status=b as an array on req.query.
       // Legacy lowercase is uppercased to Prisma IngredientStatus labels.

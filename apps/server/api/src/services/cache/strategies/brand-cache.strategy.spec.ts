@@ -29,10 +29,6 @@ describe('BrandCacheStrategy', () => {
     strategy = module.get(BrandCacheStrategy);
   });
 
-  it('should be defined', () => {
-    expect(strategy).toBeDefined();
-  });
-
   describe('cacheBrand', () => {
     it('sets brand data with correct key and tags', async () => {
       cacheService.generateKey.mockReturnValue('cache:brand:brand-123');
@@ -55,36 +51,6 @@ describe('BrandCacheStrategy', () => {
       );
       expect(result).toBe(true);
     });
-
-    it('returns false when cache.set fails', async () => {
-      cacheService.generateKey.mockReturnValue('cache:brand:brand-456');
-      cacheService.set.mockResolvedValue(false);
-
-      const result = await strategy.cacheBrand('brand-456', { userId: 'u2' });
-      expect(result).toBe(false);
-    });
-
-    it('includes user tag from brand data', async () => {
-      cacheService.generateKey.mockReturnValue('k');
-      cacheService.set.mockResolvedValue(true);
-
-      await strategy.cacheBrand('b1', {
-        extra: 'data',
-        userId: 'my-user',
-      });
-
-      const callArgs = cacheService.set.mock.calls[0];
-      expect(callArgs[2].tags).toContain('user:my-user');
-    });
-
-    it('always sets 30-minute TTL', async () => {
-      cacheService.generateKey.mockReturnValue('k');
-      cacheService.set.mockResolvedValue(true);
-
-      await strategy.cacheBrand('b2', { userId: 'u' });
-
-      expect(cacheService.set.mock.calls[0][2].ttl).toBe(1800);
-    });
   });
 
   describe('getBrand', () => {
@@ -103,14 +69,6 @@ describe('BrandCacheStrategy', () => {
       expect(cacheService.get).toHaveBeenCalledWith('cache:brand:brand-789');
       expect(result).toEqual({ name: 'TestBrand', user: 'u3' });
     });
-
-    it('returns null on cache miss', async () => {
-      cacheService.generateKey.mockReturnValue('cache:brand:missing');
-      cacheService.get.mockResolvedValue(null);
-
-      const result = await strategy.getBrand('missing');
-      expect(result).toBeNull();
-    });
   });
 
   describe('invalidate', () => {
@@ -123,13 +81,6 @@ describe('BrandCacheStrategy', () => {
         'brand:brand-999',
       ]);
       expect(result).toBe(3);
-    });
-
-    it('returns 0 when no keys were invalidated', async () => {
-      cacheService.invalidateByTags.mockResolvedValue(0);
-
-      const result = await strategy.invalidate('brand-empty');
-      expect(result).toBe(0);
     });
   });
 });

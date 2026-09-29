@@ -11,17 +11,6 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('clampOnboardingTweet', () => {
-  it('trims surrounding quotes and collapses whitespace', () => {
-    // Quotes are stripped only when they sit flush against the content —
-    // realistic for an LLM completion that wraps its answer in quotes with
-    // no padding of its own.
-    expect(clampOnboardingTweet('"Hello   world"')).toBe('Hello world');
-  });
-
-  it('leaves quotes in place when whitespace sits outside them', () => {
-    expect(clampOnboardingTweet('  "Hello world"  ')).toBe('"Hello world"');
-  });
-
   it('returns null for empty content', () => {
     expect(clampOnboardingTweet('   ')).toBeNull();
   });
@@ -107,12 +96,6 @@ describe('OnboardingStarterAssetsService', () => {
         organizationId: 'org-1',
       }),
     );
-  });
-
-  it('throws when the brand does not belong to the organization', async () => {
-    brandsService.findOne.mockResolvedValueOnce(null as never);
-
-    await expect(service.generate(input)).rejects.toThrow();
   });
 
   it('survives a tweet failure and still saves the ad-only draft', async () => {

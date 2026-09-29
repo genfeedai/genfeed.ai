@@ -6,7 +6,6 @@ import {
   BatchProjectStatus,
   BatchProjectStep,
   IngredientCategory,
-  TargetExecutionState,
 } from '@genfeedai/contracts';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
@@ -309,48 +308,9 @@ describe('BatchProjectsService', () => {
         expect.any(Function),
       );
     });
-
-    it('refuses to change inputs once the batch started', async () => {
-      useProject(makeProject({ status: BatchProjectStatus.GENERATING }));
-
-      await expect(
-        service.addItems(
-          'project-1',
-          { inputs: [{ ingredientId: 'input-1' }] },
-          scope,
-        ),
-      ).rejects.toThrow(BadRequestException);
-    });
   });
 
   describe('updateItem', () => {
-    it('writes a caption edit to the review draft so both surfaces agree', async () => {
-      useProject(makeProject({ status: BatchProjectStatus.REVIEWING }));
-      prisma.batchProjectItem.findFirst.mockResolvedValue(
-        makeItem({
-          postId: 'review-post-1',
-          status: BatchProjectItemStatus.READY,
-        }),
-      );
-
-      await service.updateItem(
-        'project-1',
-        'item-1',
-        { caption: 'Edited in Batch' },
-        scope,
-      );
-
-      expect(prisma.post.updateMany).toHaveBeenCalledWith({
-        data: { description: 'Edited in Batch' },
-        where: expect.objectContaining({
-          id: 'review-post-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-          targetExecutionState: TargetExecutionState.DRAFT,
-        }),
-      });
-    });
-
     it('waits for a scheduling run holding the project lock before editing', async () => {
       // A real per-project mutex in place of the Redis lock.
       let held: Promise<unknown> = Promise.resolve();

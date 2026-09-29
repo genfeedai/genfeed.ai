@@ -6,10 +6,6 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('resolveWeakestPositioningDimension', () => {
-  it('returns null when there is no weakest dimension yet', () => {
-    expect(resolveWeakestPositioningDimension(undefined)).toBeNull();
-  });
-
   it('maps a known dimension key to its label and follow-up question', () => {
     const dimension = resolveWeakestPositioningDimension('bigDomino');
 
@@ -57,10 +53,6 @@ describe('derivePatternText', () => {
         platform: 'twitter',
       }),
     ).toBe('your twitter opening — "Ship the OS, not another wrapper"');
-  });
-
-  it('returns null when there is neither a pattern nor a winner', () => {
-    expect(derivePatternText(null, null)).toBeNull();
   });
 });
 

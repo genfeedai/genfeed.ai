@@ -103,30 +103,6 @@ describe('DashboardLayoutsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('defaults pageKey to workspace-overview when omitted', async () => {
-      service.findForPage.mockResolvedValueOnce(mockDashboardLayout as never);
-
-      await controller.findForPage(mockRequest as never, mockUser, 'brand-1');
-
-      expect(service.findForPage).toHaveBeenCalledWith(
-        'brand-1',
-        'org-1',
-        'workspace-overview',
-      );
-    });
-
-    it('threads the caller organization (not a foreign one) into the service', async () => {
-      service.findForPage.mockResolvedValueOnce(mockDashboardLayout as never);
-
-      await controller.findForPage(mockRequest as never, mockUser, 'brand-1');
-
-      expect(service.findForPage).toHaveBeenCalledWith(
-        'brand-1',
-        'org-1',
-        'workspace-overview',
-      );
-    });
-
     it('returns an empty successful document when no saved layout exists', async () => {
       service.findForPage.mockResolvedValueOnce(null);
 

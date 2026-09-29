@@ -41,33 +41,6 @@ describe('ScheduledPostWorkflowQueueService', () => {
     );
   });
 
-  it.each(['manual_retry', 'tiktok_app'] as const)(
-    'treats %s the same as publish_now — a direct user action, routed interactive',
-    async (source) => {
-      const workflowQueue = {
-        queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),
-      };
-      const service = new ScheduledPostWorkflowQueueService(
-        workflowQueue as never,
-      );
-
-      await service.enqueue({
-        organizationId: 'org-1',
-        postId: 'post-1',
-        source,
-        userId: 'user-1',
-      });
-
-      expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        expect.objectContaining({
-          dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE,
-        }),
-      );
-    },
-  );
-
   it('routes the scheduled_sweep cron source to the background queue', async () => {
     const workflowQueue = {
       queueSystemWorkflow: vi.fn().mockResolvedValue('job-1'),

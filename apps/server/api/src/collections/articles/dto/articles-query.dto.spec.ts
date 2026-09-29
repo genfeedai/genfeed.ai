@@ -2,16 +2,7 @@ import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.d
 import { plainToInstance } from 'class-transformer';
 
 describe('ArticlesQueryDto', () => {
-  it('should be defined', () => {
-    expect(ArticlesQueryDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new ArticlesQueryDto();
-      expect(dto).toBeInstanceOf(ArticlesQueryDto);
-    });
-
     it('normalizes repeated status query keys into an array', () => {
       const dto = plainToInstance(ArticlesQueryDto, {
         status: ['draft', 'published'],

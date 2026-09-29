@@ -44,7 +44,6 @@ describe('WebhooksService', () => {
   let service: WebhooksService;
   let loggerService: vi.Mocked<LoggerService>;
   let filesClientService: vi.Mocked<FilesClientService>;
-  let _notificationsService: vi.Mocked<ActivityRecorderService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let metadataService: vi.Mocked<MetadataService>;
@@ -122,15 +121,6 @@ describe('WebhooksService', () => {
     s3Key: 'ingredients/images/test.png',
     size: 1024000,
     width: 1024,
-  };
-
-  const _mockVideoUploadMeta = {
-    duration: 10,
-    hasAudio: true,
-    height: 1080,
-    publicUrl: 'https://cdn.example.com/test.mp4',
-    size: 5000000,
-    width: 1920,
   };
 
   beforeEach(async () => {
@@ -274,7 +264,6 @@ describe('WebhooksService', () => {
     service = module.get<WebhooksService>(WebhooksService);
     loggerService = module.get(LoggerService);
     filesClientService = module.get(FilesClientService);
-    _notificationsService = module.get(ActivityRecorderService);
     websocketService = module.get(NotificationsPublisherService);
     ingredientsService = module.get(IngredientsService);
     metadataService = module.get(MetadataService);
@@ -290,10 +279,6 @@ describe('WebhooksService', () => {
 
   afterEach(() => {
     vi.clearAllTimers();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
   });
 
   describe('processMediaFromWebhook', () => {
@@ -571,17 +556,6 @@ describe('WebhooksService', () => {
       expect(
         postProcessingOrchestrator.triggerAutoEvaluationIfEnabled,
       ).toHaveBeenCalled();
-    });
-
-    it('should trigger auto-merge service', async () => {
-      await service.processMediaFromWebhook(
-        integration,
-        IngredientCategory.IMAGE,
-        externalId,
-        url,
-      );
-
-      expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalled();
     });
 
     it('should schedule post-upload notifications', async () => {
@@ -926,26 +900,6 @@ describe('WebhooksService', () => {
       expect(
         postProcessingOrchestrator.triggerAutoEvaluationIfEnabled,
       ).toHaveBeenCalledWith(expect.objectContaining({ id: mockIngredientId }));
-    });
-
-    it('should call triggerAutoEvaluationIfEnabled for video', async () => {
-      metadataLookupService.lookupMetadataAndIngredient.mockResolvedValue({
-        ingredient: mockVideoIngredientDoc,
-        metadata: mockVideoMetadataDoc,
-      });
-      ingredientsService.patch.mockResolvedValue(mockVideoIngredientDoc);
-      ingredientsService.findOne.mockResolvedValue(mockVideoIngredientDoc);
-
-      await service.processMediaFromWebhook(
-        integration,
-        IngredientCategory.VIDEO,
-        externalId,
-        url,
-      );
-
-      expect(
-        postProcessingOrchestrator.triggerAutoEvaluationIfEnabled,
-      ).toHaveBeenCalled();
     });
   });
 

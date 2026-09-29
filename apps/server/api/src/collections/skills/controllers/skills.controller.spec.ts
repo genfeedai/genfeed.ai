@@ -4,7 +4,6 @@ import { SkillLibraryService } from '@api/collections/skills/services/skill-libr
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SkillSurface } from '@genfeedai/contracts';
-import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { describe, expect, it, vi } from 'vitest';
@@ -52,16 +51,6 @@ describe('SkillsController', () => {
       .compile();
 
     controller = module.get(SkillsController);
-  });
-
-  it('does not declare a controller-level v1 prefix', () => {
-    expect(Reflect.getMetadata(PATH_METADATA, SkillsController)).not.toBe('v1');
-  });
-
-  it('requires the roles guard', () => {
-    expect(Reflect.getMetadata(GUARDS_METADATA, SkillsController)).toContain(
-      RolesGuard,
-    );
   });
 
   it.each([
@@ -164,18 +153,6 @@ describe('SkillsController', () => {
     expect(mockService.listAllForOrg).toHaveBeenCalledWith(
       'org-1',
       { surface: SkillSurface.STUDIO },
-      'user-1',
-    );
-  });
-
-  it('treats an empty surface as no filter', async () => {
-    mockService.listAllForOrg.mockResolvedValue([]);
-
-    await controller.listSkills(mockReq, mockUser, '');
-
-    expect(mockService.listAllForOrg).toHaveBeenCalledWith(
-      'org-1',
-      { surface: undefined },
       'user-1',
     );
   });

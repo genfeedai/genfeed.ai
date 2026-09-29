@@ -47,30 +47,4 @@ describe('workflow media billing intent', () => {
       });
     },
   );
-
-  it('records a BYOK Replicate continuation as BYOK in the pricing snapshot', async () => {
-    const transaction = {
-      model: { findFirst: vi.fn().mockResolvedValue(null) },
-      mediaVendorCost: { create: vi.fn() },
-    };
-    await createWorkflowMediaCostIntent(
-      transaction as unknown as Prisma.TransactionClient,
-      {
-        actionId: 'videoGen',
-        executionId: 'run',
-        ingredientId: 'asset',
-        isByok: true,
-        model: 'video-model',
-        nodeId: 'node',
-        organizationId: 'org',
-        provider: 'replicate',
-      },
-      'continuation',
-    );
-    expect(transaction.mediaVendorCost.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        pricingSnapshot: expect.objectContaining({ isByok: true }),
-      }),
-    });
-  });
 });

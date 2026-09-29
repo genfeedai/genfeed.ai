@@ -139,12 +139,6 @@ describe('EntityLeaderboardService', () => {
     service = module.get<EntityLeaderboardService>(EntityLeaderboardService);
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-  });
-
   // ==========================================================================
   // getOrganizationsLeaderboard
   // ==========================================================================
@@ -600,17 +594,6 @@ describe('EntityLeaderboardService', () => {
       expect(result[0].logo).toBe('https://cdn.example.com/logos/asset-a');
     });
 
-    it('leaves a brand logo undefined when no live logo asset exists', async () => {
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [brandDoc('brand-1', 'org-1')],
-      });
-      mockBrandsService.resolveBrandLogoUrls.mockResolvedValue(new Map());
-
-      const result = await service.getBrandsLeaderboard();
-
-      expect(result[0].logo).toBeUndefined();
-    });
-
     it('groups brand ids by owning organization for the batched read', async () => {
       mockBrandsService.findAll.mockResolvedValue({
         docs: [
@@ -674,16 +657,6 @@ describe('EntityLeaderboardService', () => {
       );
     });
 
-    it('leaves an organization avatar undefined when the auth provider supplied none', async () => {
-      mockOrganizationsService.findAll.mockResolvedValue({
-        docs: [{ id: 'org-1', authProviderLogoUrl: null, label: 'Test Org' }],
-      });
-
-      const result = await service.getOrganizationsLeaderboard();
-
-      expect(result[0].organization.logo).toBeUndefined();
-    });
-
     it('reads organization avatars from authProviderLogoUrl on the paginated stats path too', async () => {
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [
@@ -731,14 +704,6 @@ describe('EntityLeaderboardService', () => {
       const [brandIdsByOrganization] =
         mockBrandsService.resolveBrandLogoUrls.mock.calls[0];
       expect(brandIdsByOrganization.get('org-1')).toHaveLength(10);
-    });
-
-    it('does not resolve brand logos when the page is empty', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-
-      await service.getBrandsLeaderboard();
-
-      expect(mockBrandsService.resolveBrandLogoUrls).not.toHaveBeenCalled();
     });
   });
 
@@ -874,14 +839,6 @@ describe('EntityLeaderboardService', () => {
 
       const [{ where }] = mockPrismaService.organization.findMany.mock.calls[0];
       expect(where.id.in).toHaveLength(10);
-    });
-
-    it('does not query organizations when the page is empty', async () => {
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-
-      await service.getBrandsLeaderboard();
-
-      expect(mockPrismaService.organization.findMany).not.toHaveBeenCalled();
     });
   });
 });

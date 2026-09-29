@@ -188,15 +188,6 @@ describe('WorkflowWebhookService', () => {
         id: 'workflow-1',
       });
     });
-
-    it('returns null when no workflow matches', async () => {
-      prisma.$queryRaw.mockResolvedValue([]);
-
-      const result = await service.findByWebhookId('wh_missing');
-
-      expect(result).toBeNull();
-      expect(workflowsService.findOne).not.toHaveBeenCalled();
-    });
   });
 
   describe('triggerViaWebhook', () => {

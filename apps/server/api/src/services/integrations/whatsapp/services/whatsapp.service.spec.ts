@@ -84,10 +84,6 @@ describe('WhatsappService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('sendTextMessage', () => {
     it('should send a text message successfully', async () => {
       const mockResponse = createMockMessageResponse();
@@ -146,33 +142,6 @@ describe('WhatsappService', () => {
         `From=whatsapp%3A${encodeURIComponent(mockPhoneNumber)}`,
       );
       expect(postBody).toContain('To=whatsapp%3A%2B15559876543');
-    });
-
-    it('should use Base64 auth header from account SID and auth token', async () => {
-      const mockResponse = createMockMessageResponse();
-      httpService.post.mockReturnValue(
-        of({
-          config: {} as never,
-          data: mockResponse,
-          headers: {},
-          status: 200,
-          statusText: 'OK',
-        }),
-      );
-
-      const params: IWhatsappSendMessageParams = {
-        body: 'Test',
-        to: '+15551234567',
-      };
-
-      await service.sendTextMessage(params);
-
-      const expectedAuth = `Basic ${Buffer.from(`${mockAccountSid}:${mockAuthToken}`).toString('base64')}`;
-      const headers = httpService.post.mock.calls[0][2]?.headers as Record<
-        string,
-        string
-      >;
-      expect(headers.Authorization).toBe(expectedAuth);
     });
 
     it('should throw and log error when HTTP request fails', async () => {

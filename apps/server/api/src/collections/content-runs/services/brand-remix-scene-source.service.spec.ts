@@ -38,22 +38,6 @@ function setup() {
   return { service, findFirst, source, probeMediaFromUrl };
 }
 describe('authorized scene analysis source', () => {
-  it('requires organization, brand, USER video and ready state in the query', async () => {
-    const { service, findFirst } = setup();
-    await service.libraryAsset('org', 'brand', 'video');
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: 'org',
-          brandId: 'brand',
-          isDeleted: false,
-          category: 'VIDEO',
-          scope: 'USER',
-          status: { in: ['UPLOADED', 'GENERATED', 'VALIDATED'] },
-        }),
-      }),
-    );
-  });
   it('rejects foreign/deleted/unavailable and copied-source assets before probing', async () => {
     const { service, findFirst, probeMediaFromUrl } = setup();
     findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({

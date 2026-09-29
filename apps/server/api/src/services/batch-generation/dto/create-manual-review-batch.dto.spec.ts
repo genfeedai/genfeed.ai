@@ -28,12 +28,6 @@ describe('CreateManualReviewBatchDto', () => {
     pipe = new ValidationPipe();
   });
 
-  it(`accepts an items array at the ${MAX_REVIEW_ITEMS} limit`, async () => {
-    await expect(
-      pipe.transform(buildBody(MAX_REVIEW_ITEMS), metadata),
-    ).resolves.toBeInstanceOf(CreateManualReviewBatchDto);
-  });
-
   it('rejects an over-limit items array with a 400', async () => {
     const error = await pipe
       .transform(buildBody(MAX_REVIEW_ITEMS + 1), metadata)

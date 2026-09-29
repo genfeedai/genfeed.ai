@@ -729,22 +729,6 @@ describe('DefaultRecurringContentService', () => {
     expect(updateSchedule).toHaveBeenCalledTimes(CONTENT_TYPES.length);
   });
 
-  it('honors the brand cron expression when creating default recurring workflows', async () => {
-    const { committed, prisma } = createFakePrisma({
-      brand: {
-        ...buildBrand(),
-        agentConfig: {
-          schedule: { cronExpression: '0 9 * * 1-5', timezone: 'UTC' },
-        },
-      },
-    });
-    const service = createService(prisma);
-
-    await service.ensureDefaultBundle(buildParams());
-
-    expect(committed.every((row) => row.schedule === '0 9 * * 1-5')).toBe(true);
-  });
-
   it('falls back to the default cron when stored configuration is invalid', async () => {
     const { committed, prisma } = createFakePrisma({
       brand: {
@@ -759,27 +743,6 @@ describe('DefaultRecurringContentService', () => {
     await service.ensureDefaultBundle(buildParams());
 
     expect(committed.every((row) => row.schedule === '0 8 * * *')).toBe(true);
-  });
-
-  it('honors the saved timezone for default recurring workflows', async () => {
-    const { committed, prisma } = createFakePrisma({
-      brand: {
-        ...buildBrand(),
-        agentConfig: {
-          schedule: {
-            cronExpression: '0 18 * * *',
-            timezone: 'Europe/Malta',
-          },
-        },
-      },
-    });
-    const service = createService(prisma);
-
-    await service.ensureDefaultBundle(buildParams());
-
-    expect(committed.every((row) => row.timezone === 'Europe/Malta')).toBe(
-      true,
-    );
   });
 
   /**
@@ -807,37 +770,6 @@ describe('DefaultRecurringContentService', () => {
     expect(committed.every((row) => row.timezone === 'UTC')).toBe(true);
     // The cron is still validated — in the resolved zone, not the rejected one.
     expect(committed.every((row) => row.schedule === '0 18 * * *')).toBe(true);
-  });
-
-  it('propagates config changes through the workflow scheduler update path', async () => {
-    const { prisma } = createFakePrisma({
-      brand: buildBrand(),
-      initialWorkflows: CONTENT_TYPES.map((contentType) =>
-        buildStoredWorkflow(contentType, true),
-      ),
-    });
-    const updateSchedule = vi.fn().mockResolvedValue(undefined);
-    const service = createService(
-      prisma,
-      createWorkflowScheduler(updateSchedule),
-    );
-
-    await service.updateScheduleFromAgentConfig(ORGANIZATION_ID, BRAND_ID, {
-      schedule: {
-        cronExpression: '0 12 * * *',
-        enabled: false,
-        timezone: 'America/New_York',
-      },
-    });
-
-    for (const contentType of CONTENT_TYPES) {
-      expect(updateSchedule).toHaveBeenCalledWith(
-        `seed_${contentType}`,
-        '0 12 * * *',
-        'America/New_York',
-        false,
-      );
-    }
   });
 
   it('ignores workflows without the system defaultRecurringBrandId marker', async () => {

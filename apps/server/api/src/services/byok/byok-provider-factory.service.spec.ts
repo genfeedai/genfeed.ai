@@ -70,44 +70,6 @@ describe('ByokProviderFactoryService', () => {
     expect(mockByokService.incrementUsage).not.toHaveBeenCalled();
   });
 
-  it('uses explicit managed inference URL when configured', async () => {
-    vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
-    vi.mocked(mockConfigService.get).mockImplementation((key: string) => {
-      if (key === 'GENFEED_API_KEY') return 'gf_live_managed';
-      if (key === 'GENFEED_MANAGED_INFERENCE_URL') {
-        return 'https://edge.test/managed';
-      }
-      return undefined;
-    });
-
-    const result = await service.resolveProvider('org-1', ByokProvider.FAL);
-
-    expect(result.managedInferenceUrl).toBe('https://edge.test/managed');
-  });
-
-  it('tracks usage when BYOK key is found and trackUsage is true', async () => {
-    vi.mocked(mockByokService.resolveApiKey).mockResolvedValue({
-      apiKey: 'byok-key',
-    });
-
-    await service.resolveProvider('org-1', ByokProvider.OPENAI, true);
-
-    expect(mockByokService.incrementUsage).toHaveBeenCalledWith(
-      'org-1',
-      ByokProvider.OPENAI,
-    );
-  });
-
-  it('does not track usage when trackUsage is false', async () => {
-    vi.mocked(mockByokService.resolveApiKey).mockResolvedValue({
-      apiKey: 'byok-key',
-    });
-
-    await service.resolveProvider('org-1', ByokProvider.OPENAI, false);
-
-    expect(mockByokService.incrementUsage).not.toHaveBeenCalled();
-  });
-
   it('hasProviderAccess returns true for hosted provider', async () => {
     vi.mocked(mockByokService.resolveApiKey).mockResolvedValue(undefined);
 

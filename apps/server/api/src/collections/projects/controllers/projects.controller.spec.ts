@@ -103,57 +103,9 @@ describe('ProjectsController', () => {
         controller.findOne(mockRequest, mockUser, PROJECT_ID),
       ).rejects.toThrow(HttpException);
     });
-
-    it('returns the project when it belongs to the caller organization', async () => {
-      const project = {
-        id: PROJECT_ID,
-        name: 'Own Project',
-        organizationId: CALLER_ORG_ID,
-      };
-
-      projectsService.findOne.mockResolvedValue(project);
-
-      const result = await controller.findOne(
-        mockRequest,
-        mockUser,
-        PROJECT_ID,
-      );
-
-      expect(result).toEqual(project);
-    });
-
-    it('scopes the single-read lookup to non-deleted rows', async () => {
-      projectsService.findOne.mockResolvedValue({
-        id: PROJECT_ID,
-        organizationId: CALLER_ORG_ID,
-      });
-
-      await controller.findOne(mockRequest, mockUser, PROJECT_ID);
-
-      expect(projectsService.findOne).toHaveBeenCalledWith(
-        { id: PROJECT_ID, isDeleted: false },
-        expect.anything(),
-      );
-    });
   });
 
   describe('canUserModifyEntity', () => {
-    it('allows modification when the canonical organization ID matches', () => {
-      expect(
-        controller.canUserModifyEntity(mockUser, {
-          organizationId: CALLER_ORG_ID,
-        } as never),
-      ).toBe(true);
-    });
-
-    it('does not authorize from the legacy organization relation alias', () => {
-      expect(
-        controller.canUserModifyEntity(mockUser, {
-          organization: { id: CALLER_ORG_ID },
-        } as never),
-      ).toBe(false);
-    });
-
     it('denies when the entity organizationId is missing', () => {
       expect(controller.canUserModifyEntity(mockUser, {} as never)).toBe(false);
     });

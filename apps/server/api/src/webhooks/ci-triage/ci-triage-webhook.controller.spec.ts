@@ -46,10 +46,6 @@ describe('CiTriageWebhookController', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('handleCiFailure', () => {
     it('should return status accepted for valid secret', async () => {
       const result = await controller.handleCiFailure(

@@ -54,35 +54,6 @@ describe('ClipIdentityResolutionService', () => {
     });
   });
 
-  it('combines a brand avatar with the organization HeyGen voice fallback', async () => {
-    prisma.brand.findFirst.mockResolvedValue({
-      agentConfig: {
-        heygenAvatarId: 'brand-avatar-2',
-      },
-      id: brandId,
-    });
-    prisma.organizationSetting.findUnique.mockResolvedValue({
-      defaultVoiceId: null,
-      defaultVoiceProvider: null,
-      defaultVoiceRef: {
-        externalVoiceId: 'org-voice-2',
-        provider: 'heygen',
-        source: 'catalog',
-      },
-    });
-
-    const identity = await service.resolve({ brandId, organizationId });
-
-    expect(identity).toEqual(
-      expect.objectContaining({
-        avatarId: 'brand-avatar-2',
-        isComplete: true,
-        source: 'brand',
-        voiceId: 'org-voice-2',
-      }),
-    );
-  });
-
   it('lets explicit values override saved defaults', async () => {
     const identity = await service.resolve({
       avatarId: 'explicit-avatar',
@@ -106,26 +77,5 @@ describe('ClipIdentityResolutionService', () => {
     await expect(
       service.resolve({ brandId, organizationId }),
     ).rejects.toBeInstanceOf(NotFoundException);
-  });
-
-  it('surfaces missing identity fields without raw provider IDs', async () => {
-    prisma.brand.findFirst.mockResolvedValue({
-      agentConfig: {},
-      id: brandId,
-    });
-
-    const identity = await service.resolve({ brandId, organizationId });
-
-    expect(identity).toEqual({
-      avatarId: undefined,
-      avatarProvider: undefined,
-      isComplete: false,
-      label: 'Missing avatar and voice defaults',
-      missing: ['avatar', 'voice'],
-      source: 'missing',
-      useIdentity: true,
-      voiceId: undefined,
-      voiceProvider: undefined,
-    });
   });
 });

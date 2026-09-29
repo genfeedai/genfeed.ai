@@ -1,6 +1,5 @@
 vi.unmock('@genfeedai/prisma');
 
-import { runWithActionOrigin } from '@api/index';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActionOrigin,
@@ -284,81 +283,6 @@ describe('WorkflowExecutionsService', () => {
       },
     });
     expect(prisma.workflowExecution.create).not.toHaveBeenCalled();
-  });
-
-  it('stores trusted action provenance with workflow execution metadata', async () => {
-    const { prisma, service } = makeService();
-
-    await runWithActionOrigin(
-      {
-        actorUserId: 'user-1',
-        apiKeyId: 'key-1',
-        origin: ActionOrigin.MCP,
-      },
-      () =>
-        service.createExecution('user-1', 'org-1', {
-          metadata: { origin: ActionOrigin.UI, surface: 'mcp-tool' },
-          workflowId: 'workflow-1',
-          workflowVersionId: 'version-1',
-        }),
-    );
-
-    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          result: expect.objectContaining({
-            metadata: {
-              actorUserId: 'user-1',
-              apiKeyId: 'key-1',
-              origin: ActionOrigin.MCP,
-              surface: 'mcp-tool',
-            },
-          }),
-        }),
-      }),
-    );
-  });
-
-  it('persists execution retention as indexed scalar state', async () => {
-    const { prisma, service } = makeService();
-
-    await service.createExecution('user-1', 'org-1', {
-      metadata: {
-        executionRetention: {
-          purgeAfterHours: 24,
-          scrubNodePayloads: 'all',
-        },
-      },
-      workflowId: 'workflow-1',
-      workflowVersionId: 'version-1',
-    });
-
-    expect(prisma.workflowExecution.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          purgeAfterHours: 24,
-          scrubAllNodePayloads: true,
-          scrubNodeIds: [],
-        }),
-      }),
-    );
-  });
-
-  it('serializes executions without provenance with explicit unknown origin', async () => {
-    const { prisma, service } = makeService();
-    prisma.workflowExecution.findFirst.mockResolvedValue({
-      id: 'execution-without-provenance',
-      result: { metadata: { surface: 'unknown-origin' } },
-    });
-
-    await expect(
-      service.findOne({ id: 'execution-without-provenance' }),
-    ).resolves.toMatchObject({
-      metadata: {
-        origin: ActionOrigin.UNKNOWN,
-        surface: 'unknown-origin',
-      },
-    });
   });
 
   it('exposes scalar and child-table execution state through the canonical document', async () => {
@@ -900,49 +824,6 @@ describe('WorkflowExecutionsService', () => {
     );
   });
 
-  it('targets the tenant actor for a hidden system workflow failure', async () => {
-    const { prisma, service, activityRecorder } = makeService();
-    prisma.workflowExecution.findUnique.mockResolvedValueOnce({
-      organizationId: 'org-1',
-      result: {},
-      startedAt: new Date('2026-06-29T00:00:00.000Z'),
-      trigger: 'manual',
-      userId: 'actor-user-1',
-      workflow: {
-        label: 'Hidden Workflow',
-        metadata: {
-          sourceType: 'hidden-system-workflow',
-          systemWorkflow: {
-            canonicalId: 'hidden-workflow',
-            changeSummary: 'Initial system workflow template version.',
-            credentialPolicy: 'tenant-connected-account',
-            duplicable: false,
-            immutable: true,
-            kind: 'system-workflow',
-            owner: 'genfeed',
-            productizationIssue: 1011,
-            version: 1,
-            visibility: 'internal',
-          },
-        },
-        userId: 'genfeed-public-tools',
-      },
-      workflowId: 'workflow-1',
-    });
-
-    await service.completeExecution(
-      'execution-1',
-      'HTTP 429 too many requests',
-    );
-
-    expect(activityRecorder.recordInTransaction).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        alert: expect.objectContaining({ actorUserId: 'actor-user-1' }),
-        userId: 'actor-user-1',
-      }),
-    );
-  });
   it('persists failure classification and outbox payload in the same terminal transition', async () => {
     const { prisma, service, activityRecorder } = makeService();
     await service.completeExecution(

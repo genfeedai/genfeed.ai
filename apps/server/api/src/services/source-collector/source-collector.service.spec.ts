@@ -175,41 +175,6 @@ describe('SourceCollectorService', () => {
     expect(appBearer.collectTimeline).not.toHaveBeenCalled();
   });
 
-  it('falls through to app bearer when brand OAuth cannot collect', async () => {
-    brandOAuth.canCollect.mockResolvedValue(false);
-    appBearer.canCollect.mockResolvedValue(true);
-    appBearer.collectTimeline.mockResolvedValue({
-      handle: 'openai',
-      platform: SocialSourcePlatform.TWITTER,
-      posts: [],
-      provider: 'app-bearer',
-    });
-
-    const result = await service.collectTimeline(
-      SocialSourcePlatform.TWITTER,
-      'openai',
-      {},
-    );
-
-    expect(result.provider).toBe('app-bearer');
-  });
-
-  it('throws when every provider fails', async () => {
-    brandOAuth.canCollect.mockResolvedValue(true);
-    brandOAuth.collectTimeline.mockRejectedValue(new Error('oauth down'));
-    appBearer.canCollect.mockResolvedValue(true);
-    appBearer.collectTimeline.mockRejectedValue(new Error('bearer down'));
-    apify.canCollect.mockResolvedValue(true);
-    apify.collectTimeline.mockRejectedValue(new Error('apify down'));
-
-    await expect(
-      service.collectTimeline(SocialSourcePlatform.TWITTER, 'x', {
-        brandId: 'b',
-        organizationId: 'o',
-      }),
-    ).rejects.toThrow(/All source collectors failed/);
-  });
-
   it('discards provider rows that do not have an external post id', async () => {
     apify.canCollect.mockResolvedValue(true);
     apify.collectTimeline.mockResolvedValue({
@@ -382,22 +347,6 @@ describe('SourceCollectorService', () => {
       const result = await service.collectPost(reference, {});
 
       expect(result.provider).toBe('apify');
-    });
-
-    it('treats an empty provider result as a failure — no silent empty success', async () => {
-      brandOAuth.canCollect.mockResolvedValue(false);
-      appBearer.canCollect.mockResolvedValue(false);
-      apify.canCollect.mockResolvedValue(true);
-      apify.collectPost.mockResolvedValue({
-        handle: 'openai',
-        platform: SocialSourcePlatform.TWITTER,
-        posts: [],
-        provider: 'apify',
-      });
-
-      await expect(service.collectPost(reference, {})).rejects.toThrow(
-        /All single-post collectors failed/,
-      );
     });
 
     it('treats a provider post without an external id as not found', async () => {

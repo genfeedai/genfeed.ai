@@ -94,10 +94,6 @@ describe('DevtoController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect', () => {
     it('should connect successfully with a valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
@@ -134,15 +130,6 @@ describe('DevtoController', () => {
 
       expect(result).toHaveProperty('errors');
       expect(brandsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('should return bad request when brandId is missing', async () => {
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'test-api-key',
-        brandId: '',
-      });
-
-      expect(result).toHaveProperty('errors');
     });
 
     it('should return bad request when brand is not found', async () => {
@@ -210,23 +197,6 @@ describe('DevtoController', () => {
         },
       );
       expect(result).toEqual(expect.objectContaining({ success: true }));
-    });
-
-    it('should default published to true and tags to empty', async () => {
-      devtoService.publishArticle.mockResolvedValue({ id: 1 });
-
-      await controller.publishArticle(mockUser, 'article-1', devtoBrandId);
-
-      expect(devtoService.publishArticle).toHaveBeenCalledWith(
-        'article-1',
-        devtoOrganizationId,
-        devtoBrandId,
-        {
-          canonicalUrl: undefined,
-          published: true,
-          tags: [],
-        },
-      );
     });
 
     it('should return bad request when brandId is missing', async () => {

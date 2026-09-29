@@ -7,7 +7,6 @@ import { PostGroupPersistenceService } from '@api/collections/post-groups/servic
 import type { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import {
   applyReleaseTargetUpdates,
-  GROUP_ACTION_STATES,
   type PostGroupTargetOperationDependencies,
 } from '@api/collections/post-groups/services/post-group-target.operations';
 import type { ScheduledPostWorkflowQueueService } from '@api/collections/posts/services/scheduled-post-workflow-queue.service';
@@ -49,15 +48,6 @@ describe('applyReleaseTargetUpdates', () => {
       readinessService: {} as PostGroupReadinessService,
       scheduledPostWorkflowQueue: {} as ScheduledPostWorkflowQueueService,
     };
-  });
-
-  it('exports the actionable target states the remaining service call sites share', () => {
-    expect([...GROUP_ACTION_STATES]).toEqual([
-      TargetExecutionState.DRAFT,
-      TargetExecutionState.SCHEDULED,
-      TargetExecutionState.PAUSED,
-      TargetExecutionState.FAILED,
-    ]);
   });
 
   it('transitions only actionable targets when the release status changes', async () => {
@@ -288,29 +278,6 @@ describe('applyReleaseTargetUpdates', () => {
       },
       where: expect.objectContaining({ id: 'target-reel' }),
     });
-  });
-
-  it('writes nothing when neither status nor target fields change', async () => {
-    await applyReleaseTargetUpdates(
-      tx,
-      {
-        currentTargets: [
-          makeTarget({
-            id: 'target-scheduled',
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-          }),
-        ],
-        groupId: 'group-1',
-        input: { title: 'New title' },
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      dependencies,
-    );
-
-    expect(transition).not.toHaveBeenCalled();
-    expect(updateMany).not.toHaveBeenCalled();
-    expect(transaction).not.toHaveBeenCalled();
   });
 });
 

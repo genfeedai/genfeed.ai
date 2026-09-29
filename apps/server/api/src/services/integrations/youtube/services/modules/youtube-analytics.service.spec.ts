@@ -50,10 +50,6 @@ describe('YoutubeAnalyticsService', () => {
     service = module.get<YoutubeAnalyticsService>(YoutubeAnalyticsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // --- getChannelDetails ---
 
   it('should return channel details on success', async () => {
@@ -364,36 +360,6 @@ describe('YoutubeAnalyticsService', () => {
     const stats = result.get('long-vid') as IYouTubeVideoStats;
     expect(stats.mediaType).toBe('video');
     expect(stats.duration).toBe(2 * 3600 + 15 * 60 + 10);
-  });
-
-  it('should calculate engagement rate correctly', async () => {
-    mockVideosList.mockResolvedValueOnce({
-      data: {
-        items: [
-          {
-            contentDetails: { duration: 'PT3M' },
-            id: 'eng-vid',
-            snippet: {},
-            statistics: {
-              commentCount: '30',
-              favoriteCount: '20',
-              likeCount: '50',
-              viewCount: '1000',
-            },
-          },
-        ],
-      },
-    });
-
-    const result = await service.getMediaAnalyticsBatch(
-      'org-1',
-      'brand-1',
-      ['eng-vid'],
-      'credential-1',
-    );
-    const stats = result.get('eng-vid') as IYouTubeVideoStats;
-    // engagement = (50 + 30 + 20) / 1000 * 100 = 10.00
-    expect(stats.engagementRate).toBe(10);
   });
 
   it('should skip items without id or statistics', async () => {

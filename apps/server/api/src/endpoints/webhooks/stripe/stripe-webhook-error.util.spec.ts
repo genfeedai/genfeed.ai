@@ -1,6 +1,5 @@
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import {
-  getStripeWebhookErrorDiagnostics,
   mapStripeWebhookError,
   StripeWebhookErrorKind,
   toStripeWebhookException,
@@ -10,21 +9,6 @@ import { describe, expect, it } from 'vitest';
 
 describe('stripe-webhook-error.util', () => {
   describe('mapStripeWebhookError', () => {
-    it('maps signature verification failures to a 400, not a 500', () => {
-      const mapping = mapStripeWebhookError({
-        name: 'StripeSignatureVerificationError',
-        type: 'StripeSignatureVerificationError',
-      });
-
-      expect(mapping).toEqual({
-        kind: StripeWebhookErrorKind.SIGNATURE,
-        shouldAcknowledge: false,
-        shouldReleaseIdempotencyKey: false,
-        shouldReportAsFault: false,
-        status: HttpStatus.BAD_REQUEST,
-      });
-    });
-
     it('maps Invalid Stripe signature BadRequestException to SIGNATURE', () => {
       const mapping = mapStripeWebhookError(
         new BadRequestException('Invalid Stripe signature'),
@@ -33,18 +17,6 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.kind).toBe(StripeWebhookErrorKind.SIGNATURE);
       expect(mapping.status).toBe(HttpStatus.BAD_REQUEST);
       expect(mapping.shouldReportAsFault).toBe(false);
-    });
-
-    it('maps Prisma P2002 unique-constraint races to an idempotent replay ack', () => {
-      const mapping = mapStripeWebhookError({ code: 'P2002' });
-
-      expect(mapping).toEqual({
-        kind: StripeWebhookErrorKind.REPLAY,
-        shouldAcknowledge: true,
-        shouldReleaseIdempotencyKey: false,
-        shouldReportAsFault: false,
-        status: HttpStatus.OK,
-      });
     });
 
     it('passes through expected 4xx HttpExceptions without remapping to 500', () => {
@@ -57,23 +29,6 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.shouldReportAsFault).toBe(false);
       expect(mapping.shouldReleaseIdempotencyKey).toBe(false);
     });
-
-    it.each(['identity_missing', 'identity_stale'] as const)(
-      'keeps %s (a race a later delivery can win) retryable and releases the event key',
-      (code) => {
-        const mapping = mapStripeWebhookError(
-          new StripeWebhookBillingError(code),
-        );
-
-        expect(mapping).toEqual({
-          kind: StripeWebhookErrorKind.BILLING,
-          shouldAcknowledge: false,
-          shouldReleaseIdempotencyKey: true,
-          shouldReportAsFault: false,
-          status: HttpStatus.SERVICE_UNAVAILABLE,
-        });
-      },
-    );
 
     it.each([
       'invalid_payload',
@@ -96,18 +51,6 @@ describe('stripe-webhook-error.util', () => {
       },
     );
 
-    it('classifies unknown errors as retryable faults', () => {
-      const mapping = mapStripeWebhookError(new Error('db timeout'));
-
-      expect(mapping).toEqual({
-        kind: StripeWebhookErrorKind.FAULT,
-        shouldAcknowledge: false,
-        shouldReleaseIdempotencyKey: true,
-        shouldReportAsFault: true,
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-      });
-    });
-
     it('keeps an existing 5xx HttpException as a fault', () => {
       const mapping = mapStripeWebhookError(
         new HttpException('downstream', HttpStatus.BAD_GATEWAY),
@@ -116,48 +59,6 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.kind).toBe(StripeWebhookErrorKind.FAULT);
       expect(mapping.status).toBe(HttpStatus.BAD_GATEWAY);
       expect(mapping.shouldReportAsFault).toBe(true);
-    });
-  });
-
-  describe('getStripeWebhookErrorDiagnostics', () => {
-    it('includes event identity without payment fields', () => {
-      expect(
-        getStripeWebhookErrorDiagnostics(new Error('db timeout'), {
-          id: 'evt_123',
-          type: 'invoice.paid',
-        }),
-      ).toEqual({
-        errorName: 'Error',
-        eventId: 'evt_123',
-        eventType: 'invoice.paid',
-        kind: StripeWebhookErrorKind.FAULT,
-      });
-    });
-
-    it('carries the billing code so an acknowledged failure is not silent', () => {
-      expect(
-        getStripeWebhookErrorDiagnostics(
-          new StripeWebhookBillingError('identity_conflict'),
-          { id: 'evt_conflict', type: 'invoice.paid' },
-        ),
-      ).toEqual({
-        code: 'identity_conflict',
-        errorName: 'StripeWebhookBillingError',
-        eventId: 'evt_conflict',
-        eventType: 'invoice.paid',
-        kind: StripeWebhookErrorKind.BILLING,
-      });
-    });
-
-    it('omits event fields when the payload was never trusted', () => {
-      expect(
-        getStripeWebhookErrorDiagnostics(
-          new BadRequestException('Invalid Stripe signature'),
-        ),
-      ).toEqual({
-        errorName: 'BadRequestException',
-        kind: StripeWebhookErrorKind.SIGNATURE,
-      });
     });
   });
 

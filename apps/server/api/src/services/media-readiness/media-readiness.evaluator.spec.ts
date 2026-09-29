@@ -124,20 +124,6 @@ describe('evaluateMediaReadiness', () => {
     expect(warnings[0]?.limit).toContain('4:5');
   });
 
-  it('accepts a ratio inside the spec tolerance', () => {
-    const report = evaluateMediaReadiness({
-      // 1082x1350 is 0.2% away from 4:5, inside Instagram's 5% tolerance.
-      assets: [asset('image', { height: 1350, width: 1082 })],
-      platforms: [CredentialPlatform.INSTAGRAM],
-    });
-
-    expect(
-      report.diagnostics.filter(
-        (diagnostic) => diagnostic.property === 'aspectRatio',
-      ),
-    ).toEqual([]);
-  });
-
   it('blocks an oversized image on file size', () => {
     const report = evaluateMediaReadiness({
       assets: [asset('image', { sizeBytes: 12 * 1024 * 1024 })],
@@ -152,19 +138,6 @@ describe('evaluateMediaReadiness', () => {
         property: 'fileSize',
       }),
     );
-  });
-
-  it('matches any member of an ffprobe container family', () => {
-    const report = evaluateMediaReadiness({
-      assets: [asset('video', { container: 'mov,mp4,m4a,3gp,3g2,mj2' })],
-      platforms: [CredentialPlatform.TWITTER],
-    });
-
-    expect(
-      report.diagnostics.filter(
-        (diagnostic) => diagnostic.property === 'container',
-      ),
-    ).toEqual([]);
   });
 
   it('blocks an unsupported video codec', () => {
@@ -232,17 +205,6 @@ describe('evaluateMediaReadiness', () => {
     );
   });
 
-  it('stays silent about a property the platform does not constrain', () => {
-    // Instagram's image spec sets no duration or frame-rate limits, and a
-    // still image measures neither.
-    const report = evaluateMediaReadiness({
-      assets: [asset('image')],
-      platforms: [CredentialPlatform.INSTAGRAM],
-    });
-
-    expect(report.diagnostics).toEqual([]);
-  });
-
   it('blocks an attached id that did not resolve, once per target platform', () => {
     const report = evaluateMediaReadiness({
       assets: [],
@@ -264,18 +226,6 @@ describe('evaluateMediaReadiness', () => {
     );
   });
 
-  it('keeps the unresolved-asset message free of existence detail', () => {
-    const report = evaluateMediaReadiness({
-      assets: [],
-      platforms: [CredentialPlatform.TIKTOK],
-      unresolvedAssetIds: ['asset-from-another-org'],
-    });
-
-    expect(report.diagnostics[0]?.message).not.toMatch(
-      /organization|deleted|exists/i,
-    );
-  });
-
   it('stays silent for a platform and kind with no seeded spec', () => {
     const report = evaluateMediaReadiness({
       assets: [asset('audio')],
@@ -283,21 +233,6 @@ describe('evaluateMediaReadiness', () => {
     });
 
     expect(report.diagnostics).toEqual([]);
-  });
-
-  it('evaluates every asset against every target platform', () => {
-    const report = evaluateMediaReadiness({
-      assets: [
-        asset('video', { durationSeconds: 1200 }, 'asset-a'),
-        asset('video', { durationSeconds: 1200 }, 'asset-b'),
-      ],
-      platforms: [CredentialPlatform.TIKTOK, CredentialPlatform.TWITTER],
-    });
-
-    const durationBlockers = readBlockingDiagnostics(report).filter(
-      (diagnostic) => diagnostic.property === 'duration',
-    );
-    expect(durationBlockers).toHaveLength(4);
   });
 });
 

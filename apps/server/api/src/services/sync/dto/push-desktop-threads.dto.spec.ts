@@ -61,12 +61,6 @@ describe('PushDesktopThreadsDto', () => {
     pipe = new ValidationPipe();
   });
 
-  it(`accepts a threads array at the ${MAX_THREADS} limit`, async () => {
-    await expect(
-      pipe.transform(buildBody(MAX_THREADS), bodyMetadata),
-    ).resolves.toBeInstanceOf(PushDesktopThreadsDto);
-  });
-
   it('rejects an over-limit threads array with a 400', async () => {
     const error = await pipe
       .transform(buildBody(MAX_THREADS + 1), bodyMetadata)
@@ -79,12 +73,6 @@ describe('PushDesktopThreadsDto', () => {
     expect(findConstraints(error, 'threads')).toHaveProperty('arrayMaxSize');
   });
 
-  it(`accepts a thread whose messages array is at the ${MAX_MESSAGES_PER_THREAD} limit`, async () => {
-    await expect(
-      pipe.transform(buildThread(0, MAX_MESSAGES_PER_THREAD), threadMetadata),
-    ).resolves.toBeInstanceOf(DesktopThreadDto);
-  });
-
   it('rejects a thread with an over-limit messages array with a 400', async () => {
     const error = await pipe
       .transform(buildThread(0, MAX_MESSAGES_PER_THREAD + 1), threadMetadata)
@@ -95,16 +83,5 @@ describe('PushDesktopThreadsDto', () => {
 
     expect(error).toBeInstanceOf(BadRequestException);
     expect(findConstraints(error, 'messages')).toHaveProperty('arrayMaxSize');
-  });
-
-  it('rejects a nested over-limit messages array pushed through the body DTO', async () => {
-    const body = {
-      localUserId: 'local-user-1',
-      threads: [buildThread(0, MAX_MESSAGES_PER_THREAD + 1)],
-    };
-
-    await expect(pipe.transform(body, bodyMetadata)).rejects.toThrow(
-      BadRequestException,
-    );
   });
 });

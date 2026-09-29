@@ -176,16 +176,6 @@ describe('ModelsService', () => {
     });
   });
 
-  it('queries canonical fields directly', async () => {
-    modelDelegate.findFirst.mockResolvedValue(makeModel());
-
-    await service.findOne({ key: 'google/imagen-4' });
-
-    expect(modelDelegate.findFirst).toHaveBeenCalledWith({
-      where: { isDeleted: false, key: 'google/imagen-4' },
-    });
-  });
-
   it('requires a successor before moving a model to Legacy', async () => {
     modelDelegate.findFirst.mockResolvedValue(makeModel());
 
@@ -721,43 +711,6 @@ describe('ModelsService', () => {
     ).rejects.toThrow('does not match the model category');
     expect(modelDelegate.update).not.toHaveBeenCalled();
     expect(providerContractDelegate.update).not.toHaveBeenCalled();
-  });
-
-  it('promotes a supported Replicate contract into the reviewed runtime projection', async () => {
-    modelDelegate.findFirst.mockResolvedValue(
-      makeModel({
-        pendingProviderContractVersion: 'sha256:replicate-candidate',
-      }),
-    );
-    providerContractDelegate.findUnique.mockResolvedValue({
-      id: 'replicate-contract',
-      inputSchema: {
-        properties: { prompt: { type: 'string' } },
-        required: ['prompt'],
-        type: 'object',
-      },
-      mappingStatus: 'supported',
-      pricingType: 'per-request',
-      schemaFamily: 'replicate-image-v1',
-      unitPriceMicros: 40_000n,
-      version: 'sha256:replicate-candidate',
-    });
-    modelDelegate.update.mockResolvedValue(makeModel());
-
-    await service.approveRegistryModel('model-1', {}, 'operator-1');
-
-    expect(modelDelegate.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          providerCostUsd: 0.04,
-          providerInputSchema: expect.objectContaining({
-            required: ['prompt'],
-          }),
-          providerSchemaFamily: 'replicate-image-v1',
-          reviewedProviderContractVersion: 'sha256:replicate-candidate',
-        }),
-      }),
-    );
   });
 
   it('blocks a Replicate contract whose detected category does not match', async () => {

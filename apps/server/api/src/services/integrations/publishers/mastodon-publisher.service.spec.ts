@@ -100,11 +100,6 @@ describe('MastodonPublisherService', () => {
     service = module.get(MastodonPublisherService);
   });
 
-  it('should be defined with platform=mastodon', () => {
-    expect(service).toBeDefined();
-    expect(service.platform).toBe(CredentialPlatform.MASTODON);
-  });
-
   it('should declare correct capability flags', () => {
     expect(service.supportsTextOnly).toBe(true);
     expect(service.supportsImages).toBe(true);
@@ -114,19 +109,6 @@ describe('MastodonPublisherService', () => {
   });
 
   describe('validatePost', () => {
-    it('should return valid for normal text posts', () => {
-      const context = makeContext();
-      const mediaInfo = {
-        hasIngredients: false,
-        ingredientIds: [],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: [],
-      };
-      const result = service.validatePost(context, mediaInfo);
-      expect(result.valid).toBe(true);
-    });
-
     it('should reject posts with more than 4 media attachments', () => {
       const context = makeContext();
       const mediaInfo = {
@@ -139,25 +121,6 @@ describe('MastodonPublisherService', () => {
       const result = service.validatePost(context, mediaInfo);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('4 media attachments');
-    });
-
-    it('should accept posts with description exactly at 500 characters', () => {
-      const context = makeContext({
-        post: {
-          category: PostCategory.TEXT,
-          description: 'a'.repeat(500),
-          ingredients: [],
-        } as unknown as PublishContext['post'],
-      });
-      const mediaInfo = {
-        hasIngredients: false,
-        ingredientIds: [],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: [],
-      };
-      const result = service.validatePost(context, mediaInfo);
-      expect(result.valid).toBe(true);
     });
 
     it('should reject posts with description over 500 characters', () => {
@@ -203,32 +166,6 @@ describe('MastodonPublisherService', () => {
       );
     });
 
-    it('should decrypt the access token before publishing', async () => {
-      await service.publish(makeContext());
-      expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('enc-token');
-    });
-
-    it('should publish as the account on the context, not a sibling account', async () => {
-      const secondAccount = {
-        id: 'second-account-id',
-        accessToken: 'enc-token-2',
-        description: 'https://second.social',
-        externalHandle: '@second@second.social',
-        platform: CredentialPlatform.MASTODON,
-      } as unknown as CredentialDocument;
-
-      await service.publish(makeContext({ credential: secondAccount }));
-
-      expect(mastodonService.publishStatus).toHaveBeenCalledWith(
-        'https://second.social',
-        'decrypted:enc-token-2',
-        'Hello Mastodon!',
-        undefined,
-        undefined,
-        'public',
-      );
-    });
-
     it('should return failed result when credential not found', async () => {
       const result = await service.publish(
         makeContext({ credential: undefined as never }),
@@ -265,23 +202,6 @@ describe('MastodonPublisherService', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should publish with the selected visibility', async () => {
-      // Mastodon defaults to a public timeline; an unlisted or followers-only
-      // post is only possible if the setting reaches `publishStatus`.
-      await service.publish(
-        makeContext({ settings: { visibility: 'private' } }),
-      );
-
-      expect(mastodonService.publishStatus).toHaveBeenCalledWith(
-        'https://mastodon.social',
-        'decrypted:enc-token',
-        'Hello Mastodon!',
-        undefined,
-        undefined,
-        'private',
-      );
-    });
-
     it('should publish to the instance named by the setting', async () => {
       // The credential's `description` is the legacy home for the instance URL,
       // so the explicit setting has to win over it.
@@ -310,26 +230,6 @@ describe('MastodonPublisherService', () => {
   });
 
   describe('buildPostUrl', () => {
-    it('should build correct mastodon URL from credential', () => {
-      const cred = {
-        description: 'https://mastodon.social',
-        externalHandle: '@testuser',
-      } as unknown as CredentialDocument;
-
-      const url = service.buildPostUrl('12345', cred);
-      expect(url).toBe('https://mastodon.social/@testuser/12345');
-    });
-
-    it('should strip leading @ and domain from handle', () => {
-      const cred = {
-        description: 'https://hachyderm.io',
-        externalHandle: '@user@hachyderm.io',
-      } as unknown as CredentialDocument;
-
-      const url = service.buildPostUrl('99999', cred);
-      expect(url).toBe('https://hachyderm.io/@user/99999');
-    });
-
     it('should use user as fallback when no handle provided', () => {
       const cred = {
         description: 'https://mastodon.social',

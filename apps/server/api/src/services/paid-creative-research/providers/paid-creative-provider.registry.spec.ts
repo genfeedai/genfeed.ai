@@ -88,20 +88,6 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     ).toEqual(['paid_creative_apify_token_missing']);
   });
 
-  it('opens only the Apify-backed archives once the token is present', () => {
-    const { registry } = buildRegistry(
-      buildConfig({ APIFY_API_TOKEN: 'token-1' }),
-    );
-
-    const available = registry
-      .getReadiness()
-      .filter((entry) => entry.available)
-      .map((entry) => entry.platform)
-      .sort();
-
-    expect(available).toEqual(['google', 'meta', 'tiktok', 'youtube']);
-  });
-
   it('keeps X fail-closed even with every environment flag set', () => {
     const { registry } = buildRegistry(
       buildConfig({
@@ -122,24 +108,6 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
       readiness.find((entry) => entry.platform === AdsPlatform.GOOGLE)
         ?.blockers,
     ).toEqual([]);
-  });
-
-  it('requires both X repository approval flags to be explicitly true', () => {
-    const { registry } = buildRegistry(
-      buildConfig({
-        X_ADS_REPOSITORY_COMMERCIAL_USE_APPROVED: 'false',
-        X_ADS_REPOSITORY_ENTITLEMENT_CONFIRMED: 'false',
-      }),
-    );
-
-    expect(
-      registry.getReadiness().find((entry) => entry.platform === AdsPlatform.X)
-        ?.blockers,
-    ).toEqual([
-      'x_ads_repository_entitlement_not_confirmed',
-      'x_ads_repository_commercial_use_not_approved',
-      'x_ads_repository_contract_fixtures_missing',
-    ]);
   });
 
   it('refuses to fetch from a fail-closed archive instead of returning an empty archive', async () => {

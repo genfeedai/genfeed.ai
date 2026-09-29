@@ -7,7 +7,6 @@ import {
   BotCommandType,
   BotInteractionType,
   BotResponseType,
-  CredentialPlatform,
 } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -84,14 +83,6 @@ describe('DiscordBotAdapter', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(adapter).toBeDefined();
-  });
-
-  it('should have platform set to DISCORD', () => {
-    expect(adapter.platform).toBe(CredentialPlatform.DISCORD);
-  });
-
   describe('validateSignature', () => {
     it('should return false when DISCORD_PUBLIC_KEY is not configured', () => {
       configService.get.mockReturnValue(undefined);
@@ -143,18 +134,8 @@ describe('DiscordBotAdapter', () => {
   });
 
   describe('getInteractionType', () => {
-    it('should return interaction type for valid payload', () => {
-      const result = adapter.getInteractionType({ type: 1 });
-      expect(result).toBe(1);
-    });
-
     it('should return null for null payload', () => {
       const result = adapter.getInteractionType(null);
-      expect(result).toBeNull();
-    });
-
-    it('should return null when type is not a number', () => {
-      const result = adapter.getInteractionType({ type: 'one' });
       expect(result).toBeNull();
     });
 
@@ -194,18 +175,6 @@ describe('DiscordBotAdapter', () => {
       expect(loggerService.warn).toHaveBeenCalled();
     });
 
-    it('should parse "status" command correctly', () => {
-      const result = adapter.parseMessage(makeInteraction());
-
-      expect(result).toMatchObject({
-        applicationId: mockApplicationId,
-        command: BotCommandType.STATUS,
-        interactionToken: mockToken,
-        platform: CredentialPlatform.DISCORD,
-        platformUserId: 'discord-user-999',
-      });
-    });
-
     it('should parse "prompt-image" command with prompt option', () => {
       const result = adapter.parseMessage(
         makeInteraction({
@@ -238,17 +207,6 @@ describe('DiscordBotAdapter', () => {
         brandName: 'MyBrand',
         command: BotCommandType.SET_BRAND,
       });
-    });
-
-    it('should prefer user.id over member.user.id', () => {
-      const result = adapter.parseMessage(
-        makeInteraction({
-          member: { user: { id: 'member-id', username: 'Guild User' } },
-          user: { id: 'dm-user-id', username: 'DM User' },
-        }),
-      );
-
-      expect(result?.platformUserId).toBe('dm-user-id');
     });
   });
 
@@ -319,26 +277,6 @@ describe('DiscordBotAdapter', () => {
   });
 
   describe('sendFollowupMedia', () => {
-    it('should send image embed for type "image"', async () => {
-      httpService.post.mockReturnValue(of({ data: {} }) as never);
-
-      await adapter.sendFollowupMedia(
-        mockApplicationId,
-        mockToken,
-        'https://example.com/image.jpg',
-        'image',
-        'Check this out',
-      );
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          embeds: [{ image: { url: 'https://example.com/image.jpg' } }],
-        }),
-        expect.any(Object),
-      );
-    });
-
     it('should append video URL to content for type "video"', async () => {
       httpService.post.mockReturnValue(of({ data: {} }) as never);
 

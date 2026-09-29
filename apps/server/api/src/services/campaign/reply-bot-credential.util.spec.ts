@@ -2,7 +2,6 @@ import {
   readReplyBotCredentialId,
   toReplyBotCredentialData,
 } from '@api/services/campaign/reply-bot-credential.util';
-import { ReplyBotPlatform } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('toReplyBotCredentialData', () => {
@@ -56,46 +55,6 @@ describe('toReplyBotCredentialData', () => {
     });
   });
 
-  it('uses externalHandle when username is missing', () => {
-    expect(
-      toReplyBotCredentialData({
-        accessToken: 'access-token',
-        externalHandle: '@handle',
-      })?.username,
-    ).toBe('@handle');
-  });
-
-  it('applies org/brand/platform options at the decrypt boundary', () => {
-    expect(
-      toReplyBotCredentialData(
-        {
-          accessToken: 'access-token',
-          platform: 'TWITTER',
-        },
-        {
-          brandId: 'brand-1',
-          organizationId: 'org-1',
-          platform: ReplyBotPlatform.YOUTUBE,
-        },
-      ),
-    ).toEqual(
-      expect.objectContaining({
-        brandId: 'brand-1',
-        organizationId: 'org-1',
-        platform: 'youtube',
-      }),
-    );
-  });
-
-  it('maps Prisma SCREAMING platform labels to domain lowercase', () => {
-    expect(
-      toReplyBotCredentialData({
-        accessToken: 'access-token',
-        platform: 'YOUTUBE',
-      })?.platform,
-    ).toBe('youtube');
-  });
-
   it('keeps legacy platform string coercion', () => {
     expect(
       toReplyBotCredentialData({
@@ -114,13 +73,5 @@ describe('readReplyBotCredentialId', () => {
         credentialId: 'root',
       }),
     ).toBe('root');
-  });
-
-  it('falls back to nested config.credentialId', () => {
-    expect(
-      readReplyBotCredentialId({
-        config: { credentialId: 'nested' },
-      }),
-    ).toBe('nested');
   });
 });

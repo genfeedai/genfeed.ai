@@ -78,33 +78,6 @@ describe('CaptionsController', () => {
     controller = module.get<CaptionsController>(CaptionsController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  describe('findAll', () => {
-    it('should scope captions by canonical organization and user IDs', async () => {
-      const userId = testId('user', 2);
-      deps.captionsService.findAll.mockResolvedValue({ docs: [] });
-
-      await controller.findAll(
-        createMockRequest(),
-        createMockUser(userId),
-        {} as never,
-      );
-
-      expect(deps.captionsService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            organizationId,
-            userId,
-          }),
-        }),
-        expect.anything(),
-      );
-    });
-  });
-
   describe('findOne', () => {
     it('should return serialized caption when found', async () => {
       const captionId = testId('caption');
@@ -122,14 +95,6 @@ describe('CaptionsController', () => {
         { id: captionId },
         expect.any(Array),
       );
-    });
-
-    it('should throw HttpException 404 when caption not found', async () => {
-      deps.captionsService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.findOne(createMockRequest(), 'nonexistent'),
-      ).rejects.toThrow(HttpException);
     });
   });
 
@@ -273,19 +238,6 @@ describe('CaptionsController', () => {
   });
 
   describe('remove', () => {
-    it('should return serialized caption on successful removal', async () => {
-      const captionId = testId('caption');
-      const deleted = {
-        id: captionId,
-        isDeleted: true,
-        toJSON: () => ({ id: captionId, isDeleted: true }),
-      };
-      deps.captionsService.remove.mockResolvedValue(deleted);
-
-      const result = await controller.remove(createMockRequest(), captionId);
-      expect(result).toBeDefined();
-    });
-
     it('should throw 404 when caption to remove not found', async () => {
       deps.captionsService.remove.mockResolvedValue(null);
 

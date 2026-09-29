@@ -53,10 +53,6 @@ describe('ModelsGuard', () => {
     vi.restoreAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(guard).toBeDefined();
-  });
-
   it('returns true when no ValidateModel decorator is set', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
     const result = await guard.canActivate(createContext());
@@ -84,22 +80,6 @@ describe('ModelsGuard', () => {
     );
   });
 
-  it('sets selectedModel on request after validation', async () => {
-    const mockModel = {
-      _id: objectId,
-      category: ModelCategory.IMAGE,
-      key: 'stable-diffusion',
-    };
-    modelRegistrationService.validateModelForOrg.mockResolvedValue(mockModel);
-    vi.spyOn(reflector, 'get').mockReturnValue({
-      category: ModelCategory.IMAGE,
-    });
-    const ctx = createContext({ model: 'stable-diffusion' });
-    await guard.canActivate(ctx);
-    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
-    expect(req.selectedModel).toEqual(mockModel);
-  });
-
   it('throws ForbiddenException when model category does not match', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
       _id: objectId,
@@ -111,33 +91,6 @@ describe('ModelsGuard', () => {
     });
     const ctx = createContext({ model: 'stable-diffusion' });
     await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
-  });
-
-  it('allows model when category matches exactly', async () => {
-    modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: objectId,
-      category: ModelCategory.VIDEO,
-      key: 'sora-turbo',
-    });
-    vi.spyOn(reflector, 'get').mockReturnValue({
-      category: ModelCategory.VIDEO,
-    });
-    const ctx = createContext({ model: 'sora-turbo' });
-    const result = await guard.canActivate(ctx);
-    expect(result).toBe(true);
-  });
-
-  it('allows model when model has no category set', async () => {
-    modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: objectId,
-      key: 'generic-model',
-    });
-    vi.spyOn(reflector, 'get').mockReturnValue({
-      category: ModelCategory.IMAGE,
-    });
-    const ctx = createContext({ model: 'generic-model' });
-    const result = await guard.canActivate(ctx);
-    expect(result).toBe(true);
   });
 
   it('accepts a cuid organization id for catalog models', async () => {

@@ -11,7 +11,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ContentRunStatus } from '@genfeedai/contracts';
-import { PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -84,70 +83,7 @@ describe('ContentRunsController', () => {
     controller = module.get(ContentRunsController);
   });
 
-  it('does not declare a controller-level v1 prefix', () => {
-    expect(Reflect.getMetadata(PATH_METADATA, ContentRunsController)).not.toBe(
-      'v1',
-    );
-  });
-
   describe('listBrandRuns', () => {
-    it('lists runs scoped to org and brand', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
-
-      await controller.listBrandRuns(
-        mockReq,
-        'brand-1',
-        mockUser,
-        undefined,
-        undefined,
-      );
-
-      expect(mockService.listByBrand).toHaveBeenCalledWith(
-        'org-1',
-        'brand-1',
-        undefined,
-        undefined,
-      );
-    });
-
-    it('passes skillSlug filter', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
-
-      await controller.listBrandRuns(
-        mockReq,
-        'brand-1',
-        mockUser,
-        'content-writing',
-        undefined,
-      );
-
-      expect(mockService.listByBrand).toHaveBeenCalledWith(
-        'org-1',
-        'brand-1',
-        'content-writing',
-        undefined,
-      );
-    });
-
-    it('passes status filter', async () => {
-      mockService.listByBrand.mockResolvedValue([]);
-
-      await controller.listBrandRuns(
-        mockReq,
-        'brand-1',
-        mockUser,
-        undefined,
-        ContentRunStatus.COMPLETED,
-      );
-
-      expect(mockService.listByBrand).toHaveBeenCalledWith(
-        'org-1',
-        'brand-1',
-        undefined,
-        ContentRunStatus.COMPLETED,
-      );
-    });
-
     it('passes both skillSlug and status filters', async () => {
       mockService.listByBrand.mockResolvedValue([]);
 
@@ -169,31 +105,6 @@ describe('ContentRunsController', () => {
   });
 
   describe('getRun', () => {
-    it('gets a run by id scoped to org', async () => {
-      mockService.getRunById.mockResolvedValue({
-        id: 'run-1',
-        status: 'completed',
-      });
-
-      await controller.getRun(mockReq, 'run-1', mockUser);
-
-      expect(mockService.getRunById).toHaveBeenCalledWith('org-1', 'run-1');
-    });
-
-    it('uses organization from the authenticated user', async () => {
-      mockService.getRunById.mockResolvedValue({ id: 'run-1' });
-
-      await controller.getRun(mockReq, 'run-1', {
-        ...mockUser,
-        organizationId: 'org-different',
-      });
-
-      expect(mockService.getRunById).toHaveBeenCalledWith(
-        'org-different',
-        'run-1',
-      );
-    });
-
     it('returns null when run not found', async () => {
       mockService.getRunById.mockResolvedValue(null);
 

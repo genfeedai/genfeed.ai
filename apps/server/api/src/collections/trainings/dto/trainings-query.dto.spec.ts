@@ -2,16 +2,7 @@ import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-quer
 import { plainToInstance } from 'class-transformer';
 
 describe('TrainingsQueryDto', () => {
-  it('should be defined', () => {
-    expect(TrainingsQueryDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new TrainingsQueryDto();
-      expect(dto).toBeInstanceOf(TrainingsQueryDto);
-    });
-
     it('normalizes repeated status query keys into an array', () => {
       const dto = plainToInstance(TrainingsQueryDto, {
         status: ['processing', 'completed'],

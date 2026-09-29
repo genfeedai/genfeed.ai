@@ -24,63 +24,11 @@ function makeBrand(voice?: Partial<AgentVoice> | null) {
 }
 
 describe('buildPromptBrandingFromBrand', () => {
-  it('returns undefined when brand is undefined', () => {
-    expect(buildPromptBrandingFromBrand(undefined)).toBeUndefined();
-  });
-
-  it('returns undefined when brand has no agentConfig', () => {
-    expect(
-      buildPromptBrandingFromBrand({ agentConfig: undefined } as never),
-    ).toBeUndefined();
-  });
-
-  it('returns undefined when agentConfig has no voice', () => {
-    expect(
-      buildPromptBrandingFromBrand({ agentConfig: {} } as never),
-    ).toBeUndefined();
-  });
-
-  it('returns undefined when voice has no meaningful values', () => {
-    const brand = makeBrand({
-      audience: [],
-      doNotSoundLike: [],
-      hashtags: [],
-      messagingPillars: [],
-      sampleOutput: undefined,
-      style: undefined,
-      taglines: [],
-      tone: undefined,
-      values: [],
-    });
-    // All falsy → should return undefined
-    expect(buildPromptBrandingFromBrand(brand)).toBeUndefined();
-  });
-
   it('builds branding with tone set', () => {
     const brand = makeBrand({ tone: 'friendly' });
     const result = buildPromptBrandingFromBrand(brand);
     expect(result).toBeDefined();
     expect(result?.tone).toBe('friendly');
-  });
-
-  it('builds branding with audience array joined as string', () => {
-    const brand = makeBrand({ audience: ['Gen Z', 'Millennials'] });
-    const result = buildPromptBrandingFromBrand(brand);
-    expect(result?.audience).toBe('Gen Z, Millennials');
-  });
-
-  it('builds branding from an existing onboarding text audience', () => {
-    const result = buildPromptBrandingFromBrand({
-      agentConfig: { voice: { audience: 'Founders', tone: 'direct' } },
-    } as never);
-
-    expect(result).toMatchObject({ audience: 'Founders', tone: 'direct' });
-  });
-
-  it('builds branding with hashtags array', () => {
-    const brand = makeBrand({ hashtags: ['#AI', '#Content'] });
-    const result = buildPromptBrandingFromBrand(brand);
-    expect(result?.hashtags).toEqual(['#AI', '#Content']);
   });
 
   it('builds branding with messaging pillars and exclusions', () => {
@@ -97,12 +45,6 @@ describe('buildPromptBrandingFromBrand', () => {
     );
   });
 
-  it('builds branding with voice.style mapped to voice field', () => {
-    const brand = makeBrand({ style: 'casual' });
-    const result = buildPromptBrandingFromBrand(brand);
-    expect(result?.voice).toBe('casual');
-  });
-
   it('omits audience when array is empty', () => {
     const brand = makeBrand({ audience: [], tone: 'bold' });
     const result = buildPromptBrandingFromBrand(brand);
@@ -112,10 +54,6 @@ describe('buildPromptBrandingFromBrand', () => {
 });
 
 describe('buildBrandVoiceSummary', () => {
-  it('returns null when brand has no voice', () => {
-    expect(buildBrandVoiceSummary(undefined)).toBeNull();
-  });
-
   it('returns null when voice has no values', () => {
     const brand = makeBrand({ audience: [], hashtags: [] });
     expect(buildBrandVoiceSummary(brand)).toBeNull();

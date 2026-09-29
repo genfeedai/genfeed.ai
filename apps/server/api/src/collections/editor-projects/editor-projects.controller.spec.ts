@@ -148,10 +148,6 @@ describe('EditorProjectsController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // ── create ────────────────────────────────────────────────────────────────
   describe('create', () => {
     it('creates and returns a project without sourceVideoId', async () => {
@@ -518,17 +514,6 @@ describe('EditorProjectsController', () => {
       expect(created.tracks[2].clips[0].ingredientUrl).toBe(
         'https://assets.invalid/sounds/audio-gone',
       );
-    });
-
-    it('does not query ingredients when the copy has no media clips', async () => {
-      editorProjectsService.findOne.mockResolvedValue(
-        makeComposition() as never,
-      );
-      editorProjectsService.create.mockResolvedValue(makeProject() as never);
-
-      await controller.duplicate(makeRequest(), makeUser(), 'source');
-
-      expect(ingredientsService.findAll).not.toHaveBeenCalled();
     });
 
     it('authorizes the source brand before copying', async () => {

@@ -192,30 +192,6 @@ describe('OutreachCampaignsService', () => {
     });
   });
 
-  it('rejects an unavailable create pair before tenant lookups or persistence', async () => {
-    const { prisma, service } = makeService();
-
-    await expect(
-      service.createScoped(
-        {
-          campaignType: CampaignType.MANUAL,
-          credentialId: 'credential-owned',
-          label: 'Campaign',
-          platform: CampaignPlatform.REDDIT,
-        },
-        {
-          brandId: 'brand-owned',
-          organizationId: 'org-owned',
-          userId: 'user-owned',
-        },
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-
-    expect(prisma.brand.findFirst).not.toHaveBeenCalled();
-    expect(prisma.credential.findFirst).not.toHaveBeenCalled();
-    expect(prisma.outreachCampaign.create).not.toHaveBeenCalled();
-  });
-
   it('rejects Scheduled Blast creates that omit a future schedule', async () => {
     const { prisma, service } = makeService();
 

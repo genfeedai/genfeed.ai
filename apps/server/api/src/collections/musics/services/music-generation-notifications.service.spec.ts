@@ -107,37 +107,4 @@ describe('MusicGenerationNotificationsService', () => {
       });
     });
   });
-
-  describe('handleFailedGeneration', () => {
-    it('delegates to FailedGenerationService with this.musicsService and a MUSIC_FAILED activity payload', async () => {
-      const { failedGenerationService, musicsService, service } =
-        createHarness();
-
-      await service.handleFailedGeneration(
-        user,
-        'brand-1',
-        'music-1',
-        '/ws/music/music-1',
-        'boom',
-      );
-
-      expect(
-        failedGenerationService.handleFailedMusicGeneration,
-      ).toHaveBeenCalledWith(
-        musicsService,
-        'music-1',
-        '/ws/music/music-1',
-        'auth-user-1',
-        expect.any(String),
-        expect.objectContaining({
-          brandId: 'brand-1',
-          key: ActivityKey.MUSIC_FAILED,
-          organizationId: 'org-1',
-          source: ActivitySource.MUSIC_GENERATION,
-          userId: 'user-1',
-          value: JSON.stringify({ error: 'boom', ingredientId: 'music-1' }),
-        }),
-      );
-    });
-  });
 });

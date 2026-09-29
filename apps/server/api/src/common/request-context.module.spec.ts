@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
@@ -45,13 +44,5 @@ describe('RequestContextModule', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.EXPORTS, RequestContextModule),
     ).toEqual([RequestContextMiddleware, RequestContextCacheService]);
-  });
-
-  it('is not registered from AppModule, which cannot see OrganizationSettingsService', () => {
-    const appModule = readFileSync(join(SRC_ROOT, 'app.module.ts'), 'utf8');
-
-    expect(appModule).not.toMatch(
-      /consumer\.apply\(RequestContextMiddleware\)/,
-    );
   });
 });

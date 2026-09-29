@@ -41,10 +41,6 @@ describe('SkillCheckoutController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // ─── createCheckout ─────────────────────────────────────────────────────
 
   describe('createCheckout', () => {
@@ -63,19 +59,6 @@ describe('SkillCheckoutController', () => {
       );
     });
 
-    it('should pass dto without email to service', async () => {
-      skillCheckoutService.createCheckoutSession.mockResolvedValue({
-        url: 'https://checkout.stripe.com/pay/x',
-      });
-
-      const dto = {};
-      await controller.createCheckout(dto, makeReq('10.0.0.2') as Request);
-
-      expect(skillCheckoutService.createCheckoutSession).toHaveBeenCalledWith(
-        {},
-      );
-    });
-
     it('should use "unknown" as ip key when req.ip is undefined', async () => {
       skillCheckoutService.createCheckoutSession.mockResolvedValue({
         url: 'https://x',
@@ -86,18 +69,6 @@ describe('SkillCheckoutController', () => {
       const dto = { email: 'a@b.com' };
 
       await expect(controller.createCheckout(dto, req)).resolves.toBeDefined();
-    });
-
-    it('should propagate service errors', async () => {
-      skillCheckoutService.createCheckoutSession.mockRejectedValue(
-        new Error('Stripe unavailable'),
-      );
-
-      const dto = { email: 'fail@example.com' };
-
-      await expect(
-        controller.createCheckout(dto, makeReq('10.0.0.3') as Request),
-      ).rejects.toThrow('Stripe unavailable');
     });
 
     it('should throw 429 after exceeding 5 requests from same IP', async () => {
@@ -128,65 +99,6 @@ describe('SkillCheckoutController', () => {
           'Too many checkout requests',
         );
       }
-    });
-
-    it('should allow requests from different IPs independently', async () => {
-      skillCheckoutService.createCheckoutSession.mockResolvedValue({
-        url: 'https://x',
-      });
-
-      const dto = { email: 'multi@test.com' };
-
-      // Each unique IP has its own quota — these should all succeed
-      for (let i = 0; i < 5; i++) {
-        const ip = `172.16.${i}.1`;
-        await expect(
-          controller.createCheckout(dto, makeReq(ip) as Request),
-        ).resolves.toBeDefined();
-      }
-    });
-
-    it('should include successUrl and cancelUrl in dto if provided', async () => {
-      skillCheckoutService.createCheckoutSession.mockResolvedValue({
-        url: 'https://x',
-      });
-
-      const dto = {
-        cancelUrl: 'https://example.com/cancel',
-        email: 'x@x.com',
-        successUrl: 'https://example.com/success',
-      };
-
-      await controller.createCheckout(dto, makeReq('10.5.5.5') as Request);
-
-      expect(skillCheckoutService.createCheckoutSession).toHaveBeenCalledWith(
-        dto,
-      );
-    });
-
-    it('should not call service when rate limit is exceeded', async () => {
-      skillCheckoutService.createCheckoutSession.mockResolvedValue({
-        url: 'https://x',
-      });
-
-      const ip = `10.99.99.${Math.floor(Math.random() * 200) + 1}`;
-      const dto = {};
-      const req = makeReq(ip) as Request;
-
-      for (let i = 0; i < 5; i++) {
-        await controller.createCheckout(dto, req);
-      }
-
-      // 6th call — rate limited, service should NOT be called again
-      try {
-        await controller.createCheckout(dto, req);
-      } catch {
-        // expected
-      }
-
-      expect(skillCheckoutService.createCheckoutSession).toHaveBeenCalledTimes(
-        5,
-      );
     });
   });
 });

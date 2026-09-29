@@ -68,10 +68,6 @@ describe('McpApprovalsController', () => {
     controller = module.get<McpApprovalsController>(McpApprovalsController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('POST /', () => {
     it('calls createPending and returns wrapped response shape', async () => {
       mockServiceMethods.createPending.mockResolvedValue(fakeApproval);
@@ -116,17 +112,6 @@ describe('McpApprovalsController', () => {
         id: 'approval-1',
         status: 'PENDING',
       });
-    });
-
-    it('omits status filter when not provided', async () => {
-      mockServiceMethods.findByOrganization.mockResolvedValue([]);
-
-      await controller.findAll(mockUser as never, undefined);
-
-      expect(mockServiceMethods.findByOrganization).toHaveBeenCalledWith(
-        'org-abc',
-        undefined,
-      );
     });
 
     it('maps multiple approvals to response shape', async () => {

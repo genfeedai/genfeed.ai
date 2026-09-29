@@ -52,10 +52,6 @@ describe('MetaAdsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should use Meta Ads provider catalog metadata for Graph API URL', async () => {
     httpService.get.mockReturnValue(
       of({

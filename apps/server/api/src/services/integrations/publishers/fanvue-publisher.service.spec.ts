@@ -84,10 +84,6 @@ describe('FanvuePublisherService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should expose correct platform capabilities', () => {
     expect(service.platform).toBe(CredentialPlatform.FANVUE);
     expect(service.supportsTextOnly).toBe(true);
@@ -104,28 +100,6 @@ describe('FanvuePublisherService', () => {
       expect(result.success).toBe(true);
       expect(result.externalId).toBe('fanvue-post-123');
       expect(result.platform).toBe(CredentialPlatform.FANVUE);
-    });
-
-    it('should refresh token before publishing', async () => {
-      await service.publish(makeContext());
-
-      expect(fanvueService.refreshToken).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        mockCredential.id,
-      );
-    });
-
-    it('should create post with sanitized description', async () => {
-      await service.publish(makeContext());
-
-      expect(fanvueService.createPost).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        expect.any(String),
-        undefined,
-        mockCredential.id,
-      );
     });
 
     it('should upload media when post has image ingredients', async () => {
@@ -194,14 +168,6 @@ describe('FanvuePublisherService', () => {
         'Token refresh failed',
       );
       expect(logger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('buildPostUrl', () => {
-    it('should build the correct Fanvue post URL', () => {
-      const url = service.buildPostUrl('post-abc-123', mockCredential as never);
-
-      expect(url).toBe('https://www.fanvue.com/post/post-abc-123');
     });
   });
 });

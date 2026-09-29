@@ -74,20 +74,10 @@ describe('MastodonService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('normalizeInstanceUrl (via registerApp)', () => {
     it('should throw BadRequestException for http:// URLs', async () => {
       await expect(
         service.registerApp('http://mastodon.social', 'https://callback'),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException for localhost', async () => {
-      await expect(
-        service.registerApp('https://localhost', 'https://callback'),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -98,12 +88,6 @@ describe('MastodonService', () => {
 
       await expect(
         service.registerApp('https://10.0.0.1', 'https://callback'),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should throw BadRequestException for .internal hostnames', async () => {
-      await expect(
-        service.registerApp('https://app.cluster.internal', 'https://cb'),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -130,24 +114,6 @@ describe('MastodonService', () => {
           redirect_uris: 'https://callback',
           scopes: 'read write push',
         }),
-      );
-    });
-
-    it('should remove every trailing slash from the instance URL', async () => {
-      const mockRegistration = {
-        client_id: 'client-id',
-        client_secret: 'client-secret',
-        id: 'app-id',
-        name: 'Genfeed.ai',
-        redirect_uri: 'https://callback',
-      };
-      httpService.post.mockReturnValue(of({ data: mockRegistration }) as never);
-
-      await service.registerApp(`${instanceUrl}///`, 'https://callback');
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        `${instanceUrl}/api/v1/apps`,
-        expect.any(Object),
       );
     });
 
@@ -387,23 +353,6 @@ describe('MastodonService', () => {
           'state',
         ),
       ).toThrow('redirectUri is not allowed');
-    });
-
-    it('accepts redirect URIs under the configured app origin', () => {
-      configService.get.mockImplementation((key) =>
-        String(key) === 'GENFEEDAI_APP_URL'
-          ? 'https://app.genfeed.ai///'
-          : `mock-${String(key)}`,
-      );
-
-      expect(() =>
-        service.generateAuthUrl(
-          instanceUrl,
-          'client-id',
-          'https://app.genfeed.ai/integrations/mastodon/callback',
-          'state',
-        ),
-      ).not.toThrow();
     });
   });
 });

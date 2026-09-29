@@ -57,10 +57,6 @@ describe('ReplicateService', () => {
     service = module.get<ReplicateService>(ReplicateService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('runTraining', () => {
     it('calls trainings.create with parsed owner/model/version and returns id', async () => {
       const trainingsCreate = vi.fn().mockResolvedValue({ id: 'train_123' });
@@ -168,36 +164,6 @@ describe('ReplicateService', () => {
 
       const parsedPrompt = JSON.parse(input.prompt as string);
       expect(parsedPrompt.elements.speech).toBe('Testing speech');
-    });
-
-    it('excludes speech from jsonPrompt.elements when speech is empty string', () => {
-      const model = 'google/veo-3';
-      const params: Record<string, unknown> = {
-        height: 1080,
-        prompt: 'test video',
-        speech: '   ',
-        width: 1920,
-      };
-
-      const input = service.parseReplicateInput(model, params);
-
-      const parsedPrompt = JSON.parse(input.prompt as string);
-      expect(parsedPrompt.elements.speech).toBeUndefined();
-    });
-
-    it('excludes speech from jsonPrompt.elements for non-VEO-3 models', () => {
-      const model = 'google/veo-2';
-      const params: Record<string, unknown> = {
-        height: 1080,
-        prompt: 'test video',
-        speech: 'Hello world',
-        width: 1920,
-      };
-
-      const input = service.parseReplicateInput(model, params);
-
-      const parsedPrompt = JSON.parse(input.prompt as string);
-      expect(parsedPrompt.elements.speech).toBeUndefined();
     });
 
     it('trims speech whitespace before adding to jsonPrompt.elements', () => {

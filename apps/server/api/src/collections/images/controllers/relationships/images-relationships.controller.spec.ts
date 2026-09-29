@@ -61,18 +61,7 @@ describe('ImagesRelationshipsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findChildren', () => {
-    it('should return child images', async () => {
-      const result = await controller.findChildren(mockRequest, imageId, {});
-
-      expect(imagesService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should filter by canonical parentId in aggregate pipeline', async () => {
       await controller.findChildren(mockRequest, imageId, {});
 
@@ -81,33 +70,6 @@ describe('ImagesRelationshipsController', () => {
       const query = callArgs[0] as { where: Record<string, unknown> };
       expect(query.where.parentId).toEqual(imageId);
       expect(query.where).not.toHaveProperty('parent');
-    });
-
-    it('should include isDeleted filter in pipeline', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
-
-      const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
-        .calls[0];
-      const query = callArgs[0] as { where: Record<string, unknown> };
-      expect(query.where.isDeleted).toBe(false);
-    });
-
-    it('should include orderBy stage in pipeline', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
-
-      const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
-        .calls[0];
-      const query = callArgs[0] as { orderBy?: Record<string, unknown> };
-      expect(query.orderBy).toBeDefined();
-    });
-
-    it('should pass pagination options to findAll', async () => {
-      await controller.findChildren(mockRequest, imageId, {});
-
-      const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
-        .calls[0];
-      const options = callArgs[1] as Record<string, unknown>;
-      expect(options).toHaveProperty('customLabels');
     });
   });
 });

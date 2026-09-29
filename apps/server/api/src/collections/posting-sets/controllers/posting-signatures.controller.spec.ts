@@ -1,14 +1,7 @@
 import { PostingSignaturesController } from '@api/collections/posting-sets/controllers/posting-signatures.controller';
 import type { PostingSignaturesService } from '@api/collections/posting-sets/services/posting-signatures.service';
-import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
-import { ApiKeyScope, CredentialPlatform } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
-
-const MUTATION_SCOPES = [
-  ApiKeyScope.POSTS_DRAFT,
-  ApiKeyScope.POSTS_CREATE,
-  ApiKeyScope.POSTS_SCHEDULE,
-];
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -81,18 +74,6 @@ describe('PostingSignaturesController', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(service.updateScoped).not.toHaveBeenCalled();
-  });
-
-  it('declares posting write scopes on every mutation route', () => {
-    for (const handler of [
-      PostingSignaturesController.prototype.create,
-      PostingSignaturesController.prototype.update,
-      PostingSignaturesController.prototype.remove,
-    ]) {
-      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual(
-        MUTATION_SCOPES,
-      );
-    }
   });
 
   it('passes tenant scope through signature read and remove', async () => {

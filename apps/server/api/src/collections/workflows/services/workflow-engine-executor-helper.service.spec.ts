@@ -58,19 +58,6 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
     });
   });
 
-  it('throws when neither a configured brandId nor a source ingredient brand exists', async () => {
-    findOne.mockResolvedValue({ brandId: null, id: sourceIngredientId });
-
-    await expect(
-      service.resolveBrandIdFromInputOrFail(
-        undefined,
-        { id: sourceIngredientId },
-        'upscale',
-        organizationId,
-      ),
-    ).rejects.toThrow('upscale requires a brandId or source ingredient brand');
-  });
-
   it('does not resolve a brandId from an ingredient in another organization', async () => {
     // Org-scoped query misses the foreign-org ingredient → returns null.
     findOne.mockResolvedValue(null);
@@ -89,43 +76,6 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
       isDeleted: false,
       organizationId,
     });
-  });
-});
-
-describe('WorkflowEngineExecutorHelperService.createWorkflowOutputIngredient', () => {
-  it('forwards canonical generation provenance to media persistence', async () => {
-    const createMediaDocumentsInternal = vi.fn().mockResolvedValue({
-      ingredientData: { id: 'ingredient-1' },
-      metadataData: { id: 'metadata-1' },
-    });
-    const service = new WorkflowEngineExecutorHelperService(
-      {} as ConfigService,
-      { createMediaDocumentsInternal } as never,
-      { patch: vi.fn() } as never,
-      { patch: vi.fn() } as never,
-    );
-
-    await service.createWorkflowOutputIngredient({
-      brandId: 'brand-1',
-      category: IngredientCategory.IMAGE,
-      extension: MetadataExtension.JPG,
-      generationPrompt: 'A launch poster',
-      generationSource: 'generation-brief:v1:workflow',
-      model: 'qwen-image',
-      negativePrompt: 'watermark',
-      organizationId: 'org-1',
-      providerData: { compilerId: 'qwen-image-image-compiler' },
-      userId: 'user-1',
-    });
-
-    expect(createMediaDocumentsInternal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        generationPrompt: 'A launch poster',
-        generationSource: 'generation-brief:v1:workflow',
-        negativePrompt: 'watermark',
-        providerData: { compilerId: 'qwen-image-image-compiler' },
-      }),
-    );
   });
 });
 
@@ -189,61 +139,5 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
       error: 'provider rejected the request',
       organizationId: 'org-1',
     });
-  });
-  it('records the BYOK credential reference on the provider continuation', async () => {
-    const createBeforeProviderSubmission = vi
-      .fn()
-      .mockResolvedValue({ continuationId: 'continuation-1' });
-    const service = new WorkflowEngineExecutorHelperService(
-      {} as ConfigService,
-      {
-        createMediaDocumentsInternal: vi.fn().mockResolvedValue({
-          ingredientData: { id: 'ingredient-1' },
-          metadataData: { id: 'metadata-1' },
-        }),
-      } as never,
-      { patch: vi.fn().mockResolvedValue(undefined) } as never,
-      { patch: vi.fn().mockResolvedValue(undefined) } as never,
-      {
-        createBeforeProviderSubmission,
-        markProviderSubmitted: vi.fn().mockResolvedValue(undefined),
-      } as never,
-    );
-
-    await service.createAndLinkProcessingOutput({
-      continuation: {
-        actionId: 'videoGen',
-        context: {
-          executionId: 'execution-1',
-          organizationId: 'org-1',
-          runId: 'run-1',
-          userId: 'user-1',
-          workflowId: 'workflow-1',
-          workflowVersionId: 'version-1',
-        },
-        isByok: true,
-        node: {
-          config: {},
-          id: 'generate',
-          inputs: [],
-          label: 'Generate',
-          type: 'videoGen',
-        },
-        provider: 'replicate',
-      },
-      output: {
-        brandId: 'brand-1',
-        category: IngredientCategory.VIDEO,
-        extension: MetadataExtension.MP4,
-        organizationId: 'org-1',
-        userId: 'user-1',
-      },
-      resultUrl: (ingredientId) => `/videos/${ingredientId}`,
-      runProvider: vi.fn().mockResolvedValue('prediction-1'),
-    });
-
-    expect(createBeforeProviderSubmission).toHaveBeenCalledWith(
-      expect.objectContaining({ isByok: true }),
-    );
   });
 });

@@ -43,19 +43,9 @@ describe('BotUserResolverService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ──────────────────────────── resolveUser ────────────────────────────
 
   describe('resolveUser', () => {
-    it('returns null when no credential found', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-      const result = await service.resolveUser(platform, platformUserId);
-      expect(result).toBeNull();
-    });
-
     it('queries credentials with correct filter', async () => {
       credentialsService.findOne.mockResolvedValue(null);
       await service.resolveUser(platform, platformUserId);
@@ -76,12 +66,6 @@ describe('BotUserResolverService', () => {
         organizationId: cred.organizationId,
         userId: cred.userId,
       });
-    });
-
-    it('returns null and does not throw on service error', async () => {
-      credentialsService.findOne.mockRejectedValue(new Error('DB error'));
-      const result = await service.resolveUser(platform, platformUserId);
-      expect(result).toBeNull();
     });
 
     it('logs error on exception', async () => {

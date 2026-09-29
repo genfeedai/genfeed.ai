@@ -86,10 +86,6 @@ describe('InsightsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('getForecast', () => {
     it('should return trend forecasts', async () => {
       const dto: GetForecastDto = {

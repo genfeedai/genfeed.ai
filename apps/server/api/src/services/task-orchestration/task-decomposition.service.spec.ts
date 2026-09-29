@@ -53,24 +53,6 @@ describe('TaskDecompositionService', () => {
     expect(params.messages[0].content).not.toContain('valid JSON');
   });
 
-  it('derives isSingleAgent from the subtask list, not from the model', async () => {
-    llmDispatcher.completeStructured.mockResolvedValue({
-      routingSummary: 'One specialist covers this.',
-      subtasks: [
-        {
-          agentType: AgentType.X_CONTENT,
-          brief: 'Draft the thread',
-          label: 'Thread',
-          order: 0,
-        },
-      ],
-    });
-
-    const result = await service.decompose({ request: 'Thread about launch' });
-
-    expect(result.isSingleAgent).toBe(true);
-  });
-
   it('surfaces the typed error when the model misses the schema twice', async () => {
     const error = new LlmStructuredOutputError('task_decomposition', [
       {

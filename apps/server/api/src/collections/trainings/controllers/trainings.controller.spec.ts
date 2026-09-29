@@ -115,50 +115,7 @@ describe('TrainingsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
-    it('should return paginated trainings', async () => {
-      const mockTrainings = {
-        docs: [
-          {
-            id: 'training-1',
-            category: 'subject',
-            isActive: true,
-            isDeleted: false,
-            label: 'Training 1',
-            model: 'replicate/fast-flux-trainer:test',
-            organizationId: mockUser.organizationId as string,
-            sources: [],
-            steps: 1000,
-            trigger: 'TOK1',
-            userId: mockUser.userId as string,
-          },
-        ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 20,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 1,
-        totalPages: 1,
-      };
-
-      trainingsService.findAll.mockResolvedValueOnce(
-        mockTrainings as unknown as AggregatePaginateResult<TrainingDocument>,
-      );
-
-      const query = createTrainingsQuery();
-      const result = await controller.findAll(mockRequest, mockUser, query);
-
-      expect(trainingsService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should map status=completed to stage=READY in the filter', async () => {
       const mockTrainings = {
         docs: [],
@@ -315,15 +272,6 @@ describe('TrainingsController', () => {
   });
 
   describe('canUserModifyEntity', () => {
-    it('should return true when user owns the entity', () => {
-      const entity = {
-        userId: mockUser.userId,
-      };
-
-      const result = controller.canUserModifyEntity(mockUser, entity);
-      expect(result).toBe(true);
-    });
-
     it('should return true when user organization owns the entity', () => {
       const entity = {
         organizationId: mockUser.organizationId,

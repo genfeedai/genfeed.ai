@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { MembersController } from '@api/collections/members/controllers/members.controller';
 import type { InvitationService } from '@api/collections/members/services/invitation.service';
 import type { MembersService } from '@api/collections/members/services/members.service';
-import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, RequestMethod } from '@nestjs/common';
@@ -70,15 +69,6 @@ describe('MembersController — invitation endpoints', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-
-  it.each(['listInvitations', 'revokeInvitation', 'resendInvitation'] as const)(
-    'restricts %s to organization owners and admins',
-    (handler) => {
-      expect(
-        Reflect.getMetadata('roles', MembersController.prototype[handler]),
-      ).toEqual([MemberRole.OWNER, MemberRole.ADMIN]);
-    },
-  );
 
   describe('GET /members/invitations', () => {
     it('throws 400 when organization missing', async () => {

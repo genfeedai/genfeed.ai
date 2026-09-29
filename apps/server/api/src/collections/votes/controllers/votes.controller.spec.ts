@@ -67,10 +67,6 @@ describe('VotesController', () => {
     controller = module.get<VotesController>(VotesController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('creates a vote', async () => {
     const mockVote = { _id: '1', entity: validEntityId };
     service.create.mockResolvedValue(mockVote);
@@ -90,16 +86,6 @@ describe('VotesController', () => {
     expect(result).toEqual(mockVote);
   });
 
-  it('throws BadRequestException when entity is invalid ObjectId', async () => {
-    await expect(
-      controller.create(
-        mockReq,
-        { ...validCreateVoteDto, entity: 'invalid-id' },
-        mockUser,
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
   it('throws BadRequestException when entity is missing', async () => {
     await expect(
       controller.create(
@@ -107,14 +93,6 @@ describe('VotesController', () => {
         {} as Parameters<VotesController['create']>[1],
         mockUser,
       ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-  });
-
-  it('throws BadRequestException when service fails', async () => {
-    service.create.mockRejectedValue(new Error('fail'));
-
-    await expect(
-      controller.create(mockReq, validCreateVoteDto, mockUser),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 

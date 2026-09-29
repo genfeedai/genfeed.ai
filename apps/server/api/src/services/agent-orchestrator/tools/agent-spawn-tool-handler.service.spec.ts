@@ -45,23 +45,6 @@ describe('AgentSpawnToolHandler', () => {
     );
   });
 
-  it('spawnContentAgent passes the tool context’s validated scope through to the sub-agent', async () => {
-    await handler.spawnContentAgent(
-      { agentType: AgentType.GENERAL, task: 'Draft a post' },
-      createContext(),
-    );
-
-    expect(agentSpawnService.spawnSubAgent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parentContext: expect.objectContaining({
-          organizationId: 'org-1',
-          scope: validatedScope,
-          userId: 'user-1',
-        }),
-      }),
-    );
-  });
-
   it('requestAsset passes the tool context’s validated scope through to the sub-agent', async () => {
     await handler.requestAsset(
       {

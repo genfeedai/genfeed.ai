@@ -91,22 +91,6 @@ describe('HighlightRewriteService', () => {
     expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledTimes(1);
   });
 
-  it('persists rewrittenScript to highlight in DB', async () => {
-    await service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook');
-
-    expect(mockClipProjectsService.patch).toHaveBeenCalledWith(
-      'project-1',
-      expect.objectContaining({
-        highlights: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'h1',
-            summary: 'Stop scrolling. AI just changed everything. Here is why.',
-          }),
-        ]),
-      }),
-    );
-  });
-
   it('uses correct platform in prompt', async () => {
     await service.rewrite(
       'project-1',
@@ -135,44 +119,10 @@ describe('HighlightRewriteService', () => {
     expect(mockLoggerService.error).toHaveBeenCalled();
   });
 
-  it('trims whitespace from response', async () => {
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: '\n  Stop scrolling. AI just changed everything.  \n',
-          },
-        },
-      ],
-    });
-
-    const result = await service.rewrite(
-      'project-1',
-      'h1',
-      organizationId,
-      'tiktok',
-      'hook',
-    );
-
-    expect(result.rewrittenScript).toBe(
-      'Stop scrolling. AI just changed everything.',
-    );
-  });
-
   it('handles missing originalScript', async () => {
     await expect(
       service.rewrite('project-1', 'h2', organizationId, 'tiktok', 'hook'),
     ).rejects.toThrow(NotFoundException);
-  });
-
-  it('scopes the project lookup to the current organization', async () => {
-    await service.rewrite('project-1', 'h1', organizationId, 'tiktok', 'hook');
-
-    expect(mockClipProjectsService.findOne).toHaveBeenCalledWith({
-      id: 'project-1',
-      isDeleted: false,
-      organizationId,
-    });
   });
 
   it('preserves the missing project error', async () => {

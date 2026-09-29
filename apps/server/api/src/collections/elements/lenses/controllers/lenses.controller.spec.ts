@@ -7,7 +7,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -100,10 +99,6 @@ describe('ElementsLensesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a lens for superadmin', async () => {
       const createDto: CreateElementLensDto = {
@@ -166,19 +161,6 @@ describe('ElementsLensesController', () => {
       expect(lensesService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
-
-    it('should throw error if lens not found', async () => {
-      const id = 'cmlens00000000000000000001';
-      const updateDto: UpdateElementLensDto = {
-        label: 'Updated Lens',
-      } as unknown as UpdateElementLensDto;
-
-      lensesService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.update(mockRequest, mockSuperAdminUser, id, updateDto),
-      ).rejects.toThrow(HttpException);
-    });
   });
 
   describe('remove', () => {
@@ -210,45 +192,6 @@ describe('ElementsLensesController', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated lenses', async () => {
-      const mockLenses = {
-        docs: [
-          {
-            id: 'cmlens00000000000000000001',
-            key: 'lens-1',
-            label: 'Lens 1',
-          },
-          {
-            id: 'cmlens00000000000000000002',
-            key: 'lens-2',
-            label: 'Lens 2',
-          },
-        ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 2,
-        totalPages: 1,
-      };
-
-      lensesService.findAll.mockResolvedValue(mockLenses as never);
-
-      const query = createBaseQuery();
-
-      const result = await controller.findAll(
-        mockRequest,
-        mockSuperAdminUser,
-        query,
-      );
-
-      expect(lensesService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should handle empty results', async () => {
       const mockLenses = {
         docs: [],

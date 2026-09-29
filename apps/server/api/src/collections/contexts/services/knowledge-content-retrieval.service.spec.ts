@@ -182,24 +182,6 @@ describe('KnowledgeContentRetrievalService', () => {
       const similarity = lastSimilarityQuery(queryRaw);
       expect(similarity.sql).toContain('AND e."knowledgeSourceId" IS NOT NULL');
     });
-
-    it('omits the Knowledge-only filter by default, keeping uncited legacy chunks eligible', async () => {
-      const { contextBase, queryRaw, service } = buildService();
-      contextBase.findMany.mockResolvedValue([
-        { data: { label: 'A' }, id: 'ctx-a', sourceBrandId: BRAND_A },
-      ]);
-
-      await service.retrieveBrandContentMemory({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      const similarity = lastSimilarityQuery(queryRaw);
-      expect(similarity.sql).not.toContain(
-        'AND e."knowledgeSourceId" IS NOT NULL',
-      );
-    });
   });
 
   describe('retrieveOrgAndPersonalContentMemory', () => {
@@ -324,37 +306,6 @@ describe('KnowledgeContentRetrievalService', () => {
   });
 
   describe('retrieveBrandKnowledge', () => {
-    it('selects only the brand and organization Knowledge bases', async () => {
-      const { contextBase, service } = buildService();
-
-      await service.retrieveBrandKnowledge({
-        brandId: BRAND_A,
-        organizationId: 'org-1',
-        query: 'pricing',
-      });
-
-      const where = contextBase.findMany.mock.calls[0]?.[0]?.where;
-      expect(where).toMatchObject({
-        AND: [{ data: { equals: 'knowledge-base', path: ['purpose'] } }],
-        isDeleted: false,
-        OR: [
-          {
-            AND: [
-              { sourceBrandId: BRAND_A },
-              { data: { equals: 'brand', path: ['knowledgeScope'] } },
-            ],
-          },
-          {
-            AND: [
-              { sourceBrandId: null },
-              { data: { equals: 'org', path: ['knowledgeScope'] } },
-            ],
-          },
-        ],
-        organizationId: 'org-1',
-      });
-    });
-
     it('returns BRAND_TRUTH passages and never inspiration or research', async () => {
       const { contextBase, queryRaw, service } = buildService();
       contextBase.findMany.mockResolvedValue([

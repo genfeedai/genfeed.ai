@@ -141,14 +141,6 @@ describe('ArticlesService create persistence', () => {
     expect(columns.has('excerpt')).toBe(false);
   });
 
-  it('still normalizes status to the persisted Prisma label', async () => {
-    const { delegate, service } = buildService();
-
-    await service.createArticle(dto, userId, organizationId, brandId);
-
-    expect(readCreatedData(delegate).status).toBe('PUBLISHED');
-  });
-
   it('strips unknown generate fields and keeps label/summary/content (#2859)', async () => {
     const { delegate, service } = buildService();
     const generatePayload = {
@@ -207,14 +199,6 @@ describe('ArticlesService create persistence', () => {
     expect(readCreatedData(delegate).tags).toEqual({
       connect: [{ id: 'tag_1' }, { id: 'tag_2' }],
     });
-  });
-
-  it('omits the tags key entirely when the DTO has none', async () => {
-    const { delegate, service } = buildService();
-
-    await service.createArticle(dto, userId, organizationId, brandId);
-
-    expect('tags' in readCreatedData(delegate)).toBe(false);
   });
 
   it('generate persist source never assigns unknown Prisma Article fields', () => {

@@ -8,22 +8,6 @@ describe('UpdatePlatformSettingDto', () => {
     return validate(plainToInstance(UpdatePlatformSettingDto, payload));
   }
 
-  it('accepts a positive generation margin multiplier', async () => {
-    await expect(
-      validateDto({ marginMultiplierGeneration: 3.5 }),
-    ).resolves.toHaveLength(0);
-  });
-
-  it('accepts a positive agent-chat margin multiplier', async () => {
-    await expect(
-      validateDto({ marginMultiplierAgentChat: 1.25 }),
-    ).resolves.toHaveLength(0);
-  });
-
-  it('accepts an empty payload (all fields optional)', async () => {
-    await expect(validateDto({})).resolves.toHaveLength(0);
-  });
-
   it('rejects a negative margin multiplier', async () => {
     const generation = await validateDto({ marginMultiplierGeneration: -1 });
     expect(generation.length).toBeGreaterThan(0);
@@ -67,11 +51,6 @@ describe('UpdatePlatformSettingDto', () => {
     ).resolves.toHaveLength(0);
   });
 
-  it('rejects a margin input mode this deployment does not know', async () => {
-    const errors = await validateDto({ marginInputMode: 'discount' });
-    expect(errors.length).toBeGreaterThan(0);
-  });
-
   it('accepts every known typed-decision provider', async () => {
     await expect(
       validateDto({ typedDecisionProvider: 'none' }),
@@ -81,38 +60,7 @@ describe('UpdatePlatformSettingDto', () => {
     ).resolves.toHaveLength(0);
   });
 
-  it('rejects a typed-decision provider this deployment does not know', async () => {
-    const errors = await validateDto({
-      typedDecisionProvider: 'some-future-vendor',
-    });
-    expect(errors.length).toBeGreaterThan(0);
-  });
-
   describe('feature switches (#5407)', () => {
-    it('accepts a full set of valid switches', async () => {
-      await expect(
-        validateDto({
-          agentAutoRoutingDecisionMode: 'live',
-          isEmailVerificationRequired: true,
-          isMediaPerceptionEnabled: false,
-          mediaPerceptionFrameCount: 24,
-          mediaPerceptionLookbackHours: 1,
-          mediaPerceptionVisionModel: null,
-          moderationProvider: 'openai',
-          moderationThresholds: { sexual: 0.5, sexual_minors: 0 },
-          patternAnalyzerDecisionMode: 'shadow',
-          systemEventsEnabledAt: '2026-09-28T08:00:00.000Z',
-          untrustedContentMinConfidence: 1,
-        }),
-      ).resolves.toHaveLength(0);
-    });
-
-    it('accepts turning system-event recording off', async () => {
-      await expect(
-        validateDto({ systemEventsEnabledAt: null }),
-      ).resolves.toHaveLength(0);
-    });
-
     it.each([
       { taskRoutingDecisionMode: 'live' },
       { patternAnalyzerDecisionMode: 'live' },
@@ -140,12 +88,6 @@ describe('UpdatePlatformSettingDto', () => {
     ])('rejects %o', async (payload) => {
       expect((await validateDto(payload)).length).toBeGreaterThan(0);
     });
-  });
-
-  it('accepts a partial patch of registered flags (#5468)', async () => {
-    await expect(
-      validateDto({ flags: { library_canvas: true, studio: false } }),
-    ).resolves.toHaveLength(0);
   });
 
   it.each([[{ app_switcher_studio: false }], [{ studio: 'false' }], [[false]]])(

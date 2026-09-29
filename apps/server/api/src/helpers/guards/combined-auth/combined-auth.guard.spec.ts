@@ -107,10 +107,6 @@ describe('CombinedAuthGuard', () => {
     vi.unstubAllEnvs();
   });
 
-  it('is defined', () => {
-    expect(guard).toBeDefined();
-  });
-
   it('rejects a gf_ key presented in the query string even on a public route', async () => {
     reflector.getAllAndOverride.mockReturnValue(true);
     const mockRequest = {
@@ -576,23 +572,6 @@ describe('CombinedAuthGuard', () => {
     const result = await guard.canActivate(mockExecutionContext);
 
     expect(result).toBe(true);
-  });
-
-  it('passes Better Auth errors through', async () => {
-    const mockRequest = {
-      headers: {
-        authorization: 'Bearer jwt_token',
-      },
-    };
-    const error = new Error('Authentication failed');
-    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
-      mockRequest,
-    );
-    betterAuthGuard.canActivate.mockRejectedValue(error);
-
-    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
-      error,
-    );
   });
 
   it('injects default local identity in local mode', async () => {

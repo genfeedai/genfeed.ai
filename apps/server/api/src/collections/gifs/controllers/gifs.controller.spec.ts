@@ -135,10 +135,6 @@ describe('GifsController', () => {
     controller = module.get<GifsController>(GifsController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
     it('should return paginated gifs', async () => {
       const query = {} as Parameters<typeof controller.findAll>[2];
@@ -150,32 +146,6 @@ describe('GifsController', () => {
         IngredientSerializer,
         expect.objectContaining({ docs: [mockGif] }),
       );
-    });
-
-    it('should support collapsed "latest" queries via sort/limit params while staying paginated', async () => {
-      const query = {
-        limit: 10,
-        sort: 'createdAt: -1',
-      } as unknown as Parameters<typeof controller.findAll>[2];
-      await controller.findAll(mockRequest, mockUser, query);
-      expect(gifsService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: { createdAt: -1 },
-          where: expect.any(Object),
-        }),
-        expect.objectContaining({ limit: 10, pagination: true }),
-      );
-    });
-
-    it('should apply search filter when search query provided', async () => {
-      const query = { search: 'dancing' } as Parameters<
-        typeof controller.findAll
-      >[2];
-      await controller.findAll(mockRequest, mockUser, query);
-      const findAllQuery = gifsService.findAll.mock.calls[0][0] as {
-        where: Record<string, unknown>;
-      };
-      expect(findAllQuery.where.AND).toBeDefined();
     });
 
     it('should build a Prisma query for gif listing', async () => {
@@ -235,32 +205,6 @@ describe('GifsController', () => {
         IngredientSerializer,
         expect.objectContaining({ id: gifId }),
       );
-    });
-
-    it('should throw NOT_FOUND when gif does not exist', async () => {
-      gifsService.findOne.mockResolvedValueOnce(null);
-      await expect(
-        controller.findOne(mockRequest, 'nonexistent', mockUser),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should check if user has voted', async () => {
-      await controller.findOne(mockRequest, gifId, mockUser);
-      expect(votesService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          entityId: gifId,
-          entityModel: 'Ingredient',
-          userId: mockUser.userId,
-        }),
-      );
-    });
-
-    it('should set hasVoted to true when vote exists', async () => {
-      votesService.findOne.mockResolvedValueOnce({
-        id: 'cmvote00000000000000000001',
-      });
-      const result = await controller.findOne(mockRequest, gifId, mockUser);
-      expect(result.hasVoted).toBe(true);
     });
   });
 

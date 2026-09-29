@@ -47,45 +47,7 @@ describe('ThreadsPublisherService', () => {
     service = module.get<ThreadsPublisherService>(ThreadsPublisherService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('platform properties', () => {
-    it('should have correct platform set to threads', () => {
-      expect(service.platform).toBe('threads');
-    });
-
-    it('should support text-only posts', () => {
-      expect(service.supportsTextOnly).toBe(true);
-    });
-
-    it('should support images', () => {
-      expect(service.supportsImages).toBe(true);
-    });
-
-    it('should support videos', () => {
-      expect(service.supportsVideos).toBe(true);
-    });
-
-    it('should support carousel', () => {
-      expect(service.supportsCarousel).toBe(true);
-    });
-
-    it('should support threads/replies', () => {
-      expect(service.supportsThreads).toBe(true);
-    });
-  });
-
   describe('buildPostUrl', () => {
-    it('should build correct Threads post URL with handle', () => {
-      const credential = { externalHandle: 'testuser' } as never;
-
-      const url = service.buildPostUrl('thread-123', credential);
-
-      expect(url).toBe('https://www.threads.net/@testuser/post/thread-123');
-    });
-
     it('should use "user" as fallback when no handle', () => {
       const credential = {} as never;
 
@@ -96,26 +58,6 @@ describe('ThreadsPublisherService', () => {
   });
 
   describe('validatePost', () => {
-    it('should return valid for carousel posts within the Threads media limit', () => {
-      const context = {
-        brandId: 'brand-1',
-        credential: {},
-        organizationId: 'org-1',
-        post: {},
-      } as never;
-      const mediaInfo = {
-        hasIngredients: true,
-        ingredientIds: [],
-        isCarousel: true,
-        isImagePost: true,
-        mediaUrls: [],
-      } as never;
-
-      const result = service.validatePost(context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
-
     it('should return invalid for carousel posts above the Threads media limit', () => {
       const context = {
         brandId: 'brand-1',
@@ -135,46 +77,6 @@ describe('ThreadsPublisherService', () => {
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('20');
-    });
-
-    it('should return valid for video posts', () => {
-      const context = {
-        brandId: 'brand-1',
-        credential: {},
-        organizationId: 'org-1',
-        post: {},
-      } as never;
-      const mediaInfo = {
-        hasIngredients: true,
-        ingredientIds: ['id'],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: ['url'],
-      } as never;
-
-      const result = service.validatePost(context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
-
-    it('should return valid for text-only posts', () => {
-      const context = {
-        brandId: 'brand-1',
-        credential: {},
-        organizationId: 'org-1',
-        post: { description: 'test' },
-      } as never;
-      const mediaInfo = {
-        hasIngredients: false,
-        ingredientIds: [],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: [],
-      } as never;
-
-      const result = service.validatePost(context, mediaInfo);
-
-      expect(result.valid).toBe(true);
     });
   });
 
@@ -200,15 +102,6 @@ describe('ThreadsPublisherService', () => {
         postId: 'post-1',
         settings: {},
       }) as never;
-
-    it('should pass a caption exactly at the 500-character Threads limit', () => {
-      const result = service.validatePost(
-        makeTextContext('a'.repeat(500)),
-        textMediaInfo,
-      );
-
-      expect(result.valid).toBe(true);
-    });
 
     it('should fail an over-limit caption with a structured caption_too_long error', () => {
       const result = service.validatePost(

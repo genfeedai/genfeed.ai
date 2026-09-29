@@ -65,7 +65,6 @@ vi.mock('@helpers/utils/response/response.util', () => ({
 describe('ModelsController', () => {
   let controller: ModelsController;
   let modelsService: vi.Mocked<ModelsService>;
-  let _loggerService: vi.Mocked<LoggerService>;
   let moduleRefGet: ReturnType<typeof vi.fn>;
 
   const organizationId = testId('org');
@@ -174,7 +173,6 @@ describe('ModelsController', () => {
 
     controller = module.get<ModelsController>(ModelsController);
     modelsService = module.get(ModelsService);
-    _loggerService = module.get(LoggerService);
 
     vi.spyOn(ModelSerializer, 'serialize').mockImplementation((data) => ({
       data,
@@ -183,10 +181,6 @@ describe('ModelsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
   });
 
   describe('enrichCreateDto', () => {
@@ -354,41 +348,6 @@ describe('ModelsController', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated models', async () => {
-      const mockModels = {
-        docs: [
-          { id: '1', key: 'model-1', label: 'Model 1', type: 'text' },
-          { id: '2', key: 'model-2', label: 'Model 2', type: 'image' },
-        ],
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: 10,
-        nextPage: null,
-        page: 1,
-        pagingCounter: 1,
-        prevPage: null,
-        totalDocs: 2,
-        totalPages: 1,
-      };
-
-      modelsService.findAll.mockResolvedValue(mockModels);
-
-      const query: ModelsQueryDto = {
-        isDeleted: false,
-        limit: 10,
-        page: 1,
-      };
-
-      const result = await controller.findAll(
-        mockRequest,
-        mockRegularUser,
-        query,
-      );
-
-      expect(modelsService.findAll).toHaveBeenCalled();
-      expect(result).toBeDefined();
-    });
-
     it('should append org-scoped match stage when request context has organizationId', async () => {
       const mockModels = {
         docs: [],
@@ -614,53 +573,6 @@ describe('ModelsController', () => {
       expect(modelsService.findAll.mock.calls[0][0]).toMatchObject({
         where: { id: { in: [] } },
       });
-    });
-
-    it('does not seed a foreign organizationId from a non-admin caller', async () => {
-      const foreignOrgId = testId('org', 5);
-      const settingsService = {
-        ensureForOrganization: vi.fn(),
-      };
-
-      moduleRefGet.mockReturnValue(settingsService);
-
-      modelsService.findAll.mockResolvedValue(emptyPaginateResult);
-
-      await controller.findAll(mockRequest, mockRegularUser, {
-        organizationId: foreignOrgId,
-      } as ModelsQueryDto);
-
-      expect(moduleRefGet).not.toHaveBeenCalled();
-      expect(settingsService.ensureForOrganization).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('create', () => {
-    it('should create a model', async () => {
-      const createDto: CreateModelDto = {
-        category: ModelCategory.TEXT,
-        cost: 0,
-        isDefault: false,
-        key: 'new-model',
-        label: 'New Model',
-        provider: ModelProvider.OPENROUTER,
-      };
-
-      const mockCreatedModel = {
-        id: testId('model'),
-        ...createDto,
-      };
-
-      modelsService.create.mockResolvedValue(mockCreatedModel);
-
-      const result = await controller.create(
-        mockRequest,
-        mockSuperAdminUser,
-        createDto,
-      );
-
-      expect(modelsService.create).toHaveBeenCalled();
-      expect(result).toBeDefined();
     });
   });
 

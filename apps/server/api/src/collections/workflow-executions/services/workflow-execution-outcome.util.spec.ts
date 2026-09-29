@@ -36,17 +36,6 @@ describe('workflow outcome classification', () => {
     ).toBe(true);
     expect(suppressWorkflowOutcomeNotification(hidden, true)).toBe(false);
   });
-  it('keeps internal lifecycle email outcomes suppressed', () => {
-    const email = {
-      sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-      systemWorkflow: buildHiddenSystemWorkflowMetadata({
-        canonicalId: 'lifecycle-email.delivery',
-      }),
-    };
-    expect(suppressWorkflowOutcomeNotification(email, true, { metadata })).toBe(
-      true,
-    );
-  });
   it('routes the trusted report to the execution actor and does not trust interactive report metadata', () => {
     const execution = {
       organizationId: 'org',

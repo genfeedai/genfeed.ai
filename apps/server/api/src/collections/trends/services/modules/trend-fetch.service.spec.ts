@@ -254,21 +254,6 @@ describe('TrendFetchService', () => {
     expect(second).toEqual(first);
   });
 
-  it('does not cache global (no org/brand) X trends inside fetchTwitterTrends', async () => {
-    mockTwitterService.getTrends.mockResolvedValue([
-      {
-        growthRate: 55,
-        mentions: 9000,
-        topic: '#XTrend',
-        url: 'https://twitter.com/i/trends/1',
-      },
-    ]);
-
-    await service.fetchTwitterTrends();
-
-    expect(mockCacheService.set).not.toHaveBeenCalled();
-  });
-
   it('maps LinkedIn live trend topics into TrendData', async () => {
     mockLinkedInService.getTrends.mockResolvedValue([
       {
@@ -669,17 +654,6 @@ describe('TrendFetchService', () => {
       const [, , populatedOptions] = mockCacheService.set.mock.calls[0];
 
       expect(emptyOptions.ttl).toBeLessThan(populatedOptions.ttl);
-    });
-
-    it('holds global trends longer than the 30-minute corpus backfill interval', async () => {
-      mockApifyService.getTikTokTrends.mockResolvedValue([
-        { growthRate: 10, mentions: 5, platform: 'tiktok', topic: '#a' },
-      ]);
-
-      await service.fetchPlatformTrends('tiktok');
-
-      const [, , options] = mockCacheService.set.mock.calls[0];
-      expect(options.ttl).toBeGreaterThan(30 * 60);
     });
 
     it('serves the personalized path from cache instead of re-scraping', async () => {

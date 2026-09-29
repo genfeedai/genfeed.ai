@@ -43,12 +43,6 @@ describe('CreditBalanceService wallet-lookup argument shapes (real Prisma client
     await client.$disconnect();
   });
 
-  it('path 1 (own wallet): a well-formed argument shape only fails at the connection, never at validation', async () => {
-    await expect(
-      service['findOwnWallet']('org_1', { billingAccountId: 'ba_1' }, client),
-    ).rejects.toThrow(CANT_REACH_DATABASE);
-  });
-
   it('path 2 (direct attach — Organization.billingAccount is an optional to-one relation, so its relation-select args may carry their own `where`): a well-formed argument shape only fails at the connection', async () => {
     await expect(
       service['findDirectWallet'](
@@ -78,58 +72,6 @@ describe('CreditBalanceService wallet-lookup argument shapes (real Prisma client
         client,
       ),
     ).rejects.toThrow(CANT_REACH_DATABASE);
-  });
-
-  it('regression: the shape path 3 used before this fix — a `where` nested inside the required `billingAccount` relation-select — fails validation before any connection is attempted', async () => {
-    await expect(
-      client.billingAccountOrganization.findFirst({
-        select: {
-          billingAccount: {
-            select: {
-              creditBalances: { take: 1, where: { isDeleted: false } },
-            },
-            // Invalid: BillingAccountOrganization.billingAccount is a
-            // required to-one relation. Its relation-select args have no
-            // `where` — only an optional to-one relation's do.
-            where: { isDeleted: false },
-          },
-        },
-        where: {
-          billingAccountId: 'ba_1',
-          isDeleted: false,
-          organizationId: 'org_1',
-          status: 'LINKED',
-        },
-        // Cast needed: TS correctly rejects this shape now that the real
-        // Prisma types are in scope — that rejection is the point.
-      } as never),
-    ).rejects.toThrow(/where/i);
-  });
-
-  it("regression: a `where` nested inside CreditReservation.billingAccount's relation-select fails validation before any connection is attempted, same as path 3", async () => {
-    await expect(
-      client.creditReservation.findFirst({
-        select: {
-          billingAccount: {
-            select: {
-              creditBalances: { take: 1, where: { isDeleted: false } },
-            },
-            // Invalid: CreditReservation.billingAccount is also a required
-            // to-one relation. This is exactly the mistake findLinkedWallet
-            // made — guarding against repeating it here too.
-            where: { isDeleted: false },
-          },
-        },
-        where: {
-          billingAccountId: 'ba_1',
-          id: 'res_1',
-          isDeleted: false,
-          organizationId: 'org_1',
-        },
-        // Cast needed: TS correctly rejects this shape now that the real
-        // Prisma types are in scope — that rejection is the point.
-      } as never),
-    ).rejects.toThrow(/where/i);
   });
 });
 

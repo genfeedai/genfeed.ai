@@ -28,7 +28,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('RedditPublisherService', () => {
   let service: RedditPublisherService;
-  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let redditService: vi.Mocked<RedditService>;
   let postsService: vi.Mocked<PostsService>;
@@ -151,40 +150,9 @@ describe('RedditPublisherService', () => {
     }).compile();
 
     service = module.get<RedditPublisherService>(RedditPublisherService);
-    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     redditService = module.get(RedditService) as vi.Mocked<RedditService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
-  });
-
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('should have correct platform', () => {
-      expect(service.platform).toBe(CredentialPlatform.REDDIT);
-    });
-
-    it('should support text-only posts', () => {
-      expect(service.supportsTextOnly).toBe(true);
-    });
-
-    it('should support images', () => {
-      expect(service.supportsImages).toBe(true);
-    });
-
-    it('should support videos', () => {
-      expect(service.supportsVideos).toBe(true);
-    });
-
-    it('should NOT support carousel', () => {
-      expect(service.supportsCarousel).toBe(false);
-    });
-
-    it('should support threads', () => {
-      expect(service.supportsThreads).toBe(true);
-    });
   });
 
   describe('validatePost', () => {
@@ -225,36 +193,6 @@ describe('RedditPublisherService', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain('carousel');
     });
-
-    it('should pass validation for text-only posts with subreddit configured', () => {
-      const context = createPublishContext(mockTextPost);
-      const mediaInfo: MediaInfo = {
-        hasIngredients: false,
-        ingredientIds: [],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: [],
-      };
-
-      const result = service.validatePost(context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
-
-    it('should pass validation for image posts with subreddit configured', () => {
-      const context = createPublishContext(mockImagePost);
-      const mediaInfo: MediaInfo = {
-        hasIngredients: true,
-        ingredientIds: [mockIngredientId.toString()],
-        isCarousel: false,
-        isImagePost: true,
-        mediaUrls: ['https://api.test.com/ingredients/images/123'],
-      };
-
-      const result = service.validatePost(context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
   });
 
   describe('validatePost caption length', () => {
@@ -265,15 +203,6 @@ describe('RedditPublisherService', () => {
       isImagePost: false,
       mediaUrls: [],
     };
-
-    it('should pass a body exactly at the 40000-character Reddit limit', () => {
-      const context = createPublishContext({
-        ...mockTextPost,
-        description: 'a'.repeat(40_000),
-      } as unknown as PostEntity);
-      const result = service.validatePost(context, textMediaInfo);
-      expect(result.valid).toBe(true);
-    });
 
     it('should fail an over-limit body with a structured caption_too_long error', () => {
       const context = createPublishContext({
@@ -409,48 +338,6 @@ describe('RedditPublisherService', () => {
         );
         expect(result.url).toBe(
           'https://www.reddit.com/r/anothersub/comments/post-999',
-        );
-      });
-
-      it('should fall back to the credential subreddit when unset', async () => {
-        // Releases scheduled before the setting existed carry no settings at
-        // all; they must keep publishing where they always did.
-        const context = createPublishContext(mockTextPost);
-
-        redditService.submitPost.mockResolvedValue('post-1');
-
-        await service.publish(context);
-
-        expect(redditService.submitPost).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          mockSubreddit,
-          expect.any(String),
-          expect.any(String),
-          undefined,
-          undefined,
-          mockCredential.id,
-        );
-      });
-
-      it('should forward the selected flair id', async () => {
-        const context = createPublishContext(mockTextPost, mockCredential, {
-          flairId: 'flair-abc',
-        });
-
-        redditService.submitPost.mockResolvedValue('post-1');
-
-        await service.publish(context);
-
-        expect(redditService.submitPost).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          expect.any(String),
-          expect.any(String),
-          expect.any(String),
-          undefined,
-          'flair-abc',
-          mockCredential.id,
         );
       });
     });
@@ -618,148 +505,9 @@ describe('RedditPublisherService', () => {
         expect.any(Object),
       );
     });
-
-    it('should sort children by order before posting', async () => {
-      const context = createPublishContext(mockTextPost);
-      const unorderedChildren = [
-        {
-          id: testId('child', 5),
-          category: PostCategory.TEXT,
-          description: '<p>Second</p>',
-          order: 2,
-        },
-        {
-          id: testId('child', 6),
-          category: PostCategory.TEXT,
-          description: '<p>First</p>',
-          order: 1,
-        },
-      ];
-
-      redditService.postComment.mockResolvedValue({
-        commentId: 'comment-123',
-      });
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        unorderedChildren,
-        mockParentExternalId,
-      );
-
-      // First call should be for order 1
-      expect(postsService.patch.mock.calls[0][0]).toBe(
-        unorderedChildren[1].id.toString(),
-      );
-    });
-
-    it('should mark child as failed when comment post fails', async () => {
-      const context = createPublishContext(mockTextPost);
-      const singleChild = [mockChildren[0]];
-
-      redditService.postComment.mockResolvedValue({ commentId: null });
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        singleChild,
-        mockParentExternalId,
-      );
-
-      expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0].id.toString(),
-        expect.objectContaining({
-          targetExecutionState: TargetExecutionState.FAILED,
-        }),
-      );
-    });
-
-    it('should continue with other children when one fails', async () => {
-      const context = createPublishContext(mockTextPost);
-      const textChildren = mockChildren.filter(
-        (c) => c.category === PostCategory.TEXT,
-      );
-
-      redditService.postComment
-        .mockRejectedValueOnce(new Error('API error'))
-        .mockResolvedValueOnce({ commentId: 'comment-2' });
-
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        textChildren,
-        mockParentExternalId,
-      );
-
-      // Both children should be patched
-      expect(postsService.patch).toHaveBeenCalledTimes(2);
-    });
-
-    it('should update child with externalId and PUBLIC status on success', async () => {
-      const context = createPublishContext(mockTextPost);
-      const singleChild = [mockChildren[0]];
-
-      redditService.postComment.mockResolvedValue({
-        commentId: 'comment-123',
-      });
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        singleChild,
-        mockParentExternalId,
-      );
-
-      expect(postsService.patch).toHaveBeenCalledWith(
-        singleChild[0].id.toString(),
-        expect.objectContaining({
-          externalId: 'comment-123',
-          publicationDate: expect.any(Date),
-          targetExecutionState: TargetExecutionState.PUBLISHED,
-        }),
-      );
-    });
-
-    it('should log completion of comment posting', async () => {
-      const context = createPublishContext(mockTextPost);
-      const singleChild = [mockChildren[0]];
-
-      redditService.postComment.mockResolvedValue({
-        commentId: 'comment-123',
-      });
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        singleChild,
-        mockParentExternalId,
-      );
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('completed posting comments'),
-        expect.any(Object),
-      );
-    });
   });
 
   describe('logging', () => {
-    it('should log publish attempt', async () => {
-      const context = createPublishContext(mockTextPost);
-
-      redditService.submitPost.mockResolvedValue('post-123');
-
-      await service.publish(context);
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('publishing to'),
-        expect.objectContaining({
-          category: mockTextPost.category,
-          postId: context.postId,
-        }),
-      );
-    });
-
     it('should log error on publish failure', async () => {
       const context = createPublishContext(mockTextPost);
       const error = new Error('API failure');

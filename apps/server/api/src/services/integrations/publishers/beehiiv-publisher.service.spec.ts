@@ -82,10 +82,6 @@ describe('BeehiivPublisherService', () => {
     service = module.get<BeehiivPublisherService>(BeehiivPublisherService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should have platform set to BEEHIIV', () => {
     expect(service.platform).toBe(CredentialPlatform.BEEHIIV);
   });

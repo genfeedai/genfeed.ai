@@ -39,10 +39,6 @@ describe('AvatarVideoController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('createAvatarVideo', () => {
     it('delegates avatar generation and returns the created ingredient', async () => {
       mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({

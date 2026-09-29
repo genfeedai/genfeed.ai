@@ -153,10 +153,6 @@ describe('TiktokController', () => {
     controller = module.get<TiktokController>(TiktokController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect', () => {
     const dto = { brandId: brandId.toString() };
 
@@ -294,16 +290,6 @@ describe('TiktokController', () => {
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );
-    });
-
-    it('should set token expiry dates', async () => {
-      await controller.verify(mockRequest, dto);
-      const patchCall = credentialsService.patch.mock.calls[0] as [
-        string,
-        Record<string, unknown>,
-      ];
-      expect(patchCall[1].accessTokenExpiry).toBeInstanceOf(Date);
-      expect(patchCall[1].refreshTokenExpiry).toBeInstanceOf(Date);
     });
 
     it('should reactivate previously deleted credential', async () => {

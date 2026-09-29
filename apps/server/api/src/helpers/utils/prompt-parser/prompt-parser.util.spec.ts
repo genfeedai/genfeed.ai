@@ -57,18 +57,6 @@ describe('PromptParser', () => {
       ).toThrow('Invalid prompt category: invalid-type');
     });
 
-    it('should parse prompt without account', () => {
-      const result = PromptParser.parsePrompt(configService, {
-        brand: null,
-        category: 'models-prompt-image',
-        originalPrompt: 'Test prompt',
-      });
-
-      expect(result.promptObject).toEqual({
-        prompt: 'Test prompt',
-      });
-    });
-
     it('should handle account with missing optional fields', () => {
       const minimalAccount = {
         label: 'Test Brand',

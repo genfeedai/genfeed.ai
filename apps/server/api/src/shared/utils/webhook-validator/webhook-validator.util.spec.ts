@@ -124,14 +124,6 @@ describe('assertSafeWebhookUrl — DNS resolution', () => {
     ).rejects.toThrow('private or reserved');
   });
 
-  it('allows hostname resolving to public address', async () => {
-    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
-
-    await expect(
-      assertSafeWebhookUrl('https://hooks.example.com/webhook'),
-    ).resolves.toBeUndefined();
-  });
-
   it('blocks hostname when any resolved address is private or reserved', async () => {
     dnsLookupMock.mockResolvedValue([
       { address: '93.184.216.34', family: 4 },

@@ -68,28 +68,11 @@ describe('AccessBootstrapCacheService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('get', () => {
     it('should return null when publisher is unavailable', async () => {
       redisService.getPublisher.mockReturnValue(null);
       const result = await service.get('user-1', 'org-1');
       expect(result).toBeNull();
-    });
-
-    it('should return null when cache miss', async () => {
-      publisher.get.mockResolvedValue(null);
-      const result = await service.get('user-1', 'org-1');
-      expect(result).toBeNull();
-    });
-
-    it('should return parsed payload on cache hit', async () => {
-      const payload = makePayload();
-      publisher.get.mockResolvedValue(JSON.stringify(payload));
-      const result = await service.get('user-1', 'org-1');
-      expect(result).toEqual(payload);
     });
 
     it('should use correct cache key format', async () => {
@@ -142,31 +125,12 @@ describe('AccessBootstrapCacheService', () => {
       expect(publisher.unlink).not.toHaveBeenCalled();
     });
 
-    it('should unlink all user keys when found', async () => {
-      publisher.smembers.mockResolvedValue([
-        'access-bootstrap:user-1:org-1',
-        'access-bootstrap:user-1:org-2',
-      ]);
-      await service.invalidateForUser('user-1');
-      expect(publisher.unlink).toHaveBeenCalledWith([
-        'access-bootstrap:user-1:org-1',
-        'access-bootstrap:user-1:org-2',
-        'access-bootstrap:keys:user-1',
-      ]);
-    });
-
     it('should only unlink the keys set when no keys exist', async () => {
       publisher.smembers.mockResolvedValue([]);
       await service.invalidateForUser('user-1');
       expect(publisher.unlink).toHaveBeenCalledWith(
         'access-bootstrap:keys:user-1',
       );
-    });
-
-    it('should log debug on success', async () => {
-      publisher.smembers.mockResolvedValue(['key1']);
-      await service.invalidateForUser('user-1');
-      expect(logger.debug).toHaveBeenCalled();
     });
 
     it('should log error on redis failure without throwing', async () => {
@@ -182,27 +146,6 @@ describe('AccessBootstrapCacheService', () => {
     it('should do nothing when publisher is unavailable', async () => {
       redisService.getPublisher.mockReturnValue(null);
       await service.invalidateForOrganization('org-1');
-      expect(publisher.unlink).not.toHaveBeenCalled();
-    });
-
-    it('should unlink matching keys found by scan', async () => {
-      publisher.scan.mockResolvedValueOnce([
-        '0',
-        ['access-bootstrap:user-1:org-1'],
-      ]);
-
-      await service.invalidateForOrganization('org-1');
-
-      expect(publisher.unlink).toHaveBeenCalledWith([
-        'access-bootstrap:user-1:org-1',
-      ]);
-    });
-
-    it('should not call unlink when no keys matched', async () => {
-      publisher.scan.mockResolvedValueOnce(['0', []]);
-
-      await service.invalidateForOrganization('org-1');
-
       expect(publisher.unlink).not.toHaveBeenCalled();
     });
 

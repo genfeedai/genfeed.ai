@@ -60,10 +60,6 @@ describe('ClipResultsController', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a clip result with organization and user from metadata', async () => {
       const dto = {
@@ -102,19 +98,6 @@ describe('ClipResultsController', () => {
         100,
       );
       expect(service.findRecentByOrganization).not.toHaveBeenCalled();
-    });
-
-    it('should find by project when filter[project] query param is provided', async () => {
-      const docs = [{ id: 'cr-1' }];
-      service.findByProject.mockResolvedValue(docs);
-
-      await controller.findAll(mockReq, '', 'project-2', mockUser);
-
-      expect(service.findByProject).toHaveBeenCalledWith(
-        'project-2',
-        organizationId,
-        100,
-      );
     });
 
     it('should find all by organization when no project filter is given', async () => {

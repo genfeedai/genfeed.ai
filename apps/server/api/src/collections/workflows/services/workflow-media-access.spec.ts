@@ -71,19 +71,6 @@ describe('Workflow Library media access', () => {
       ]),
     ).resolves.toMatchObject({ id: 'video', storageKey: 'video.mp4' });
   });
-  it('rejects an empty draft that has no stored media', async () => {
-    const { helper } = setup({
-      id: 'video',
-      brandId: 'brand',
-      category: IngredientCategory.VIDEO,
-      status: IngredientStatus.DRAFT,
-    });
-    await expect(
-      helper.requireMediaAsset({ id: 'video' }, 'org', [
-        IngredientCategory.VIDEO,
-      ]),
-    ).rejects.toThrow('unavailable');
-  });
   it.each([
     null,
     {

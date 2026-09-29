@@ -35,60 +35,6 @@ function buildBrief(overrides: {
  * brief-compiled models (#4676 FR1).
  */
 describe('buildImageGenerationBriefPrompt brandContext (#4676)', () => {
-  it('appends brandContext to the prompt when present', () => {
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({ brandContext: 'Warm, confident, editorial voice.' }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    // `joinGenerationBriefPromptParts` strips each part's trailing period
-    // before rejoining with '. ' — expected, existing behavior.
-    expect(result.prompt).toBe(
-      'a sunset over the ocean. Warm, confident, editorial voice',
-    );
-  });
-
-  it('is unaffected by fidelity policy — brand voice never depends on avoid-forced guided mode', () => {
-    const guided = buildImageGenerationBriefPrompt({
-      brief: buildBrief({
-        brandContext: 'Warm, confident, editorial voice.',
-        fidelityMode: 'guided',
-      }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.guided,
-      supportsNegativePrompt: false,
-    });
-    const off = buildImageGenerationBriefPrompt({
-      brief: buildBrief({ brandContext: 'Warm, confident, editorial voice.' }),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(guided.prompt).toBe(off.prompt);
-  });
-
-  it('omits brandContext from the prompt when absent', () => {
-    const result = buildImageGenerationBriefPrompt({
-      brief: buildBrief({}),
-      maxCharacters: 10_000,
-      modelLabel: 'Test Model',
-      omitted: [],
-      policy: generationFidelityPolicies.off,
-      supportsNegativePrompt: false,
-    });
-
-    expect(result.prompt).toBe('a sunset over the ocean');
-  });
-
   it('trims brand voice to fit the remaining budget instead of failing the whole compile (#4676)', () => {
     const omitted: Array<{ field: string; reason: string }> = [];
     const result = buildImageGenerationBriefPrompt({

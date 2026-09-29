@@ -21,10 +21,6 @@ describe('WebSocketRoomUtil', () => {
   });
 
   describe('resolveRoom', () => {
-    it('should return userRoom when available', () => {
-      expect(resolveRoom('user:user_123', 'user_123')).toBe('user:user_123');
-    });
-
     it('should fall back to userId-based room', () => {
       expect(resolveRoom(undefined, 'user_123')).toBe('user:user_123');
     });

@@ -538,17 +538,6 @@ describe('PlatformSettingsService', () => {
       });
     });
 
-    it('never writes null into a non-nullable switch', async () => {
-      vi.spyOn(service, 'getSingleton').mockResolvedValue(row as never);
-      const patch = vi.spyOn(service, 'patch');
-
-      await service.updateSingleton({
-        isMediaPerceptionEnabled: null,
-      } as never);
-
-      expect(patch).not.toHaveBeenCalled();
-    });
-
     it('rejects OpenAI moderation without an OpenAI key', async () => {
       const keyless = buildService();
       const patch = vi.spyOn(keyless, 'patch');

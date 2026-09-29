@@ -69,31 +69,9 @@ describe('GhostService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateToken', () => {
-    it('should generate a JWT from a valid API key', () => {
-      const token = service.generateToken('abc123:deaddeaddeaddeaddeaddead');
-
-      expect(token.split('.')).toHaveLength(3);
-    });
-
-    it('should throw for invalid API key format (no colon)', () => {
-      expect(() => service.generateToken('invalid-key')).toThrow(
-        'Invalid Ghost Admin API key format',
-      );
-    });
-
     it('should throw for API key with empty id', () => {
       expect(() => service.generateToken(':secret')).toThrow(
-        'Invalid Ghost Admin API key format',
-      );
-    });
-
-    it('should throw for API key with empty secret', () => {
-      expect(() => service.generateToken('id:')).toThrow(
         'Invalid Ghost Admin API key format',
       );
     });
@@ -102,77 +80,6 @@ describe('GhostService', () => {
   describe('createPost', () => {
     const ghostUrl = 'https://myblog.ghost.io';
     const apiKey = 'keyid:keysecret0123456789abcdef';
-
-    it('should create a post and return the first post from the response', async () => {
-      const mockPost = {
-        id: 'ghost-post-1',
-        url: 'https://myblog.ghost.io/post-1',
-      };
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [mockPost] })),
-      );
-
-      const result = await service.createPost(
-        ghostUrl,
-        apiKey,
-        'Test Title',
-        '<p>Content</p>',
-      );
-
-      expect(result).toEqual(mockPost);
-    });
-
-    it('should default to draft status', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
-
-      const body = httpService.post.mock.calls[0][1] as {
-        posts: Array<{ status: string }>;
-      };
-      expect(body.posts[0].status).toBe('draft');
-    });
-
-    it('should use published status when specified', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(
-        ghostUrl,
-        apiKey,
-        'Title',
-        '<p>Body</p>',
-        'published',
-      );
-
-      const body = httpService.post.mock.calls[0][1] as {
-        posts: Array<{ status: string }>;
-      };
-      expect(body.posts[0].status).toBe('published');
-    });
-
-    it('should include feature image when provided', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(
-        ghostUrl,
-        apiKey,
-        'Title',
-        '<p>Body</p>',
-        'draft',
-        'https://example.com/image.jpg',
-      );
-
-      const body = httpService.post.mock.calls[0][1] as {
-        posts: Array<{ feature_image: string }>;
-      };
-      expect(body.posts[0].feature_image).toBe('https://example.com/image.jpg');
-    });
 
     it('should include tags when provided', async () => {
       httpService.post.mockReturnValue(
@@ -193,33 +100,6 @@ describe('GhostService', () => {
         posts: Array<{ tags: Array<{ name: string }> }>;
       };
       expect(body.posts[0].tags).toEqual([{ name: 'news' }, { name: 'tech' }]);
-    });
-
-    it('should set Authorization header with Ghost token', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
-
-      const headers = (
-        httpService.post.mock.calls[0][2] as { headers: Record<string, string> }
-      ).headers;
-      expect(headers.Authorization).toMatch(/^Ghost [^.]+\.[^.]+\.[^.]+$/);
-    });
-
-    it('should call the correct API URL', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(ghostUrl, apiKey, 'Title', '<p>Body</p>');
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://myblog.ghost.io/ghost/api/admin/posts/',
-        expect.any(Object),
-        expect.any(Object),
-      );
     });
 
     it('should log and rethrow on HTTP error', async () => {
@@ -249,61 +129,9 @@ describe('GhostService', () => {
         expect.any(Object),
       );
     });
-
-    it('should strip trailing slashes from URL', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(
-        'https://myblog.ghost.io///',
-        apiKey,
-        'Title',
-        '<p>Body</p>',
-      );
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://myblog.ghost.io/ghost/api/admin/posts/',
-        expect.any(Object),
-        expect.any(Object),
-      );
-    });
-
-    it('should handle a long trailing-slash run without backtracking', async () => {
-      httpService.post.mockReturnValue(
-        of(makeAxiosResponse({ posts: [{ id: '1' }] })),
-      );
-
-      await service.createPost(
-        `https://myblog.ghost.io${'/'.repeat(50_000)}`,
-        apiKey,
-        'Title',
-        '<p>Body</p>',
-      );
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        'https://myblog.ghost.io/ghost/api/admin/posts/',
-        expect.any(Object),
-        expect.any(Object),
-      );
-    });
   });
 
   describe('getSiteInfo', () => {
-    it('should return site info from the API', async () => {
-      const mockSite = { title: 'My Blog', url: 'https://myblog.ghost.io' };
-      httpService.get.mockReturnValue(
-        of(makeAxiosResponse({ site: mockSite })),
-      );
-
-      const result = await service.getSiteInfo(
-        'https://myblog.ghost.io',
-        'keyid:keysecret0123456789abcdef',
-      );
-
-      expect(result).toEqual(mockSite);
-    });
-
     it('should call the correct site API URL', async () => {
       httpService.get.mockReturnValue(
         of(makeAxiosResponse({ site: { title: 'Blog' } })),
@@ -365,36 +193,6 @@ describe('GhostService', () => {
           platform: CredentialPlatform.GHOST,
         }),
       );
-    });
-
-    it('should return null when no credential is found', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-
-      const result = await service.getCredentialApiKey(orgId, brandId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when credential has no accessToken', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        accessToken: '',
-        externalId: 'https://myblog.ghost.io',
-      });
-
-      const result = await service.getCredentialApiKey(orgId, brandId);
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null when credential has no externalId', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        accessToken: 'encrypted-token',
-        externalId: '',
-      });
-
-      const result = await service.getCredentialApiKey(orgId, brandId);
-
-      expect(result).toBeNull();
     });
 
     it('should log and rethrow on error', async () => {

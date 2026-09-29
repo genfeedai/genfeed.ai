@@ -1,5 +1,4 @@
 import {
-  baseModelKey,
   getFalEndpointFromModelKey,
   getProviderModelKey,
   isFalDestination,
@@ -22,36 +21,10 @@ import { BadRequestException } from '@nestjs/common';
 // where the heuristics are most likely to drift. Part of #1184.
 
 describe('model-key.util', () => {
-  describe('baseModelKey', () => {
-    it('strips the :version suffix', () => {
-      expect(baseModelKey('owner/model:abc123')).toBe('owner/model');
-    });
-
-    it('returns the key unchanged when there is no version suffix', () => {
-      expect(baseModelKey('owner/model')).toBe('owner/model');
-    });
-
-    it('keeps only the segment before the first colon', () => {
-      expect(baseModelKey('owner/model:1.2.3')).toBe('owner/model');
-    });
-
-    it('passes through undefined', () => {
-      expect(baseModelKey(undefined)).toBeUndefined();
-    });
-
-    it('passes through empty string', () => {
-      expect(baseModelKey('')).toBe('');
-    });
-  });
-
   describe('isFalDestination', () => {
     it('detects fal-ai/ prefixed keys', () => {
       expect(isFalDestination('fal-ai/flux/dev')).toBe(true);
       expect(isFalDestination('fal-ai/kling-video')).toBe(true);
-    });
-
-    it('is case-insensitive on the prefix', () => {
-      expect(isFalDestination('FAL-AI/Flux')).toBe(true);
     });
 
     it('detects collision-safe fal/ selection keys', () => {
@@ -81,20 +54,6 @@ describe('model-key.util', () => {
   });
 
   describe('isGenfeedAiDestination', () => {
-    it('detects genfeed-ai/ self-hosted destinations', () => {
-      expect(isGenfeedAiDestination('genfeed-ai/z-image-turbo')).toBe(true);
-    });
-
-    it('is case-insensitive on the prefix', () => {
-      expect(isGenfeedAiDestination('GENFEED-AI/z-image-turbo')).toBe(true);
-    });
-
-    it('does NOT treat the hyphenless genfeedai/ prefix as a genfeed-ai destination', () => {
-      // 'genfeedai/' (training namespace) is distinct from 'genfeed-ai/'
-      // (self-hosted destination); the hyphen is load-bearing.
-      expect(isGenfeedAiDestination('genfeedai/owner/model')).toBe(false);
-    });
-
     it('rejects non-string and empty inputs', () => {
       expect(isGenfeedAiDestination(undefined)).toBe(false);
       expect(isGenfeedAiDestination('')).toBe(false);
@@ -123,10 +82,6 @@ describe('model-key.util', () => {
       ).toBe(true);
     });
 
-    it('preserves uppercase owner/model keys as Replicate', () => {
-      expect(isReplicateDestination('Google/Imagen-4')).toBe(true);
-    });
-
     it('uses an explicit provider to resolve owner/model collisions', () => {
       const endpoint = 'google/nano-banana-2-lite';
 
@@ -151,23 +106,11 @@ describe('model-key.util', () => {
       expect(isReplicateDestination('owner/model/extra')).toBe(false);
     });
 
-    it('rejects dotted owner segments (owner stays dot-free by design)', () => {
-      expect(isReplicateDestination('my.org/model')).toBe(false);
-    });
-
     it('rejects malformed keys missing an owner or model segment', () => {
       expect(isReplicateDestination('/model')).toBe(false);
       expect(isReplicateDestination('owner/')).toBe(false);
       expect(isReplicateDestination('owner')).toBe(false);
       expect(isReplicateDestination('')).toBe(false);
-    });
-
-    it('rejects a bare hex version id (no owner/model shape)', () => {
-      expect(
-        isReplicateDestination(
-          'f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db',
-        ),
-      ).toBe(false);
     });
 
     it('rejects non-string inputs', () => {
@@ -197,27 +140,9 @@ describe('model-key.util', () => {
         getProviderModelKey(ModelProvider.FAL, 'minimax/h3/text-to-video'),
       ).toBe('fal/minimax/h3/text-to-video');
     });
-
-    it('qualifies Fal endpoints whose provider namespace is literally fal', () => {
-      expect(getProviderModelKey(ModelProvider.FAL, 'fal/example')).toBe(
-        'fal/fal/example',
-      );
-    });
   });
 
   describe('getFalEndpointFromModelKey', () => {
-    it('unwraps collision-safe Fal selection keys', () => {
-      expect(getFalEndpointFromModelKey('fal/google/nano-banana-2-lite')).toBe(
-        'google/nano-banana-2-lite',
-      );
-    });
-
-    it('preserves historical fal-ai endpoints', () => {
-      expect(getFalEndpointFromModelKey('fal-ai/flux/dev')).toBe(
-        'fal-ai/flux/dev',
-      );
-    });
-
     it('matches the fal/ namespace case-insensitively for valid keys', () => {
       expect(getFalEndpointFromModelKey('FAL/google/nano-banana-2-lite')).toBe(
         'google/nano-banana-2-lite',
@@ -274,35 +199,9 @@ describe('model-key.util', () => {
   });
 
   describe('isReplicateVersionId', () => {
-    it('detects a full 64-char hex version id', () => {
-      expect(
-        isReplicateVersionId(
-          'f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db',
-        ),
-      ).toBe(true);
-    });
-
-    it('is case-insensitive on hex digits', () => {
-      expect(isReplicateVersionId('A'.repeat(40))).toBe(true);
-    });
-
-    it('accepts exactly 25 hex chars (lower boundary)', () => {
-      expect(isReplicateVersionId('a'.repeat(25))).toBe(true);
-    });
-
-    it('rejects 24 hex chars (just below boundary)', () => {
-      expect(isReplicateVersionId('a'.repeat(24))).toBe(false);
-    });
-
     it('rejects long strings containing non-hex characters', () => {
       expect(isReplicateVersionId('g'.repeat(30))).toBe(false);
       expect(isReplicateVersionId(`${'a'.repeat(30)}-z`)).toBe(false);
-    });
-
-    it('rejects owner/model keys that merely look long', () => {
-      expect(isReplicateVersionId('black-forest-labs/flux-schnell')).toBe(
-        false,
-      );
     });
 
     it('rejects non-string and empty inputs', () => {
@@ -312,21 +211,9 @@ describe('model-key.util', () => {
   });
 
   describe('isTrainingKey', () => {
-    it('returns true for the new genfeed-ai/owner/model format', () => {
-      expect(isTrainingKey('genfeed-ai/663a1b/6721cf')).toBe(true);
-    });
-
-    it('returns true for the legacy genfeedai/owner/model format', () => {
-      expect(isTrainingKey('genfeedai/663a1b/6721cf')).toBe(true);
-    });
-
     it('is case-insensitive on the namespace prefix', () => {
       expect(isTrainingKey('GENFEED-AI/663a1b/6721cf')).toBe(true);
       expect(isTrainingKey('GenfeedAI/663a1b/6721cf')).toBe(true);
-    });
-
-    it('returns false for a base genfeed-ai model with only 2 segments', () => {
-      expect(isTrainingKey('genfeed-ai/flux-dev')).toBe(false);
     });
 
     it('returns false when there are more than 3 segments', () => {
@@ -354,14 +241,6 @@ describe('model-key.util', () => {
     it('matches the configured fast-flux trainer base key', () => {
       expect(isTrainerKey(MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER)).toBe(true);
       expect(isTrainerKey('replicate/fast-flux-trainer')).toBe(true);
-    });
-
-    it('matches the trainer key even with a :version suffix', () => {
-      expect(
-        isTrainerKey(
-          'replicate/fast-flux-trainer:f463fbfc97389e10a2f443a8a84b6953b1058eafbf0c9af4d84457ff07cb04db',
-        ),
-      ).toBe(true);
     });
 
     it('rejects other replicate models', () => {

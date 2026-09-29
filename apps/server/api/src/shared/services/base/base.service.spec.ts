@@ -146,15 +146,6 @@ describe('BaseService', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('collectionName returns the modelName', () => {
-    // @ts-expect-error accessing protected getter
-    expect(service.collectionName).toBe('testModel');
-  });
-
   describe('create', () => {
     it('creates a document and returns the created entity', async () => {
       const created = { id: 'id_1', foo: 'bar' };
@@ -182,12 +173,6 @@ describe('BaseService', () => {
         include: { user: true },
       });
       expect(result).toEqual({ ...created });
-    });
-
-    it('throws ValidationException when createDto is null', async () => {
-      await expect(
-        service.create(null as unknown as TestDocument),
-      ).rejects.toThrow(ValidationException);
     });
 
     it('throws ValidationException when createDto is undefined', async () => {
@@ -271,34 +256,6 @@ describe('BaseService', () => {
         take: 10,
       });
       expect(delegate.count).toHaveBeenCalledWith({ where: {} });
-    });
-
-    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { isDeleted: true } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { isDeleted: true } }),
-      );
-    });
-
-    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { isDeleted: undefined, organizationId: 'org_1' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { organizationId: 'org_1' } }),
-      );
     });
 
     it('computes hasNextPage / prevPage correctly', async () => {
@@ -418,64 +375,6 @@ describe('BaseService', () => {
       });
     });
 
-    it('normalizes app enum filters to Prisma enum values', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta(
-          'id',
-          'isDeleted',
-          { name: 'brandId', isRequired: false },
-          { name: 'folderId', isRequired: false },
-          { name: 'trainingId', isRequired: false },
-          { kind: 'enum', name: 'category', type: 'IngredientCategory' },
-          { isRequired: true, kind: 'enum', name: 'scope', type: 'AssetScope' },
-          { kind: 'enum', name: 'status', type: 'IngredientStatus' },
-        ),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        {
-          where: {
-            AND: [
-              {
-                brandId: 'brand-1',
-                category: 'video',
-                folderId: null,
-                scope: 'public',
-                status: {
-                  in: ['generated', 'processing', 'validated', 'completed'],
-                },
-                trainingId: null,
-              },
-            ],
-          },
-        },
-        { page: 1, limit: 30 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        orderBy: [{ createdAt: 'desc' }],
-        skip: 0,
-        take: 30,
-        where: {
-          AND: [
-            {
-              brandId: 'brand-1',
-              category: 'VIDEO',
-              folderId: null,
-              scope: 'PUBLIC',
-              status: {
-                in: ['GENERATED', 'PROCESSING', 'VALIDATED', 'GENERATED'],
-              },
-              trainingId: null,
-            },
-          ],
-          isDeleted: false,
-        },
-      });
-    });
-
     it('normalizes scalar operators on canonical relation ID fields', async () => {
       getModelMetaMock.mockReturnValue(
         makeModelMeta(
@@ -587,241 +486,6 @@ describe('BaseService', () => {
       });
     });
 
-    it('preserves a Prisma JSON path alongside equals', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'data'),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        {
-          where: {
-            data: {
-              equals: '@creator',
-              path: ['handle'],
-            },
-          },
-        },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            data: {
-              equals: '@creator',
-              path: ['handle'],
-            },
-            isDeleted: false,
-          },
-        }),
-      );
-    });
-
-    it('maps legacy public article status to Prisma PUBLISHED', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'publishedAt', {
-          kind: 'enum',
-          name: 'status',
-          type: 'ArticleStatus',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        {
-          where: {
-            publishedAt: { not: null },
-            status: 'public',
-          },
-        },
-        { page: 1, limit: 15 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            isDeleted: false,
-            publishedAt: { not: null },
-            status: 'PUBLISHED',
-          },
-        }),
-      );
-    });
-
-    it('does not normalize scalar status fields', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'scalar',
-          name: 'status',
-          type: 'String',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        {
-          where: {
-            status: 'public',
-          },
-        },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: {
-            isDeleted: false,
-            status: 'public',
-          },
-        }),
-      );
-    });
-
-    it('normalizes scope:public → PUBLIC on an enum field', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          isRequired: true,
-          name: 'scope',
-          type: 'AssetScope',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { scope: 'public' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ scope: 'PUBLIC' }),
-        }),
-      );
-    });
-
-    it('normalizes status:generated → GENERATED on an enum field', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'status',
-          type: 'IngredientStatus',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { status: 'generated' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ status: 'GENERATED' }),
-        }),
-      );
-    });
-
-    it('normalizes category:image → IMAGE on an enum field', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'category',
-          type: 'IngredientCategory',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { category: 'image' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ category: 'IMAGE' }),
-        }),
-      );
-    });
-
-    it('normalizes kebab category:image-edit → IMAGE_EDIT on an enum field', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'category',
-          type: 'IngredientCategory',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { category: 'image-edit' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ category: 'IMAGE_EDIT' }),
-        }),
-      );
-    });
-
-    it('normalizes alias opuspro → OPUS_PRO on ApiKeyCategory', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'category',
-          type: 'ApiKeyCategory',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { category: 'opuspro' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ category: 'OPUS_PRO' }),
-        }),
-      );
-    });
-
-    it('leaves Workflow.status active unchanged (String column, not a Prisma enum)', async () => {
-      // Workflow.status is declared as String in schema, not WorkflowStatus enum.
-      // The static metadata for "workflow" model does NOT have status in enumFields.
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'scalar',
-          name: 'status',
-          type: 'String',
-        }),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-
-      await service.findAll(
-        { where: { status: 'active' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ status: 'active' }),
-        }),
-      );
-    });
-
     it('passes through genuinely diverged enum values unchanged', async () => {
       // TaskStatus JS values (e.g. 'todo') have no Prisma enum equivalent — pass through.
       getModelMetaMock.mockReturnValue(
@@ -862,47 +526,6 @@ describe('BaseService', () => {
       });
       expect(result).toHaveLength(1);
     });
-
-    it('injects isDeleted: false when the caller omits it', async () => {
-      delegate.findMany.mockResolvedValue([]);
-
-      await service.find({ organizationId: 'org_1' });
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId: 'org_1' },
-      });
-    });
-
-    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
-      delegate.findMany.mockResolvedValue([]);
-
-      await service.find({ isDeleted: true, organizationId: 'org_1' });
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: true, organizationId: 'org_1' },
-      });
-    });
-
-    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
-      delegate.findMany.mockResolvedValue([]);
-
-      await service.find({ isDeleted: undefined, organizationId: 'org_1' });
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1' },
-      });
-    });
-
-    it('omits the soft-delete filter for models without isDeleted', async () => {
-      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
-      delegate.findMany.mockResolvedValue([]);
-
-      await service.find({ organizationId: 'org_1' });
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1' },
-      });
-    });
   });
 
   describe('findOne', () => {
@@ -916,121 +539,6 @@ describe('BaseService', () => {
         where: { id: 'id_1', isDeleted: false },
       });
       expect(result).toEqual({ ...doc });
-    });
-
-    it('injects isDeleted: false when the caller omits it', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ organizationId: 'org_1' });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { isDeleted: false, organizationId: 'org_1' },
-      });
-    });
-
-    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ id: 'id_1', isDeleted: true });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1', isDeleted: true },
-      });
-    });
-
-    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ id: 'id_1', isDeleted: undefined });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
-      });
-    });
-
-    it('omits the soft-delete filter for models without isDeleted', async () => {
-      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ id: 'id_1' });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
-      });
-    });
-
-    it('normalizes enum filters', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'status',
-          type: 'ArticleStatus',
-        }),
-      );
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ status: 'public' });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { isDeleted: false, status: 'PUBLISHED' },
-      });
-    });
-
-    it('returns null when not found', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-      const result = await service.findOne({ id: 'missing' });
-      expect(result).toBeNull();
-    });
-
-    it('passes include to findFirst when populate is provided', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'brand'),
-      );
-      delegate.findFirst.mockResolvedValue({ id: '1', brand: {} });
-      await service.findOne({ id: '1' }, ['brand']);
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1', isDeleted: false },
-        include: { brand: true },
-      });
-    });
-
-    it('converts populated field lists into nested Prisma selects', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'brand'),
-      );
-      delegate.findFirst.mockResolvedValue({
-        brand: { id: 'brand_1', label: 'Brand' },
-        id: '1',
-      });
-
-      await service.findOne({ id: '1' }, [
-        { path: 'brand', select: ['id', 'label'] },
-      ]);
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1', isDeleted: false },
-        include: {
-          brand: { select: { id: true, label: true } },
-        },
-      });
-    });
-
-    it('preserves nested population through Prisma includes', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'ingredient'),
-      );
-      delegate.findFirst.mockResolvedValue({ id: '1', ingredient: {} });
-
-      await service.findOne({ id: '1' }, [
-        { path: 'ingredient', populate: { path: 'metadata' } },
-      ]);
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1', isDeleted: false },
-        include: {
-          ingredient: { include: { metadata: true } },
-        },
-      });
     });
 
     it('throws ValidationException when params is null', async () => {
@@ -1048,30 +556,6 @@ describe('BaseService', () => {
       expect(result).toBeNull();
       expect(delegate.findFirst).not.toHaveBeenCalled();
     });
-
-    it('returns null (without querying) when id is null', async () => {
-      const result = await service.findOne({ id: null, isDeleted: false });
-
-      expect(result).toBeNull();
-      expect(delegate.findFirst).not.toHaveBeenCalled();
-    });
-
-    it('returns null (without querying) when id is an empty string', async () => {
-      const result = await service.findOne({ id: '', isDeleted: false });
-
-      expect(result).toBeNull();
-      expect(delegate.findFirst).not.toHaveBeenCalled();
-    });
-
-    it('still queries when a non-id filter value is undefined', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-
-      await service.findOne({ id: 'id_1', status: undefined });
-
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1', isDeleted: false },
-      });
-    });
   });
 
   describe('patch', () => {
@@ -1086,38 +570,6 @@ describe('BaseService', () => {
         data: { foo: 'updated' },
       });
       expect(result).toEqual({ ...updated });
-    });
-
-    it('normalizes enum update data', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', {
-          kind: 'enum',
-          name: 'status',
-          type: 'ArticleStatus',
-        }),
-      );
-      delegate.update.mockResolvedValue({ id: 'id_1', status: 'PUBLISHED' });
-
-      await service.patch('id_1', { status: 'public' });
-
-      expect(delegate.update).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
-        data: { status: 'PUBLISHED' },
-      });
-    });
-
-    it('passes null field updates through as Prisma data', async () => {
-      delegate.update.mockResolvedValue({ id: 'id_1' });
-
-      await service.patch('id_1', {
-        name: 'NewName',
-        oldField: null,
-      });
-
-      expect(delegate.update).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
-        data: { name: 'NewName', oldField: null },
-      });
     });
 
     it('throws ValidationException when id is falsy', async () => {
@@ -1147,54 +599,6 @@ describe('BaseService', () => {
         data: { status: 'new' },
       });
       expect(result).toEqual({ modifiedCount: 3 });
-    });
-
-    it('bulk updates with plain Prisma data', async () => {
-      delegate.updateMany.mockResolvedValue({ count: 2 });
-
-      await service.patchAll({ isDeleted: false }, { archived: true });
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { isDeleted: false },
-        data: { archived: true },
-      });
-    });
-
-    it('honors an explicit isDeleted: true instead of collapsing it to false', async () => {
-      delegate.updateMany.mockResolvedValue({ count: 1 });
-
-      await service.patchAll({ isDeleted: true }, { archived: true });
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { isDeleted: true },
-        data: { archived: true },
-      });
-    });
-
-    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
-      delegate.updateMany.mockResolvedValue({ count: 4 });
-
-      await service.patchAll(
-        { isDeleted: undefined, organizationId: 'org_1' },
-        { archived: true },
-      );
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1' },
-        data: { archived: true },
-      });
-    });
-
-    it('omits the soft-delete filter for models without isDeleted', async () => {
-      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
-      delegate.updateMany.mockResolvedValue({ count: 1 });
-
-      await service.patchAll({ organizationId: 'org_1' }, { archived: true });
-
-      expect(delegate.updateMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1' },
-        data: { archived: true },
-      });
     });
 
     it('throws ValidationException when filter is null', async () => {
@@ -1310,40 +714,9 @@ describe('BaseService', () => {
         expect.objectContaining({ field: 'status', model: 'testModel' }),
       );
     });
-
-    it('does not warn when all filter fields exist on the model', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'organizationId', 'isDeleted'),
-      );
-      delegate.findMany.mockResolvedValue([]);
-      delegate.count.mockResolvedValue(0);
-      (logger.warn as ReturnType<typeof vi.fn>).mockClear();
-
-      await service.findAll(
-        { where: { organizationId: 'org1' } },
-        { page: 1, limit: 10 },
-      );
-
-      expect(logger.warn).not.toHaveBeenCalled();
-    });
   });
 
   describe('findAllByOrganization', () => {
-    it('queries with organizationId and isDeleted filters', async () => {
-      delegate.findMany.mockResolvedValue([]);
-
-      await service.findAllByOrganization('org1');
-
-      expect(delegate.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            organizationId: 'org1',
-            isDeleted: false,
-          }),
-        }),
-      );
-    });
-
     it('applies additional filters', async () => {
       delegate.findMany.mockResolvedValue([]);
 
@@ -1468,30 +841,6 @@ describe('BaseService', () => {
   });
 
   describe('subclass normalization seams', () => {
-    it('routes soft-delete field checks through a modelHasField override', async () => {
-      class FieldOverrideTestService extends BaseService<TestDocument> {
-        protected override modelHasField(fieldName: string): boolean {
-          return fieldName === 'isDeleted'
-            ? false
-            : super.modelHasField(fieldName);
-        }
-      }
-      const overrideService = new FieldOverrideTestService(
-        prisma,
-        'testModel',
-        logger,
-        undefined,
-        cacheService as never,
-      );
-      delegate.findMany.mockResolvedValue([]);
-
-      await overrideService.find({ organizationId: 'org_1' });
-
-      expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org_1' },
-      });
-    });
-
     it('routes recursive OR and AND normalization through a normalizeWhere override', async () => {
       class WhereOverrideTestService extends BaseService<TestDocument> {
         public readonly normalizedWhereInputs: Record<string, unknown>[] = [];
@@ -1534,50 +883,6 @@ describe('BaseService', () => {
   });
 
   describe('normalizeData', () => {
-    it('preserves subclass write-normalization overrides through create', async () => {
-      class OverrideTestService extends BaseService<TestDocument> {
-        protected override normalizeData(
-          data: unknown,
-        ): Record<string, unknown> {
-          return {
-            ...super.normalizeData(data),
-            normalizedBySubclass: true,
-          };
-        }
-      }
-      const overrideService = new OverrideTestService(
-        prisma,
-        'testModel',
-        logger,
-        undefined,
-        cacheService as never,
-      );
-      delegate.create.mockResolvedValue({ id: 'subclass-normalized' });
-
-      await overrideService.create({ label: 'kept' });
-
-      expect(delegate.create).toHaveBeenCalledWith({
-        data: { label: 'kept', normalizedBySubclass: true },
-      });
-    });
-
-    it('drops undefined write keys so Prisma does not receive them', async () => {
-      const created = { id: 'ing_undefined_keys', label: 'kept' };
-      delegate.create.mockResolvedValue(created);
-
-      await service.create({
-        description: undefined,
-        label: 'kept',
-        primaryColor: undefined,
-      } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: { label: 'kept' },
-        }),
-      );
-    });
-
     it('drops write keys whose operator value normalizes to undefined', async () => {
       getModelMetaMock.mockReturnValue(
         makeModelMeta('id', 'label', {

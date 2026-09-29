@@ -4,10 +4,6 @@ import { validate } from 'class-validator';
 import { CreateCheckoutSessionDto } from './create-subscription.dto';
 
 describe('CreateSubscriptionDto', () => {
-  it('should be defined', () => {
-    expect(CreateSubscriptionDto).toBeDefined();
-  });
-
   describe('validation', () => {
     it('should create an instance', () => {
       const dto = new CreateSubscriptionDto();

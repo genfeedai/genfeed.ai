@@ -102,10 +102,6 @@ describe('WorkflowCrudController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a workflow', async () => {
       const createDto: CreateWorkflowDto = {

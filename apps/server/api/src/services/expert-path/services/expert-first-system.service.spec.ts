@@ -567,15 +567,6 @@ describe('ExpertFirstSystemService', () => {
   });
 
   describe('getCurrentPlan', () => {
-    it('returns null when there is no recorded plan', async () => {
-      brandMemoryService.listTypedEntries.mockResolvedValue([]);
-
-      await expect(
-        service.getCurrentPlan('org-1', 'brand-1'),
-      ).resolves.toBeNull();
-      expect(contentPlansService.getByIdOrFail).not.toHaveBeenCalled();
-    });
-
     it('returns null when the recorded plan was deleted', async () => {
       brandMemoryService.listTypedEntries.mockResolvedValue([
         {

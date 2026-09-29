@@ -1,6 +1,5 @@
 import { LinksService } from '@api/collections/links/services/links.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LinkCategory } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,34 +22,6 @@ describe('LinksService', () => {
     } as unknown as LoggerService;
 
     service = new LinksService(prisma, logger);
-  });
-
-  it('passes canonical brandId through on create', async () => {
-    create.mockResolvedValue({
-      brandId: 'brand_1',
-      category: 'WEBSITE',
-      id: 'link_1',
-      isDeleted: false,
-      label: 'Website',
-      url: 'https://example.com',
-    });
-
-    await service.create({
-      brandId: 'brand_1',
-      category: LinkCategory.WEBSITE,
-      label: 'Website',
-      url: 'https://example.com',
-    });
-
-    expect(create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          brandId: 'brand_1',
-          label: 'Website',
-          url: 'https://example.com',
-        }),
-      }),
-    );
   });
 
   it('passes canonical brandId through on patch', async () => {

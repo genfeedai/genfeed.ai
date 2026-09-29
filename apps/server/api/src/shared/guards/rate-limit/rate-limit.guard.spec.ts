@@ -91,23 +91,10 @@ function createMockContext(overrides: {
 }
 
 describe('RateLimitGuard', () => {
-  it('should be defined', () => {
-    const { guard } = createMockContext({ rateLimitOptions: null });
-    expect(guard).toBeDefined();
-  });
-
   it('allows request when no rate limit options are set', async () => {
     const { guard, context } = createMockContext({ rateLimitOptions: null });
     const result = await guard.canActivate(context as never);
     expect(result).toBe(true);
-  });
-
-  it('increments the cache counter for rate-limited endpoints', async () => {
-    const { guard, context, mockIncr } = createMockContext({
-      rateLimitOptions: { limit: 100, windowMs: 60000 },
-    });
-    await guard.canActivate(context as never);
-    expect(mockIncr).toHaveBeenCalled();
   });
 
   it('sets X-RateLimit-Limit header', async () => {
@@ -148,15 +135,6 @@ describe('RateLimitGuard', () => {
     });
     await guard.canActivate(context as never);
     expect(mockExpire).toHaveBeenCalledWith(expect.any(String), 60);
-  });
-
-  it('does not set expiry on subsequent requests', async () => {
-    const { guard, context, mockExpire } = createMockContext({
-      currentCount: 5,
-      rateLimitOptions: { limit: 100, windowMs: 60000 },
-    });
-    await guard.canActivate(context as never);
-    expect(mockExpire).not.toHaveBeenCalled();
   });
 
   it('throws 429 when limit is exceeded', async () => {

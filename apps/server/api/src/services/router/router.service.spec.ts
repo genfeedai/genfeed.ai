@@ -109,12 +109,6 @@ describe('RouterService', () => {
     vi.clearAllMocks();
   });
 
-  describe('service definition', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-  });
-
   describe('selectModel', () => {
     describe('Image Generation', () => {
       it('should select fast model for speed-prioritized requests', async () => {

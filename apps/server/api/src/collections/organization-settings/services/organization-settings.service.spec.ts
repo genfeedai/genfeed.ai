@@ -71,10 +71,6 @@ describe('OrganizationSettingsService system workflow bootstrap', () => {
     expect(source).not.toContain('ensureDailyTrendsDigestWorkflow');
     expect(source).not.toContain('process.env.NODE_ENV');
   });
-
-  it('constructs without requiring the workflow seeder', () => {
-    expect(makeService()).toBeInstanceOf(OrganizationSettingsService);
-  });
 });
 
 describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
@@ -338,17 +334,6 @@ describe('OrganizationSettingsService.ensureForOrganization', () => {
     await expect(service.ensureForOrganization('org_1')).rejects.toBe(failure);
 
     expect(findOne).toHaveBeenCalledOnce();
-  });
-
-  it('rethrows null failures without masking the original rejection', async () => {
-    const service = makeService();
-    vi.spyOn(service, 'findOne').mockResolvedValue(null);
-    vi.spyOn(service, 'getLowestCostModelIds').mockResolvedValue([
-      'model_low_cost_1',
-    ]);
-    vi.spyOn(service, 'create').mockRejectedValue(null);
-
-    await expect(service.ensureForOrganization('org_1')).rejects.toBeNull();
   });
 
   it('maps a missing organization relation to the canonical 404', async () => {

@@ -4,17 +4,6 @@ import { testId } from '@helpers/testing/test-id.helper';
 import type { ArgumentMetadata } from '@nestjs/common';
 
 describe('UpdateIngredientDto', () => {
-  it('should be defined', () => {
-    expect(UpdateIngredientDto).toBeDefined();
-  });
-
-  describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new UpdateIngredientDto();
-      expect(dto).toBeInstanceOf(UpdateIngredientDto);
-    });
-  });
-
   describe('storage identity', () => {
     const pipe = new ValidationPipe();
     const metadata: ArgumentMetadata = {

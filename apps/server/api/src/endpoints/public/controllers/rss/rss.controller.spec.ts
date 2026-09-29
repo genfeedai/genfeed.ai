@@ -52,10 +52,6 @@ describe('PublicRSSController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('getGlobalFeed', () => {
     it('should return RSS feed string', async () => {
       rssService.generateGlobalFeed.mockResolvedValue(mockRssFeed);

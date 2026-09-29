@@ -7,7 +7,6 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
-import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -196,28 +195,6 @@ describe('ImageGenerationCreditsService', () => {
     });
   });
 
-  it('settles deferred credits after a successful authorization', async () => {
-    const request = { creditsConfig: { deferred: true } };
-
-    await service.ensureDeferredCredits(
-      { outputs: 2, height: 1080, width: 1920 } as never,
-      'fal/model',
-      'org-1',
-      request as never,
-    );
-
-    expect(request.creditsConfig).toEqual({
-      amount: 20,
-      deferred: false,
-      modelKey: 'fal/model',
-      pricingMetadata: {
-        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
-        pricingType: null,
-        providerCostUsd: null,
-      },
-    });
-  });
-
   it('reserves resolved generation credits before provider dispatch', async () => {
     const request = {
       body: { sourceActionId: 'image-action-1' },
@@ -371,30 +348,6 @@ describe('ImageGenerationCreditsService', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
-  });
-
-  it('stamps provider-cost pricing metadata for live-priced models', async () => {
-    modelsService.findOne.mockResolvedValue({
-      cost: 50,
-      pricingType: 'flat',
-      providerCostUsd: 0.15,
-    });
-    const request = { creditsConfig: { deferred: true } };
-
-    await service.ensureDeferredCredits(
-      { height: 1080, width: 1920 } as never,
-      'fal/model',
-      'org-1',
-      request as never,
-    );
-
-    expect(request.creditsConfig).toMatchObject({
-      pricingMetadata: {
-        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
-        pricingType: 'flat',
-        providerCostUsd: 0.15,
-      },
-    });
   });
 
   // #5294 — the credit decision and the provider dispatch key must be resolved

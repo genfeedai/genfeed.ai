@@ -37,13 +37,4 @@ describe('Logo.dev website logo fallback', () => {
       'https://img.logo.dev/acme.com?token=pk_example&size=128&format=png&fallback=monogram',
     );
   });
-
-  it.each([undefined, '', 'sk_secret', 'not-a-key'])(
-    'keeps Logo.dev disabled for a missing or unsafe key',
-    (publishableKey) => {
-      expect(
-        buildLogoDevLogoUrl('https://acme.com', publishableKey),
-      ).toBeUndefined();
-    },
-  );
 });

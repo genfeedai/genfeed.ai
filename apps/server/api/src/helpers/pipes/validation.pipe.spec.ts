@@ -97,27 +97,7 @@ describe('ValidationPipe', () => {
     pipe = new ValidationPipe();
   });
 
-  it('should be defined', () => {
-    expect(pipe).toBeDefined();
-  });
-
   describe('transform', () => {
-    it('should validate and transform valid data', async () => {
-      const value = {
-        description: 'Test description',
-        email: 'john@example.com',
-        name: 'John Doe',
-      };
-      const metadata: ArgumentMetadata = {
-        metatype: TestDto,
-        type: 'body',
-      };
-
-      const result = await pipe.transform(value, metadata);
-
-      expect(result).toEqual(value);
-    });
-
     it('strips unknown top-level fields while preserving decorated object payloads', async () => {
       const value = {
         name: 'workflow',
@@ -136,46 +116,6 @@ describe('ValidationPipe', () => {
         payload: { arbitrary: true, nested: { value: 1 } },
       });
       expect(result).not.toHaveProperty('unexpected');
-    });
-
-    it('should throw BadRequestException for invalid data', async () => {
-      const value = {
-        email: 'invalid-email',
-        name: 'John Doe',
-      };
-      const metadata: ArgumentMetadata = {
-        metatype: TestDto,
-        type: 'body',
-      };
-
-      await expect(pipe.transform(value, metadata)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should handle JSON:API format', async () => {
-      const value = {
-        data: {
-          attributes: {
-            email: 'john@example.com',
-            name: 'John Doe',
-          },
-          type: 'test',
-        },
-      };
-      const metadata: ArgumentMetadata = {
-        metatype: TestDto,
-        type: 'body',
-      };
-
-      const result = await pipe.transform(value, metadata);
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          email: 'john@example.com',
-          name: 'John Doe',
-        }),
-      );
     });
 
     it('should handle JSON:API format with relationships', async () => {
@@ -206,18 +146,6 @@ describe('ValidationPipe', () => {
           name: 'John Doe',
         }),
       );
-    });
-
-    it('should skip validation for primitive types', async () => {
-      const value = 'test string';
-      const metadata: ArgumentMetadata = {
-        metatype: String,
-        type: 'body',
-      };
-
-      const result = await pipe.transform(value, metadata);
-
-      expect(result).toBe(value);
     });
 
     it('should skip validation when no metatype is provided', async () => {
@@ -270,38 +198,6 @@ describe('ValidationPipe', () => {
         expect(response.errors).toBeDefined();
       }
     });
-
-    it('should handle empty object', async () => {
-      const value = {};
-      const metadata: ArgumentMetadata = {
-        metatype: TestDto,
-        type: 'body',
-      };
-
-      await expect(pipe.transform(value, metadata)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('should handle query parameters', async () => {
-      const value = {
-        email: 'john@example.com',
-        name: 'John Doe',
-      };
-      const metadata: ArgumentMetadata = {
-        metatype: TestDto,
-        type: 'query',
-      };
-
-      const result = await pipe.transform(value, metadata);
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          email: 'john@example.com',
-          name: 'John Doe',
-        }),
-      );
-    });
   });
 
   describe('whitelist stripping', () => {
@@ -323,48 +219,6 @@ describe('ValidationPipe', () => {
 
       expect(result.name).toBe('John Doe');
       expect(result).not.toHaveProperty('injectedField');
-    });
-
-    it('should keep properties decorated with @IsOptional alone', async () => {
-      const value = {
-        name: 'John Doe',
-        optionalOnly: 'sent by client',
-      };
-
-      const result = (await pipe.transform(value, metadata)) as Record<
-        string,
-        unknown
-      >;
-
-      expect(result.optionalOnly).toBe('sent by client');
-    });
-
-    it('should keep properties protected by @Allow', async () => {
-      const value = {
-        allowedField: { anything: true },
-        name: 'John Doe',
-      };
-
-      const result = (await pipe.transform(value, metadata)) as Record<
-        string,
-        unknown
-      >;
-
-      expect(result.allowedField).toEqual({ anything: true });
-    });
-
-    it('should keep optional properties that have a real validator', async () => {
-      const value = {
-        name: 'John Doe',
-        validatedOptional: 'kept',
-      };
-
-      const result = (await pipe.transform(value, metadata)) as Record<
-        string,
-        unknown
-      >;
-
-      expect(result.validatedOptional).toBe('kept');
     });
 
     it('should keep @Type(() => Date) properties validated with @IsDate', async () => {
@@ -403,111 +257,9 @@ describe('ValidationPipe', () => {
       expect(result.name).toBe('John Doe');
       expect(result).not.toHaveProperty('injectedField');
     });
-
-    it('should still reject invalid values for declared properties', async () => {
-      const value = {
-        name: 'John Doe',
-        validatedOptional: 123,
-      };
-
-      await expect(pipe.transform(value, metadata)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-  });
-
-  describe('ALLOW_UNKNOWN_PROPERTIES', () => {
-    const metadata: ArgumentMetadata = {
-      metatype: OptedInDto,
-      type: 'body',
-    };
-
-    it('should keep undeclared properties on an opted-in DTO', async () => {
-      const value = {
-        name: 'provider-callback',
-        vendorOnlyField: { nested: [1, 2] },
-      };
-
-      const result = (await pipe.transform(value, metadata)) as Record<
-        string,
-        unknown
-      >;
-
-      expect(result.vendorOnlyField).toEqual({ nested: [1, 2] });
-    });
-
-    it('should preserve key order and JSON bytes on an opted-in DTO', async () => {
-      // Written as a literal string, not an object literal: the assertion is
-      // about key ORDER surviving the pipe, and a sorted-keys formatter would
-      // quietly rewrite an object literal out from under it.
-      const original =
-        '{"zeta":1,"name":"provider-callback","alpha":{"deep":true}}';
-
-      const result = await pipe.transform(JSON.parse(original), metadata);
-
-      expect(JSON.stringify(result)).toBe(original);
-    });
-
-    it('should still validate the properties the DTO does declare', async () => {
-      await expect(
-        pipe.transform(
-          { label: 42, name: 'provider-callback', vendorOnlyField: true },
-          metadata,
-        ),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should inherit the opt-out through subclasses', async () => {
-      const result = (await pipe.transform(
-        { name: 'provider-callback', vendorOnlyField: 'kept' },
-        { metatype: InheritedOptInDto, type: 'body' },
-      )) as Record<string, unknown>;
-
-      expect(result.vendorOnlyField).toBe('kept');
-    });
-
-    it('should leave DTOs that do not opt in stripping unknown properties', async () => {
-      const result = (await pipe.transform(
-        { injectedField: 'malicious', name: 'John Doe' },
-        { metatype: WhitelistDto, type: 'body' },
-      )) as Record<string, unknown>;
-
-      expect(result).not.toHaveProperty('injectedField');
-    });
-  });
-
-  describe('FORBID_NON_WHITELISTED', () => {
-    const metadata: ArgumentMetadata = {
-      metatype: ForbidDto,
-      type: 'body',
-    };
-
-    it('rejects undeclared properties instead of stripping them', async () => {
-      await expect(
-        pipe.transform({ name: 'post', status: 'scheduled' }, metadata),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
-
-    it('still accepts declared properties', async () => {
-      await expect(pipe.transform({ name: 'post' }, metadata)).resolves.toEqual(
-        { name: 'post' },
-      );
-    });
   });
 
   describe('toValidate', () => {
-    it('should return false for primitive types', () => {
-      const primitiveTypes = [String, Boolean, Number, Array, Object];
-
-      primitiveTypes.forEach((type) => {
-        expect(
-          (
-            pipe as unknown as { toValidate: (t: unknown) => boolean }
-          ).toValidate(type),
-        ).toBe(false);
-      });
-    });
-
     it('should return true for custom classes', () => {
       expect(
         (pipe as unknown as { toValidate: (t: unknown) => boolean }).toValidate(

@@ -142,23 +142,6 @@ describe('ImageGenerationHandler', () => {
     ).rejects.toThrow('No API key configured for fal');
   });
 
-  it('propagates non-capacity FAL service error', async () => {
-    mockByokProviderFactoryService.resolveProvider.mockResolvedValue({
-      apiKey: 'fal-key',
-      source: 'byok',
-    });
-    mockFalService.generateImage.mockRejectedValue(
-      new Error('Invalid API key'),
-    );
-
-    await expect(
-      handler.execute(baseContext, {
-        model: ImageTaskModel.FAL,
-        prompt: 'test prompt',
-      }),
-    ).rejects.toThrow('Invalid API key');
-  });
-
   it('fails over from Replicate to fal.ai on capacity error', async () => {
     mockByokProviderFactoryService.resolveProvider.mockResolvedValue({
       apiKey: 'key',

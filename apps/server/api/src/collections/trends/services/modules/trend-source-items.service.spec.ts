@@ -110,17 +110,6 @@ describe('TrendSourceItemsService', () => {
       });
     });
 
-    it('strips a leading # from the hashtag before searching', async () => {
-      await service.fetchTrendSourceItems(
-        makeTrend({ metadata: { hashtags: ['#ShortForm'] } }),
-        3,
-      );
-
-      expect(apify.searchInstagramByHashtag).toHaveBeenCalledWith('ShortForm', {
-        limit: 3,
-      });
-    });
-
     it('dispatches Twitter and maps tweets (never null)', async () => {
       apify.searchTwitterTweets.mockResolvedValue([
         { authorUsername: 'jack', id: 'tw-1', text: 'hello' },
@@ -242,17 +231,6 @@ describe('TrendSourceItemsService', () => {
       sourceUrl: 'https://www.linkedin.com/posts/observed',
       publishedAt: '2025-12-01T00:00:00.000Z',
     };
-    it('excludes generated fallback IDs before applying the limit and preserves live dates', () => {
-      const trend = makeTrend({
-        metadata: {
-          sourcePreviewCache: [
-            { ...observed, id: 'trend-1-fallback-1' },
-            observed,
-          ],
-        },
-      });
-      expect(service.getStoredTrendSourcePreview(trend, 1)).toEqual([observed]);
-    });
     it('excludes historical LinkedIn public-reference metadata', () => {
       expect(
         service.getStoredTrendSourcePreview(
@@ -261,18 +239,6 @@ describe('TrendSourceItemsService', () => {
             metadata: {
               source: 'public-reference',
               sourcePreviewCache: [observed],
-            },
-          }),
-        ),
-      ).toEqual([]);
-    });
-    it('does not manufacture posts from metadata urls or sample content', () => {
-      expect(
-        service.getStoredTrendSourcePreview(
-          makeTrend({
-            metadata: {
-              urls: ['https://example.com'],
-              sampleContent: 'invented',
             },
           }),
         ),

@@ -216,10 +216,6 @@ describe('brand voice prompt evidence', () => {
     expect(prompt).toContain('Never rewrite, merge, or invent a post.');
   });
 
-  it('returns no evidence block for an empty corpus', () => {
-    expect(buildVoiceEvidencePrompt(buildVoiceCorpus([]), [])).toBeNull();
-  });
-
   it('resolves exemplar picks to stored text and drops invented lines', () => {
     const exemplars = resolveVerbatimExemplars(
       {

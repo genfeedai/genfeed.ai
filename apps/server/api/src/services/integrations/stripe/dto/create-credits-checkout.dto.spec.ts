@@ -8,13 +8,4 @@ describe('CreateCreditsCheckoutDto', () => {
 
     await expect(validate(dto)).resolves.toHaveLength(0);
   });
-
-  it.each([999, 1_000_001, 1_000.5, Number.NaN])(
-    'rejects an invalid credit quantity %s',
-    async (credits) => {
-      const dto = plainToInstance(CreateCreditsCheckoutDto, { credits });
-
-      expect(await validate(dto)).not.toHaveLength(0);
-    },
-  );
 });

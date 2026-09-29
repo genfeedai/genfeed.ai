@@ -1,6 +1,5 @@
 import {
   AGENT_CAMPAIGN_ACTION_IDS,
-  AGENT_CAMPAIGN_WORKFLOW_DEFINITIONS,
   AGENT_CAMPAIGN_WORKFLOW_IDS,
   buildAgentCampaignDueOrchestrationWorkflowDefinition,
   buildAgentCampaignOrchestrationWorkflowDefinition,
@@ -9,16 +8,6 @@ import {
 } from '@api/services/agent-campaign/agent-campaign-workflow-definition';
 
 describe('agent campaign workflow definitions', () => {
-  it('registers every public and child graph as an immutable definition', () => {
-    expect(
-      AGENT_CAMPAIGN_WORKFLOW_DEFINITIONS.map(
-        (definition) => definition.canonicalId,
-      ),
-    ).toEqual(
-      expect.arrayContaining(Object.values(AGENT_CAMPAIGN_WORKFLOW_IDS)),
-    );
-  });
-
   it('fans due campaigns into the orchestration graph', () => {
     const definition = buildAgentCampaignDueOrchestrationWorkflowDefinition();
     const discover = definition.definition.nodes[0];

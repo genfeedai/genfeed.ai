@@ -128,10 +128,6 @@ describe('VideosResizeController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // --- resizeVideo ---
   it('should resize video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);

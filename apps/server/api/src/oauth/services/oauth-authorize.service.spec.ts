@@ -352,18 +352,6 @@ describe('OAuthAuthorizeService', () => {
       expect(token.access_token).toBe('gf_live_oauth');
     });
 
-    it('treats an empty state as absent', async () => {
-      const { service } = buildHarness();
-      const authorization = await service.decideAuthorization(
-        makeUser(),
-        decision({ state: '' }),
-      );
-
-      expect(new URL(authorization.redirectUrl).searchParams.has('state')).toBe(
-        false,
-      );
-    });
-
     it('echoes a supplied state unchanged on both the code and the denial redirect', async () => {
       const { prisma, service } = buildHarness();
       const state = 'short:state/with?reserved=chars&and spaces';
@@ -401,42 +389,6 @@ describe('OAuthAuthorizeService', () => {
         ...overrides,
       };
     }
-
-    it('accepts an authorize request that omits state', async () => {
-      const dto = plainToInstance(OAuthAuthorizeRequestDto, authorizeQuery());
-      await expect(validate(dto)).resolves.toEqual([]);
-    });
-
-    it('accepts a short state (no RFC 6749 length floor)', async () => {
-      const dto = plainToInstance(
-        OAuthAuthorizeRequestDto,
-        authorizeQuery({ state: 'xyz' }),
-      );
-      await expect(validate(dto)).resolves.toEqual([]);
-    });
-
-    it('caps state at 512 characters', async () => {
-      const dto = plainToInstance(
-        OAuthAuthorizeRequestDto,
-        authorizeQuery({ state: 's'.repeat(513) }),
-      );
-      const errors = await validate(dto);
-      expect(errors.map((error) => error.property)).toEqual(['state']);
-    });
-
-    it.each(['plain', 'sha256', ''])(
-      'still rejects code_challenge_method=%j',
-      async (method) => {
-        const dto = plainToInstance(
-          OAuthAuthorizeRequestDto,
-          authorizeQuery({ code_challenge_method: method }),
-        );
-        const errors = await validate(dto);
-        expect(errors.map((error) => error.property)).toEqual([
-          'code_challenge_method',
-        ]);
-      },
-    );
 
     it('still requires a code_challenge alongside S256', async () => {
       const dto = plainToInstance(

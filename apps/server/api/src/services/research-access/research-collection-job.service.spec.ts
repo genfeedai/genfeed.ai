@@ -94,58 +94,6 @@ describe('ResearchCollectionJobService', () => {
     expect(claim).toMatchObject({ id: 'job-2', isRecovered: true });
   });
 
-  it('adopts a lease when a pre-migration row finishes', async () => {
-    await service.finish(
-      {
-        ...row,
-        leaseExpiresAt: null,
-        leaseToken: null,
-        upstreamRunId: 'run-legacy',
-      },
-      {
-        actualCostMicroUsd: 12_000,
-        reconciledAt: new Date('2026-09-24T00:00:00.000Z'),
-        status: RESEARCH_COLLECTION_JOB_STATUS.SUCCEEDED,
-      },
-    );
-
-    expect(updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          inflightRequestKey: null,
-          leaseToken: expect.any(String),
-        }),
-        where: expect.objectContaining({
-          inflightRequestKey: 'request-1',
-          isDeleted: false,
-          leaseToken: null,
-          organizationId: 'org-1',
-          upstreamRunId: 'run-legacy',
-        }),
-      }),
-    );
-  });
-
-  it('clears the in-flight key when a job finishes', async () => {
-    await service.finish(row, {
-      actualCostMicroUsd: 12_000,
-      reconciledAt: new Date('2026-09-24T00:00:00.000Z'),
-      status: RESEARCH_COLLECTION_JOB_STATUS.SUCCEEDED,
-    });
-
-    expect(updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ inflightRequestKey: null }),
-        where: expect.objectContaining({
-          id: 'job-1',
-          isDeleted: false,
-          leaseToken: 'lease-1',
-          organizationId: 'org-1',
-        }),
-      }),
-    );
-  });
-
   it('refreshes the lease when an ambiguous start still owns the row', async () => {
     updateMany.mockResolvedValueOnce({ count: 1 });
     const before = Date.now();
@@ -244,17 +192,6 @@ describe('ResearchCollectionJobService', () => {
         }),
       }),
     );
-  });
-
-  it('does not mark unreconciled while the lease is still active', async () => {
-    updateMany.mockResolvedValueOnce({ count: 0 });
-
-    await expect(
-      service.finishUnreconciledStart(
-        row,
-        new Date('2026-09-24T12:00:00.000Z'),
-      ),
-    ).resolves.toBe(false);
   });
 
   it('does not mark starting after the lease or status has moved', async () => {

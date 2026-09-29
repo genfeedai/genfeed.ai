@@ -89,10 +89,6 @@ describe('ContextsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a context base', async () => {
       const createDto: CreateContextDto = {
@@ -114,19 +110,6 @@ describe('ContextsController', () => {
   });
 
   describe('findAll', () => {
-    it('should return all contexts for organization', async () => {
-      const contexts = [mockContext];
-      mockContextsService.findAll.mockResolvedValue(contexts);
-
-      await controller.findAll(mockReq, mockUser);
-
-      expect(service.findAll).toHaveBeenCalledWith(mockUser.organizationId, {
-        category: undefined,
-        isActive: undefined,
-        search: undefined,
-      });
-    });
-
     it('should filter by category', async () => {
       mockContextsService.findAll.mockResolvedValue([mockContext]);
 

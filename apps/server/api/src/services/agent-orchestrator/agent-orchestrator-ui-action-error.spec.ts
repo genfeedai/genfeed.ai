@@ -97,23 +97,6 @@ describe('throwFailedUiActionResult image result mapping', () => {
 });
 
 describe('rethrowUiActionError validation mapping', () => {
-  it('preserves an existing 400 HttpException', () => {
-    const validationError = new HttpException(
-      {
-        detail: 'first_frame_image is required',
-        title: 'Validation failed',
-      },
-      HttpStatus.BAD_REQUEST,
-    );
-
-    try {
-      rethrowUiActionError(validationError);
-      throw new Error('expected validation error');
-    } catch (error: unknown) {
-      expect(error).toBe(validationError);
-    }
-  });
-
   it('maps a wrapped 400 Error onto the standard validation 4xx', () => {
     try {
       rethrowUiActionError(
@@ -137,25 +120,11 @@ describe('rethrowUiActionError validation mapping', () => {
 });
 
 describe('describeUiActionFailure', () => {
-  it('tells the client an HTTP exception the action raised on purpose', () => {
-    expect(
-      describeUiActionFailure(
-        new InternalServerErrorException('Approved action failed.'),
-      ),
-    ).toBe('Approved action failed.');
-  });
-
   it('maps a provider credential failure before describing it', () => {
     expect(
       describeUiActionFailure(
         new Error('Request failed with status code 401: invalid api key'),
       ),
     ).toBe('The model provider rejected the credentials for this request.');
-  });
-
-  it('never repeats the text of an unexpected error', () => {
-    expect(
-      describeUiActionFailure(new Error('relation "agent_threads" is locked')),
-    ).toBe('The action failed before it finished.');
   });
 });

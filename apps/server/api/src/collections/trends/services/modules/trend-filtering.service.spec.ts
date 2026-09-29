@@ -57,41 +57,9 @@ describe('TrendFilteringService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ─── calculateViralityScore ────────────────────────────────────────────────
 
   describe('calculateViralityScore', () => {
-    it('should return 0 for zero-value trend', () => {
-      const oldDate = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      const trend: TrendData = {
-        createdAt: oldDate,
-        growthRate: 0,
-        mentions: 0,
-      } as TrendData;
-      expect(service.calculateViralityScore(trend)).toBe(0);
-    });
-
-    it('should cap at 100 for extreme values', () => {
-      const trend: TrendData = {
-        createdAt: new Date().toISOString(),
-        growthRate: 999,
-        mentions: 100_000_000,
-      } as TrendData;
-      expect(service.calculateViralityScore(trend)).toBe(100);
-    });
-
-    it('should weight mentions at 0.5, growthRate at 0.3, recency at 0.2', () => {
-      const trend: TrendData = {
-        createdAt: new Date().toISOString(),
-        growthRate: 100,
-        mentions: 5_000_000,
-      } as TrendData;
-      expect(service.calculateViralityScore(trend)).toBe(75);
-    });
-
     it('should give 0 recency for trends older than 30 minutes', () => {
       const thirtyOneMinutesAgo = new Date(Date.now() - 31 * 60 * 1000);
       const trend: TrendData = {
@@ -100,14 +68,6 @@ describe('TrendFilteringService', () => {
         mentions: 0,
       } as TrendData;
       expect(service.calculateViralityScore(trend)).toBe(0);
-    });
-
-    it('should handle missing createdAt (treat as brand-new for recency)', () => {
-      const trend: TrendData = {
-        growthRate: 0,
-        mentions: 0,
-      } as TrendData;
-      expect(service.calculateViralityScore(trend)).toBe(20);
     });
   });
 

@@ -31,14 +31,6 @@ describe('finalizeDeferredTextCredits', () => {
     expect(request.creditsConfig).toBe(originalConfig);
   });
 
-  it('leaves requests without credit metadata unchanged', () => {
-    const request = {} as TestCreditsRequest;
-
-    finalizeDeferredTextCredits(request, 7);
-
-    expect(request.creditsConfig).toBeUndefined();
-  });
-
   it('settles deferred credits while preserving decorator metadata', () => {
     const request = {
       creditsConfig: {

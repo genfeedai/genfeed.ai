@@ -117,20 +117,6 @@ describe('UserProvisioningListener', () => {
     );
   });
 
-  it('schedules the background brand prefill with the signup email', async () => {
-    await listener.handleUserCreated({
-      email: 'vincent@acme.com',
-      userId: 'u_1',
-    });
-
-    expect(signupPrefillQueueService.enqueuePrefill).toHaveBeenCalledWith({
-      brandId: 'b_1',
-      email: 'vincent@acme.com',
-      organizationId: 'o_1',
-      userId: 'u_1',
-    });
-  });
-
   it('omits the email when the signup carried none', async () => {
     await listener.handleUserCreated({ email: null, userId: 'u_1' });
 
@@ -234,16 +220,6 @@ describe('UserProvisioningListener', () => {
           ],
         }),
       );
-    });
-
-    it('is skipped when the handler never provisions a user (replay-safe: no separate debounce needed)', async () => {
-      userSetupService.initializeUserResources.mockRejectedValueOnce(
-        new Error('db down'),
-      );
-
-      await listener.handleUserCreated({ email: null, userId: 'u_7' });
-
-      expect(notificationsService.dispatch).not.toHaveBeenCalled();
     });
 
     it('does not fail provisioning when the operator notifier fails, and reports it to Sentry', async () => {

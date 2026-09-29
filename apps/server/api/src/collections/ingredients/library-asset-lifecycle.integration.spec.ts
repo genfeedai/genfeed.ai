@@ -801,12 +801,6 @@ describe('Library asset lifecycle', () => {
       serializer: MusicSerializer,
     },
   ])('$category list/get/delete contract', (assetType) => {
-    it('returns a serialized empty collection for a fresh account', async () => {
-      const result = await assetType.list(emptyListQuery());
-      expectSerializedCollection(result, assetType.serializer);
-      expect(collectionIds(result)).toEqual([]);
-    });
-
     it('lists, fetches, and soft-deletes a tenant-owned asset through serializers', async () => {
       const asset = seedAsset({
         category: assetType.category,

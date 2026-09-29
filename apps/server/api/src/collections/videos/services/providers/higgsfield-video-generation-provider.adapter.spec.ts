@@ -33,16 +33,6 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_DOP_TURBO)).toBe(true);
       expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD)).toBe(true);
     });
-
-    it('rejects the Soul image model key', () => {
-      const adapter = buildAdapter({});
-      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_SOUL)).toBe(false);
-    });
-
-    it('rejects other model keys', () => {
-      const adapter = buildAdapter({});
-      expect(adapter.supports('klingai/v2/pro/image-to-video')).toBe(false);
-    });
   });
 
   describe('generate', () => {

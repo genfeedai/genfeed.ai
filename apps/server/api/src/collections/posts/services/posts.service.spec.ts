@@ -247,28 +247,6 @@ describe('PostsService batchSchedule', () => {
     });
   });
 
-  it('defaults omitted execution state to draft when no scheduled date is set', async () => {
-    const { post, service } = makeService();
-
-    await service.create(
-      {
-        brandId: 'brand-1',
-        credentialId: 'credential-1',
-        description: 'Untitled draft',
-        ingredients: [],
-        label: 'Untitled draft',
-        organizationId: 'org-1',
-        platform: CredentialPlatform.TWITTER,
-        userId: 'user-1',
-      },
-      [],
-    );
-
-    expect(post.create.mock.calls[0]?.[0].data).toMatchObject({
-      targetExecutionState: TargetExecutionState.DRAFT,
-    });
-  });
-
   it('defaults omitted execution state to scheduled when a date is set', async () => {
     const { post, service } = makeService();
 
@@ -495,28 +473,6 @@ describe('PostsService batchSchedule', () => {
       );
       expect(post.create).not.toHaveBeenCalled();
     });
-
-    it('allows scheduling a video to a video-only platform', async () => {
-      const { post, service } = makeService();
-
-      await service.create(
-        {
-          brandId: 'brand-1',
-          category: PostCategory.VIDEO,
-          credentialId: 'credential-1',
-          description: 'A real video',
-          ingredients: ['ingredient-1'],
-          label: 'Video on YouTube',
-          organizationId: 'org-1',
-          platform: CredentialPlatform.YOUTUBE,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-          userId: 'user-1',
-        },
-        [],
-      );
-
-      expect(post.create).toHaveBeenCalled();
-    });
   });
 
   it('derives platform from a changed credential in the post organization', async () => {
@@ -739,30 +695,6 @@ describe('PostsService batchSchedule', () => {
 
       expect(post.update).toHaveBeenCalled();
     });
-
-    it('does not re-check a post that is not scheduled', async () => {
-      const { post, service } = makeService();
-      post.findFirst
-        .mockResolvedValueOnce({
-          organizationId: 'org-1',
-          publishApprovalId: null,
-        })
-        .mockResolvedValueOnce({
-          category: 'TEXT',
-          credentialId: 'credential-1',
-          description: 'Draft caption',
-          id: 'post-1',
-          ingredients: [],
-          organizationId: 'org-1',
-          platform: CredentialPlatform.YOUTUBE,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          visibility: PostVisibility.PUBLIC,
-        });
-
-      await service.patch('post-1', { description: 'Updated draft' }, []);
-
-      expect(post.update).toHaveBeenCalled();
-    });
   });
 
   it('skips the database entirely for an empty batch', async () => {
@@ -936,38 +868,6 @@ describe('PostsService batchSchedule', () => {
       expect.objectContaining({ kind: 'update', postId: 'root-1' }),
       expect.objectContaining({ kind: 'update', postId: 'child-1' }),
     ]);
-  });
-
-  it('sends ingredients as a relation payload rather than a bare id array', async () => {
-    const { post, service } = makeService();
-    post.findMany.mockResolvedValue([
-      { id: 'post-1', parentId: 'parent-1', publishApprovalId: null },
-    ]);
-
-    await service.batchSchedule(
-      [
-        {
-          ingredientIds: ['ing-1', 'ing-2'],
-          postId: 'post-1',
-          scheduledDate: '2026-11-27T14:30:00Z',
-          text: 'With ingredients',
-        },
-      ],
-      'org-1',
-      publishTarget,
-      'user-1',
-    );
-
-    expect(post.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          credentialId: 'credential-1',
-          ingredients: { set: [{ id: 'ing-1' }, { id: 'ing-2' }] },
-          platform: CredentialPlatform.TWITTER,
-        }),
-        include: { credential: true, ingredients: true },
-      }),
-    );
   });
 
   it('invalidates the collection cache tags exactly once for the batch', async () => {

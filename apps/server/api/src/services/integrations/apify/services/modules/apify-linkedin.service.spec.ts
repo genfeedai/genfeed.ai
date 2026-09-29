@@ -51,10 +51,6 @@ describe('ApifyLinkedInService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('getLinkedInProfilePosts', () => {
     it('should return raw profile posts', async () => {
       baseService.runActor.mockResolvedValue([mockRawPost]);

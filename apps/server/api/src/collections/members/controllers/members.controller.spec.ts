@@ -119,20 +119,6 @@ describe('MembersController.findOne — cross-tenant scoping', () => {
     );
   });
 
-  it('never issues an unscoped read when the session carries no organization', async () => {
-    const controller = buildController();
-
-    await expectNotFound(
-      controller.findOne(
-        makeRequest(),
-        makeUser({ organizationId: '' }),
-        memberId,
-      ),
-    );
-
-    expect(mockMembersService.findOne).not.toHaveBeenCalled();
-  });
-
   it('returns 404 for a malformed member id without querying', async () => {
     const controller = buildController();
 

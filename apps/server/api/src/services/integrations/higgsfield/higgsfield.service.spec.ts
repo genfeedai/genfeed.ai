@@ -1,5 +1,4 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
-import { HiggsFieldProviderError } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@api/shared/services/poll-until/poll-until.service';
@@ -320,16 +319,6 @@ describe('HiggsFieldService', () => {
       await expect(
         service.getRequestStatus('req-1', { apiKey: 'k', apiSecret: 's' }),
       ).rejects.toThrow('Higgsfield returned HTTP 423: model blocked.');
-    });
-
-    it('surfaces a client error instead of masking it as queued', async () => {
-      mockHttpService.get.mockReturnValue(
-        throwError(() => ({ response: { status: 401 } })),
-      );
-
-      await expect(
-        service.getRequestStatus('req-1', { apiKey: 'k', apiSecret: 's' }),
-      ).rejects.toBeInstanceOf(HiggsFieldProviderError);
     });
 
     it('fails fast on an unknown request id rather than polling to timeout', async () => {

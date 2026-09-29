@@ -45,14 +45,4 @@ describe('PromptBuilderModule', () => {
     expect(PromptBuilderModule).toBeDefined();
     expect(module).toBeDefined();
   });
-
-  it('should export PromptBuilderService', () => {
-    const service = module.get<PromptBuilderService>(PromptBuilderService);
-    expect(service).toBeDefined();
-  });
-
-  it('should have ReplicatePromptBuilder as provider', () => {
-    const builder = module.get<ReplicatePromptBuilder>(ReplicatePromptBuilder);
-    expect(builder).toBeDefined();
-  });
 });

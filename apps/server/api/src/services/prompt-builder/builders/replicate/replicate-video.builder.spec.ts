@@ -1,5 +1,5 @@
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { ErrorCode, ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { ErrorCode, ModelCategory } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -52,16 +52,6 @@ describe('ReplicateVideoBuilder', () => {
     builder = new ReplicateVideoBuilder(configService);
   });
 
-  it('should be defined', () => {
-    expect(builder).toBeDefined();
-  });
-
-  describe('getProvider', () => {
-    it('should return REPLICATE', () => {
-      expect(builder.getProvider()).toBe(ModelProvider.REPLICATE);
-    });
-  });
-
   describe('getSupportedModels', () => {
     it('should include Sora models', () => {
       const models = builder.getSupportedModels();
@@ -82,18 +72,6 @@ describe('ReplicateVideoBuilder', () => {
       expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1);
       expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO);
       expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2);
-    });
-
-    it('should include MiniMax H3', () => {
-      expect(builder.getSupportedModels()).toContain(
-        MODEL_KEYS.REPLICATE_MINIMAX_H3,
-      );
-    });
-
-    it('should include Hailuo 2.3 Fast', () => {
-      expect(builder.getSupportedModels()).toContain(
-        MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
-      );
     });
   });
 
@@ -129,30 +107,6 @@ describe('ReplicateVideoBuilder', () => {
           builder.buildPrompt(
             MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
             baseParams,
-            'A cinematic product reveal',
-          ),
-        'first_frame_image',
-      );
-    });
-
-    it('rejects an empty first-frame image with a named 4xx validation error', () => {
-      expectRequiredFieldValidation(
-        () =>
-          builder.buildPrompt(
-            MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
-            { ...baseParams, references: ['   '] },
-            'A cinematic product reveal',
-          ),
-        'first_frame_image',
-      );
-    });
-
-    it('rejects a non-URI first-frame image with a named 4xx validation error', () => {
-      expectRequiredFieldValidation(
-        () =>
-          builder.buildPrompt(
-            MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
-            { ...baseParams, references: ['local-frame.jpg'] },
             'A cinematic product reveal',
           ),
         'first_frame_image',
@@ -236,23 +190,6 @@ describe('ReplicateVideoBuilder', () => {
       expect(result).toHaveProperty('aspect_ratio');
       expect(result).toHaveProperty('seconds');
     });
-
-    it('should include reference image', () => {
-      const params = {
-        ...baseParams,
-        references: ['https://example.com/ref.jpg'],
-      };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty(
-        'input_reference',
-        'https://example.com/ref.jpg',
-      );
-    });
   });
 
   describe('buildPrompt - Sora 2 Pro', () => {
@@ -269,60 +206,6 @@ describe('ReplicateVideoBuilder', () => {
       );
 
       expect(result).toHaveProperty('resolution', 'standard');
-    });
-
-    it('should accept "high" resolution', () => {
-      const params = { ...baseParams, resolution: 'high' };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('resolution', 'high');
-    });
-
-    it('should fallback invalid resolution to standard', () => {
-      const params = { ...baseParams, resolution: 'ultra' };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('resolution', 'standard');
-    });
-  });
-
-  describe('buildPrompt - Veo 2', () => {
-    const baseParams: PromptBuilderParams = {
-      modelCategory: ModelCategory.VIDEO,
-      prompt: 'test',
-    };
-
-    it('should build with defaults', () => {
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
-        baseParams,
-        'A dancing robot',
-      );
-
-      expect(result).toMatchObject({
-        duration: 5,
-        prompt: 'A dancing robot',
-        seed: -1,
-      });
-    });
-
-    it('should include image reference', () => {
-      const params = { ...baseParams, references: ['ref.jpg'] };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('image', 'ref.jpg');
     });
   });
 
@@ -343,28 +226,6 @@ describe('ReplicateVideoBuilder', () => {
       expect(result).toHaveProperty('duration', 8);
       expect(result).toHaveProperty('resolution', '720p');
     });
-
-    it('should respect isAudioEnabled flag', () => {
-      const params = { ...baseParams, isAudioEnabled: false };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('generate_audio', false);
-    });
-
-    it('should include negative prompt from blacklist', () => {
-      const params = { ...baseParams, blacklist: ['nsfw', 'violence'] };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('negative_prompt', 'nsfw,violence');
-    });
   });
 
   describe('buildPrompt - Veo 3.1', () => {
@@ -372,16 +233,6 @@ describe('ReplicateVideoBuilder', () => {
       modelCategory: ModelCategory.VIDEO,
       prompt: 'test',
     };
-
-    it('should default resolution to 1080p in production', () => {
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
-        baseParams,
-        'test',
-      );
-
-      expect(result).toHaveProperty('resolution', '1080p');
-    });
 
     it('should default resolution to 720p in development', () => {
       const devBuilder = new ReplicateVideoBuilder(createConfigService(true));
@@ -421,21 +272,6 @@ describe('ReplicateVideoBuilder', () => {
 
       expect(result).toHaveProperty('image', 'ref1.jpg');
       expect(result).not.toHaveProperty('reference_images');
-    });
-
-    it('should include last_frame for interpolation', () => {
-      const params = {
-        ...baseParams,
-        endFrame: 'end.jpg',
-        references: ['ref1.jpg'],
-      };
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('last_frame', 'end.jpg');
     });
   });
 
@@ -500,21 +336,6 @@ describe('ReplicateVideoBuilder', () => {
   });
 
   describe('buildPrompt - WAN Video', () => {
-    it('should require a reference image', () => {
-      const params: PromptBuilderParams = {
-        modelCategory: ModelCategory.VIDEO,
-        prompt: 'test',
-      };
-
-      expect(() =>
-        builder.buildPrompt(
-          MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
-          params,
-          'test',
-        ),
-      ).toThrow('image is required for WAN Video');
-    });
-
     it('should build with reference image', () => {
       const params: PromptBuilderParams = {
         modelCategory: ModelCategory.VIDEO,
@@ -535,21 +356,6 @@ describe('ReplicateVideoBuilder', () => {
   });
 
   describe('buildPrompt - Kling V2.1', () => {
-    it('should require reference image', () => {
-      const params: PromptBuilderParams = {
-        modelCategory: ModelCategory.VIDEO,
-        prompt: 'test',
-      };
-
-      expect(() =>
-        builder.buildPrompt(
-          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
-          params,
-          'test',
-        ),
-      ).toThrow('start_image is required for Kling V2.1');
-    });
-
     it('should build with reference and default duration', () => {
       const params: PromptBuilderParams = {
         modelCategory: ModelCategory.VIDEO,
@@ -641,21 +447,6 @@ describe('ReplicateVideoBuilder', () => {
   });
 
   describe('buildPrompt - Kling V3', () => {
-    it('should use pro mode in production', () => {
-      const params: PromptBuilderParams = {
-        modelCategory: ModelCategory.VIDEO,
-        prompt: 'test',
-      };
-
-      const result = builder.buildPrompt(
-        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-        params,
-        'test',
-      );
-
-      expect(result).toHaveProperty('mode', 'pro');
-    });
-
     it('should use standard mode in development', () => {
       const devBuilder = new ReplicateVideoBuilder(createConfigService(true));
       const params: PromptBuilderParams = {

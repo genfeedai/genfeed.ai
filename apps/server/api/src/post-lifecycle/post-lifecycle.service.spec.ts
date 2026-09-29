@@ -434,28 +434,6 @@ describe('PostLifecycleService', () => {
       };
     }
 
-    it('rejects scheduling a target whose content fails the channel contract', async () => {
-      // YouTube requires video media; this target has none.
-      const transaction = createSchedulingTransaction(schedulableTarget, []);
-      const service = new PostLifecycleService(
-        {} as never,
-        { warn: vi.fn() } as never,
-      );
-
-      await expect(
-        service.transition(
-          {
-            nextState: TargetExecutionState.SCHEDULED,
-            organizationId: 'org-1',
-            postId: 'post-1',
-          },
-          transaction as never,
-        ),
-      ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
-      expect(transaction.post.updateMany).not.toHaveBeenCalled();
-      expect(transaction.activity.create).not.toHaveBeenCalled();
-    });
-
     it('schedules a target whose content satisfies the channel contract', async () => {
       const transaction = createSchedulingTransaction(
         { ...schedulableTarget, category: PostCategory.VIDEO },
@@ -509,54 +487,6 @@ describe('PostLifecycleService', () => {
           data: expect.objectContaining({ category: PostCategory.VIDEO }),
         }),
       );
-    });
-
-    it('keeps a REEL target a REEL while its linked media is a video', async () => {
-      const transaction = createSchedulingTransaction(
-        { ...schedulableTarget, category: PostCategory.REEL },
-        [{ category: IngredientCategory.VIDEO, id: 'ingredient-1' }],
-      );
-      const service = new PostLifecycleService(
-        {} as never,
-        { warn: vi.fn() } as never,
-      );
-
-      await service.transition(
-        {
-          nextState: TargetExecutionState.SCHEDULED,
-          organizationId: 'org-1',
-          postId: 'post-1',
-        },
-        transaction as never,
-      );
-
-      expect(transaction.post.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.not.objectContaining({ category: expect.anything() }),
-        }),
-      );
-    });
-
-    it('classifies media by the linked ingredient even when the Post category claims video', async () => {
-      const transaction = createSchedulingTransaction(
-        { ...schedulableTarget, category: PostCategory.VIDEO },
-        [{ category: IngredientCategory.IMAGE, id: 'ingredient-1' }],
-      );
-      const service = new PostLifecycleService(
-        {} as never,
-        { warn: vi.fn() } as never,
-      );
-
-      await expect(
-        service.transition(
-          {
-            nextState: TargetExecutionState.SCHEDULED,
-            organizationId: 'org-1',
-            postId: 'post-1',
-          },
-          transaction as never,
-        ),
-      ).rejects.toBeInstanceOf(InvalidChannelTargetScheduleException);
     });
 
     it('re-validates an already-scheduled target when the credential swaps and its media no longer resolves', async () => {

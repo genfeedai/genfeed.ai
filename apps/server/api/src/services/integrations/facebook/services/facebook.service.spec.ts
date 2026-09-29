@@ -85,10 +85,6 @@ describe('FacebookService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateAuthUrl', () => {
     it('should generate Facebook OAuth URL', () => {
       const state = 'test-state-123';

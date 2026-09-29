@@ -19,13 +19,6 @@ describe('WebhooksModule', () => {
     expect(WebhooksModule).toBeDefined();
   });
 
-  it('does not mount HTTP controllers on the worker-safe core', () => {
-    const controllers =
-      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, WebhooksCoreModule) ??
-      [];
-    expect(controllers).toEqual([]);
-  });
-
   it('re-exports the media leaf from the hub for unmigrated callers', () => {
     const imports = moduleMetadata(WebhooksCoreModule, MODULE_METADATA.IMPORTS);
     const exports = moduleMetadata(WebhooksCoreModule, MODULE_METADATA.EXPORTS);

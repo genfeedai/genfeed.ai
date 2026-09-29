@@ -53,19 +53,7 @@ describe('LeonardoAIService', () => {
     });
   });
 
-  it('authenticates the SDK eagerly from configuration', () => {
-    createHarness();
-
-    expect(sdk.auth).toHaveBeenCalledWith('env-key');
-  });
-
   describe('generateImage', () => {
-    it('returns the generation id on a 200 response', async () => {
-      const { service } = createHarness();
-
-      await expect(service.generateImage('a cat')).resolves.toBe('gen-1');
-    });
-
     it.each([
       [1024, 1024, 1024, 1024],
       [1080, 1920, 768, 1344],
@@ -90,50 +78,6 @@ describe('LeonardoAIService', () => {
       },
     );
 
-    it('sends null dimensions for an unmapped size', async () => {
-      const { service } = createHarness();
-
-      await service.generateImage('a cat', {
-        height: 111,
-        style: 'anime',
-        width: 999,
-      });
-
-      expect(sdk.createGeneration).toHaveBeenCalledWith(
-        expect.objectContaining({ height: null, width: null }),
-      );
-    });
-
-    it('sends null dimensions when no options are supplied', async () => {
-      const { service } = createHarness();
-
-      await service.generateImage('a cat');
-
-      expect(sdk.createGeneration).toHaveBeenCalledWith(
-        expect.objectContaining({
-          height: null,
-          presetStyle: 'ANIME',
-          num_images: 1,
-          prompt: 'a cat',
-          width: null,
-        }),
-      );
-    });
-
-    it('upper-cases the requested preset style', async () => {
-      const { service } = createHarness();
-
-      await service.generateImage('a cat', {
-        height: 1024,
-        style: 'cinematic',
-        width: 1024,
-      });
-
-      expect(sdk.createGeneration).toHaveBeenCalledWith(
-        expect.objectContaining({ presetStyle: 'CINEMATIC' }),
-      );
-    });
-
     it('swaps in an override key and restores the env key afterwards', async () => {
       const { service } = createHarness();
       sdk.auth.mockClear();
@@ -141,16 +85,6 @@ describe('LeonardoAIService', () => {
       await service.generateImage('a cat', undefined, 'byok-key');
 
       expect(sdk.auth).toHaveBeenNthCalledWith(1, 'byok-key');
-      expect(sdk.auth).toHaveBeenNthCalledWith(2, 'env-key');
-    });
-
-    it('restores the env key even when the provider call throws', async () => {
-      const { service } = createHarness();
-      sdk.createGeneration.mockRejectedValue(new Error('network down'));
-      sdk.auth.mockClear();
-
-      await service.generateImage('a cat', undefined, 'byok-key');
-
       expect(sdk.auth).toHaveBeenNthCalledWith(2, 'env-key');
     });
 

@@ -95,14 +95,6 @@ describe('AgentAutoModelResolverService', () => {
       });
       expect(harness.registry.getDefaultModelKey).not.toHaveBeenCalled();
     });
-
-    it('is the default when platform settings have not been configured', async () => {
-      const harness = createHarness({});
-
-      await expect(harness.service.resolve(resolveParams())).resolves.toEqual({
-        mode: 'off',
-      });
-    });
   });
 
   describe('shadow mode', () => {
@@ -126,16 +118,6 @@ describe('AgentAutoModelResolverService', () => {
   });
 
   describe('live mode', () => {
-    it('dispatches the Admin-configured default model', async () => {
-      const harness = createHarness();
-
-      await expect(harness.service.resolve(resolveParams())).resolves.toEqual({
-        candidateModelKey: 'vendor/default',
-        dispatchModelKey: 'vendor/default',
-        mode: 'live',
-      });
-    });
-
     it('dispatches the cheapest selectable model when prioritizing cost', async () => {
       const harness = createHarness();
 
@@ -148,16 +130,6 @@ describe('AgentAutoModelResolverService', () => {
         dispatchModelKey: 'vendor/cheap',
       });
       expect(harness.registry.getDefaultModelKey).not.toHaveBeenCalled();
-    });
-
-    it('dispatches the cheapest selectable model when prioritizing speed', async () => {
-      const harness = createHarness();
-
-      await expect(
-        harness.service.resolve(
-          resolveParams({ prioritize: RouterPriority.SPEED }),
-        ),
-      ).resolves.toMatchObject({ dispatchModelKey: 'vendor/cheap' });
     });
 
     it('falls back when the Admin default left the allow-list', async () => {

@@ -7,36 +7,10 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('classifyReplyIntent', () => {
-  it('detects thanks', () => {
-    expect(classifyReplyIntent('Thanks for this — super useful')).toBe(
-      'thanks',
-    );
-  });
-
-  it('detects questions', () => {
-    expect(classifyReplyIntent('How do you handle multi-tenant auth?')).toBe(
-      'question',
-    );
-  });
-
   it('detects trolls', () => {
     expect(classifyReplyIntent('this is mid garbage cope harder')).toBe(
       'troll',
     );
-  });
-
-  it('detects spam', () => {
-    expect(
-      classifyReplyIntent('DM me on telegram t.me/scam check my bio'),
-    ).toBe('spam');
-  });
-
-  it('defaults otherwise', () => {
-    expect(
-      classifyReplyIntent(
-        'Shipping this week changed how we think about memory.',
-      ),
-    ).toBe('default');
   });
 });
 

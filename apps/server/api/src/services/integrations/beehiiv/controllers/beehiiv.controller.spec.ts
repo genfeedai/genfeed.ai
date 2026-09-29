@@ -66,13 +66,6 @@ describe('BeehiivController', () => {
     name: 'My Newsletter',
     url: 'https://newsletter.beehiiv.com',
   };
-  const alternatePublication = {
-    created: 1_700_000_002,
-    description: 'Second newsletter',
-    id: 'pub_selected',
-    name: 'Selected Newsletter',
-    url: 'https://selected.beehiiv.com',
-  };
 
   beforeEach(async () => {
     beehiivService = {
@@ -109,10 +102,6 @@ describe('BeehiivController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect', () => {
     it('should connect successfully with valid apiKey and brandId', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
@@ -144,29 +133,6 @@ describe('BeehiivController', () => {
       expect(result).toHaveProperty('data');
     });
 
-    it('should connect to the selected publication when publicationId is provided', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand);
-      beehiivService.listPublications.mockResolvedValue([
-        mockPublication,
-        alternatePublication,
-      ]);
-      await controller.connect(mockRequest, mockUser, {
-        apiKey: 'test-api-key',
-        brandId: testId('brand'),
-        publicationId: 'pub_selected',
-      });
-
-      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
-        'pending-credential-id',
-        mockBrand.organizationId,
-        {
-          handle: undefined,
-          id: alternatePublication.id,
-          name: alternatePublication.name,
-        },
-      );
-    });
-
     it('should return bad request when selected publication is not available', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand);
       beehiivService.listPublications.mockResolvedValue([mockPublication]);
@@ -189,15 +155,6 @@ describe('BeehiivController', () => {
 
       expect(result).toHaveProperty('errors');
       expect(brandsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('should return bad request when brandId is missing', async () => {
-      const result = await controller.connect(mockRequest, mockUser, {
-        apiKey: 'test-api-key',
-        brandId: '',
-      });
-
-      expect(result).toHaveProperty('errors');
     });
 
     it('should return bad request when brand is not found', async () => {

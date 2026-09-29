@@ -90,46 +90,7 @@ describe('PatternsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAll', () => {
-    it('should return patterns for organization', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({
-        docs: [mockPattern],
-      });
-
-      await controller.findAll(
-        mockRequest,
-        mockUser,
-        {} satisfies PatternsQueryDto,
-      );
-
-      expect(mockPatternStoreService.findAll).toHaveBeenCalled();
-    });
-
-    it('should filter by patternType=hook', async () => {
-      mockPatternStoreService.findAll.mockResolvedValue({
-        docs: [mockPattern],
-      });
-
-      await controller.findAll(mockRequest, mockUser, {
-        patternType: ContentPatternType.HOOK,
-      } satisfies PatternsQueryDto);
-
-      expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            AND: expect.arrayContaining([
-              { data: { equals: 'hook', path: ['patternType'] } },
-            ]),
-          }),
-        }),
-        expect.anything(),
-      );
-    });
-
     it('should filter by patternType=template', async () => {
       mockPatternStoreService.findAll.mockResolvedValue({ docs: [] });
 

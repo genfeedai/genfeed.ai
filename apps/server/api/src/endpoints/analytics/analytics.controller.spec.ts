@@ -130,10 +130,6 @@ describe('AnalyticsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('exportData', () => {
     it('should export CSV data', async () => {
       analyticsExportService.exportData.mockResolvedValueOnce('csv-data');

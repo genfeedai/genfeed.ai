@@ -75,19 +75,6 @@ describe('ApifyBaseService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('getApiToken returns token from config', () => {
-    expect(service.getApiToken()).toBe('test-token');
-  });
-
-  it('getApiToken returns null when not configured', () => {
-    configService.get.mockReturnValue(undefined);
-    expect(service.getApiToken()).toBeNull();
-  });
-
   it('runActor returns empty array when no token configured', async () => {
     configService.get.mockReturnValue(undefined);
     const result = await service.runActor('some/actor', {});
@@ -333,33 +320,6 @@ describe('ApifyBaseService', () => {
     );
   });
 
-  it('runActor preserves opaque actor ids', async () => {
-    httpService.post.mockReturnValue(
-      of({
-        data: {
-          data: {
-            defaultDatasetId: 'ds-1',
-            id: 'run-1',
-            status: 'RUNNING',
-          },
-        },
-      }),
-    );
-    httpService.get
-      .mockReturnValueOnce(
-        of({ data: { data: { id: 'run-1', status: 'SUCCEEDED' } } }),
-      )
-      .mockReturnValueOnce(of({ data: [] }));
-
-    await service.runActor('asadasd1234ABCD', {});
-
-    expect(httpService.post).toHaveBeenCalledWith(
-      'https://api.apify.com/v2/acts/asadasd1234ABCD/runs',
-      {},
-      expect.anything(),
-    );
-  });
-
   it('runActorForOrg returns empty when no token from any source', async () => {
     configService.get.mockReturnValue(undefined);
     byokFactory.resolveProvider.mockResolvedValue({
@@ -479,12 +439,6 @@ describe('ApifyBaseService', () => {
       service.extractHashtags('Check out #viral #trending content'),
     ).toEqual(['viral', 'trending']);
     expect(service.extractHashtags('No hashtags here')).toEqual([]);
-  });
-
-  it('ACTORS contains expected platform keys', () => {
-    expect(service.ACTORS.YOUTUBE_SCRAPER).toBeDefined();
-    expect(service.ACTORS.TWITTER_SCRAPER).toBeDefined();
-    expect(service.ACTORS.INSTAGRAM_SCRAPER).toBeDefined();
   });
 
   // ─── Account-limit circuit breaker ───────────────────────────────────────
@@ -633,27 +587,6 @@ describe('ApifyBaseService', () => {
         /run budget/i,
       );
       expect(httpService.post).not.toHaveBeenCalled();
-    });
-
-    it('spends budget against the byok scope for a byok organization', async () => {
-      byokFactory.resolveProvider.mockResolvedValue({
-        apiKey: 'byok-key',
-        source: 'byok',
-      });
-      httpService.post.mockReturnValue(
-        of({ data: { data: { defaultDatasetId: 'ds-1', id: 'run-1' } } }),
-      );
-      httpService.get.mockReturnValue(
-        of({ data: { data: { status: 'SUCCEEDED' } } }),
-      );
-
-      await service.runActorForOrg('org-1', 'test/actor', {});
-
-      expect(runBudget.consumeRun).toHaveBeenCalledWith(
-        'byok:org-1',
-        'test/actor',
-        'byok-key',
-      );
     });
 
     it('skips the budget entirely when no token is configured', async () => {

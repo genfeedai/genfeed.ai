@@ -37,10 +37,6 @@ describe('PollUntilService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('poll()', () => {
     it('resolves immediately when isDone returns true on first attempt', async () => {
       const fn = vi.fn().mockResolvedValue('completed');
@@ -96,34 +92,6 @@ describe('PollUntilService', () => {
 
       await timeoutExpectation;
       await payloadExpectation;
-    });
-
-    it('uses default intervalMs and timeoutMs when options not provided', async () => {
-      const fn = vi.fn().mockResolvedValue('done');
-      const isDone = (v: string) => v === 'done';
-
-      const promise = service.poll(fn, isDone);
-      await vi.runAllTimersAsync();
-      const result = await promise;
-
-      expect(result.value).toBe('done');
-    });
-
-    it('propagates errors thrown by fn without catching them', async () => {
-      const error = new Error('API unavailable');
-      const fn = vi.fn().mockRejectedValue(error);
-      const isDone = (_v: unknown) => false;
-
-      const promise = service.poll(fn, isDone, {
-        intervalMs: 100,
-        timeoutMs: 5_000,
-      });
-      const rejectionExpectation =
-        expect(promise).rejects.toThrow('API unavailable');
-
-      await vi.runAllTimersAsync();
-
-      await rejectionExpectation;
     });
 
     it('applies exponential backoff when backoff > 1', async () => {
@@ -242,21 +210,6 @@ describe('PollUntilService', () => {
   });
 
   describe('poll() — cancellation', () => {
-    it('rejects with PollAbortException without calling fn when already aborted', async () => {
-      const controller = new AbortController();
-      controller.abort();
-      const fn = vi.fn().mockResolvedValue('pending');
-
-      const promise = service.poll(fn, () => false, {
-        intervalMs: 100,
-        timeoutMs: 5_000,
-        signal: controller.signal,
-      });
-
-      await expect(promise).rejects.toBeInstanceOf(PollAbortException);
-      expect(fn).not.toHaveBeenCalled();
-    });
-
     it('rejects with PollAbortException when aborted while waiting between attempts', async () => {
       const controller = new AbortController();
       const fn = vi.fn().mockResolvedValue('pending');

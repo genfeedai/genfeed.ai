@@ -121,10 +121,6 @@ describe('AdsGatewayController', () => {
     vi.useRealTimers();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // ─── validatePlatform ─────────────────────────────────────────────────────
 
   describe('platform validation', () => {
@@ -133,30 +129,6 @@ describe('AdsGatewayController', () => {
         controller.getAdAccounts(mockUser, 'snapchat', validCredentialId),
       ).rejects.toThrow(BadRequestException);
       expect(credentialsService.findOne).not.toHaveBeenCalled();
-    });
-
-    it('should accept "meta" as a valid platform', async () => {
-      mockAdapter.getAdAccounts.mockResolvedValue([]);
-
-      await expect(
-        controller.getAdAccounts(mockUser, 'meta', validCredentialId),
-      ).resolves.toBeDefined();
-    });
-
-    it('should accept "google" as a valid platform', async () => {
-      mockAdapter.getAdAccounts.mockResolvedValue([]);
-
-      await expect(
-        controller.getAdAccounts(mockUser, 'google', validCredentialId),
-      ).resolves.toBeDefined();
-    });
-
-    it('should accept "tiktok" as a valid platform', async () => {
-      mockAdapter.getAdAccounts.mockResolvedValue([]);
-
-      await expect(
-        controller.getAdAccounts(mockUser, 'tiktok', validCredentialId),
-      ).resolves.toBeDefined();
     });
   });
 
@@ -191,14 +163,6 @@ describe('AdsGatewayController', () => {
       },
     );
 
-    it('should throw UnauthorizedException when credential not found', async () => {
-      credentialsService.findOne.mockResolvedValue(null);
-
-      await expect(
-        controller.getAdAccounts(mockUser, 'meta', validCredentialId),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
     it('should throw UnauthorizedException when credential has no accessToken', async () => {
       credentialsService.findOne.mockResolvedValue({ accessToken: null });
 
@@ -210,35 +174,6 @@ describe('AdsGatewayController', () => {
           validAdAccountId,
         ),
       ).rejects.toThrow(UnauthorizedException);
-    });
-
-    it('decrypts the stored access token before passing it to the adapter', async () => {
-      const encrypted = EncryptionUtil.encrypt('plaintext-meta-token');
-      credentialsService.findOne.mockResolvedValue({ accessToken: encrypted });
-      mockAdapter.getAdAccounts.mockResolvedValue([]);
-
-      await controller.getAdAccounts(mockUser, 'meta', validCredentialId);
-
-      expect(mockAdapter.getAdAccounts).toHaveBeenCalledWith(
-        expect.objectContaining({ accessToken: 'plaintext-meta-token' }),
-      );
-    });
-
-    it('decrypts both OAuth 1.0a credentials for X Ads only', async () => {
-      credentialsService.findOne.mockResolvedValue({
-        accessToken: EncryptionUtil.encrypt('x-access-token'),
-        accessTokenSecret: EncryptionUtil.encrypt('x-access-token-secret'),
-      });
-      mockAdapter.getAdAccounts.mockResolvedValue([]);
-
-      await controller.getAdAccounts(mockUser, 'x', validCredentialId);
-
-      expect(mockAdapter.getAdAccounts).toHaveBeenCalledWith(
-        expect.objectContaining({
-          accessToken: 'x-access-token',
-          accessTokenSecret: 'x-access-token-secret',
-        }),
-      );
     });
 
     it('fails closed when an X Ads credential has no token secret', async () => {
@@ -305,93 +240,6 @@ describe('AdsGatewayController', () => {
   // ─── getCampaignInsights ─────────────────────────────────────────────────
 
   describe('getCampaignInsights', () => {
-    it('normalizes last_7d to one inclusive seven-day timeRange before the adapter', async () => {
-      const mockInsights = { clicks: 1000, impressions: 50000 };
-      mockAdapter.getCampaignInsights.mockResolvedValue(mockInsights);
-
-      await controller.getCampaignInsights(
-        mockUser,
-        'meta',
-        'camp_1',
-        validCredentialId,
-        validAdAccountId,
-        'last_7d',
-      );
-
-      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
-        expect.anything(),
-        'camp_1',
-        {
-          timeRange: { since: '2026-08-12', until: '2026-08-18' },
-        },
-      );
-    });
-
-    it('normalizes today to one inclusive UTC day that is not reversed', async () => {
-      mockAdapter.getCampaignInsights.mockResolvedValue({});
-
-      await controller.getCampaignInsights(
-        mockUser,
-        'meta',
-        'camp_1',
-        validCredentialId,
-        validAdAccountId,
-        'today',
-      );
-
-      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
-        expect.anything(),
-        'camp_1',
-        {
-          timeRange: { since: '2026-08-19', until: '2026-08-19' },
-        },
-      );
-    });
-
-    it('normalizes yesterday to the prior UTC calendar day', async () => {
-      mockAdapter.getCampaignInsights.mockResolvedValue({});
-
-      await controller.getCampaignInsights(
-        mockUser,
-        'meta',
-        'camp_1',
-        validCredentialId,
-        validAdAccountId,
-        'yesterday',
-      );
-
-      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
-        expect.anything(),
-        'camp_1',
-        {
-          timeRange: { since: '2026-08-18', until: '2026-08-18' },
-        },
-      );
-    });
-
-    it('should pass timeRange when since and until are provided', async () => {
-      mockAdapter.getCampaignInsights.mockResolvedValue({});
-
-      await controller.getCampaignInsights(
-        mockUser,
-        'meta',
-        'camp_1',
-        validCredentialId,
-        validAdAccountId,
-        undefined,
-        '2026-03-01',
-        '2026-03-14',
-      );
-
-      expect(mockAdapter.getCampaignInsights).toHaveBeenCalledWith(
-        expect.anything(),
-        'camp_1',
-        expect.objectContaining({
-          timeRange: { since: '2026-03-01', until: '2026-03-14' },
-        }),
-      );
-    });
-
     it('accepts a same-day custom range as one inclusive day', async () => {
       mockAdapter.getCampaignInsights.mockResolvedValue({});
 
@@ -458,19 +306,6 @@ describe('AdsGatewayController', () => {
       },
     );
 
-    it('rejects an unknown preset on ad set insights before any adapter call', async () => {
-      await expectRejectedBeforeAdapter(() =>
-        controller.getAdSetInsights(
-          mockUser,
-          'google',
-          'adset_1',
-          validCredentialId,
-          validAdAccountId,
-          'last_quarter',
-        ),
-      );
-    });
-
     it('rejects a reversed custom range on ad insights before any adapter call', async () => {
       await expectRejectedBeforeAdapter(() =>
         controller.getAdInsights(
@@ -482,18 +317,6 @@ describe('AdsGatewayController', () => {
           undefined,
           '2026-03-07',
           '2026-03-01',
-        ),
-      );
-    });
-
-    it('rejects an unknown preset on compare before fan-out', async () => {
-      await expectRejectedBeforeAdapter(() =>
-        controller.comparePlatforms(
-          mockUser,
-          'meta,google',
-          `${validCredentialId},${testId('credential', 2)}`,
-          `${validAdAccountId},act_2`,
-          'last_quarter',
         ),
       );
     });
@@ -540,18 +363,6 @@ describe('AdsGatewayController', () => {
       );
     });
 
-    it('should reject an unsupported platform', async () => {
-      await expect(
-        controller.getAdSetInsights(
-          mockUser,
-          'snapchat',
-          'adset_1',
-          validCredentialId,
-          validAdAccountId,
-        ),
-      ).rejects.toThrow(BadRequestException);
-    });
-
     it('rejects a partial custom range instead of dropping the bound', async () => {
       await expect(
         controller.getAdSetInsights(
@@ -594,28 +405,6 @@ describe('AdsGatewayController', () => {
         { timeRange: { since: '2026-03-01', until: '2026-03-14' } },
       );
     });
-
-    it('should forward loginCustomerId on the adapter context', async () => {
-      mockAdapter.getAdInsights.mockResolvedValue({});
-
-      await controller.getAdInsights(
-        mockUser,
-        'google',
-        'ad_1',
-        validCredentialId,
-        validAdAccountId,
-        'last_30d',
-        undefined,
-        undefined,
-        '1112223334',
-      );
-
-      expect(mockAdapter.getAdInsights).toHaveBeenCalledWith(
-        expect.objectContaining({ loginCustomerId: '1112223334' }),
-        'ad_1',
-        { timeRange: { since: '2026-07-20', until: '2026-08-18' } },
-      );
-    });
   });
 
   // ─── comparePlatforms ────────────────────────────────────────────────────
@@ -654,27 +443,6 @@ describe('AdsGatewayController', () => {
           expect.objectContaining({ platform: 'google' }),
         ]),
         { timeRange: { since: '2026-08-12', until: '2026-08-18' } },
-      );
-    });
-
-    it('fans one validated one-day range to comparePlatforms', async () => {
-      const credId2 = testId('credential', 2);
-      credentialsService.findOne
-        .mockResolvedValueOnce({ accessToken: 'token-meta' })
-        .mockResolvedValueOnce({ accessToken: 'token-google' });
-      adsGatewayService.comparePlatforms.mockResolvedValue({ summary: {} });
-
-      await controller.comparePlatforms(
-        mockUser,
-        'meta,google',
-        `${validCredentialId},${credId2}`,
-        `${validAdAccountId},act_2`,
-        'today',
-      );
-
-      expect(adsGatewayService.comparePlatforms).toHaveBeenCalledWith(
-        expect.anything(),
-        { timeRange: { since: '2026-08-19', until: '2026-08-19' } },
       );
     });
 

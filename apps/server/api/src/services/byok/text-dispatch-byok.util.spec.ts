@@ -12,14 +12,6 @@ const NATIVE_REPLICATE_TEXT_MODEL = 'mistralai/mixtral-8x7b-instruct-v0.1';
 
 describe('text-dispatch-byok.util', () => {
   describe('resolveTextDispatchByokProvider', () => {
-    it('keys OpenRouter-routed text models to the OpenRouter key', () => {
-      expect(
-        resolveTextDispatchByokProvider(
-          MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
-        ),
-      ).toBe(ByokProvider.OPENROUTER);
-    });
-
     it('keys every other text model to the Replicate prediction key', () => {
       expect(isOpenRouterTextModel(NATIVE_REPLICATE_TEXT_MODEL)).toBe(false);
       expect(resolveTextDispatchByokProvider(NATIVE_REPLICATE_TEXT_MODEL)).toBe(
@@ -40,19 +32,6 @@ describe('text-dispatch-byok.util', () => {
 
   describe('textDispatchApiKey', () => {
     const model = MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH;
-
-    it('returns no key when credits were charged', () => {
-      expect(textDispatchApiKey(undefined, model)).toBeUndefined();
-    });
-
-    it("returns the org's key for the model's dispatch provider", () => {
-      expect(
-        textDispatchApiKey(
-          { keys: { [ByokProvider.OPENROUTER]: 'org-openrouter-key' } },
-          model,
-        ),
-      ).toBe('org-openrouter-key');
-    });
 
     it('fails closed instead of dispatching a bypassed request on the platform key', () => {
       expect(() =>

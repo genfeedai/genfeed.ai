@@ -72,10 +72,6 @@ describe('InstagramService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('sendCommentReplyDm', () => {
     it('sends a direct message to commenter', async () => {
       vi.spyOn(service, 'getValidCredential').mockResolvedValue({

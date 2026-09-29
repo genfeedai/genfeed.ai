@@ -97,10 +97,6 @@ describe('GoogleAdsService', () => {
     vi.restoreAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('listAccessibleCustomers', () => {
     it('should return customer list with details', async () => {
       // First call: listAccessibleCustomers endpoint

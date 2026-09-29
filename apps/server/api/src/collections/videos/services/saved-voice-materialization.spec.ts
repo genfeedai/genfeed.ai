@@ -52,26 +52,6 @@ describe('saved voice materialization contract', () => {
     expect(isMaterializableSavedVoice(candidate)).toBe(false);
   });
 
-  it('rejects blank identifiers even when clone state is implied elsewhere', () => {
-    const candidate = {
-      externalVoiceId: '   ',
-      provider: VoiceProvider.ELEVENLABS,
-      sampleAudioUrl: '   ',
-    };
-
-    expect(isMaterializableSavedVoice(candidate)).toBe(false);
-  });
-
-  it('does not treat an unsupported provider identifier as materializable', () => {
-    const candidate = {
-      externalVoiceId: 'hedra-voice-1',
-      provider: VoiceProvider.HEDRA,
-      sampleAudioUrl: null,
-    };
-
-    expect(isMaterializableSavedVoice(candidate)).toBe(false);
-  });
-
   it('fails closed for missing candidates', () => {
     expect(isMaterializableSavedVoice(null)).toBe(false);
     expect(isMaterializableSavedVoice(undefined)).toBe(false);

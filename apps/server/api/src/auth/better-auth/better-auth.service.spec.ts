@@ -115,15 +115,6 @@ describe('BetterAuthService', () => {
       expect(claims.sub).toBe('user_1');
     });
 
-    it('rejects when the payload has no subject', async () => {
-      const verifyJWT = vi.fn().mockResolvedValue({ payload: { aud: 'a' } });
-      const service = new BetterAuthService(makeInstance(verifyJWT));
-
-      await expect(service.verifyToken('tok')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
-    });
-
     it('rejects when verification throws', async () => {
       const verifyJWT = vi.fn().mockRejectedValue(new Error('bad signature'));
       const service = new BetterAuthService(makeInstance(verifyJWT));

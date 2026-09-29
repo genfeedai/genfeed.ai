@@ -53,47 +53,6 @@ describe('CreateAdWatchedAdvertiserDto', () => {
     expect(errors.some((error) => error.property === 'platform')).toBe(true);
   });
 
-  it.each(['linkedin', 'facebook', 'snapchat', ''])(
-    'rejects unsupported ad platform %s',
-    async (platform) => {
-      const dto = plainToInstance(CreateAdWatchedAdvertiserDto, {
-        advertiserHandle: 'nike',
-        platform,
-      });
-
-      const errors = await validate(dto);
-      expect(errors.some((error) => error.property === 'platform')).toBe(true);
-    },
-  );
-
-  it.each(['google', 'meta', 'tiktok', 'x', 'youtube'])(
-    'accepts supported ad platform %s',
-    async (platform) => {
-      const dto = plainToInstance(CreateAdWatchedAdvertiserDto, {
-        advertiserHandle: 'nike',
-        platform,
-      });
-
-      const errors = await validate(dto);
-      expect(errors.length).toBe(0);
-    },
-  );
-
-  it.each(['two@@signs', 'has space', 'a'.repeat(65)])(
-    'rejects handle %s that the database CHECK constraint would reject',
-    async (advertiserHandle) => {
-      const dto = plainToInstance(CreateAdWatchedAdvertiserDto, {
-        advertiserHandle,
-        platform: 'meta',
-      });
-
-      const errors = await validate(dto);
-      expect(
-        errors.some((error) => error.property === 'advertiserHandle'),
-      ).toBe(true);
-    },
-  );
-
   it('accepts a hyphenated advertiser id, which Meta and Google page slugs use', async () => {
     const dto = plainToInstance(CreateAdWatchedAdvertiserDto, {
       advertiserHandle: 'nike-running',

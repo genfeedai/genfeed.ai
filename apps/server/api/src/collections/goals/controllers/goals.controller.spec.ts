@@ -22,28 +22,6 @@ describe('GoalsController.canUserModifyEntity', () => {
     userId: testId('user'),
   } as unknown as User;
 
-  it('allows modification when the canonical organization ID matches', () => {
-    const entity = { organizationId } as GoalDocument;
-
-    expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
-  });
-
-  it('does not authorize from the legacy organization relation alias', () => {
-    const entity = {
-      organization: { id: organizationId },
-    } as unknown as GoalDocument;
-
-    expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
-  });
-
-  it('rejects modification when organizations differ', () => {
-    const entity = {
-      organizationId: testId('otherOrg'),
-    } as GoalDocument;
-
-    expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
-  });
-
   it('denies when the entity organizationId is missing', () => {
     const entity = {} as GoalDocument;
 

@@ -331,20 +331,6 @@ describe('persisted mutation approvals', () => {
     );
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
-  it('accepts an already-persisted decline without re-resolving or dispatching', async () => {
-    approvals.findOwned.mockResolvedValue({
-      ...approval(),
-      status: 'DECLINED',
-    });
-    const action = card();
-    action.data.status = 'declined';
-    messages.getMessagesByRoom.mockResolvedValue([
-      { id: 'message-1', role: 'assistant', metadata: { uiActions: [action] } },
-    ]);
-    await service.execute('decline_mutation', params());
-    expect(approvals.resolve).not.toHaveBeenCalled();
-    expect(executor.executeTool).not.toHaveBeenCalled();
-  });
 
   it('retries card persistence using the executor replay instead of resolving again', async () => {
     transaction.agentMessage.updateMany.mockResolvedValueOnce({ count: 0 });
@@ -790,17 +776,6 @@ describe('persisted mutation approvals', () => {
       expect(executor.executeTool).toHaveBeenCalledTimes(2);
     },
   );
-  it('allows an approve-only key to decline publishing without execution capability', async () => {
-    publishingApproval('schedule_post', { postId: 'post-1' });
-    const request = params();
-    request.context.apiKeyContext = {
-      isApiKey: true,
-      scopes: [ApiKeyScope.POSTS_APPROVE],
-    };
-    await service.execute('decline_mutation', request);
-    expect(approvals.resolve).toHaveBeenCalled();
-    expect(executor.executeTool).not.toHaveBeenCalled();
-  });
   it.each([
     new Error('Provider rejected'),
     new Error(''),

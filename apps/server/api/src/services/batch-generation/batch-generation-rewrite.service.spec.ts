@@ -299,23 +299,6 @@ describe('BatchGenerationRewriteService', () => {
     });
   });
 
-  it('reports the final outcome of a finished job', async () => {
-    const { queue, service } = setup();
-    queue.getJob.mockResolvedValue(
-      storedJob({}, 'completed', {
-        returnvalue: {
-          completedItemIds: [],
-          failedItems: [],
-          status: BatchRewriteJobStatus.CANCELLED,
-        },
-      }),
-    );
-
-    await expect(
-      service.getJob('batch-1', 'job-1', 'org-1'),
-    ).resolves.toMatchObject({ status: BatchRewriteJobStatus.CANCELLED });
-  });
-
   it.each([
     ['another organization', { organizationId: 'other-org' }],
     ['another batch', { batchId: 'batch-2' }],

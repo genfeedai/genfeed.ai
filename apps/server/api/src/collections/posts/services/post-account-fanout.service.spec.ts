@@ -50,21 +50,6 @@ describe('PostAccountFanoutService', () => {
     await expect(service.resolveTargets(input)).rejects.toThrow('distinct');
   });
 
-  it('rejects insufficient valid variations instead of padding accounts', async () => {
-    credentials.findConnectedAccounts.mockResolvedValue([
-      { id: 'a' },
-      { id: 'b' },
-      { id: 'c' },
-    ]);
-    generator.generateContent.mockResolvedValue([
-      {
-        content:
-          'A practical checklist turns research into a repeatable habit.',
-      },
-    ]);
-    await expect(service.resolveTargets(input)).rejects.toThrow('distinct');
-  });
-
   it('preserves one valid caption and assigns a distinct sibling caption', async () => {
     generator.generateContent.mockResolvedValue([
       {

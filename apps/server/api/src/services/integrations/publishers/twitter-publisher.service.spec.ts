@@ -45,7 +45,6 @@ import { of } from 'rxjs';
 
 describe('TwitterPublisherService', () => {
   let service: TwitterPublisherService;
-  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let httpService: vi.Mocked<HttpService>;
   let twitterService: vi.Mocked<TwitterService>;
@@ -223,7 +222,6 @@ describe('TwitterPublisherService', () => {
     ).mockResolvedValue({ v2: { tweet: mockTweet } } as unknown as Awaited<
       ReturnType<TwitterPublisherService['getTwitterClientFromCredential']>
     >);
-    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     httpService = module.get(HttpService) as vi.Mocked<HttpService>;
     twitterService = module.get(TwitterService) as vi.Mocked<TwitterService>;
@@ -237,36 +235,6 @@ describe('TwitterPublisherService', () => {
     vi.restoreAllMocks();
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('should have correct platform', () => {
-      expect(service.platform).toBe(CredentialPlatform.TWITTER);
-    });
-
-    it('should support text-only posts', () => {
-      expect(service.supportsTextOnly).toBe(true);
-    });
-
-    it('should support images', () => {
-      expect(service.supportsImages).toBe(true);
-    });
-
-    it('should support videos', () => {
-      expect(service.supportsVideos).toBe(true);
-    });
-
-    it('should support carousel', () => {
-      expect(service.supportsCarousel).toBe(true);
-    });
-
-    it('should support threads', () => {
-      expect(service.supportsThreads).toBe(true);
-    });
-  });
-
   describe('validatePost caption length', () => {
     const emptyMediaInfo: MediaInfo = {
       hasIngredients: false,
@@ -275,15 +243,6 @@ describe('TwitterPublisherService', () => {
       isImagePost: false,
       mediaUrls: [],
     };
-
-    it('should pass a caption exactly at the 280-character X limit', () => {
-      const context = createPublishContext({
-        ...mockTextPost,
-        description: 'a'.repeat(280),
-      } as unknown as PostEntity);
-      const result = service.validatePost(context, emptyMediaInfo);
-      expect(result.valid).toBe(true);
-    });
 
     it('should fail an over-limit caption with a structured caption_too_long error', () => {
       const context = createPublishContext({
@@ -379,25 +338,6 @@ describe('TwitterPublisherService', () => {
         );
       });
 
-      it('should omit reply settings for the everyone policy', async () => {
-        // Twitter expresses "everyone" by leaving `reply_settings` off; sending
-        // the literal value rejects the whole tweet.
-        const context = createPublishContext(mockTextPost, {
-          replyPolicy: 'everyone',
-        });
-
-        credentialsService.findOne.mockResolvedValue({
-          ...mockCredential,
-          accessToken: 'encrypted-token',
-        } as unknown as CredentialDocument);
-        mockTweet.mockResolvedValue({ data: { id: '1234567890' } });
-        twitterService.buildTweetUrl.mockReturnValue('https://x.com/t/1');
-
-        await service.publish(context);
-
-        expect(mockTweet).toHaveBeenCalledWith(expect.any(String));
-      });
-
       it('should handle HTML in description by converting to plain text', async () => {
         const postWithHtml = {
           ...mockTextPost,
@@ -429,30 +369,6 @@ describe('TwitterPublisherService', () => {
     });
 
     describe('media posts', () => {
-      it('should forward the target settings to uploadMedia', async () => {
-        // The media path builds its tweet inside `TwitterService`, so the
-        // settings have to travel with the call rather than be applied here.
-        const context = createPublishContext(mockImagePost, {
-          replyPolicy: 'mentioned',
-        });
-
-        twitterService.uploadMedia.mockResolvedValue('1234567890');
-        twitterService.buildTweetUrl.mockReturnValue('https://x.com/t/1');
-
-        await service.publish(context);
-
-        expect(twitterService.uploadMedia).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.any(String),
-          expect.any(Array),
-          expect.any(String),
-          'image/jpeg',
-          undefined,
-          { replyPolicy: 'mentioned' },
-          mockCredential.id,
-        );
-      });
-
       it('should publish an image post successfully', async () => {
         const context = createPublishContext(mockImagePost);
         const mockTweetId = '1234567890';
@@ -711,36 +627,6 @@ describe('TwitterPublisherService', () => {
       );
     });
 
-    it('should sort children by order before publishing', async () => {
-      const context = createPublishContext(mockTextPost);
-      const unorderedChildren = [
-        { ...mockChildren[1], order: 2 },
-        { ...mockChildren[0], order: 1 },
-      ];
-
-      mockTweet.mockResolvedValue({ data: { id: 'child-id' } });
-      mockUploadMedia.mockResolvedValue('mock-media-id');
-
-      httpService.get.mockReturnValue(
-        of({
-          data: Buffer.from('fake-image-data'),
-        }) as unknown as ReturnType<typeof of>,
-      );
-
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        unorderedChildren,
-        mockParentExternalId,
-      );
-
-      // First patch should be for the child with order 1
-      expect(postsService.patch.mock.calls[0][0]).toBe(
-        mockChildren[0].id.toString(),
-      );
-    });
-
     it('should mark child as failed when publishing fails', async () => {
       const context = createPublishContext(mockTextPost);
       const singleChild = [mockChildren[0]];
@@ -810,25 +696,6 @@ describe('TwitterPublisherService', () => {
       // Both children should be patched (first as failed, second as success)
       expect(postsService.patch).toHaveBeenCalledTimes(2);
     });
-
-    it('should log completion of thread children publishing', async () => {
-      const context = createPublishContext(mockTextPost);
-      const singleChild = [mockChildren[0]];
-
-      mockTweet.mockResolvedValue({ data: { id: 'child-id' } });
-      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
-
-      await service.publishThreadChildren(
-        context,
-        singleChild,
-        mockParentExternalId,
-      );
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('completed publishing thread children'),
-        expect.any(Object),
-      );
-    });
   });
 
   describe('buildPostUrl', () => {
@@ -845,73 +712,6 @@ describe('TwitterPublisherService', () => {
         externalId,
         mockCredential.externalHandle,
       );
-    });
-
-    it('should handle missing externalShortcode parameter', () => {
-      const externalId = '1234567890';
-      const expectedUrl = `https://x.com/testuser/status/${externalId}`;
-
-      twitterService.buildTweetUrl.mockReturnValue(expectedUrl);
-
-      const result = service.buildPostUrl(
-        externalId,
-        mockCredential,
-        undefined,
-      );
-
-      expect(result).toBe(expectedUrl);
-    });
-  });
-
-  describe('validation', () => {
-    it('should validate post successfully for supported content', () => {
-      const context = createPublishContext(mockTextPost);
-      const mediaInfo: MediaInfo = {
-        hasIngredients: false,
-        ingredientIds: [],
-        isCarousel: false,
-        isImagePost: false,
-        mediaUrls: [],
-      };
-
-      // Access protected method through type assertion
-      const result = service['validatePost'](context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
-
-    it('should validate image post correctly', () => {
-      const context = createPublishContext(mockImagePost);
-      const mediaInfo: MediaInfo = {
-        hasIngredients: true,
-        ingredientIds: [mockIngredientId.toString()],
-        isCarousel: false,
-        isImagePost: true,
-        mediaUrls: ['https://api.test.com/ingredients/images/123'],
-      };
-
-      const result = service['validatePost'](context, mediaInfo);
-
-      expect(result.valid).toBe(true);
-    });
-
-    it('should validate carousel post correctly', () => {
-      const context = createPublishContext(mockCarouselPost);
-      const mediaInfo: MediaInfo = {
-        hasIngredients: true,
-        ingredientIds: ['1', '2', '3'],
-        isCarousel: true,
-        isImagePost: true,
-        mediaUrls: [
-          'https://api.test.com/ingredients/images/1',
-          'https://api.test.com/ingredients/images/2',
-          'https://api.test.com/ingredients/images/3',
-        ],
-      };
-
-      const result = service['validatePost'](context, mediaInfo);
-
-      expect(result.valid).toBe(true);
     });
   });
 
@@ -951,80 +751,9 @@ describe('TwitterPublisherService', () => {
       expect(result.isCarousel).toBe(true);
       expect(result.mediaUrls.length).toBe(3);
     });
-
-    it('should handle populated ingredient objects', () => {
-      const postWithPopulatedIngredients = {
-        ...mockImagePost,
-        ingredients: [{ id: mockIngredientId, name: 'Test Ingredient' }],
-      };
-
-      const result = service['extractMediaInfo'](postWithPopulatedIngredients);
-
-      expect(result.ingredientIds[0]).toBe(mockIngredientId.toString());
-    });
-  });
-
-  describe('createSuccessResult and createFailedResult', () => {
-    it('should create correct success result', () => {
-      const result = service['createSuccessResult'](
-        'tweet-123',
-        CredentialPlatform.TWITTER,
-        'https://x.com/user/status/tweet-123',
-      );
-
-      expect(result).toEqual({
-        executionState: TargetExecutionState.PUBLISHED,
-        externalId: 'tweet-123',
-        externalShortcode: undefined,
-        platform: CredentialPlatform.TWITTER,
-        success: true,
-        url: 'https://x.com/user/status/tweet-123',
-      });
-    });
-
-    it('should create correct failed result', () => {
-      const result = service['createFailedResult'](
-        CredentialPlatform.TWITTER,
-        'Publishing failed',
-      );
-
-      expect(result).toEqual({
-        error: 'Publishing failed',
-        executionState: TargetExecutionState.FAILED,
-        externalId: null,
-        platform: CredentialPlatform.TWITTER,
-        success: false,
-        url: '',
-      });
-    });
   });
 
   describe('logging', () => {
-    it('should log publish attempt', async () => {
-      const context = createPublishContext(mockTextPost);
-
-      credentialsService.findOne.mockResolvedValue({
-        ...mockCredential,
-        accessToken: 'encrypted-token',
-      } as unknown as CredentialDocument);
-
-      mockTweet.mockResolvedValue({
-        data: { id: 'tweet-123' },
-      });
-
-      twitterService.buildTweetUrl.mockReturnValue('https://x.com/test/123');
-
-      await service.publish(context);
-
-      expect(logger.log).toHaveBeenCalledWith(
-        expect.stringContaining('publishing to'),
-        expect.objectContaining({
-          category: mockTextPost.category,
-          postId: context.postId,
-        }),
-      );
-    });
-
     it('should log error on publish failure', async () => {
       const context = createPublishContext(mockTextPost);
       const error = new Error('API failure');

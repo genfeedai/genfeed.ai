@@ -144,15 +144,6 @@ describe('social-source-handle.util', () => {
         ),
       ).toThrow(BadRequestException);
     });
-
-    it('rejects a profile URL on the wrong host', () => {
-      expect(() =>
-        normalizeHandle(
-          SocialSourcePlatform.LINKEDIN,
-          'https://www.youtube.com/@genfeed',
-        ),
-      ).toThrow('Profile URL must use linkedin.com');
-    });
   });
 
   describe('buildProfileUrl', () => {

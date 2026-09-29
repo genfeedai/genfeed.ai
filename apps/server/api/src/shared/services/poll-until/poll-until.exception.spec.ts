@@ -25,10 +25,4 @@ describe('PollAbortException', () => {
     expect(error.name).toBe('PollAbortException');
     expect(error.message).toBe('Poll aborted');
   });
-
-  it('accepts a custom abort message', () => {
-    const error = new PollAbortException('caller cancelled the poll');
-
-    expect(error.message).toBe('caller cancelled the poll');
-  });
 });

@@ -45,12 +45,6 @@ describe('DateRangeUtil.parseDateRange', () => {
     expect(range.endDate.toISOString()).toBe('2026-07-05T23:59:59.999Z');
   });
 
-  it('clamps a future endDate to yesterday because today is incomplete', () => {
-    const range = DateRangeUtil.parseDateRange('2026-08-01', '2026-12-31');
-
-    expect(range.endDate.toISOString()).toBe('2026-08-09T23:59:59.999Z');
-  });
-
   it('computes a previous period of matching length ending just before startDate', () => {
     const range = DateRangeUtil.parseDateRange('2026-07-08', '2026-07-14');
 
@@ -74,12 +68,6 @@ describe('DateRangeUtil.parseDateRange', () => {
   it('rejects a startDate after the endDate', () => {
     expect(() =>
       DateRangeUtil.parseDateRange('2026-07-20', '2026-07-10'),
-    ).toThrowError('startDate must be before endDate');
-  });
-
-  it('rejects a single-day range', () => {
-    expect(() =>
-      DateRangeUtil.parseDateRange('2026-07-10', '2026-07-10'),
     ).toThrowError('startDate must be before endDate');
   });
 

@@ -85,10 +85,6 @@ describe('VideosRelationshipsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findChildren', () => {
     it('should return child videos', async () => {
       const query: VideosQueryDto = {};

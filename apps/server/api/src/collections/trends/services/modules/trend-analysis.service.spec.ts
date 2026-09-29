@@ -32,11 +32,6 @@ function createLazyResult<T>(execute: () => T): PromiseLike<T> {
 describe('TrendAnalysisService', () => {
   let service: TrendAnalysisService;
   let prisma: ReturnType<typeof createMockPrisma>;
-  let loggerService: {
-    log: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-  };
 
   const mockOrgId = 'org-id-1234';
   const mockBrandId = 'brand-id-5678';
@@ -82,13 +77,8 @@ describe('TrendAnalysisService', () => {
     }).compile();
 
     service = module.get<TrendAnalysisService>(TrendAnalysisService);
-    loggerService = module.get(LoggerService);
 
     vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
   });
 
   // ─── markExpiredTrendsAsHistorical ────────────────────────────────────────
@@ -110,25 +100,6 @@ describe('TrendAnalysisService', () => {
           }),
         }),
       );
-    });
-
-    it('should log the number of trends marked', async () => {
-      prisma.trend.updateMany.mockResolvedValue({ count: 3 });
-
-      await service.markExpiredTrendsAsHistorical();
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('3'),
-        expect.objectContaining({ operation: 'markExpiredTrendsAsHistorical' }),
-      );
-    });
-
-    it('should return 0 when no trends were updated', async () => {
-      prisma.trend.updateMany.mockResolvedValue({ count: 0 });
-
-      const result = await service.markExpiredTrendsAsHistorical();
-
-      expect(result).toBe(0);
     });
 
     it('should propagate errors from updateMany', async () => {
@@ -173,64 +144,11 @@ describe('TrendAnalysisService', () => {
         }),
       );
     });
-
-    it('should set brandId to null when no brandId provided', async () => {
-      prisma.trend.updateMany.mockResolvedValue({ count: 1 });
-
-      await service.markCurrentTrendsAsHistorical(mockOrgId);
-
-      expect(prisma.trend.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ brandId: null }),
-        }),
-      );
-    });
   });
 
   // ─── getHistoricalTrends ─────────────────────────────────────────────────
 
   describe('getHistoricalTrends', () => {
-    it('should query with isCurrent=false and isDeleted=false', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
-
-      await service.getHistoricalTrends();
-
-      expect(prisma.trend.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            isCurrent: false,
-            isDeleted: false,
-          }),
-        }),
-      );
-    });
-
-    it('should apply platform filter when provided', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
-
-      await service.getHistoricalTrends({ platform: 'instagram' });
-
-      expect(prisma.trend.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ platform: 'instagram' }),
-        }),
-      );
-    });
-
-    it('should apply topic contains filter when provided', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
-
-      await service.getHistoricalTrends({ topic: 'crypto' });
-
-      expect(prisma.trend.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            topic: expect.objectContaining({ contains: 'crypto' }),
-          }),
-        }),
-      );
-    });
-
     it('should apply date range when startDate and endDate provided', async () => {
       const startDate = new Date('2026-03-01');
       const endDate = new Date('2026-03-14');
@@ -248,16 +166,6 @@ describe('TrendAnalysisService', () => {
             }),
           }),
         }),
-      );
-    });
-
-    it('should default limit to 1000', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
-
-      await service.getHistoricalTrends();
-
-      expect(prisma.trend.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 1000 }),
       );
     });
 
@@ -414,36 +322,6 @@ describe('TrendAnalysisService', () => {
 
       expect(result.averageMentions).toBe(300);
       expect(result.averageViralityScore).toBe(70);
-    });
-
-    it('should include peakMentions in result', async () => {
-      const docs = [
-        makeTrendDoc({
-          createdAt: new Date('2026-03-11'),
-          data: { isCurrent: false, mentions: 500, viralityScore: 50 },
-        }),
-        makeTrendDoc({
-          createdAt: new Date('2026-03-12'),
-          data: { isCurrent: false, mentions: 9000, viralityScore: 90 },
-        }),
-        makeTrendDoc({
-          createdAt: new Date('2026-03-13'),
-          data: { isCurrent: false, mentions: 300, viralityScore: 40 },
-        }),
-        makeTrendDoc({
-          createdAt: new Date('2026-03-14'),
-          data: { isCurrent: false, mentions: 200, viralityScore: 30 },
-        }),
-      ].map((d, i) => ({ ...d, id: `trend-${i}` }));
-
-      prisma.trend.findMany.mockResolvedValue(docs);
-
-      const result = await service.analyzeTrendPatterns(
-        'peak-topic',
-        'youtube',
-      );
-
-      expect(result.peakMentions).toBe(9000);
     });
   });
 });

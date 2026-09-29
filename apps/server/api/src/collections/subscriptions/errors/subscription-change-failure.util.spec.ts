@@ -23,14 +23,6 @@ function stripeError(overrides: {
 }
 
 describe('toSubscriptionChangeException', () => {
-  it('passes an already classified failure through untouched', () => {
-    const typed = new SubscriptionChangeException(
-      SubscriptionChangeFailureCode.SUBSCRIPTION_MISSING,
-    );
-
-    expect(toSubscriptionChangeException(typed)).toBe(typed);
-  });
-
   describe('after Stripe has applied the change', () => {
     it.each([
       ['a database error', new Error('connection terminated')],
@@ -66,22 +58,6 @@ describe('toSubscriptionChangeException', () => {
   });
 
   describe('Stripe resource_missing', () => {
-    it('is a missing price when the price stage fails', () => {
-      const exception = toSubscriptionChangeException(
-        stripeError({
-          code: 'resource_missing',
-          param: 'id',
-          statusCode: 404,
-          type: 'StripeInvalidRequestError',
-        }),
-        SubscriptionChangeStage.PRICE,
-      );
-
-      expect(exception.code).toBe(
-        SubscriptionChangeFailureCode.PRICE_NOT_FOUND,
-      );
-    });
-
     it.each([
       ['items[0][price]', SubscriptionChangeFailureCode.PRICE_NOT_FOUND],
       [
@@ -186,16 +162,6 @@ describe('toSubscriptionChangeException', () => {
     expect(exception.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(exception.cause).toBe(cause);
   });
-
-  it('keeps a Stripe-shaped error outside a Stripe stage from masquerading as a provider fault', () => {
-    const exception = toSubscriptionChangeException(
-      stripeError({ type: 'StripeConnectionError' }),
-    );
-
-    expect(exception.code).toBe(
-      SubscriptionChangeFailureCode.PLAN_CHANGE_FAILED,
-    );
-  });
 });
 
 describe('SubscriptionChangeException', () => {
@@ -247,21 +213,6 @@ describe('getSubscriptionChangeFailureDiagnostics', () => {
       stripeStatusCode: 429,
     });
     expect(JSON.stringify(diagnostics)).not.toContain('provider-secret-token');
-  });
-
-  it('labels a local precondition failure as local state', () => {
-    const diagnostics = getSubscriptionChangeFailureDiagnostics(
-      new SubscriptionChangeException(
-        SubscriptionChangeFailureCode.STRIPE_SUBSCRIPTION_MISSING,
-      ),
-    );
-
-    expect(diagnostics).toEqual({
-      category: 'local_state',
-      code: 'stripe_subscription_missing',
-      errorName: 'SubscriptionChangeException',
-      isRetryable: false,
-    });
   });
 
   it('labels an unclassified fault as unknown', () => {

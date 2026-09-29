@@ -42,10 +42,6 @@ describe('KlingWebhookService', () => {
     service = module.get<KlingWebhookService>(KlingWebhookService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // --- extractMediaUrls ---
 
   describe('extractMediaUrls', () => {

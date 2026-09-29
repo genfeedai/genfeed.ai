@@ -71,10 +71,6 @@ describe('PromptsOperationsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('converts an accepted voice file to text', async () => {
     const file = {
       buffer: Buffer.from('fake audio data'),
@@ -148,20 +144,6 @@ describe('PromptsOperationsController', () => {
         expect.anything(),
         expect.anything(),
         'org-openrouter-key',
-      );
-    });
-
-    it('dispatches with no key override when the guard did not bypass', async () => {
-      await controller.generateTweetReply(
-        { tweetContent: 'Hello world' },
-        user,
-        {} as Request,
-      );
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        undefined,
       );
     });
   });

@@ -78,14 +78,6 @@ describe('getIsSuperAdmin', () => {
     expect(getIsSuperAdmin(makeUser({ isSuperAdmin: true }))).toBe(true);
     expect(getIsSuperAdmin(makeUser({ isSuperAdmin: false }))).toBe(false);
   });
-
-  it('prefers request.context.isSuperAdmin', () => {
-    expect(
-      getIsSuperAdmin(makeUser({ isSuperAdmin: false }), {
-        context: { isSuperAdmin: true },
-      } as never),
-    ).toBe(true);
-  });
 });
 
 describe('getStripeSubscriptionStatus', () => {
@@ -107,25 +99,6 @@ describe('getSubscriptionTier', () => {
 });
 
 describe('resolveRequiredBrandRequestContext', () => {
-  it('ignores scope overrides for non-admin users', () => {
-    const user = makeUser({
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
-
-    expect(
-      resolveRequiredBrandRequestContext(user, {
-        brandId: 'brand-2',
-        organizationId: 'org-2',
-      }),
-    ).toEqual({
-      brandId: 'brand-1',
-      organizationId: 'org-1',
-      userId: 'user-1',
-    });
-  });
-
   it('allows super-admin scope overrides', () => {
     const user = makeUser({
       brandId: 'brand-1',

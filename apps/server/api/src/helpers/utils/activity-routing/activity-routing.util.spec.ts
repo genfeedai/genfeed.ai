@@ -140,23 +140,6 @@ describe('ActivityRoutingUtil', () => {
       expect(result?.activityKey).toBe(ActivityKey.VIDEO_GENERATED);
     });
 
-    it('should return null for unsupported category', () => {
-      const result = getActivityRouting({
-        category: 'unknown-category',
-      });
-
-      expect(result).toBeNull();
-    });
-
-    it('should return null for avatar-video without MP4 extension', () => {
-      const result = getActivityRouting({
-        category: 'avatar-video',
-        metadataExtension: 'jpg' as MetadataExtension,
-      });
-
-      expect(result).toBeNull();
-    });
-
     it('should handle string category values', () => {
       const result = getActivityRouting({
         category: 'video',

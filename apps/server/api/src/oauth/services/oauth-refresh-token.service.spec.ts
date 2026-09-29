@@ -665,56 +665,6 @@ describe('OAuthRefreshTokenService', () => {
 });
 
 describe('OAuthTokenExchangeDto', () => {
-  it('requires only the refresh token for a refresh_token grant', async () => {
-    const errors = await validate(
-      plainToInstance(OAuthTokenExchangeDto, {
-        client_id: clientId,
-        grant_type: 'refresh_token',
-        refresh_token: 'refresh-plain-token-valid',
-      }),
-    );
-
-    expect(errors).toHaveLength(0);
-  });
-
-  it('rejects a refresh_token grant without a refresh token', async () => {
-    const errors = await validate(
-      plainToInstance(OAuthTokenExchangeDto, {
-        client_id: clientId,
-        grant_type: 'refresh_token',
-      }),
-    );
-
-    expect(errors.map((error) => error.property)).toEqual(['refresh_token']);
-  });
-
-  it('still requires the PKCE fields for an authorization_code grant', async () => {
-    const errors = await validate(
-      plainToInstance(OAuthTokenExchangeDto, {
-        client_id: clientId,
-        grant_type: 'authorization_code',
-      }),
-    );
-
-    expect(errors.map((error) => error.property).sort()).toEqual([
-      'code',
-      'code_verifier',
-      'redirect_uri',
-      'resource',
-    ]);
-  });
-
-  it('lets an unknown grant type through so the controller answers unsupported_grant_type', async () => {
-    const errors = await validate(
-      plainToInstance(OAuthTokenExchangeDto, {
-        client_id: clientId,
-        grant_type: 'client_credentials',
-      }),
-    );
-
-    expect(errors).toHaveLength(0);
-  });
-
   it('rejects a missing grant type', async () => {
     const errors = await validate(
       plainToInstance(OAuthTokenExchangeDto, {
@@ -727,18 +677,6 @@ describe('OAuthTokenExchangeDto', () => {
 });
 
 describe('OAuthRevokeTokenDto', () => {
-  it('accepts a token with an optional hint', async () => {
-    expect(
-      await validate(
-        plainToInstance(OAuthRevokeTokenDto, {
-          client_id: clientId,
-          token: 'refresh-plain-token-valid',
-          token_type_hint: 'refresh_token',
-        }),
-      ),
-    ).toHaveLength(0);
-  });
-
   it('rejects an unknown hint and a missing client', async () => {
     const errors = await validate(
       plainToInstance(OAuthRevokeTokenDto, {

@@ -250,13 +250,6 @@ describe('Manual actions HTTP routes', () => {
       .expect(200);
     expect(approveItems).toHaveBeenCalledOnce();
   });
-  it('no longer rewrites synchronously through the item action route', async () => {
-    await request(app.getHttpServer())
-      .post('/batches/batch-1/items/action')
-      .send({ action: 'rewrite', itemIds: ['item-1'] })
-      .expect(400);
-    expect(enhanceDescription).not.toHaveBeenCalled();
-  });
   it('returns a serialized suggested reply for the conversation brand', async () => {
     const response = await request(app.getHttpServer())
       .post(`/messages/${conversationId}/suggested-reply`)

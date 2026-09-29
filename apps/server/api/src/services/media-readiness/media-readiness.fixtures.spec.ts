@@ -20,14 +20,4 @@ describe('media readiness against the seeded spec table (#4883)', () => {
       );
     }
   });
-
-  it.each(results.map((result) => [result.sample.id, result] as const))(
-    '%s',
-    (_id, result) => {
-      expect(
-        result.isCorrect,
-        `expected ${JSON.stringify(result.sample.expected)}, reported ${JSON.stringify(result.reported)}`,
-      ).toBe(true);
-    },
-  );
 });

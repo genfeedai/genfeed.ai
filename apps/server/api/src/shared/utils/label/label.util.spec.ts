@@ -2,10 +2,6 @@ import { generateLabel } from '@api/shared/utils/label/label.util';
 import { describe, expect, it } from 'vitest';
 
 describe('LabelUtil', () => {
-  it('should be defined', () => {
-    expect(generateLabel).toBeDefined();
-  });
-
   describe('generateLabel', () => {
     it('returns a non-empty string', () => {
       const label = generateLabel();

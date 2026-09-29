@@ -7,7 +7,7 @@ import {
   PersistedReviewDecision,
 } from '@genfeedai/contracts';
 import { brandRemixRunConfigSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const createdAt = new Date('2026-08-20T10:00:00.000Z');
@@ -130,32 +130,6 @@ describe('BrandRemixRunPaidDraftService', () => {
       version: 1,
     });
   }
-
-  it('rejects an X Ads draft that is missing a source tweet before provider calls', async () => {
-    contentRun.findFirst.mockResolvedValue({
-      brandId: 'brand-1',
-      config: approvedPaidConfig('x'),
-      createdAt,
-      id: 'run-1',
-      isDeleted: false,
-      organizationId: 'org-1',
-      status: ContentRunStatus.COMPLETED,
-      updatedAt: createdAt,
-    });
-    (prisma.ingredient.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'image-1', status: IngredientStatus.GENERATED },
-    ]);
-    (prisma.post.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 'post-1', reviewDecision: PersistedReviewDecision.APPROVED },
-    ]);
-
-    await expect(
-      paidDraft.prepare('org-1', 'run-1', 'user-1', {
-        destination: { adAccountId: 'act-1', credentialId: 'credential-1' },
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(pausedXAdsCampaignDraftService.prepare).not.toHaveBeenCalled();
-  });
 
   it('does not call Meta when the paid-draft claim loses its exact-config CAS', async () => {
     contentRun.findFirst.mockResolvedValue({

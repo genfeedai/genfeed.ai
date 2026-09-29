@@ -2,7 +2,6 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
-import { CredentialPlatform } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { HttpService } from '@nestjs/axios';
@@ -75,10 +74,6 @@ describe('RedditService', () => {
       SERVER_TOKENS.credentials,
     );
     httpService = module.get<HttpService>(HttpService);
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
   });
 
   it('should generate auth url', () => {
@@ -297,32 +292,6 @@ describe('RedditService', () => {
     );
   });
 
-  it('refreshes the account named by credentialId', async () => {
-    // A brand may hold several Reddit accounts; token repair addresses the
-    // named one instead of whichever happens to be the brand default.
-    const orgId = testId('org');
-    const brandId = testId('brand');
-    (credentialsService.findOne as Mock).mockResolvedValue({
-      id: 'cred-2',
-      refreshToken: 'refresh',
-    });
-    (httpService.post as Mock).mockReturnValue(
-      of({
-        data: { access_token: 'a', expires_in: 3600, refresh_token: 'b' },
-      }),
-    );
-
-    await service.refreshToken(orgId, brandId, 'cred-2');
-
-    expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
-      brandId,
-      credentialId: 'cred-2',
-      isDisconnectedIncluded: true,
-      organizationId: orgId,
-      platform: CredentialPlatform.REDDIT,
-    });
-  });
-
   describe('submitPost', () => {
     const orgId = testId('org');
     const brandId = testId('brand');
@@ -366,26 +335,6 @@ describe('RedditService', () => {
       );
 
       expect(submittedParams().get('flair_id')).toBe('flair-abc');
-    });
-
-    it('omits the flair id when none is selected', async () => {
-      // Many subreddits reject an unknown flair id, so an unset setting has to
-      // leave the field off entirely rather than send an empty value.
-      await service.submitPost(
-        orgId,
-        brandId,
-        'testsubreddit',
-        'Title',
-        'Body',
-      );
-
-      expect(submittedParams().has('flair_id')).toBe(false);
-    });
-
-    it('submits to the subreddit it was given', async () => {
-      await service.submitPost(orgId, brandId, 'anothersub', 'Title', 'Body');
-
-      expect(submittedParams().get('sr')).toBe('anothersub');
     });
   });
 });

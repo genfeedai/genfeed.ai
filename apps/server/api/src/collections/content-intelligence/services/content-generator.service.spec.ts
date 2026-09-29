@@ -206,10 +206,6 @@ describe('ContentGeneratorService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('registered generation workflows', () => {
     type GraphNode = {
       data?: {
@@ -259,20 +255,6 @@ describe('ContentGeneratorService', () => {
             `${canonicalId} › ${node.id}`,
           ).toEqual([]);
         }
-      }
-    });
-
-    it('feeds freeform generation the loaded context', () => {
-      for (const { definition } of registered()) {
-        const stateSources = definition.edges
-          .filter(
-            (edge) =>
-              edge.target === 'generate-freeform' &&
-              edge.targetHandle === 'state',
-          )
-          .map((edge) => edge.source);
-        if (stateSources.length === 0) continue;
-        expect(stateSources).toEqual(['load-context']);
       }
     });
   });
@@ -484,27 +466,6 @@ describe('ContentGeneratorService', () => {
       expect.arrayContaining(['marketing', 'productivity']),
     );
   });
-
-  it('passes provided hashtags through without extraction', async () => {
-    const dto = {
-      ...BASE_DTO,
-      hashtags: ['ai', 'creator'],
-      variationsCount: 1,
-    };
-
-    const results = await service.generateContent(ORG_ID, dto as never);
-
-    expect(results[0].hashtags).toEqual(['ai', 'creator']);
-  });
-
-  it('fills remaining slots when patterns fewer than variationsCount', async () => {
-    patternStoreService.findByOrganization.mockResolvedValue([MOCK_PATTERN]);
-    const dto = { ...BASE_DTO, variationsCount: 3 };
-
-    const results = await service.generateContent(ORG_ID, dto as never);
-
-    expect(results).toHaveLength(3);
-  });
 });
 
 // #3020 — the harness system prompt now flows entirely through
@@ -648,16 +609,6 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
         ],
       }),
     );
-  });
-
-  it('folds the formatted harness brief into the generation system prompt', async () => {
-    await service.generateContent(ORG_ID, BASE_DTO as never);
-
-    const systemMessage =
-      llmDispatcherService.completeStructured.mock.calls[0]?.[0]?.messages?.find(
-        (message: { role?: string }) => message.role === 'system',
-      );
-    expect(systemMessage?.content).toContain('SYSTEM DIRECTIVES');
   });
 
   it('rejects generation when brandId is absent (#5219: brand is required)', async () => {

@@ -260,26 +260,6 @@ describe('InsightsService', () => {
       });
     });
 
-    it('applies both flags at once', async () => {
-      await service.update('insight-1', 'org-1', {
-        isDismissed: true,
-        isRead: true,
-      });
-
-      expect(delegate.update).toHaveBeenCalledWith({
-        data: {
-          data: { forecast: { value: 42 }, isDismissed: true, isRead: true },
-          isDismissed: true,
-          isRead: true,
-        },
-        where: {
-          id: 'insight-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      });
-    });
-
     it('throws when the insight is not found', async () => {
       delegate.findFirst.mockResolvedValue(null);
 
@@ -386,19 +366,6 @@ describe('InsightsService', () => {
       ).rejects.toThrow('Insufficient data');
       expect(forecastDelegate.findMany).toHaveBeenCalledTimes(1);
     });
-
-    it('falls through to generation when no stored forecast matches', async () => {
-      forecastDelegate.findMany.mockResolvedValue([]);
-
-      await expect(
-        service.getForecast(
-          { metrics: ['engagement'], period: Timeframe.D30 },
-          'org-1',
-        ),
-      ).rejects.toThrow(
-        'Insufficient data: real value for metric "engagement"',
-      );
-    });
   });
 
   describe('structured output', () => {
@@ -436,18 +403,6 @@ describe('InsightsService', () => {
         expect.objectContaining({ schemaName: 'generated_insights' }),
         'org-1',
       );
-    });
-
-    it('stops telling the model to return only JSON', async () => {
-      await generate()?.({
-        input: {
-          plan: { existingIds: [], missingCount: 1, organizationId: 'org-1' },
-        },
-      });
-
-      const [params] = llmDispatcherService.completeStructured.mock
-        .calls[0] as [{ messages: Array<{ content: string }> }];
-      expect(params.messages[0].content).not.toContain('valid JSON');
     });
 
     it('surfaces the typed error rather than reporting a provider outage', async () => {

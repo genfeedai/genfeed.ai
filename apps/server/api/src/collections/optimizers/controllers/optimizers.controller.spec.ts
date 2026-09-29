@@ -87,10 +87,6 @@ describe('OptimizersController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('analyzeContent', () => {
     it('should analyze content and return score', async () => {
       const dto: AnalyzeContentDto = {

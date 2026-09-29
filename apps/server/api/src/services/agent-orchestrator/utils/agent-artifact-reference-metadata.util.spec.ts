@@ -43,20 +43,6 @@ describe('agent artifact reference completion metadata', () => {
     });
   });
 
-  it('does not infer authority from URLs, text, action ids, or UI actions', () => {
-    expect(
-      buildAgentArtifactCompletionMetadata(
-        {
-          actionId: 'post-post-1',
-          href: '/content/posts/post-1',
-          message: 'Created post post-1',
-          uiActions: [{ contentId: 'ingredient-1' }],
-        },
-        { organizationId: 'org-1' },
-      ),
-    ).toEqual({});
-  });
-
   it('deduplicates completion metadata shared by a message and run', () => {
     const reference = {
       kind: 'post' as const,

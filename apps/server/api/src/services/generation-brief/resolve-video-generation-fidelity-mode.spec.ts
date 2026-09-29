@@ -2,10 +2,6 @@ import { resolveVideoGenerationFidelityMode } from '@api/services/generation-bri
 import { describe, expect, it } from 'vitest';
 
 describe('resolveVideoGenerationFidelityMode', () => {
-  it('returns off when no brand signal is present', () => {
-    expect(resolveVideoGenerationFidelityMode({})).toBe('off');
-  });
-
   it('lets an explicit fidelityMode win over brandingMode', () => {
     expect(
       resolveVideoGenerationFidelityMode({

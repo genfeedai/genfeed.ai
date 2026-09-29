@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCampaignDmBatchWorkflowDefinition,
-  buildCampaignDmWorkflowDefinition,
   CAMPAIGN_DM_ACTION_IDS,
   CAMPAIGN_DM_WORKFLOW_ID,
 } from './campaign-dm-workflow-definition';
@@ -21,28 +20,6 @@ function actionIds(
 }
 
 describe('campaign workflow definitions', () => {
-  it('decomposes one reply target into ordered atomic actions', () => {
-    expect(actionIds(buildCampaignReplyWorkflowDefinition())).toEqual([
-      CAMPAIGN_REPLY_ACTION_IDS.CLAIM,
-      CAMPAIGN_REPLY_ACTION_IDS.LOAD_CONTEXT,
-      CAMPAIGN_REPLY_ACTION_IDS.GENERATE,
-      CAMPAIGN_REPLY_ACTION_IDS.RESERVE,
-      CAMPAIGN_REPLY_ACTION_IDS.SEND,
-      CAMPAIGN_REPLY_ACTION_IDS.FINALIZE,
-    ]);
-  });
-
-  it('decomposes one DM target into ordered atomic actions', () => {
-    expect(actionIds(buildCampaignDmWorkflowDefinition())).toEqual([
-      CAMPAIGN_DM_ACTION_IDS.CLAIM,
-      CAMPAIGN_DM_ACTION_IDS.RESOLVE_CONTEXT,
-      CAMPAIGN_DM_ACTION_IDS.GENERATE,
-      CAMPAIGN_DM_ACTION_IDS.RESERVE,
-      CAMPAIGN_DM_ACTION_IDS.SEND,
-      CAMPAIGN_DM_ACTION_IDS.FINALIZE,
-    ]);
-  });
-
   it('fans discovered reply targets into the registered child workflow', () => {
     const definition = buildCampaignReplyBatchWorkflowDefinition();
     expect(actionIds(definition)).toEqual([

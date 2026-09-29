@@ -129,12 +129,6 @@ describe('system workflow catalog', () => {
     });
   });
 
-  it('retires the X-only ingestion canonical id (#3537)', () => {
-    expect(
-      getSystemWorkflowCatalogEntry('x-ads-inspiration-ingestion'),
-    ).toBeNull();
-  });
-
   it('uses stable canonical ids without duplicates', () => {
     const ids = listSystemWorkflowCatalog().map((entry) => entry.canonicalId);
     expect(new Set(ids).size).toBe(ids.length);

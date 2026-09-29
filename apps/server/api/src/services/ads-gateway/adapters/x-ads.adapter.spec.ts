@@ -74,11 +74,6 @@ describe('XAdsAdapter', () => {
     adapter = module.get(XAdsAdapter);
   });
 
-  it('should be defined with platform=x', () => {
-    expect(adapter).toBeDefined();
-    expect(adapter.platform).toBe('x');
-  });
-
   describe('getAdAccounts', () => {
     it('should map X Ads accounts to unified format', async () => {
       xAdsService.getAdAccounts.mockResolvedValue([

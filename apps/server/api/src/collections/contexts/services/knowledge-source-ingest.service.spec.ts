@@ -270,35 +270,6 @@ describe('KnowledgeSourceIngestService', () => {
     );
   });
 
-  it('keeps live source chunks when replacing a candidate version', async () => {
-    const { service, contextBase, contextEntry } = buildService(
-      versionRow({
-        isCurrent: false,
-        processingState: KnowledgeProcessingState.QUEUED,
-      }),
-    );
-    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
-    contextEntry.groupBy.mockResolvedValue([]);
-
-    const state: KnowledgeSourceIngestState = {
-      ...(await service.loadSource(request)),
-      chunks: ['candidate'],
-      extracted: { text: 'candidate' },
-    };
-    await service.replaceChunks(state);
-
-    expect(contextEntry.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          organizationId: 'org-1',
-          isDeleted: false,
-          knowledgeSourceId: 'source-1',
-          knowledgeSourceVersionId: 'version-1',
-        },
-      }),
-    );
-  });
-
   it('scopes the delete to its own version once a newer version became current', async () => {
     const { service, contextBase, contextEntry, knowledgeSourceVersion } =
       buildService();

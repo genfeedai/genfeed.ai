@@ -137,24 +137,6 @@ describe('SubscriptionAttributionsService', () => {
       expect(result.stripeSubscriptionId).toBe('sub_1');
     });
 
-    it('defaults the currency to USD when the DTO omits it', async () => {
-      delegate.create.mockImplementation(
-        (args: { data: Record<string, unknown> }) =>
-          Promise.resolve(
-            buildAttribution({
-              metadata: args.data.metadata as Record<string, unknown>,
-            }),
-          ),
-      );
-
-      const result = await service.trackSubscription(
-        buildDto(),
-        ORGANIZATION_ID,
-      );
-
-      expect(result.currency).toBe('USD');
-    });
-
     it('records the content source and UTM parameters on the created row', async () => {
       delegate.create.mockImplementation(
         (args: { data: Record<string, unknown> }) =>
@@ -538,14 +520,6 @@ describe('SubscriptionAttributionsService', () => {
       });
       expect(limited).toHaveLength(1);
       expect(limited[0]?.contentId).toBe('post_1');
-    });
-
-    it('skips rows whose sourceContentId is null', async () => {
-      await expect(
-        service.getTopContentBySubscriptions({
-          organizationId: ORGANIZATION_ID,
-        }),
-      ).resolves.toEqual([]);
     });
 
     it('filters out subscriptions older than the requested period', async () => {

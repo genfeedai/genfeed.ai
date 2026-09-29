@@ -101,10 +101,6 @@ describe('WhatsappPublisherService', () => {
   });
 
   describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-
     it('should have WHATSAPP platform', () => {
       expect(service.platform).toBe(CredentialPlatform.WHATSAPP);
     });

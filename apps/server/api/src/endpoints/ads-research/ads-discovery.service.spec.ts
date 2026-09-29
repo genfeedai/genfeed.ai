@@ -343,18 +343,6 @@ describe('saved public discovery', () => {
       ).toBe('empty');
     },
   );
-  it.each(['2999-01-01', '2025-12-01', 'invalid'])(
-    'omits unobserved duration for invalid or scheduled end %s',
-    async (end) => {
-      const { service, sources } = setup();
-      sources.findSavedDiscoverySources.mockResolvedValue([
-        { ...row, researchObservedAt: undefined, presentationEndDate: end },
-      ]);
-      expect(
-        (await service.discover('org', query)).advertisers[0].longevityDays,
-      ).toBeUndefined();
-    },
-  );
   it('bounds completed unobserved duration by actual end', async () => {
     const { service, sources } = setup();
     sources.findSavedDiscoverySources.mockResolvedValue([

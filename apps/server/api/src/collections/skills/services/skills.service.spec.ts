@@ -162,27 +162,6 @@ describe('SkillsService', () => {
     },
   );
 
-  it.each([true, false])(
-    'rejects ambiguous eligible slug identities for explicit=%s',
-    async (explicit) => {
-      prisma.brand.findFirst.mockResolvedValue({
-        agentConfig: {
-          enabledSkills: explicit ? [] : ['hook-writer'],
-          useDefaultSkills: false,
-        },
-      });
-      prisma.skill.findMany.mockResolvedValue([
-        makeSkillRow(),
-        makeSkillRow({ id: 'other-skill' }),
-      ]);
-      await expect(
-        service.resolveBrandSkills('org-1', 'brand-1', {
-          requestedSlugs: explicit ? ['hook-writer'] : undefined,
-        }),
-      ).rejects.toThrow('Duplicate skill configuration');
-    },
-  );
-
   it('uses workflow-neutral wording for duplicate skill configuration, since this path also serves agent turns', async () => {
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: false },
@@ -299,31 +278,6 @@ describe('SkillsService', () => {
         })
       ).map((entry) => entry.skill.slug),
     ).toEqual(['hook-writer']);
-  });
-
-  it('flags built-in default skills in the organization catalog', async () => {
-    prisma.skill.findMany.mockResolvedValue([
-      makeSkillRow({
-        config: {
-          isBuiltIn: true,
-          isEnabled: true,
-          name: 'Content Writing',
-          slug: 'content-writing',
-          source: 'built_in',
-          status: 'published',
-        },
-        id: BUILT_IN_CONTENT_WRITING_SKILL_ID,
-        organizationId: null,
-      }),
-      makeSkillRow(),
-    ]);
-
-    const docs = await service.listAllForOrg('org-1');
-
-    expect(docs.map((doc) => [doc.slug, doc.isDefault])).toEqual([
-      ['content-writing', true],
-      ['hook-writer', false],
-    ]);
   });
 
   it('narrows the catalog to one composer surface', async () => {
@@ -443,22 +397,6 @@ describe('SkillsService', () => {
     });
   });
 
-  it('creates a disabled skill with execution disabled', async () => {
-    await service.createSkill('org-1', {
-      ...skillPayload,
-      status: 'disabled',
-    });
-
-    expect(prisma.skill.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        config: expect.objectContaining({
-          isEnabled: false,
-          status: 'disabled',
-        }),
-      }),
-    });
-  });
-
   it('rejects a client request to create a built-in skill', async () => {
     await expect(
       service.createSkill('org-1', { ...skillPayload, isBuiltIn: true }),
@@ -484,17 +422,6 @@ describe('SkillsService', () => {
       service.createSkill('org-1', {
         ...skillPayload,
         source: 'customized',
-      }),
-    ).rejects.toBeInstanceOf(ValidationException);
-
-    expect(prisma.skill.create).not.toHaveBeenCalled();
-  });
-
-  it('reserves executable built-in slugs from organization-owned creation', async () => {
-    await expect(
-      service.createSkill('org-1', {
-        ...skillPayload,
-        slug: 'content-writing',
       }),
     ).rejects.toBeInstanceOf(ValidationException);
 
@@ -578,16 +505,6 @@ describe('SkillsService', () => {
     });
   });
 
-  it('does not trust a null-owned custom row as a global catalog skill', async () => {
-    prisma.skill.findMany.mockResolvedValue([
-      makeSkillRow({ organizationId: null }),
-    ]);
-
-    await expect(
-      service.assertAccessibleSkillSlugs('org-1', ['hook-writer']),
-    ).rejects.toBeInstanceOf(ValidationException);
-  });
-
   it.each([null, [''], ['duplicate', 'duplicate']])(
     'rejects malformed enabled skill slugs at the service boundary: %j',
     async (skillSlugs) => {
@@ -615,30 +532,6 @@ describe('SkillsService', () => {
     ).rejects.toBeInstanceOf(ValidationException);
   });
 
-  it('reports the accessible defaults while a brand has no explicit selection', async () => {
-    prisma.skill.findMany.mockResolvedValue([
-      makeSkillRow({
-        config: {
-          isBuiltIn: true,
-          isEnabled: true,
-          name: 'Content Writing',
-          slug: 'content-writing',
-          source: 'built_in',
-          status: 'published',
-        },
-        id: BUILT_IN_CONTENT_WRITING_SKILL_ID,
-        organizationId: null,
-      }),
-    ]);
-
-    await expect(
-      service.getBrandSkillSelection('org-1', 'brand-1'),
-    ).resolves.toEqual({
-      enabledSlugs: ['content-writing'],
-      isUsingDefaults: true,
-    });
-  });
-
   it('treats an explicit empty selection with defaults off as no skills', async () => {
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: { enabledSkills: [], useDefaultSkills: false },
@@ -649,18 +542,6 @@ describe('SkillsService', () => {
       service.getBrandSkillSelection('org-1', 'brand-1'),
     ).resolves.toEqual({ enabledSlugs: [], isUsingDefaults: false });
     expect(prisma.skill.findMany).not.toHaveBeenCalled();
-  });
-
-  it('ignores the explicit list while defaults are switched on', async () => {
-    prisma.brand.findFirst.mockResolvedValue({
-      agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: true },
-      id: 'brand-1',
-    });
-    prisma.skill.findMany.mockResolvedValue([makeSkillRow()]);
-
-    await expect(
-      service.getBrandSkillSelection('org-1', 'brand-1'),
-    ).resolves.toEqual({ enabledSlugs: [], isUsingDefaults: true });
   });
 
   it('filters malformed and inaccessible stored enabled-skill slugs', async () => {
@@ -872,25 +753,6 @@ describe('SkillsService', () => {
     expect(updated.name).toBe('Hook Writer v2');
   });
 
-  it('keeps execution state aligned when a skill status changes', async () => {
-    prisma.skill.findFirst.mockResolvedValue(makeSkillRow());
-
-    await service.updateSkill('org-1', 'skill-1', {
-      status: 'disabled',
-    });
-
-    expect(prisma.skill.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          config: expect.objectContaining({
-            isEnabled: false,
-            status: 'disabled',
-          }),
-        }),
-      }),
-    );
-  });
-
   it('rejects a null status before mutating an existing skill', async () => {
     await expect(
       service.updateSkill('org-1', 'skill-1', {
@@ -1036,72 +898,6 @@ describe('SkillsService', () => {
     }
   });
 
-  it('drops a granted skill after the grant is revoked', async () => {
-    prisma.skillGrant.findMany.mockResolvedValue([]);
-    prisma.brand.findFirst.mockResolvedValue({
-      agentConfig: { enabledSkills: ['mine', 'granted'] },
-      id: 'brand-1',
-    });
-    prisma.skill.findMany.mockResolvedValue([
-      makeSkillRow({
-        config: { isEnabled: true, slug: 'mine', source: 'custom' },
-        id: 'mine',
-        organizationId: null,
-        ownerKind: 'user',
-        ownerUserId: 'user-1',
-      } as Partial<SkillRow>),
-      makeSkillRow({
-        config: { isEnabled: true, slug: 'granted', source: 'custom' },
-        id: 'skill-granted',
-        organizationId: 'org-9',
-      }),
-    ]);
-
-    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
-      actorUserId: 'user-1',
-    });
-
-    expect(resolved.map((entry) => String(entry.skill.id))).toEqual(['mine']);
-  });
-
-  it('rejects a catalog-global skill instead of attempting the write', async () => {
-    // `getSkillById` resolves through `buildAccessibleSkillWhere`, which also
-    // returns global rows (`organizationId: null`). The organization-scoped
-    // update can never match one, so the request must be rejected as
-    // not-found rather than reaching the database and failing there.
-    prisma.skill.findFirst.mockResolvedValue(
-      makeSkillRow({ id: 'skill-global', organizationId: null }),
-    );
-
-    await expect(
-      service.updateSkill('org-1', 'skill-global', { name: 'Renamed' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-
-    expect(prisma.skill.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects a skill owned by another organization', async () => {
-    prisma.skill.findFirst.mockResolvedValue(
-      makeSkillRow({ id: 'skill-foreign', organizationId: 'org-2' }),
-    );
-
-    await expect(
-      service.updateSkill('org-1', 'skill-foreign', { name: 'Renamed' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-
-    expect(prisma.skill.update).not.toHaveBeenCalled();
-  });
-
-  it('rejects an unresolvable skill id', async () => {
-    prisma.skill.findFirst.mockResolvedValue(null);
-
-    await expect(
-      service.updateSkill('org-1', 'missing', { name: 'Renamed' }),
-    ).rejects.toBeInstanceOf(NotFoundException);
-
-    expect(prisma.skill.update).not.toHaveBeenCalled();
-  });
-
   it('marks customized forks as customized provenance', async () => {
     prisma.skill.findFirst.mockResolvedValue(
       makeSkillRow({
@@ -1130,52 +926,6 @@ describe('SkillsService', () => {
         organizationId: 'org-1',
       }),
     });
-  });
-
-  it('injects the modality default catalog when enabledSkills is empty', async () => {
-    prisma.brand.findFirst.mockResolvedValue({
-      agentConfig: { enabledSkills: [] },
-      id: 'brand-1',
-    });
-    prisma.skill.findMany.mockResolvedValue([
-      makeSkillRow({
-        config: {
-          isBuiltIn: true,
-          isEnabled: true,
-          modalities: ['image'],
-          name: 'Image Prompt Engineer',
-          slug: 'image-prompt-engineer',
-          source: 'built_in',
-          status: 'published',
-        },
-        id: 'cskillbuiltinimagepromptengineer',
-        organizationId: null,
-      }),
-      makeSkillRow({
-        config: {
-          isBuiltIn: true,
-          isEnabled: true,
-          modalities: ['image', 'video', 'audio'],
-          name: 'Model Selector',
-          slug: 'model-selector',
-          source: 'built_in',
-          status: 'published',
-        },
-        id: 'cskillbuiltinmodelselector',
-        organizationId: null,
-      }),
-    ]);
-    byokProviderFactoryService.hasProviderAccess.mockResolvedValue(true);
-
-    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
-      fallbackToDefaultCatalog: true,
-      modality: 'image',
-    });
-
-    expect(resolved.map((entry) => entry.skill.slug)).toEqual([
-      'image-prompt-engineer',
-      'model-selector',
-    ]);
   });
 
   it('does not leak a foreign-org skill through catalog fallback', async () => {

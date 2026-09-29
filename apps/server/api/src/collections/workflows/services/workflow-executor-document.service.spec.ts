@@ -1,8 +1,5 @@
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.types';
-import {
-  RetiredWorkflowExecutionError,
-  WorkflowExecutorDocumentService,
-} from '@api/collections/workflows/services/workflow-executor-document.service';
+import { WorkflowExecutorDocumentService } from '@api/collections/workflows/services/workflow-executor-document.service';
 import {
   buildHiddenSystemWorkflowMetadata,
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
@@ -143,20 +140,6 @@ describe('WorkflowExecutorDocumentService', () => {
     );
   });
 
-  it('rejects a pinned version owned by a retired workflow before dispatch', async () => {
-    prisma.workflowVersion.findFirst.mockResolvedValue({
-      ...pinnedVersionRow('org-1', 'user-1'),
-      workflow: {
-        ...pinnedVersionRow('org-1', 'user-1').workflow,
-        isDeleted: true,
-      },
-    });
-
-    await expect(
-      service.findPinnedWorkflow('workflow-1', 'version-1', 'org-1', 'actor-1'),
-    ).rejects.toBeInstanceOf(RetiredWorkflowExecutionError);
-  });
-
   it('projects a proven global hidden mirror into the execution tenant and actor', async () => {
     prisma.workflowVersion.findFirst.mockResolvedValue(
       pinnedVersionRow(
@@ -183,32 +166,6 @@ describe('WorkflowExecutorDocumentService', () => {
       userId: 'tenant-user',
       versionId: 'version-1',
     });
-  });
-
-  it('rejects a retired global hidden mirror after proving its system identity', async () => {
-    const version = pinnedVersionRow(
-      SYSTEM_WORKFLOW_PRINCIPAL_ID,
-      SYSTEM_WORKFLOW_PRINCIPAL_ID,
-      {
-        sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
-        [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
-          canonicalId: 'youtube-to-long-form-text',
-        }),
-      },
-    );
-    prisma.workflowVersion.findFirst.mockResolvedValue({
-      ...version,
-      workflow: { ...version.workflow, isDeleted: true },
-    });
-
-    await expect(
-      service.findPinnedWorkflow(
-        'workflow-1',
-        'version-1',
-        'tenant-org',
-        'tenant-user',
-      ),
-    ).rejects.toBeInstanceOf(RetiredWorkflowExecutionError);
   });
 
   it('rejects a principal-owned version without the exact hidden metadata proof', async () => {

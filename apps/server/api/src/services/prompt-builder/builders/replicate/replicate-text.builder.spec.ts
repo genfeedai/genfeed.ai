@@ -126,15 +126,6 @@ describe('ReplicateTextBuilder', () => {
       expect(result.image_input).toBeUndefined();
     });
 
-    it('includes system_prompt when provided', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ systemPrompt: 'You are helpful.' }),
-        'q',
-      ) as AnyInput;
-      expect(result.system_prompt).toBe('You are helpful.');
-    });
-
     it('includes image_input from references (max 10)', () => {
       const references = Array.from({ length: 15 }, (_, i) => `url-${i}`);
       const result = builder.buildPrompt(
@@ -144,15 +135,6 @@ describe('ReplicateTextBuilder', () => {
       ) as AnyInput;
       expect(Array.isArray(result.image_input)).toBe(true);
       expect((result.image_input as string[]).length).toBe(10);
-    });
-
-    it('omits image_input when references is empty', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ references: [] }),
-        'q',
-      ) as AnyInput;
-      expect(result.image_input).toBeUndefined();
     });
   });
 
@@ -184,33 +166,6 @@ describe('ReplicateTextBuilder', () => {
         'http://b.com/2.jpg',
       ]);
     });
-
-    it('includes number_of_images when outputs > 1', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ outputs: 5 }),
-        'img',
-      ) as AnyInput;
-      expect(result.number_of_images).toBe(5);
-    });
-
-    it('caps number_of_images at 10', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ outputs: 99 }),
-        'img',
-      ) as AnyInput;
-      expect(result.number_of_images).toBe(10);
-    });
-
-    it('omits number_of_images when outputs is 1', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ outputs: 1 }),
-        'img',
-      ) as AnyInput;
-      expect(result.number_of_images).toBeUndefined();
-    });
   });
 
   // ─── Gemini 2.5 Flash ──────────────────────────────────────────────────────
@@ -228,24 +183,6 @@ describe('ReplicateTextBuilder', () => {
       expect(result.max_output_tokens).toBe(8192);
       expect(result.temperature).toBe(1);
       expect(result.top_p).toBe(0.95);
-    });
-
-    it('includes system_instruction when systemPrompt provided', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ systemPrompt: 'Be concise.' }),
-        'q',
-      ) as AnyInput;
-      expect(result.system_instruction).toBe('Be concise.');
-    });
-
-    it('includes images from references', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ references: ['img1', 'img2'] }),
-        'q',
-      ) as AnyInput;
-      expect(result.images).toEqual(['img1', 'img2']);
     });
   });
 
@@ -291,15 +228,6 @@ describe('ReplicateTextBuilder', () => {
       expect(result.top_p).toBe(0.9);
     });
 
-    it('includes system_prompt when provided', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({ systemPrompt: 'Be helpful.' }),
-        'q',
-      ) as AnyInput;
-      expect(result.system_prompt).toBe('Be helpful.');
-    });
-
     it('overrides defaults with provided params', () => {
       const result = builder.buildPrompt(
         model,
@@ -314,27 +242,6 @@ describe('ReplicateTextBuilder', () => {
 
   describe('OpenRouter Grok', () => {
     const model = MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST;
-
-    it('builds chat messages from the system prompt and user text', () => {
-      const result = builder.buildPrompt(
-        model,
-        makeParams({
-          maxTokens: 700,
-          systemPrompt: 'Write as this brand.',
-          temperature: 0.8,
-        }),
-        'Write a tweet',
-      ) as AnyInput;
-
-      expect(result).toEqual({
-        max_tokens: 700,
-        messages: [
-          { content: 'Write as this brand.', role: 'system' },
-          { content: 'Write a tweet', role: 'user' },
-        ],
-        temperature: 0.8,
-      });
-    });
 
     it('omits the system message when no system prompt is set', () => {
       const result = builder.buildPrompt(

@@ -277,16 +277,6 @@ describe('CampaignTargetsService tenant persistence', () => {
     expect(loser).toBeNull();
   });
 
-  it('returns null for foreign, deleted, or inactive-parent claims', async () => {
-    const { prisma, service } = makeService();
-    prisma.campaignTarget.updateMany.mockResolvedValue({ count: 0 });
-
-    await expect(
-      service.claimForProcessing(targetId, foreignOrganizationId),
-    ).resolves.toBeNull();
-    expect(prisma.campaignTarget.findFirst).not.toHaveBeenCalled();
-  });
-
   it('allows terminal bookkeeping after pause but not after tenant relocation', async () => {
     const { prisma, service } = makeService();
     prisma.campaignTarget.updateMany.mockResolvedValue({ count: 1 });

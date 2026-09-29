@@ -46,17 +46,6 @@ describe('ClipAnalysisWorkflowService', () => {
     service.onModuleInit();
   });
 
-  it('registers one executor for every analysis action', () => {
-    expect([...actions.keys()]).toEqual([
-      'clip.analysis.prepare-source',
-      'clip.analysis.transcribe',
-      'clip.analysis.detect-highlights',
-      'clip.analysis.extract-reference-frames',
-      'clip.analysis.persist',
-      'clip.analysis.fail',
-    ]);
-  });
-
   it('projects workflow failure onto the owned clip project', async () => {
     const fail = actions.get('clip.analysis.fail');
     expect(fail).toBeDefined();

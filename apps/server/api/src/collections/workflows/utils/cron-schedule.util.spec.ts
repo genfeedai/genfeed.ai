@@ -5,11 +5,6 @@ import {
 import { describe, expect, it } from 'vitest';
 
 describe('cron-schedule.util', () => {
-  it('computes next run for a valid cron expression', () => {
-    const nextRun = computeNextRunAtOrThrow('0 9 * * 1', 'UTC');
-    expect(nextRun).toBeInstanceOf(Date);
-  });
-
   it('computes 0 9 * * * in UTC as 09:00 UTC, not a viewer-local 2:00 AM', () => {
     const nextRun = computeNextRunAtOrThrow('0 9 * * *', 'UTC');
     expect(nextRun.getUTCHours()).toBe(9);

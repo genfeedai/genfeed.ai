@@ -14,20 +14,7 @@ async function metricsErrorsFor(metricCount: number) {
 }
 
 describe('GetForecastDto', () => {
-  it('should be defined', () => {
-    expect(GetForecastDto).toBeDefined();
-  });
-
   describe('validation', () => {
-    it('should create an instance', () => {
-      const dto = new GetForecastDto();
-      expect(dto).toBeInstanceOf(GetForecastDto);
-    });
-
-    it('accepts a metrics array at the maximum size', async () => {
-      expect(await metricsErrorsFor(20)).toEqual([]);
-    });
-
     it('rejects a metrics array over the maximum size', async () => {
       const metricsErrors = await metricsErrorsFor(21);
 

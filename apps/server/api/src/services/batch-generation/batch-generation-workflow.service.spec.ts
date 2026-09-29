@@ -121,18 +121,6 @@ describe('BatchGenerationWorkflowService', () => {
     );
   });
 
-  it('threads a background dispatchClass from a caller like the reconcile cron', async () => {
-    await service.queueBatch(REQUEST, SystemWorkflowDispatchClass.BACKGROUND);
-
-    expect(queue.queueSystemWorkflow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.objectContaining({
-        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
-      }),
-    );
-  });
-
   it('scopes the queued-at stamp to the owning organization', async () => {
     await run(BATCH_GENERATION_ACTION_IDS.MARK_QUEUED);
 

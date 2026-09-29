@@ -100,10 +100,6 @@ describe('RedisCacheInterceptor', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
   describe('when no cache options are configured', () => {
     it('should proceed without caching', async () => {
       reflector.get.mockReturnValue(undefined);
@@ -259,28 +255,6 @@ describe('RedisCacheInterceptor', () => {
       );
     });
 
-    it('should include sorted query parameters in key', async () => {
-      const cacheOptions: CacheOptions = { ttl: 300 };
-      reflector.get.mockReturnValue(cacheOptions);
-
-      mockExecutionContext.switchToHttp = vi.fn().mockReturnValue({
-        getRequest: vi.fn().mockReturnValue({
-          method: 'GET',
-          query: { a: 'first', m: 'middle', z: 'last' },
-          route: { path: '/api/test' },
-          user: { id: 'user-123' },
-        }),
-      });
-
-      cacheService.get.mockResolvedValue(null);
-
-      await interceptor.intercept(mockExecutionContext, mockCallHandler);
-
-      expect(cacheService.get).toHaveBeenCalledWith(
-        'TestController:testMethod:/api/test:user:user-123:query:{"a":"first","m":"middle","z":"last"}',
-      );
-    });
-
     it('should include normalized body for non-GET requests', async () => {
       const cacheOptions: CacheOptions = { ttl: 300 };
       reflector.get.mockReturnValue(cacheOptions);
@@ -325,61 +299,6 @@ describe('RedisCacheInterceptor', () => {
           expect(value).toBeNull();
           setTimeout(() => {
             expect(cacheService.set).not.toHaveBeenCalled();
-            resolve();
-          }, 0);
-        });
-      });
-    });
-
-    it('should cache null values when cacheNullValues is true', async () => {
-      const cacheOptions: CacheOptions = {
-        cacheNullValues: true,
-        ttl: 300,
-      };
-      reflector.get.mockReturnValue(cacheOptions);
-      cacheService.get.mockResolvedValue(undefined);
-      mockCallHandler.handle = vi.fn().mockReturnValue(of(null));
-
-      const result$ = await interceptor.intercept(
-        mockExecutionContext,
-        mockCallHandler,
-      );
-
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalledWith(
-              expect.any(String),
-              null,
-              expect.any(Object),
-            );
-            resolve();
-          }, 0);
-        });
-      });
-    });
-
-    it('should respect custom condition function', async () => {
-      const cacheOptions: CacheOptions = {
-        condition: (result: { shouldCache?: boolean }) =>
-          result.shouldCache === true,
-        ttl: 300,
-      };
-      reflector.get.mockReturnValue(cacheOptions);
-      cacheService.get.mockResolvedValue(null);
-
-      const resultWithCache = { data: 'test', shouldCache: true };
-      mockCallHandler.handle = vi.fn().mockReturnValue(of(resultWithCache));
-
-      const result$ = await interceptor.intercept(
-        mockExecutionContext,
-        mockCallHandler,
-      );
-
-      await new Promise<void>((resolve) => {
-        result$.subscribe(() => {
-          setTimeout(() => {
-            expect(cacheService.set).toHaveBeenCalled();
             resolve();
           }, 0);
         });

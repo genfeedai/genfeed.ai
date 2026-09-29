@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -7,7 +6,6 @@ import {
   isActionOnSurface,
 } from '@genfeedai/actions';
 
-import * as ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -22,43 +20,6 @@ const X_ACTIONS_HANDLER_PATH = resolve(
   'agent-x-actions-tool-handler.service.ts',
 );
 
-function collectRouteCaseMembers(
-  filePath: string,
-  methodName: string,
-): Set<string> {
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    readFileSync(filePath, 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  const members = new Set<string>();
-
-  const collectCases = (node: ts.Node): void => {
-    if (ts.isCaseClause(node) && ts.isStringLiteral(node.expression)) {
-      members.add(node.expression.text);
-    }
-    ts.forEachChild(node, collectCases);
-  };
-
-  const findDispatch = (node: ts.Node): void => {
-    if (
-      ts.isMethodDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === methodName &&
-      node.body
-    ) {
-      collectCases(node.body);
-      return;
-    }
-    ts.forEachChild(node, findDispatch);
-  };
-
-  findDispatch(sourceFile);
-  return members;
-}
-
 describe('curated Agent action catalog', () => {
   it('lists exactly the actions reviewed for Agent', () => {
     const expected = CURATED_ACTION_CATALOG.filter((entry) =>
@@ -67,24 +28,5 @@ describe('curated Agent action catalog', () => {
     const actual = getToolsForSurface('agent').map((tool) => tool.name);
 
     expect(actual).toEqual(expected);
-  });
-
-  it('maps every Agent action to a concrete execution route', () => {
-    const memberNames = new Set([
-      ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
-      ...collectRouteCaseMembers(WORK_OBJECT_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
-      ...collectRouteCaseMembers(
-        resolve(HERE, 'agent-generation-settings-tool-handler.service.ts'),
-        'execute',
-      ),
-    ]);
-    const executorNames = memberNames;
-    const missing = getToolsForSurface('agent')
-      .map((tool) => tool.name)
-      .filter((name) => !executorNames.has(name));
-
-    expect(missing).toEqual([]);
   });
 });

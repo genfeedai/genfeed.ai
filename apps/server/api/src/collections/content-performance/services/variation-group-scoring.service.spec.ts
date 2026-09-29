@@ -133,20 +133,6 @@ describe('VariationGroupScoringService', () => {
     expect(where.organizationId).toBe(organizationId);
   });
 
-  it('scopes the content_performance lookup to the organization', async () => {
-    const { findMany, service } = createHarness();
-
-    await service.scoreVariationGroups({ organizationId });
-
-    expect(findMany).toHaveBeenCalledWith({
-      where: expect.objectContaining({
-        isDeleted: false,
-        organizationId,
-        postId: { in: ['p1', 'p2', 'p3', 'p4', 'p5'] },
-      }),
-    });
-  });
-
   it('excludes groups with fewer than 2 scored members', async () => {
     const { service } = createHarness();
 

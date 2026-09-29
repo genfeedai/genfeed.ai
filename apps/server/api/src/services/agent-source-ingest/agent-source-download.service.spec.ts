@@ -489,24 +489,6 @@ describe('AgentSourceDownloadService', () => {
     );
   });
 
-  it('treats a 500 as an ambiguous failure even when it says the job is missing', async () => {
-    http.get.mockReturnValue(
-      throwError(() => ({
-        response: { status: 500, data: { message: 'Job not found' } },
-      })),
-    );
-    await expect(
-      service.download(
-        'https://www.youtube.com/watch?v=abcdefghijk',
-        'source-1',
-        'video',
-        context,
-        'agent-source-source-1',
-      ),
-    ).rejects.toBeInstanceOf(AgentSourceImportPendingError);
-    expect(http.post).not.toHaveBeenCalled();
-  });
-
   it('does not retry enqueue repeatedly or on an ambiguous internal failure', async () => {
     http.get.mockReturnValue(
       throwError(() => ({

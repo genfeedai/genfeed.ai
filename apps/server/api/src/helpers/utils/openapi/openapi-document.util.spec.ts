@@ -41,20 +41,6 @@ describe('stableOperationIdFactory', () => {
 });
 
 describe('sortKeysDeep', () => {
-  it('sorts object keys recursively', () => {
-    const input = { b: { d: 1, c: 2 }, a: 3 };
-    expect(JSON.stringify(sortKeysDeep(input))).toBe(
-      '{"a":3,"b":{"c":2,"d":1}}',
-    );
-  });
-
-  it('preserves array order while sorting element keys', () => {
-    const input = { list: [{ b: 1, a: 2 }, { z: 3 }] };
-    expect(JSON.stringify(sortKeysDeep(input))).toBe(
-      '{"list":[{"a":2,"b":1},{"z":3}]}',
-    );
-  });
-
   it('passes through primitives and null', () => {
     expect(sortKeysDeep(null)).toBeNull();
     expect(sortKeysDeep(42)).toBe(42);

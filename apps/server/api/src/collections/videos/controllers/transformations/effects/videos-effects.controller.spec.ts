@@ -124,10 +124,6 @@ describe('VideosEffectsController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   // --- reverseVideo ---
   it('should reverse video and return serialized result', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);

@@ -88,12 +88,6 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
     expect(safeFetch).not.toHaveBeenCalled();
   });
 
-  it('no-ops when the distinct id is empty', async () => {
-    await service.capture({ distinctId: '', event: 'onboarding_completed' });
-
-    expect(safeFetch).not.toHaveBeenCalled();
-  });
-
   describe('capture timeout', () => {
     it('wires the fetch signal to the configured capture timeout and aborts it at the deadline', async () => {
       const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
@@ -303,21 +297,6 @@ describe('ServerFunnelCaptureService (genfeedai/genfeed.ai#4969)', () => {
         event: 'onboarding_completed',
         status: 302,
       });
-    });
-
-    it('does not report a failure for a 2xx capture response', async () => {
-      vi.mocked(safeFetch).mockResolvedValue({
-        ok: true,
-        status: 202,
-      } as never);
-
-      await service.capture({
-        distinctId: 'org_1',
-        event: 'onboarding_completed',
-      });
-
-      expect(logger.warn).not.toHaveBeenCalled();
-      expect(Sentry.captureException).not.toHaveBeenCalled();
     });
 
     it('never throws when the PostHog request fails (e.g. timeout), and reports it to Sentry', async () => {

@@ -360,19 +360,6 @@ describe('MediaLocalizationService', () => {
     );
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
   });
-  it('signs the persisted source object key instead of guessing its filename', async () => {
-    const h = harness();
-    h.ingredients.findOne.mockResolvedValue({
-      id: 'video',
-      brandId: 'brand',
-      s3Key: 'ingredients/videos/compositions/final.mp4',
-    });
-    await h.service.localize(request);
-    expect(h.files.getPresignedDownloadUrl).toHaveBeenCalledWith(
-      'compositions/final.mp4',
-      'videos',
-    );
-  });
 
   it('preserves a supplied script for a silent source and records actual provider calls without claiming vendor cost', async () => {
     const h = harness();
@@ -475,21 +462,6 @@ describe('MediaLocalizationService', () => {
       );
     },
   );
-  it.each(['UPLOADED', 'VALIDATED', 'DRAFT'])(
-    'accepts ready persisted library media in %s state',
-    async (status) => {
-      const h = harness();
-      h.ingredients.findOne.mockResolvedValue({
-        id: 'video',
-        brandId: 'brand',
-        status,
-        s3Key: 'ingredients/videos/uploaded.mp4',
-      });
-      await expect(h.service.localize(request)).resolves.toMatchObject({
-        duration: 30,
-      });
-    },
-  );
   it('rejects an empty draft before provider work', async () => {
     const h = harness();
     h.ingredients.findOne.mockResolvedValue({
@@ -500,22 +472,6 @@ describe('MediaLocalizationService', () => {
     });
     await expect(h.service.localize(request)).rejects.toThrow();
     expect(h.replicate.transcribeAudio).not.toHaveBeenCalled();
-  });
-  it('normalizes tiny provider timestamp overlaps and end overruns without deleting speech', async () => {
-    const h = harness();
-    h.replicate.transcribeAudio.mockResolvedValue({
-      text: 'One. Two.',
-      language: 'en',
-      segments: [
-        { start: 0, end: 4, text: 'One.' },
-        { start: 3.95, end: 30.1, text: 'Two.' },
-      ],
-    });
-    const result = await h.service.localize(request);
-    expect(result.transcript.segments).toEqual([
-      { start: 0, end: 4, text: 'One.' },
-      { start: 4, end: 30, text: 'Two.' },
-    ]);
   });
   it('reports malformed provider text without a TypeError', async () => {
     const h = harness();

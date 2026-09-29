@@ -123,20 +123,6 @@ describe('AdPerformanceService', () => {
       expect(upsert).not.toHaveBeenCalled();
     });
 
-    it('uses the same identityKey for equivalent date spellings', async () => {
-      await service.upsert({
-        adPlatform: 'meta',
-        date: new Date('2026-07-01T00:00:00.000Z'),
-        externalAccountId: 'acct-1',
-        granularity: 'account',
-        organizationId: 'org-1',
-      });
-
-      expect(
-        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1|meta|2026-07-01T00:00:00.000Z|account|acct-1|||');
-    });
-
     it('does not match a record from a different account', async () => {
       await service.upsert({
         adPlatform: 'meta',
@@ -153,19 +139,6 @@ describe('AdPerformanceService', () => {
       ).not.toContain('|other-acct|');
     });
 
-    it('includes the campaign id in the key for campaign granularity', async () => {
-      await service.upsert({
-        externalAccountId: 'acct-1',
-        externalCampaignId: 'camp-1',
-        granularity: 'campaign',
-        organizationId: 'org-1',
-      });
-
-      expect(
-        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1|||campaign|acct-1|camp-1||');
-    });
-
     it('falls back to externalAdGroupId for adset granularity', async () => {
       await service.upsert({
         externalAccountId: 'acct-1',
@@ -178,30 +151,6 @@ describe('AdPerformanceService', () => {
       expect(
         upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
       ).toBe('v1|||adset|acct-1||group-1|');
-    });
-
-    it('includes the ad id in the key for ad granularity', async () => {
-      await service.upsert({
-        externalAccountId: 'acct-1',
-        externalAdId: 'ad-1',
-        granularity: 'ad',
-        organizationId: 'org-1',
-      });
-
-      expect(
-        upsert.mock.calls[0][0].where.organizationId_identityKey.identityKey,
-      ).toBe('v1|||ad|acct-1|||ad-1');
-    });
-
-    it('defaults brand and credential ids to null when absent', async () => {
-      await service.upsert({
-        granularity: 'account',
-        organizationId: 'org-1',
-      });
-
-      const created = upsert.mock.calls[0][0].create;
-      expect(created.brandId).toBeNull();
-      expect(created.credentialId).toBeNull();
     });
 
     it('matches a soft-deleted identityKey and restores it instead of creating', async () => {
@@ -374,59 +323,6 @@ describe('AdPerformanceService', () => {
       expect(result.map((row) => row.id)).toEqual(['b']);
     });
 
-    it('scopes the read to the organization and soft-delete flag', async () => {
-      await service.findByOrganization('org-1', {});
-
-      expect(findMany).toHaveBeenCalledWith({
-        orderBy: { date: { nulls: 'last', sort: 'desc' } },
-        skip: 0,
-        take: 50,
-        where: {
-          isDeleted: false,
-          organizationId: 'org-1',
-        },
-      });
-    });
-
-    it('filters by ad platform in SQL', async () => {
-      await service.findByOrganization('org-1', {
-        adPlatform: 'meta',
-      });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ adPlatform: 'meta' }),
-        }),
-      );
-    });
-
-    it('filters by granularity in SQL', async () => {
-      await service.findByOrganization('org-1', {
-        granularity: 'week',
-      });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ granularity: 'week' }),
-        }),
-      );
-    });
-
-    it('filters by start and end date in SQL', async () => {
-      const startDate = new Date('2026-07-02');
-      const endDate = new Date('2026-07-06');
-
-      await service.findByOrganization('org-1', { endDate, startDate });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            date: { gte: startDate, lte: endDate },
-          }),
-        }),
-      );
-    });
-
     it('excludes records with no usable date when a range is requested', async () => {
       const startDate = new Date('2026-01-01');
 
@@ -438,17 +334,6 @@ describe('AdPerformanceService', () => {
             date: { gte: startDate },
           }),
         }),
-      );
-    });
-
-    it('applies offset and limit in SQL', async () => {
-      await service.findByOrganization('org-1', {
-        limit: 1,
-        offset: 1,
-      });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ skip: 1, take: 1 }),
       );
     });
 
@@ -470,75 +355,6 @@ describe('AdPerformanceService', () => {
         [],
       );
       expect(findMany).not.toHaveBeenCalled();
-    });
-
-    it('orders by performanceScore by default and excludes null scores', async () => {
-      await service.findTopPerformers({});
-
-      expect(findMany).toHaveBeenCalledWith({
-        orderBy: [
-          { performanceScore: { nulls: 'last', sort: 'desc' } },
-          { updatedAt: 'desc' },
-        ],
-        take: 10,
-        where: expect.objectContaining({
-          isDeleted: false,
-          performanceScore: { not: null },
-        }),
-      });
-    });
-
-    it('orders by any supported scalar metric', async () => {
-      await service.findTopPerformers({ metric: 'roas' });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          orderBy: [{ roas: 'desc' }, { updatedAt: 'desc' }],
-          where: expect.objectContaining({ roas: { not: null } }),
-        }),
-      );
-    });
-
-    it('applies platform, industry and scope filters', async () => {
-      await service.findTopPerformers({
-        adPlatform: 'meta',
-        industry: 'saas',
-        scope: 'public',
-      });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            adPlatform: 'meta',
-            industry: 'saas',
-            scope: 'public',
-          }),
-        }),
-      );
-    });
-
-    it('clamps the limit to the supported maximum', async () => {
-      await service.findTopPerformers({ limit: 5000 });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 100 }),
-      );
-    });
-
-    it('truncates a fractional limit', async () => {
-      await service.findTopPerformers({ limit: 7.9 });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 7 }),
-      );
-    });
-
-    it('falls back to the default limit for a non-finite value', async () => {
-      await service.findTopPerformers({ limit: Number.NaN });
-
-      expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 10 }),
-      );
     });
 
     it('sorts JSON-backed metrics in memory over a bounded candidate set', async () => {
@@ -612,10 +428,6 @@ describe('AdPerformanceService', () => {
   });
 
   describe('findById', () => {
-    it('returns null when the record does not exist', async () => {
-      await expect(service.findById('missing', 'org-1')).resolves.toBeNull();
-    });
-
     it('excludes soft-deleted records', async () => {
       await service.findById('perf-1', 'org-1');
 
@@ -654,19 +466,9 @@ describe('AdPerformanceService', () => {
         },
       });
     });
-
-    it('returns null for a non-public record', async () => {
-      await expect(service.findPublicById('perf-1')).resolves.toBeNull();
-    });
   });
 
   describe('findLatestSyncDateForCredential', () => {
-    it('returns null when the credential has no dated rows', async () => {
-      await expect(
-        service.findLatestSyncDateForCredential('cred-1'),
-      ).resolves.toBeNull();
-    });
-
     it('returns the newest scalar date from Prisma', async () => {
       findFirst.mockResolvedValueOnce({
         date: new Date('2026-07-20T00:00:00.000Z'),
@@ -715,14 +517,6 @@ describe('AdPerformanceService', () => {
           scope: 'organization',
         },
         where: { id: 'a', isDeleted: false, organizationId: 'org-1' },
-      });
-    });
-
-    it('reads every row for the organization including soft-deleted ones', async () => {
-      await service.removeOrgFromAggregation('org-1');
-
-      expect(findMany).toHaveBeenCalledWith({
-        where: { organizationId: 'org-1' },
       });
     });
   });

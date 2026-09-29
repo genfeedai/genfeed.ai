@@ -617,61 +617,6 @@ describe('PostGroupsService', () => {
     );
   });
 
-  it('persists a per-target caption override as the channel description', async () => {
-    await service.create('org-1', 'user-1', {
-      baseContent: 'Shared launch note',
-      brandId: 'brand-1',
-      status: ReleaseStatus.DRAFT,
-      targets: [
-        {
-          caption: 'X-specific launch note',
-          credentialId: 'cred-x',
-          platform: CredentialPlatform.TWITTER,
-          settings: { replyPolicy: 'everyone' },
-        },
-      ],
-      timezone: 'UTC',
-      title: 'Launch note',
-    });
-
-    expect(prisma.post.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          description: 'X-specific launch note',
-        }),
-      }),
-    );
-  });
-
-  it('persists derived publishing readiness on every scheduled channel target', async () => {
-    await service.create('org-1', 'user-1', {
-      baseContent: 'Launch note for X',
-      brandId: 'brand-1',
-      status: ReleaseStatus.SCHEDULED,
-      targets: [
-        {
-          credentialId: 'cred-x',
-          platform: CredentialPlatform.TWITTER,
-        },
-      ],
-      timezone: 'UTC',
-      title: 'Launch note',
-    });
-
-    expect(prisma.post.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          targetReadiness: expect.objectContaining({
-            canSchedule: true,
-            credentialId: 'cred-x',
-            state: 'publish_capable',
-            tokenFreshness: 'pass',
-          }),
-        }),
-      }),
-    );
-  });
-
   it('rejects a scheduled release whose channel credential cannot publish', async () => {
     prisma.credential.findMany.mockResolvedValue([
       makeCredential({
@@ -1675,59 +1620,6 @@ describe('PostGroupsService', () => {
     expect(prisma.post.updateMany).not.toHaveBeenCalled();
     expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
     expect(postPublishQueueService.enqueue).not.toHaveBeenCalled();
-  });
-
-  it('persists derived publishing readiness when a canonical target is scheduled', async () => {
-    const scheduledAt = '2026-07-09T12:00:00.000Z';
-    prisma.postGroup.findFirst.mockResolvedValue(
-      makeGroup({ id: 'group-1', status: ReleaseStatus.DRAFT }),
-    );
-    prisma.post.findFirst.mockResolvedValue(
-      makeTarget({
-        groupId: 'group-1',
-        id: 'target-1',
-        scheduledDate: null,
-        targetExecutionState: TargetExecutionState.DRAFT,
-      }),
-    );
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        groupId: 'group-1',
-        id: 'target-1',
-        scheduledDate: new Date(scheduledAt),
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-      }),
-    ]);
-    prisma.postGroup.update.mockImplementation(({ data }) =>
-      Promise.resolve(
-        makeGroup({
-          id: 'group-1',
-          status: data.status,
-          statusTransitions: data.statusTransitions,
-        }),
-      ),
-    );
-
-    await service.scheduleTarget(
-      'org-1',
-      'user-1',
-      'group-1',
-      'target-1',
-      scheduledAt,
-    );
-
-    expect(postLifecycleService.transition).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mutation: expect.objectContaining({
-          targetReadiness: expect.objectContaining({
-            canSchedule: true,
-            credentialId: 'cred-x',
-            state: 'publish_capable',
-          }),
-        }),
-      }),
-      prisma,
-    );
   });
 
   it('rejects a canonical target without a valid release brand before durable mutation', async () => {

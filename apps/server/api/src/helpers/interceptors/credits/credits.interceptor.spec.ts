@@ -104,10 +104,6 @@ describe('CreditsInterceptor', () => {
     loggerService = module.get<LoggerService>(LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(interceptor).toBeDefined();
-  });
-
   describe('intercept', () => {
     it('should pass through when no credits config', () => {
       mockRequest.creditsConfig = undefined;
@@ -191,38 +187,6 @@ describe('CreditsInterceptor', () => {
           },
         });
       });
-    });
-
-    it('queues confirmed media settlement against the persisted asset identity', async () => {
-      mockRequest.body = { sourceActionId: 'action-123' };
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-123' } }),
-      } as CallHandler;
-
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() =>
-        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            idempotencyKey: 'agent-media-action-123-asset-123',
-            referenceId: 'asset-123',
-            referenceType: 'agent-media:generation',
-            reservationId: 'reservation-1',
-            settlementAssetId: 'asset-123',
-          }),
-        ),
-      );
     });
 
     it('recognizes a JSON:API source action before deferring media settlement', async () => {

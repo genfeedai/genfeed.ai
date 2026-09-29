@@ -19,14 +19,6 @@ function fakeQueue(job: Pick<Job, 'getState' | 'remove'> | undefined) {
 }
 
 describe('reserveIdempotentJob', () => {
-  it('allows enqueue when no job exists for the id', async () => {
-    const { queue } = fakeQueue(undefined);
-
-    const result = await reserveIdempotentJob(queue, 'job-1');
-
-    expect(result).toEqual({ alreadyQueued: false });
-  });
-
   for (const state of ['active', 'waiting', 'delayed'] as const) {
     it(`refuses enqueue and preserves an in-flight job (${state})`, async () => {
       const { queue, removed } = fakeQueue({

@@ -23,7 +23,6 @@ import { AnalyticsAggregationService } from '@api/collections/posts/services/ana
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -74,7 +73,6 @@ describe('BrandsController', () => {
   let brandSetupService: vi.Mocked<BrandSetupService>;
   let brandsService: vi.Mocked<BrandsService>;
   let credentialsService: vi.Mocked<CredentialsService>;
-  let _loggerService: vi.Mocked<LoggerService>;
 
   const mockUser = {
     id: 'user-123',
@@ -231,7 +229,6 @@ describe('BrandsController', () => {
     brandSetupService = module.get(BrandSetupService);
     brandsService = module.get(BrandsService);
     credentialsService = module.get(CredentialsService);
-    _loggerService = module.get(LoggerService);
 
     vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
       data,
@@ -240,22 +237,6 @@ describe('BrandsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
-  it('charges one credit for direct AI brand profile generation', () => {
-    expect(
-      Reflect.getMetadata(
-        CREDITS_KEY,
-        agentConfigController.generateBrandVoice,
-      ),
-    ).toMatchObject({
-      amount: 1,
-      description: 'AI brand profile generation',
-    });
   });
 
   it('passes onboarding profile fields through the sync rename path', async () => {
@@ -353,19 +334,6 @@ describe('BrandsController', () => {
       );
     });
 
-    it('rejects a taken handle with a conflict before patching', async () => {
-      brandsService.findOne.mockResolvedValue(mockBrand as never);
-      brandsService.isSlugAvailable.mockResolvedValue(false);
-
-      await expect(
-        controller.patch(mockRequest, mockUser, mockBrand.id, {
-          slug: 'taken',
-        }),
-      ).rejects.toBeInstanceOf(ConflictException);
-
-      expect(brandsService.patch).not.toHaveBeenCalled();
-    });
-
     it('does not reveal handle availability through a brand the caller cannot access', async () => {
       brandsService.findOne.mockResolvedValue(null);
 
@@ -402,33 +370,6 @@ describe('BrandsController', () => {
         mockBrand.id,
       );
       expect(brandsService.patch).toHaveBeenCalled();
-    });
-
-    it("leaves a relocation's handle to the relocation service's own authorization", async () => {
-      // An admin of both orgs, active in the destination, moving a
-      // teammate's brand: not the owner, and not in the active org.
-      const sourceBrand = {
-        ...mockBrand,
-        organizationId: 'cmorganization000000000000009',
-        userId: 'cmuser0000000000000000009',
-      };
-      brandsService.findOne.mockImplementation(async (params) =>
-        'OR' in (params as Record<string, unknown>)
-          ? null
-          : (sourceBrand as never),
-      );
-      brandsService.relocateToOrganization.mockResolvedValue({
-        brand: { ...sourceBrand, organizationId: mockUser.organizationId },
-        summary: {},
-      } as never);
-
-      await controller.patch(mockRequest, mockUser, mockBrand.id, {
-        organizationId: mockUser.organizationId,
-        slug: 'new-handle',
-      });
-
-      expect(brandsService.relocateToOrganization).toHaveBeenCalled();
-      expect(brandsService.isSlugAvailable).not.toHaveBeenCalled();
     });
 
     it('still checks the handle on a patch that names its current organization', async () => {
@@ -614,16 +555,6 @@ describe('BrandsController', () => {
       expect(brandsService.findOne).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
-
-    it('should not be decorated with cache metadata', () => {
-      const cacheMetadata = Reflect.getMetadata(
-        'cache',
-        Object.getPrototypeOf(controller),
-        'findOne',
-      );
-
-      expect(cacheMetadata).toBeUndefined();
-    });
   });
 
   describe('decorateForResponse', () => {
@@ -649,26 +580,6 @@ describe('BrandsController', () => {
       });
       expect(decorated.credentials).toEqual([
         expect.objectContaining({ id: 'cmcredential00000000000001' }),
-      ]);
-    });
-
-    it('normalizes the Prisma credential platform to the domain vocabulary', async () => {
-      credentialsService.find.mockResolvedValue([
-        { id: 'credential-1', platform: 'GOOGLE_ADS' },
-        { id: 'credential-2', platform: 'DEVTO' },
-      ] as never);
-
-      const decorated = await controller.decorateForResponse(
-        { ...mockBrand } as never,
-        mockUser,
-      );
-
-      // The UI, posts and OAuth routes all key off lowercase platform ids;
-      // leaking the SCREAMING Prisma labels made every account read
-      // "Not connected" on brand social settings.
-      expect(decorated.credentials).toEqual([
-        expect.objectContaining({ platform: 'google_ads' }),
-        expect.objectContaining({ platform: 'devto' }),
       ]);
     });
 

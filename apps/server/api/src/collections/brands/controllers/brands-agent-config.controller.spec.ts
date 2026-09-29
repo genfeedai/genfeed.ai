@@ -81,10 +81,6 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     },
   };
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('calls updateAgentConfig with correct parameters', async () => {
     mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
     await controller.updateAgentConfig(
@@ -102,16 +98,6 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       orgId,
       ['content-writing'],
     );
-  });
-
-  it('does not validate skill slugs when an agent-config patch omits them', async () => {
-    mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
-
-    await controller.updateAgentConfig(mockRequest, mockUser, mockBrand.id, {
-      defaultModel: 'gpt-5',
-    });
-
-    expect(mockSkillsService.assertAccessibleSkillSlugs).not.toHaveBeenCalled();
   });
 
   it('does not update the brand when enabled skill validation fails', async () => {
@@ -169,17 +155,6 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
       validDto,
     );
     expect(result).toHaveProperty('data');
-  });
-
-  it('calls BrandSerializer.serialize', async () => {
-    mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
-    await controller.updateAgentConfig(
-      mockRequest,
-      mockUser,
-      mockBrand.id,
-      validDto,
-    );
-    expect(BrandSerializer.serialize).toHaveBeenCalled();
   });
 
   it('passes the brand result to the serializer', async () => {

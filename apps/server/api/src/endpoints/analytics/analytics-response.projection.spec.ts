@@ -49,37 +49,6 @@ describe('AnalyticsResponseProjection', () => {
     expect(result[1]?.youtube).toEqual(result[0]?.instagram);
   });
 
-  it('preserves overview metric and zero-baseline growth definitions', () => {
-    expect(
-      projection.buildOverview(
-        {
-          avg_engagement_rate: 5.5,
-          total_comments: BigInt(20),
-          total_likes: BigInt(50),
-          total_posts: BigInt(10),
-          total_saves: BigInt(5),
-          total_shares: BigInt(10),
-          total_views: BigInt(1_000),
-        },
-        {
-          total_engagement: BigInt(0),
-          total_posts: BigInt(0),
-          total_views: BigInt(0),
-        },
-      ),
-    ).toEqual({
-      avgEngagementRate: 5.5,
-      growth: {
-        engagement: 0,
-        posts: 0,
-        views: 0,
-      },
-      totalEngagement: 85,
-      totalPosts: 10,
-      totalViews: 1_000,
-    });
-  });
-
   // genfeedai/genfeed.ai#5419: the projection, the serializer and the client
   // share `IPlatformComparison`; every metric must survive serialization.
   it('projects IPlatformComparison rows that the platform serializer keeps whole', () => {

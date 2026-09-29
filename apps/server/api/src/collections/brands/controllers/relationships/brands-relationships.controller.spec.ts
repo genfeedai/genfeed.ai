@@ -18,7 +18,6 @@ import type { Request } from 'express';
 
 describe('BrandsRelationshipsController', () => {
   let controller: BrandsRelationshipsController;
-  let _brandsService: BrandsService;
 
   const brandId = testId('brand');
   const organizationId = testId('org');
@@ -87,15 +86,10 @@ describe('BrandsRelationshipsController', () => {
     controller = module.get<BrandsRelationshipsController>(
       BrandsRelationshipsController,
     );
-    _brandsService = module.get<BrandsService>(BrandsService);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
   });
 
   describe('findBrandAnalytics', () => {

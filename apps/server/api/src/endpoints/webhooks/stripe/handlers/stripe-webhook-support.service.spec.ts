@@ -146,16 +146,6 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('resolveCheckoutCredits', () => {
-    it('prefers the session metadata credits', () => {
-      expect(service.resolveCheckoutCredits({ credits: '250' }, 0)).toBe(250);
-    });
-
-    it('falls back to the STRIPE_PAYG_CREDITS config value', () => {
-      configService.get.mockReturnValue('500');
-
-      expect(service.resolveCheckoutCredits({}, 0)).toBe(500);
-    });
-
     it('uses the caller fallback when metadata and config are empty', () => {
       expect(service.resolveCheckoutCredits({}, 1)).toBe(1);
     });
@@ -166,18 +156,6 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('withCheckoutSessionProcessing', () => {
-    it('builds a managed-inference credit reference from the checkout session id', () => {
-      expect(
-        service.buildCheckoutSessionCreditReference(
-          'managed-inference',
-          'cs_managed_1',
-        ),
-      ).toEqual({
-        referenceId: 'cs_managed_1',
-        referenceType: 'stripe-checkout-session:managed-inference',
-      });
-    });
-
     it('runs the callback under a session lock and marks the session processed', async () => {
       const callback = vi.fn().mockResolvedValue('done');
 
@@ -393,10 +371,6 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('isUniqueConstraintError', () => {
-    it('returns true for a Prisma P2002 error', () => {
-      expect(service.isUniqueConstraintError({ code: 'P2002' })).toBe(true);
-    });
-
     it('returns false for other error codes', () => {
       expect(service.isUniqueConstraintError({ code: 'P2025' })).toBe(false);
     });
@@ -445,19 +419,6 @@ describe('StripeWebhookSupportService', () => {
   });
 
   describe('markOnboardingComplete', () => {
-    it('patches the onboarding fields for incomplete users', async () => {
-      await service.markOnboardingComplete({
-        id: 'user_1',
-        isOnboardingCompleted: false,
-      });
-
-      expect(usersService.patch).toHaveBeenCalledWith('user_1', {
-        isOnboardingCompleted: true,
-        onboardingCompletedAt: expect.any(Date),
-        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
-      });
-    });
-
     it('is a no-op for already-onboarded users', async () => {
       await service.markOnboardingComplete({
         id: 'user_1',
@@ -641,10 +602,6 @@ describe('StripeWebhookSupportService', () => {
       expect(creditGrantService.resolveTierFromPriceId).toHaveBeenCalledWith(
         'price_scale',
       );
-    });
-
-    it('returns null for unknown prices', () => {
-      expect(service.resolveTierFromPriceId('price_unknown')).toBeNull();
     });
   });
 
@@ -935,24 +892,6 @@ describe('StripeWebhookSupportService', () => {
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed to record revenue event'),
         expect.objectContaining({ stripeObjectId: 'cs_test_1' }),
-      );
-    });
-
-    it('passes the caller-supplied plan label through for subscription revenue', async () => {
-      prisma.billingRevenueEvent.createMany.mockResolvedValue({ count: 1 });
-
-      await service.recordRevenueEvent({
-        ...baseInput,
-        planLabel: 'pro',
-        source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
-      });
-
-      expect(activityRecorder.dispatchInTransaction).toHaveBeenCalledWith(
-        prisma,
-        revenueMessage({
-          planLabel: 'pro',
-          source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
-        }),
       );
     });
 

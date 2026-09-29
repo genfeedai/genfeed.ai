@@ -98,10 +98,6 @@ describe('IngredientsRelationshipsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findChildren', () => {
     it('should return child ingredients', async () => {
       const result = await controller.findChildren(

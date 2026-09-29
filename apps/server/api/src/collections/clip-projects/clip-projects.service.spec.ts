@@ -856,18 +856,6 @@ describe('ClipProjectsService', () => {
       });
     });
 
-    it('refuses to edit a project that has already started', async () => {
-      prisma.clipProject.findFirst.mockResolvedValue({
-        ...draftRow,
-        status: 'analyzing',
-      });
-
-      await expect(
-        service.saveDraft('project-1', 'org-1', { maxClips: 3 }),
-      ).rejects.toBeInstanceOf(ConflictException);
-      expect(prisma.clipProject.updateMany).not.toHaveBeenCalled();
-    });
-
     it('refuses a save that loses the race with a start', async () => {
       prisma.clipProject.findFirst.mockResolvedValue(draftRow);
       prisma.clipProject.updateMany.mockResolvedValue({ count: 0 });

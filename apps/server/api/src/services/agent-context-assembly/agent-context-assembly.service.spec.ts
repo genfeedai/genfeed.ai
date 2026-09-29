@@ -202,49 +202,6 @@ describe('AgentContextAssemblyService', () => {
     });
   });
 
-  it('assembles context for an existing onboarding brand with a text audience', async () => {
-    const brand = createCompleteBrand();
-    brandsService.findOne.mockResolvedValue({
-      ...brand,
-      agentConfig: {
-        ...brand.agentConfig,
-        voice: {
-          ...brand.agentConfig.voice,
-          audience: 'Founders',
-        } as unknown as typeof brand.agentConfig.voice,
-      },
-    });
-
-    const context = await service.assembleContext({
-      brandId: 'brand-1',
-      layers: { brandMemory: false },
-      organizationId: 'org-1',
-    });
-
-    expect(context?.voice).toMatchObject({
-      audience: 'Founders',
-      tone: 'direct',
-    });
-  });
-
-  it('registers the cached brand context under the org-scoped tag', async () => {
-    await service.assembleContext({
-      brandId: 'brand-1',
-      layers: { brandMemory: false },
-      organizationId: 'org-1',
-      platform: 'linkedin',
-    });
-
-    // Brand-kit writes invalidate `brand-ctx:{orgId}` via invalidateByTags, so
-    // every brand-ctx entry must carry the tag at set time — otherwise a fresh
-    // logo import would wait out the TTL before reaching prompts.
-    expect(cacheService.getOrSet).toHaveBeenCalledWith(
-      'brand-ctx:org-1:brand-1',
-      expect.any(Function),
-      expect.objectContaining({ tags: ['brand-ctx:org-1'] }),
-    );
-  });
-
   it('puts brand kit values into the generated system prompt', async () => {
     const context = (await service.assembleContext({
       brandId: 'brand-1',

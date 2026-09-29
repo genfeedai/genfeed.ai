@@ -73,10 +73,6 @@ describe('OpusProWebhookController', () => {
     loggerService = module.get(LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('handleCallback', () => {
     it('should handle completed webhook successfully', async () => {
       const payload: OpusProWebhookPayload = {

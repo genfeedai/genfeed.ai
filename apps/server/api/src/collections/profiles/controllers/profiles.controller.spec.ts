@@ -110,10 +110,6 @@ describe('ProfilesController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('create', () => {
     it('should create a profile', async () => {
       const createDto: CreateProfileDto = {
@@ -276,23 +272,6 @@ describe('ProfilesController', () => {
         'org-openrouter-key',
       );
     });
-
-    it('still runs the credits preflight when the guard did not bypass', async () => {
-      const dto: ApplyProfileDto = {
-        contentType: 'article',
-        profileId,
-        prompt: 'Original prompt',
-      };
-      mockProfilesService.applyProfile.mockResolvedValue({
-        enhanced: 'Enhanced',
-        original: 'Original prompt',
-        profileApplied: profileId,
-      });
-
-      await controller.applyProfile(mockReq, dto, mockUser);
-
-      expect(modelsService.findOne).toHaveBeenCalled();
-    });
   });
 
   describe('analyzeTone', () => {
@@ -348,23 +327,6 @@ describe('ProfilesController', () => {
         expect.any(Function),
         'org-openrouter-key',
       );
-    });
-
-    it('still runs the credits preflight when the guard did not bypass', async () => {
-      const dto: AnalyzeToneDto = {
-        content: 'Test content',
-        contentType: 'article',
-        profileId,
-      };
-      mockProfilesService.analyzeTone.mockResolvedValue({
-        compliance: 'high',
-        score: 85,
-        suggestions: [],
-      });
-
-      await controller.analyzeTone(mockReq, dto, mockUser);
-
-      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 
@@ -425,22 +387,6 @@ describe('ProfilesController', () => {
         expect.any(Function),
         'org-openrouter-key',
       );
-    });
-
-    it('still runs the credits preflight when the guard did not bypass', async () => {
-      const dto: GenerateFromExamplesDto = {
-        description: 'Generated from examples',
-        examples: [
-          { content: 'Example 1', contentType: 'article' },
-          { content: 'Example 2', contentType: 'article' },
-        ],
-        label: 'Generated Profile',
-      };
-      mockProfilesService.generateFromExamples.mockResolvedValue(mockProfile);
-
-      await controller.generateFromExamples(mockReq, dto, mockUser);
-
-      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 });

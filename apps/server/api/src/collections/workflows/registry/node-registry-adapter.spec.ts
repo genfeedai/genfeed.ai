@@ -13,12 +13,6 @@ describe('node-registry-adapter', () => {
     expect(UNIFIED_NODE_REGISTRY).toHaveProperty('workflowInput');
   });
 
-  it('allows image input to connect into ai-generate-image', () => {
-    expect(
-      validateConnection('input-image', 'image', 'ai-generate-image', 'image'),
-    ).toBe(true);
-  });
-
   it('allows image input to connect into canonical imageGen', () => {
     expect(
       validateConnection('input-image', 'image', 'imageGen', 'image'),

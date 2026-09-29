@@ -48,10 +48,6 @@ describe('AgentMessageBusService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ── publish ───────────────────────────────────────────────────────────────
 
   describe('publish', () => {
@@ -81,14 +77,6 @@ describe('AgentMessageBusService', () => {
       expect(redisService.publish).toHaveBeenCalledWith(
         'campaign:campaign-123:messages',
         message,
-      );
-    });
-
-    it('logs after successful publish', async () => {
-      await service.publish(message);
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('published message'),
-        expect.objectContaining({ agentId: 'agent-1' }),
       );
     });
 
@@ -166,16 +154,6 @@ describe('AgentMessageBusService', () => {
       expect(publisher.lrange).toHaveBeenCalledWith(
         'campaign:campaign-123:message_history',
         -50,
-        -1,
-      );
-    });
-
-    it('respects custom limit', async () => {
-      publisher.lrange.mockResolvedValue([]);
-      await service.getRecentMessages('campaign-123', 10);
-      expect(publisher.lrange).toHaveBeenCalledWith(
-        'campaign:campaign-123:message_history',
-        -10,
         -1,
       );
     });

@@ -1,4 +1,3 @@
-import { listSystemWorkflowCatalog } from '@api/collections/workflows/system-workflow-catalog';
 import {
   SHOWCASE_WORKFLOW_TEMPLATE_IDS,
   WORKFLOW_TEMPLATES,
@@ -30,18 +29,6 @@ describe('WorkflowTemplates showcase ranking', () => {
     expect(SHOWCASE_WORKFLOW_TEMPLATE_IDS.length).toBeLessThanOrEqual(8);
   });
 
-  it('omits featuredRank on every other template', () => {
-    const showcaseIds = new Set<string>(SHOWCASE_WORKFLOW_TEMPLATE_IDS);
-    const rankedOutsideShowcase = Object.entries(WORKFLOW_TEMPLATES)
-      .filter(
-        ([templateId, template]) =>
-          !showcaseIds.has(templateId) && 'featuredRank' in template,
-      )
-      .map(([templateId]) => templateId);
-
-    expect(rankedOutsideShowcase).toEqual([]);
-  });
-
   it('only features complete graphs with wired edges and no unresolved placeholders', () => {
     for (const templateId of SHOWCASE_WORKFLOW_TEMPLATE_IDS) {
       const template = WORKFLOW_TEMPLATES[templateId];
@@ -53,14 +40,6 @@ describe('WorkflowTemplates showcase ranking', () => {
         UNRESOLVED_TEMPLATE_PLACEHOLDER,
       );
     }
-  });
-
-  it('never carries featuredRank on system catalog entries', () => {
-    const rankedCatalogEntries = listSystemWorkflowCatalog()
-      .filter((entry) => 'featuredRank' in entry)
-      .map((entry) => entry.canonicalId);
-
-    expect(rankedCatalogEntries).toEqual([]);
   });
 });
 
@@ -79,10 +58,6 @@ describe('WorkflowTemplates', () => {
         target: 'review-instagram-remix',
       }),
     ]);
-  });
-
-  it('includes the X landscape avatar starter in the public template registry', () => {
-    expect(WORKFLOW_TEMPLATES).toHaveProperty('avatar-ugc-x-landscape-heygen');
   });
 
   it('includes the real-estate workflow starters in the public template registry', () => {

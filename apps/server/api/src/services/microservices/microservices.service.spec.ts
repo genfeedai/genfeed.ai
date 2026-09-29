@@ -100,10 +100,6 @@ describe('MicroservicesService', () => {
     loggerService = module.get<LoggerService>(LoggerService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('checkRedisHealth', () => {
     it('should return true when Redis is healthy', async () => {
       const mockRedisClient = {

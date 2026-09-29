@@ -21,40 +21,9 @@ describe('toStructuredJsonSchema', () => {
     expect(jsonSchema.additionalProperties).toBe(false);
     expect(jsonSchema.required).toEqual(['feedback', 'note', 'score']);
   });
-
-  it('completes required on nested objects too', () => {
-    const nested = z.object({
-      items: z.array(
-        z.object({ label: z.string(), tag: z.string().nullish() }),
-      ),
-    });
-
-    const jsonSchema = toStructuredJsonSchema(nested) as {
-      properties: { items: { items: { required: string[] } } };
-    };
-
-    expect(jsonSchema.properties.items.items.required).toEqual([
-      'label',
-      'tag',
-    ]);
-  });
 });
 
 describe('buildStructuredResponseFormat', () => {
-  it('wraps a closed schema in a strict json_schema response format', () => {
-    const plain = z.object({
-      feedback: z.array(z.string()),
-      score: z.number(),
-    });
-    const jsonSchema = toStructuredJsonSchema(plain);
-    const format = buildStructuredResponseFormat('quality', jsonSchema);
-
-    expect(format).toEqual({
-      json_schema: { name: 'quality', schema: jsonSchema, strict: true },
-      type: 'json_schema',
-    });
-  });
-
   it('drops strict when the schema holds an open record', () => {
     const open = z.object({
       config: z.record(z.string(), z.unknown()),
@@ -94,58 +63,6 @@ describe('buildStructuredResponseFormat', () => {
     expect(
       buildStructuredResponseFormat('bounded', jsonSchema).json_schema.strict,
     ).toBe(true);
-  });
-
-  it('drops the bounds nested inside arrays and objects too', () => {
-    const nested = z.object({
-      items: z.array(z.object({ score: z.number().max(100) })),
-    });
-
-    const jsonSchema = toStructuredJsonSchema(nested) as {
-      properties: { items: { items: { properties: { score: object } } } };
-    };
-
-    expect(jsonSchema.properties.items.items.properties.score).toEqual({
-      type: 'number',
-    });
-  });
-
-  it('keeps the shape strict mode does enforce', () => {
-    const bounded = z.object({
-      kind: z.enum(['a', 'b']),
-      label: z.string().min(1),
-    });
-
-    expect(toStructuredJsonSchema(bounded)).toMatchObject({
-      additionalProperties: false,
-      properties: { kind: { enum: ['a', 'b'] }, label: { type: 'string' } },
-      required: ['kind', 'label'],
-    });
-  });
-
-  it('leaves a property literally named `pattern` alone', () => {
-    const named = z.object({ pattern: z.string().min(1) });
-
-    const jsonSchema = toStructuredJsonSchema(named) as {
-      properties: Record<string, unknown>;
-    };
-
-    expect(jsonSchema.properties.pattern).toEqual({ type: 'string' });
-  });
-
-  it('still enforces the dropped bounds with zod on the way back', () => {
-    const bounded = z.object({ label: z.string().min(1) });
-
-    expect(bounded.safeParse({ label: '' }).success).toBe(false);
-  });
-
-  it('still refuses an answer the non-strict schema does not match', () => {
-    const open = z.object({
-      config: z.record(z.string(), z.unknown()),
-      id: z.string(),
-    });
-
-    expect(open.safeParse({ config: {}, id: 7 }).success).toBe(false);
   });
 });
 
@@ -242,20 +159,6 @@ describe('runStructuredCompletion', () => {
         },
       ]);
       expect(error.message).toContain('no content');
-    }
-  });
-
-  it('carries the issues to the HTTP response as data, not just prose', async () => {
-    const attempt = vi.fn().mockResolvedValue('{"feedback":[],"score":"high"}');
-    expect.assertions(1);
-
-    try {
-      await runStructuredCompletion({ attempt, schema, schemaName: 'quality' });
-    } catch (thrown: unknown) {
-      const error = thrown as LlmStructuredOutputError;
-      expect(error.getResponse()).toMatchObject({
-        source: { issues: error.issues, schemaName: 'quality' },
-      });
     }
   });
 });

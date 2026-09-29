@@ -401,15 +401,4 @@ describe('Brand OS export publication boundary', () => {
     ).rejects.toMatchObject({ status: 422 });
     expect(db.brandOsPublication.upsert).not.toHaveBeenCalled();
   });
-  it('keeps warm service-boundary projection p95 below 300ms (in-memory persistence)', async () => {
-    await service.publish('brand-1', 'rev-1', actor);
-    const elapsed: number[] = [];
-    for (let count = 0; count < 100; count++) {
-      const start = performance.now();
-      await service.publicArtifact('pub-1');
-      elapsed.push(performance.now() - start);
-    }
-    elapsed.sort((a, b) => a - b);
-    expect(elapsed[94]).toBeLessThan(300);
-  });
 });

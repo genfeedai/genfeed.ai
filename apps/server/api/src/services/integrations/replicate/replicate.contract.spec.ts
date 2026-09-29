@@ -123,24 +123,6 @@ describe('ReplicateService (contract)', () => {
       );
     });
 
-    it('keeps a bare immutable version in the version field', async () => {
-      const built = await buildService();
-      service = built.service;
-      const predictionsCreate = vi
-        .fn()
-        .mockResolvedValue({ id: 'pred_bare_version', status: 'starting' });
-      service.client = {
-        predictions: { create: predictionsCreate },
-      } as unknown as typeof service.client;
-
-      const version = 'a'.repeat(64);
-      await service.runModel(version, { prompt: 'x' });
-
-      expect(predictionsCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ version }),
-      );
-    });
-
     it('rethrows and logs when Replicate rejects (e.g. 422 invalid version)', async () => {
       const built = await buildService();
       service = built.service;

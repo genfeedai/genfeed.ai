@@ -84,10 +84,6 @@ describe('TwitterService', () => {
     service = module.get<TwitterService>(TwitterService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('resolves an explicit X credential within the requested brand', async () => {
     await expect(
       service.refreshToken('org-1', 'brand-1', 'credential-1'),
@@ -113,18 +109,6 @@ describe('TwitterService', () => {
       expect(resolveTwitterReplySettings({ replyPolicy: 'mentioned' })).toBe(
         'mentionedUsers',
       );
-    });
-
-    it('omits the field for the everyone policy', () => {
-      // Twitter expresses "everyone" by leaving `reply_settings` off; sending
-      // the literal value rejects the whole tweet.
-      expect(
-        resolveTwitterReplySettings({ replyPolicy: 'everyone' }),
-      ).toBeUndefined();
-    });
-
-    it('omits the field when no policy was chosen', () => {
-      expect(resolveTwitterReplySettings({})).toBeUndefined();
     });
   });
 

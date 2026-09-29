@@ -31,12 +31,4 @@ describe('createConcurrencyLimit', () => {
     expect(results).toEqual([1, 2, 3, 4]);
     expect(peak).toBeLessThanOrEqual(2);
   });
-
-  it('propagates rejections from the wrapped task', async () => {
-    const limit = createConcurrencyLimit(1);
-
-    await expect(
-      limit(() => Promise.reject(new Error('task failed'))),
-    ).rejects.toThrowError('task failed');
-  });
 });

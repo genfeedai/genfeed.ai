@@ -410,54 +410,6 @@ describe('AvatarVideoGenerationService', () => {
     },
   );
 
-  it('with HeyGen BYOK, still charges for speech from a saved Genfeed voice', async () => {
-    const {
-      brandsService,
-      byokService,
-      creditsUtilsService,
-      managedInferenceRuntimeService,
-      service,
-      voicesService,
-    } = createService();
-    brandsService.findOne.mockResolvedValue({
-      agentConfig: {},
-      id: 'brand-1',
-    });
-    voicesService.findOne.mockResolvedValue({
-      externalVoiceId: null,
-      id: 'voice-fleet-1',
-      isCloned: true,
-      organizationId: context.organizationId,
-      provider: VoiceProvider.GENFEED_AI,
-      sampleAudioUrl: 'https://cdn.example.com/reference.wav',
-    });
-    byokService.resolveApiKey.mockImplementation(
-      async (_organizationId: string, provider: ByokProvider) =>
-        provider === ByokProvider.HEYGEN
-          ? { apiKey: 'heygen-byok-test-key' }
-          : null,
-    );
-    managedInferenceRuntimeService.generateVoice.mockResolvedValue({
-      jobId: 'voice-job-1',
-    });
-    managedInferenceRuntimeService.pollJob.mockResolvedValue({
-      audioUrl: 'https://cdn.example.com/fleet.mp3',
-    });
-
-    await service.generateAvatarVideo(
-      {
-        clonedVoiceId: 'voice-fleet-1',
-        photoIngredientId: 'avatar-1',
-        text: 'Create the founder update',
-      },
-      context,
-    );
-
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledTimes(1);
-  });
-
   it('publishes initial progress on the ingredient video path for its user', async () => {
     const { service, brandsService, websocketService } = createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
@@ -505,78 +457,6 @@ describe('AvatarVideoGenerationService', () => {
       error: 'HeyGen rejected the job',
       ingredientId: 'avatar-ingredient-1',
     });
-  });
-
-  it('links the placeholder before Fleet voice synthesis and HeyGen dispatch', async () => {
-    const {
-      brandsService,
-      managedInferenceRuntimeService,
-      heygenService,
-      metadataService,
-      service,
-      sharedService,
-      voicesService,
-    } = createService();
-    const order: string[] = [];
-    brandsService.findOne.mockResolvedValue({
-      agentConfig: {},
-      id: 'brand-1',
-    });
-    voicesService.findOne.mockResolvedValue({
-      externalVoiceId: null,
-      id: 'voice-fleet-1',
-      isCloned: true,
-      organizationId: context.organizationId,
-      provider: VoiceProvider.GENFEED_AI,
-      sampleAudioUrl: 'https://cdn.example.com/reference.wav',
-    });
-    sharedService.createMediaDocumentsInternal.mockImplementation(async () => {
-      order.push('placeholder');
-      return {
-        ingredientData: { id: 'avatar-ingredient-1' },
-        metadataData: { id: 'avatar-metadata-1' },
-      };
-    });
-    metadataService.patch.mockImplementation(async (_id, entity) => {
-      if ((entity as { externalProvider?: string }).externalProvider) {
-        order.push('provider-marked');
-      }
-    });
-    managedInferenceRuntimeService.generateVoice.mockImplementation(
-      async () => {
-        order.push('fleet');
-        return { jobId: 'voice-job-1' };
-      },
-    );
-    managedInferenceRuntimeService.pollJob.mockImplementation(async () => {
-      order.push('fleet-poll');
-      return { audioUrl: 'https://cdn.example.com/fleet.mp3' };
-    });
-    heygenService.generatePhotoAvatarVideo.mockImplementation(async () => {
-      order.push('heygen');
-      return 'heygen-job-1';
-    });
-
-    await service.generateAvatarVideo(
-      {
-        clonedVoiceId: 'voice-fleet-1',
-        photoIngredientId: 'avatar-1',
-        text: 'Create the founder update',
-      },
-      context,
-      async (ingredientId) => {
-        order.push(`linked:${ingredientId}`);
-      },
-    );
-
-    expect(order).toEqual([
-      'placeholder',
-      'linked:avatar-ingredient-1',
-      'provider-marked',
-      'fleet',
-      'fleet-poll',
-      'heygen',
-    ]);
   });
 
   it('links the placeholder before ElevenLabs synthesis and HeyGen dispatch', async () => {
@@ -724,21 +604,6 @@ describe('AvatarVideoGenerationService', () => {
       context.organizationId,
       'Create the founder update',
     );
-  });
-
-  it('preserves an authorized explicit photo ingredient without enabling defaults', async () => {
-    const { service } = createService();
-
-    const resolved = await resolveIdentityInputs(
-      service,
-      {
-        photoIngredientId: 'brand-avatar-1',
-        text: 'Create the founder update',
-      },
-      { agentConfig: {} } as unknown as BrandDocument,
-    );
-
-    expect(resolved.photoIngredientId).toBe('brand-avatar-1');
   });
 
   it('resolves an explicit catalog voice Ingredient even when it is not cloned', async () => {

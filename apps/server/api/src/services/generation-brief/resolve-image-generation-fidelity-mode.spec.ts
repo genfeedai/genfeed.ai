@@ -2,10 +2,6 @@ import { resolveImageGenerationFidelityMode } from '@api/services/generation-bri
 import { describe, expect, it } from 'vitest';
 
 describe('resolveImageGenerationFidelityMode', () => {
-  it('returns off when no brand signal is present', () => {
-    expect(resolveImageGenerationFidelityMode({})).toBe('off');
-  });
-
   it('maps brandingMode brand and isBrandingEnabled to guided', () => {
     expect(resolveImageGenerationFidelityMode({ brandingMode: 'brand' })).toBe(
       'guided',

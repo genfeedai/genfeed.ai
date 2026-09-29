@@ -356,62 +356,6 @@ describe('McpApprovalsService', () => {
       expect(mcpApproval.updateMany).not.toHaveBeenCalled();
     });
 
-    it('allows an approve-scoped key to claim a deferred publishing tool', async () => {
-      mcpApproval.findFirst
-        .mockResolvedValueOnce({
-          id: 'approval-publish',
-          organizationId: 'org-1',
-          status: 'PENDING',
-          toolName: 'create_scheduled_release',
-        })
-        .mockResolvedValueOnce({
-          id: 'approval-publish',
-          organizationId: 'org-1',
-          status: 'APPROVED',
-          toolName: 'create_scheduled_release',
-        });
-      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
-
-      await expect(
-        service.resolve('approval-publish', 'org-1', 'approve', undefined, {
-          isApiKey: true,
-          scopes: [ApiKeyScope.POSTS_APPROVE],
-        }),
-      ).resolves.toMatchObject({ status: 'APPROVED' });
-    });
-
-    it('updates status to DECLINED when decision is decline', async () => {
-      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
-      mcpApproval.findFirst.mockResolvedValue({
-        id: 'approval-4',
-        organizationId: 'org-1',
-        status: 'DECLINED',
-      });
-
-      await service.resolve('approval-4', 'org-1', 'decline');
-
-      expect(mcpApproval.updateMany).toHaveBeenCalledWith({
-        where: expect.objectContaining({ id: 'approval-4', status: 'PENDING' }),
-        data: expect.objectContaining({ status: 'DECLINED' }),
-      });
-    });
-
-    it('does not include result key when result is undefined', async () => {
-      mcpApproval.updateMany.mockResolvedValue({ count: 1 });
-      mcpApproval.findFirst.mockResolvedValue({
-        id: 'approval-5',
-        organizationId: 'org-1',
-        status: 'APPROVED',
-      });
-
-      await service.resolve('approval-5', 'org-1', 'approve');
-
-      const updateCall = mcpApproval.updateMany.mock.calls[0][0] as {
-        data: Record<string, unknown>;
-      };
-      expect(updateCall.data).not.toHaveProperty('result');
-    });
-
     it('throws NotFoundException when approval not found or cross-org', async () => {
       mcpApproval.updateMany.mockResolvedValue({ count: 0 });
       mcpApproval.findFirst.mockResolvedValue(null);

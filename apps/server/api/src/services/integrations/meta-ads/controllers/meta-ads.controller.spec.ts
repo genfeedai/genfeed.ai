@@ -97,10 +97,6 @@ describe('MetaAdsController', () => {
     controller = module.get(MetaAdsController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('getAdAccounts', () => {
     it('returns ad accounts using decrypted token', async () => {
       const accounts = [{ id: 'act_123', name: 'Test Account' }];

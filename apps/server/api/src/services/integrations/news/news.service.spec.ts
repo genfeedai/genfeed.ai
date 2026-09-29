@@ -39,10 +39,6 @@ describe('NewsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('gets latest news', async () => {
     mockHttpService.get.mockReturnValueOnce(
       of({ data: { articles: [{ title: 'a' }] } }),

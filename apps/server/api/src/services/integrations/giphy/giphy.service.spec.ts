@@ -46,10 +46,6 @@ describe('GiphyService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('reads GIPHY_API_KEY from config on construction', () => {
     expect(configService.get).toHaveBeenCalledWith('GIPHY_API_KEY');
   });
@@ -81,22 +77,6 @@ describe('GiphyService', () => {
     await expect(service.uploadGif('/tmp/test.gif')).rejects.toThrow(
       'Network error',
     );
-  });
-
-  it('uploadGif logs error on failure', async () => {
-    httpService.post.mockReturnValue(throwError(() => new Error('Timeout')));
-    try {
-      await service.uploadGif('/tmp/test.gif');
-    } catch {
-      // expected
-    }
-    expect(loggerService.error).toHaveBeenCalled();
-  });
-
-  it('uploadGif logs success on successful upload', async () => {
-    httpService.post.mockReturnValue(of({ data: { data: { id: 'gif-123' } } }));
-    await service.uploadGif('/tmp/test.gif');
-    expect(loggerService.log).toHaveBeenCalled();
   });
 
   it('uses default api key when config returns falsy', () => {

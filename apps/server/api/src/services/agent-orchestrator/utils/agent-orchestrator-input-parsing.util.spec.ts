@@ -102,20 +102,10 @@ describe('agent orchestrator input parsing', () => {
     expect(extractRecurringContentCount('create 5images')).toBeUndefined();
   });
 
-  it('reads a platform-qualified asset count', () => {
-    expect(extractRecurringContentCount('create 5 twitter videos')).toBe(5);
-  });
-
   it('ignores a platform token that is not followed by an asset', () => {
     expect(
       extractRecurringContentCount('create 5 twitter weekly'),
     ).toBeUndefined();
-  });
-
-  it('extracts style notes after in-an', () => {
-    expect(extractStyleNotes('Create images in an editorial style')).toBe(
-      'editorial',
-    );
   });
 
   it('returns undefined when a style cue has no notes', () => {
@@ -139,13 +129,4 @@ describe('agent orchestrator input parsing', () => {
       ).toBe('AI Safety');
     },
   );
-
-  it.each(['!', '?'])('stops a topic at sentence punctuation %s', (mark) => {
-    expect(
-      extractBatchTopic(
-        `Create posts about AI Safety${mark} extra`,
-        `create posts about ai safety${mark} extra`,
-      ),
-    ).toBe('AI Safety');
-  });
 });

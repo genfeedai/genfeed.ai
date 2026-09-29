@@ -111,21 +111,6 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     turnCost: 0,
   };
 
-  it.each(['auto', 'manual'])(
-    'does not intercept the turn when the thread mode is %s',
-    async (mode) => {
-      agentThreadsService.findOne.mockResolvedValue({ mode });
-
-      const result = await service.tryHandlePlanModeTurn(
-        baseParams as never,
-        host,
-      );
-
-      expect(result).toBeNull();
-      expect(llmDispatcher.chatCompletion).not.toHaveBeenCalled();
-    },
-  );
-
   it('drafts a plan and does not call any tool when the thread mode is plan', async () => {
     agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
 

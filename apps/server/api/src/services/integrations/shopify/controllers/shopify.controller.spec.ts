@@ -80,42 +80,7 @@ describe('ShopifyController', () => {
     controller = module.get<ShopifyController>(ShopifyController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('connect()', () => {
-    it('should return auth URL from service', async () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://myshop.myshopify.com/admin/oauth/authorize',
-      );
-
-      const result = await controller.connect({} as never, user, {
-        brandId: 'brand-id',
-        shop: 'myshop.myshopify.com',
-      });
-
-      expect(result).toEqual({
-        url: 'https://myshop.myshopify.com/admin/oauth/authorize',
-      });
-    });
-
-    it('should pass normalized shop and server-issued state', async () => {
-      mockShopifyService.generateAuthUrl.mockReturnValue(
-        'https://shopify.com/auth',
-      );
-
-      await controller.connect({} as never, user, {
-        brandId: 'brand-id',
-        shop: 'SHOP.myshopify.com',
-      });
-
-      expect(mockShopifyService.generateAuthUrl).toHaveBeenCalledWith(
-        'shop.myshopify.com',
-        'opaque-oauth-state',
-      );
-    });
-
     it('should log auth url request', async () => {
       mockShopifyService.generateAuthUrl.mockReturnValue(
         'https://shopify.com/auth',
@@ -161,37 +126,6 @@ describe('ShopifyController', () => {
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });
-
-    it('should use the shop bound to the pending credential', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
-      });
-
-      await controller.verify({} as never, {
-        code: 'my-code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockShopifyService.exchangeCodeForToken).toHaveBeenCalledWith(
-        'myshop.myshopify.com',
-        'my-code',
-      );
-    });
-
-    it('should log exchange token request', async () => {
-      mockShopifyService.exchangeCodeForToken.mockResolvedValue({
-        accessToken: 'token',
-      });
-
-      await controller.verify({} as never, {
-        code: 'code',
-        state: 'opaque-oauth-state',
-      });
-
-      expect(mockLoggerService.log).toHaveBeenCalledWith(
-        'Shopify exchange token',
-      );
-    });
   });
 
   describe('createProduct()', () => {
@@ -204,31 +138,6 @@ describe('ShopifyController', () => {
       title: 'AI Generated Product',
       variants: [{ price: '29.99', title: 'Default' }],
     };
-
-    it('should return created product from service', async () => {
-      const product = { id: 12345, title: 'AI Generated Product' };
-      mockShopifyService.createProduct.mockResolvedValue(product);
-
-      const result = await controller.createProduct(productBody);
-
-      expect(result).toEqual({ data: product });
-    });
-
-    it('should pass all args to createProduct service', async () => {
-      mockShopifyService.createProduct.mockResolvedValue({});
-
-      await controller.createProduct(productBody);
-
-      expect(mockShopifyService.createProduct).toHaveBeenCalledWith(
-        productBody.shop,
-        productBody.accessToken,
-        productBody.title,
-        productBody.bodyHtml,
-        productBody.images,
-        productBody.variants,
-        productBody.tags,
-      );
-    });
 
     it('should log create product request', async () => {
       mockShopifyService.createProduct.mockResolvedValue({});

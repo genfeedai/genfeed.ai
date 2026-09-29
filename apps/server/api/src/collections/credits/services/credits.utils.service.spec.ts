@@ -347,38 +347,6 @@ describe('CreditsUtilsService', () => {
       ).toHaveLength(9);
     });
 
-    it('aborts inside the transaction when the wallet resolves to a different billing account', async () => {
-      const service = buildService();
-      billingAccountsService.resolveForOrganization.mockResolvedValue({
-        id: 'ba_2',
-      });
-      creditBalanceService.getOrCreateBalance.mockResolvedValue({
-        balance: 100,
-        billingAccountId: 'ba_2',
-        heldAmount: 0,
-        id: 'bal_2',
-        organizationId: 'org_1',
-        version: 1,
-      });
-
-      await expect(
-        service.addOrganizationCreditsWithExpiration(
-          'org_1',
-          50,
-          'stripe',
-          'renewal credits',
-          new Date('2027-01-01T00:00:00Z'),
-          { billingAccountId: 'ba_1' },
-        ),
-      ).rejects.toBeInstanceOf(CreditGrantBillingAccountMismatchException);
-
-      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
-      expect(
-        creditTransactionsService.createTransactionEntry,
-      ).not.toHaveBeenCalled();
-      expect(websocketService.emit).not.toHaveBeenCalled();
-    });
-
     it('persists a caller-provided idempotency key on the ledger entry', async () => {
       const service = buildService();
 

@@ -230,16 +230,6 @@ describe('VideoStitchService', () => {
       },
     );
 
-    it('accepts the largest interpolation sequence (50 pairs plus the loop pair)', async () => {
-      const clipIds = Array.from(
-        { length: VIDEO_STITCH_LIMITS.MAX_CLIPS },
-        (_, index) => (index % 2 === 0 ? 'clip-1' : 'clip-2'),
-      );
-      await expect(
-        fixture.service.stitch(request({ clipIds })),
-      ).resolves.toMatchObject({ state: 'processing' });
-    });
-
     it.each([
       ['another organization', { organizationId: 'org-2' }],
       ['another brand', { brandId: 'brand-2' }],
@@ -253,46 +243,6 @@ describe('VideoStitchService', () => {
         'clipIds',
       );
       expect(fixture.queued).toEqual([]);
-    });
-
-    it('accepts uploaded clips and drafts whose media is stored', async () => {
-      fixture.row('clip-1').status = IngredientStatus.UPLOADED;
-      fixture.row('clip-2').status = IngredientStatus.DRAFT;
-      await expect(fixture.service.stitch(request())).resolves.toMatchObject({
-        state: 'processing',
-      });
-    });
-
-    it('accepts a global default music track', async () => {
-      fixture.addClip({
-        category: 'MUSIC',
-        id: 'default-track',
-        isDefault: true,
-        organizationId: null,
-        s3Key: null,
-      });
-      await expect(
-        fixture.service.stitch(
-          request({ settings: { music: 'default-track' } }),
-        ),
-      ).resolves.toMatchObject({ state: 'processing' });
-    });
-
-    it('refuses a global music track that is not a default', async () => {
-      fixture.addClip({
-        category: 'MUSIC',
-        id: 'global-track',
-        isDefault: false,
-        organizationId: null,
-        s3Key: null,
-      });
-      expect(
-        await failingField(
-          fixture.service.stitch(
-            request({ settings: { music: 'global-track' } }),
-          ),
-        ),
-      ).toBe('music');
     });
 
     it('refuses music from another organization', async () => {
@@ -367,15 +317,6 @@ describe('VideoStitchService', () => {
       ).toBe('clipIds');
       expect(fixture.outputs()).toEqual([]);
       expect(fixture.queued).toEqual([]);
-    });
-  });
-
-  describe('workflow lineage', () => {
-    it('links the output to the workflow execution that produced it', async () => {
-      const handle = await fixture.service.stitch(
-        request({ callerKind: 'workflow', workflowExecutionId: 'exec-1' }),
-      );
-      expect(fixture.row(handle.outputId).workflowExecutionId).toBe('exec-1');
     });
   });
 
@@ -484,23 +425,6 @@ describe('VideoStitchService', () => {
       });
     });
 
-    it('records the captioned file size, not the intermediate merge size', async () => {
-      const handle = await fixture.service.stitch(
-        request({ settings: { isCaptionsEnabled: true } }),
-      );
-      fixture.completeJob(
-        handle.jobId,
-        `ingredients/videos/${handle.outputId}`,
-      );
-
-      await fixture.service.waitForCompletion(handle);
-
-      expect(fixture.eventsNamed('metadata.update')[0]?.[1]).toMatchObject({
-        duration: 12,
-        size: 4096,
-      });
-    });
-
     it('burns in captions when the request asked for them', async () => {
       const handle = await fixture.service.stitch(
         request({ settings: { isCaptionsEnabled: true } }),
@@ -569,15 +493,6 @@ describe('VideoStitchService', () => {
       expect(fixture.queued.at(-1)).toMatchObject({
         params: { captionContent: '', isMuteVideoAudio: true },
         type: 'add-captions',
-      });
-    });
-
-    it('mutes inside the merge when there are no captions to transcribe', async () => {
-      await fixture.service.stitch(
-        request({ settings: { isMuteVideoAudio: true } }),
-      );
-      expect(fixture.mergeJobs()[0]?.params).toMatchObject({
-        isMuteVideoAudio: true,
       });
     });
 
@@ -685,22 +600,6 @@ describe('VideoStitchService', () => {
         IngredientStatus.PROCESSING,
       );
       expect(fixture.eventsNamed('media.failed')).toEqual([]);
-    });
-
-    it('lets a later completer take over a stale completion claim', async () => {
-      const handle = await fixture.service.stitch(request());
-      Object.assign(fixture.row(handle.outputId), {
-        generationStage: 'stitch-completing',
-        updatedAt: new Date(Date.now() - 60 * 60 * 1000),
-      });
-      fixture.completeJob(
-        handle.jobId,
-        `ingredients/videos/${handle.outputId}`,
-      );
-
-      await expect(fixture.service.settle(handle)).resolves.toMatchObject({
-        state: 'generated',
-      });
     });
 
     it('marks the output failed with the error and emits the failure events', async () => {

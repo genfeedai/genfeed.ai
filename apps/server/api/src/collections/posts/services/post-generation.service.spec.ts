@@ -508,10 +508,6 @@ Tweet 3: Tech innovation is changing the world.`,
     });
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('startAccountContentGeneration', () => {
     const dto = {
       count: 3,

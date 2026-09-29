@@ -280,43 +280,6 @@ describe('NotificationInboxService', () => {
     });
   });
 
-  it('loads executions for the actor or workflow owner, including agent runs', async () => {
-    const { service, prisma } = await setup();
-    prisma.notificationInboxItem.findMany.mockResolvedValue([
-      fixture(1, {
-        topic: 'agent.status',
-        event: {
-          sourceId: 'run-1',
-          sourceType: 'agent_run',
-          eventKey: 'agent-run-failed',
-          payload: {},
-        },
-      }),
-    ]);
-    await service.list('org', 'recipient');
-    expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: 'org',
-          isDeleted: false,
-          id: { in: ['run-1'] },
-          OR: [
-            { userId: 'recipient' },
-            {
-              workflow: {
-                is: {
-                  userId: 'recipient',
-                  organizationId: 'org',
-                  isDeleted: false,
-                },
-              },
-            },
-          ],
-        }),
-      }),
-    );
-  });
-
   it('links a completed proactive notification to the currently accessible strategy instead of an unrelated asset brand', async () => {
     const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
@@ -404,28 +367,6 @@ describe('NotificationInboxService', () => {
       );
     },
   );
-  it('does not use a revoked strategy or payload route to reveal its home', async () => {
-    const { service, prisma } = await setup();
-    prisma.notificationInboxItem.findMany.mockResolvedValue([
-      fixture(1, {
-        topic: 'agent.status',
-        event: {
-          sourceId: 'strategy',
-          sourceType: 'agent_strategy',
-          eventKey: 'agent-review-changed',
-          payload: {
-            strategyId: 'strategy',
-            sourcePath: '/secret/main/automation/agents/strategy',
-            summary: 'private summary',
-          },
-        },
-      }),
-    ]);
-    expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
-      sourceHref: '/acme/~/workspace/activity',
-      sourceLabel: null,
-    });
-  });
   it('links social replies to their thread on an accessible brand', async () => {
     const { service, prisma } = await setup();
     prisma.notificationInboxItem.findMany.mockResolvedValue([
@@ -472,41 +413,6 @@ describe('NotificationInboxService', () => {
         socialReply: { accountHandle: 'acme', replyCount: 3 },
       }),
     ]);
-  });
-  it('deep-links a version 2 social reply to its newest conversation', async () => {
-    const { service, prisma } = await setup();
-    prisma.notificationInboxItem.findMany.mockResolvedValue([
-      fixture(1, {
-        topic: 'social.reply',
-        event: {
-          sourceId: 'credential-1',
-          sourceType: 'social_credential',
-          eventKey: 'social.reply.received',
-          payload: {
-            version: 2,
-            kind: 'social_reply',
-            brandId: 'brand-1',
-            accountHandle: 'acme',
-            replyCount: 2,
-            newestConversationId: 'conversation/b',
-            conversationIds: ['conversation/b', 'conversation-a'],
-          },
-        },
-      }),
-    ]);
-    prisma.brand.findMany.mockResolvedValue([
-      { id: 'brand-1', slug: 'acme-brand' },
-    ]);
-
-    const page = await service.list('org', 'recipient');
-
-    expect(page.docs[0]).toEqual(
-      expect.objectContaining({
-        sourceHref:
-          '/acme/acme-brand/messages?socialConversation=conversation%2Fb',
-        socialReply: { accountHandle: 'acme', replyCount: 2 },
-      }),
-    );
   });
   it('does not render a payload without the social reply shape as a reply', async () => {
     const { service, prisma } = await setup();

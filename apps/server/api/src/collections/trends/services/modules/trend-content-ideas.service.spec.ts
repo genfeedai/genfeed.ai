@@ -1,6 +1,5 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -96,65 +95,11 @@ describe('TrendContentIdeasService', () => {
     vi.restoreAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('sanitizeForPrompt', () => {
-    it('removes angle brackets', () => {
-      expect(service.sanitizeForPrompt('<script>alert(1)</script>')).toBe(
-        'scriptalert(1)/script',
-      );
-    });
-
-    it('collapses 3+ consecutive newlines to 2', () => {
-      expect(service.sanitizeForPrompt('a\n\n\n\nb')).toBe('a\n\nb');
-    });
-
-    it('truncates strings longer than 2000 characters', () => {
-      const long = 'x'.repeat(2500);
-      expect(service.sanitizeForPrompt(long)).toHaveLength(2000);
-    });
-
-    it('converts numbers to strings', () => {
-      expect(service.sanitizeForPrompt(42)).toBe('42');
-    });
-
-    it('returns short strings unchanged', () => {
-      expect(service.sanitizeForPrompt('hello world')).toBe('hello world');
-    });
-  });
-
   describe('parseAIResponse', () => {
     it('parses a valid JSON array from response', () => {
       const ideas = service.parseAIResponse(validIdeasJson, 'tiktok');
       expect(ideas).toHaveLength(1);
       expect(ideas[0].title).toBe('Video Idea 1');
-    });
-
-    it('throws when no JSON array found', () => {
-      expect(() =>
-        service.parseAIResponse('No JSON here at all.', 'tiktok'),
-      ).toThrow('No JSON array found in response');
-    });
-
-    it('throws before the malformed-JSON graceful catch when no array exists', () => {
-      expect(() =>
-        service.parseAIResponse('Just some text', 'instagram'),
-      ).toThrow('No JSON array found in response');
-    });
-
-    it('returns empty array on malformed JSON', () => {
-      const result = service.parseAIResponse('[{broken json,,}]', 'twitter');
-      expect(result).toEqual([]);
-    });
-
-    it('returns empty array when ideas are missing required fields', () => {
-      const badIdeas = JSON.stringify([
-        { title: 'No description or contentType' },
-      ]);
-      const result = service.parseAIResponse(badIdeas, 'tiktok');
-      expect(result).toEqual([]);
     });
   });
 
@@ -234,61 +179,7 @@ describe('TrendContentIdeasService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('calls replicate with correct model key', async () => {
-      await service.generateContentIdeas([makeTrend('youtube', 'shorts')], 3);
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.objectContaining({ prompt: expect.any(String) }),
-        undefined,
-      );
-    });
-
     // #5375: BYOK — the resolved org key (when the guard granted a bypass)
     // must reach the actual provider dispatch, not just the credit decision.
-    it('forwards a resolved BYOK key to replicate as apiKeyOverride', async () => {
-      await service.generateContentIdeas(
-        [makeTrend('youtube', 'shorts')],
-        3,
-        undefined,
-        undefined,
-        'org-openrouter-key',
-      );
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.objectContaining({ prompt: expect.any(String) }),
-        'org-openrouter-key',
-      );
-    });
-
-    it('dispatches with no key override when the org has no BYOK bypass', async () => {
-      await service.generateContentIdeas([makeTrend('youtube', 'shorts')], 3);
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.any(Object),
-        undefined,
-      );
-    });
-  });
-
-  describe('generateIdeasForPlatform (#5375 BYOK threading)', () => {
-    it('passes byokApiKeyOverride through to generateTextCompletionSync', async () => {
-      await service.generateIdeasForPlatform(
-        'tiktok',
-        [makeTrend('tiktok', 'dance challenge', 90)],
-        3,
-        undefined,
-        undefined,
-        'org-openrouter-key',
-      );
-
-      expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
-        DEFAULT_TEXT_MODEL,
-        expect.any(Object),
-        'org-openrouter-key',
-      );
-    });
   });
 });

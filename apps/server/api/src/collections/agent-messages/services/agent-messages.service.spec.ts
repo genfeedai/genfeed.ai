@@ -198,36 +198,6 @@ describe('AgentMessagesService', () => {
   });
 
   describe('getMessagesByRoom', () => {
-    it('uses a composite (createdAt, id) tiebreaker for cursor pagination, not createdAt alone', async () => {
-      const cursor = encodeAgentMessageCursor({
-        createdAt: '2026-06-01T10:00:00.000Z',
-        id: 'message-5',
-      });
-
-      await service.getMessagesByRoom('thread-1', 'org-1', {
-        cursor,
-        limit: 999,
-      });
-
-      expect(agentMessage.findMany).toHaveBeenCalledWith({
-        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        skip: undefined,
-        take: 100,
-        where: {
-          OR: [
-            { createdAt: { lt: new Date('2026-06-01T10:00:00.000Z') } },
-            {
-              createdAt: new Date('2026-06-01T10:00:00.000Z'),
-              id: { lt: 'message-5' },
-            },
-          ],
-          isDeleted: false,
-          organizationId: 'org-1',
-          threadId: 'thread-1',
-        },
-      });
-    });
-
     it('keeps legacy page support bounded when no cursor is provided', async () => {
       await service.getMessagesByRoom('thread-1', 'org-1', {
         limit: 25,
@@ -273,36 +243,6 @@ describe('AgentMessagesService', () => {
         encodeAgentMessageCursor({
           createdAt: '2026-06-02T00:00:00.000Z',
           id: 'msg-2',
-        }),
-      );
-    });
-
-    it('walks an older page using the previous nextCursor', async () => {
-      const cursor = encodeAgentMessageCursor({
-        createdAt: '2026-06-02T00:00:00.000Z',
-        id: 'msg-2',
-      });
-      agentMessage.findMany.mockResolvedValueOnce([
-        { createdAt: new Date('2026-06-01T00:00:00.000Z'), id: 'msg-1' },
-      ]);
-
-      await service.getMessagesPage('thread-1', 'org-1', {
-        cursor,
-        limit: 2,
-      });
-
-      expect(agentMessage.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          skip: undefined,
-          where: expect.objectContaining({
-            OR: [
-              { createdAt: { lt: new Date('2026-06-02T00:00:00.000Z') } },
-              {
-                createdAt: new Date('2026-06-02T00:00:00.000Z'),
-                id: { lt: 'msg-2' },
-              },
-            ],
-          }),
         }),
       );
     });

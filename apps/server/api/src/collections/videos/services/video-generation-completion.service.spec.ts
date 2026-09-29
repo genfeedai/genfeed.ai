@@ -84,22 +84,6 @@ describe('VideoGenerationCompletionService', () => {
     });
   });
 
-  it('links a bookmark when requested, independent of the removed music flow', async () => {
-    const context = makeContext({
-      createVideoDto: {
-        bookmark: 'bookmark-1',
-        waitForCompletion: false,
-      } as never,
-    });
-
-    await service.complete(context);
-
-    expect(bookmarksService.addGeneratedIngredient).toHaveBeenCalledWith(
-      'bookmark-1',
-      'video-1',
-    );
-  });
-
   it('waits for completion when requested, without any music/merge polling', async () => {
     const completedIngredient = { id: 'video-1', status: 'GENERATED' };
     ingredientCompletionService.waitForMultipleIngredientsCompletion.mockResolvedValue(

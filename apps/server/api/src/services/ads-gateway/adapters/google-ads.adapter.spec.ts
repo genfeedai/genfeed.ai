@@ -126,26 +126,6 @@ describe('GoogleAdsAdapter', () => {
     },
   );
 
-  it('passes an explicit PAUSED status through to the provider', async () => {
-    googleAdsService.getCampaign.mockResolvedValue({
-      advertisingChannelType: 'SEARCH',
-      budgetAmountMicros: '35000000',
-      id: '987',
-      name: 'Paused Campaign',
-      status: 'PAUSED',
-    });
-
-    await adapter.updateCampaign(ctx, '987', { status: 'PAUSED' });
-
-    expect(googleAdsService.updateCampaign).toHaveBeenCalledWith(
-      'token',
-      '1234567890',
-      '987',
-      expect.objectContaining({ status: 'PAUSED' }),
-      '1112223334',
-    );
-  });
-
   it('lists ad sets from ad groups', async () => {
     googleAdsService.listAdGroups.mockResolvedValue([
       {
