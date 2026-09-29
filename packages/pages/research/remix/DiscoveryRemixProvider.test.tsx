@@ -255,7 +255,7 @@ describe('DiscoveryRemixProvider', () => {
       expectedRevision: 2,
     });
     expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/northstar/studio/generate?run=run-1',
+      '/acme/northstar/studio/storyboard/run-1',
     );
   });
 

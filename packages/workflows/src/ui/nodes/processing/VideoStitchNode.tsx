@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Layers, LoaderCircle, RefreshCw, Zap } from 'lucide-react';
+import { Layers, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useWorkflowStore } from '../../stores/workflow';
@@ -278,7 +279,7 @@ function VideoStitchNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <Layers className="size-4" />
             )}

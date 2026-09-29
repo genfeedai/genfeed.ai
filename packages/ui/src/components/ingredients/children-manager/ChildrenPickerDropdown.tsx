@@ -10,6 +10,7 @@ import type { IIngredient, IMetadata } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
 
@@ -59,7 +60,7 @@ export default function ChildrenPickerDropdown({
 
           {isSearching ? (
             <div className="flex items-center justify-center py-4">
-              <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
+              <Spinner className="size-4 text-primary" />
             </div>
           ) : availableIngredients.length === 0 ? (
             <div className="text-sm text-foreground/60 py-4 text-center">

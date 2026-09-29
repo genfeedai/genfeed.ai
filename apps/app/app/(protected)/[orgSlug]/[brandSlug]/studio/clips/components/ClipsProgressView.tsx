@@ -6,8 +6,8 @@ import type {
 import type { ClipsProgressViewProps } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Film, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';

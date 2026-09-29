@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, LoaderCircle, Mic, RefreshCw, Video } from 'lucide-react';
+import { Expand, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
@@ -176,7 +177,7 @@ function LipSyncNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <Video className="size-4" />
             )}

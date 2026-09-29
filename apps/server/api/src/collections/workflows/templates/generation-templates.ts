@@ -1,7 +1,7 @@
 import { AVATAR_UGC_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-workflow.template';
 import { AVATAR_UGC_X_LANDSCAPE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/avatar-ugc-x-landscape-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
-import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 export interface WorkflowTemplate {
   id: string;
@@ -1716,203 +1716,93 @@ export const GENERATION_WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   'social-media-video-series': {
     category: 'generation',
     description: 'Generate short-form video content for social media',
+    edges: [
+      {
+        id: 'edge-prompt-video',
+        source: 'workflow-input-prompt',
+        sourceHandle: 'value',
+        target: 'generate-video-content',
+        targetHandle: 'prompt',
+      },
+      {
+        id: 'edge-video-captions',
+        source: 'generate-video-content',
+        sourceHandle: 'videoUrl',
+        target: 'add-captions',
+        targetHandle: 'video',
+      },
+      {
+        id: 'edge-captions-output',
+        source: 'add-captions',
+        sourceHandle: 'videoUrl',
+        target: 'workflow-output-video',
+        targetHandle: 'value',
+      },
+    ],
     icon: 'social',
     id: 'social-media-video-series',
+    inputVariables: [
+      {
+        description: 'What the short-form video should show.',
+        key: 'prompt',
+        label: 'Video Prompt',
+        required: true,
+        type: 'text',
+      },
+    ],
     name: 'Social Media Video Series',
     nodes: [
       {
-        id: 'generate-video-content',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
         data: {
+          config: {
+            inputName: 'prompt',
+            inputType: 'text',
+            required: true,
+          },
+          label: 'Video Prompt',
+        },
+        id: 'workflow-input-prompt',
+        position: { x: 0, y: 0 },
+        type: 'workflowInput',
+      },
+      createTemplateActionNode('videoGen', {
+        data: {
+          config: {
+            // Portrait for stories/reels; the video brief derives the aspect
+            // ratio from the output size.
+            duration: 15,
+            height: 1920,
+            model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+            width: 1080,
+          },
           label: 'Generate Short Video',
-          config: {
-            actionId: 'videoGen',
-            parameters: {
-              aspectRatio: '9:16', // Portrait for stories/reels
-              duration: 15, // Perfect for social media
-              model: 'klingai',
-              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-              prompt: '${prompt}',
-              resolution: '1080p',
-            },
-          },
         },
-      },
-      {
-        id: 'add-captions',
-        type: 'genfeedAction',
+        id: 'generate-video-content',
         position: { x: 280, y: 0 },
+      }),
+      createTemplateActionNode('effect-captions', {
         data: {
+          config: {
+            // The effect-captions contract types fontSize as a number.
+            fontSize: 64,
+            position: 'center',
+            style: 'dynamic',
+          },
           label: 'Add Captions',
-          config: {
-            actionId: 'effect-captions',
-            parameters: {
-              fontSize: 'large',
-              position: 'center',
-              style: 'dynamic',
-            },
-          },
         },
-      },
-    ],
-    edges: [
-      {
-        id: 'generate-video-content' + '-' + 'add-captions',
-        source: 'generate-video-content',
-        target: 'add-captions',
-      },
-    ],
-  },
-  'tiktok-slideshow-automation': {
-    category: 'social',
-    description:
-      'Automated TikTok slideshow creation: hook generation → 6 AI images → text overlay → caption → publish',
-    icon: 'tiktok',
-    id: 'tiktok-slideshow-automation',
-    name: 'TikTok Slideshow Automation',
-    nodes: [
-      {
-        id: 'generate-hook',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Generate Viral Hook',
-          config: {
-            actionId: 'hookGenerator',
-            parameters: {
-              hookFormula: 'person_conflict_resolution',
-              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-              niche: '${niche}',
-              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-              product: '${product}',
-              toneStyle: 'storytelling',
-            },
-          },
-        },
-      },
-      {
-        id: 'generate-slides',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
-        data: {
-          label: 'Generate Slideshow Images',
-          config: {
-            actionId: 'generate_content_batch',
-            parameters: {
-              count: 6,
-              platforms: ['tiktok'],
-              style: 'slideshow',
-            },
-          },
-        },
-      },
-      {
-        id: 'overlay-hook-text',
-        type: 'genfeedAction',
+        id: 'add-captions',
         position: { x: 560, y: 0 },
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
-          label: 'Add Hook Text to Slide 1',
           config: {
-            actionId: 'effect-text-overlay',
-            parameters: {
-              fontSize: 72,
-              fontWeight: 'black',
-              position: 'center',
-              slideIndex: 0,
-              strokeColor: '#000000',
-              strokeWidth: 3,
-              textColor: '#FFFFFF',
-            },
+            outputName: 'video',
           },
+          label: 'Video',
         },
-      },
-      {
-        id: 'generate-caption',
-        type: 'genfeedAction',
+        id: 'workflow-output-video',
         position: { x: 840, y: 0 },
-        data: {
-          label: 'Write TikTok Caption',
-          config: {
-            actionId: 'effect-captions',
-            parameters: {
-              hashtagCount: 5,
-              includeCTA: true,
-              includeEmojis: true,
-              includeHashtags: true,
-              platform: 'tiktok',
-              tone: 'storytelling',
-            },
-          },
-        },
-      },
-      {
-        id: 'publish-tiktok',
-        type: 'genfeedAction',
-        position: { x: 1120, y: 0 },
-        data: {
-          label: 'Publish to TikTok',
-          config: {
-            actionId: 'publish',
-            parameters: {
-              platforms: ['tiktok'],
-              schedule: 'immediate',
-            },
-          },
-        },
-      },
-      {
-        id: 'track-performance',
-        type: 'genfeedAction',
-        position: { x: 1400, y: 0 },
-        data: {
-          label: 'Track Hook Performance',
-          config: {
-            actionId: 'analyticsFeedback',
-            parameters: {
-              autoAnalyzeAfterHours: 24,
-              trackingEnabled: true,
-            },
-          },
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'generate-hook' + '-' + 'generate-slides',
-        source: 'generate-hook',
-        target: 'generate-slides',
-      },
-      {
-        id: 'generate-hook' + '-' + 'overlay-hook-text',
-        source: 'generate-hook',
-        target: 'overlay-hook-text',
-      },
-      {
-        id: 'generate-slides' + '-' + 'overlay-hook-text',
-        source: 'generate-slides',
-        target: 'overlay-hook-text',
-      },
-      {
-        id: 'generate-hook' + '-' + 'generate-caption',
-        source: 'generate-hook',
-        target: 'generate-caption',
-      },
-      {
-        id: 'overlay-hook-text' + '-' + 'publish-tiktok',
-        source: 'overlay-hook-text',
-        target: 'publish-tiktok',
-      },
-      {
-        id: 'generate-caption' + '-' + 'publish-tiktok',
-        source: 'generate-caption',
-        target: 'publish-tiktok',
-      },
-      {
-        id: 'publish-tiktok' + '-' + 'track-performance',
-        source: 'publish-tiktok',
-        target: 'track-performance',
-      },
+      }),
     ],
   },
   'virtual-staging-rescue': VIRTUAL_STAGING_RESCUE_TEMPLATE,

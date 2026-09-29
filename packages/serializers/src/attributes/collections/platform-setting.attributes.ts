@@ -32,4 +32,5 @@ export const platformSettingAttributes = createEntityAttributes([
   'isEmailVerificationRequired',
   'isEmailDeliveryConfigured',
   'flags',
+  'featuredWorkflowIds',
 ]);

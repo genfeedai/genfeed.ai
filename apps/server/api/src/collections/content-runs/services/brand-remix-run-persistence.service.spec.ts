@@ -38,6 +38,7 @@ describe('BrandRemixRunPersistenceService', () => {
   const contentRun = {
     create: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     updateMany: vi.fn(),
   };
   const prisma = {
@@ -73,6 +74,25 @@ describe('BrandRemixRunPersistenceService', () => {
     expect(contentRun.findFirst).toHaveBeenCalledWith({
       select: RUN_SELECT,
       where: { id: 'run-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
+  it('lists the brand remix runs newest-edited first inside the tenant scope', async () => {
+    contentRun.findMany.mockResolvedValue([]);
+
+    await persistence.listRuns('org-1', 'brand-1', { limit: 20, page: 3 });
+
+    expect(contentRun.findMany).toHaveBeenCalledWith({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: RUN_SELECT,
+      skip: 40,
+      take: 20,
+      where: {
+        brandId: 'brand-1',
+        config: { equals: 'brand-remix-run', path: ['contract'] },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 

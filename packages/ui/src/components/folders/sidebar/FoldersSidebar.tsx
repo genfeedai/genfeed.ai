@@ -9,8 +9,8 @@ import type {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { FoldersSidebarProps } from '@genfeedai/props/content/folders-sidebar.props';
 import DropZoneFolder from '@ui/drag-drop/zone-folder/DropZoneFolder';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { ChevronRight, Folder, Plus } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 

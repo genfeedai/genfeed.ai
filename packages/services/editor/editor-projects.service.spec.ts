@@ -176,9 +176,53 @@ describe('EditorProjectsService', () => {
 
     await service.update('proj-9', { name: 'Updated Name' });
 
-    expect(mockInstance.patch).toHaveBeenCalledWith('/proj-9', {
-      name: 'Updated Name',
+    expect(mockInstance.patch).toHaveBeenCalledWith(
+      '/proj-9',
+      { name: 'Updated Name' },
+      undefined,
+    );
+  });
+
+  it('update sends a keepalive fetch when the page is unloading', async () => {
+    mockInstance.patch.mockResolvedValue({
+      data: makeProjectPayload('proj-9'),
     });
+
+    await service.update(
+      'proj-9',
+      { name: 'Updated Name' },
+      { isKeepalive: true },
+    );
+
+    expect(mockInstance.patch).toHaveBeenCalledWith(
+      '/proj-9',
+      { name: 'Updated Name' },
+      { adapter: 'fetch', fetchOptions: { keepalive: true } },
+    );
+  });
+
+  it('create sends the seed videos in timeline order', async () => {
+    mockInstance.post.mockResolvedValue({ data: makeProjectPayload() });
+
+    await service.create({
+      name: 'Storyboard cut',
+      sourceVideoIds: ['video-2', 'video-1'],
+    });
+
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '',
+      expect.objectContaining({ sourceVideoIds: ['video-2', 'video-1'] }),
+    );
+  });
+
+  it('create omits an empty seed list', async () => {
+    mockInstance.post.mockResolvedValue({ data: makeProjectPayload() });
+
+    await service.create({ name: 'Blank', sourceVideoIds: [] });
+
+    expect(mockInstance.post.mock.calls[0][1]).not.toHaveProperty(
+      'sourceVideoIds',
+    );
   });
 
   it('delete DELETEs the project', async () => {

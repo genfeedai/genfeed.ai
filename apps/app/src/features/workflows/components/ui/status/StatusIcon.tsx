@@ -1,10 +1,10 @@
 'use client';
 
 import type { WorkflowNodeStatus } from '@genfeedai/contracts';
+import Spinner from '@ui/primitives/spinner';
 import {
   AlertCircleIcon,
   CheckIcon,
-  LoaderIcon,
 } from '@/features/workflows/components/ui/icons';
 
 interface StatusIconProps {
@@ -23,7 +23,7 @@ export function StatusIcon({
     case 'error':
       return <AlertCircleIcon className="size-4" />;
     case 'processing':
-      return <LoaderIcon className="size-4 animate-spin" />;
+      return <Spinner className="size-4" />;
     default:
       return null;
   }

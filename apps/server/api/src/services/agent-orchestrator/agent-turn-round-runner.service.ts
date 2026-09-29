@@ -23,6 +23,7 @@ import {
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
+import { raceToolExecution } from '@api/services/agent-orchestrator/utils/agent-tool-race.util';
 import { normalizeUiBlocks } from '@api/services/agent-orchestrator/utils/agent-ui-blocks.util';
 import type {
   OpenRouterMessage,
@@ -40,6 +41,12 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
+// Every agent tool is itself a nested workflow run. Without a ceiling, one
+// stalled nested run holds the whole turn (and its Stop button) forever, because
+// cancellation was only observed between tools.
+const TOOL_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
+const TOOL_CANCEL_POLL_INTERVAL_MS = 1500;
+
 const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
   'generate_image',
   'generate_video',
@@ -587,14 +594,14 @@ export class AgentTurnRoundRunnerService {
         });
       toolParams = preparedToolCall.parameters;
 
-      const result = await this.toolExecutorService.executeTool(
+      const result = await this.executeToolUntilSettled(
+        params,
         toolName,
-        toolParams,
-        this.buildToolExecutionContext(
-          params,
-          preparedToolCall.confirmationContext,
-        ),
+        preparedToolCall,
       );
+      if (!result) {
+        return { isCancelled: true, wasInterrupted: true };
+      }
       const modelVisibleResult =
         this.toolConfirmationService.buildModelVisibleResult(toolName, result);
 
@@ -819,6 +826,57 @@ export class AgentTurnRoundRunnerService {
 
     return { ...recovered, useIdentity: true };
   }
+  /**
+   * Runs one tool call, but stops waiting when the run is cancelled (`null`) or
+   * the call outlives `TOOL_EXECUTION_TIMEOUT_MS` (a failed tool result).
+   */
+  private async executeToolUntilSettled(
+    params: ExecuteToolRoundParams,
+    toolName: CuratedActionName,
+    preparedToolCall: Awaited<
+      ReturnType<AgentToolConfirmationService['prepareToolCall']>
+    >,
+  ): Promise<AgentToolResult | null> {
+    const { onBeforeTool } = params.strategy ?? {};
+    const outcome = await raceToolExecution(
+      this.toolExecutorService.executeTool(
+        toolName,
+        preparedToolCall.parameters,
+        this.buildToolExecutionContext(
+          params,
+          preparedToolCall.confirmationContext,
+        ),
+      ),
+      {
+        isCancelled: onBeforeTool
+          ? async () => (await onBeforeTool()) === 'cancel'
+          : undefined,
+        pollIntervalMs: TOOL_CANCEL_POLL_INTERVAL_MS,
+        timeoutMs: TOOL_EXECUTION_TIMEOUT_MS,
+      },
+    );
+    const logContext = { threadId: params.threadId, toolName };
+    if (outcome.kind === 'cancelled') {
+      this.loggerService.warn(
+        `${this.constructorName} run cancelled while ${toolName} was still running`,
+        logContext,
+      );
+      return null;
+    }
+    if (outcome.kind === 'timed-out') {
+      this.loggerService.error(
+        `${this.constructorName} tool execution timed out`,
+        logContext,
+      );
+      return {
+        creditsUsed: 0,
+        error: `${toolName} did not finish within ${TOOL_EXECUTION_TIMEOUT_MS / 1000}s`,
+        success: false,
+      };
+    }
+    return outcome.value;
+  }
+
   private buildToolExecutionContext(
     params: ExecuteToolRoundParams,
     confirmationContext: Awaited<

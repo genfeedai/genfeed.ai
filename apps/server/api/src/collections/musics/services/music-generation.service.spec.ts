@@ -7,8 +7,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
-import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import {
@@ -71,6 +71,11 @@ describe('MusicGenerationService', () => {
     };
     const creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+    };
+    const creditDeductionQueueService = {
+      queueByokUsage: vi.fn().mockResolvedValue(undefined),
+      queueDeduction: vi.fn().mockResolvedValue(undefined),
     };
     const failedGenerationService = {
       handleFailedMusicGeneration: vi.fn().mockResolvedValue(undefined),
@@ -82,14 +87,12 @@ describe('MusicGenerationService', () => {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
     const loggerService = {
+      debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
     };
     const metadataService = {
       patch: vi.fn().mockResolvedValue(undefined),
-    };
-    const creditsModelsService = {
-      findOne: vi.fn().mockResolvedValue({ cost: 7 }),
     };
     const modelsService = {
       findOne: vi.fn().mockResolvedValue(activeMusicModel),
@@ -142,10 +145,10 @@ describe('MusicGenerationService', () => {
       publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
     };
 
-    const creditsService = new MusicGenerationCreditsService(
+    const creditsInterceptor = new CreditsInterceptor(
+      creditDeductionQueueService as never,
       creditsUtilsService as never,
       loggerService as never,
-      creditsModelsService as never,
     );
     // Real facade wired onto the same mocks — MusicGenerationService no
     // longer injects activitiesService/failedGenerationService/musicsService/
@@ -161,7 +164,6 @@ describe('MusicGenerationService', () => {
       );
     const service = new MusicGenerationService(
       brandsService as never,
-      creditsService,
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
@@ -178,6 +180,8 @@ describe('MusicGenerationService', () => {
     return {
       activitiesService,
       brandsService,
+      creditDeductionQueueService,
+      creditsInterceptor,
       creditsUtilsService,
       failedGenerationService,
       ingredientCompletionService,
@@ -628,56 +632,70 @@ describe('MusicGenerationService', () => {
     );
   });
 
-  it('settles output credits after the primary generation starts', async () => {
-    const created = createService();
+  const buildBilledRequest = (amount: number) =>
+    ({
+      creditsConfig: {
+        amount,
+        description: 'Music generation',
+        modelKey: 'explicit-model',
+        reservationId: 'reservation-1',
+      },
+      originalUrl: '/api/musics',
+      selectedModel: { category: ModelCategory.MUSIC },
+      user,
+    }) as unknown as Request;
 
-    await created.service.generateMusic(
+  it('bills a multi-output generation exactly once, through the request pipeline', async () => {
+    const created = createService();
+    const billedRequest = buildBilledRequest(21);
+
+    const response = await created.service.generateMusic(
       user,
       buildDto({ outputs: 3 }),
-      request,
+      billedRequest,
     );
+    await created.creditsInterceptor.settle(billedRequest as never, response);
 
     expect(
-      created.creditsUtilsService.deductCreditsFromOrganization,
+      created.creditDeductionQueueService.queueDeduction,
     ).toHaveBeenCalledOnce();
     expect(
-      created.creditsUtilsService.deductCreditsFromOrganization,
+      created.creditDeductionQueueService.queueDeduction,
     ).toHaveBeenCalledWith(
-      'org-1',
-      'user-1',
-      21,
-      'Music generation - explicit-model (3 outputs)',
-      expect.any(String),
+      expect.objectContaining({
+        amount: 21,
+        organizationId: 'org-1',
+        reservationId: 'reservation-1',
+      }),
     );
     expect(
-      created.metadataService.patch.mock.invocationCallOrder[0],
-    ).toBeLessThan(
-      created.creditsUtilsService.deductCreditsFromOrganization.mock
-        .invocationCallOrder[0],
-    );
-    expect(
-      created.creditsUtilsService.deductCreditsFromOrganization.mock
-        .invocationCallOrder[0],
-    ).toBeLessThan(
-      created.musicProviderRegistry.generate.mock.invocationCallOrder[1],
-    );
+      created.creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
-  it('does not deduct credits when the primary generation cannot start', async () => {
+  it('releases the reservation instead of billing when the primary generation cannot start', async () => {
     const created = createService();
     created.musicProviderRegistry.generate.mockResolvedValue({
       externalId: '',
     } as never);
+    const billedRequest = buildBilledRequest(21);
 
-    await created.service.generateMusic(
+    const response = await created.service.generateMusic(
       user,
       buildDto({ outputs: 3 }),
-      request,
+      billedRequest,
     );
+    await created.creditsInterceptor.settle(billedRequest as never, response);
 
+    expect(
+      created.creditDeductionQueueService.queueDeduction,
+    ).not.toHaveBeenCalled();
     expect(
       created.creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
+    expect(created.creditsUtilsService.releaseReservation).toHaveBeenCalledWith(
+      { organizationId: 'org-1', reservationId: 'reservation-1' },
+    );
     expect(created.sharedService.createMediaDocuments).toHaveBeenCalledOnce();
     expect(
       created.failedGenerationService.handleFailedMusicGeneration,

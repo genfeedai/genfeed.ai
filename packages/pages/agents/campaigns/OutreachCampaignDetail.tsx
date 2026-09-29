@@ -16,6 +16,7 @@ import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import RecordFactLine from '@ui/record-detail/RecordFactLine';
 import { ArrowLeft, Check, Pause, Play, Rocket } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -300,7 +301,7 @@ export default function OutreachCampaignDetail() {
             className="flex items-center justify-center py-20"
             data-testid="outreach-campaign-body-skeleton"
           >
-            <div className="animate-spin text-4xl text-primary">⏳</div>
+            <Spinner className="size-12 text-primary" />
           </div>
         )}
       </div>

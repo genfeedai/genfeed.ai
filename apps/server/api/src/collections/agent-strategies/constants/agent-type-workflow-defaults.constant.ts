@@ -64,9 +64,9 @@ export const AGENT_TYPE_WORKFLOW_DEFAULTS: Partial<
     templateId: 'founder-x-post',
   },
   [AgentType.SHORT_FORM_WRITER]: {
-    description: 'TikTok/IG slideshow automation from hooks and captions.',
+    description: 'Hook-led short copy graph for short-form captions.',
     skillSlugs: ['content-writing'],
-    templateId: 'tiktok-slideshow-automation',
+    templateId: 'founder-x-post',
   },
   [AgentType.CTA_CONTENT]: {
     description: 'Conversion-focused short post graph.',

@@ -42,8 +42,6 @@ export function AgentThreadList({
   const {
     threads,
     activeThreadId,
-    activeRunStatus,
-    isStreaming,
     threadUiBusyById,
     isLoading,
     authError,
@@ -88,15 +86,13 @@ export function AgentThreadList({
   const groups = useMemo(
     () =>
       groupAgentThreads(threads, {
-        activeRunStatus,
-        activeThreadId,
         filter,
-        isStreaming,
         // Filtering moved to the command palette; the grouping helpers still
         // take a query, so pass an explicit empty one rather than undefined.
         searchQuery: '',
+        threadUiBusyById,
       }),
-    [activeRunStatus, activeThreadId, isStreaming, threads],
+    [threadUiBusyById, threads],
   );
   const brandGroups = useMemo(
     () => groupAgentThreadsByBrand(threads, { searchQuery: '' }),
@@ -123,8 +119,6 @@ export function AgentThreadList({
       key={conv.id}
       conv={conv}
       activeThreadId={activeThreadId}
-      activeRunStatus={activeRunStatus}
-      isStreaming={isStreaming}
       threadUiBusyById={threadUiBusyById}
       openMenuThreadId={openMenuThreadId}
       renamingThreadId={renamingThreadId}

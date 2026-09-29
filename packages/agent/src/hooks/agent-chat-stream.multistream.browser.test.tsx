@@ -159,8 +159,6 @@ function Fixture() {
           <AgentThreadListRow
             conv={thread}
             activeThreadId={threadId}
-            activeRunStatus={state.activeRunStatus}
-            isStreaming={stream.isStreaming}
             threadUiBusyById={{}}
             openMenuThreadId={null}
             renamingThreadId={null}

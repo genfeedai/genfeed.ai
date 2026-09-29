@@ -4,8 +4,9 @@ import type { DownloadNodeData } from '@genfeedai/contracts/types';
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Clock, Download, LoaderCircle } from 'lucide-react';
+import { Clock, Download } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -124,7 +125,7 @@ function DownloadNodeComponent(props: NodeProps) {
                     }
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <LoaderCircle className="size-8 animate-spin text-primary" />
+                      <Spinner className="size-8 text-primary" />
                       <span
                         className={
                           'text-xs text-white/80' /* design-system-allow-content-color */
@@ -157,7 +158,7 @@ function DownloadNodeComponent(props: NodeProps) {
                     }
                   >
                     <div className="flex flex-col items-center gap-2">
-                      <LoaderCircle className="size-8 animate-spin text-primary" />
+                      <Spinner className="size-8 text-primary" />
                       <span
                         className={
                           'text-xs text-white/80' /* design-system-allow-content-color */
@@ -196,7 +197,7 @@ function DownloadNodeComponent(props: NodeProps) {
               disabled={isDownloading}
             >
               {isDownloading ? (
-                <LoaderCircle className="size-4 animate-spin" />
+                <Spinner className="size-4" />
               ) : (
                 <Download className="size-4" />
               )}
@@ -210,7 +211,7 @@ function DownloadNodeComponent(props: NodeProps) {
             }
           >
             <div className="flex flex-col items-center gap-2">
-              <LoaderCircle className="size-8 animate-spin text-primary" />
+              <Spinner className="size-8 text-primary" />
               <span
                 className={
                   'text-xs text-white/80' /* design-system-allow-content-color */

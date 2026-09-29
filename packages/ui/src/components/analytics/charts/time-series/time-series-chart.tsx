@@ -9,6 +9,7 @@ import {
 import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
 import { ChartContainer, ChartTooltipContent } from '@ui/charts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 
@@ -96,7 +97,7 @@ export function TimeSeriesChart({
         style={{ height }}
       >
         <div className="text-center">
-          <div className="mx-auto mb-3 size-12 animate-spin rounded-full border-b-2 border-foreground/30" />
+          <Spinner className="mx-auto mb-3 size-12 text-primary" />
           <p className="text-sm text-muted-foreground">Loading chart data…</p>
         </div>
       </div>

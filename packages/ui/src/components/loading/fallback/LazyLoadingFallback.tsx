@@ -2,8 +2,8 @@ import { ComponentSize, IngredientFormat } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LazyLoadingFallbackProps } from '@genfeedai/props/ui/feedback/lazy-loading-fallback.props';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import Loading from '@ui/loading/default/Loading';
+import Spinner from '@ui/primitives/spinner';
 
 export default function LazyLoadingFallback({
   variant = 'skeleton',

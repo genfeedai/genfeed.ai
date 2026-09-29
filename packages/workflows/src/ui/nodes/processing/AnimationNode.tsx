@@ -16,14 +16,9 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import {
-  CircleAlert,
-  Expand,
-  LoaderCircle,
-  RefreshCw,
-  WandSparkles,
-} from 'lucide-react';
+import { CircleAlert, Expand, RefreshCw, WandSparkles } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useRequiredInputs } from '../../hooks/useRequiredInputs';
 import { CubicBezierEditor } from '../../lib/CubicBezierEditor';
@@ -281,7 +276,7 @@ function AnimationNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <WandSparkles className="size-4" />
             )}

@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Copy, Sparkles, Undo2 } from 'lucide-react';
 
 export default function TextareaLabelActions({

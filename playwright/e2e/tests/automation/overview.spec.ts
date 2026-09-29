@@ -77,19 +77,25 @@ test.describe('Automation & Messages surfaces', () => {
         APP_ROUTES.AUTOMATION.CAMPAIGNS,
       );
       // The page title "Programs" is an sr-only h1 owned by SectionTopbar;
-      // "Active Programs" (a section eyebrow, not exact-matched here) also
-      // contains "Programs" as a substring, so the title assertion must
-      // scope to the topbar to avoid a strict-mode violation.
+      // the "All programs" section heading also contains "Programs" as a
+      // substring, so the title assertion must scope to the topbar to avoid
+      // a strict-mode violation.
       await expect(
         authenticatedPage
           .getByTestId('section-topbar')
           .getByRole('heading', { name: 'Programs', exact: true }),
       ).toBeVisible();
+      // "Active Programs" is a stat in the summary strip (not a heading);
+      // the listed programs sit under the "All programs" section.
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'Active Programs' }),
+        authenticatedPage
+          .getByTestId('campaign-stats-strip')
+          .getByText('Active Programs', { exact: true }),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByRole('heading', { name: 'All Programs' }),
+        authenticatedPage
+          .getByTestId('campaign-all')
+          .getByRole('heading', { name: 'All programs' }),
       ).toBeVisible();
     });
 

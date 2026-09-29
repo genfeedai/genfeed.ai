@@ -10,8 +10,8 @@ import type { ModalVideoProps } from '@genfeedai/props/modals/modal.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Video, X } from 'lucide-react';
 
 export default function ModalVideo({

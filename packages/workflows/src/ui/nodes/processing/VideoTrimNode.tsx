@@ -8,14 +8,9 @@ import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlay
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import {
-  CircleAlert,
-  Expand,
-  LoaderCircle,
-  RefreshCw,
-  Scissors,
-} from 'lucide-react';
+import { CircleAlert, Expand, RefreshCw, Scissors } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useExecutionStore } from '../../stores/execution';
 import { useUIStore } from '../../stores/uiStore';
@@ -208,7 +203,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <Scissors className="size-4" />
             )}

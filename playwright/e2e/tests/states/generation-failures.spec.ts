@@ -26,7 +26,7 @@ import { tryClick } from '../../utils/route-assertions';
 const ORG_BRAND = '/test-org/brand-1';
 // Studio's standalone one-off tabs are retired; the storyboard surface
 // carries the inline composer that these failure paths exercise.
-const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard`;
+const STORYBOARD_ROUTE = `${ORG_BRAND}/studio/storyboard/new`;
 const BATCH_ROUTE = `${ORG_BRAND}/studio/batch`;
 
 type Page = Parameters<typeof mockImageGenerationFailure>[0];

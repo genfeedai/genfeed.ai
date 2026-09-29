@@ -606,16 +606,96 @@
     "autoMerge": {
       "description": "The finished transitions are merged into one video with these settings.",
       "label": "Auto-merge"
-    }
-  },
-  "studioEditorLock": {
-    "conflictDescription": "It was generated from an approved composition template, so your recent changes were not saved. Duplicate it to edit a copy.",
-    "description": "It was generated from an approved composition template, so it cannot be changed. Duplicate it to edit a copy.",
-    "duplicateToEdit": "Duplicate to edit",
-    "readOnlyBadge": "(read-only)",
-    "title": "This project is read-only"
-  },
-  "studioGenerate": {
+    },
+    "create": {
+      "remixAction": "Pick a source",
+      "remixDescription": "Choose a post or ad in Discovery and choose Remix. The run is saved here as a storyboard.",
+      "remixTitle": "Remix a video"
+    },
+    "frameSequence": {
+      "clear": "Clear",
+      "generate": "Generate transitions",
+      "needsInterpolationModel": "Select an interpolation-capable video model",
+      "needsTwoFrames": "Select at least two frames",
+      "summary": "{frames, plural, one {# frame} other {# frames}} / {transitions, plural, one {# transition} other {# transitions}}"
+    },
+    "recipe": {
+      "addReferences": "Add references",
+      "aspectRatio": "Aspect ratio",
+      "description": "Saved to this run when you generate.",
+      "duration": "Duration (seconds)",
+      "generate": "Generate",
+      "objective": "Objective",
+      "outputCount": "{count}x",
+      "outputs": "Outputs",
+      "referencesHelp": "Library references guide the look. Brand defaults are added automatically.",
+      "regionLabel": "Run recipe",
+      "removeReference": "Remove reference {id}",
+      "title": "Recipe"
+    },
+    "run": {
+      "copyGroup": "Copy outputs",
+      "identity": {
+        "avatar": "Avatar · {id}",
+        "voice": "Voice · {id}",
+        "label": "Canonical identity"
+      },
+      "metaHandoffUnavailable": "Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.",
+      "outputCount": "{actual} of {requested} outputs ready",
+      "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
+      "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
+      "preparePaidDraft": "Prepare paused Meta draft",
+      "readinessTitle": "{state} run",
+      "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
+      "regionLabel": "Remix run",
+      "review": {
+        "open": "Open Review",
+        "openPublishingDrafts": "Open Publishing drafts",
+        "summaryMany": "Review batch {batchId} · {count} drafts",
+        "summaryOne": "Review batch {batchId} · {count} draft"
+      },
+      "sendToReview": "Send {count} to Review",
+      "varyRecipe": "Vary recipe",
+      "waitingForAssetIds": "Waiting for durable asset ids"
+    },
+    "runPage": {
+      "allRuns": "All storyboards",
+      "loadFailed": "This storyboard run could not be loaded.",
+      "loading": "Loading storyboard run…",
+      "retry": "Try again",
+      "title": "Storyboard run"
+    },
+    "runs": {
+      "all": "All storyboards",
+      "description": "Every storyboard run for this brand. Open one to continue where you left off.",
+      "empty": "No storyboards yet. Remix a video from Discovery or build one from your images.",
+      "lastEdited": "Edited {time}",
+      "more": "Load more",
+      "needsYou": "Needs you",
+      "new": "New storyboard",
+      "open": "Open",
+      "openRun": "Open {title}",
+      "phases": {
+        "approved": "Approved",
+        "failed": "Failed",
+        "generating": "Generating",
+        "in_review": "In review",
+        "paid_draft_creating": "Preparing paid draft",
+        "paid_draft_ready": "Paid draft ready",
+        "partially_ready": "Partially ready",
+        "prefilled": "Draft",
+        "ready_for_review": "Ready for review"
+      },
+      "retryLoad": "Retry loading",
+      "runtime": "{seconds}s",
+      "shotCount": "{count, plural, one {# shot} other {# shots}}",
+      "sourceKinds": {
+        "brief": "Brief",
+        "remix_discovery": "Remix · Discovery",
+        "remix_upload": "Remix · Upload"
+      },
+      "title": "Storyboard"
+    },
     "scenes": {
       "title": "Original ad scenes",
       "limits": "2–6 scenes, English, 3–15 planned seconds per scene. Speech determines actual timing. Guided identity likeness is not guaranteed.",
@@ -652,7 +732,16 @@
       "identityPairRequired": "Choose both an avatar and a saved voice for each scene override, or use the run identity.",
       "save": "Save storyboard (no generation)",
       "outputPreview": "Completed original captioned ad"
-    },
+    }
+  },
+  "studioEditorLock": {
+    "conflictDescription": "It was generated from an approved composition template, so your recent changes were not saved. Duplicate it to edit a copy.",
+    "description": "It was generated from an approved composition template, so it cannot be changed. Duplicate it to edit a copy.",
+    "duplicateToEdit": "Duplicate to edit",
+    "readOnlyBadge": "(read-only)",
+    "title": "This project is read-only"
+  },
+  "studioGenerate": {
     "description": "One prompt bar for every asset type, enriched with your brand.",
     "draft": {
       "referencesDropped": "{count, plural, one {A reference} other {# references}} in your draft {count, plural, one {is} other {are}} no longer available and {count, plural, one {was} other {were}} removed.",
@@ -703,7 +792,6 @@
     "generationRemoved": "Generation removed",
     "generating": "Generating…",
     "kling4KReferenceConflict": "Kling video references require Pro, not 4K",
-    "loadingModels": "Loading models…",
     "outputTypes": {
       "avatar": "Avatar",
       "copy": "Copy",
@@ -745,35 +833,6 @@
     "undo": "Undo",
     "undoPromptEnhancement": "Undo prompt enhancement",
     "videoReference": "Video Reference",
-    "remixOutput": {
-      "description": "These settings are saved to this remix run before generation.",
-      "duration": "Duration",
-      "title": "Output"
-    },
-    "remixRun": {
-      "copyGroup": "Copy outputs",
-      "identity": {
-        "avatar": "Avatar · {id}",
-        "voice": "Voice · {id}"
-      },
-      "metaHandoffUnavailable": "Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.",
-      "outputCount": "{actual} of {requested} outputs ready",
-      "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
-      "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
-      "preparePaidDraft": "Prepare paused Meta draft",
-      "readinessTitle": "{state} run",
-      "recipeRevision": "Recipe v{recipeVersion} · revision {revision}",
-      "regionLabel": "Remix run",
-      "review": {
-        "open": "Open Review",
-        "openPublishingDrafts": "Open Publishing drafts",
-        "summaryMany": "Review batch {batchId} · {count} drafts",
-        "summaryOne": "Review batch {batchId} · {count} draft"
-      },
-      "sendToReview": "Send {count} to Review",
-      "varyRecipe": "Vary recipe",
-      "waitingForAssetIds": "Waiting for durable asset ids"
-    },
     "title": "Generate",
     "viewGrid": "Grid",
     "viewList": "List",
@@ -1679,6 +1738,7 @@
       }
     },
     "inspector": {
+      "openPreview": "Open full-size preview",
       "surface": "Library",
       "type": "Type",
       "untitled": "Untitled asset"
@@ -2262,7 +2322,7 @@
       "moreActions": "More actions",
       "openInWrite": "Open in Write",
       "openInGenerate": "Open in Generate",
-      "openInEdit": "Open in Edit",
+      "openInEditor": "Open in Editor",
       "openInAutomation": "Open in Automation",
       "openIssue": "Open Issue",
       "openTool": "Open Tool",
@@ -2353,6 +2413,7 @@
     },
     "templates": {
       "actions": {
+        "copying": "Copying…",
         "install": "Install",
         "installing": "Installing…",
         "tryAgain": "Try again",
@@ -2397,10 +2458,16 @@
       "emptyCatalog": "No workflow templates are available yet.",
       "errors": {
         "bootstrap": "Failed to install workflow template",
+        "copyFeatured": "Failed to copy the featured workflow",
         "install": "Failed to install system workflow",
         "load": "Templates could not be loaded.",
         "loadCatalog": "Official workflows could not be loaded.",
+        "loadFeatured": "Featured workflows could not be loaded.",
         "loadTemplates": "Starter templates could not be loaded."
+      },
+      "exampleOutput": {
+        "imageAlt": "Example output from {name}",
+        "videoLabel": "Example output video from {name}"
       },
       "noMatches": "No workflows match these filters.",
       "retry": "Retry",
@@ -2418,7 +2485,8 @@
         "available": "Available",
         "installed": "Installed"
       },
-      "templateCount": "{count, plural, one {# template} other {# templates}}"
+      "templateCount": "{count, plural, one {# template} other {# templates}}",
+      "untitledWorkflow": "Untitled workflow"
     },
     "actionSchema": {
       "invalidJson": "Enter valid JSON.",
@@ -2847,9 +2915,9 @@
       "title": "Batch",
       "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
     },
-    "studioEdit": {
-      "title": "Edit",
-      "body": "Long-form editing for articles and newsletters, with the agent as a co-writer."
+    "studioEditor": {
+      "title": "Editor",
+      "body": "Finish videos on a timeline: trim clips, sync dialogue and music against picture, and add text overlays and effects."
     },
     "messagesInbox": {
       "title": "Messages",
@@ -3492,6 +3560,40 @@
     "open": "Open template {name}",
     "details": "View details"
   },
+  "adminWorkflows": {
+    "actions": {
+      "delete": "Delete",
+      "more": "Actions for {label}",
+      "moveDown": "Move {label} down",
+      "moveUp": "Move {label} up",
+      "pin": "Pin to Featured",
+      "retry": "Retry",
+      "unpin": "Unpin",
+      "unpinNamed": "Unpin {label} from Featured"
+    },
+    "created": "Created:",
+    "deleted": "Workflow deleted",
+    "description": "Create multi-step automation pipelines for content generation and publishing",
+    "empty": "No workflows found",
+    "errors": {
+      "delete": "Deleting the workflow",
+      "featured": "Updating Featured",
+      "load": "Loading workflows"
+    },
+    "featured": {
+      "badge": "Featured",
+      "description": "Every organization sees these workflows, in this order, in the Featured row of its templates page. Only the name, description, thumbnail and graph are shared; using one copies it into that organization.",
+      "loadError": "Featured workflows could not be loaded.",
+      "pinned": "Pinned to Featured",
+      "position": "Position {position}",
+      "reordered": "Featured order saved",
+      "title": "Featured",
+      "unpinned": "Removed from Featured"
+    },
+    "listTitle": "Automation Workflows",
+    "title": "Workflows",
+    "untitled": "Untitled workflow"
+  },
   "adminVoices": {
     "unknown": "Unknown",
     "featured": "Featured",
@@ -3534,6 +3636,16 @@
     "renameTitle": "Rename project",
     "save": "Save",
     "startNewProject": "Start New Project",
+    "toolbar": {
+      "redo": "Redo",
+      "redoTooltip": "Redo (Shift+Cmd/Ctrl+Z)",
+      "saveFailed": "Not saved yet. Retrying",
+      "saved": "All changes saved",
+      "saving": "Saving…",
+      "undo": "Undo",
+      "undoTooltip": "Undo (Cmd/Ctrl+Z)",
+      "unsaved": "Unsaved changes"
+    },
     "yourProjects": "Your Projects",
     "yourProjectsCount": "Your Projects ({count})"
   },

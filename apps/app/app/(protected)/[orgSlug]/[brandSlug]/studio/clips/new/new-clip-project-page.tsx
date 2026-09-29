@@ -8,6 +8,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -141,7 +142,7 @@ function NewClipProjectPageContent() {
       role="status"
       aria-label={t('creatingProject')}
     >
-      <div className="size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+      <Spinner className="size-12 text-primary" />
     </div>
   );
 }

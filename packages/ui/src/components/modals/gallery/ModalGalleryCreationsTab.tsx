@@ -3,8 +3,8 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import type { ModalGalleryCreationsTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImage';
+import Spinner from '@ui/primitives/spinner';
 import { Image } from 'lucide-react';
 
 export default function ModalGalleryCreationsTab({

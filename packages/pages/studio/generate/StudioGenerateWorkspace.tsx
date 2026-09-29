@@ -9,7 +9,6 @@ import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input'
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import {
-  AlertCategory,
   ComponentSize,
   IngredientCategory,
   SkillSurface,
@@ -45,7 +44,6 @@ import KnowledgeReferenceSection, {
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
 import StudioGenerateResults from '@pages/studio/generate/components/StudioGenerateResults';
-import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateDraft } from '@pages/studio/generate/hooks/useStudioGenerateDraft';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
@@ -54,8 +52,6 @@ import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioG
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
 import { useStudioPromptEnhancement } from '@pages/studio/generate/hooks/useStudioPromptEnhancement';
-import { useStudioRemixRun } from '@pages/studio/generate/hooks/useStudioRemixRun';
-import { StudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import { buildRepromptData } from '@pages/studio/generate/utils/generation-payloads';
 import {
   filterStudioGenerateJobs,
@@ -76,15 +72,9 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-recipe';
 import { sanitizeStudioGenerateState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
-import {
-  buildStudioRemixRunEdits,
-  getRemixDraftComposerState,
-  resolvePairedRemixIdentity,
-} from '@pages/studio/generate/utils/studio-remix-run';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
-import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -396,44 +386,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
       settings,
       type,
     });
-  const {
-    saveScenes,
-    attachSceneSource,
-    quoteScenes,
-    executeScenes,
-    cancelScenes,
-    resumeScenes,
-    error: remixError,
-    preparePausedDraft,
-    run: remixRun,
-    runId: remixRunId,
-    start: startRemixRun,
-    status: remixStatus,
-    submitForReview,
-    vary,
-  } = useStudioRemixRun();
-  const appliedRemixRevisionRef = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (!isHydrated || !remixRun) {
-      return;
-    }
-
-    const revisionKey = `${remixRun.id}:${remixRun.revision}`;
-    if (appliedRemixRevisionRef.current === revisionKey) {
-      return;
-    }
-    appliedRemixRevisionRef.current = revisionKey;
-
-    const draft = getRemixDraftComposerState(remixRun);
-    setPrompt(draft.prompt);
-    if (draft.type) {
-      applyTypeSettings(draft.type, draft.settings);
-      return;
-    }
-    updateSettings(draft.settings);
-  }, [applyTypeSettings, isHydrated, remixRun, updateSettings]);
-
   // #4670 Open in Studio: a resolved Agent handoff pre-fills the composer.
   // Precedence over remembered local settings comes for free from
   // `applyTypeSettings` — it marks every patched field `'user'`-owned in the
@@ -638,21 +590,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
     updateSettings,
   ]);
 
-  const handleResetSettings = useCallback(() => {
-    if (!remixRun) {
-      resetSettings();
-      return;
-    }
-
-    const draft = getRemixDraftComposerState(remixRun);
-    setPrompt(draft.prompt);
-    if (draft.type) {
-      applyTypeSettings(draft.type, draft.settings);
-      return;
-    }
-    updateSettings(draft.settings);
-  }, [applyTypeSettings, remixRun, resetSettings, updateSettings]);
-
   const assetActions = useStudioGenerateAssetActions({
     onAttachReference: handleAttachGeneratedReference,
     onDeleted: removeJob,
@@ -742,10 +679,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
 
   const rejectUnsupportedSkillSelection = useCallback(
     (skillSlugs: string[]) => {
-      if (
-        skillSlugs.length &&
-        (remixRun || (type !== 'image' && type !== 'video'))
-      ) {
+      if (skillSlugs.length && type !== 'image' && type !== 'video') {
         notificationsService.warning(
           'Selected skills are supported for image and video generation. Remove the skill selections to continue here.',
         );
@@ -753,7 +687,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }
       return false;
     },
-    [notificationsService.warning, remixRun, type],
+    [notificationsService.warning, type],
   );
 
   const handleEnhancePrompt = useCallback(() => {
@@ -772,31 +706,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
       return;
     }
     // Skills picked from `/` are literal tokens in the prompt. They steer the
-    // enhancement pass, never the generator, so they come off before either
-    // path — a remix stores the prompt as its objective, so a token left in
-    // here would reach generation the same way.
+    // enhancement pass, never the generator, so they come off first.
     const { content, skillSlugs } = resolvePromptCommands(prompt);
     if (rejectUnsupportedSkillSelection(skillSlugs)) return;
 
-    if (remixRun) {
-      if (
-        remixRun.draft.output.kind === 'copy' ||
-        type === 'image' ||
-        type === 'video' ||
-        type === 'avatar'
-      ) {
-        void startRemixRun(
-          buildStudioRemixRunEdits(
-            remixRun,
-            content,
-            settings,
-            type,
-            contentReferences.map((reference) => reference.item.id),
-          ),
-        );
-      }
-      return;
-    }
     const prepared = resolveCharacterMentions({
       document: promptDocumentRef.current,
       existingReferenceIds: resolvedReferences.imageReferenceIds,
@@ -850,16 +763,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
     isUploading,
     notificationsService,
     prompt,
-    contentReferences,
     resolvedReferences,
     resolveCharacterMentions,
     rejectUnsupportedSkillSelection,
     resolvePromptCommands,
-    remixRun,
-    settings,
-    startRemixRun,
     submit,
-    type,
   ]);
 
   const handleSelectContentReference = useCallback(
@@ -1269,8 +1177,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const { saveStatus: draftSaveStatus } = useStudioGenerateDraft({
     brandId,
     canRestore: isHydrated && !isHandoffLoading,
-    isAutosaveEnabled: !remixRunId,
-    isRestoreBlocked: Boolean(handoffPayload || remixRunId),
+    isAutosaveEnabled: true,
+    isRestoreBlocked: Boolean(handoffPayload),
     onRestore: restoreDraft,
     payload: draftPayload,
   });
@@ -1377,45 +1285,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="h-full overflow-auto px-6 py-6 pb-40">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-              {remixRun ? (
-                <StudioRemixRunPanel
-                  sceneActions={{
-                    saveScenes,
-                    attachSceneSource,
-                    quoteScenes,
-                    executeScenes,
-                    cancelScenes,
-                    resumeScenes,
-                  }}
-                  error={remixError}
-                  isWorking={remixStatus === 'working'}
-                  onReview={(variantIds) => {
-                    void submitForReview(variantIds);
-                  }}
-                  onPreparePaidDraft={() => {
-                    const selector = remixRun.sourceSnapshot.selector;
-                    if (
-                      selector.kind !== 'connected_ad' ||
-                      selector.platform !== 'meta'
-                    ) {
-                      return;
-                    }
-                    void preparePausedDraft({
-                      destination: {
-                        adAccountId: selector.adAccountId,
-                        credentialId: selector.credentialId,
-                      },
-                    });
-                  }}
-                  onVary={() => {
-                    void vary();
-                  }}
-                  run={remixRun}
-                />
-              ) : remixError ? (
-                <Alert type={AlertCategory.ERROR}>{remixError}</Alert>
-              ) : null}
-
               <StudioGenerateResults
                 assetActions={{
                   ...assetActions,
@@ -1458,49 +1327,39 @@ export default function StudioGenerateWorkspace(): ReactElement {
                         : translate('draft.saved')}
                 </p>
               )}
-              <StudioRemixRunScope
-                canSelectAvatar={Boolean(
-                  remixRun &&
-                    resolvePairedRemixIdentity(remixRun.draft.identity),
-                )}
-                isActive={Boolean(remixRun)}
-              >
-                <StudioGenerateComposer
-                  attachedAssets={attachedAssets}
-                  extraExtensions={extraExtensions}
-                  isDragActive={
-                    capabilities.hasReferences && dragState.isActive
-                  }
-                  isEnhancingPrompt={isEnhancingPrompt}
-                  isGenerating={isGenerating || remixStatus === 'working'}
-                  isListening={isListening}
-                  isLoadingModels={isLoadingModels}
-                  isTranscribing={isTranscribing}
-                  isUploading={isUploading}
-                  models={models}
-                  onAddFiles={handleAddFiles}
-                  onCancelEnhancePrompt={cancelEnhance}
-                  onEnhancePrompt={handleEnhancePrompt}
-                  onOpenLibrary={handleOpenLibrary}
-                  onPromptChange={setPrompt}
-                  onPromptDocumentChange={(document) => {
-                    promptDocumentRef.current = document;
-                  }}
-                  onRemoveAttachedAsset={handleRemoveAttachedAsset}
-                  onResetSettings={handleResetSettings}
-                  onSettingsChange={updateSettings}
-                  onStartListening={startListening}
-                  onStopListening={stopListening}
-                  onSubmit={handleSubmit}
-                  onTypeChange={setType}
-                  onUndoEnhancePrompt={undoEnhance}
-                  prompt={prompt}
-                  previousPrompt={previousEnhancedPrompt}
-                  settings={settings}
-                  shouldShowVoiceInput={shouldShowVoiceInput}
-                  type={type}
-                />
-              </StudioRemixRunScope>
+              <StudioGenerateComposer
+                attachedAssets={attachedAssets}
+                extraExtensions={extraExtensions}
+                isDragActive={capabilities.hasReferences && dragState.isActive}
+                isEnhancingPrompt={isEnhancingPrompt}
+                isGenerating={isGenerating}
+                isListening={isListening}
+                isLoadingModels={isLoadingModels}
+                isTranscribing={isTranscribing}
+                isUploading={isUploading}
+                models={models}
+                onAddFiles={handleAddFiles}
+                onCancelEnhancePrompt={cancelEnhance}
+                onEnhancePrompt={handleEnhancePrompt}
+                onOpenLibrary={handleOpenLibrary}
+                onPromptChange={setPrompt}
+                onPromptDocumentChange={(document) => {
+                  promptDocumentRef.current = document;
+                }}
+                onRemoveAttachedAsset={handleRemoveAttachedAsset}
+                onResetSettings={resetSettings}
+                onSettingsChange={updateSettings}
+                onStartListening={startListening}
+                onStopListening={stopListening}
+                onSubmit={handleSubmit}
+                onTypeChange={setType}
+                onUndoEnhancePrompt={undoEnhance}
+                prompt={prompt}
+                previousPrompt={previousEnhancedPrompt}
+                settings={settings}
+                shouldShowVoiceInput={shouldShowVoiceInput}
+                type={type}
+              />
             </div>
           </PromptBarContainer>
         </div>

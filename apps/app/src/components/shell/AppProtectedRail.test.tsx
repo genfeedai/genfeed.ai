@@ -137,14 +137,24 @@ vi.mock(
 );
 
 vi.mock('@ui/shell/app-rail/AppRail', () => ({
-  AppRail: (props: Record<string, unknown> & { header?: ReactNode }) => {
+  AppRail: (
+    props: Record<string, unknown> & {
+      footer?: ReactNode;
+      header?: ReactNode;
+    },
+  ) => {
     appRailSpy(props);
     return (
       <nav aria-label="Apps" data-testid="app-rail">
         {props.header}
+        {props.footer}
       </nav>
     );
   },
+}));
+
+vi.mock('@ui/shell/app-rail/RailAccount', () => ({
+  default: () => <div data-testid="rail-account" />,
 }));
 
 vi.mock('@ui/menus/organization-switcher/OrganizationSwitcher', () => ({
@@ -172,6 +182,12 @@ type RailProps = {
 };
 
 describe('AppProtectedRail', () => {
+  it('puts Help and the account avatar in the rail footer', () => {
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(screen.getByTestId('rail-account')).toBeInTheDocument();
+  });
+
   beforeEach(() => {
     mockSearchParams = new URLSearchParams();
     mockPathname.value = '/acme/brand/workspace';

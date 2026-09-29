@@ -3,15 +3,16 @@ import Loading from '@ui/loading/default/Loading';
 import { describe, expect, it } from 'vitest';
 
 describe('Loading', () => {
-  it('renders the shared spinner loader', () => {
+  it('renders the animated brand loader', () => {
     const { container } = render(<Loading />);
 
     const rootElement = container.firstChild as HTMLElement;
-    const spinner = screen.getByRole('status', { name: 'Loading' });
+    const loader = screen.getByRole('status', { name: 'Loading' });
 
     expect(rootElement).toHaveClass('min-h-screen');
-    expect(spinner).toHaveClass('animate-spin', 'size-6', 'text-foreground/80');
-    expect(spinner).not.toHaveClass('text-white/80');
+    expect(loader).toHaveClass('genfeed-loader-root');
+    expect(loader.querySelector('.genfeed-loader-trace')).toBeInTheDocument();
+    expect(container.querySelector('.animate-spin')).not.toBeInTheDocument();
     expect(container.querySelector('.animate-pulse')).not.toBeInTheDocument();
   });
 
@@ -28,7 +29,7 @@ describe('Loading', () => {
 
     expect(rootElement).toHaveClass('min-h-[60vh]', 'custom-loader');
     expect(screen.getByRole('status', { name: 'Loading posts' })).toHaveClass(
-      'animate-spin',
+      'genfeed-loader-root',
     );
     expect(screen.getByText('Loading posts')).toHaveClass(
       'text-muted-foreground',

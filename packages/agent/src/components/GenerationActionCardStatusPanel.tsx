@@ -160,12 +160,12 @@ export function GenerationActionCardStatusPanel({
       ),
     );
     // Only the video editor accepts a source asset by id
-    // (`/studio/edit/new?videoId=`); no Studio route consumes an image id, so
+    // (`/studio/editor/new?video=`); no Studio route consumes an image id, so
     // the edit control is offered for video results only.
     const editorHref =
       generationType === 'video' && resultId
         ? href(
-            `${APP_ROUTES.STUDIO.EDIT_NEW}?videoId=${encodeURIComponent(resultId)}`,
+            `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(resultId)}`,
           )
         : undefined;
 

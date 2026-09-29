@@ -31,6 +31,7 @@ import {
   IngredientFormat,
 } from '@genfeedai/contracts';
 import type {
+  IEditorProjectSeed,
   IEditorTrack,
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -98,70 +99,15 @@ export class EditorProjectsController {
       ? createDto.tracks
       : [];
 
-    // If sourceVideoId is provided, build initial video track from real data
-    if (createDto.sourceVideoId) {
-      const video = await this.ingredientsService.findOne({
-        id: createDto.sourceVideoId,
-        category: IngredientCategory.VIDEO,
-        organizationId: orgId,
-      });
-
-      if (!video) {
-        throw new NotFoundException('Source video');
-      }
-
-      const metadata = await this.metadataService.findOne({
-        ingredients: { some: { id: createDto.sourceVideoId } },
-      });
-
-      const duration = metadata?.duration || 10;
-      const width = metadata?.width || 1920;
-      const height = metadata?.height || 1080;
-      const fps = DEFAULT_FPS;
-      const durationFrames = Math.round(duration * fps);
-
-      const format =
-        height > width ? IngredientFormat.PORTRAIT : IngredientFormat.LANDSCAPE;
-
-      const videoUrl = `${this.configService.ingredientsEndpoint}/videos/${createDto.sourceVideoId}`;
-
-      settings = {
-        backgroundColor: '#000000',
-        format,
-        fps,
-        height,
-        width,
-      };
-      totalDurationFrames = durationFrames;
-      tracks = [
-        {
-          clips: [
-            {
-              durationFrames,
-              effects: [],
-              id: uuidv4(),
-              ingredientId: createDto.sourceVideoId,
-              ingredientUrl: videoUrl,
-              sourceEndFrame: durationFrames,
-              sourceStartFrame: 0,
-              startFrame: 0,
-              thumbnailUrl: video.thumbnailUrl,
-            },
-          ],
-          id: uuidv4(),
-          isLocked: false,
-          isMuted: false,
-          name: 'Video 1',
-          type: EditorTrackType.VIDEO,
-          volume: 100,
-        },
-      ];
-
-      if (!metadata) {
-        this._loggerService.warn(
-          `Metadata missing for video ${createDto.sourceVideoId}, using defaults`,
-        );
-      }
+    // Seed videos become ordered clips on one video track, back to back, so a
+    // Generate result, a Clips result or a storyboard's shots open ready to
+    // finish. Each clip keeps its source ingredient as lineage.
+    const sourceVideoIds = createDto.sourceVideoIds ?? [];
+    if (sourceVideoIds.length > 0) {
+      const seeded = await this.buildSeededVideoTrack(user, sourceVideoIds);
+      settings = seeded.settings;
+      totalDurationFrames = seeded.totalDurationFrames;
+      tracks = [seeded.track];
     }
 
     // Prisma columns: organizationId/userId/brandId + tracks Json + config Json.
@@ -175,9 +121,7 @@ export class EditorProjectsController {
           settings,
           status: EditorProjectStatus.DRAFT,
           totalDurationFrames,
-          ...(createDto.sourceVideoId
-            ? { sourceVideoId: createDto.sourceVideoId }
-            : {}),
+          ...(sourceVideoIds.length > 0 ? { sourceVideoIds } : {}),
         },
         organizationId: orgId,
         tracks,
@@ -186,6 +130,94 @@ export class EditorProjectsController {
     );
 
     return serializeSingle(request, EditorProjectSerializer, data);
+  }
+
+  /**
+   * Resolves every seed video in the caller's organization and brand, skipping
+   * nothing: a missing, deleted or foreign video fails the whole create rather
+   * than silently dropping a shot from the sequence.
+   */
+  private async buildSeededVideoTrack(
+    user: User,
+    sourceVideoIds: readonly string[],
+  ): Promise<IEditorProjectSeed> {
+    const fps = 30;
+    const sources = await Promise.all(
+      sourceVideoIds.map(async (videoId) => {
+        const video = await this.ingredientsService.findOne({
+          ...(user.brandId ? { brandId: user.brandId } : {}),
+          category: IngredientCategory.VIDEO,
+          id: videoId,
+          isDeleted: false,
+          organizationId: user.organizationId,
+        });
+
+        if (!video) {
+          throw new NotFoundException('Source video', videoId);
+        }
+
+        const metadata = await this.metadataService.findOne({
+          ingredients: { some: { id: videoId } },
+        });
+
+        if (!metadata) {
+          this._loggerService.warn(
+            `Metadata missing for video ${videoId}, using defaults`,
+          );
+        }
+
+        return { metadata, video, videoId };
+      }),
+    );
+
+    const [first] = sources;
+    const width = first.metadata?.width || 1920;
+    const height = first.metadata?.height || 1080;
+    let startFrame = 0;
+    const clips: IEditorTrack['clips'] = sources.map(
+      ({ metadata, video, videoId }) => {
+        const durationFrames = Math.round((metadata?.duration || 10) * fps);
+        const clip = {
+          durationFrames,
+          effects: [],
+          id: uuidv4(),
+          ingredientId: videoId,
+          ingredientUrl: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
+          sourceEndFrame: durationFrames,
+          sourceStartFrame: 0,
+          startFrame,
+          thumbnailUrl:
+            typeof video.thumbnailUrl === 'string'
+              ? video.thumbnailUrl
+              : undefined,
+        };
+        startFrame += durationFrames;
+        return clip;
+      },
+    );
+
+    return {
+      settings: {
+        backgroundColor: '#000000',
+        format:
+          height > width
+            ? IngredientFormat.PORTRAIT
+            : IngredientFormat.LANDSCAPE,
+        fps,
+        height,
+        width,
+      },
+      totalDurationFrames: startFrame,
+      track: {
+        clips,
+        id: uuidv4(),
+        isLocked: false,
+        isMuted: false,
+        name: 'Video 1',
+        type: EditorTrackType.VIDEO,
+        volume: 100,
+      },
+    };
   }
 
   @Get()

@@ -1,8 +1,3 @@
-import {
-  hasUnreconciledSceneWork,
-  invalidateScenePipeline,
-  isSceneOperationActive,
-} from '@api/collections/content-runs/services/brand-remix-scene-state';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   mergeBrandRemixConcept,
@@ -16,13 +11,21 @@ import {
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
-import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
+import {
+  projectBrandRemixRun,
+  summarizeBrandRemixRun,
+} from '@api/collections/content-runs/services/brand-remix-run-projection';
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
 import type {
   BrandRemixRunRecord,
   ResolvedBrandContext,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import {
+  hasUnreconciledSceneWork,
+  invalidateScenePipeline,
+  isSceneOperationActive,
+} from '@api/collections/content-runs/services/brand-remix-scene-state';
 import {
   BrandRemixSourceMediaService,
   type RemixSourceMediaIngestResult,
@@ -41,6 +44,10 @@ import {
   startBrandRemixRunSchema,
   submitBrandRemixRunForReviewSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  type BrandRemixRunSummary,
+  brandRemixRunListQuerySchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 /**
@@ -159,6 +166,28 @@ export class BrandRemixRunsService {
       persisted,
       userId ? media : undefined,
     );
+  }
+
+  /** Studio → Storyboard runs list: tenant- and brand-scoped summaries only. */
+  async list(
+    organizationId: string,
+    brandId: string,
+    query: unknown,
+  ): Promise<BrandRemixRunSummary[]> {
+    const input = parseBrandRemixPayload(
+      brandRemixRunListQuerySchema,
+      query,
+      'list',
+    );
+    const runs = await this.persistence.listRuns(
+      organizationId,
+      brandId,
+      input,
+    );
+    return runs.flatMap((run) => {
+      const config = brandRemixRunConfigSchema.safeParse(run.config);
+      return config.success ? [summarizeBrandRemixRun(run, config.data)] : [];
+    });
   }
 
   async get(organizationId: string, runId: string): Promise<BrandRemixRunView> {

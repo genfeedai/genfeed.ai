@@ -6,8 +6,9 @@ import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/dur
 import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlayer';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, Link, LoaderCircle, Upload, Video, X } from 'lucide-react';
+import { Expand, Link, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useMediaUpload } from '../../hooks/useMediaUpload';
 import { getVideoMetadata } from '../../lib/media';
@@ -214,7 +215,7 @@ function VideoInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
+              <Spinner className="size-5 text-muted-foreground/50" />
               <span className="text-2xs text-muted-foreground/70">
                 Uploading…
               </span>

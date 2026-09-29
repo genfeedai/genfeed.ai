@@ -181,6 +181,35 @@ describe('SharedService', () => {
       );
     });
 
+    it.each([
+      ['jpg', MetadataExtension.JPG],
+      ['jpeg', MetadataExtension.JPEG],
+      ['png', MetadataExtension.PNG],
+      ['webp', MetadataExtension.WEBP],
+      ['JPG', MetadataExtension.JPG],
+    ])(
+      'accepts the %s filename extension case-insensitively',
+      async (extension, expected) => {
+        await service.createMediaDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+          extension: extension as MetadataExtension,
+        });
+
+        expect(metadataService.create).toHaveBeenCalledWith(
+          expect.objectContaining({ extension: expected }),
+        );
+      },
+    );
+
+    it('rejects an unsupported metadata extension', async () => {
+      await expect(
+        service.createMediaDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+          extension: 'exe' as MetadataExtension,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
     it('increments the version from the canonical parent row', async () => {
       const parentId = '550e8400-e29b-41d4-a716-446655440009';
       vi.mocked(ingredientsService.findOne).mockResolvedValue({

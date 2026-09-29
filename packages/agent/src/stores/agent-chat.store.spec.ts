@@ -1,10 +1,14 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentThread,
+  AgentUiAction,
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
+import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('agent-chat.store finalizeStream', () => {
@@ -574,5 +578,161 @@ describe('agent-chat.store thread ui-action states', () => {
         'confirm_generate_media:proposal-1'
       ],
     ).toMatchObject({ runId: 'exec-b', sequence: 9 });
+  });
+});
+
+describe('agent-chat.store applyThreadStatusPush (#5636)', () => {
+  const thread = (id: string, overrides: Partial<AgentThread> = {}) =>
+    ({
+      contextVersion: 1,
+      createdAt: '2026-07-28T08:00:00.000Z',
+      id,
+      status: AgentThreadStatus.ACTIVE,
+      title: id,
+      updatedAt: '2026-07-28T08:00:00.000Z',
+      ...overrides,
+    }) as AgentThread;
+  const event = (
+    overrides: Partial<AgentThreadStatusEvent> = {},
+  ): AgentThreadStatusEvent => ({
+    organizationId: 'org-1',
+    pendingInputCount: 0,
+    runStatus: 'running',
+    runtimeState: AgentRuntimeState.RUNNING,
+    sequence: 5,
+    threadId: 'a',
+    timestamp: '2026-07-28T08:01:00.000Z',
+    userId: 'user-1',
+    ...overrides,
+  });
+  const rowById = (id: string) =>
+    useAgentChatStore.getState().threads.find((row) => row.id === id);
+
+  beforeEach(() => {
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+    useAgentChatStore.getState().setThreads([
+      thread('a', {
+        statusSequence: 2,
+        updatedAt: '2026-07-28T08:00:00.000Z',
+      }),
+      thread('b', { updatedAt: '2026-07-28T07:00:00.000Z' }),
+    ]);
+  });
+
+  it('moves a thread into Working without touching its position or updatedAt', () => {
+    const before = useAgentChatStore.getState().threads.map((row) => row.id);
+
+    expect(useAgentChatStore.getState().applyThreadStatusPush(event())).toBe(
+      'applied',
+    );
+
+    expect(useAgentChatStore.getState().threads.map((row) => row.id)).toEqual(
+      before,
+    );
+    expect(rowById('a')).toMatchObject({
+      attentionState: 'running',
+      runStatus: 'running',
+      statusSequence: 5,
+      updatedAt: '2026-07-28T08:00:00.000Z',
+    });
+  });
+
+  it('applies a later event and clears Working when the run ends', () => {
+    const store = useAgentChatStore.getState();
+    store.applyThreadStatusPush(event({ sequence: 5 }));
+
+    expect(
+      store.applyThreadStatusPush(
+        event({
+          runStatus: 'completed',
+          runtimeState: AgentRuntimeState.COMPLETED,
+          sequence: 8,
+        }),
+      ),
+    ).toBe('applied');
+
+    expect(rowById('a')).toMatchObject({
+      attentionState: null,
+      runStatus: 'completed',
+      statusSequence: 8,
+    });
+  });
+
+  it.each([
+    ['equal to the row', 2],
+    ['older than the row', 1],
+  ])('ignores an event with a sequence %s', (_label, sequence) => {
+    expect(
+      useAgentChatStore.getState().applyThreadStatusPush(event({ sequence })),
+    ).toBe('stale');
+    expect(rowById('a')?.runStatus).toBeUndefined();
+  });
+
+  it('ignores an event a live stream this client owns is already at or past', () => {
+    const store = useAgentChatStore.getState();
+
+    expect(store.applyThreadStatusPush(event({ sequence: 6 }), 6)).toBe(
+      'stale',
+    );
+    expect(store.applyThreadStatusPush(event({ sequence: 6 }), 9)).toBe(
+      'stale',
+    );
+    expect(rowById('a')?.runStatus).toBeUndefined();
+    expect(store.applyThreadStatusPush(event({ sequence: 7 }), 6)).toBe(
+      'applied',
+    );
+  });
+
+  it('reports a thread the list does not hold, without adding a row', () => {
+    expect(
+      useAgentChatStore
+        .getState()
+        .applyThreadStatusPush(event({ threadId: 'elsewhere' })),
+    ).toBe('unknown-thread');
+    expect(useAgentChatStore.getState().threads).toHaveLength(2);
+  });
+
+  it('files a thread under Needs you when it waits on the user', () => {
+    useAgentChatStore.getState().applyThreadStatusPush(
+      event({
+        pendingInputCount: 1,
+        runStatus: 'waiting_input',
+        runtimeState: AgentRuntimeState.AWAITING_INPUT,
+      }),
+    );
+
+    expect(rowById('a')).toMatchObject({
+      attentionState: 'needs-input',
+      pendingInputCount: 1,
+    });
+  });
+
+  it('applies a burst of events across many threads quickly and in order', () => {
+    const ids = Array.from({ length: 200 }, (_, index) => `t-${index}`);
+    useAgentChatStore.getState().setThreads(ids.map((id) => thread(id)));
+
+    const startedAt = performance.now();
+    for (let sequence = 1; sequence <= 10; sequence += 1) {
+      for (const id of ids) {
+        useAgentChatStore
+          .getState()
+          .applyThreadStatusPush(event({ sequence, threadId: id }));
+      }
+    }
+    // A replay of the whole burst changes nothing.
+    for (const id of ids) {
+      expect(
+        useAgentChatStore
+          .getState()
+          .applyThreadStatusPush(event({ sequence: 10, threadId: id })),
+      ).toBe('stale');
+    }
+
+    expect(performance.now() - startedAt).toBeLessThan(2_000);
+    expect(
+      useAgentChatStore
+        .getState()
+        .threads.every((row) => row.statusSequence === 10),
+    ).toBe(true);
   });
 });

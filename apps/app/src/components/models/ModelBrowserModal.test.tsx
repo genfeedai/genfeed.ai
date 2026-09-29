@@ -126,7 +126,9 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+        expect(
+          document.querySelector('.genfeed-loader-root'),
+        ).toBeInTheDocument();
       });
 
       await act(async () => {

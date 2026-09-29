@@ -194,4 +194,45 @@ describe('StalePendingSystemExecutionFinderService', () => {
       });
     });
   });
+  describe('findStalledInteractiveAgentTurns (#5622)', () => {
+    it('selects only PENDING, non-drained INTERACTIVE agent-conversation runs, oldest first, within the window', async () => {
+      const findMany = vi.fn().mockResolvedValue([]);
+      const service = new StalePendingSystemExecutionFinderService({
+        workflowExecution: { findMany },
+      } as never);
+      const createdBefore = new Date('2026-09-29T10:58:00.000Z');
+      const createdAfter = new Date('2026-09-28T11:00:00.000Z');
+
+      await service.findStalledInteractiveAgentTurns(
+        createdBefore,
+        createdAfter,
+        50,
+      );
+
+      const args = findMany.mock.calls[0][0];
+      expect(args.take).toBe(50);
+      expect(args.orderBy).toEqual([{ createdAt: 'asc' }, { id: 'asc' }]);
+      const [base, dispatch, canonical] = args.where.AND;
+      expect(base).toEqual(
+        expect.objectContaining({
+          cancelRequestedAt: null,
+          createdAt: { gte: createdAfter, lt: createdBefore },
+          isDeleted: false,
+          status: 'PENDING',
+        }),
+      );
+      expect(dispatch).toEqual({
+        result: { equals: 'interactive', path: ['metadata', 'dispatchClass'] },
+      });
+      expect(canonical.OR.map((clause: never) => clause)).toEqual(
+        [
+          'agent.turn.execute',
+          'agent.thread.ui-action',
+          'agent.thread.input-response',
+        ].map((canonicalId) => ({
+          result: { equals: canonicalId, path: ['metadata', 'canonicalId'] },
+        })),
+      );
+    });
+  });
 });

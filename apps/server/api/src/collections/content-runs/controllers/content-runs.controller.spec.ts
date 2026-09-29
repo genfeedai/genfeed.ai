@@ -29,6 +29,7 @@ describe('ContentRunsController', () => {
   const mockBrandRemixRunsService = {
     create: vi.fn(),
     get: vi.fn(),
+    list: vi.fn(),
     preparePausedMetaDraft: vi.fn(),
     revise: vi.fn(),
     start: vi.fn(),
@@ -101,6 +102,50 @@ describe('ContentRunsController', () => {
         'image-gen',
         ContentRunStatus.FAILED,
       );
+    });
+  });
+
+  describe('listBrandRemixRuns', () => {
+    it('lists storyboard run summaries for the caller organization and brand', async () => {
+      mockBrandRemixRunsService.list.mockResolvedValue([
+        {
+          brandId: 'brand-1',
+          createdAt: '2026-09-01T10:00:00.000Z',
+          id: 'run-1',
+          outputKind: 'video',
+          phase: 'prefilled',
+          runtimeSeconds: 12,
+          shotCount: 2,
+          sourceKind: 'remix_discovery',
+          title: 'Proof-led hook',
+          updatedAt: '2026-09-01T10:05:00.000Z',
+        },
+      ]);
+
+      const response = await controller.listBrandRemixRuns(
+        mockReq,
+        'brand-1',
+        mockUser,
+        { page: '2' },
+      );
+
+      expect(mockBrandRemixRunsService.list).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        { page: '2' },
+      );
+      expect(response).toMatchObject({
+        data: [
+          {
+            attributes: expect.objectContaining({
+              shotCount: 2,
+              sourceKind: 'remix_discovery',
+              title: 'Proof-led hook',
+            }),
+            id: 'run-1',
+          },
+        ],
+      });
     });
   });
 

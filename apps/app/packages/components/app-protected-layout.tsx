@@ -31,6 +31,7 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
+import Spinner from '@ui/primitives/spinner';
 import dynamic from 'next/dynamic';
 import { usePathname } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
@@ -77,7 +78,7 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
         className="flex items-center justify-center p-8"
         aria-busy="true"
       >
-        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner className="size-4 text-primary" />
       </div>
     ),
     ssr: false,

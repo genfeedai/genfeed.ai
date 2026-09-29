@@ -1,9 +1,29 @@
 import { getNodeDefinition } from '@api/collections/workflows/registry/node-registry-adapter';
+import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
+import { WorkflowAutomationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-automation-executor-registrar.service';
+import { WorkflowContentExecutorRegistrarService } from '@api/collections/workflows/services/workflow-content-executor-registrar.service';
+import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
+import type { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowEngineConverterService } from '@api/collections/workflows/services/workflow-engine-converter.service';
+import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
+import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
+import { isWorkflowInputNodeType } from '@api/collections/workflows/workflow-node-predicates';
+import { isKnowledgeWorkflowAction } from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
 import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-  WORKFLOW_TEMPLATES,
-} from '@api/collections/workflows/templates/workflow-templates';
-import { getActionDefinition } from '@genfeedai/actions';
+  GENFEED_ACTION_NODE_TYPE,
+  getActionDefinition,
+  getToolByName,
+  getToolsForSurface,
+} from '@genfeedai/actions';
+import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -26,10 +46,6 @@ const KNOWN_UNDECLARED_PLACEHOLDERS: readonly string[] = [
   'daily-image-generation:prompt',
   'motivational-quote-image:quote',
   'scheduled-video-creation:prompt',
-  'social-media-video-series:prompt',
-  'tiktok-slideshow-automation:niche',
-  'tiktok-slideshow-automation:product',
-  'webhook-notification:GENFEEDAI_WEBHOOKS_URL',
   'weekly-article-batch:topic',
 ];
 
@@ -65,6 +81,189 @@ function readActionId(node: { data?: { config?: unknown } }): string | null {
   return typeof actionId === 'string' ? actionId : null;
 }
 
+/**
+ * A stand-in for an injected service. Registrars skip an executor whose
+ * optional service is absent, so every dependency is present here and every
+ * executor production can register is registered. Registration never calls
+ * the services; any method called returns an empty list.
+ */
+function presentDependency<T>(): T {
+  const handler: ProxyHandler<Record<PropertyKey, unknown>> = {
+    get: (_target, property) =>
+      typeof property === 'symbol' || property === 'then'
+        ? undefined
+        : () => [],
+  };
+  return new Proxy<Record<PropertyKey, unknown>>({}, handler) as unknown as T;
+}
+
+/**
+ * The engine as production wires it: every API registrar (see
+ * `WorkflowEngineExecutorRegistryService`), the runner's own control actions,
+ * the domain services that register catalog actions through the runner, and
+ * the agent-tool bridge. Catalog templates install as customer workflows,
+ * and the bridge (`AgentToolExecutorService.onModuleInit`) only runs Knowledge
+ * actions there — every other agent tool requires an authenticated agent
+ * runtime and fails in a customer workflow, so only Knowledge actions count.
+ */
+function createProductionEngine(): WorkflowEngine {
+  const engine = new WorkflowEngine();
+  const helper = new WorkflowEngineExecutorHelperService(
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+  );
+  const trendPublish = new WorkflowTrendPublishExecutorRegistrarService(
+    helper,
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+    presentDependency(),
+  );
+  new WorkflowEngineExecutorRegistryService(
+    new WorkflowCoreExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    new WorkflowSocialExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    new WorkflowMediaProcessingExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    new WorkflowMediaGenerationExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    new WorkflowContentExecutorRegistrarService(
+      helper,
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    new WorkflowAutomationExecutorRegistrarService(
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+      presentDependency(),
+    ),
+    trendPublish,
+  ).register(engine);
+
+  const engineAdapter: Pick<
+    WorkflowEngineAdapterService,
+    'getRegisteredActionIds' | 'registerExecutor'
+  > = {
+    getRegisteredActionIds: () => engine.getRegisteredActionIds(),
+    registerExecutor: (nodeType, executor) =>
+      engine.registerExecutor(nodeType, executor),
+  };
+  let runner: SystemWorkflowRunnerService | undefined;
+  const moduleRef = {
+    get: (token: unknown) =>
+      token === SystemWorkflowRunnerService ? runner : engineAdapter,
+  } as unknown as ModuleRef;
+  runner = new SystemWorkflowRunnerService(presentDependency(), moduleRef);
+  runner.onModuleInit();
+  // Domain owners that register the actions a catalog template runs.
+  new DailyPublishingService(presentDependency(), moduleRef).onModuleInit();
+  for (const tool of getToolsForSurface('agent')) {
+    const definition = getToolByName(tool.name);
+    if (
+      definition &&
+      (definition.surfaces.agent || definition.surfaces.mcp) &&
+      isKnowledgeWorkflowAction(tool.name)
+    ) {
+      runner.registerAction(tool.name, async () => ({}));
+    }
+  }
+
+  return engine;
+}
+
+/** `<templateId>:<nodeId>:<actionId or node type>` for each node no executor runs. */
+function findNodesWithoutExecutor(engine: WorkflowEngine): string[] {
+  const converter = new WorkflowEngineConverterService();
+  const registeredActionIds = new Set(engine.getRegisteredActionIds());
+  const missing: string[] = [];
+
+  for (const [templateId, template] of Object.entries(WORKFLOW_TEMPLATES)) {
+    const executable = converter.convertToExecutableWorkflow({
+      edges: template.edges ?? [],
+      id: templateId,
+      nodes: template.nodes ?? [],
+    });
+    for (const node of executable.nodes) {
+      // Workflow inputs are bound from run inputs, never executed.
+      if (isWorkflowInputNodeType(node.type)) {
+        continue;
+      }
+      if (node.type === GENFEED_ACTION_NODE_TYPE) {
+        const actionId = String(node.config.actionId);
+        if (!registeredActionIds.has(actionId)) {
+          missing.push(`${templateId}:${node.id}:${actionId}`);
+        }
+        continue;
+      }
+      if (!engine.getExecutor(node.type)) {
+        missing.push(`${templateId}:${node.id}:${node.type}`);
+      }
+    }
+  }
+
+  return missing.sort();
+}
+
 describe('workflow template node coverage', () => {
   it('exposes a registry definition for every visual template node type', () => {
     const templateNodeTypes = new Set(
@@ -82,6 +281,39 @@ describe('workflow template node coverage', () => {
 });
 
 describe('workflow template wiring guard (#5533)', () => {
+  it('runs every catalog node on an executor the production engine registers', () => {
+    expect(findNodesWithoutExecutor(createProductionEngine())).toEqual([]);
+  });
+
+  it('builds the executor set production registers, not a permissive one', () => {
+    const engine = createProductionEngine();
+    const registeredActionIds = engine.getRegisteredActionIds();
+
+    expect(registeredActionIds).toEqual(
+      expect.arrayContaining([
+        'daily-publishing.resolve',
+        'effect-captions',
+        'imageGen',
+        'publish',
+        'reframe',
+        'search_knowledge',
+        'videoGen',
+        'workflow.collect-output',
+        'workflow.run-child',
+      ]),
+    );
+    for (const unregistered of [
+      'effect-text-overlay',
+      'generate_content_batch',
+      'output-webhook',
+      'process-resize',
+      'process-transform',
+    ]) {
+      expect(registeredActionIds, unregistered).not.toContain(unregistered);
+    }
+    expect(engine.getExecutor('reviewGate')).toBeDefined();
+  });
+
   it('names only source handles the source action output contract declares', () => {
     const unresolved: string[] = [];
 
@@ -133,7 +365,7 @@ describe('workflow template wiring guard (#5533)', () => {
   });
 
   it('keeps every showcase template off the known-defect baselines', () => {
-    const showcaseIds = new Set<string>(SHOWCASE_WORKFLOW_TEMPLATE_IDS);
+    const showcaseIds = new Set<string>(ENGINE_VERIFIED_TEMPLATE_IDS);
     const baselinedShowcase = [
       ...KNOWN_UNRESOLVED_SOURCE_HANDLES,
       ...KNOWN_UNDECLARED_PLACEHOLDERS,

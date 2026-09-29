@@ -20,6 +20,8 @@ import {
 } from '@genfeedai/contracts';
 import { AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE } from '@genfeedai/contracts/constants';
 import type {
+  AgentThreadRunState,
+  AgentThreadRunStatus,
   IAgentExternalTurnInput,
   IAgentExternalTurnToolCall,
   IAgentRunProjection,
@@ -33,15 +35,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 
-type ThreadRunStatus =
-  | 'queued'
-  | 'running'
-  | 'waiting_input'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'idle';
-
 type ThreadAttentionState = 'needs-input' | 'running' | 'updated' | null;
 
 type AgentThreadSummary = Partial<{
@@ -53,8 +46,13 @@ type AgentThreadSummary = Partial<{
   lastGeneratedAssetUrl: string;
   pendingInputCount: number;
   runId: string;
-  runStatus: ThreadRunStatus;
+  runStatus: AgentThreadRunStatus;
   runtimeState: AgentRuntimeState;
+  /**
+   * The thread event sequence this summary was read at: the baseline a status
+   * push (`AgentThreadStatusEvent.sequence`) must beat to be newer (#5636).
+   */
+  statusSequence: number;
 }>;
 
 type ThreadGeneratedAsset = {
@@ -62,7 +60,7 @@ type ThreadGeneratedAsset = {
   url: string;
 };
 
-type WorkflowExecutionRecord = {
+export type WorkflowExecutionRecord = {
   createdAt?: Date;
   id: string;
   status: string;
@@ -608,56 +606,31 @@ export class AgentThreadsService extends BaseService<
         : undefined,
     });
 
+    const {
+      activeRun,
+      hasPendingConfirmation,
+      isLatestRun,
+      pendingInputRequests,
+      pendingInputCount,
+      runStatus,
+      runtimeState,
+    } = this.resolveRunState(snapshot, latestExecution);
+
     if (!snapshot) {
-      const runtimeState = resolveAgentRuntimeState({
-        workflowStatus: latestExecution?.status,
-      });
       return {
         attentionState:
           runtimeState === AgentRuntimeState.RUNNING ? 'running' : null,
         decisionHref: `/agent/${threadId}`,
         lastActivityAt: latestExecution?.createdAt?.toISOString(),
         lastGeneratedAssetUrl: lastGeneratedAsset?.url,
-        pendingInputCount: 0,
+        pendingInputCount,
         runId: latestExecution?.id,
-        runStatus: this.toLegacyRunStatus(runtimeState),
+        runStatus,
         runtimeState,
+        statusSequence: 0,
       };
     }
 
-    const activeRun = this.asRecord(snapshot.activeRun);
-    const isLatestRun =
-      !latestExecution ||
-      this.readString(activeRun, 'runId') === latestExecution.id;
-    const decisionsAllowed =
-      isLatestRun &&
-      !['FAILED', 'CANCELLED'].includes(latestExecution?.status ?? '') &&
-      !['failed', 'cancelled', 'interrupted'].includes(
-        this.readString(activeRun, 'status') ?? '',
-      );
-    const pendingInputRequests =
-      decisionsAllowed && Array.isArray(snapshot.pendingInputRequests)
-        ? snapshot.pendingInputRequests
-        : [];
-    const pendingInputCount = pendingInputRequests.length;
-    const pendingApprovals =
-      decisionsAllowed && Array.isArray(snapshot.pendingApprovals)
-        ? snapshot.pendingApprovals.length
-        : 0;
-    const hasPendingConfirmation =
-      decisionsAllowed &&
-      (pendingApprovals > 0 ||
-        Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval));
-    const rawRunStatus = isLatestRun
-      ? this.readString(activeRun, 'status')
-      : undefined;
-    const runtimeState = resolveAgentRuntimeState({
-      hasPendingConfirmation,
-      pendingInputCount,
-      snapshotStatus: rawRunStatus,
-      workflowStatus: latestExecution?.status,
-    });
-    const runStatus = this.toLegacyRunStatus(runtimeState);
     const inputRequestId = this.readString(
       this.asRecord(pendingInputRequests.at(-1)),
       'requestId',
@@ -707,7 +680,109 @@ export class AgentThreadsService extends BaseService<
       runId: latestExecution?.id ?? this.readString(activeRun, 'runId'),
       runStatus,
       runtimeState,
+      statusSequence: snapshot.lastSequence ?? 0,
     };
+  }
+
+  /**
+   * The one place a thread's run state is derived from its projected snapshot
+   * and latest execution. The thread list (`buildThreadSummary`) and the
+   * status push (`AgentThreadStatusPublisherService`) both call it, so a
+   * pushed status can never disagree with the list.
+   */
+  private resolveRunState(
+    snapshot: AgentThreadSnapshotDocument | null | undefined,
+    latestExecution?: WorkflowExecutionRecord | null,
+  ): AgentThreadRunState & {
+    activeRun: Record<string, unknown> | undefined;
+    hasPendingConfirmation: boolean;
+    isLatestRun: boolean;
+    pendingInputRequests: unknown[];
+  } {
+    if (!snapshot) {
+      const runtimeState = resolveAgentRuntimeState({
+        workflowStatus: latestExecution?.status,
+      });
+      return {
+        activeRun: undefined,
+        hasPendingConfirmation: false,
+        isLatestRun: true,
+        pendingInputCount: 0,
+        pendingInputRequests: [],
+        runStatus: this.toLegacyRunStatus(runtimeState),
+        runtimeState,
+      };
+    }
+
+    const activeRun = this.asRecord(snapshot.activeRun);
+    const isLatestRun =
+      !latestExecution ||
+      this.readString(activeRun, 'runId') === latestExecution.id;
+    const decisionsAllowed =
+      isLatestRun &&
+      !['FAILED', 'CANCELLED'].includes(latestExecution?.status ?? '') &&
+      !['failed', 'cancelled', 'interrupted'].includes(
+        this.readString(activeRun, 'status') ?? '',
+      );
+    const pendingInputRequests =
+      decisionsAllowed && Array.isArray(snapshot.pendingInputRequests)
+        ? snapshot.pendingInputRequests
+        : [];
+    const pendingInputCount = pendingInputRequests.length;
+    const pendingApprovals =
+      decisionsAllowed && Array.isArray(snapshot.pendingApprovals)
+        ? snapshot.pendingApprovals.length
+        : 0;
+    const hasPendingConfirmation =
+      decisionsAllowed &&
+      (pendingApprovals > 0 ||
+        Boolean(this.asRecord(snapshot.latestProposedPlan)?.awaitingApproval));
+    const rawRunStatus = isLatestRun
+      ? this.readString(activeRun, 'status')
+      : undefined;
+    const runtimeState = resolveAgentRuntimeState({
+      hasPendingConfirmation,
+      pendingInputCount,
+      snapshotStatus: rawRunStatus,
+      workflowStatus: latestExecution?.status,
+    });
+
+    return {
+      activeRun,
+      hasPendingConfirmation,
+      isLatestRun,
+      pendingInputCount,
+      pendingInputRequests,
+      runStatus: this.toLegacyRunStatus(runtimeState),
+      runtimeState,
+    };
+  }
+
+  /** Run state of one thread, exactly as the thread list reports it. */
+  resolveThreadRunState(
+    snapshot: AgentThreadSnapshotDocument | null | undefined,
+    latestExecution?: WorkflowExecutionRecord | null,
+  ): AgentThreadRunState {
+    const { pendingInputCount, runStatus, runtimeState } = this.resolveRunState(
+      snapshot,
+      latestExecution,
+    );
+    return { pendingInputCount, runStatus, runtimeState };
+  }
+
+  /** The thread's newest execution, as the thread list joins it. */
+  async findLatestExecution(
+    organizationId: string,
+    threadId: string,
+  ): Promise<WorkflowExecutionRecord | null> {
+    const [row] = await this.findExecutionsByThreadIds(
+      organizationId,
+      [threadId],
+      1,
+    );
+    return row
+      ? { createdAt: row.createdAt, id: row.id, status: row.status }
+      : null;
   }
 
   /**
@@ -719,6 +794,7 @@ export class AgentThreadsService extends BaseService<
   private async findExecutionsByThreadIds(
     organizationId: string,
     threadIds: string[],
+    limit = THREAD_EXECUTION_SCAN_LIMIT,
   ): Promise<ThreadExecutionRow[]> {
     if (threadIds.length === 0) {
       return [];
@@ -737,7 +813,7 @@ export class AgentThreadsService extends BaseService<
           threadIds,
         )})
       ORDER BY execution."createdAt" DESC
-      LIMIT ${THREAD_EXECUTION_SCAN_LIMIT}
+      LIMIT ${limit}
     `;
   }
 
@@ -812,7 +888,7 @@ export class AgentThreadsService extends BaseService<
     );
   }
 
-  private toLegacyRunStatus(state: AgentRuntimeState): ThreadRunStatus {
+  private toLegacyRunStatus(state: AgentRuntimeState): AgentThreadRunStatus {
     switch (state) {
       case AgentRuntimeState.RUNNING:
         return 'running';

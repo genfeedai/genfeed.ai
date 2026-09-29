@@ -11,6 +11,7 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
+  AGENT_TURN_QUEUE,
   BATCH_REWRITE_QUEUE,
   CREDIT_DEDUCTION_QUEUE,
   DEFAULT_QUEUE,
@@ -107,6 +108,16 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: WORKFLOW_BACKGROUND_QUEUE,
+      },
+      // Live agent-conversation turns only (#5622): nothing else produces to
+      // this queue, so no other producer can backlog a turn a user is waiting on.
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: AGENT_TURN_QUEUE,
       },
       {
         defaultJobOptions: {

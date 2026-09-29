@@ -13,9 +13,9 @@ import type {
 } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Download, Library, Rocket, SquarePen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -123,7 +123,7 @@ export default function ClipResultCard({
 
       push(href(handoff.editorPath));
     } catch {
-      push(href(APP_ROUTES.STUDIO.EDIT));
+      push(href(APP_ROUTES.STUDIO.EDITOR));
     }
   }, [clip.id, projectId, videoUrl, clipsService, href, push]);
 

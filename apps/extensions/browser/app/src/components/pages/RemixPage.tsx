@@ -8,9 +8,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useReducer } from 'react';
-import { LoadingSpinner } from '~components/ui';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
 import { useBrandStore } from '~store/use-brand-store';
@@ -64,7 +64,7 @@ const PLATFORMS: { value: SocialPlatform; label: string }[] = [
 function RemixLoadingView(): ReactElement {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-3">
-      <LoadingSpinner size="md" className="text-primary" />
+      <Spinner className="size-8 text-primary" />
       <p className="text-sm text-muted-foreground">Remixing content…</p>
     </div>
   );

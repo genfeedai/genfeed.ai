@@ -16,15 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
-import {
-  CircleAlert,
-  CircleCheck,
-  GitBranch,
-  LoaderCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { CircleAlert, CircleCheck, GitBranch, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import type { ReferencableWorkflow } from '../../provider/types';
 import { useWorkflowStore } from '../../stores/workflow';
@@ -85,9 +80,7 @@ function WorkflowRefHeader({
       <span className="flex-1 truncate text-sm font-medium text-foreground">
         {label || 'Subworkflow'}
       </span>
-      {isProcessing && (
-        <LoaderCircle className="size-4 animate-spin text-primary" />
-      )}
+      {isProcessing && <Spinner className="size-4 text-primary" />}
       {status === 'complete' && <CircleCheck className="size-4 text-chart-2" />}
       {status === 'error' && (
         <CircleAlert className="size-4 text-destructive" />
@@ -136,7 +129,7 @@ function WorkflowSelectorSection({
 
       {isFetchingWorkflows && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <LoaderCircle className="size-3 animate-spin" />
+          <Spinner className="size-3" />
           Loading…
         </div>
       )}

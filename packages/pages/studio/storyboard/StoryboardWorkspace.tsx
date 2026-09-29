@@ -7,10 +7,12 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/contracts';
-import { StoryboardPanel } from '@pages/studio/generate/components/StoryboardPanel';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MergeProgressPanel from '@pages/studio/storyboard/components/MergeProgressPanel';
 import MergeSettingsPanel from '@pages/studio/storyboard/components/MergeSettingsPanel';
 import SceneFrameRow from '@pages/studio/storyboard/components/SceneFrameRow';
+import { StoryboardPanel } from '@pages/studio/storyboard/components/StoryboardPanel';
 import {
   type StoryboardWorkspaceMode,
   useStoryboardWorkspace,
@@ -30,6 +32,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback } from 'react';
 
@@ -62,6 +65,7 @@ const MODE_OPTIONS: Array<{
 export default function StoryboardWorkspace() {
   const translate = useTranslations('pages.studioStoryboard');
   const { openGallery } = useGalleryModal();
+  const { href } = useOrgUrl();
   const {
     addMergeVideos,
     addSceneImages,
@@ -138,6 +142,25 @@ export default function StoryboardWorkspace() {
             Build multi-frame video: interpolate stills, script scenes from your
             generated images, or merge finished clips.
           </p>
+
+          {/* Remix runs start from a Discovery source and are saved as
+              storyboard runs; brief-sourced runs (#5454) join here. */}
+          <Card
+            label={translate('create.remixTitle')}
+            description={translate('create.remixDescription')}
+          >
+            <div className="flex justify-end">
+              <Button
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
+              >
+                <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
+                  {translate('create.remixAction')}
+                </Link>
+              </Button>
+            </div>
+          </Card>
 
           <div className="grid gap-2 sm:grid-cols-3">
             {MODE_OPTIONS.map((option) => {

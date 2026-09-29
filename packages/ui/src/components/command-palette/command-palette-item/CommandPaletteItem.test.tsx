@@ -3,6 +3,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { CommandPaletteItem } from '@ui/command-palette/command-palette-item/CommandPaletteItem';
 import { describe, expect, it, vi } from 'vitest';
 
+const clientSurface = vi.hoisted(() => ({ isDesktop: true }));
+
+vi.mock(
+  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
+  () => ({ useIsDesktopClient: () => clientSurface.isDesktop }),
+);
+
 const baseCommand: ICommand = {
   action: vi.fn(),
   category: 'actions',
@@ -50,6 +57,20 @@ describe('CommandPaletteItem', () => {
     );
 
     expect(screen.getByText('🎯')).toBeInTheDocument();
+  });
+
+  it('hides keyboard shortcuts outside the desktop app', () => {
+    clientSurface.isDesktop = false;
+    render(
+      <CommandPaletteItem
+        command={{ ...baseCommand, shortcut: ['⌘', 'K'] }}
+        isSelected={false}
+        onClick={vi.fn()}
+      />,
+    );
+    clientSurface.isDesktop = true;
+
+    expect(screen.queryByText('⌘')).toBeNull();
   });
 
   it('shows keyboard shortcut keys', () => {

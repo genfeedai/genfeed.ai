@@ -871,11 +871,15 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-width',
       `${inspectorRailWidth}px`,
     );
+    // Open, the content panel drops its right corners and the inspector
+    // continues it: one surface, one divider.
+    layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
+      delete layoutRoot.dataset.inspectorOpen;
     };
-  }, [inspectorRailWidth]);
+  }, [inspectorRailWidth, isInspectorOpen]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -1042,9 +1046,11 @@ function UniversalWorkspaceShellContent({
                 dock={agentDock}
                 isCompact={isCompactViewport}
                 onOpenFullPage={handleOpenFullConversation}
+                // Organization and brand are switched from the shell chrome;
+                // the dock only surfaces scope notices and page context.
                 scopeControls={
                   <>
-                    {conversationScope.scopeControls}
+                    {conversationScope.scopeStatus}
                     {composerScopeControls}
                     {effectiveSurfaceAdapter?.composerContext}
                   </>
@@ -1071,18 +1077,19 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
-                // Docked inside the content surface, flush right and bottom;
-                // the top hairline continues the surface's own top border.
-                isInspectorOpen && 'border-t border-l border-border',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
+                // Attached to the content panel: its right border is the
+                // divider, so the inspector adds only the top, right and
+                // bottom edges. Collapsed it is zero-width, so no border.
+                isInspectorOpen && 'border-y border-r border-border',
               )}
               id="workspace-context-inspector"
               inert={!isInspectorOpen}
               ref={inspectorRef}
               style={{
-                bottom: 0,
+                bottom: 'var(--shell-inset, 0px)',
                 minWidth: inspectorRailWidth,
-                right: 0,
+                right: 'var(--shell-inset, 0px)',
                 top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px))',
                 transition: INSPECTOR_RAIL_TRANSITION,
                 width: inspectorRailWidth,

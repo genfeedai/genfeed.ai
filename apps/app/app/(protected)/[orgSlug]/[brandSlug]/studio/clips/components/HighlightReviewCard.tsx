@@ -5,7 +5,6 @@ import type {
   RewriteState,
 } from '@props/studio/clips.props';
 import Card from '@ui/card/Card';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useReducer, useRef } from 'react';
 

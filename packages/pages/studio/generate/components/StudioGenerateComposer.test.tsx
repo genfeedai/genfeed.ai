@@ -18,28 +18,6 @@ vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
   }),
 }));
 
-const remixMocks = vi.hoisted(() => ({ isRemixActive: false }));
-
-vi.mock('@pages/studio/generate/StudioRemixRunScope', () => ({
-  useStudioRemixRunScope: () => remixMocks.isRemixActive,
-}));
-
-const modelSelectorMocks = vi.hoisted(() => ({
-  props: {} as { autoLabel?: string; values?: readonly string[] },
-}));
-
-vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
-  default: (props: { autoLabel?: string; values?: readonly string[] }) => {
-    modelSelectorMocks.props = props;
-    return <button type="button">Generation settings</button>;
-  },
-}));
-
-vi.mock(
-  '@pages/studio/generate/components/StudioGenerateSettingsPopover',
-  () => ({ default: () => <button type="button">Settings</button> }),
-);
-
 const generationSetupPopoverMocks = vi.hoisted(() => ({
   props: {} as Record<string, unknown>,
 }));
@@ -178,13 +156,12 @@ const baseProps = {
 
 describe('StudioGenerateComposer', () => {
   beforeEach(() => {
-    remixMocks.isRemixActive = false;
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
     vi.clearAllMocks();
   });
 
-  it('renders the unified GenerationSetupPopover for a non-Remix surface', () => {
+  it('renders the unified GenerationSetupPopover', () => {
     const onTypeChange = vi.fn();
 
     render(
@@ -237,29 +214,6 @@ describe('StudioGenerateComposer', () => {
         }
       ).hasIdentity,
     ).toBe(false);
-  });
-
-  it('keeps the narrow output-only chrome for a Remix run', () => {
-    remixMocks.isRemixActive = true;
-
-    render(
-      <StudioGenerateComposer
-        {...baseProps}
-        prompt="A product photo"
-        settings={settings}
-        type="image"
-      />,
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Generation settings' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Settings' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Setup' }),
-    ).not.toBeInTheDocument();
   });
 
   it('shows the Identity chip only for identity-capable types', () => {
@@ -370,7 +324,6 @@ describe('StudioGenerateComposer', () => {
   });
 
   it('reconciles external music settings without mounting Output, idempotently', () => {
-    remixMocks.isRemixActive = true;
     const onSettingsChange = vi.fn();
     const musicSettings = {
       ...settings,

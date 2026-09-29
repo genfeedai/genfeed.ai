@@ -8,6 +8,7 @@ import {
   resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag/use-feature-flag';
+import Spinner from '@ui/primitives/spinner';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -49,7 +50,7 @@ export default function OnboardingRootPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
+      <Spinner className="size-6 text-foreground" />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Page, Route } from '@playwright/test';
+import type { Page, Request, Route } from '@playwright/test';
 import {
   createAuthenticatedPage,
   expect,
@@ -19,6 +19,23 @@ function organizationSwitcher(page: Page) {
   return page
     .getByTestId('desktop-app-rail')
     .getByTestId('organization-switcher-trigger');
+}
+
+/**
+ * Tenant-scoped API requests only: auth, organization-context and the
+ * unauthenticated `/v1/public/*` endpoints (e.g. the platform-flags read the
+ * shell issues on load, #5468) carry no tenant data and never send the
+ * organization header, so they are outside the routed-context contract.
+ */
+function isTenantScopedRequest(request: Request): boolean {
+  const { pathname } = new URL(request.url());
+
+  return (
+    pathname.startsWith('/v1/') &&
+    !pathname.startsWith('/v1/auth/') &&
+    !pathname.startsWith('/v1/organizations') &&
+    !pathname.startsWith('/v1/public/')
+  );
 }
 
 interface OrganizationContextMockOptions {
@@ -120,12 +137,7 @@ test.describe('Routed organization context', () => {
     const tenantRequestOrganizationIds: Array<string | undefined> = [];
 
     authenticatedPage.on('request', (request) => {
-      const url = new URL(request.url());
-      if (
-        !url.pathname.startsWith('/v1/') ||
-        url.pathname.startsWith('/v1/auth/') ||
-        url.pathname.startsWith('/v1/organizations')
-      ) {
+      if (!isTenantScopedRequest(request)) {
         return;
       }
 
@@ -164,12 +176,7 @@ test.describe('Routed organization context', () => {
     const tenantRequests: string[] = [];
 
     authenticatedPage.on('request', (request) => {
-      const url = new URL(request.url());
-      if (
-        url.pathname.startsWith('/v1/') &&
-        !url.pathname.startsWith('/v1/auth/') &&
-        !url.pathname.startsWith('/v1/organizations')
-      ) {
+      if (isTenantScopedRequest(request)) {
         tenantRequests.push(request.url());
       }
     });

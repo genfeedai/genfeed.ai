@@ -15,8 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Film, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Film, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -122,7 +123,7 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <Film className="size-4" />
             )}

@@ -124,7 +124,7 @@ describe('useStudioGenerateAssetActions', () => {
     expect(onAttachReference).toHaveBeenNthCalledWith(1, ingredient, 'image');
     expect(onAttachReference).toHaveBeenNthCalledWith(2, ingredient, 'video');
     expect(mocks.push).toHaveBeenCalledWith(
-      '/default/default/studio/storyboard?mode=scenes&referenceImageId=ingredient-1&format=portrait',
+      '/default/default/studio/storyboard/new?mode=scenes&referenceImageId=ingredient-1&format=portrait',
     );
   });
 
@@ -139,7 +139,7 @@ describe('useStudioGenerateAssetActions', () => {
     act(() => result.current.onOpenInEditor({ ...ingredient, id: 'video-1' }));
 
     expect(mocks.push).toHaveBeenCalledWith(
-      '/default/default/studio/edit/new?video=video-1',
+      '/default/default/studio/editor/new?video=video-1',
     );
   });
 

@@ -455,7 +455,13 @@ vi.mock('./use-conversation-scope-controls', () => ({
   useConversationScopeControls: () => ({
     contextLabel: 'Acme · Organization-wide',
     isConsequentiallyBlocked: false,
-    scopeControls: <span>Thread scope</span>,
+    scopeControls: (
+      <>
+        <span>Thread scope</span>
+        <button type="button">Switch organization</button>
+      </>
+    ),
+    scopeStatus: <span>Scope out of sync</span>,
   }),
 }));
 
@@ -662,6 +668,55 @@ describe('UniversalWorkspaceShell', () => {
     expect(container.querySelector('#workspace-context-inspector')).toHaveStyle(
       { width: '320px' },
     );
+  });
+
+  it('attaches the open inspector to the content panel through the layout root', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    function SelectionSurface() {
+      return (
+        <ContextSidebarPanel
+          onClose={() => {}}
+          selection={{
+            id: 'asset-1',
+            kind: 'asset',
+            origin: 'user',
+            title: 'Image',
+          }}
+        >
+          <p>Asset detail</p>
+        </ContextSidebarPanel>
+      );
+    }
+
+    const { container } = render(
+      <div data-testid="layout-root" data-workspace-shell="true">
+        <ContextSidebarProvider>
+          <UniversalWorkspaceShell agentApiService={agentApiService}>
+            <SelectionSurface />
+          </UniversalWorkspaceShell>
+        </ContextSidebarProvider>
+      </div>,
+    );
+
+    const layoutRoot = screen.getByTestId('layout-root');
+    const aside = container.querySelector('#workspace-context-inspector');
+    // Open: the panel squares its right edge; the inspector adds no left edge
+    // of its own, so the two share one divider.
+    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
+    expect(
+      layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
+    ).toBe('320px');
+    expect(aside).toHaveClass('rounded-r-lg', 'border-y', 'border-r');
+    expect(aside).not.toHaveClass('border-l', 'rounded-lg');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+
+    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
+    expect(
+      layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
+    ).toBe('0px');
+    expect(aside).not.toHaveClass('border-r');
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
@@ -1043,6 +1098,26 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
+  it('hands the composer each scope control once', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    render(
+      <UniversalWorkspaceShell
+        agentApiService={agentApiService}
+        composerScopeControls={<span>Scoped controls</span>}
+      >
+        <div>Conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    const { container } = render(
+      <div>{composerShell.scopeControls as ReactNode}</div>,
+    );
+    expect(container).toHaveTextContent(
+      /^Thread scopeSwitch organizationScoped controls$/,
+    );
+  });
+
   it('preserves an unauthorized brand action instead of widening org scope', () => {
     navigation.pathname = '/acme/~/agent/thread-1';
 
@@ -1229,6 +1304,18 @@ describe('UniversalWorkspaceShell', () => {
       act(() => dock?.close());
       expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
+    });
+
+    it('renders scope notices in the dock without the scope switchers', async () => {
+      navigation.pathname = '/acme/moonrise/workspace';
+      renderWithDock();
+      await waitFor(() => expect(dock?.isAvailable).toBe(true));
+
+      act(() => dock?.open());
+
+      const scope = screen.getByTestId('agent-dock-scope');
+      expect(scope).toHaveTextContent('Scope out of sync');
+      expect(scope).not.toHaveTextContent('Switch organization');
     });
 
     it('never hosts the dock on the conversation route and closes it there', async () => {

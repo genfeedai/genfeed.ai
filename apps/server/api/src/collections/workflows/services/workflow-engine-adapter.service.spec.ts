@@ -304,6 +304,51 @@ describe('WorkflowEngineAdapterService', () => {
         parameters: { prompt: 'Write a FUD News brief' },
       });
     });
+
+    it('injects the workflow primary brand into avatar and media processing nodes', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        brandId: 'brand-1',
+        nodes: [
+          {
+            data: { config: {}, label: 'Avatar' },
+            id: 'n1',
+            type: 'aiAvatarVideo',
+          },
+          {
+            data: { config: {}, label: 'Captions' },
+            id: 'n2',
+            type: 'effect-captions',
+          },
+          {
+            data: { config: {}, label: 'Music' },
+            id: 'n3',
+            type: 'musicSource',
+          },
+          {
+            data: { config: {}, label: 'Overlay' },
+            id: 'n4',
+            type: 'soundOverlay',
+          },
+          {
+            data: {
+              config: { model: 'kwaivgi/kling-v3-video' },
+              label: 'Video',
+            },
+            id: 'n5',
+            type: 'videoGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(
+        result.nodes.map((node) => node.config.parameters.brandId),
+      ).toEqual(['brand-1', 'brand-1', 'brand-1', 'brand-1', 'brand-1']);
+    });
   });
 
   describe('registerExecutor', () => {

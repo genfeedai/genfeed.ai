@@ -1,7 +1,6 @@
+import Spinner from '@ui/primitives/spinner';
 import { type ReactElement, useEffect, useState } from 'react';
-
 import { ThreadItem } from '~components/history/ThreadItem';
-import { LoadingSpinner } from '~components/ui';
 import type { Thread } from '~models/chat.model';
 import { useChatStore } from '~store/use-chat-store';
 
@@ -47,7 +46,7 @@ export function ThreadList({ onOpenThread }: ThreadListProps): ReactElement {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <LoadingSpinner size="md" className="text-primary" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

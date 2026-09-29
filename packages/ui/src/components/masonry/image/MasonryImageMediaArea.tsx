@@ -4,9 +4,9 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { IImage, IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import MasonryFailureNotice from '@ui/masonry/shared/MasonryFailureNotice';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 import type { MouseEvent, SyntheticEvent } from 'react';
 
@@ -66,7 +66,7 @@ export default function MasonryImageMediaArea({
         data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
-          'relative size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
+          'relative block size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
           isFleetNsfwLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
@@ -155,13 +155,13 @@ export default function MasonryImageMediaArea({
         >
           <div
             role="presentation"
-            className="pointer-events-auto"
+            className="pointer-events-auto max-w-full px-2"
             onClick={(e) => e.stopPropagation()}
           >
             <DropdownStatus
               entity={image}
               onStatusChange={onRefresh}
-              className="scale-110"
+              isStacked
             />
           </div>
         </div>

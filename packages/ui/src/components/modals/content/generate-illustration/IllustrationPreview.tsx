@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/contracts';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 
 type Props = {

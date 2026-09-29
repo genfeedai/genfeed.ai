@@ -9,7 +9,7 @@ import type { ReactElement, ReactNode } from 'react';
 interface SidebarActionTriggerProps {
   label: string;
   icon: ReactNode;
-  shortcut: string;
+  shortcut?: string;
   onClick: () => void;
   ariaLabel?: string;
   className?: string;
@@ -45,12 +45,14 @@ export default function SidebarActionTrigger({
       <span className="min-w-0 flex-1 truncate text-sm font-medium tracking-[-0.01em] text-foreground/88 transition-colors duration-200">
         {label}
       </span>
-      <Kbd
-        variant="ghost"
-        className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-2xs text-foreground/36 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-      >
-        {shortcut}
-      </Kbd>
+      {shortcut ? (
+        <Kbd
+          variant="ghost"
+          className="ml-auto rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/55 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        >
+          {shortcut}
+        </Kbd>
+      ) : null}
     </Button>
   );
 }

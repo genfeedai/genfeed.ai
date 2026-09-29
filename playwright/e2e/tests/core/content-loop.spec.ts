@@ -84,7 +84,7 @@ test.describe('Core Content Loop', () => {
     );
   });
 
-  test('studio storyboard exposes the canonical production modes', async ({
+  test('studio storyboard lists saved runs and opens the production modes', async ({
     authenticatedPage,
   }) => {
     const studioPage = new StudioPage(authenticatedPage);
@@ -97,6 +97,13 @@ test.describe('Core Content Loop', () => {
     });
     await expect(breadcrumb).toContainText('Studio');
     await expect(breadcrumb).toContainText('Storyboard');
+    await authenticatedPage
+      .getByRole('link', { name: 'New storyboard' })
+      .click();
+    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard\/new$/);
+    await expect(
+      authenticatedPage.getByRole('link', { name: 'Pick a source' }),
+    ).toHaveAttribute('href', /\/discovery\/overview$/);
     await expect(
       authenticatedPage.getByRole('button', { name: /Frame sequence/i }),
     ).toBeVisible();

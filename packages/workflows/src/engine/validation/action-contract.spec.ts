@@ -4,6 +4,7 @@ import {
   type ActionContractProvenance,
   ActionContractValidationError,
   compileActionContract,
+  isActionContractFailureMessage,
 } from './action-contract';
 
 const PROVENANCE: ActionContractProvenance = {
@@ -151,5 +152,52 @@ describe('compileActionContract', () => {
         outputSchema: { type: 'null' },
       }),
     ).toThrowError(ActionContractCompilationError);
+  });
+});
+
+describe('isActionContractFailureMessage', () => {
+  it('matches the message of every contract error the engine can throw', () => {
+    const contract = compileStrictContract();
+    const thrown = (run: () => void): string => {
+      try {
+        run();
+      } catch (error) {
+        return error instanceof Error ? error.message : String(error);
+      }
+      throw new Error('expected the contract to reject');
+    };
+
+    expect(
+      isActionContractFailureMessage(
+        thrown(() => contract.validateInput({}, PROVENANCE)),
+      ),
+    ).toBe(true);
+    expect(
+      isActionContractFailureMessage(
+        thrown(() => contract.validateOutput({}, PROVENANCE)),
+      ),
+    ).toBe(true);
+    expect(
+      isActionContractFailureMessage(
+        new ActionContractCompilationError('a.b', 'input', 'bad').message,
+      ),
+    ).toBe(true);
+  });
+
+  it('matches a contract failure flattened into a graph-run error string', () => {
+    expect(
+      isActionContractFailureMessage(
+        'Nodes failed: finalize: Action contract input validation failed [action=x workflow=w version=v run=r node=n] $.a: bad',
+      ),
+    ).toBe(true);
+  });
+
+  it('does not match transient or unrelated failures', () => {
+    expect(isActionContractFailureMessage('Nodes failed: infer: 503')).toBe(
+      false,
+    );
+    expect(isActionContractFailureMessage('Action contract mentioned')).toBe(
+      false,
+    );
   });
 });

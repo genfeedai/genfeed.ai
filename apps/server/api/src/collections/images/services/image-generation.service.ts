@@ -165,9 +165,7 @@ export class ImageGenerationService {
       rawOutputs: createImageDto.outputs,
     });
 
-    const referenceIds: string[] = Array.isArray(createImageDto.references)
-      ? createImageDto.references.map((id) => id.toString())
-      : [];
+    const referenceIds = (createImageDto.references ?? []).map(String);
 
     const referenceImageUrls =
       await this.admissionService.resolveReferenceImageUrls(
@@ -184,12 +182,13 @@ export class ImageGenerationService {
       promptBuilderBrand,
     });
 
-    const compiledBrief = this.compileImageGenerationBrief({
+    const compiledBrief = await this.compileImageGenerationBrief({
       briefBrandContext,
       createImageDto,
       height,
       model,
       generationHarness,
+      organizationId: user.organizationId,
       referenceIds,
       runReferences,
       style,
@@ -540,22 +539,23 @@ export class ImageGenerationService {
    * requested model family, or record an explicit exemption for every model
    * that has not been onboarded to model-aware compilation.
    */
-  private compileImageGenerationBrief(params: {
+  private async compileImageGenerationBrief(params: {
     briefBrandContext?: string;
     createImageDto: CreateImageDto;
     height: number;
     model: string;
     generationHarness: GenerationHarnessReceipt;
+    organizationId: string;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
     style?: string;
     width: number;
-  }): {
+  }): Promise<{
     brief?: ImageGenerationBrief;
     dispatch?: ImageGenerationBriefDispatch;
     evidence: GenerationBriefPersistedEvidence;
     generationSource: string;
-  } {
+  }> {
     const composition = [
       params.createImageDto.camera,
       params.createImageDto.lens,
@@ -601,6 +601,11 @@ export class ImageGenerationService {
           'raw_prompt_requested',
         );
       }
+
+      compiled.dispatch = await this.admissionService.resolveDispatchReferences(
+        compiled,
+        params.organizationId,
+      );
 
       return compiled;
     } catch (error: unknown) {

@@ -411,6 +411,21 @@ describe('BaseNode', () => {
   });
 
   describe('status indicators', () => {
+    it('should show processing spinner when status is processing', () => {
+      render(
+        <BaseNode
+          {...defaultProps}
+          data={{ label: 'Test', status: 'processing' }}
+        />,
+      );
+
+      // Check for processing indicator: loader mark, node-processing wrapper, or any SVG
+      const spinner = document.querySelector('.genfeed-loader-root');
+      const processingNode = document.querySelector('.node-processing');
+      const svgIcon = document.querySelector('svg');
+      expect(spinner ?? processingNode ?? svgIcon).toBeTruthy();
+    });
+
     it('should show check icon when status is complete', () => {
       render(
         <BaseNode

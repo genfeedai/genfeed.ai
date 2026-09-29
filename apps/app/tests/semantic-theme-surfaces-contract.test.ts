@@ -26,11 +26,6 @@ const WORKFLOW_ROUTE_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/new/WorkflowNewPageClient.tsx',
 ] as const;
 
-const LIGHT_THEME_CRITICAL_SOURCES = [
-  ...collectSourceFiles('app/(onboarding)/onboarding'),
-  ...collectSourceFiles('app/(protected)/[orgSlug]/[brandSlug]/tasks'),
-] as const;
-
 const APP_PRODUCT_SOURCES = [
   ...collectSourceFiles('app'),
   ...collectSourceFiles('packages'),
@@ -54,6 +49,14 @@ const TASK_STATUS_SOURCES = [
 ] as const;
 
 describe('semantic theme surface contracts', () => {
+  it('uses the foreground token for the onboarding loading indicator', () => {
+    const source = readSource('app/(onboarding)/onboarding/(wizard)/page.tsx');
+
+    expect(source).not.toContain('border-t-white');
+    expect(source).toContain('<Spinner');
+    expect(source).toContain('text-foreground');
+  });
+
   it('lets the workflow editor inherit global semantic theme tokens', () => {
     const source = readSource(
       'src/features/workflows/styles/workflow-scope.css',

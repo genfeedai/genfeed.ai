@@ -1,10 +1,10 @@
 import { useAuth } from '@genfeedai/auth-client/react';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 import { useEffect, useReducer } from 'react';
 import LoginPage from '~components/pages/LoginPage';
-import { LoadingSpinner } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import { authService, getJWTToken } from '~services/auth.service';
@@ -75,7 +75,7 @@ function PopupContent() {
   if (!isLoaded || authState === 'syncing') {
     return (
       <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size="md" className="text-primary" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

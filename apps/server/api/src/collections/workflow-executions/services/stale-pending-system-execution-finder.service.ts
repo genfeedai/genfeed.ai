@@ -1,9 +1,11 @@
+import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   StalePendingSystemExecutionCandidate,
   StalePendingSystemExecutionCursor,
   StalePendingSystemExecutionQueryOptions,
 } from '@genfeedai/contracts/interfaces';
+import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import type { Prisma } from '@genfeedai/prisma';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
@@ -60,6 +62,55 @@ export class StalePendingSystemExecutionFinderService {
     options: StalePendingSystemExecutionQueryOptions = {},
   ): Promise<StalePendingSystemExecutionCandidate[]> {
     return this.queryPage({ lt: createdBefore }, options);
+  }
+
+  /**
+   * Live (`INTERACTIVE`) agent-conversation turns still `PENDING` past
+   * `createdBefore` (#5622). A separate, canonicalId-filtered query rather than
+   * a slice of `findMany`: that cohort pages every `PENDING` system run oldest
+   * first, so a backlog of unrelated runs (110k of them in the incident this
+   * was written for) would push a user's stuck turn far past the page. Rows
+   * whose job a deploy drain intentionally removed (`cancelRequestedAt`) are
+   * left to the silent-cancel path.
+   */
+  async findStalledInteractiveAgentTurns(
+    createdBefore: Date,
+    createdAfter: Date,
+    limit: number,
+  ): Promise<StalePendingSystemExecutionCandidate[]> {
+    // tenant-scope-ignore: this reconcile runs once per platform sweep tick across every organization, mirroring the other global reconcile jobs in apps/server/workers/src/scheduling
+    return this.prisma.workflowExecution.findMany({
+      select: {
+        cancelRequestedAt: true,
+        createdAt: true,
+        id: true,
+        organizationId: true,
+      },
+      take: limit,
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      where: {
+        AND: [
+          {
+            ...this.buildBaseWhere({ gte: createdAfter, lt: createdBefore }),
+            cancelRequestedAt: null,
+          },
+          {
+            result: {
+              path: ['metadata', 'dispatchClass'],
+              equals: SystemWorkflowDispatchClass.INTERACTIVE,
+            },
+          },
+          {
+            OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
+              result: {
+                path: ['metadata', 'canonicalId'],
+                equals: canonicalId,
+              },
+            })),
+          },
+        ],
+      },
+    });
   }
 
   /**

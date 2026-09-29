@@ -40,6 +40,7 @@ import { WorkflowCrudController } from '@api/collections/workflows/controllers/w
 import { WorkflowExecutionController } from '@api/collections/workflows/controllers/workflow-execution.controller';
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { WorkflowWebhookManagementController } from '@api/collections/workflows/controllers/workflow-webhook-management.controller';
+import { FeaturedWorkflowsModule } from '@api/collections/workflows/featured-workflows.module';
 import { AdAutomationWorkflowService } from '@api/collections/workflows/services/ad-automation-workflow.service';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
@@ -157,6 +158,7 @@ import { Module } from '@nestjs/common';
   imports: [
     AgentStrategyPerformanceModule,
     WorkflowsCoreModule,
+    FeaturedWorkflowsModule,
     MediaLocalizationModule,
     ByokModule,
     AdOptimizationAuditLogsModule,

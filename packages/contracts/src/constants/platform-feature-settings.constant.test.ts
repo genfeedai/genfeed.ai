@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
+  FEATURED_WORKFLOW_LIMIT,
+  parseFeaturedWorkflowIds,
   parseModerationThresholdOverrides,
   parsePlatformFeatureSettings,
 } from './platform-feature-settings.constant';
@@ -72,6 +74,40 @@ describe('parsePlatformFeatureSettings', () => {
       systemEventsEnabledAt: null,
       untrustedContentMinConfidence: 0.95,
     });
+  });
+});
+
+describe('parseFeaturedWorkflowIds', () => {
+  it('defaults to no pins, so Featured stays hidden until an admin pins one', () => {
+    expect(DEFAULT_PLATFORM_FEATURE_SETTINGS.featuredWorkflowIds).toEqual([]);
+    expect(parsePlatformFeatureSettings({}).featuredWorkflowIds).toEqual([]);
+  });
+
+  it('keeps pin order and trims each id', () => {
+    expect(
+      parsePlatformFeatureSettings({
+        featuredWorkflowIds: [' wf-b ', 'wf-a', 'wf-c'],
+      }).featuredWorkflowIds,
+    ).toEqual(['wf-b', 'wf-a', 'wf-c']);
+  });
+
+  it('fails closed on a malformed column: non-arrays, blanks, non-strings and duplicates are dropped', () => {
+    expect(parseFeaturedWorkflowIds('wf-a')).toEqual([]);
+    expect(parseFeaturedWorkflowIds(null)).toEqual([]);
+    expect(
+      parseFeaturedWorkflowIds(['wf-a', '', '   ', 7, null, 'wf-a', 'wf-b']),
+    ).toEqual(['wf-a', 'wf-b']);
+  });
+
+  it(`caps the row at ${FEATURED_WORKFLOW_LIMIT} pins`, () => {
+    const ids = Array.from(
+      { length: FEATURED_WORKFLOW_LIMIT + 3 },
+      (_, index) => `wf-${index}`,
+    );
+
+    expect(parseFeaturedWorkflowIds(ids)).toEqual(
+      ids.slice(0, FEATURED_WORKFLOW_LIMIT),
+    );
   });
 });
 

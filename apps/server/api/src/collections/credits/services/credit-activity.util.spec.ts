@@ -30,6 +30,7 @@ function client() {
     activity: {
       create: vi.fn().mockResolvedValue({}),
       findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({}),
     },
     brand: { findFirst: vi.fn().mockResolvedValue(null) },
   };
@@ -189,5 +190,96 @@ describe('credit activity persistence', () => {
       { idempotencyKey: 'byok-key' },
     );
     expect(tx.activity.create).toHaveBeenCalledOnce();
+  });
+
+  describe('generation cost on the generation activity', () => {
+    const generation = {
+      data: {
+        isRead: false,
+        key: 'image-generated',
+        value: JSON.stringify({ label: 'Image', resultId: 'img-1' }),
+      },
+      id: 'activity-1',
+    };
+
+    it('stamps the settled amount from the ingredient id in metadata', async () => {
+      const tx = client();
+      tx.activity.findFirst.mockResolvedValueOnce(generation);
+      await recordCreditTransactionActivity(
+        tx as unknown as PrismaTransactionClient,
+        transaction({ amount: 4, metadata: { assetId: 'img-1' } }),
+      );
+      expect(tx.activity.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            entityId: 'img-1',
+            entityModel: 'Ingredient',
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      const update = tx.activity.update.mock.calls[0][0];
+      expect(update.where).toEqual({
+        id: 'activity-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      expect(JSON.parse(update.data.data.value)).toEqual({
+        credits: 4,
+        label: 'Image',
+        resultId: 'img-1',
+      });
+      expect(update.data.data.key).toBe('image-generated');
+    });
+
+    it('links voice charges by their reference id', async () => {
+      const tx = client();
+      tx.activity.findFirst.mockResolvedValueOnce(generation);
+      await recordCreditTransactionActivity(
+        tx as unknown as PrismaTransactionClient,
+        transaction({
+          amount: 2,
+          referenceId: 'img-1',
+          referenceType: 'agent-media:voice-generation',
+        }),
+      );
+      expect(tx.activity.update).toHaveBeenCalledOnce();
+    });
+
+    it.each([
+      ['no asset link', { amount: 4 }],
+      [
+        'a refund',
+        { amount: 4, category: 'refund', metadata: { assetId: 'a' } },
+      ],
+      ['a zero charge', { amount: 0, metadata: { assetId: 'a' } }],
+    ])('leaves activities alone for %s', async (_name, overrides) => {
+      const tx = client();
+      await recordCreditTransactionActivity(
+        tx as unknown as PrismaTransactionClient,
+        transaction(overrides as Partial<CreditTransaction>),
+      );
+      expect(tx.activity.update).not.toHaveBeenCalled();
+    });
+
+    it('skips when the generation activity is missing or not JSON', async () => {
+      const missing = client();
+      await recordCreditTransactionActivity(
+        missing as unknown as PrismaTransactionClient,
+        transaction({ metadata: { assetId: 'img-1' } }),
+      );
+      expect(missing.activity.update).not.toHaveBeenCalled();
+
+      const plain = client();
+      plain.activity.findFirst.mockResolvedValueOnce({
+        data: { value: 'not json' },
+        id: 'activity-2',
+      });
+      await recordCreditTransactionActivity(
+        plain as unknown as PrismaTransactionClient,
+        transaction({ metadata: { assetId: 'img-1' } }),
+      );
+      expect(plain.activity.update).not.toHaveBeenCalled();
+    });
   });
 });

@@ -49,7 +49,7 @@ function AgentDockHeader({
   const translate = useTranslations('common.agentDock');
 
   return (
-    <div className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+    <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
       <div className="flex min-w-0 items-baseline gap-2">
         {title}
         {threadTitle ? (
@@ -279,16 +279,20 @@ export default function AgentDock({
         // handler, so Escape is handled here too.
         <div className="contents" onKeyDown={handleKeyDown}>
           <div
-            className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-1.5 empty:hidden"
+            className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-border px-3 py-1 empty:hidden"
             data-testid="agent-dock-scope"
           >
             {scopeControls}
           </div>
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          {/* The transcript always keeps a readable strip. In a short dock the
+              composer stack (task panel, prompt) shrinks and scrolls instead
+              of pushing the conversation out; column-reverse keeps the prompt
+              itself anchored in view and lets the task panel scroll away. */}
+          <div className="flex min-h-12 min-w-0 flex-1 flex-col overflow-hidden">
             {children}
           </div>
           <div
-            className="shrink-0 px-3 pb-3 empty:hidden"
+            className="flex min-h-0 shrink flex-col-reverse overflow-y-auto overscroll-contain px-3 pb-2 empty:hidden"
             data-testid="agent-dock-composer-slot"
             ref={composerSlotRef}
           />
@@ -347,8 +351,9 @@ export default function AgentDock({
         id="workspace-agent-dock"
         onKeyDown={handleKeyDown}
         ref={setRegion}
-        // Never squeeze the canvas out entirely on short windows.
-        style={{ height, maxHeight: 'calc(100% - 8rem)' }}
+        // Short windows and half-height panels: the canvas keeps at least
+        // 40% of the column, whatever height was stored.
+        style={{ height, maxHeight: '60%' }}
       >
         <Button
           aria-orientation="horizontal"

@@ -1,3 +1,4 @@
+import { useAgentThreadStatusPush } from '@genfeedai/agent/hooks/use-agent-thread-status-push';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -9,6 +10,7 @@ import {
   getErrorMessage,
   hasRenderableThreadId,
   isAuthError,
+  keepNewerRunStatus,
   sortThreads,
 } from './agent-thread-list.helpers';
 
@@ -38,7 +40,6 @@ export function useAgentThreadList({
   const threads = useAgentChatStore((s) => s.threads);
   const setThreads = useAgentChatStore((s) => s.setThreads);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
-  const activeRunStatus = useAgentChatStore((s) => s.activeRunStatus);
   const threadUiBusyById = useAgentChatStore((s) => s.threadUiBusyById);
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const setError = useAgentChatStore((s) => s.setError);
@@ -59,7 +60,6 @@ export function useAgentThreadList({
   const restoreCachedConversation = useAgentChatStore(
     (s) => s.restoreCachedConversation,
   );
-  const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
   // Bumped after every successful/failed load so soft refreshes still re-render
@@ -195,7 +195,17 @@ export function useAgentThreadList({
       const preserved = activeThread
         ? [activeThread, ...recentLocalThreads]
         : recentLocalThreads;
-      setThreads(sortThreads([...preserved, ...renderableData]));
+      // A push that landed while this request was in flight can be newer than
+      // the response; keep the row that already holds the newer status.
+      const currentById = new Map(current.map((thread) => [thread.id, thread]));
+      setThreads(
+        sortThreads([
+          ...preserved,
+          ...renderableData.map((thread) =>
+            keepNewerRunStatus(thread, currentById.get(thread.id)),
+          ),
+        ]),
+      );
       setListRevision((revision) => revision + 1);
       return true;
     } catch (error) {
@@ -219,6 +229,8 @@ export function useAgentThreadList({
       }
     }
   }, [apiService, brandId, isActive, setThreads, viewStatus]);
+
+  useAgentThreadStatusPush({ isActive, reloadThreads: loadThreads });
 
   // Brand scope changes must clear the previous list, but this must happen in
   // an effect. Writing to the Zustand store during render causes React to
@@ -303,19 +315,6 @@ export function useAgentThreadList({
       clearRetryTimeout();
       abortRef.current?.abort();
     };
-  }, [isActive, loadThreads]);
-
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const handleFocus = () => {
-      loadThreads().catch(() => undefined);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, [isActive, loadThreads]);
 
   const prevActiveIdRef = useRef(activeThreadId);
@@ -713,8 +712,6 @@ export function useAgentThreadList({
   return {
     threads: renderableThreads,
     activeThreadId,
-    activeRunStatus,
-    isStreaming,
     threadUiBusyById,
     isLoading,
     authError,

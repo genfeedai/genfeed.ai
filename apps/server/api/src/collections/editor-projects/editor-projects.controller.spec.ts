@@ -6,7 +6,13 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { testId } from '@helpers/testing/test-id.helper';
+import {
+  EditorTrackType,
+  IngredientCategory,
+  IngredientFormat,
+} from '@genfeedai/contracts';
+import type { IEditorTrack } from '@genfeedai/contracts/interfaces';
+import { testId, testIds } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
@@ -150,7 +156,7 @@ describe('EditorProjectsController', () => {
 
   // ── create ────────────────────────────────────────────────────────────────
   describe('create', () => {
-    it('creates and returns a project without sourceVideoId', async () => {
+    it('creates and returns a project without source videos', async () => {
       const project = makeProject();
       editorProjectsService.create.mockResolvedValue(project as never);
 
@@ -158,62 +164,133 @@ describe('EditorProjectsController', () => {
         name: 'New Project',
       } as never);
 
+      expect(ingredientsService.findOne).not.toHaveBeenCalled();
       expect(editorProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          config: expect.objectContaining({ name: 'New Project' }),
+          config: expect.not.objectContaining({
+            sourceVideoIds: expect.anything(),
+          }),
           organizationId: testId('shared'),
+          tracks: [],
           userId: testId('shared'),
         }),
       );
       expect(result).toMatchObject({ data: project });
     });
 
-    it('builds video track when sourceVideoId is provided', async () => {
-      const videoId = testId('shared');
-      const video = {
-        id: videoId,
-        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+    it('seeds the source videos as ordered clips with their lineage', async () => {
+      const [firstId, secondId, thirdId] = testIds('video', 3);
+      const durations: Record<string, number> = {
+        [firstId]: 5,
+        [secondId]: 2,
+        [thirdId]: 4,
       };
-      const meta = { duration: 5, height: 1080, width: 1920 };
-      const project = makeProject({ tracks: [{}] });
+      ingredientsService.findOne.mockImplementation((async (params: {
+        id: string;
+      }) => ({
+        id: params.id,
+        thumbnailUrl: `https://cdn.example.com/${params.id}.jpg`,
+      })) as never);
+      metadataService.findOne.mockImplementation((async (params: {
+        ingredients: { some: { id: string } };
+      }) => ({
+        duration: durations[params.ingredients.some.id],
+        height: 1920,
+        width: 1080,
+      })) as never);
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
 
-      ingredientsService.findOne.mockResolvedValue(video as never);
-      metadataService.findOne.mockResolvedValue(meta as never);
-      editorProjectsService.create.mockResolvedValue(project as never);
-
-      const result = await controller.create(makeRequest(), makeUser(), {
-        name: 'Video Project',
-        sourceVideoId: videoId,
+      await controller.create(makeRequest(), makeUser(), {
+        name: 'Storyboard cut',
+        sourceVideoIds: [firstId, secondId, thirdId],
       } as never);
 
-      expect(ingredientsService.findOne).toHaveBeenCalled();
-      expect(metadataService.findOne).toHaveBeenCalledWith({
-        ingredients: { some: { id: videoId } },
+      const created = editorProjectsService.create.mock.calls[0][0] as {
+        config: Record<string, unknown>;
+        tracks: IEditorTrack[];
+      };
+      expect(created.config).toMatchObject({
+        name: 'Storyboard cut',
+        settings: {
+          format: IngredientFormat.PORTRAIT,
+          fps: 30,
+          height: 1920,
+          width: 1080,
+        },
+        sourceVideoIds: [firstId, secondId, thirdId],
+        totalDurationFrames: 330,
       });
-      expect(editorProjectsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          config: expect.objectContaining({
-            name: 'Video Project',
-            sourceVideoId: videoId,
-          }),
-          organizationId: testId('shared'),
-          tracks: expect.any(Array),
-          userId: testId('shared'),
-        }),
-      );
-      expect(result).toBeDefined();
+      expect(created.tracks).toHaveLength(1);
+      expect(created.tracks[0].type).toBe(EditorTrackType.VIDEO);
+      expect(
+        created.tracks[0].clips.map((clip) => ({
+          durationFrames: clip.durationFrames,
+          ingredientId: clip.ingredientId,
+          ingredientUrl: clip.ingredientUrl,
+          startFrame: clip.startFrame,
+          thumbnailUrl: clip.thumbnailUrl,
+        })),
+      ).toEqual([
+        {
+          durationFrames: 150,
+          ingredientId: firstId,
+          ingredientUrl: `https://cdn.genfeed.ai/videos/${firstId}`,
+          startFrame: 0,
+          thumbnailUrl: `https://cdn.example.com/${firstId}.jpg`,
+        },
+        {
+          durationFrames: 60,
+          ingredientId: secondId,
+          ingredientUrl: `https://cdn.genfeed.ai/videos/${secondId}`,
+          startFrame: 150,
+          thumbnailUrl: `https://cdn.example.com/${secondId}.jpg`,
+        },
+        {
+          durationFrames: 120,
+          ingredientId: thirdId,
+          ingredientUrl: `https://cdn.genfeed.ai/videos/${thirdId}`,
+          startFrame: 210,
+          thumbnailUrl: `https://cdn.example.com/${thirdId}.jpg`,
+        },
+      ]);
     });
 
-    it('throws NotFoundException when sourceVideoId does not resolve', async () => {
-      ingredientsService.findOne.mockResolvedValue(null as never);
+    it('looks seed videos up in the caller organization and brand, excluding deleted ones', async () => {
+      const videoId = testId('video');
+      ingredientsService.findOne.mockResolvedValue({ id: videoId } as never);
+      metadataService.findOne.mockResolvedValue(null as never);
+      editorProjectsService.create.mockResolvedValue(makeProject() as never);
 
-      const fakeVideoId = testId('shared');
+      await controller.create(makeRequest(), makeUser(), {
+        sourceVideoIds: [videoId],
+      } as never);
+
+      expect(ingredientsService.findOne).toHaveBeenCalledWith({
+        brandId: testId('shared'),
+        category: IngredientCategory.VIDEO,
+        id: videoId,
+        isDeleted: false,
+        organizationId: testId('shared'),
+      });
+      expect(editorProjectsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: testId('shared') }),
+      );
+    });
+
+    it('refuses the whole create when any seed video is missing, deleted or foreign', async () => {
+      const [liveId, missingId] = testIds('video', 2);
+      ingredientsService.findOne.mockImplementation((async (params: {
+        id: string;
+      }) => (params.id === liveId ? { id: liveId } : null)) as never);
+      metadataService.findOne.mockResolvedValue(null as never);
+
       await expect(
         controller.create(makeRequest(), makeUser(), {
           name: 'Bad Video',
-          sourceVideoId: fakeVideoId,
+          sourceVideoIds: [liveId, missingId],
         } as never),
       ).rejects.toThrow(NotFoundException);
+      expect(editorProjectsService.create).not.toHaveBeenCalled();
     });
   });
 

@@ -1,7 +1,28 @@
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
+import { getActionDefinition } from '@genfeedai/actions';
 import { AgentAutonomyMode, AgentThreadMode } from '@genfeedai/contracts';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
+
+const PROVENANCE = {
+  nodeId: 'discover-credit-resets',
+  runId: 'run',
+  workflowId: 'workflow',
+  workflowVersionId: 'v1',
+};
+
+function compileOutputContract(actionId: string) {
+  const action = getActionDefinition(actionId);
+  return compileActionContract(actionId, {
+    inputSchema: (action?.inputSchema ?? {}) as Readonly<
+      Record<string, unknown>
+    >,
+    outputSchema: (action?.outputSchema ?? {}) as Readonly<
+      Record<string, unknown>
+    >,
+  });
+}
 
 describe('AgentAutopilotWorkflowService atomic actions', () => {
   it('discovers and resets one due credit window without iterating strategies internally', async () => {
@@ -55,6 +76,21 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
     });
     expect(discovery.items).toEqual([strategySnapshot]);
 
+    // Prod regression: the closed output contract rejected `baseInput.now`,
+    // failing every sweep that took the lock.
+    const contract = compileOutputContract(
+      'agent.autopilot.discover-credit-resets',
+    );
+    expect(() => contract.validateOutput(discovery, PROVENANCE)).not.toThrow();
+    const unacquired = await service.discoverCreditResetStrategies('org-1', {
+      state: { acquired: false },
+    });
+    expect(unacquired).toEqual({
+      baseInput: { organizationId: 'org-1' },
+      items: [],
+    });
+    expect(() => contract.validateOutput(unacquired, PROVENANCE)).not.toThrow();
+
     await service.resetCreditWindow('org-1', {
       item: strategySnapshot,
       now: '2026-08-28T00:00:00.000Z',
@@ -64,6 +100,44 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
         where: { id: 'strategy-1', isDeleted: false, organizationId: 'org-1' },
       }),
     );
+  });
+});
+
+describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
+  it('reports a strategy that vanished after discovery as skipped, within the output contract', async () => {
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      ),
+      agentStrategy: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const result = await service.resetCreditWindow('org-1', {
+      item: {
+        config: {},
+        id: 'strategy-1',
+        organizationId: 'org-1',
+        userId: 'u',
+      },
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    expect(result).toEqual({ status: 'skipped', strategyId: 'strategy-1' });
+    expect(() =>
+      compileOutputContract(
+        'agent.autopilot.reset-credit-window',
+      ).validateOutput(result, PROVENANCE),
+    ).not.toThrow();
   });
 });
 
@@ -338,6 +412,31 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       organizationId: 'org',
     });
     expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('emits dispatch results the closed output contract accepts, including skips', async () => {
+    const { service, prisma, row } = setup({ dailyCreditBudget: 10 });
+    const contract = compileOutputContract('agent.autopilot.dispatch-strategy');
+    const enqueued = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'org',
+    });
+    const foreign = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'foreign',
+    });
+    prisma.agentStrategy.findFirst.mockResolvedValue(null as never);
+    const paused = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'org',
+    });
+
+    expect(enqueued.status).toBe('enqueued');
+    expect(foreign).toEqual({ status: 'skipped' });
+    expect(paused).toEqual({ status: 'skipped' });
+    for (const result of [enqueued, foreign, paused]) {
+      expect(() => contract.validateOutput(result, PROVENANCE)).not.toThrow();
+    }
   });
 });
 

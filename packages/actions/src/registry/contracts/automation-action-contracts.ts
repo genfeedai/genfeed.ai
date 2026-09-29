@@ -53,15 +53,24 @@ const FAIL_OUTPUT = closedObjectSchema(
 const BASE_INPUT = closedObjectSchema({ organizationId: STRING_SCHEMA }, [
   'organizationId',
 ]);
+// Discovery stamps one `now` so every fanned-out item agrees on the cutoff
+// (credit resets and persona preparation both require it). An unacquired lock returns no
+// items and no `now`, so it stays optional.
+const NOW_BASE_INPUT = closedObjectSchema(
+  { now: STRING_SCHEMA, organizationId: STRING_SCHEMA },
+  ['organizationId'],
+);
 const discoveryOutput = (
   item: ActionJsonSchema = DOC,
   additions: Readonly<Record<string, ActionJsonSchema>> = {},
   required: readonly string[] = [],
+  baseInput: ActionJsonSchema = BASE_INPUT,
 ) =>
-  closedObjectSchema(
-    { baseInput: BASE_INPUT, items: arraySchema(item), ...additions },
-    ['baseInput', 'items', ...required],
-  );
+  closedObjectSchema({ baseInput, items: arraySchema(item), ...additions }, [
+    'baseInput',
+    'items',
+    ...required,
+  ]);
 const sweepFinalInput = batchInput({ discovery: DOC, state: DOC }, [
   'discovery',
   'state',
@@ -440,7 +449,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'agent.autopilot.begin': { inputSchema: input(), outputSchema: BEGIN_OUTPUT },
   'agent.autopilot.discover-credit-resets': {
     inputSchema: input({ state: BEGIN_OUTPUT }, ['state']),
-    outputSchema: discoveryOutput(AGENT_STRATEGY),
+    outputSchema: discoveryOutput(AGENT_STRATEGY, {}, [], NOW_BASE_INPUT),
   },
   'agent.autopilot.reset-credit-window': {
     inputSchema: input(
@@ -453,7 +462,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
     outputSchema: closedObjectSchema(
       {
-        status: { const: 'reset', type: 'string' },
+        status: enumSchema(['reset', 'skipped'] as const),
         strategyId: STRING_SCHEMA,
       },
       ['status', 'strategyId'],
@@ -563,7 +572,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   },
   'content.production.autopilot.discover-personas': {
     inputSchema: input({ state: BEGIN_OUTPUT }, ['state']),
-    outputSchema: discoveryOutput(PERSONA),
+    outputSchema: discoveryOutput(PERSONA, {}, [], NOW_BASE_INPUT),
   },
   'content.production.autopilot.prepare-persona': {
     inputSchema: input(

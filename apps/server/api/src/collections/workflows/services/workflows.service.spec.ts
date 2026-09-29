@@ -1,9 +1,11 @@
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
+import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -870,5 +872,147 @@ describe('WorkflowsService.findMostUsed', () => {
       nodes: [],
       versionId: 'workflow-busy-version',
     });
+  });
+});
+
+describe('WorkflowsService featured workflow use (#5511)', () => {
+  const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
+  const brandFindFirst = vi.fn();
+  const featuredWorkflowsService = { findFeatured: vi.fn() };
+  const moduleRef = {
+    get: vi.fn((token: unknown) =>
+      token === FeaturedWorkflowsService ? featuredWorkflowsService : undefined,
+    ),
+  };
+  const featured = {
+    description: 'Thread from a founder note',
+    edgeStyle: 'smoothstep',
+    edges: [{ id: 'e-1', source: 'n-1', target: 'n-2' }],
+    featuredRank: 1,
+    id: 'wf-source',
+    inputVariables: [
+      { key: 'topic', label: 'Topic', required: true, type: 'text' },
+    ],
+    label: 'Founder X thread',
+    nodes: [
+      {
+        data: { config: { actionId: 'postGen', brandId: '' }, label: 'Draft' },
+        id: 'n-1',
+        position: { x: 0, y: 0 },
+        type: 'genfeedAction',
+      },
+    ],
+    thumbnail: 'https://cdn.example/thumb.png',
+  };
+
+  let service: WorkflowsService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    brandFindFirst.mockResolvedValue({ id: 'caller-brand' });
+    featuredWorkflowsService.findFeatured.mockResolvedValue(featured);
+    service = new WorkflowsService(
+      { brand: { findFirst: brandFindFirst } } as never,
+      logger as never,
+      moduleRef as never,
+    );
+    vi.spyOn(service, 'create').mockResolvedValue({
+      id: 'wf-copy',
+      label: 'Founder X thread',
+      nodes: [],
+    } as never);
+  });
+
+  it("copies only the Featured projection into the caller's organization, user and brand", async () => {
+    const cloneWorkflow = vi.spyOn(service, 'cloneWorkflow');
+
+    await service.createWorkflow(
+      'caller-user',
+      'caller-org',
+      {
+        sourceType: 'featured-workflow',
+        sourceWorkflowId: 'wf-source',
+      } as never,
+      'caller-brand',
+    );
+
+    expect(featuredWorkflowsService.findFeatured).toHaveBeenCalledWith(
+      'wf-source',
+    );
+    // The tenant clone path would load the source by the caller's org.
+    expect(cloneWorkflow).not.toHaveBeenCalled();
+    expect(brandFindFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'caller-brand',
+          isDeleted: false,
+          organizationId: 'caller-org',
+        }),
+      }),
+    );
+
+    const createInput = vi.mocked(service.create).mock
+      .calls[0]?.[0] as unknown as Record<string, unknown>;
+    expect(createInput).toEqual({
+      brandId: 'caller-brand',
+      config: {},
+      description: 'Thread from a founder note',
+      edgeStyle: 'smoothstep',
+      edges: featured.edges,
+      executionCount: 0,
+      inputVariables: featured.inputVariables,
+      label: 'Founder X thread',
+      metadata: {
+        sourceFeaturedWorkflowId: 'wf-source',
+        sourceType: 'featured-workflow',
+      },
+      nodes: featured.nodes,
+      organizationId: 'caller-org',
+      progress: 0,
+      status: WorkflowStatus.DRAFT,
+      thumbnail: 'https://cdn.example/thumb.png',
+      userId: 'caller-user',
+    });
+  });
+
+  it('refuses a workflow that is not pinned', async () => {
+    featuredWorkflowsService.findFeatured.mockRejectedValue(
+      new NotFoundException('Featured workflow', 'wf-other'),
+    );
+
+    await expect(
+      service.createWorkflow('caller-user', 'caller-org', {
+        sourceType: 'featured-workflow',
+        sourceWorkflowId: 'wf-other',
+      } as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(service.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a brand outside the caller organization', async () => {
+    brandFindFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createWorkflow('caller-user', 'caller-org', {
+        brandId: 'foreign-brand',
+        sourceType: 'featured-workflow',
+        sourceWorkflowId: 'wf-source',
+      } as never),
+    ).rejects.toThrow('Brand is not available in this organization');
+    expect(service.create).not.toHaveBeenCalled();
+  });
+
+  it('requires the source workflow id', async () => {
+    await expect(
+      service.createWorkflow('caller-user', 'caller-org', {
+        label: 'x',
+        sourceType: 'featured-workflow',
+      } as never),
+    ).rejects.toThrow('sourceWorkflowId is required');
   });
 });

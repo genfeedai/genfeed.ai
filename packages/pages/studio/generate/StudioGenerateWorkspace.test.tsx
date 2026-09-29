@@ -3,7 +3,6 @@ import {
   ContextSidebarProvider,
   useContextSidebar,
 } from '@contexts/ui/context-sidebar-context';
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   createStudioGenerateDraftOutbox,
@@ -98,7 +97,7 @@ const mocks = vi.hoisted(() => ({
   results: vi.fn(),
   rehydratePending: vi.fn(),
   removeJob: vi.fn(),
-  remixRun: { value: null as BrandRemixRunView | null },
+  searchParams: { value: '' },
   settings: vi.fn(),
   enhancedPromptId: { value: undefined as string | undefined },
   cancelEnhance: vi.fn(),
@@ -110,43 +109,11 @@ const mocks = vi.hoisted(() => ({
     skillSlugs: [],
   })),
   submit: vi.fn(),
-  submitForReview: vi.fn(),
-  startRemix: vi.fn(),
   type: { value: 'image' },
   isHydrated: { value: true },
   setType: vi.fn(),
   updateSettings: vi.fn(),
-  vary: vi.fn(),
 }));
-
-const remixRun = {
-  brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
-  draft: {
-    fidelityMode: 'guided',
-    identity: {},
-    intent: { objective: 'Remix the proof-led TikTok hook.' },
-    output: {
-      aspectRatio: '9:16',
-      count: 3,
-      durationSeconds: 8,
-      kind: 'video',
-    },
-    references: [
-      { assetId: 'reference-1', role: 'style', source: 'brand_default' },
-    ],
-    reviewRequired: true,
-    target: { kind: 'organic', platform: 'tiktok' },
-  },
-  id: 'run-1',
-  phase: 'prefilled',
-  readiness: { issues: [], state: 'ready' },
-  recipeVersion: 1,
-  revision: 1,
-  sourceSnapshot: {
-    pattern: { hook: 'Proof before promise' },
-    title: 'Proof-led TikTok hook',
-  },
-} as BrandRemixRunView;
 
 const characterMentionMocks = vi.hoisted(() => ({
   extraExtensions: [{ name: 'characterMention' }],
@@ -209,7 +176,7 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/default/default/studio/generate',
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => new URLSearchParams(mocks.searchParams.value),
 }));
 
 vi.mock('next-intl', () => ({
@@ -433,26 +400,6 @@ vi.mock('@pages/studio/generate/components/StudioGenerateInspector', () => ({
   ),
 }));
 
-vi.mock('@pages/studio/generate/hooks/useStudioRemixRun', () => ({
-  useStudioRemixRun: () => ({
-    error: null,
-    preparePausedDraft: vi.fn(),
-    refresh: vi.fn(),
-    run: mocks.remixRun.value,
-    runId: mocks.remixRun.value?.id ?? null,
-    start: mocks.startRemix,
-    status: 'ready',
-    submitForReview: mocks.submitForReview,
-    vary: mocks.vary,
-  }),
-}));
-
-vi.mock('@pages/studio/generate/components/StudioRemixRunPanel', () => ({
-  default: ({ run }: { run: BrandRemixRunView }) => (
-    <div>{run.sourceSnapshot.title}</div>
-  ),
-}));
-
 describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -468,7 +415,7 @@ describe('StudioGenerateWorkspace', () => {
     mocks.organizationId.value = 'org-1';
     mocks.authIdentity.value = 'identity-1';
     mocks.getToken.mockResolvedValue('test-token');
-    mocks.remixRun.value = null;
+    mocks.searchParams.value = '';
     mocks.type.value = 'image';
     mocks.handoff.value = { isLoading: false, payload: null };
     mocks.models.value = { isLoadingModels: false, models: [] };
@@ -624,11 +571,10 @@ describe('StudioGenerateWorkspace', () => {
       });
     },
   );
-  it.each(['music', 'avatar', 'voice', 'remix'])(
+  it.each(['music', 'avatar', 'voice'])(
     'visibly blocks skill selections for %s',
     (type) => {
-      if (type === 'remix') mocks.remixRun.value = remixRun;
-      else mocks.type.value = type;
+      mocks.type.value = type;
       mocks.resolvePromptCommands.mockReturnValueOnce({
         content: 'A coast',
         skillSlugs: ['cinema'],
@@ -639,15 +585,13 @@ describe('StudioGenerateWorkspace', () => {
         expect.stringContaining('Selected skills'),
       );
       expect(mocks.submit).not.toHaveBeenCalled();
-      expect(mocks.startRemix).not.toHaveBeenCalled();
     },
   );
 
-  it.each(['music', 'remix'])(
+  it.each(['music'])(
     'blocks Enhance for selected skills in %s and preserves the prompt tokens',
     (type) => {
-      if (type === 'remix') mocks.remixRun.value = remixRun;
-      else mocks.type.value = type;
+      mocks.type.value = type;
       mocks.resolvePromptCommands.mockReturnValue({
         content: 'A coast',
         skillSlugs: ['cinema'],
@@ -666,7 +610,6 @@ describe('StudioGenerateWorkspace', () => {
       );
       act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
       expect(mocks.submit).not.toHaveBeenCalled();
-      expect(mocks.startRemix).not.toHaveBeenCalled();
     },
   );
 
@@ -782,164 +725,6 @@ describe('StudioGenerateWorkspace', () => {
       expect.objectContaining({
         id: 'generated-1',
         previewUrl: 'https://cdn.example/generated.png',
-      }),
-    );
-  });
-
-  it('hydrates the durable server recipe before starting its run', async () => {
-    mocks.isHydrated.value = false;
-    mocks.remixRun.value = remixRun;
-    const { rerender } = render(<StudioGenerateWorkspace />);
-
-    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
-    expect(screen.getByText('Empty composer')).toBeVisible();
-
-    mocks.isHydrated.value = true;
-    rerender(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-        'video',
-        expect.objectContaining({
-          aspectRatio: '9:16',
-          duration: 8,
-          outputs: 3,
-        }),
-      ),
-    );
-    expect(screen.getByText('Remix the proof-led TikTok hook.')).toBeVisible();
-  });
-
-  it('resets remix settings to the authorized run draft instead of generic defaults', async () => {
-    const resetSettings = vi.fn();
-    mocks.remixRun.value = remixRun;
-    mocks.type.value = 'video';
-    mocks.settings.mockReturnValue({
-      resetSettings,
-      settings: {},
-      setType: mocks.setType,
-      type: 'video',
-      updateSettings: vi.fn(),
-    });
-    render(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-        'video',
-        expect.objectContaining({
-          aspectRatio: '9:16',
-          duration: 8,
-          outputs: 3,
-        }),
-      ),
-    );
-    mocks.applyTypeSettings.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
-
-    expect(resetSettings).not.toHaveBeenCalled();
-    expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-      'video',
-      expect.objectContaining({
-        aspectRatio: '9:16',
-        duration: 8,
-        outputs: 3,
-      }),
-    );
-  });
-
-  it('starts the durable run without falling through to generic generation', async () => {
-    mocks.remixRun.value = remixRun;
-    mocks.type.value = 'video';
-    render(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(
-        screen.getByText('Remix the proof-led TikTok hook.'),
-      ).toBeVisible(),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.startRemix).toHaveBeenCalledWith(
-      expect.objectContaining({
-        intent: expect.objectContaining({
-          objective: 'Remix the proof-led TikTok hook.',
-        }),
-        references: [],
-      }),
-    );
-    expect(mocks.submit).not.toHaveBeenCalled();
-  });
-
-  it('does not bypass an active remix with an unsupported generic type', async () => {
-    mocks.remixRun.value = remixRun;
-    mocks.type.value = 'music';
-    render(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(
-        screen.getByText('Remix the proof-led TikTok hook.'),
-      ).toBeVisible(),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.startRemix).not.toHaveBeenCalled();
-    expect(mocks.submit).not.toHaveBeenCalled();
-  });
-
-  it('hydrates grouped copy count without translating the run into media', async () => {
-    mocks.remixRun.value = {
-      ...remixRun,
-      draft: {
-        ...remixRun.draft,
-        output: { count: 4, kind: 'copy' },
-      },
-    };
-    render(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(mocks.updateSettings).toHaveBeenCalledWith({ outputs: 4 }),
-    );
-    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
-  });
-
-  it('preserves the durable avatar and voice identities during restoration', async () => {
-    mocks.remixRun.value = {
-      ...remixRun,
-      draft: {
-        ...remixRun.draft,
-        identity: {
-          avatarAssetId: 'avatar-row-1',
-          speechVoiceId: 'voice-row-1',
-        },
-        output: {
-          aspectRatio: '9:16',
-          count: 2,
-          durationSeconds: 12,
-          kind: 'avatar',
-        },
-      },
-    };
-    mocks.type.value = 'avatar';
-    render(<StudioGenerateWorkspace />);
-
-    await waitFor(() =>
-      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
-        'avatar',
-        expect.not.objectContaining({
-          avatarPhotoUrl: expect.anything(),
-          voiceId: expect.anything(),
-        }),
-      ),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
-
-    expect(mocks.startRemix).toHaveBeenCalledWith(
-      expect.objectContaining({
-        identity: {
-          avatarAssetId: 'avatar-row-1',
-          speechVoiceId: 'voice-row-1',
-        },
-        output: expect.objectContaining({ kind: 'avatar' }),
       }),
     );
   });
@@ -1703,6 +1488,27 @@ describe('StudioGenerateWorkspace', () => {
         await Promise.resolve();
       });
       expect(mocks.getDraft).not.toHaveBeenCalled();
+    });
+
+    it('ignores a legacy remix ?run= link: the draft restores and autosaves', async () => {
+      mocks.searchParams.value = 'run=run-1';
+      mocks.getDraft.mockResolvedValue(savedDraft);
+
+      render(<StudioGenerateWorkspace />);
+
+      await waitFor(() => expect(mocks.restoreSettings).toHaveBeenCalled());
+      expect(
+        screen.queryByRole('region', { name: 'Remix run' }),
+      ).not.toBeInTheDocument();
+      act(() => lastComposerProps().onPromptChange('An edited idea'));
+
+      await waitFor(() =>
+        expect(mocks.saveDraft).toHaveBeenCalledWith(
+          'brand-1',
+          expect.objectContaining({ prompt: 'An edited idea' }),
+          expect.anything(),
+        ),
+      );
     });
 
     it('saves the composer shortly after a change and shows the save status', async () => {

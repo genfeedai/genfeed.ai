@@ -12,14 +12,6 @@ import type { AnyExtension, JSONContent } from '@tiptap/core';
 /** Results-grid filter: one asset type, or every type at once. */
 export type StudioGenerateFilter = StudioGenerateType | 'all';
 
-export interface StudioGenerateSettingsPopoverProps {
-  isDisabled?: boolean;
-  onChange: (patch: Partial<StudioGenerateSettings>) => void;
-  onReset: () => void;
-  settings: StudioGenerateSettings;
-  type: StudioGenerateType;
-}
-
 export interface StudioIdentityFieldsProps {
   isDisabled?: boolean;
   onChange: (patch: Partial<StudioGenerateSettings>) => void;

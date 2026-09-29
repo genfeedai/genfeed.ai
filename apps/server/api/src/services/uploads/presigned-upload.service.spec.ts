@@ -172,7 +172,7 @@ describe('PresignedUploadService', () => {
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.IMAGE,
           ),
-          extension: 'jpg',
+          extension: 'JPEG',
           label: body.filename,
           scope: AssetScope.USER,
           status: IngredientStatus.PROCESSING,
@@ -334,7 +334,7 @@ describe('PresignedUploadService', () => {
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          extension: 'jpg',
+          extension: 'JPEG',
         }),
       );
     });

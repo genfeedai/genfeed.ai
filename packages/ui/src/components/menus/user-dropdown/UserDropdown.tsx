@@ -3,7 +3,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,14 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import {
-  Building2,
-  CircleQuestionMark,
-  Ellipsis,
-  LogOut,
-  Tag,
-  User,
-} from 'lucide-react';
+import { Building2, CircleQuestionMark, LogOut, Tag, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -36,14 +28,12 @@ interface UserDropdownProps {
   userEmail: string;
   imageUrl?: string | null;
   settingsScope?: 'all' | 'user';
-  showIdentity?: boolean;
-  side?: 'top' | 'bottom';
+  side?: 'top' | 'bottom' | 'right';
 }
 
 export default function UserDropdown({
   imageUrl,
   settingsScope = 'all',
-  showIdentity = false,
   side = 'top',
   userName,
   userEmail,
@@ -85,12 +75,7 @@ export default function UserDropdown({
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           textTransform="none"
-          className={cn(
-            'flex-shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            showIdentity
-              ? 'group flex h-16 w-full min-w-0 items-center justify-start gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-hover'
-              : 'size-8 overflow-hidden rounded-full transition-opacity hover:opacity-90',
-          )}
+          className="size-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           ariaLabel="Open account menu"
         >
           {imageUrl ? (
@@ -107,58 +92,26 @@ export default function UserDropdown({
               {initial}
             </span>
           )}
-          {showIdentity ? (
-            <>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-foreground">
-                  {userName}
-                </span>
-                {userEmail ? (
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {userEmail}
-                  </span>
-                ) : null}
-              </span>
-              <span
-                aria-hidden="true"
-                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-background/70 text-muted-foreground transition-colors group-hover:text-foreground"
-                data-account-menu-affordance
-              >
-                <Ellipsis className="size-4" />
-              </span>
-            </>
-          ) : null}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        align={showIdentity ? 'start' : 'end'}
-        className={cn(
-          showIdentity
-            ? 'w-[var(--radix-dropdown-menu-trigger-width)]'
-            : 'w-56',
-        )}
+        align="end"
+        className="w-56"
         side={side}
-        sideOffset={showIdentity ? 8 : 4}
+        sideOffset={side === 'right' ? 12 : 4}
       >
-        {showIdentity ? null : (
-          <>
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col gap-1">
-                <p className="font-medium leading-none">{userName}</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {userEmail}
-                </p>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-          </>
-        )}
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col gap-1">
+            <p className="font-medium leading-none">{userName}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {userEmail}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
         {dropdownItems.map((item) => (
           <DropdownMenuItem key={item.href} asChild>
-            <Link
-              href={item.href}
-              className={cn('cursor-pointer', showIdentity && 'h-9')}
-            >
+            <Link href={item.href} className="cursor-pointer">
               <item.icon className="size-4" />
               {item.label}
             </Link>
@@ -166,10 +119,7 @@ export default function UserDropdown({
         ))}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link
-            href={APP_ROUTES.LOGOUT}
-            className={cn('cursor-pointer', showIdentity && 'h-9')}
-          >
+          <Link href={APP_ROUTES.LOGOUT} className="cursor-pointer">
             <LogOut className="size-4" />
             Sign out
           </Link>

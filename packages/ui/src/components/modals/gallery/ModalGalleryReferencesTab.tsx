@@ -4,8 +4,8 @@ import { ComponentSize } from '@genfeedai/contracts';
 import type { IAsset } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryReferencesTabProps } from '@genfeedai/props/modals/modal-gallery.props';
 import CollectionGrid from '@ui/collection/CollectionGrid';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalGalleryItemReference from '@ui/modals/gallery/items/ModalGalleryItemReference';
+import Spinner from '@ui/primitives/spinner';
 
 export default function ModalGalleryReferencesTab({
   references,

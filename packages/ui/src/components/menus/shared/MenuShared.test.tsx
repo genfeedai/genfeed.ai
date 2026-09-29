@@ -4,6 +4,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import MenuShared from '@ui/menus/shared/MenuShared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock(
+  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
+  () => ({ useIsDesktopClient: () => true }),
+);
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
 

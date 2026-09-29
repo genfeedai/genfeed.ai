@@ -67,7 +67,7 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
     expect(APP_ROUTES.PUBLISHING.POSTS).toBe('/publishing/posts');
-    expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
+    expect(APP_ROUTES.STUDIO.EDITOR).toBe('/studio/editor');
     expect(APP_ROUTES.STUDIO.BATCH).toBe('/studio/batch');
     expect(APP_ROUTES.STUDIO.BATCH_NEW).toBe('/studio/batch/new');
   });

@@ -31,6 +31,7 @@ import {
   getActivityDestinationPath,
   getActivityDetailText,
   getBackgroundTaskStatus,
+  getGenerationCreditAmount,
   getResultTypeFromActivityKey,
   isBackgroundTask,
   isCreditActivity,
@@ -161,12 +162,20 @@ export default function ActivitiesList({
         header: 'Credits',
         key: 'cost',
         render: (a: IActivity) => {
-          if (!isCreditActivity(a.key)) return null;
-          const change = getCreditActivityChangeDescriptor(a.key, a.value);
-          if (!change) return null;
+          const generationCredits = isCreditActivity(a.key)
+            ? null
+            : getGenerationCreditAmount(a);
+          const change = isCreditActivity(a.key)
+            ? getCreditActivityChangeDescriptor(a.key, a.value)
+            : generationCredits === null
+              ? null
+              : getCreditActivityChangeDescriptor(
+                  ActivityKey.CREDITS_REMOVE,
+                  JSON.stringify({ value: generationCredits }),
+                );
           return (
             <span className="text-sm text-foreground/70">
-              {activityMessageFormatter(change)}
+              {change ? activityMessageFormatter(change) : '—'}
             </span>
           );
         },

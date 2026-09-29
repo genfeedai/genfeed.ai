@@ -59,4 +59,24 @@ describe('IngredientInspectorRail', () => {
     play.mockRestore();
     expect(player).not.toHaveAttribute('autoplay');
   });
+  it('opens the lightbox from the preview only when a handler is given', () => {
+    const onOpenPreview = vi.fn();
+    const { rerender } = render(
+      <IngredientInspectorRail ingredient={ingredient} />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Open full-size preview' }),
+    ).not.toBeInTheDocument();
+
+    rerender(
+      <IngredientInspectorRail
+        ingredient={ingredient}
+        onOpenPreview={onOpenPreview}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open full-size preview' }),
+    );
+    expect(onOpenPreview).toHaveBeenCalledOnce();
+  });
 });

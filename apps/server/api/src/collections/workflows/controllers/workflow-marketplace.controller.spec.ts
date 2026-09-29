@@ -1,11 +1,9 @@
 import type { MembersService } from '@api/collections/members/services/members.service';
 import { WorkflowMarketplaceController } from '@api/collections/workflows/controllers/workflow-marketplace.controller';
 import { MostUsedWorkflowsQueryDto } from '@api/collections/workflows/dto/most-used-workflows-query.dto';
+import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-  WORKFLOW_TEMPLATES,
-} from '@api/collections/workflows/templates/workflow-templates';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -34,6 +32,10 @@ describe('WorkflowMarketplaceController', () => {
     getWorkflowTemplates: vi.fn(),
   };
 
+  const mockFeaturedWorkflowsService = {
+    listFeatured: vi.fn(),
+  };
+
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -46,6 +48,10 @@ describe('WorkflowMarketplaceController', () => {
       controllers: [WorkflowMarketplaceController],
       providers: [
         { provide: WorkflowsService, useValue: mockWorkflowsService },
+        {
+          provide: FeaturedWorkflowsService,
+          useValue: mockFeaturedWorkflowsService,
+        },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
     })
@@ -119,25 +125,43 @@ describe('WorkflowMarketplaceController', () => {
     });
   });
 
-  describe('getTemplates showcase ranking', () => {
-    it('passes featuredRank through for the curated showcase only', async () => {
+  describe('getTemplates', () => {
+    it('never ranks code templates: Featured comes from admin pins (#5511)', async () => {
       mockWorkflowsService.getWorkflowTemplates.mockResolvedValue(
         Object.values(WORKFLOW_TEMPLATES),
       );
 
       const result = await controller.getTemplates();
-      const ranked = result.data
-        .filter((template) => template.featuredRank !== undefined)
-        .sort(
-          (left, right) => (left.featuredRank ?? 0) - (right.featuredRank ?? 0),
-        );
 
-      expect(ranked.map((template) => template.id)).toEqual([
-        ...SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-      ]);
-      expect(ranked.map((template) => template.featuredRank)).toEqual(
-        SHOWCASE_WORKFLOW_TEMPLATE_IDS.map((_, index) => index + 1),
-      );
+      expect(
+        result.data.filter((template) => 'featuredRank' in template),
+      ).toEqual([]);
+    });
+  });
+
+  describe('getFeatured (#5511)', () => {
+    it('returns the pinned workflows in pin order', async () => {
+      const featured = [
+        { featuredRank: 1, id: 'wf-b', label: 'B' },
+        { featuredRank: 2, id: 'wf-a', label: 'A' },
+      ];
+      mockFeaturedWorkflowsService.listFeatured.mockResolvedValue(featured);
+
+      await expect(controller.getFeatured()).resolves.toEqual({
+        data: featured,
+      });
+    });
+
+    it('returns an empty row when nothing is pinned', async () => {
+      mockFeaturedWorkflowsService.listFeatured.mockResolvedValue([]);
+
+      await expect(controller.getFeatured()).resolves.toEqual({ data: [] });
+    });
+
+    it('is open to any organization member, like the template catalog', () => {
+      expect(
+        Reflect.getMetadata(GUARDS_METADATA, controller.getFeatured),
+      ).toBeUndefined();
     });
   });
 
