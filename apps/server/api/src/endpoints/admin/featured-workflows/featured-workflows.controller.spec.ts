@@ -130,16 +130,14 @@ describe('FeaturedWorkflowsController over HTTP (#5511)', () => {
       .compile();
 
     app = module.createNestApplication();
-    app.use(
-      (
-        req: Request & { context?: { isSuperAdmin: boolean } },
-        _res: Response,
-        next: NextFunction,
-      ) => {
-        req.context = { isSuperAdmin: req.header('x-test-superadmin') === '1' };
-        next();
-      },
-    );
+    // Stands in for the request-context middleware: only the superadmin
+    // flag matters to the guard under test.
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+      Reflect.set(req, 'context', {
+        isSuperAdmin: req.header('x-test-superadmin') === '1',
+      });
+      next();
+    });
     await app.init();
   });
 

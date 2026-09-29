@@ -1047,10 +1047,8 @@ describe('WorkflowsService featured workflow use (#5511)', () => {
       }),
     );
 
-    const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as Record<
-      string,
-      unknown
-    >;
+    const createInput = vi.mocked(service.create).mock
+      .calls[0]?.[0] as unknown as Record<string, unknown>;
     expect(createInput).toEqual({
       brandId: 'caller-brand',
       config: {},
