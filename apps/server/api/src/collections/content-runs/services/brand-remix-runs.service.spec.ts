@@ -229,6 +229,7 @@ describe('BrandRemixRunsService', () => {
     );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
+    avatarVideoGenerationService.quotePlatformCredits.mockResolvedValue(1);
     workflowActions.clear();
     systemWorkflowRunner.registerAction.mockImplementation(
       (id: string, action: CapturedWorkflowAction) => {
