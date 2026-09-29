@@ -1,4 +1,4 @@
-const WORKFLOW_RESERVED_SEGMENTS = new Set(['library', 'templates']);
+const WORKFLOW_RESERVED_SEGMENTS = new Set(['library']);
 
 export interface WorkflowSurfaceRouteSelection {
   readonly executionId: string | null;
@@ -16,8 +16,7 @@ export function resolveWorkflowSurfaceRoute(
   const automationIndex = segments.indexOf('automation');
   const workflowsIndex = segments.indexOf('workflows');
   const runsIndex = segments.indexOf('runs');
-  const isTemplatesRoute = segments[automationIndex + 1] === 'templates';
-  if (workflowsIndex < 0 && runsIndex < 0 && !isTemplatesRoute) {
+  if (workflowsIndex < 0 && runsIndex < 0) {
     return {
       executionId: null,
       isGraphCanvas: false,
@@ -36,16 +35,6 @@ export function resolveWorkflowSurfaceRoute(
   if (runsIndex >= 0) {
     return {
       executionId: segments[runsIndex + 1] ?? null,
-      isGraphCanvas: false,
-      runsBaseHref,
-      workflowBaseHref,
-      workflowId: null,
-    };
-  }
-
-  if (isTemplatesRoute) {
-    return {
-      executionId: null,
       isGraphCanvas: false,
       runsBaseHref,
       workflowBaseHref,

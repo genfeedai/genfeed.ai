@@ -120,25 +120,18 @@ export const APP_ROUTES = {
     ROOT: '/automation',
     RUNS: '/automation/runs',
     /**
-     * Redirect-only alias. Templates live on the Workflows page
-     * (`WORKFLOWS?view=templates`).
-     */
-    TEMPLATES: '/automation/templates',
-    /**
      * Agent Programs (budget/quota wrappers around strategies).
      * UI label is "Programs"; path kept for deep-link stability.
      * Marketer multi-platform content campaigns belong in Publishing (P1).
      */
     CAMPAIGNS: '/automation/campaigns',
     CAMPAIGNS_NEW: '/automation/campaigns/new',
-    /** Pipeline canvas library (merged former /workflows surface). */
+    /**
+     * Pipeline canvas library (merged former /workflows surface). Templates is
+     * a view of this page: `WORKFLOWS?view=templates`.
+     */
     WORKFLOWS: '/automation/workflows',
     WORKFLOWS_NEW: '/automation/workflows/new',
-    /**
-     * Redirect-only alias. Templates is a view of the Workflows page:
-     * `WORKFLOWS?view=templates`.
-     */
-    WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
   },
   DISCOVERY: {
     ADS: '/discovery/ads',

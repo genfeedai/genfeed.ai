@@ -12,11 +12,6 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'workspaceActivity', prefix: APP_ROUTES.WORKSPACE.ACTIVITY },
   { key: 'automationOverview', prefix: APP_ROUTES.AUTOMATION.OVERVIEW },
   { key: 'automationWorkflows', prefix: APP_ROUTES.AUTOMATION.WORKFLOWS },
-  { key: 'automationTemplates', prefix: APP_ROUTES.AUTOMATION.TEMPLATES },
-  {
-    key: 'automationTemplates',
-    prefix: APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
-  },
   { key: 'automationRuns', prefix: APP_ROUTES.AUTOMATION.RUNS },
   { key: 'automationAgents', prefix: APP_ROUTES.AUTOMATION.AGENTS },
   { key: 'automationPrograms', prefix: APP_ROUTES.AUTOMATION.CAMPAIGNS },
@@ -82,6 +77,11 @@ export function resolvePageHelpKey(
     new URLSearchParams(search).get('view') === 'calendar'
   )
     return 'publishingCalendar';
+  if (
+    path === APP_ROUTES.AUTOMATION.WORKFLOWS &&
+    new URLSearchParams(search).get('view') === 'templates'
+  )
+    return 'automationTemplates';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {
     const isMatch =
