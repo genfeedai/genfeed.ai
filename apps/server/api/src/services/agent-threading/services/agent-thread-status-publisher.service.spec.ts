@@ -229,18 +229,19 @@ describe('AgentThreadStatusPublisherService', () => {
 
   it('publishes nothing for events that leave the run status unchanged', async () => {
     await record('thread.turn_requested');
+    // queued -> running moves the snapshot but not the derived status.
+    await record('tool.started', { toolCallId: 't1' });
     publish.mockClear();
     vi.mocked(threadsService.findOne).mockClear();
 
-    await record('tool.started', { toolCallId: 't1' });
     await record('tool.progress', { toolCallId: 't1' });
     await record('work.updated');
     await record('ui.blocks_updated');
 
     expect(publish).not.toHaveBeenCalled();
     // Only the engine's own access check per event: the publisher never
-    // looks the thread up for events that cannot move the status.
-    expect(threadsService.findOne).toHaveBeenCalledTimes(4);
+    // looks the thread up for events that leave the status inputs untouched.
+    expect(threadsService.findOne).toHaveBeenCalledTimes(3);
   });
 
   it('publishes nothing when a recorded command is replayed', async () => {
