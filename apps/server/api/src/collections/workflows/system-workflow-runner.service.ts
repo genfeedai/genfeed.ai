@@ -63,6 +63,12 @@ export { WORKFLOW_FOR_EACH_ACTION_ID };
 export const WORKFLOW_FOR_EACH_TENANT_ACTION_ID = 'workflow.for-each-tenant';
 export const WORKFLOW_RUN_CHILD_ACTION_ID = 'workflow.run-child';
 const MAX_NESTED_WORKFLOW_DEPTH = 8;
+// The hidden-mirror transaction is Serializable, so Postgres aborts it (P2034)
+// when sweeps that fire in the same second write `workflows` rows together. The
+// per-canonical advisory lock does not order different canonicals, and the run
+// has `attempts: 1`, so an unretried abort permanently failed a scheduled post.
+const MAX_MIRROR_SERIALIZATION_ATTEMPTS = 5;
+const MIRROR_SERIALIZATION_BACKOFF_MS = 25;
 
 export type SystemWorkflowProvenance = {
   executionId: string;
@@ -428,6 +434,49 @@ export class SystemWorkflowRunnerService
   }
 
   private async ensureHiddenSystemWorkflowMirror(
+    definition: SystemWorkflowGraphDefinition,
+  ): Promise<Prisma.WorkflowGetPayload<{ include: { currentVersion: true } }>> {
+    for (
+      let attempt = 1;
+      attempt <= MAX_MIRROR_SERIALIZATION_ATTEMPTS;
+      attempt += 1
+    ) {
+      try {
+        return await this.ensureHiddenSystemWorkflowMirrorOnce(definition);
+      } catch (error: unknown) {
+        if (
+          !this.isSerializationFailure(error) ||
+          attempt === MAX_MIRROR_SERIALIZATION_ATTEMPTS
+        ) {
+          throw error;
+        }
+        // Jitter so the aborted runs do not collide again on the same tick.
+        await new Promise((resolve) =>
+          setTimeout(
+            resolve,
+            MIRROR_SERIALIZATION_BACKOFF_MS * attempt * (1 + Math.random()),
+          ),
+        );
+      }
+    }
+
+    throw new Error(
+      `System workflow ${definition.canonicalId} mirror did not converge`,
+    );
+  }
+
+  private isSerializationFailure(error: unknown): boolean {
+    if (error === null || typeof error !== 'object') {
+      return false;
+    }
+    const { code, message, name } = error as Record<string, unknown>;
+    return (
+      code === 'P2034' ||
+      (name === 'DriverAdapterError' && message === 'TransactionWriteConflict')
+    );
+  }
+
+  private async ensureHiddenSystemWorkflowMirrorOnce(
     definition: SystemWorkflowGraphDefinition,
   ): Promise<Prisma.WorkflowGetPayload<{ include: { currentVersion: true } }>> {
     const where = {
