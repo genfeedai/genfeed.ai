@@ -7,14 +7,12 @@ import {
   XTwitterIcon,
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
-import type { AgentPresetAvatarProps } from '@props/automation/agent-preset-avatar.props';
+import type {
+  AgentPresetAvatarProps,
+  PlatformBrand,
+} from '@props/automation/agent-preset-avatar.props';
 import type { ReactNode } from 'react';
 import { getAgentTypeIcon } from '../agents/agent-type-display';
-
-interface PlatformBrand {
-  faceClassName: string;
-  Icon: typeof YoutubeIcon;
-}
 
 const PLATFORM_BRANDS: Record<string, PlatformBrand> = {
   facebook: { faceClassName: 'bg-blue-600', Icon: FacebookIcon },
