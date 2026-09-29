@@ -190,6 +190,25 @@ describe('AppLayout', () => {
     });
   });
 
+  it('marks the shell chrome only when a rail is present, for the desktop title bar', () => {
+    const { rerender } = render(
+      <AppLayout>
+        <div>Content</div>
+      </AppLayout>,
+    );
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    expect(layoutRoot).not.toHaveAttribute('data-shell-chrome');
+
+    rerender(
+      <AppLayout railComponent={<RailComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+    expect(
+      screen.getByTestId('app-content-shell').parentElement,
+    ).toHaveAttribute('data-shell-chrome', 'true');
+  });
+
   it('renders the app rail at the far left and offsets the shell by its width', () => {
     render(
       <AppLayout

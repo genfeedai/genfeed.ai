@@ -86,6 +86,7 @@ export default function AppLayout({
               : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
+          data-shell-chrome={hasChrome ? 'true' : undefined}
           data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
           style={layoutStyle}
         >
