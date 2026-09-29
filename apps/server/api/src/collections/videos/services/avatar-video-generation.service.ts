@@ -50,6 +50,30 @@ interface AvatarVideoGenerationContext {
   organizationId: string;
   userId: string;
   brandId?: string;
+  /**
+   * The caller's request pipeline (credits guard reservation + interceptor
+   * settlement) already bills this generation, so it must not be deducted
+   * again here.
+   */
+  settleCreditsExternally?: boolean;
+}
+
+/**
+ * True when the credits guard finalized a positive platform charge for this
+ * request. A BYOK bypass records usage only, and a non-positive amount means
+ * request pricing did not resolve (same rule as the remix fallback), so in
+ * both cases the service still applies its own charge.
+ */
+export function isAvatarBilledByRequest(request: {
+  creditsConfig?: { amount?: number; isByokBypass?: boolean };
+}): boolean {
+  const amount = request.creditsConfig?.amount;
+  return (
+    typeof amount === 'number' &&
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    !request.creditsConfig?.isByokBypass
+  );
 }
 
 interface AvatarVideoGenerationParams {
@@ -267,7 +291,8 @@ export class AvatarVideoGenerationService {
 
       if (
         funding.billingMode === 'platform' &&
-        !placeholderScope?.settleCreditsExternally
+        !placeholderScope?.settleCreditsExternally &&
+        !context.settleCreditsExternally
       ) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
