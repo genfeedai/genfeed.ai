@@ -133,18 +133,21 @@ vi.mock('@ui/primitives/button', () => ({
     onClick,
     ariaLabel,
     className,
+    isDisabled,
     ...props
   }: {
     children: ReactNode;
     onClick?: () => void;
     ariaLabel?: string;
     className?: string;
+    isDisabled?: boolean;
   } & ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
       className={className}
+      disabled={isDisabled}
       {...props}
     >
       {children}
