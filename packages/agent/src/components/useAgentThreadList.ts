@@ -317,19 +317,6 @@ export function useAgentThreadList({
     };
   }, [isActive, loadThreads]);
 
-  useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-
-    const handleFocus = () => {
-      loadThreads().catch(() => undefined);
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isActive, loadThreads]);
-
   const prevActiveIdRef = useRef(activeThreadId);
   useEffect(() => {
     if (
