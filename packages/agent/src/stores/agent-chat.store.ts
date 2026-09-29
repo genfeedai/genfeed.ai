@@ -845,13 +845,21 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
       }),
     clearStaleActiveRun: () => {
       discardPendingStreamTokens();
-      set({
+      set((state) => ({
         activeRunId: null,
         activeRunStatus: 'idle',
         isGenerating: false,
         runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
-      });
+        // The run is gone server-side. The thread summary is what the sidebar
+        // trusts for "Working", so settle it here or it would stay there.
+        threads: state.threads.map((thread) =>
+          thread.id === state.activeThreadId &&
+          (thread.runStatus === 'queued' || thread.runStatus === 'running')
+            ? { ...thread, attentionState: null, runStatus: 'idle' }
+            : thread,
+        ),
+      }));
     },
     clearPendingInputRequest: (inputRequestId) =>
       set((state) =>
