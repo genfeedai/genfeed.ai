@@ -363,7 +363,7 @@ describe('agent content loop across two cycles', () => {
     const f = setup(0);
     expect(
       await f.workflow.dispatchProactiveStrategy({ item: f.strategy }),
-    ).toMatchObject({ status: 'skipped', executionId: null });
+    ).toEqual({ status: 'skipped' });
     expect(f.runner.enqueueWorkflow).not.toHaveBeenCalled();
     expect(f.reserveCredits).not.toHaveBeenCalled();
     expect(f.posts.size).toBe(0);
