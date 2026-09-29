@@ -624,4 +624,117 @@ describe('CreditReservationService', () => {
       { organizationId: 'org_1', reservationId: 'res_1' },
     );
   });
+
+  describe('bindOutput', () => {
+    const pool = (overrides: Record<string, unknown> = {}) => ({
+      actorUserId: 'user_1',
+      amount: 9,
+      billingAccountId: 'ba_1',
+      createdAt: new Date('2026-09-29T00:00:00Z'),
+      description: 'Music generation',
+      expiresAt: new Date('2026-09-29T02:00:00Z'),
+      id: 'pool_1',
+      idempotencyKey: 'generation:req_1',
+      isDeleted: false,
+      metadata: { marginMultiplier: 3.33 },
+      organizationId: 'org_1',
+      settledAmount: null,
+      source: 'music-generation',
+      status: CreditReservationStatus.RESERVED,
+      updatedAt: new Date('2026-09-29T00:00:00Z'),
+      workloadId: 'req_1',
+      workloadType: 'generation',
+      ...overrides,
+    });
+    const bindInput = {
+      amount: 3,
+      expiresAt: new Date('2026-09-29T02:00:00Z'),
+      metadata: { assetId: 'ing_1' },
+      organizationId: 'org_1',
+      reservationId: 'pool_1',
+      workloadId: 'ing_1',
+    };
+
+    it('moves one output share from the pool into its own hold without changing the wallet hold', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool());
+      prisma.creditReservation.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) =>
+          pool({ ...data, id: 'hold_1', metadata: data.metadata }),
+      );
+
+      const hold = await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { amount: 6 } }),
+      );
+      expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          amount: 3,
+          description: 'Music generation',
+          idempotencyKey: 'media-generation:ing_1',
+          source: 'music-generation',
+          workloadId: 'ing_1',
+          workloadType: 'media-generation',
+        }),
+      });
+      expect(hold.metadata).toEqual({
+        assetId: 'ing_1',
+        marginMultiplier: 3.33,
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    });
+
+    it('retires the pool when its last share is bound', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: 3 }));
+      prisma.creditReservation.create.mockResolvedValue(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+
+      await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { amount: 0, status: CreditReservationStatus.RELEASED },
+        }),
+      );
+    });
+
+    it('returns the existing hold when the same output is bound twice', async () => {
+      prisma.creditReservation.findFirst.mockResolvedValueOnce(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+
+      const hold = await service.bindOutput(bindInput);
+
+      expect(hold.id).toBe('hold_1');
+      expect(prisma.creditReservation.updateMany).not.toHaveBeenCalled();
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects a share larger than what the pool has left', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: 2 }));
+
+      await expect(service.bindOutput(bindInput)).rejects.toMatchObject({
+        errorCode: 'BIND_EXCEEDS_RESERVATION',
+      });
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses to bind from a pool that is no longer reserved', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(
+          pool({ status: CreditReservationStatus.RELEASED }),
+        );
+
+      await expect(service.bindOutput(bindInput)).rejects.toThrow();
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+  });
 });

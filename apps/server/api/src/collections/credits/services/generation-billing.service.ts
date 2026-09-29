@@ -98,6 +98,7 @@ export class GenerationBillingService {
         amount: params.credits,
         description: params.description,
         reservationId: reservation.id,
+        settlement: 'completion',
         source: params.source,
       },
       user: {
