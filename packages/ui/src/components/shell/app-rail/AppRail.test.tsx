@@ -427,6 +427,42 @@ describe('AppRail', () => {
     ).toBeTruthy();
   });
 
+  it('pins the footer at the very bottom, below Admin', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        showAdmin
+        footer={<div data-testid="rail-footer">Help and account</div>}
+      />,
+    );
+
+    const bottom = screen.getByTestId('app-rail-bottom');
+    expect(bottom).toContainElement(
+      screen.getByRole('link', { name: 'Admin' }),
+    );
+    expect(bottom).toContainElement(screen.getByTestId('rail-footer'));
+    expect(
+      screen
+        .getByRole('link', { name: 'Admin' })
+        .compareDocumentPosition(screen.getByTestId('rail-footer')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps the footer when there is no Admin', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        footer={<div data-testid="rail-footer">Help and account</div>}
+      />,
+    );
+
+    expect(screen.getByTestId('rail-footer')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Admin' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('pins Admin below the product apps', () => {
     render(<AppRail orgSlug="acme" showAdmin />);
 

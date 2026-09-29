@@ -125,6 +125,7 @@ export function AppRail({
   brandAwareSlug,
   brandSlug,
   currentPath,
+  footer,
   header,
   isAssetGateLocked = false,
   onNavigate,
@@ -264,9 +265,13 @@ export function AppRail({
             {group.map(renderItem)}
           </div>
         ))}
-        {admin ? (
-          <div className="mt-auto flex flex-col items-center pt-2">
-            {renderItem(admin)}
+        {admin || footer ? (
+          <div
+            className="mt-auto flex flex-col items-center gap-1 pt-2"
+            data-testid="app-rail-bottom"
+          >
+            {admin ? renderItem(admin) : null}
+            {footer}
           </div>
         ) : null}
       </nav>

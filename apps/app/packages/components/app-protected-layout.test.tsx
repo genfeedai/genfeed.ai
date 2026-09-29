@@ -159,7 +159,6 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     renderTopSlot?: () => ReactNode;
     sectionLabel?: string;
     showPrimaryItems?: boolean;
-    showUserProfile?: boolean;
     sidebarWidth?: number;
     backHref?: string;
     backLabel?: string;
@@ -1371,7 +1370,6 @@ describe('AppProtectedLayout', () => {
         items: expect.arrayContaining([
           expect.objectContaining({ label: 'Dashboard' }),
         ]),
-        showUserProfile: true,
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();

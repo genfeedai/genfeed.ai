@@ -670,6 +670,55 @@ describe('UniversalWorkspaceShell', () => {
     );
   });
 
+  it('attaches the open inspector to the content panel through the layout root', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    function SelectionSurface() {
+      return (
+        <ContextSidebarPanel
+          onClose={() => {}}
+          selection={{
+            id: 'asset-1',
+            kind: 'asset',
+            origin: 'user',
+            title: 'Image',
+          }}
+        >
+          <p>Asset detail</p>
+        </ContextSidebarPanel>
+      );
+    }
+
+    const { container } = render(
+      <div data-testid="layout-root" data-workspace-shell="true">
+        <ContextSidebarProvider>
+          <UniversalWorkspaceShell agentApiService={agentApiService}>
+            <SelectionSurface />
+          </UniversalWorkspaceShell>
+        </ContextSidebarProvider>
+      </div>,
+    );
+
+    const layoutRoot = screen.getByTestId('layout-root');
+    const aside = container.querySelector('#workspace-context-inspector');
+    // Open: the panel squares its right edge; the inspector adds no left edge
+    // of its own, so the two share one divider.
+    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'true');
+    expect(
+      layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
+    ).toBe('320px');
+    expect(aside).toHaveClass('rounded-r-lg', 'border-y', 'border-r');
+    expect(aside).not.toHaveClass('border-l', 'rounded-lg');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+
+    expect(layoutRoot).toHaveAttribute('data-inspector-open', 'false');
+    expect(
+      layoutRoot.style.getPropertyValue('--workspace-inspector-width'),
+    ).toBe('0px');
+    expect(aside).not.toHaveClass('border-r');
+  });
+
   it('keeps the mobile drawer closed without a context sidebar selection', () => {
     navigation.pathname = '/acme/moonrise/workspace';
 

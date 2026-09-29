@@ -25,7 +25,6 @@ type AppSidebarSurface = {
   items: MenuItemConfig[];
   currentApp?: MenuSharedProps['currentApp'];
   sectionLabel?: string;
-  showUserProfile?: boolean;
 };
 
 type Props = {
@@ -198,7 +197,6 @@ export default function AppProtectedLayoutSidebar({
       {
         active: isAdminRoute,
         items: adminMenuItems,
-        showUserProfile: true,
       },
       {
         active: isPublishingRoute,
@@ -255,7 +253,6 @@ export default function AppProtectedLayoutSidebar({
         items={surface.items}
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
         headerSlot={headerSlot}
-        showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
         renderTopSlot={
@@ -279,7 +276,6 @@ export default function AppProtectedLayoutSidebar({
       renderTopSlot={renderQuickActions}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems
-      showUserProfile
       sidebarWidth={sidebarWidth}
     />
   );
