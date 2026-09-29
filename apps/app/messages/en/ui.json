@@ -174,7 +174,9 @@
     "loadingItem": "Loading item",
     "moreActions": "More actions",
     "removeFilter": "Remove filter {label}",
-    "removeFilterFallback": "Remove filter"
+    "removeFilterFallback": "Remove filter",
+    "scrollLeft": "Scroll left",
+    "scrollRight": "Scroll right"
   },
   "recordDetail": {
     "allDetailsCount": "All details ({count})",

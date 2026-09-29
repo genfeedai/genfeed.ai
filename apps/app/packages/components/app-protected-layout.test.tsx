@@ -1030,12 +1030,7 @@ describe('AppProtectedLayout', () => {
       'Analytics',
       'Trend Detail',
     ],
-    ['/org-123/brand-123/automation/templates', 'Automation', 'Workflows'],
-    [
-      '/org-123/brand-123/automation/workflows/templates',
-      'Automation',
-      'Workflows',
-    ],
+    ['/org-123/brand-123/automation/workflows', 'Automation', 'Workflows'],
     [
       '/org-123/brand-123/automation/workflows/new',
       'Automation',

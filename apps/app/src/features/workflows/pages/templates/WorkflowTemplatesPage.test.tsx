@@ -195,12 +195,6 @@ vi.mock('@ui/primitives/select', () => ({
   SelectValue: () => null,
 }));
 
-vi.mock('@ui/layout/horizontal-carousel/HorizontalCarousel', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="featured-carousel">{children}</div>
-  ),
-}));
-
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children?: ReactNode; open?: boolean }) =>
     open ? <div role="dialog">{children}</div> : null,
@@ -316,6 +310,14 @@ async function openOverflow(container: HTMLElement) {
 
 describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
     vi.clearAllMocks();
     window.localStorage.clear();
     mocks.scopedGetService = null;
@@ -588,13 +590,13 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates',
+      '/demo/FUDNEWS/automation/workflows?view=templates',
     );
     expect(
       within(all).getByRole('link', { name: 'Use template' }),
     ).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
+      '/demo/FUDNEWS/automation/workflows?view=templates&template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);

@@ -119,9 +119,7 @@ describe('AUTOMATION_MENU_ITEMS', () => {
   it.each([
     '/automation/campaigns',
     '/automation/content-runs',
-    '/automation/templates',
     '/automation/workflows/new',
-    '/automation/workflows/templates',
   ])('leaves no menu-less orphan page at %s', (orphanCandidate) => {
     const isCovered = AUTOMATION_MENU_ITEMS.some((item) =>
       item.matchPaths?.includes(orphanCandidate),
