@@ -319,6 +319,7 @@ export * from './studio/camera-movement.interface';
 export * from './studio/conversation-canvas.interface';
 export * from './studio/conversation-sidebar.interface';
 export * from './studio/recent-asset.interface';
+export * from './studio/storyboard-run.interface';
 export * from './studio/studio-edit.interface';
 export * from './studio/studio-edit-layout.interface';
 export * from './studio/studio-edit-topbar.interface';

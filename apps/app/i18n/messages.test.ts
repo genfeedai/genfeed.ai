@@ -197,7 +197,7 @@ describe('loadMessages', () => {
     expect(english.pages.adsResearch.errors.remixUnavailable).toBe(
       'The on-brand remix workflow is unavailable here.',
     );
-    expect(english.pages.studioGenerate.remixRun.sendToReview).toBe(
+    expect(english.pages.studioStoryboard.run.sendToReview).toBe(
       'Send {count} to Review',
     );
     expect(english.pages.posts.list.loadError).toBe(

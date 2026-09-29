@@ -1,7 +1,12 @@
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { ContentRunStatus } from '@genfeedai/contracts';
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import StudioRemixRunPanel from './StudioRemixRunPanel';
+import StoryboardRunPanel from './StoryboardRunPanel';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -16,13 +21,16 @@ vi.mock('next-intl', async () => {
 
 const run = {
   brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
+  brandId: 'brand-1',
+  contract: 'brand-remix-run',
+  createdAt: '2026-08-20T10:00:00.000Z',
   draft: {
     identity: {},
     output: { aspectRatio: '9:16', count: 2, kind: 'video' },
     references: [
       { assetId: 'reference-1', role: 'product', source: 'brand_default' },
     ],
-    target: { kind: 'organic', platform: 'tiktok' },
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.TIKTOK },
   },
   execution: {
     actualCount: 1,
@@ -48,20 +56,23 @@ const run = {
   readiness: { issues: [], state: 'ready' },
   recipeVersion: 1,
   revision: 2,
+  status: ContentRunStatus.RUNNING,
+  updatedAt: '2026-08-20T10:00:00.000Z',
+  version: 1,
   sourceSnapshot: {
     // `selector` is required on the view contract and the panel reads
     // `sourceSnapshot.selector.kind` directly — omitting it only type-checked
-    // because of the `as BrandRemixRunView` cast.
+    // because of the partial-fixture cast.
     pattern: { hook: 'Proof before promise' },
     selector: { kind: 'source_post', sourcePostId: 'source-post-1' },
     title: 'Proof-led TikTok hook',
   },
-} as BrandRemixRunView;
+} as unknown as BrandRemixRunView;
 
-describe('StudioRemixRunPanel', () => {
+describe('StoryboardRunPanel', () => {
   it('shows durable recipe lineage and groups every variation under the run', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -86,7 +97,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('does not treat an empty identity object as a paired avatar and voice', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -113,7 +124,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('shows the canonical durable identity for an avatar remix', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -144,7 +155,7 @@ describe('StudioRemixRunPanel', () => {
     const onReview = vi.fn();
     const onVary = vi.fn();
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={onReview}
@@ -170,7 +181,7 @@ describe('StudioRemixRunPanel', () => {
     } as never);
 
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -198,7 +209,7 @@ describe('StudioRemixRunPanel', () => {
       ...run,
       draft: {
         ...run.draft,
-        target: { kind: 'paid' as const, platform: 'meta' as const },
+        target: { kind: 'paid' as const, platform: BrandRemixAdPlatform.META },
       },
       phase: 'in_review' as const,
       sourceSnapshot: {
@@ -208,7 +219,7 @@ describe('StudioRemixRunPanel', () => {
           adId: 'ad-1',
           credentialId: 'credential-1',
           kind: 'connected_ad' as const,
-          platform: 'meta' as const,
+          platform: BrandRemixAdPlatform.META,
         },
       },
       review: {
@@ -220,7 +231,7 @@ describe('StudioRemixRunPanel', () => {
       },
     };
     const { rerender } = render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -239,7 +250,7 @@ describe('StudioRemixRunPanel', () => {
     expect(screen.getByRole('link', { name: 'Open Review' })).toBeVisible();
 
     rerender(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -261,7 +272,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('explains why an approved paid Meta run cannot hand off a non-Meta source', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onPreparePaidDraft={vi.fn()}
@@ -271,7 +282,7 @@ describe('StudioRemixRunPanel', () => {
           ...run,
           draft: {
             ...run.draft,
-            target: { kind: 'paid', platform: 'meta' },
+            target: { kind: 'paid', platform: BrandRemixAdPlatform.META },
           },
           phase: 'approved',
           review: {
@@ -288,7 +299,7 @@ describe('StudioRemixRunPanel', () => {
               adId: 'tiktok-ad-1',
               credentialId: 'credential-1',
               kind: 'connected_ad',
-              platform: 'tiktok',
+              platform: BrandRemixAdPlatform.TIKTOK,
             },
           },
         }}
@@ -307,7 +318,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('links an approved organic run to its canonical Publishing drafts', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}

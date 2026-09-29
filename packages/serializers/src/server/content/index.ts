@@ -5,6 +5,7 @@ export * from '@serializers/server/content/batch.serializer';
 export * from '@serializers/server/content/batch-interpolation.serializer';
 export * from '@serializers/server/content/batch-project.serializer';
 export * from '@serializers/server/content/bookmark.serializer';
+export * from '@serializers/server/content/brand-remix-run-summary.serializer';
 export * from '@serializers/server/content/calendar-slot.serializer';
 export * from '@serializers/server/content/calendar-slot-bulk-generate.serializer';
 export * from '@serializers/server/content/campaign.serializer';

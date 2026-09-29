@@ -14,7 +14,7 @@ vi.mock('next/navigation', () => ({
 
 // `useAuthedService` returns a `useCallback`-stable resolver; minting a new
 // async function per render would re-fire the consume effect on every commit
-// (see the identical comment in useStudioRemixRun.test.ts).
+// (see the identical comment in the storyboard use-storyboard-run.test.ts).
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   const service = { consume: mocks.consume };
   const resolveService = async () => service;

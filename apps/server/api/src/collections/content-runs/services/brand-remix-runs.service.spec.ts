@@ -87,6 +87,7 @@ describe('BrandRemixRunsService', () => {
   const contentRun = {
     create: vi.fn(),
     findFirst: vi.fn(),
+    findMany: vi.fn(),
     updateMany: vi.fn(),
   };
   const prisma = {
@@ -702,6 +703,50 @@ describe('BrandRemixRunsService', () => {
   });
 
   describe('persistence and recipe transitions', () => {
+    it('lists storyboard run summaries and skips rows without a readable config', async () => {
+      const created = await createPersistedRun({
+        draft: {
+          output: { aspectRatio: '9:16', count: 1, kind: 'video' },
+        },
+      });
+      contentRun.findMany.mockResolvedValue([
+        created,
+        { ...makeRun({ contract: 'brand-remix-run' }), id: 'run-corrupt' },
+      ]);
+
+      const summaries = await service.list('org-1', 'brand-1', {
+        page: '2',
+      });
+
+      expect(contentRun.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 50,
+          take: 50,
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      expect(summaries).toEqual([
+        expect.objectContaining({
+          id: 'run-1',
+          outputKind: 'video',
+          phase: 'prefilled',
+          sourceKind: 'remix_discovery',
+        }),
+      ]);
+      expect(summaries[0]).not.toHaveProperty('draft');
+    });
+
+    it('rejects an invalid runs list page', async () => {
+      await expect(
+        service.list('org-1', 'brand-1', { page: '0' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(contentRun.findMany).not.toHaveBeenCalled();
+    });
+
     it('uses an atomic revision compare-and-swap and rejects stale editors', async () => {
       const created = await createPersistedRun();
       contentRun.findFirst.mockResolvedValue(created);

@@ -6,6 +6,7 @@ import { Button } from '@ui/primitives/button';
 import CameraMovementPromptBar from '@ui/studio/frame-sequence/CameraMovementPromptBar';
 import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelector';
 import { Sparkles, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export function StoryboardPanel({
   cameraMovementPreset,
@@ -20,11 +21,12 @@ export function StoryboardPanel({
   onFramesChange,
   onGenerate,
 }: StoryboardPanelProps) {
+  const translate = useTranslations('pages.studioStoryboard.frameSequence');
   const transitionCount = Math.max(0, frames.length - 1);
   const generateTooltip = !hasInterpolationModel
-    ? 'Select an interpolation-capable video model'
+    ? translate('needsInterpolationModel')
     : transitionCount === 0
-      ? 'Select at least two frames'
+      ? translate('needsTwoFrames')
       : undefined;
 
   return (
@@ -45,11 +47,10 @@ export function StoryboardPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md bg-card px-4 py-3 shadow-border">
         <div className="text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">{frames.length}</span>{' '}
-          frame{frames.length === 1 ? '' : 's'}
-          <span className="mx-2 text-muted-foreground/50">/</span>
-          <span className="font-medium text-foreground">{transitionCount}</span>{' '}
-          transition{transitionCount === 1 ? '' : 's'}
+          {translate('summary', {
+            frames: frames.length,
+            transitions: transitionCount,
+          })}
         </div>
 
         <div className="flex items-center gap-2">
@@ -59,7 +60,7 @@ export function StoryboardPanel({
             onClick={onClear}
             isDisabled={isGenerating || frames.length === 0}
             icon={<X />}
-            label="Clear"
+            label={translate('clear')}
           />
           <Button
             variant={ButtonVariant.DEFAULT}
@@ -70,7 +71,7 @@ export function StoryboardPanel({
             }
             isLoading={isGenerating}
             icon={<Sparkles />}
-            label="Generate transitions"
+            label={translate('generate')}
             tooltip={generateTooltip}
           />
         </div>

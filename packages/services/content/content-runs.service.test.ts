@@ -308,6 +308,53 @@ describe('ContentRunsService', () => {
     expect(result).toEqual(remixRun);
   });
 
+  it('lists the brand storyboard runs as validated summaries', async () => {
+    const controller = new AbortController();
+    const summary = {
+      brandId: 'brand-1',
+      createdAt: '2026-08-20T10:00:00.000Z',
+      id: 'run-remix-1',
+      outputKind: 'video',
+      phase: 'prefilled',
+      runtimeSeconds: 12,
+      shotCount: 2,
+      sourceKind: 'remix_discovery',
+      title: 'Proof-led TikTok hook',
+      updatedAt: '2026-08-21T10:00:00.000Z',
+    };
+    mockGet.mockResolvedValue({ data: { data: [] } });
+    mockDeserializeCollection.mockReturnValue([summary]);
+
+    const service = new ContentRunsService('token');
+    const result = await service.listBrandRemixRuns(
+      'brand-1',
+      { limit: 50, page: 2 },
+      controller.signal,
+    );
+
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand-1/content-runs/remixes',
+      {
+        params: { limit: 50, page: 2 },
+        signal: controller.signal,
+      },
+    );
+    expect(result).toEqual([summary]);
+  });
+
+  it('rejects a runs list row that does not match the summary contract', async () => {
+    mockGet.mockResolvedValue({ data: { data: [] } });
+    mockDeserializeCollection.mockReturnValue([
+      { id: 'run-remix-1', sourceKind: 'remix' },
+    ]);
+
+    const service = new ContentRunsService('token');
+
+    await expect(
+      service.listBrandRemixRuns('brand-1', { limit: 50, page: 1 }),
+    ).rejects.toThrow();
+  });
+
   it('reads the hydrated remix recipe through the run-scoped endpoint', async () => {
     mockGet.mockResolvedValue({ data: { data: {} } });
     mockDeserializeResource.mockReturnValue(remixRun);

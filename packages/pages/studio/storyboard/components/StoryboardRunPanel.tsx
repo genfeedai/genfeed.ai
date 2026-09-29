@@ -1,17 +1,15 @@
 'use client';
 
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
+import type { StoryboardRunPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import StudioRemixScenes, {
-  type StudioRemixSceneActions,
-} from '@pages/studio/generate/components/StudioRemixScenes';
-import { resolvePairedRemixIdentity } from '@pages/studio/generate/utils/studio-remix-run';
+import StoryboardRunScenes from '@pages/studio/storyboard/components/StoryboardRunScenes';
+import { resolvePairedRunIdentity } from '@pages/studio/storyboard/utils/storyboard-run';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -20,23 +18,13 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
-export interface StudioRemixRunPanelProps {
-  readonly sceneActions?: StudioRemixSceneActions;
-  readonly error: string | null;
-  readonly isWorking: boolean;
-  readonly onPreparePaidDraft?: () => void;
-  readonly onReview: (variantIds: string[]) => void;
-  readonly onVary: () => void;
-  readonly run: BrandRemixRunView;
-}
-
 function formatLabel(value: string): string {
   return value
     .replaceAll('_', ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export default function StudioRemixRunPanel({
+export default function StoryboardRunPanel({
   error,
   sceneActions,
   isWorking,
@@ -44,8 +32,8 @@ export default function StudioRemixRunPanel({
   onReview,
   onVary,
   run,
-}: StudioRemixRunPanelProps): ReactElement {
-  const translate = useTranslations('pages.studioGenerate');
+}: StoryboardRunPanelProps): ReactElement {
+  const translate = useTranslations('pages.studioStoryboard');
   const { activeHref } = useOrgUrl();
   const readyVariantIds =
     run.execution?.variants
@@ -56,7 +44,7 @@ export default function StudioRemixRunPanel({
   );
   const isPaidMeta =
     run.draft.target.kind === 'paid' && run.draft.target.platform === 'meta';
-  const canonicalIdentity = resolvePairedRemixIdentity(run.draft.identity);
+  const canonicalIdentity = resolvePairedRunIdentity(run.draft.identity);
   const isMetaHandoffEligible =
     isPaidMeta &&
     run.phase === 'approved' &&
@@ -101,7 +89,7 @@ export default function StudioRemixRunPanel({
 
   return (
     <section
-      aria-label={translate('remixRun.regionLabel')}
+      aria-label={translate('run.regionLabel')}
       className="space-y-4 border-y border-border bg-card/40 p-4"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -110,7 +98,7 @@ export default function StudioRemixRunPanel({
             <Badge variant="secondary">{formatLabel(run.phase)}</Badge>
             <Badge variant="ghost">{run.brand.name}</Badge>
             <span className="text-xs text-muted-foreground">
-              {translate('remixRun.recipeRevision', {
+              {translate('run.recipeRevision', {
                 recipeVersion: run.recipeVersion,
                 revision: run.revision,
               })}
@@ -126,7 +114,7 @@ export default function StudioRemixRunPanel({
             <Button
               icon={<GitBranch className="size-4" />}
               isDisabled={isWorking}
-              label={translate('remixRun.varyRecipe')}
+              label={translate('run.varyRecipe')}
               onClick={onVary}
               size={ButtonSize.SM}
               variant={ButtonVariant.SECONDARY}
@@ -136,7 +124,7 @@ export default function StudioRemixRunPanel({
             <Button
               icon={<Send className="size-4" />}
               isDisabled={isWorking}
-              label={translate('remixRun.sendToReview', {
+              label={translate('run.sendToReview', {
                 count: readyVariantIds.length,
               })}
               onClick={() => onReview(readyVariantIds)}
@@ -148,7 +136,7 @@ export default function StudioRemixRunPanel({
       </div>
 
       {sceneActions && ['video', 'avatar'].includes(run.draft.output.kind) ? (
-        <StudioRemixScenes
+        <StoryboardRunScenes
           run={run}
           actions={sceneActions}
           isWorking={isWorking}
@@ -167,7 +155,7 @@ export default function StudioRemixRunPanel({
         >
           <div className="space-y-1">
             <p className="font-medium">
-              {translate('remixRun.readinessTitle', {
+              {translate('run.readinessTitle', {
                 state: formatLabel(run.readiness.state),
               })}
             </p>
@@ -193,17 +181,17 @@ export default function StudioRemixRunPanel({
 
       {canonicalIdentity ? (
         <div
-          aria-label="Canonical identity"
+          aria-label={translate('run.identity.label')}
           className="flex flex-wrap gap-2"
           role="group"
         >
           <Badge variant="secondary">
-            {translate('remixRun.identity.avatar', {
+            {translate('run.identity.avatar', {
               id: canonicalIdentity.avatarAssetId,
             })}
           </Badge>
           <Badge variant="secondary">
-            {translate('remixRun.identity.voice', {
+            {translate('run.identity.voice', {
               id: canonicalIdentity.speechVoiceId,
             })}
           </Badge>
@@ -221,7 +209,7 @@ export default function StudioRemixRunPanel({
       {run.execution?.variants.length ? (
         <div className="space-y-2">
           <p className="text-xs text-muted-foreground">
-            {translate('remixRun.outputCount', {
+            {translate('run.outputCount', {
               actual: run.execution.actualCount,
               requested: run.execution.requestedCount,
             })}
@@ -242,7 +230,7 @@ export default function StudioRemixRunPanel({
                   <p className="truncate text-muted-foreground">
                     {variant.assetIds.length
                       ? variant.assetIds.join(', ')
-                      : translate('remixRun.waitingForAssetIds')}
+                      : translate('run.waitingForAssetIds')}
                   </p>
                   {variant.content ? (
                     <p className="mt-1 whitespace-pre-wrap text-foreground">
@@ -255,10 +243,10 @@ export default function StudioRemixRunPanel({
                   {variant.status === 'ready' &&
                   (variant.content || variant.assetIds.length > 0) ? (
                     <Button
-                      ariaLabel={translate('remixRun.copyGroup')}
+                      ariaLabel={translate('run.copyGroup')}
                       icon={<Copy className="size-3.5" />}
                       isDisabled={isWorking}
-                      label={translate('remixRun.copyGroup')}
+                      label={translate('run.copyGroup')}
                       onClick={() =>
                         copyVariantGroup(
                           variant.id,
@@ -282,8 +270,8 @@ export default function StudioRemixRunPanel({
           <span className="text-muted-foreground">
             {translate(
               run.review.postIds.length === 1
-                ? 'remixRun.review.summaryOne'
-                : 'remixRun.review.summaryMany',
+                ? 'run.review.summaryOne'
+                : 'run.review.summaryMany',
               {
                 batchId: run.review.batchId,
                 count: run.review.postIds.length,
@@ -297,7 +285,7 @@ export default function StudioRemixRunPanel({
                 `${APP_ROUTES.PUBLISHING.REVIEW}?batch=${encodeURIComponent(run.review.batchId)}`,
               )}
             >
-              {translate('remixRun.review.open')}
+              {translate('run.review.open')}
             </Link>
             {hasApprovedOrganicDrafts ? (
               <Link
@@ -308,7 +296,7 @@ export default function StudioRemixRunPanel({
                   }),
                 )}
               >
-                {translate('remixRun.review.openPublishingDrafts')}
+                {translate('run.review.openPublishingDrafts')}
               </Link>
             ) : null}
           </div>
@@ -319,7 +307,7 @@ export default function StudioRemixRunPanel({
         <Button
           icon={<Megaphone className="size-4" />}
           isDisabled={isWorking}
-          label={translate('remixRun.preparePaidDraft')}
+          label={translate('run.preparePaidDraft')}
           onClick={onPreparePaidDraft}
           size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
@@ -328,13 +316,13 @@ export default function StudioRemixRunPanel({
 
       {isMetaHandoffUnavailable ? (
         <Alert type={AlertCategory.INFO}>
-          {translate('remixRun.metaHandoffUnavailable')}
+          {translate('run.metaHandoffUnavailable')}
         </Alert>
       ) : null}
 
       {run.paidDraft ? (
         <Alert type={AlertCategory.SUCCESS}>
-          {translate('remixRun.paidDraftSummary', {
+          {translate('run.paidDraftSummary', {
             adId: run.paidDraft.adId,
             adSetId: run.paidDraft.adSetId,
             campaignId: run.paidDraft.campaignId,
@@ -345,7 +333,7 @@ export default function StudioRemixRunPanel({
       {!run.execution ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Sparkles className="size-4" />
-          {translate('remixRun.prefillHelp')}
+          {translate('run.prefillHelp')}
         </div>
       ) : null}
     </section>

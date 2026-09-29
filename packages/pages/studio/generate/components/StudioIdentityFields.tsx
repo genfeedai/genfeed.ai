@@ -6,7 +6,7 @@ import type { StudioIdentityFieldsProps } from '@genfeedai/props/studio/studio-g
 import {
   OptionSelect,
   SettingRow,
-} from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
+} from '@pages/studio/generate/components/StudioSettingControls';
 import { useStudioGenerateIdentities } from '@pages/studio/generate/hooks/useStudioGenerateIdentities';
 import type { StudioGenerateType } from '@pages/studio/generate/types';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';

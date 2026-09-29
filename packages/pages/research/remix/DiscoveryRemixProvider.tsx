@@ -229,7 +229,7 @@ export function DiscoveryRemixProvider({
         setStatus('ready');
         router.push(
           activeHref(
-            `${APP_ROUTES.STUDIO.GENERATE}?run=${encodeURIComponent(started.id)}`,
+            `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(started.id)}`,
           ),
         );
       } catch (caughtError) {

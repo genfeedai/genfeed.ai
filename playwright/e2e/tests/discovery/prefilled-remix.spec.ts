@@ -404,7 +404,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await editRemixConceptAndGenerate(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
-      /\/studio\/generate\?run=run-tiktok-1$/,
+      /\/studio\/storyboard\/run-tiktok-1$/,
     );
     await expect(
       authenticatedPage.getByRole('region', { name: 'Remix run' }),
@@ -440,7 +440,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect.poll(() => approved).toBe(true);
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/studio/generate?run=run-tiktok-1`,
+      `${BRAND_BASE}/studio/storyboard/run-tiktok-1`,
     );
     await expect(
       authenticatedPage.getByRole('link', { name: 'Open Publishing drafts' }),
@@ -525,7 +525,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await generateFromSeededConcept(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
-      /\/studio\/generate\?run=run-meta-1$/,
+      /\/studio\/storyboard\/run-meta-1$/,
     );
     await expect(createBody).toMatchObject({
       source: {
@@ -709,7 +709,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await generateFromSeededConcept(authenticatedPage);
 
     await expect(authenticatedPage).toHaveURL(
-      /\/studio\/generate\?run=run-saved-ad-1$/,
+      /\/studio\/storyboard\/run-saved-ad-1$/,
     );
     expect(createBody).toMatchObject({
       source: { kind: 'saved_ad', savedAdId: 'saved-ad-1' },
@@ -823,7 +823,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/studio/generate?run=run-restore-1`,
+      `${BRAND_BASE}/studio/storyboard/run-restore-1`,
     );
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
@@ -865,7 +865,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/studio/generate?run=run-publish-1`,
+      `${BRAND_BASE}/studio/storyboard/run-publish-1`,
     );
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
@@ -1049,7 +1049,7 @@ test.describe('Discovery prefilled remix handoff', () => {
     await expect.poll(() => approved).toBe(true);
 
     await authenticatedPage.goto(
-      `${BRAND_BASE}/studio/generate?run=run-meta-paid-1`,
+      `${BRAND_BASE}/studio/storyboard/run-meta-paid-1`,
     );
     await panel
       .getByRole('button', { name: 'Prepare paused Meta draft' })
@@ -1127,9 +1127,7 @@ test.describe('Discovery prefilled remix handoff', () => {
       },
     );
 
-    await authenticatedPage.goto(
-      `${BRAND_BASE}/studio/generate?run=run-copy-1`,
-    );
+    await authenticatedPage.goto(`${BRAND_BASE}/studio/storyboard/run-copy-1`);
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();

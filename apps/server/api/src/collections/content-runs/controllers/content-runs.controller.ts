@@ -1,10 +1,3 @@
-import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
-import {
-  AttachBrandRemixAnalysisSourceDto,
-  ControlBrandRemixScenesDto,
-  ExecuteBrandRemixScenesDto,
-  QuoteBrandRemixScenesDto,
-} from '@api/collections/content-runs/dto/brand-remix-scene.dto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateBrandRemixRunDto,
@@ -13,8 +6,15 @@ import {
   StartBrandRemixRunDto,
   SubmitBrandRemixRunForReviewDto,
 } from '@api/collections/content-runs/dto/brand-remix-run.dto';
+import {
+  AttachBrandRemixAnalysisSourceDto,
+  ControlBrandRemixScenesDto,
+  ExecuteBrandRemixScenesDto,
+  QuoteBrandRemixScenesDto,
+} from '@api/collections/content-runs/dto/brand-remix-scene.dto';
 import { CreateContentRunBriefDto } from '@api/collections/content-runs/dto/create-content-run-brief.dto';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
+import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -31,7 +31,10 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ActivitySource, ContentRunStatus } from '@genfeedai/contracts';
-import { ContentRunSerializer } from '@genfeedai/serializers';
+import {
+  BrandRemixRunSummarySerializer,
+  ContentRunSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
@@ -161,6 +164,23 @@ export class ContentRunsController {
     );
 
     return serializeCollection(req, ContentRunSerializer, { docs });
+  }
+
+  @Get('brands/:brandId/content-runs/remixes')
+  @ApiQuery({ name: 'page', required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
+  async listBrandRemixRuns(
+    @Req() req: Request,
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+    @Query() query: Record<string, string>,
+  ) {
+    const docs = await this.brandRemixRunsService.list(
+      user.organizationId,
+      brandId,
+      query,
+    );
+    return serializeCollection(req, BrandRemixRunSummarySerializer, { docs });
   }
 
   @Post('brands/:brandId/content-runs/briefs')

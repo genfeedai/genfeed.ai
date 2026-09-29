@@ -213,6 +213,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/studio/batch': 'Batch',
   '/:orgSlug/:brandSlug/studio/batch/new': 'Batch',
   '/:orgSlug/:brandSlug/studio/clips/new': 'New project',
+  '/:orgSlug/:brandSlug/studio/storyboard/new': 'New storyboard',
+  '/:orgSlug/:brandSlug/studio/storyboard/:runId': 'Run',
   '/:orgSlug/:brandSlug/studio/clips/:projectId': 'Project',
   '/:orgSlug/:brandSlug/studio/editor': 'Editor',
   '/:orgSlug/:brandSlug/studio/editor/:id': 'Project',
@@ -854,6 +856,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/studio/clips/:projectId',
       '/:orgSlug/:brandSlug/studio/generate',
       '/:orgSlug/:brandSlug/studio/storyboard',
+      '/:orgSlug/:brandSlug/studio/storyboard/new',
+      '/:orgSlug/:brandSlug/studio/storyboard/:runId',
     ],
     {
       adapterStatus: 'ready',

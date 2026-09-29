@@ -51,6 +51,6 @@ describe('Campaign terminology catalogs', () => {
     expect(pages.adsResearch.connection.title).toMatch(/campaigns/i);
     expect(pages.adsResearch.connection.description).toMatch(/campaigns/i);
     expect(pages.adsResearch.reviewPolicy).toMatch(/campaign/i);
-    expect(pages.studioGenerate.remixRun.paidDraftSummary).toMatch(/Campaign/);
+    expect(pages.studioStoryboard.run.paidDraftSummary).toMatch(/Campaign/);
   });
 });

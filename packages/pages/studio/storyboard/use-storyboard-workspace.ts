@@ -22,7 +22,7 @@ import type { IVideoMergeParams } from '@genfeedai/contracts/interfaces/componen
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useMergeProgress } from '@hooks/storyboard/use-merge-progress/use-merge-progress';
-import { useStoryboardGeneration } from '@pages/studio/generate/hooks/useStoryboardGeneration';
+import { useStoryboardGeneration } from '@pages/studio/storyboard/hooks/use-storyboard-generation';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ImagesService } from '@services/ingredients/images.service';

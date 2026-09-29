@@ -6,16 +6,13 @@ import {
   ButtonVariant,
   IngredientStatus,
 } from '@genfeedai/contracts';
-import type {
-  BrandRemixRunView,
-  BrandRemixStoryboardScene,
-} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { BrandRemixStoryboardScene } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { Video } from '@genfeedai/models/ingredients/video.model';
+import type { StoryboardRunScenesProps } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
-import { OptionSelect } from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
-import type { UseStudioRemixRunResult } from '@pages/studio/generate/hooks/useStudioRemixRun';
+import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
@@ -24,25 +21,12 @@ import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
-export type StudioRemixSceneActions = Pick<
-  UseStudioRemixRunResult,
-  | 'saveScenes'
-  | 'attachSceneSource'
-  | 'quoteScenes'
-  | 'executeScenes'
-  | 'cancelScenes'
-  | 'resumeScenes'
->;
-export default function StudioRemixScenes({
+export default function StoryboardRunScenes({
   run,
   actions,
   isWorking,
-}: {
-  run: BrandRemixRunView;
-  actions: StudioRemixSceneActions;
-  isWorking: boolean;
-}) {
-  const t = useTranslations('pages.studioGenerate.scenes');
+}: StoryboardRunScenesProps) {
+  const t = useTranslations('pages.studioStoryboard.scenes');
   const { organizationId } = useBrand();
   const { avatars, isLoading: avatarsLoading } =
     useAvatarImages(organizationId);
@@ -387,7 +371,7 @@ export default function StudioRemixScenes({
               }
             />
             <div className="grid gap-2 sm:grid-cols-2">
-              <OptionSelect
+              <StoryboardSelect
                 ariaLabel={t('avatar')}
                 placeholder={t('avatar')}
                 value={scene.identity?.avatarAssetId ?? ''}
@@ -402,7 +386,7 @@ export default function StudioRemixScenes({
                   })
                 }
               />
-              <OptionSelect
+              <StoryboardSelect
                 ariaLabel={t('voice')}
                 placeholder={t('voice')}
                 value={scene.identity?.speechVoiceId ?? ''}
