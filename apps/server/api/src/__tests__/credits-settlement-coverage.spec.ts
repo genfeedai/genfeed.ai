@@ -183,17 +183,16 @@ export class MeteredController {
       ].sort();
     }
 
-    it('covers music, avatar and video routes and both image and video generation', () => {
+    it('opts the music, image and video generation routes in', () => {
       expect(completionCollections()).toEqual(['images', 'musics', 'videos']);
     });
 
     it('never deducts directly next to a route whose hold is settled on completion', () => {
+      const settledOnCompletion = new Set(completionCollections());
       const offenders = collectSourceFiles(collectionRoot)
         .filter((file) => !file.includes('/collections/credits/'))
         .filter((file) =>
-          completionCollections().includes(
-            relative(collectionRoot, file).split('/')[0],
-          ),
+          settledOnCompletion.has(relative(collectionRoot, file).split('/')[0]),
         )
         .filter((file) =>
           /deductCreditsFromOrganization\(/.test(readFileSync(file, 'utf8')),
