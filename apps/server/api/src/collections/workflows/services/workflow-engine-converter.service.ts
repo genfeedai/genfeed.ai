@@ -50,6 +50,7 @@ const BRAND_ID_REQUIRED_NODE_TYPES = new Set([
   'musicSource',
   'soundOverlay',
   'textToSpeech',
+  'videoGen',
 ]);
 
 export class WorkflowEngineConverterService {

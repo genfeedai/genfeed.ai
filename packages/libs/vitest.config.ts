@@ -22,6 +22,10 @@ export default defineConfig({
         pkgDir,
         '../helpers/src/security/redact-sensitive-value.helper.ts',
       ),
+      '@genfeedai/contracts/constants': path.resolve(
+        pkgDir,
+        '../contracts/src/constants/index.ts',
+      ),
       '@genfeedai/config/deployment': path.resolve(
         pkgDir,
         '../config/src/deployment.ts',

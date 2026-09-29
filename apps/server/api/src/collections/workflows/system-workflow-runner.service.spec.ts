@@ -257,6 +257,122 @@ describe('SystemWorkflowRunnerService definitions', () => {
     );
   });
 
+  describe('hidden mirror serialization conflicts', () => {
+    function buildRunner(transaction: ReturnType<typeof vi.fn>) {
+      const immutableDefinition = buildWorkflowVersionDefinition(
+        definition.definition,
+      );
+      const mirror = {
+        currentVersion: {
+          contentHash: immutableDefinition.contentHash,
+          graph: immutableDefinition.graph,
+          id: 'global-version',
+          inputSchema: immutableDefinition.inputSchema,
+          version: 1,
+        },
+        currentVersionId: 'global-version',
+        id: 'global-workflow',
+        isDeleted: false,
+        label: definition.label,
+        metadata: {
+          sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+          [SYSTEM_WORKFLOW_METADATA_KEY]: buildHiddenSystemWorkflowMetadata({
+            canonicalId: definition.canonicalId,
+          }),
+        },
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+      };
+      const tx = {
+        $executeRaw: vi.fn().mockResolvedValue(1),
+        workflow: {
+          findFirst: vi.fn().mockResolvedValue(mirror),
+          update: vi.fn().mockResolvedValue(mirror),
+        },
+      };
+      const prisma = {
+        $transaction: transaction.mockImplementation((callback) =>
+          callback(tx),
+        ),
+      };
+      const executeManualWorkflowDocument = vi.fn().mockResolvedValue({
+        executionId: 'execution-1',
+      });
+      const adapter = {
+        getRegisteredActionIds: vi.fn(),
+        registerExecutor: vi.fn(),
+      };
+      const moduleRef = {
+        get: (token: unknown) =>
+          token === WORKFLOW_EXECUTOR
+            ? { executeManualWorkflowDocument }
+            : adapter,
+      };
+      const runner = new SystemWorkflowRunnerService(
+        prisma as never,
+        moduleRef as never,
+      );
+      runner.registerWorkflow(definition);
+      return { executeManualWorkflowDocument, runner };
+    }
+
+    const start = (runner: SystemWorkflowRunnerService) =>
+      runner.startWorkflow({
+        actionType: definition.canonicalId,
+        canonicalId: definition.canonicalId,
+        organizationId: 'tenant-org',
+        source: 'test',
+        userId: 'tenant-user',
+      });
+
+    const p2034 = () =>
+      Object.assign(new Error('Transaction failed due to a write conflict'), {
+        code: 'P2034',
+      });
+
+    it('retries a P2034 abort and still starts the workflow', async () => {
+      const $transaction = vi.fn();
+      const { executeManualWorkflowDocument, runner } =
+        buildRunner($transaction);
+      const run = $transaction.getMockImplementation();
+      $transaction
+        .mockRejectedValueOnce(p2034())
+        .mockRejectedValueOnce(
+          Object.assign(new Error('TransactionWriteConflict'), {
+            name: 'DriverAdapterError',
+          }),
+        )
+        .mockImplementation(run as never);
+
+      await start(runner);
+
+      expect($transaction).toHaveBeenCalledTimes(3);
+      expect(executeManualWorkflowDocument).toHaveBeenCalledTimes(1);
+    });
+
+    it('surfaces the conflict once the attempts are exhausted', async () => {
+      const $transaction = vi.fn();
+      const { executeManualWorkflowDocument, runner } =
+        buildRunner($transaction);
+      $transaction.mockRejectedValue(p2034());
+
+      await expect(start(runner)).rejects.toMatchObject({ code: 'P2034' });
+
+      expect($transaction).toHaveBeenCalledTimes(5);
+      expect(executeManualWorkflowDocument).not.toHaveBeenCalled();
+    });
+
+    it('does not retry an error that is not a serialization failure', async () => {
+      const $transaction = vi.fn();
+      const { runner } = buildRunner($transaction);
+      $transaction.mockRejectedValue(new Error('connection refused'));
+
+      await expect(start(runner)).rejects.toThrow('connection refused');
+
+      expect($transaction).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('precreates and queues one immutable parent execution', async () => {
     const queueSystemWorkflow = vi.fn().mockResolvedValue('queued-parent');
     const createExecution = vi.fn().mockResolvedValue({

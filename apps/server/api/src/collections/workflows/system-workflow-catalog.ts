@@ -17,7 +17,9 @@ import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/research-to-content-workflow.template';
 import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
+import { getWorkflowTemplateExampleOutput } from '@api/collections/workflows/templates/workflow-template-example-outputs';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
+import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 
 /**
  * Installable system workflow catalog (#2176).
@@ -47,6 +49,7 @@ export type SystemWorkflowCatalogEntry = {
   changeSummary: string;
   description: string;
   edges: WorkflowTemplate['edges'];
+  exampleOutput?: WorkflowTemplateExampleOutput;
   family: SystemWorkflowCatalogFamily;
   icon?: string;
   inputVariables: NonNullable<WorkflowTemplate['inputVariables']>;
@@ -162,6 +165,7 @@ function toCatalogEntry(
   const schedule = template.schedule;
   const hasSchedule =
     typeof schedule === 'string' && schedule.trim().length > 0;
+  const exampleOutput = getWorkflowTemplateExampleOutput(template.id);
 
   return {
     canonicalId: template.id,
@@ -170,6 +174,7 @@ function toCatalogEntry(
       template.changeSummary ?? SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
     description: template.description,
     edges: template.edges ?? [],
+    ...(exampleOutput ? { exampleOutput } : {}),
     family: source.family,
     icon: template.icon,
     inputVariables: template.inputVariables ?? [],

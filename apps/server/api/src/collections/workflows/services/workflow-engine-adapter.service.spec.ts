@@ -352,6 +352,14 @@ describe('WorkflowEngineAdapterService', () => {
             id: 'n4',
             type: 'soundOverlay',
           },
+          {
+            data: {
+              config: { model: 'kwaivgi/kling-v3-video' },
+              label: 'Video',
+            },
+            id: 'n5',
+            type: 'videoGen',
+          },
         ],
         organizationId: 'org-1',
         userId: 'user-1',
@@ -361,7 +369,7 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(
         result.nodes.map((node) => node.config.parameters.brandId),
-      ).toEqual(['brand-1', 'brand-1', 'brand-1', 'brand-1']);
+      ).toEqual(['brand-1', 'brand-1', 'brand-1', 'brand-1', 'brand-1']);
     });
   });
 

@@ -34,20 +34,6 @@ import {
 interface AgentThreadListRowProps {
   conv: AgentThread;
   activeThreadId: string | null;
-  activeRunStatus:
-    | 'idle'
-    | 'running'
-    | 'cancelling'
-    | 'completed'
-    | 'failed'
-    | 'cancelled'
-    | 'awaiting_input'
-    | 'awaiting_confirmation'
-    | 'interrupted'
-    | 'restoring'
-    | null
-    | undefined;
-  isStreaming: boolean;
   threadUiBusyById: Record<string, boolean>;
   openMenuThreadId: string | null;
   renamingThreadId: string | null;
@@ -128,8 +114,6 @@ function ThreadActivityIndicator({
 export function AgentThreadListRow({
   conv,
   activeThreadId,
-  activeRunStatus,
-  isStreaming,
   threadUiBusyById,
   openMenuThreadId,
   renamingThreadId,
@@ -164,10 +148,7 @@ export function AgentThreadListRow({
   // Same resolver as the sidebar groups, so the glyph can never disagree with
   // the section the row sits in.
   const statusMeta = getThreadStatusMeta(conv, {
-    activeRunStatus,
-    activeThreadId,
     isLocallyBusy: threadUiBusyById[conv.id] === true,
-    isStreaming,
   });
 
   const relativeTime = formatRelativeTime(
