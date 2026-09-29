@@ -112,12 +112,43 @@ try {
   await db.connect();
   await other.connect();
   await probe.connect();
+  // Fixture shape follows the baseline schema: 20260926090000_member_current_brand
+  // retired brands."isSelected" and made members."currentBrandId" required, so a
+  // baseline at or after it takes the post-migration shape and one before it
+  // takes the historical shape the migration backfills.
+  const columnExists = async (table: string, column: string) =>
+    (
+      await db.query(
+        `SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public' AND table_name = $1 AND column_name = $2`,
+        [table, column],
+      )
+    ).rowCount === 1;
+  const hadIsSelected = await columnExists('brands', 'isSelected');
+  const hadCurrentBrand = await columnExists('members', 'currentBrandId');
+  assert.notEqual(
+    hadIsSelected,
+    hadCurrentBrand,
+    'Baseline must carry exactly one of brands.isSelected and members.currentBrandId',
+  );
+  const brandColumns = (isSelected: boolean, isDeleted: boolean) => ({
+    names: `${hadIsSelected ? '"isSelected", ' : ''}${isDeleted ? '"isDeleted", ' : ''}`,
+    values: `${hadIsSelected ? `${isSelected}, ` : ''}${isDeleted ? 'true, ' : ''}`,
+  });
+  const memberInsert = (
+    id: string,
+    organizationId: string,
+    currentBrandId: string,
+  ) => `INSERT INTO members (id, "organizationId", "userId", "roleId", ${hadCurrentBrand ? '"currentBrandId", ' : ''}"updatedAt")
+    VALUES ('${id}', '${organizationId}', 'upgrade-user', 'upgrade-role', ${hadCurrentBrand ? `'${currentBrandId}', ` : ''}NOW());`;
+  const liveBrand = brandColumns(true, false);
+  const deletedBrand = brandColumns(false, true);
   await db.query(`INSERT INTO users (id, handle, email, "updatedAt")
     VALUES ('upgrade-user', 'upgrade-user', 'upgrade@example.invalid', NOW());
     INSERT INTO organizations (id, "userId", label, slug, "updatedAt")
     VALUES ('upgrade-org', 'upgrade-user', 'Upgrade', 'upgrade-org', NOW());
-    INSERT INTO brands (id, "organizationId", "userId", slug, label, "isSelected", "updatedAt")
-    VALUES ('upgrade-brand', 'upgrade-org', 'upgrade-user', 'upgrade-brand', 'Upgrade', true, NOW());
+    INSERT INTO brands (id, "organizationId", "userId", slug, label, ${liveBrand.names}"updatedAt")
+    VALUES ('upgrade-brand', 'upgrade-org', 'upgrade-user', 'upgrade-brand', 'Upgrade', ${liveBrand.values}NOW());
     INSERT INTO credentials (id, "organizationId", "brandId", "userId", platform, "accessToken", "refreshToken", "updatedAt")
     VALUES ('upgrade-credential', 'upgrade-org', 'upgrade-brand', 'upgrade-user', 'YOUTUBE', 'synthetic-access', 'synthetic-refresh', NOW());
     INSERT INTO credentials (id, platform, "accessToken", "isDeleted", "updatedAt")
@@ -126,22 +157,20 @@ try {
     -- every historical shape, not just an org with a live selected brand.
     INSERT INTO roles (id, label, key, "updatedAt")
     VALUES ('upgrade-role', 'Upgrade Role', 'upgrade-role', NOW());
-    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
-    VALUES ('upgrade-member', 'upgrade-org', 'upgrade-user', 'upgrade-role', NOW());
+    ${memberInsert('upgrade-member', 'upgrade-org', 'upgrade-brand')}
     -- Org whose only brand is soft-deleted (e.g. the last brand was
     -- removed pre-#5219, when BrandsService.remove had no last-brand guard).
     INSERT INTO organizations (id, "userId", label, slug, "updatedAt")
     VALUES ('upgrade-org-deleted-brand', 'upgrade-user', 'Upgrade Deleted Brand', 'upgrade-org-deleted-brand', NOW());
-    INSERT INTO brands (id, "organizationId", "userId", slug, label, "isSelected", "isDeleted", "updatedAt")
-    VALUES ('upgrade-brand-deleted', 'upgrade-org-deleted-brand', 'upgrade-user', 'upgrade-brand-deleted', 'Upgrade Deleted Brand', false, true, NOW());
-    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
-    VALUES ('upgrade-member-deleted-brand-org', 'upgrade-org-deleted-brand', 'upgrade-user', 'upgrade-role', NOW());
+    INSERT INTO brands (id, "organizationId", "userId", slug, label, ${deletedBrand.names}"updatedAt")
+    VALUES ('upgrade-brand-deleted', 'upgrade-org-deleted-brand', 'upgrade-user', 'upgrade-brand-deleted', 'Upgrade Deleted Brand', ${deletedBrand.values}NOW());
+    ${memberInsert('upgrade-member-deleted-brand-org', 'upgrade-org-deleted-brand', 'upgrade-brand-deleted')}
     -- Org with a member row but zero brand rows at all (brand relocation
-    -- emptied it, or it never had one).
+    -- emptied it, or it never had one). Only representable before
+    -- members."currentBrandId" became a required foreign key.
     INSERT INTO organizations (id, "userId", label, slug, "updatedAt")
     VALUES ('upgrade-org-no-brand', 'upgrade-user', 'Upgrade No Brand', 'upgrade-org-no-brand', NOW());
-    INSERT INTO members (id, "organizationId", "userId", "roleId", "updatedAt")
-    VALUES ('upgrade-member-no-brand', 'upgrade-org-no-brand', 'upgrade-user', 'upgrade-role', NOW());
+    ${hadCurrentBrand ? '' : memberInsert('upgrade-member-no-brand', 'upgrade-org-no-brand', '')}
     -- #5407 fixtures: the running deployment's platform-settings singleton
     -- and a recorded system event, whose earliest occurrence becomes the
     -- recording start once SYSTEM_EVENTS_ENABLED_AT leaves env.
@@ -250,36 +279,40 @@ try {
     ).rows[0].currentBrandId,
     'upgrade-brand-deleted',
   );
-  const noBrandMember = (
-    await db.query('SELECT "currentBrandId" FROM members WHERE id = $1', [
-      'upgrade-member-no-brand',
-    ])
-  ).rows[0];
-  assert(
-    typeof noBrandMember.currentBrandId === 'string' &&
-      noBrandMember.currentBrandId.length > 0,
-    'member of a brandless org must receive a non-null currentBrandId',
-  );
-  // The placeholder brand id must be a valid Genfeed entity id — every route
-  // and validator that checks a brand id (select/switch, generation, PATCH)
-  // rejects anything else. Mirrors the UUID branch of isEntityId in
-  // packages/contracts/src/api-types/helpers/entity-id.ts (that package
-  // isn't a dependency of @genfeedai/prisma, so the regex is duplicated
-  // here rather than imported).
-  const uuidPattern =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  assert(
-    uuidPattern.test(noBrandMember.currentBrandId),
-    `placeholder brand id must be a valid entity id, got ${noBrandMember.currentBrandId}`,
-  );
-  const placeholderBrand = (
-    await db.query(
-      'SELECT "organizationId", "isDeleted" FROM brands WHERE id = $1',
-      [noBrandMember.currentBrandId],
-    )
-  ).rows[0];
-  assert.equal(placeholderBrand.organizationId, 'upgrade-org-no-brand');
-  assert.equal(placeholderBrand.isDeleted, false);
+  // A baseline that already has members.currentBrandId cannot hold a member of
+  // a brandless org, so the placeholder-brand backfill only runs on older ones.
+  if (!hadCurrentBrand) {
+    const noBrandMember = (
+      await db.query('SELECT "currentBrandId" FROM members WHERE id = $1', [
+        'upgrade-member-no-brand',
+      ])
+    ).rows[0];
+    assert(
+      typeof noBrandMember.currentBrandId === 'string' &&
+        noBrandMember.currentBrandId.length > 0,
+      'member of a brandless org must receive a non-null currentBrandId',
+    );
+    // The placeholder brand id must be a valid Genfeed entity id — every route
+    // and validator that checks a brand id (select/switch, generation, PATCH)
+    // rejects anything else. Mirrors the UUID branch of isEntityId in
+    // packages/contracts/src/api-types/helpers/entity-id.ts (that package
+    // isn't a dependency of @genfeedai/prisma, so the regex is duplicated
+    // here rather than imported).
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    assert(
+      uuidPattern.test(noBrandMember.currentBrandId),
+      `placeholder brand id must be a valid entity id, got ${noBrandMember.currentBrandId}`,
+    );
+    const placeholderBrand = (
+      await db.query(
+        'SELECT "organizationId", "isDeleted" FROM brands WHERE id = $1',
+        [noBrandMember.currentBrandId],
+      )
+    ).rows[0];
+    assert.equal(placeholderBrand.organizationId, 'upgrade-org-no-brand');
+    assert.equal(placeholderBrand.isDeleted, false);
+  }
   await runCredentialEncryptionBackfill(db, { ...args, dryRun: true }, secret);
   assert.equal(
     (await db.query('SELECT count(*) FROM data_backfills')).rows[0].count,

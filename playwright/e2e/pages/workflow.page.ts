@@ -1,7 +1,7 @@
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Locator, Page } from '@playwright/test';
 import { expect } from '@playwright/test';
-import { brandPath } from '../utils/app-chrome';
+import { brandPath, WORKFLOW_TEMPLATES_ROUTE } from '../utils/app-chrome';
 
 /**
  * Visible executions-list chrome. The page title is `sr-only`
@@ -28,7 +28,7 @@ export function executionsHistoryLocator(page: Page): Locator {
 export class WorkflowPage {
   readonly page: Page;
   readonly basePath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS);
-  readonly templatesPath = brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES);
+  readonly templatesPath = brandPath(WORKFLOW_TEMPLATES_ROUTE);
   readonly runsPath = brandPath(APP_ROUTES.AUTOMATION.RUNS);
 
   // Layout
@@ -123,7 +123,7 @@ export class WorkflowPage {
       .first();
     this.navTemplates = page
       .locator(
-        'a[href*="/automation/workflows/templates"],' +
+        'a[href*="/automation/workflows?view=templates"],' +
           ' [data-testid="nav-templates"]',
       )
       .first();

@@ -15,7 +15,7 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 import { executionsHistoryLocator } from '../../pages/workflow.page';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, WORKFLOW_TEMPLATES_ROUTE } from '../../utils/app-chrome';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
@@ -46,15 +46,12 @@ test.describe('Workflow templates & executions interactions', () => {
   test('templates gallery renders the template cards', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(brandPath(WORKFLOW_TEMPLATES_ROUTE), {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\/templates$/,
+      /\/automation\/workflows\?view=templates$/,
     );
     await expect(
       authenticatedPage.getByRole('link', { name: 'Templates' }).first(),
@@ -70,12 +67,9 @@ test.describe('Workflow templates & executions interactions', () => {
   test('templates can be filtered by category tabs', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(brandPath(WORKFLOW_TEMPLATES_ROUTE), {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(
       authenticatedPage.getByRole('link', { name: 'Templates' }).first(),
@@ -96,12 +90,9 @@ test.describe('Workflow templates & executions interactions', () => {
   test('using a template creates a workflow and opens its editor', async ({
     authenticatedPage,
   }) => {
-    await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(brandPath(WORKFLOW_TEMPLATES_ROUTE), {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(
       authenticatedPage.getByText(testWorkflowTemplates[0].name).first(),
@@ -113,7 +104,7 @@ test.describe('Workflow templates & executions interactions', () => {
     await expect(useLink).toHaveAttribute(
       'href',
       brandPath(
-        `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${testWorkflowTemplates[0].id}`,
+        `${WORKFLOW_TEMPLATES_ROUTE}&template=${testWorkflowTemplates[0].id}`,
       ),
     );
     await useLink.click({ force: true });
@@ -132,7 +123,7 @@ test.describe('Workflow templates & executions interactions', () => {
     const template = testWorkflowTemplates[0];
 
     await authenticatedPage.goto(
-      brandPath(`/automation/workflows/templates?template=${template.id}`),
+      brandPath(`${WORKFLOW_TEMPLATES_ROUTE}&template=${template.id}`),
       { waitUntil: 'domcontentloaded' },
     );
 
@@ -279,15 +270,12 @@ test.describe('Workflow templates & executions interactions', () => {
     await mockWorkflowExecutions(authenticatedPage, []);
     await mockWorkflowTemplates(authenticatedPage, []);
 
-    await authenticatedPage.goto(
-      brandPath(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
-      {
-        waitUntil: 'domcontentloaded',
-      },
-    );
+    await authenticatedPage.goto(brandPath(WORKFLOW_TEMPLATES_ROUTE), {
+      waitUntil: 'domcontentloaded',
+    });
 
     await expect(authenticatedPage).toHaveURL(
-      /\/automation\/workflows\/templates/,
+      /\/automation\/workflows\?view=templates/,
     );
     await expect(authenticatedPage.locator('body')).toBeVisible();
     await expectNoErrorOverlay(authenticatedPage);

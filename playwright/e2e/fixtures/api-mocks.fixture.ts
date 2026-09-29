@@ -2109,6 +2109,21 @@ function isSystemCatalogRequest(route: Route): boolean {
 }
 
 /**
+ * `GET /workflows/featured` (#5511) and `GET /workflows/most-used` are
+ * collection reads, not workflows by id — the `/workflows/*` CRUD pattern would
+ * otherwise answer them with a single JSON:API workflow resource and break
+ * `listFeatured()` / `listMostUsed()`.
+ */
+function isWorkflowCollectionRead(route: Route): boolean {
+  return (
+    route.request().method() === 'GET' &&
+    /\/workflows\/(featured|most-used)\/?$/.test(
+      new URL(route.request().url()).pathname,
+    )
+  );
+}
+
+/**
  * Mock for workflow CRUD operations
  */
 export async function mockWorkflowCrud(
@@ -2143,6 +2158,14 @@ export async function mockWorkflowCrud(
         return;
       }
       await route.fallback();
+      return;
+    }
+    if (isWorkflowCollectionRead(route)) {
+      await route.fulfill({
+        body: JSON.stringify({ data: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
       return;
     }
     if (url.includes('/workflows/templates')) {
@@ -2207,6 +2230,14 @@ export async function mockWorkflowCrud(
         return;
       }
       await route.fallback();
+      return;
+    }
+    if (isWorkflowCollectionRead(route)) {
+      await route.fulfill({
+        body: JSON.stringify({ data: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
       return;
     }
     if (url.includes('/workflows/templates')) {
