@@ -6,6 +6,7 @@ import {
   type RecordingClient,
   recordActivityInTransaction,
 } from '@api/services/activity-recording/activity-recording.core';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivityEntityModel,
   CreditTransactionCategory,
@@ -90,7 +91,7 @@ async function recordGenerationCreditsOnActivity(
         value: JSON.stringify({ ...value, credits: transaction.amount }),
       } as Prisma.InputJsonObject,
     },
-    where: { id: activity.id },
+    where: scopedWhere(transaction.organizationId, { id: activity.id }),
   });
 }
 

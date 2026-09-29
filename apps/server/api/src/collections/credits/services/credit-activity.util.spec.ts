@@ -219,7 +219,11 @@ describe('credit activity persistence', () => {
         }),
       );
       const update = tx.activity.update.mock.calls[0][0];
-      expect(update.where).toEqual({ id: 'activity-1' });
+      expect(update.where).toEqual({
+        id: 'activity-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
       expect(JSON.parse(update.data.data.value)).toEqual({
         credits: 4,
         label: 'Image',
