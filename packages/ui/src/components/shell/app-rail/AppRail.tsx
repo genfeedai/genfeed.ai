@@ -12,7 +12,6 @@ import type {
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
-import { Kbd } from '@ui/primitives/kbd';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -117,12 +116,9 @@ function AppRailItem({
         <span className="flex items-center justify-between gap-3">
           <span className="font-semibold">{label}</span>
           {shortcutLabel ? (
-            <Kbd
-              variant="ghost"
-              className="rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/70"
-            >
+            <kbd className="inline-flex items-center rounded-md px-1.5 py-0.5 border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/70 font-mono">
               {shortcutLabel}
-            </Kbd>
+            </kbd>
           ) : null}
         </span>
         <span className="mt-0.5 block font-normal text-muted-foreground">
