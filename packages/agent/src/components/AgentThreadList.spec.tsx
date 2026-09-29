@@ -1000,7 +1000,9 @@ describe('AgentThreadList', () => {
   });
 
   it('shows an accessible animated dot for the active thread while working', async () => {
-    const thread = createThread('conv-1', 'Assess desktop app readiness');
+    const thread = createThread('conv-1', 'Assess desktop app readiness', {
+      runStatus: 'running',
+    } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'running';
 
