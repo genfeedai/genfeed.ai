@@ -657,44 +657,13 @@ export class AgentTurnRoundRunnerService {
         });
       toolParams = preparedToolCall.parameters;
 
-      const { onBeforeTool } = strategy;
-      const toolOutcome = await raceToolExecution(
-        this.toolExecutorService.executeTool(
-          toolName,
-          toolParams,
-          this.buildToolExecutionContext(
-            params,
-            preparedToolCall.confirmationContext,
-          ),
-        ),
-        {
-          isCancelled: onBeforeTool
-            ? async () => (await onBeforeTool()) === 'cancel'
-            : undefined,
-          pollIntervalMs: TOOL_CANCEL_POLL_INTERVAL_MS,
-          timeoutMs: TOOL_EXECUTION_TIMEOUT_MS,
-        },
+      const result = await this.executeToolUntilSettled(
+        params,
+        toolName,
+        preparedToolCall,
       );
-      if (toolOutcome.kind === 'cancelled') {
-        this.loggerService.warn(
-          `${this.constructorName} run cancelled while ${toolName} was still running`,
-          { threadId, toolName },
-        );
+      if (!result) {
         return { isCancelled: true, wasInterrupted: true };
-      }
-      const result: AgentToolResult =
-        toolOutcome.kind === 'timed-out'
-          ? {
-              creditsUsed: 0,
-              error: `${toolName} did not finish within ${TOOL_EXECUTION_TIMEOUT_MS / 1000}s`,
-              success: false,
-            }
-          : toolOutcome.value;
-      if (toolOutcome.kind === 'timed-out') {
-        this.loggerService.error(
-          `${this.constructorName} tool execution timed out`,
-          { threadId, toolName },
-        );
       }
       const modelVisibleResult =
         this.toolConfirmationService.buildModelVisibleResult(toolName, result);
@@ -920,6 +889,57 @@ export class AgentTurnRoundRunnerService {
 
     return { ...recovered, useIdentity: true };
   }
+  /**
+   * Runs one tool call, but stops waiting when the run is cancelled (`null`) or
+   * the call outlives `TOOL_EXECUTION_TIMEOUT_MS` (a failed tool result).
+   */
+  private async executeToolUntilSettled(
+    params: ExecuteToolRoundParams,
+    toolName: CuratedActionName,
+    preparedToolCall: Awaited<
+      ReturnType<AgentToolConfirmationService['prepareToolCall']>
+    >,
+  ): Promise<AgentToolResult | null> {
+    const { onBeforeTool } = params.strategy ?? {};
+    const outcome = await raceToolExecution(
+      this.toolExecutorService.executeTool(
+        toolName,
+        preparedToolCall.parameters,
+        this.buildToolExecutionContext(
+          params,
+          preparedToolCall.confirmationContext,
+        ),
+      ),
+      {
+        isCancelled: onBeforeTool
+          ? async () => (await onBeforeTool()) === 'cancel'
+          : undefined,
+        pollIntervalMs: TOOL_CANCEL_POLL_INTERVAL_MS,
+        timeoutMs: TOOL_EXECUTION_TIMEOUT_MS,
+      },
+    );
+    const logContext = { threadId: params.threadId, toolName };
+    if (outcome.kind === 'cancelled') {
+      this.loggerService.warn(
+        `${this.constructorName} run cancelled while ${toolName} was still running`,
+        logContext,
+      );
+      return null;
+    }
+    if (outcome.kind === 'timed-out') {
+      this.loggerService.error(
+        `${this.constructorName} tool execution timed out`,
+        logContext,
+      );
+      return {
+        creditsUsed: 0,
+        error: `${toolName} did not finish within ${TOOL_EXECUTION_TIMEOUT_MS / 1000}s`,
+        success: false,
+      };
+    }
+    return outcome.value;
+  }
+
   private buildToolExecutionContext(
     params: ExecuteToolRoundParams,
     confirmationContext: Awaited<
