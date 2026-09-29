@@ -867,15 +867,18 @@ function UniversalWorkspaceShellContent({
       return;
     }
 
+    // Open, the content panel also reserves the gap between the two panels.
     layoutRoot.style.setProperty(
       '--workspace-inspector-width',
-      `${inspectorRailWidth}px`,
+      isInspectorOpen
+        ? `calc(${inspectorRailWidth}px + var(--shell-inset, 0px))`
+        : '0px',
     );
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
     };
-  }, [inspectorRailWidth]);
+  }, [inspectorRailWidth, isInspectorOpen]);
 
   const handleInspectorResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -1071,18 +1074,18 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
-                // Docked inside the content surface, flush right and bottom;
-                // the top hairline continues the surface's own top border.
-                isInspectorOpen && 'border-t border-l border-border',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
+                // Its own inset panel, level with the content panel and one
+                // gap to its right; collapsed it is zero-width, so no border.
+                isInspectorOpen && 'border border-border',
               )}
               id="workspace-context-inspector"
               inert={!isInspectorOpen}
               ref={inspectorRef}
               style={{
-                bottom: 0,
+                bottom: 'var(--shell-inset, 0px)',
                 minWidth: inspectorRailWidth,
-                right: 0,
+                right: 'var(--shell-inset, 0px)',
                 top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px))',
                 transition: INSPECTOR_RAIL_TRANSITION,
                 width: inspectorRailWidth,

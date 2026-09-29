@@ -208,8 +208,8 @@ describe('AppLayout', () => {
       'left-0',
       'bottom-0',
       'w-[var(--desktop-rail-width)]',
-      // The sidebar-plane chrome shared with the sidebar, no divider.
-      'bg-gray-100',
+      // One tone off the sidebar plane behind it, no divider.
+      'bg-foreground/[0.04]',
     );
     expect(appRail).not.toHaveClass('border-r');
     expect(appRail).toContainElement(
@@ -247,28 +247,25 @@ describe('AppLayout', () => {
       'md:[--shell-inset:0.5rem]',
       'md:[--shell-edge:1px]',
     );
-    // One inset from the top, flush to the right and bottom edges; the docked
-    // inspector's width is reserved inside the surface.
+    // One inset on the top, right and bottom; the inspector's width (plus its
+    // gap) is reserved on top of the right inset.
     expect(contentShell).toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
       'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
-      'xl:pr-[var(--workspace-inspector-width,0px)]',
+      'md:pr-[var(--shell-inset)]',
+      'md:pb-[var(--shell-inset)]',
+      'xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
       'md:h-dvh',
       'md:overflow-hidden',
     );
-    expect(contentShell.className).not.toMatch(
-      /md:p[rb]-\[var\(--shell-inset\)\]/,
-    );
-    // A single hairline where content meets the chrome, rounded at the corner.
+    // A bordered panel, rounded on every side.
     expect(panel).toHaveClass(
       'bg-background',
-      'md:rounded-tl-lg',
-      'md:border-t',
-      'md:border-l',
+      'md:rounded-lg',
+      'md:border',
       'md:border-border',
       'md:overflow-hidden',
     );
-    expect(panel).not.toHaveClass('md:border', 'md:rounded-lg');
     expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(mainContent).toHaveClass(
       'md:overflow-y-auto',

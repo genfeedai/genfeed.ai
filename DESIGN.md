@@ -179,7 +179,7 @@ rounded:
   2xl: 12px
   3xl: 16px
   full: 9999px
-  card: 0px
+  card: 8px
 
 spacing:
   base: 4px
@@ -630,8 +630,8 @@ in `packages/ui/web-tokens.css`:
 - `2xl` (12px) — large modals and workspace overlays
 - `3xl` (16px) — oversized media and promo surfaces
 - `full` (9999px) — badges, pills, avatars, circular controls
-- `card` (0px) — cards are square on purpose; they separate by plane and
-  hairline, not by rounding
+- `card` (8px) — cards match the content panel's radius, so a card in the panel
+  reads as part of the same rounded surface
 
 **Concentric rule:** a child's radius is never larger than its parent's. Something
 inset by a single padding step takes the step *below* its parent, or the inner
@@ -705,8 +705,8 @@ topbar icon actions: transparent, no border, `hover:bg-hover`.
 `bg-secondary` plane with an edge — `shadow-border` (`default`) or a `border-border`
 CSS border (`bordered`). Hover lifts the edge to `shadow-border-strong` (or
 `border-border-strong`) and nothing else — no hover fill, no second edge stacked on
-the first. Stat cards tint with `bg-{color}/5`. Cards are square (`rounded-card`,
-0px), and so are media tiles: a Library or Studio thumbnail is a card whose body is
+the first. Stat cards tint with `bg-{color}/5`. Cards are `rounded-card` (8px, the content
+panel's radius), and so are media tiles: a Library or Studio thumbnail is a card whose body is
 the media. Every card surface renders through `@ui/card/Card`; a hand-written
 `rounded-card bg-card shadow-border` string is a fork of it.
 
@@ -787,9 +787,12 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 
 ### Shell Layout
 
-Codex/Slack chrome. The app rail and the sidebar share one continuous surface —
-the `gray-100` sidebar plane (`#0A0A0A` dark, `#F5F5F5` light) — with no border
-between them or under the sidebar header. The page sits in a single **content
+Codex/Slack chrome. The sidebar sits on the `gray-100` sidebar plane (`#0A0A0A`
+dark, `#F5F5F5` light) and the app rail one tone off it (`bg-foreground/[0.04]`,
+lighter in Dark, darker in Light) — no border between them or under the sidebar
+header. The rail's bottom holds Admin (platform admins), Help, and the account
+avatar, whose menu carries the name, email and settings scopes; the sidebar has
+no profile row. The page sits in a single **content
 panel** inset from the window by `--shell-inset` (8px, desktop): `bg-primary`,
 `rounded-lg`, `border border-border`, and it owns scrolling — the topbar is its
 first row (static) and the page scrolls beneath it, so `sticky top-0` inside a
