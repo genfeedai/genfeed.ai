@@ -10,6 +10,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
+import Spinner from '@ui/primitives/spinner';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -151,7 +152,7 @@ export default function SettingsNotificationsPage() {
   if (!isLoaded) {
     return (
       <div className="flex min-h-form items-center justify-center">
-        <span className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

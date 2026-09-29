@@ -6,7 +6,7 @@ import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.prop
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import VideoPlayerControls from '@genfeedai/ui/components/display/video-player/VideoPlayerControls';
-import Spinner from '@genfeedai/ui/components/feedback/spinner/Spinner';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

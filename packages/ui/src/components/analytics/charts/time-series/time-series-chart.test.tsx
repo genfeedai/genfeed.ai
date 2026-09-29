@@ -82,7 +82,9 @@ describe('TimeSeriesChart', () => {
 
     it('shows animated spinner element', () => {
       const { container } = render(<TimeSeriesChart data={[]} isLoading />);
-      expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+      expect(
+        container.querySelector('.genfeed-loader-root'),
+      ).toBeInTheDocument();
     });
 
     it('applies custom className when loading', () => {

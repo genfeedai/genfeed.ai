@@ -29,7 +29,8 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { Globe, Loader2 } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
+import { Globe } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 import BrandEditorForm from './BrandEditorForm';
@@ -339,7 +340,7 @@ export default function BrandOverlay({
                     isLoading={isLoadingWebsite}
                     icon={
                       isLoadingWebsite ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Spinner className="size-4" />
                       ) : (
                         <Globe className="size-4" />
                       )

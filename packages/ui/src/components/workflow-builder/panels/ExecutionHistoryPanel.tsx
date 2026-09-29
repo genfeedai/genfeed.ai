@@ -15,6 +15,7 @@ import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
+import Spinner from '@ui/primitives/spinner';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Check,
@@ -299,7 +300,7 @@ export default function ExecutionHistoryPanel({
         <div className="max-h-80 overflow-y-auto p-4 pt-0 space-y-2">
           {isLoading ? (
             <div className="flex justify-center py-4">
-              <span className="animate-spin size-4 border-2 border-primary border-t-transparent rounded-full" />
+              <Spinner className="size-4 text-primary" />
             </div>
           ) : error ? (
             <div className="text-sm text-error text-center py-4">{error}</div>

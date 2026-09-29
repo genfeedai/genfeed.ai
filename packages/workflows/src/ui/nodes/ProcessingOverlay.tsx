@@ -2,7 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { LoaderCircle, Square } from 'lucide-react';
+import Spinner from '@genfeedai/ui/primitives/spinner';
+import { Square } from 'lucide-react';
 import { memo } from 'react';
 
 interface ProcessingOverlayProps {
@@ -23,7 +24,7 @@ function ProcessingOverlayComponent({
       }
     >
       <div className="flex flex-col items-center gap-2">
-        <LoaderCircle className="size-8 animate-spin text-primary" />
+        <Spinner className="size-8 text-primary" />
         <span
           className={
             'text-xs text-white/80' /* design-system-allow-content-color */

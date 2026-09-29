@@ -14,10 +14,10 @@ import type {
   FlowState,
 } from '@props/auth/oauth-cli-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import {
   AppWindow,
   CircleCheck,

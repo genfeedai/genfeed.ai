@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { IAgentStrategyRunHistoryItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo } from 'react';
@@ -144,7 +145,7 @@ export function AgentActivityFeed({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner className="size-5 text-primary" />
       </div>
     );
   }

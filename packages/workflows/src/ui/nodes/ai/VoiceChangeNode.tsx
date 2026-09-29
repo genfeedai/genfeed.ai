@@ -7,14 +7,9 @@ import VideoPlayer from '@genfeedai/ui/components/display/video-player/VideoPlay
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import {
-  AudioLines,
-  Expand,
-  LoaderCircle,
-  RefreshCw,
-  Video,
-} from 'lucide-react';
+import { AudioLines, Expand, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/execution';
@@ -159,7 +154,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <Video className="size-4" />
             )}

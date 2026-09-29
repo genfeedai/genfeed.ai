@@ -2,7 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@genfeedai/ui/primitives/button';
-import { Check, Cloud, CloudOff, LoaderCircle } from 'lucide-react';
+import Spinner from '@genfeedai/ui/primitives/spinner';
+import { Check, Cloud, CloudOff } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useWorkflowStore } from '../stores/workflow';
 import type { SaveIndicatorProps } from './types';
@@ -50,7 +51,7 @@ export function SaveIndicator({
             : 'flex items-center gap-1.5 text-xs text-info'
         }
       >
-        <LoaderCircle className="size-3.5 animate-spin" />
+        <Spinner className="size-3.5" />
         <span>Saving…</span>
       </div>
     );

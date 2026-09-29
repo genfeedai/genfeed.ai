@@ -13,6 +13,7 @@ import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
 import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 
 import { CircleCheck, CircleX } from 'lucide-react';
 import Link from 'next/link';
@@ -202,7 +203,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {(!isLoaded || (isSignedIn && result.status === 'loading')) && (
           <div className="space-y-4">
             <div className="mx-auto size-16">
-              <div className="size-16 animate-spin rounded-full border-b-2 border-primary" />
+              <Spinner className="size-16 text-primary" />
             </div>
             <p className="text-sm text-muted-foreground">
               {translate('connecting', { platform: platformLabel })}

@@ -75,7 +75,9 @@ describe('TimelineWorkEntry', () => {
         event={buildEvent({ status: AgentWorkEventStatus.RUNNING })}
       />,
     );
-    expect(runningContainer.querySelector('div.animate-spin')).toBeTruthy();
+    expect(
+      runningContainer.querySelector('output.genfeed-loader-root'),
+    ).toBeTruthy();
 
     const { container: stoppedContainer } = render(
       <TimelineWorkEntry
@@ -83,7 +85,9 @@ describe('TimelineWorkEntry', () => {
         stopActiveAnimation
       />,
     );
-    expect(stoppedContainer.querySelector('div.animate-spin')).toBeNull();
+    expect(
+      stoppedContainer.querySelector('output.genfeed-loader-root'),
+    ).toBeNull();
   });
 
   it('truncates long detail', () => {

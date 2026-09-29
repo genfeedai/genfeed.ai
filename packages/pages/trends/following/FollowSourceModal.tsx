@@ -33,7 +33,8 @@ import {
 } from '@ui/primitives/dialog';
 import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { Download, Loader2, Plus, Search, UserPlus } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
+import { Download, Plus, Search, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import {
@@ -426,7 +427,7 @@ export default function FollowSourceModal({
               <Button
                 icon={
                   isSearching ? (
-                    <Loader2 className="size-4 animate-spin" />
+                    <Spinner className="size-4" />
                   ) : (
                     <Search className="size-4" />
                   )
@@ -467,7 +468,7 @@ export default function FollowSourceModal({
                 <Button
                   icon={
                     isImporting ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Spinner className="size-4" />
                     ) : (
                       <Download className="size-4" />
                     )
@@ -498,7 +499,7 @@ export default function FollowSourceModal({
 
           {isSearching ? (
             <div className="flex items-center justify-center gap-2 py-10 text-sm text-foreground/60">
-              <Loader2 className="size-4 animate-spin" />
+              <Spinner className="size-4" />
               {translate('lookingUp')}
             </div>
           ) : null}

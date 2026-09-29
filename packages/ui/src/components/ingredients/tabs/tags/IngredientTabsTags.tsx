@@ -15,6 +15,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import TagsManager from '@ui/tags/manager/TagsManager';
 import { Plus, Tag, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -248,7 +249,7 @@ export default function IngredientTabsTags({
           <div className="max-h-64 overflow-y-auto">
             {isLoading ? (
               <div className="text-center py-4">
-                <span className="inline-block size-5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                <Spinner className="inline-block size-5" />
               </div>
             ) : filteredAvailableTags.length === 0 ? (
               <p className="text-muted-foreground text-center py-4">

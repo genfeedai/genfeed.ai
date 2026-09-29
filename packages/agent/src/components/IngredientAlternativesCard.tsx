@@ -15,6 +15,7 @@ import {
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Expand, Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
@@ -164,7 +165,7 @@ export function IngredientAlternativesCard({
               >
                 {isGeneratingThis && (
                   <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-                    <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <Spinner className="size-5 text-primary" />
                   </div>
                 )}
                 <Button

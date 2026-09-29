@@ -8,7 +8,6 @@ import {
 } from '@genfeedai/contracts';
 import type { RichTextEditorAiConfig } from '@genfeedai/props/components/rich-text-editor.props';
 import type { Editor } from '@tiptap/react';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import {
   Select,
@@ -17,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import {
   Bold,
   Code,

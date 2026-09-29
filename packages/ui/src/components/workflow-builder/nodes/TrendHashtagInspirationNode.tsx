@@ -4,13 +4,14 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import type {
   ContentPreference,
   ContentType,
   TrendHashtagInspirationNodeData,
   TrendPlatform,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { Hash, LoaderCircle, Sparkles } from 'lucide-react';
+import { Hash, Sparkles } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type {
@@ -181,7 +182,7 @@ function TrendHashtagInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             Generating…
           </>
         ) : (

@@ -56,12 +56,13 @@ import {
 } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, Loader2, WandSparkles } from 'lucide-react';
+import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect } from 'react';
@@ -527,7 +528,7 @@ export default function StudioGenerateComposer({
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
               icon={
                 isEnhancingPrompt ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <Spinner className="size-4" />
                 ) : (
                   <WandSparkles className="size-4" />
                 )

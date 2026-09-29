@@ -17,6 +17,7 @@ import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import {
   CalendarClock,
   Copy,
@@ -242,7 +243,7 @@ export default function WorkflowLibraryPage() {
           </Button>
         )}
         {isLoading && workflows.length > 0 ? (
-          <div className="size-4 shrink-0 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+          <Spinner className="size-4 shrink-0 text-foreground/60" />
         ) : null}
       </div>
     ),

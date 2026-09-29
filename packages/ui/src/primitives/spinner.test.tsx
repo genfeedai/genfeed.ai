@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import Spinner from '@ui/primitives/spinner';
 import { describe, expect, it } from 'vitest';
 
 type SpinnerSize =

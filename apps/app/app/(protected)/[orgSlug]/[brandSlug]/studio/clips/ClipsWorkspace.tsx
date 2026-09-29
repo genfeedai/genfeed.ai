@@ -7,10 +7,10 @@ import type {
   ClipsWorkspaceProps,
   ProviderOption,
 } from '@props/studio/clips.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import { Plus, Search, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

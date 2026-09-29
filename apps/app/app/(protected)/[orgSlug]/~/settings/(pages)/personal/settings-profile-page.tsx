@@ -24,6 +24,7 @@ import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
+import Spinner from '@ui/primitives/spinner';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -140,7 +141,7 @@ export default function SettingsProfilePage() {
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

@@ -32,6 +32,7 @@ import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import {
   Clipboard,
   Lock,
@@ -739,7 +740,7 @@ function AuthorizedApiKeysContent({
         </Card>
       ) : (
         <div className="flex min-h-40 items-center justify-center">
-          <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <Spinner className="size-6 text-primary" />
         </div>
       )}
     </div>

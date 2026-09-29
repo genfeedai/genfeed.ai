@@ -56,7 +56,7 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   ),
 }));
 
-vi.mock('@ui/feedback/spinner/Spinner', () => ({
+vi.mock('@ui/primitives/spinner', () => ({
   default: () => <div data-testid="spinner" />,
 }));
 

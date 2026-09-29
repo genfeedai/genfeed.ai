@@ -58,7 +58,7 @@ vi.mock('@ui/display/masonry/Masonry', () => ({
   ),
 }));
 
-vi.mock('@ui/feedback/spinner/Spinner', () => ({
+vi.mock('@ui/primitives/spinner', () => ({
   default: ({ size }: { size?: string }) => (
     <div data-testid="spinner" data-size={size}>
       Loading…

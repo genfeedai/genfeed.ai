@@ -8,6 +8,7 @@ import type {
 import { useWorkflowBuilder } from '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder';
 import type { WorkflowBuilderProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Alert from '@ui/feedback/alert/Alert';
+import Spinner from '@ui/primitives/spinner';
 import ExecutionHistoryPanel from '@ui/workflow-builder/panels/ExecutionHistoryPanel';
 import NodeConfigPanel from '@ui/workflow-builder/panels/NodeConfigPanel';
 import NodePalette from '@ui/workflow-builder/panels/NodePalette';
@@ -122,7 +123,7 @@ export default function WorkflowBuilder({
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <span className="animate-spin size-8 border-4 border-primary border-t-transparent rounded-full" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

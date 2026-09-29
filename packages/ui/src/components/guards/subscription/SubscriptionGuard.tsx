@@ -4,6 +4,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { SubscriptionGuardProps } from '@genfeedai/props/guards/subscription-guard.props';
+import Spinner from '@ui/primitives/spinner';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -51,7 +52,7 @@ export default function SubscriptionGuard({
   if (isLoading || !checked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
+        <Spinner className="size-6 text-foreground" />
       </div>
     );
   }
