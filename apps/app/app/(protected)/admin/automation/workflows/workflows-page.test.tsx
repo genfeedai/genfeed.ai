@@ -134,8 +134,9 @@ const PINS = [
   pinSummary('wf-foreign', 'Another org workflow', 2),
 ];
 
+/** The heading carries the pin count, e.g. "Featured 2". */
 function featuredSection() {
-  return screen.getByRole('region', { name: 'Featured' });
+  return screen.getByRole('region', { name: /^Featured/ });
 }
 
 function workflowCard(label: string) {
@@ -201,7 +202,7 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     await renderLoadedPage();
 
     expect(
-      screen.queryByRole('region', { name: 'Featured' }),
+      screen.queryByRole('region', { name: /^Featured/ }),
     ).not.toBeInTheDocument();
   });
 
