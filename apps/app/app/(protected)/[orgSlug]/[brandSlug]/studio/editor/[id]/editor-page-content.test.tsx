@@ -14,8 +14,23 @@ import {
 import { type Ref, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANALYTICS_EVENTS } from '@/lib/analytics';
+import {
+  createEditorSaveOutbox,
+  EDITOR_SAVE_OUTBOX_STORAGE_PREFIX,
+  serializeEditorProjectContent,
+} from '@/lib/studio-editor/editor-save-outbox';
 import type { EditorPreviewRef } from './EditorPreview';
 import EditorPageContent from './editor-page-content';
+import {
+  EDITOR_SAVE_DEBOUNCE_MS,
+  EDITOR_SAVE_MAX_WAIT_MS,
+} from './useEditorPageContent';
+
+const outboxState = vi.hoisted(() => ({
+  current: null as ReturnType<
+    typeof import('@/lib/studio-editor/editor-save-outbox').createEditorSaveOutbox
+  > | null,
+}));
 
 const mocks = vi.hoisted(() => ({
   captureAnalyticsEvent: vi.fn(),
@@ -39,6 +54,25 @@ vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
+
+// A fresh outbox per test: the app-wide one outlives a page on purpose, so it
+// would otherwise carry queued writes from one test into the next.
+vi.mock('@/lib/studio-editor/editor-save-outbox', async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import('@/lib/studio-editor/editor-save-outbox')
+    >();
+  return {
+    ...actual,
+    get editorSaveOutbox() {
+      return outboxState.current;
+    },
+  };
+});
+
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({ isLoaded: true, userId: 'user-1' }),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => 'brand-1',
@@ -108,6 +142,8 @@ vi.mock('uuid', () => ({
 
 vi.mock('./EditorToolbar', () => ({
   default: ({
+    canRedo,
+    canUndo,
     currentFrame,
     format,
     isDirty,
@@ -119,15 +155,20 @@ vi.mock('./EditorToolbar', () => ({
     onBack,
     onFormatChange,
     onPlayPause,
+    onRedo,
     onRender,
     onSave,
+    onUndo,
     onSeekEnd,
     onSeekStart,
     onStepBack,
     onStepForward,
     onZoomChange,
     projectName,
+    saveStatus,
   }: {
+    canRedo: boolean;
+    canUndo: boolean;
     currentFrame: number;
     format: IngredientFormat;
     isDirty: boolean;
@@ -139,14 +180,17 @@ vi.mock('./EditorToolbar', () => ({
     onBack: () => void;
     onFormatChange: (format: IngredientFormat) => void;
     onPlayPause: () => void;
+    onRedo: () => void;
     onRender: () => void;
     onSave: () => void;
+    onUndo: () => void;
     onSeekEnd: () => void;
     onSeekStart: () => void;
     onStepBack: () => void;
     onStepForward: () => void;
     onZoomChange: (zoom: number) => void;
     projectName: string;
+    saveStatus: string;
   }) => (
     <section aria-label="toolbar">
       <div>{projectName}</div>
@@ -156,6 +200,15 @@ vi.mock('./EditorToolbar', () => ({
       <div>playing:{String(isPlaying)}</div>
       <div>readOnly:{String(isReadOnly)}</div>
       <div>rendering:{String(isRendering)}</div>
+      <div>save:{saveStatus}</div>
+      <div>canUndo:{String(canUndo)}</div>
+      <div>canRedo:{String(canRedo)}</div>
+      <button type="button" onClick={onUndo}>
+        Undo
+      </button>
+      <button type="button" onClick={onRedo}>
+        Redo
+      </button>
       <button type="button" onClick={onBack}>
         Back
       </button>
@@ -414,9 +467,39 @@ async function renderLoadedEditor(project = makeProject()) {
   expect(await screen.findByText('Launch Reel')).toBeVisible();
 }
 
+function makeStorage() {
+  const data = new Map<string, string>();
+  return {
+    data,
+    getItem: (key: string) => data.get(key) ?? null,
+    removeItem: (key: string) => {
+      data.delete(key);
+    },
+    setItem: (key: string, value: string) => {
+      data.set(key, value);
+    },
+  };
+}
+
+function contentOf(project: ReturnType<typeof makeProject>) {
+  return {
+    name: project.name,
+    settings: project.settings,
+    totalDurationFrames: project.totalDurationFrames,
+    tracks: project.tracks,
+  };
+}
+
+let storage: ReturnType<typeof makeStorage>;
+
 describe('EditorPageContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    storage = makeStorage();
+    outboxState.current = createEditorSaveOutbox({
+      getStorage: () => storage,
+      retryBaseMs: 60_000,
+    });
     mocks.findById.mockResolvedValue(makeProject());
     mocks.renderProject.mockResolvedValue({ jobId: 'render-1' });
     mocks.update.mockResolvedValue(makeProject());
@@ -480,6 +563,7 @@ describe('EditorPageContent', () => {
           totalDurationFrames: expect.any(Number),
           tracks: expect.any(Array),
         }),
+        { isKeepalive: false },
       );
       expect(mocks.success).toHaveBeenCalledWith('Project saved');
     });
@@ -540,15 +624,29 @@ describe('EditorPageContent', () => {
     await waitFor(() => expect(screen.getByText('dirty:true')).toBeVisible());
   });
 
-  it('confirms before leaving with dirty edits and navigates directly when clean', async () => {
+  it('saves pending edits on the way out and only asks when a save failed', async () => {
     await renderLoadedEditor();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(mocks.push).toHaveBeenCalledWith(
       '/org/acme/brand/demo/studio/editor',
     );
+    expect(mocks.update).not.toHaveBeenCalled();
 
+    // A pending edit is handed to the save queue, not dropped or confirmed.
     fireEvent.click(screen.getByRole('button', { name: 'Add Text Track' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(mocks.openConfirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(mocks.update).toHaveBeenCalledTimes(1));
+    expect(mocks.push).toHaveBeenCalledTimes(2);
+
+    // After a failed save, leaving asks first.
+    mocks.update.mockRejectedValue(
+      Object.assign(new Error('Internal'), { status: 500 }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Mute Track' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    expect(await screen.findByText('save:failed')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(mocks.openConfirm).toHaveBeenCalledWith(
@@ -557,10 +655,9 @@ describe('EditorPageContent', () => {
         label: 'Unsaved Changes',
       }),
     );
+    expect(mocks.push).toHaveBeenCalledTimes(2);
     mocks.openConfirm.mock.calls.at(-1)?.[0].onConfirm();
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/org/acme/brand/demo/studio/editor',
-    );
+    expect(mocks.push).toHaveBeenCalledTimes(3);
   });
 
   it('supports keyboard shortcuts without hijacking form inputs', async () => {
@@ -756,6 +853,207 @@ describe('EditorPageContent', () => {
       });
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
       expect(screen.getByText('readOnly:false')).toBeVisible();
+    });
+  });
+
+  describe('autosave, restore and undo', () => {
+    const storageKey = `${EDITOR_SAVE_OUTBOX_STORAGE_PREFIX}:editor-123`;
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('saves an edit within two seconds without an explicit save', async () => {
+      await renderLoadedEditor();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      expect(mocks.update).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(EDITOR_SAVE_DEBOUNCE_MS);
+      });
+      vi.useRealTimers();
+
+      expect(mocks.update).toHaveBeenCalledWith(
+        'editor-123',
+        expect.objectContaining({
+          settings: expect.objectContaining({
+            format: IngredientFormat.PORTRAIT,
+          }),
+        }),
+        { isKeepalive: false },
+      );
+      expect(await screen.findByText('save:saved')).toBeVisible();
+      expect(screen.getByText('dirty:false')).toBeVisible();
+      // Autosave reports through the indicator, not a toast per save.
+      expect(mocks.success).not.toHaveBeenCalled();
+    });
+
+    it('saves a continuous gesture before the gesture ends', async () => {
+      await renderLoadedEditor();
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+
+      for (let step = 0; step < 3; step += 1) {
+        fireEvent.click(screen.getByRole('button', { name: 'Set Volume' }));
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(500);
+        });
+      }
+
+      expect(EDITOR_SAVE_MAX_WAIT_MS).toBeLessThanOrEqual(1500);
+      expect(mocks.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('flushes the latest edit with keepalive when the page is hidden', async () => {
+      await renderLoadedEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      window.dispatchEvent(new Event('pagehide'));
+
+      await waitFor(() => {
+        expect(mocks.update).toHaveBeenCalledWith(
+          'editor-123',
+          expect.objectContaining({
+            settings: expect.objectContaining({
+              format: IngredientFormat.PORTRAIT,
+            }),
+          }),
+          { isKeepalive: true },
+        );
+      });
+    });
+
+    it('asks before the tab closes only while an edit is unsaved', async () => {
+      await renderLoadedEditor();
+
+      const cleanClose = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(cleanClose);
+      expect(cleanClose.defaultPrevented).toBe(false);
+
+      mocks.update.mockReturnValue(new Promise(() => undefined));
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      const dirtyClose = new Event('beforeunload', { cancelable: true });
+      window.dispatchEvent(dirtyClose);
+
+      expect(dirtyClose.defaultPrevented).toBe(true);
+      // The unsent edit is kept on this device for the next load.
+      expect(storage.data.get(storageKey)).toContain(IngredientFormat.PORTRAIT);
+    });
+
+    it('restores an edit the last page queued but never saw saved', async () => {
+      const server = makeProject();
+      storage.setItem(
+        storageKey,
+        JSON.stringify({
+          baseKeys: [serializeEditorProjectContent(contentOf(server))],
+          content: { ...contentOf(server), name: 'Launch Reel v2' },
+          ownerId: 'user-1',
+        }),
+      );
+      mocks.findById.mockResolvedValue(server);
+
+      render(<EditorPageContent projectId="editor-123" />);
+
+      expect(await screen.findByText('Launch Reel v2')).toBeVisible();
+      await waitFor(
+        () => {
+          expect(mocks.update).toHaveBeenCalledWith(
+            'editor-123',
+            expect.objectContaining({ name: 'Launch Reel v2' }),
+            { isKeepalive: false },
+          );
+        },
+        { timeout: 3000 },
+      );
+    });
+
+    it.each([
+      ['the project changed elsewhere since', 'user-1', '{"older":true}'],
+      ['it belongs to another user', 'user-2', null],
+    ])('drops a queued edit when %s', async (_case, ownerId, baseKey) => {
+      const server = makeProject();
+      storage.setItem(
+        storageKey,
+        JSON.stringify({
+          baseKeys: [
+            baseKey ?? serializeEditorProjectContent(contentOf(server)),
+          ],
+          content: { ...contentOf(server), name: 'Stale edit' },
+          ownerId,
+        }),
+      );
+      mocks.findById.mockResolvedValue(server);
+
+      render(<EditorPageContent projectId="editor-123" />);
+
+      expect(await screen.findByText('Launch Reel')).toBeVisible();
+      expect(screen.queryByText('Stale edit')).not.toBeInTheDocument();
+      expect(screen.getByText('dirty:false')).toBeVisible();
+    });
+
+    it('undoes and redoes edits from the toolbar and keyboard, then saves the result', async () => {
+      await renderLoadedEditor();
+      expect(screen.getByText('canUndo:false')).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Portrait' }));
+      expect(
+        screen.getByText(`format:${IngredientFormat.PORTRAIT}`),
+      ).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+      expect(
+        screen.getByText(`format:${IngredientFormat.LANDSCAPE}`),
+      ).toBeVisible();
+      expect(screen.getByText('canRedo:true')).toBeVisible();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Redo' }));
+      expect(
+        screen.getByText(`format:${IngredientFormat.PORTRAIT}`),
+      ).toBeVisible();
+
+      fireEvent.keyDown(window, { key: 'z', metaKey: true });
+      expect(
+        screen.getByText(`format:${IngredientFormat.LANDSCAPE}`),
+      ).toBeVisible();
+
+      fireEvent.keyDown(window, { key: 'Z', metaKey: true, shiftKey: true });
+      expect(
+        screen.getByText(`format:${IngredientFormat.PORTRAIT}`),
+      ).toBeVisible();
+
+      fireEvent.keyDown(window, { ctrlKey: true, key: 'z' });
+      fireEvent.keyDown(window, { ctrlKey: true, key: 'y' });
+      expect(
+        screen.getByText(`format:${IngredientFormat.PORTRAIT}`),
+      ).toBeVisible();
+
+      await waitFor(
+        () => {
+          expect(mocks.update).toHaveBeenLastCalledWith(
+            'editor-123',
+            expect.objectContaining({
+              settings: expect.objectContaining({
+                format: IngredientFormat.PORTRAIT,
+              }),
+            }),
+            { isKeepalive: false },
+          );
+        },
+        { timeout: 3000 },
+      );
+    });
+
+    it('collapses one continuous gesture into a single undo step', async () => {
+      await renderLoadedEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Move Clip' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Move Clip' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Move Clip' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+      expect(screen.getByText('canUndo:false')).toBeVisible();
+      expect(screen.getByText('canRedo:true')).toBeVisible();
     });
   });
 

@@ -10,8 +10,14 @@ import type {
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
 import type { EditorState } from '@genfeedai/props/studio/editor-page-content.props';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type {
+  EditorHistory,
+  EditorProjectContent,
+  EditorSaveWrite,
+} from '@props/studio/editor-save.props';
 import {
   useConfirmModal,
   useGalleryModal,
@@ -25,11 +31,72 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
+import {
+  EditorSaveConflictError,
+  EditorSaveRejectedError,
+  editorSaveOutbox,
+  serializeEditorProjectContent,
+} from '@/lib/studio-editor/editor-save-outbox';
 import type { EditorPreviewRef } from './EditorPreview';
 
 const DEFAULT_FPS = 30;
-const AUTO_SAVE_INTERVAL = 30000;
+/** Quiet period after the last edit before it is saved. */
+export const EDITOR_SAVE_DEBOUNCE_MS = 750;
+/** Continuous edits (a drag) still save this long after the first one. */
+export const EDITOR_SAVE_MAX_WAIT_MS = 1500;
+const HISTORY_LIMIT = 100;
+/** Updates of one gesture this close together collapse into one undo step. */
+const GESTURE_WINDOW_MS = 1000;
 const HTTP_CONFLICT = 409;
+/**
+ * Client errors the same request will always get again. 408 and 429 are
+ * worth retrying; so is anything without a status (network, 5xx).
+ */
+const PERMANENT_SAVE_STATUSES = new Set([400, 403, 404, 410, 422]);
+
+const EMPTY_HISTORY: EditorHistory = {
+  future: [],
+  lastEditAt: 0,
+  lastGestureKey: null,
+  past: [],
+};
+
+function contentOf(project: IEditorProject): EditorProjectContent {
+  return {
+    name: project.name,
+    settings: project.settings,
+    totalDurationFrames: project.totalDurationFrames,
+    tracks: project.tracks,
+  };
+}
+
+/**
+ * An edit this browser queued but never saw acknowledged is restored only
+ * when the server still holds a version it was made on top of; otherwise the
+ * project changed elsewhere and the local copy is stale.
+ */
+function resolveUnsentEdit(
+  projectId: string,
+  ownerId: string | null,
+  serverContent: EditorProjectContent,
+): EditorProjectContent | null {
+  if (!ownerId) {
+    return null;
+  }
+  const unsent = editorSaveOutbox.readUnsent(projectId, ownerId);
+  if (!unsent) {
+    return null;
+  }
+  const serverKey = serializeEditorProjectContent(serverContent);
+  if (
+    serializeEditorProjectContent(unsent.content) !== serverKey &&
+    unsent.baseKeys.includes(serverKey)
+  ) {
+    return unsent.content;
+  }
+  editorSaveOutbox.discardUnsent(projectId);
+  return null;
+}
 
 const FORMAT_DIMENSIONS: Record<
   IngredientFormat,
@@ -42,6 +109,7 @@ const FORMAT_DIMENSIONS: Record<
 
 export function useEditorPageContent(projectId: string) {
   const _brandId = useBrandId();
+  const { isLoaded: isIdentityLoaded, userId } = useAuthIdentity();
   const { push } = useRouter();
   const { href } = useOrgUrl();
   const { openGallery } = useGalleryModal();
@@ -54,38 +122,102 @@ export function useEditorPageContent(projectId: string) {
   const getEditorService = useAuthedService((token: string) =>
     EditorProjectsService.getInstance(token),
   );
+  // Queued writes outlive this page; they resolve the service through a ref.
+  const getEditorServiceRef = useRef(getEditorService);
+  getEditorServiceRef.current = getEditorService;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
 
   const [state, setState] = useState<EditorState>({
     currentFrame: 0,
+    editVersion: 0,
     hasSaveConflict: false,
+    history: EMPTY_HISTORY,
     isDirty: false,
     isDuplicating: false,
     isLoading: true,
     isPlaying: false,
     isRendering: false,
-    lastSavedAt: null,
     project: null,
+    saveStatus: 'idle',
     selectedClipId: null,
     selectedTrackId: null,
     zoom: 2,
   });
 
   const isReadOnly = Boolean(state.project?.isLocked) || state.hasSaveConflict;
+  const canUndo = !isReadOnly && state.history.past.length > 0;
+  const canRedo = !isReadOnly && state.history.future.length > 0;
+  // Read by the save scheduler and the page-leave handlers, which must see the
+  // latest edit without re-subscribing on every change.
+  const projectRef = useRef(state.project);
+  projectRef.current = state.project;
+  const isReadOnlyRef = useRef(isReadOnly);
+  isReadOnlyRef.current = isReadOnly;
+  const saveTimerRef = useRef<number | null>(null);
+  const firstUnsavedEditAtRef = useRef<number | null>(null);
 
   // The server refuses updates to composition-backed projects with a 409.
   // Switch to read-only on the server version instead of a generic error;
   // pending local edits cannot be saved, so they are dropped.
   const handleSaveConflict = useCallback(() => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     setState((prev) => {
       const serverProject = savedProjectRef.current ?? prev.project;
       return {
         ...prev,
         hasSaveConflict: true,
+        history: EMPTY_HISTORY,
         isDirty: false,
         project: serverProject ? { ...serverProject, isLocked: true } : null,
+        saveStatus: 'conflict',
       };
     });
   }, []);
+
+  const write = useCallback<EditorSaveWrite>(
+    async (targetProjectId, content, { isKeepalive }) => {
+      const service = await getEditorServiceRef.current();
+      try {
+        return await service.update(targetProjectId, content, { isKeepalive });
+      } catch (error) {
+        const status = getErrorStatus(error);
+        if (status === HTTP_CONFLICT) {
+          throw new EditorSaveConflictError('The project is locked');
+        }
+        if (status !== undefined && PERMANENT_SAVE_STATUSES.has(status)) {
+          throw new EditorSaveRejectedError('The server rejected the save');
+        }
+        throw error;
+      }
+    },
+    [],
+  );
+
+  // Hands the latest content to the outbox now. Stable on purpose: it reads
+  // everything through refs, so the leave handlers never re-bind.
+  const flushEdits = useCallback(
+    (options: { isKeepalive?: boolean } = {}) => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      firstUnsavedEditAtRef.current = null;
+      const project = projectRef.current;
+      if (!project || isReadOnlyRef.current) {
+        return;
+      }
+      editorSaveOutbox.enqueue(project.id, contentOf(project), {
+        isKeepalive: options.isKeepalive,
+        ownerId: userIdRef.current,
+        write,
+      });
+    },
+    [write],
+  );
 
   useEffect(() => {
     captureAnalyticsEvent(ANALYTICS_EVENTS.STUDIO_EDITOR_OPENED, {
@@ -93,23 +225,46 @@ export function useEditorPageContent(projectId: string) {
     });
   }, []);
 
-  // Load existing project by ID
+  // Load the project once the signed-in user is known: an edit this browser
+  // queued for them but never saw saved is restored over the server copy.
   useEffect(() => {
+    if (!isIdentityLoaded) {
+      return;
+    }
     const controller = new AbortController();
 
     const loadProject = async () => {
       try {
+        // Writes this tab still has queued (an in-app round trip) land first,
+        // or the read would show an older version.
+        if (editorSaveOutbox.hasUnsavedEdits(projectId)) {
+          await editorSaveOutbox.settle(projectId);
+        }
         const service = await getEditorService();
         const project = await service.findById(projectId);
 
-        if (!controller.signal.aborted) {
-          savedProjectRef.current = project ?? null;
-          setState((prev) => ({
-            ...prev,
-            isLoading: false,
-            project: project ?? null,
-          }));
+        if (controller.signal.aborted) {
+          return;
         }
+
+        const serverContent = project ? contentOf(project) : null;
+        const restored =
+          project && serverContent && !project.isLocked
+            ? resolveUnsentEdit(projectId, userIdRef.current, serverContent)
+            : null;
+        if (serverContent) {
+          editorSaveOutbox.setAcknowledged(projectId, serverContent);
+        }
+
+        savedProjectRef.current = project ?? null;
+        setState((prev) => ({
+          ...prev,
+          editVersion: restored ? prev.editVersion + 1 : prev.editVersion,
+          history: EMPTY_HISTORY,
+          isDirty: Boolean(restored),
+          isLoading: false,
+          project: project && restored ? { ...project, ...restored } : project,
+        }));
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to load project', error);
@@ -122,66 +277,156 @@ export function useEditorPageContent(projectId: string) {
     loadProject();
 
     return () => controller.abort();
-  }, [projectId, notificationsService, getEditorService]);
+  }, [projectId, isIdentityLoaded, notificationsService, getEditorService]);
 
-  // Auto-save effect
   useEffect(() => {
-    if (!state.project || !state.isDirty || isReadOnly) {
+    return editorSaveOutbox.subscribe(projectId, (status) => {
+      if (status === 'conflict') {
+        handleSaveConflict();
+        return;
+      }
+      const hasUnsaved =
+        saveTimerRef.current !== null ||
+        editorSaveOutbox.hasUnsavedEdits(projectId);
+      setState((prev) => ({
+        ...prev,
+        isDirty: status === 'saved' ? hasUnsaved : prev.isDirty,
+        saveStatus: status,
+      }));
+    });
+  }, [projectId, handleSaveConflict]);
+
+  // Every edit is saved within EDITOR_SAVE_MAX_WAIT_MS: a quiet period after
+  // the last change, capped for continuous gestures.
+  useEffect(() => {
+    if (state.editVersion === 0 || isReadOnly) {
       return;
     }
+    const now = Date.now();
+    firstUnsavedEditAtRef.current ??= now;
+    const delay = Math.max(
+      0,
+      Math.min(
+        EDITOR_SAVE_DEBOUNCE_MS,
+        firstUnsavedEditAtRef.current + EDITOR_SAVE_MAX_WAIT_MS - now,
+      ),
+    );
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      flushEdits();
+    }, delay);
+  }, [state.editVersion, isReadOnly, flushEdits]);
 
-    const project = state.project;
-    const saveTimeout = setTimeout(async () => {
-      try {
-        const service = await getEditorService();
-        await service.update(project.id, {
-          name: project.name,
-          settings: project.settings,
-          totalDurationFrames: project.totalDurationFrames,
-          tracks: project.tracks,
-        });
-        savedProjectRef.current = project;
-        logger.info('Project auto-saved', { projectId: project.id });
-        setState((prev) => ({
-          ...prev,
-          isDirty: false,
-          lastSavedAt: new Date(),
-        }));
-        notificationsService.success('Project auto-saved');
-      } catch (error) {
-        if (getErrorStatus(error) === HTTP_CONFLICT) {
-          handleSaveConflict();
-          return;
-        }
-        logger.error('Failed to auto-save project', error);
+  // A reload or tab close inside the quiet period would otherwise lose the
+  // last edit: keepalive lets that final write outlive the page, and the
+  // browser asks before leaving while anything is still unsaved.
+  useEffect(() => {
+    const flushOnHide = () => {
+      if (document.visibilityState === 'hidden') {
+        flushEdits({ isKeepalive: true });
       }
-    }, AUTO_SAVE_INTERVAL);
+    };
+    const flushOnPageHide = () => {
+      flushEdits({ isKeepalive: true });
+    };
+    const confirmUnsavedLeave = (event: BeforeUnloadEvent) => {
+      flushEdits({ isKeepalive: true });
+      if (editorSaveOutbox.hasUnsavedEdits(projectId)) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    document.addEventListener('visibilitychange', flushOnHide);
+    window.addEventListener('pagehide', flushOnPageHide);
+    window.addEventListener('beforeunload', confirmUnsavedLeave);
+    return () => {
+      document.removeEventListener('visibilitychange', flushOnHide);
+      window.removeEventListener('pagehide', flushOnPageHide);
+      window.removeEventListener('beforeunload', confirmUnsavedLeave);
+    };
+  }, [projectId, flushEdits]);
 
-    return () => clearTimeout(saveTimeout);
-  }, [
-    state.project,
-    state.isDirty,
-    isReadOnly,
-    notificationsService,
-    getEditorService,
-    handleSaveConflict,
-  ]);
+  // Leaving the project in-app queues its latest content; the outbox finishes
+  // the write after this page is gone.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: projectId is the departure trigger.
+  useEffect(() => {
+    return () => {
+      flushEdits();
+    };
+  }, [projectId, flushEdits]);
 
   // Every edit funnels through here, so a read-only project never turns dirty
-  // and never reaches a save.
-  const updateProject = useCallback((updates: Partial<IEditorProject>) => {
+  // and never reaches a save. Each edit is one undo step, except continuous
+  // updates of one gesture (`gestureKey`), which collapse into the first.
+  const updateProject = useCallback(
+    (updates: Partial<IEditorProject>, gestureKey: string | null = null) => {
+      const now = Date.now();
+      setState((prev) => {
+        if (!prev.project || prev.project.isLocked || prev.hasSaveConflict) {
+          return prev;
+        }
+
+        const history = prev.history;
+        const isSameGesture =
+          gestureKey !== null &&
+          gestureKey === history.lastGestureKey &&
+          now - history.lastEditAt < GESTURE_WINDOW_MS;
+
+        return {
+          ...prev,
+          editVersion: prev.editVersion + 1,
+          history: {
+            future: [],
+            lastEditAt: now,
+            lastGestureKey: gestureKey,
+            past: isSameGesture
+              ? history.past
+              : [...history.past, contentOf(prev.project)].slice(
+                  -HISTORY_LIMIT,
+                ),
+          },
+          isDirty: true,
+          project: { ...prev.project, ...updates },
+        };
+      });
+    },
+    [],
+  );
+
+  const stepHistory = useCallback((direction: 'undo' | 'redo') => {
     setState((prev) => {
       if (!prev.project || prev.project.isLocked || prev.hasSaveConflict) {
         return prev;
       }
+      const { future, past } = prev.history;
+      const source = direction === 'undo' ? past : future;
+      const target = source.at(-1);
+      if (!target) {
+        return prev;
+      }
+      const current = contentOf(prev.project);
 
       return {
         ...prev,
+        editVersion: prev.editVersion + 1,
+        history: {
+          future:
+            direction === 'undo' ? [...future, current] : future.slice(0, -1),
+          lastEditAt: 0,
+          lastGestureKey: null,
+          past: direction === 'undo' ? past.slice(0, -1) : [...past, current],
+        },
         isDirty: true,
-        project: { ...prev.project, ...updates },
+        project: { ...prev.project, ...target },
       };
     });
   }, []);
+
+  const handleUndo = useCallback(() => stepHistory('undo'), [stepHistory]);
+  const handleRedo = useCallback(() => stepHistory('redo'), [stepHistory]);
 
   const handlePlayPause = useCallback(() => {
     if (state.isPlaying) {
@@ -370,7 +615,10 @@ export function useEditorPageContent(projectId: string) {
         track.id === trackId ? { ...track, ...trackUpdates } : track,
       );
 
-      updateProject({ tracks: updatedTracks });
+      updateProject(
+        { tracks: updatedTracks },
+        `track:${trackId}:${Object.keys(trackUpdates).sort().join(',')}`,
+      );
     },
     [state.project, updateProject],
   );
@@ -405,10 +653,13 @@ export function useEditorPageContent(projectId: string) {
         }
       }
 
-      updateProject({
-        totalDurationFrames: Math.max(maxFrame, DEFAULT_FPS * 5), // Minimum 5 seconds
-        tracks: updatedTracks,
-      });
+      updateProject(
+        {
+          totalDurationFrames: Math.max(maxFrame, DEFAULT_FPS * 5), // Minimum 5 seconds
+          tracks: updatedTracks,
+        },
+        `move:${trackId}:${clipId}`,
+      );
     },
     [state.project, updateProject],
   );
@@ -466,10 +717,13 @@ export function useEditorPageContent(projectId: string) {
         }
       }
 
-      updateProject({
-        totalDurationFrames: Math.max(maxFrame, DEFAULT_FPS * 5),
-        tracks: updatedTracks,
-      });
+      updateProject(
+        {
+          totalDurationFrames: Math.max(maxFrame, DEFAULT_FPS * 5),
+          tracks: updatedTracks,
+        },
+        `resize:${trackId}:${clipId}:${fromStart ? 'start' : 'end'}`,
+      );
     },
     [state.project, updateProject],
   );
@@ -482,83 +736,43 @@ export function useEditorPageContent(projectId: string) {
     }));
   }, []);
 
+  // An explicit save (button or Cmd/Ctrl+S) writes now instead of after the
+  // quiet period and reports the outcome.
   const handleSave = useCallback(async () => {
-    if (!state.project || isReadOnly) {
+    if (!projectRef.current || isReadOnly) {
       return;
     }
 
-    const project = state.project;
-    try {
-      const service = await getEditorService();
-      await service.update(project.id, {
-        name: project.name,
-        settings: project.settings,
-        totalDurationFrames: project.totalDurationFrames,
-        tracks: project.tracks,
-      });
-      savedProjectRef.current = project;
-      setState((prev) => ({
-        ...prev,
-        isDirty: false,
-        lastSavedAt: new Date(),
-      }));
+    flushEdits();
+    const status = await editorSaveOutbox.settle(projectId);
+    if (status === 'saved' || status === 'idle') {
       notificationsService.success('Project saved');
-    } catch (error) {
-      if (getErrorStatus(error) === HTTP_CONFLICT) {
-        handleSaveConflict();
-        return;
-      }
-      logger.error('Failed to save project', error);
+    } else if (status === 'failed') {
       notificationsService.error('Failed to save project');
     }
-  }, [
-    state.project,
-    isReadOnly,
-    notificationsService,
-    getEditorService,
-    handleSaveConflict,
-  ]);
+  }, [isReadOnly, projectId, flushEdits, notificationsService]);
 
   const handleRender = useCallback(async () => {
-    if (!state.project || isReadOnly) {
+    if (!projectRef.current || isReadOnly) {
       return;
     }
 
-    const project = state.project;
     setState((prev) => ({ ...prev, isRendering: true }));
 
     try {
-      // Save latest state before rendering
-      const service = await getEditorService();
-      try {
-        await service.update(project.id, {
-          name: project.name,
-          settings: project.settings,
-          totalDurationFrames: project.totalDurationFrames,
-          tracks: project.tracks,
-        });
-      } catch (error) {
-        // Only the update's 409 means the project is immutable; the render
-        // endpoint also answers 409 for a render that is already running.
-        if (getErrorStatus(error) === HTTP_CONFLICT) {
-          handleSaveConflict();
-          return;
-        }
-        throw error;
+      // The render reads the saved project, so every edit lands first.
+      flushEdits();
+      const status = await editorSaveOutbox.settle(projectId);
+      if (status === 'conflict') {
+        return;
       }
-      savedProjectRef.current = project;
+      if (status === 'failed') {
+        throw new Error('Unsaved edits block the render');
+      }
 
-      const { jobId } = await service.render(project.id);
-      logger.info('Render job started', {
-        jobId,
-        projectId: project.id,
-      });
-
-      setState((prev) => ({
-        ...prev,
-        isDirty: false,
-        lastSavedAt: new Date(),
-      }));
+      const service = await getEditorService();
+      const { jobId } = await service.render(projectId);
+      logger.info('Render job started', { jobId, projectId });
 
       notificationsService.success(
         'Render started! Check the gallery for the output.',
@@ -570,11 +784,11 @@ export function useEditorPageContent(projectId: string) {
       setState((prev) => ({ ...prev, isRendering: false }));
     }
   }, [
-    state.project,
     isReadOnly,
+    projectId,
+    flushEdits,
     notificationsService,
     getEditorService,
-    handleSaveConflict,
   ]);
 
   const handleDuplicate = useCallback(async () => {
@@ -604,14 +818,20 @@ export function useEditorPageContent(projectId: string) {
     notificationsService,
   ]);
 
+  // Leaving hands the latest edit to the outbox, which keeps saving after the
+  // page is gone. Only an edit the server refused asks before leaving; it
+  // stays on this device and is restored when the project reopens.
   const handleBack = useCallback(() => {
-    if (state.isDirty) {
+    // Read before flushing: the flush retries right away and reports saving.
+    const hasFailedSave = editorSaveOutbox.getStatus(projectId) === 'failed';
+    flushEdits();
+    if (hasFailedSave) {
       openConfirm({
         confirmLabel: 'Leave',
         isError: true,
         label: 'Unsaved Changes',
         message:
-          'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.',
+          'Your latest edits could not be saved yet. They stay on this device and come back when you reopen the project. Leave anyway?',
         onConfirm: () => {
           push(href(APP_ROUTES.STUDIO.EDITOR));
         },
@@ -619,7 +839,7 @@ export function useEditorPageContent(projectId: string) {
       return;
     }
     push(href(APP_ROUTES.STUDIO.EDITOR));
-  }, [state.isDirty, push, openConfirm, href]);
+  }, [projectId, flushEdits, push, openConfirm, href]);
 
   const handleFrameChange = useCallback((frame: number) => {
     setState((prev) => ({ ...prev, currentFrame: frame }));
@@ -683,6 +903,23 @@ export function useEditorPageContent(projectId: string) {
             handleSave();
           }
           break;
+        case 'z':
+        case 'Z':
+          if (e.metaKey || e.ctrlKey) {
+            e.preventDefault();
+            if (e.shiftKey) {
+              handleRedo();
+            } else {
+              handleUndo();
+            }
+          }
+          break;
+        case 'y':
+          if (e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            handleRedo();
+          }
+          break;
       }
     };
 
@@ -696,6 +933,8 @@ export function useEditorPageContent(projectId: string) {
     handleSeekEnd,
     handleSeek,
     handleSave,
+    handleUndo,
+    handleRedo,
     state.currentFrame,
     state.project?.totalDurationFrames,
   ]);
@@ -703,6 +942,10 @@ export function useEditorPageContent(projectId: string) {
   return {
     state,
     isReadOnly,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
     previewRef,
     handlePlayPause,
     handleSeek,

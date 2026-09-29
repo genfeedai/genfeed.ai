@@ -12,7 +12,8 @@ function NewEditorProjectPageContent() {
   const { replace } = useRouter();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
-  const videoId = searchParams.get('video') || searchParams.get('videoId');
+  // `?video=` repeats in timeline order: one clip per video, back to back.
+  const videoIdsKey = searchParams.getAll('video').filter(Boolean).join(',');
   const creating = useRef(false);
 
   const getEditorService = useAuthedService((token: string) =>
@@ -38,9 +39,10 @@ function NewEditorProjectPageContent() {
           return;
         }
 
+        const sourceVideoIds = videoIdsKey ? videoIdsKey.split(',') : [];
         const project = await service.create({
-          name: videoId ? 'Video Edit' : 'Untitled Project',
-          sourceVideoId: videoId ?? undefined,
+          name: sourceVideoIds.length > 0 ? 'Video Edit' : 'Untitled Project',
+          sourceVideoIds,
         });
         if (controller.signal.aborted) {
           return;
@@ -61,7 +63,7 @@ function NewEditorProjectPageContent() {
       controller.abort();
       creating.current = false;
     };
-  }, [videoId, getEditorService, href, replace]);
+  }, [videoIdsKey, getEditorService, href, replace]);
 
   return (
     <div className="flex h-screen items-center justify-center">

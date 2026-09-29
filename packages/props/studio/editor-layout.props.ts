@@ -4,6 +4,7 @@ import type {
   IEditorTrack,
 } from '@genfeedai/contracts/interfaces';
 import type { EditorPreviewRef } from '@props/studio/editor-preview.props';
+import type { EditorSaveStatus } from '@props/studio/editor-save.props';
 import type { RefObject } from 'react';
 
 export interface EditorLayoutProps {
@@ -13,6 +14,9 @@ export interface EditorLayoutProps {
   currentFrame: number;
   zoom: number;
   isDirty: boolean;
+  saveStatus: EditorSaveStatus;
+  canUndo: boolean;
+  canRedo: boolean;
   isRendering: boolean;
   isReadOnly: boolean;
   hasSaveConflict: boolean;
@@ -30,6 +34,8 @@ export interface EditorLayoutProps {
   onAddVideoTrack: () => void;
   onAddAudioTrack: () => void;
   onSave: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onRender: () => void;
   onBack: () => void;
   onDuplicate: () => void;

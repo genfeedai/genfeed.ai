@@ -3539,6 +3539,16 @@
     "renameTitle": "Rename project",
     "save": "Save",
     "startNewProject": "Start New Project",
+    "toolbar": {
+      "redo": "Redo",
+      "redoTooltip": "Redo (Shift+Cmd/Ctrl+Z)",
+      "saveFailed": "Not saved yet. Retrying",
+      "saved": "All changes saved",
+      "saving": "Saving…",
+      "undo": "Undo",
+      "undoTooltip": "Undo (Cmd/Ctrl+Z)",
+      "unsaved": "Unsaved changes"
+    },
     "yourProjects": "Your Projects",
     "yourProjectsCount": "Your Projects ({count})"
   },
