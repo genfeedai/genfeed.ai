@@ -927,4 +927,34 @@ describe('WorkflowApiService', () => {
     expect(templates[1]).not.toHaveProperty('exampleOutput');
     expect(templates[2]).toEqual({ id: 'plain' });
   });
+
+  it('carries a valid template example output and drops a malformed one', async () => {
+    const exampleOutput = {
+      mediaType: 'image',
+      url: 'https://cdn.example.com/examples/thread.png',
+    };
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          { exampleOutput, featuredRank: 1, id: 'founder-x-thread' },
+          {
+            exampleOutput: { mediaType: 'image', url: '/relative.png' },
+            id: 'launch-kit',
+          },
+          { id: 'plain' },
+        ],
+      },
+    });
+
+    const templates = await service().listTemplates();
+
+    expect(templates[0]).toEqual({
+      exampleOutput,
+      featuredRank: 1,
+      id: 'founder-x-thread',
+    });
+    expect(templates[1]).toEqual({ id: 'launch-kit' });
+    expect(templates[1]).not.toHaveProperty('exampleOutput');
+    expect(templates[2]).toEqual({ id: 'plain' });
+  });
 });
