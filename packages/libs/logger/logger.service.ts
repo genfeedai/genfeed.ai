@@ -70,7 +70,9 @@ export class LoggerService extends ConsoleLogger {
 
     const effectiveTrace =
       trace ?? (typeof message === 'string' ? undefined : message);
-    const errorData = redactSensitiveValue(this.serializeError(effectiveTrace));
+    const errorData = redactSensitiveValue(
+      this.serializeLoggedError(effectiveTrace),
+    );
     const errorContext = {
       ...contextObj,
       ...(errorData !== undefined && { error: errorData }),
@@ -87,7 +89,10 @@ export class LoggerService extends ConsoleLogger {
     return redactSensitiveString(getErrorMessage(message));
   }
 
-  private serializeError(trace?: string | Error | unknown): unknown {
+  // Named to avoid colliding with ConsoleLogger.serializeError, added in
+  // @nestjs/common 12.1.1 (protected, Error-only). This helper accepts the
+  // wider trace values our error() path passes through.
+  private serializeLoggedError(trace?: string | Error | unknown): unknown {
     if (trace instanceof Error) {
       const serialized: Record<string, unknown> = {
         message: trace.message,
