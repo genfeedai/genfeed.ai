@@ -47,6 +47,7 @@ import {
 } from 'react';
 import {
   createWorkflowApiService,
+  type FeaturedWorkflow,
   type SystemWorkflowCatalogEntry,
   type WorkflowApiService,
   type WorkflowTemplate,
@@ -104,14 +105,20 @@ const CATALOG_SOURCES = ['all', 'installed', 'available'] as const;
 
 type CatalogSource = (typeof CATALOG_SOURCES)[number];
 
-/** The two catalog requests. Each settles on its own. */
-const DATA_SOURCES = ['templates', 'systemCatalog'] as const;
+/** The page's requests. Each settles on its own. */
+const DATA_SOURCES = ['templates', 'systemCatalog', 'featured'] as const;
 
 type DataSource = (typeof DATA_SOURCES)[number];
 
+/** The requests behind the catalog (Browse by type and All). */
+const CATALOG_DATA_SOURCES = [
+  'templates',
+  'systemCatalog',
+] as const satisfies readonly DataSource[];
+
 type DataSourceStatus = 'loading' | 'ready' | 'error';
 
-type ActionErrorKey = 'bootstrap' | 'install';
+type ActionErrorKey = 'bootstrap' | 'install' | 'copyFeatured';
 
 /** Copy is resolved at render, so a stored error follows the active locale. */
 type ActionError = {
@@ -135,18 +142,17 @@ type BootstrapAttempt = {
 /** View preference key — one list/grid choice per collection surface. */
 const TEMPLATES_COLLECTION_SURFACE = 'automation.templates';
 
-/** Featured is a short carousel, not a second copy of the catalog. */
-const FEATURED_TEMPLATE_LIMIT = 6;
-
 /** Type tiles only help when there is more than one type to pick between. */
 const MIN_TYPE_TILES = 2;
 
 type CatalogItem = {
-  category: string;
+  /** Absent on Featured workflows, which are not catalog entries. */
+  category?: string;
   changeSummary?: string;
   description: string;
   edges?: Edge[];
-  featuredRank?: number;
+  /** Set on an admin-pinned Featured workflow (#5511); "Use" copies it. */
+  featuredWorkflowId?: string;
   href?: string;
   id: string;
   nodes?: Node[];
@@ -166,6 +172,7 @@ type TypeTile = {
 type PageState = {
   templates: WorkflowTemplate[];
   systemCatalog: SystemWorkflowCatalogEntry[];
+  featured: FeaturedWorkflow[];
   sourceStatus: Record<DataSource, DataSourceStatus>;
   /** True once every request has settled at least once. */
   hasSettled: boolean;
@@ -175,12 +182,14 @@ type PageState = {
   actionError: ActionError | null;
   isBootstrapping: boolean;
   installingCanonicalId: string | null;
+  copyingFeaturedWorkflowId: string | null;
 };
 
 type PageAction =
   | { type: 'LOAD_START'; sources: readonly DataSource[] }
   | { type: 'TEMPLATES_LOADED'; templates: WorkflowTemplate[] }
   | { type: 'CATALOG_LOADED'; systemCatalog: SystemWorkflowCatalogEntry[] }
+  | { type: 'FEATURED_LOADED'; featured: FeaturedWorkflow[] }
   | { type: 'LOAD_FAILED'; source: DataSource }
   | { type: 'SET_CATEGORY'; category: string }
   | { type: 'SET_SOURCE'; source: CatalogSource }
@@ -195,12 +204,19 @@ type PageAction =
       canonicalId: string;
       installedWorkflowId: string;
     }
-  | { type: 'INSTALL_ERROR'; error: ActionError };
+  | { type: 'INSTALL_ERROR'; error: ActionError }
+  | { type: 'COPY_FEATURED_START'; workflowId: string }
+  | { type: 'COPY_FEATURED_ERROR'; error: ActionError };
 
 const initialState: PageState = {
   templates: [],
   systemCatalog: [],
-  sourceStatus: { systemCatalog: 'loading', templates: 'loading' },
+  featured: [],
+  sourceStatus: {
+    featured: 'loading',
+    systemCatalog: 'loading',
+    templates: 'loading',
+  },
   hasSettled: false,
   selectedCategory: 'all',
   selectedSource: 'all',
@@ -208,13 +224,16 @@ const initialState: PageState = {
   actionError: null,
   isBootstrapping: false,
   installingCanonicalId: null,
+  copyingFeaturedWorkflowId: null,
 };
 
 function settleSource(
   state: PageState,
   source: DataSource,
   status: Exclude<DataSourceStatus, 'loading'>,
-  data: Partial<Pick<PageState, 'systemCatalog' | 'templates'>> = {},
+  data: Partial<
+    Pick<PageState, 'featured' | 'systemCatalog' | 'templates'>
+  > = {},
 ): PageState {
   const sourceStatus = { ...state.sourceStatus, [source]: status };
   return {
@@ -222,7 +241,7 @@ function settleSource(
     ...data,
     hasSettled:
       state.hasSettled ||
-      DATA_SOURCES.every((key) => sourceStatus[key] !== 'loading'),
+      CATALOG_DATA_SOURCES.every((key) => sourceStatus[key] !== 'loading'),
     sourceStatus,
   };
 }
@@ -243,6 +262,10 @@ function pageReducer(state: PageState, action: PageAction): PageState {
     case 'CATALOG_LOADED':
       return settleSource(state, 'systemCatalog', 'ready', {
         systemCatalog: action.systemCatalog,
+      });
+    case 'FEATURED_LOADED':
+      return settleSource(state, 'featured', 'ready', {
+        featured: action.featured,
       });
     case 'LOAD_FAILED':
       return settleSource(state, action.source, 'error');
@@ -296,6 +319,18 @@ function pageReducer(state: PageState, action: PageAction): PageState {
         installingCanonicalId: null,
         actionError: action.error,
       };
+    case 'COPY_FEATURED_START':
+      return {
+        ...state,
+        copyingFeaturedWorkflowId: action.workflowId,
+        actionError: null,
+      };
+    case 'COPY_FEATURED_ERROR':
+      return {
+        ...state,
+        copyingFeaturedWorkflowId: null,
+        actionError: action.error,
+      };
     default:
       return state;
   }
@@ -310,6 +345,12 @@ async function fetchDataSource(
     return {
       templates: await service.listTemplates(),
       type: 'TEMPLATES_LOADED',
+    };
+  }
+  if (source === 'featured') {
+    return {
+      featured: await service.listFeatured(),
+      type: 'FEATURED_LOADED',
     };
   }
   const catalog = await service.listSystemCatalog();
@@ -383,7 +424,6 @@ function buildCatalogItems({
     changeSummary: template.changeSummary,
     description: template.description,
     edges: template.edges,
-    featuredRank: template.featuredRank,
     href: href(
       `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
     ),
@@ -397,12 +437,24 @@ function buildCatalogItems({
   return [...catalogItems, ...templateItems];
 }
 
-/** Featured uses the curated showcase only; system workflows are never featured. */
-function selectFeaturedItems(items: CatalogItem[]): CatalogItem[] {
-  return items
-    .filter((item) => !item.systemEntry && Number.isFinite(item.featuredRank))
-    .sort((left, right) => (left.featuredRank ?? 0) - (right.featuredRank ?? 0))
-    .slice(0, FEATURED_TEMPLATE_LIMIT);
+/**
+ * Featured is the admin-pinned workflows (#5511), already in pin order. With
+ * nothing pinned the row is empty and the section hides itself.
+ */
+function buildFeaturedItems(
+  featured: FeaturedWorkflow[],
+  untitledLabel: string,
+): CatalogItem[] {
+  return featured.map((workflow) => ({
+    description: workflow.description ?? '',
+    edges: workflow.edges,
+    featuredWorkflowId: workflow.id,
+    id: `featured-${workflow.id}`,
+    nodes: workflow.nodes,
+    source: 'available',
+    thumbnail: workflow.thumbnail,
+    title: workflow.label ?? untitledLabel,
+  }));
 }
 
 function buildTypeTiles(
@@ -411,7 +463,9 @@ function buildTypeTiles(
 ): TypeTile[] {
   const counts = new Map<string, number>();
   for (const item of items) {
-    counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    if (item.category) {
+      counts.set(item.category, (counts.get(item.category) ?? 0) + 1);
+    }
   }
   return [...counts.entries()]
     .map(([id, count]) => ({
@@ -460,6 +514,7 @@ function WorkflowTemplatesPageContent() {
   const {
     templates,
     systemCatalog,
+    featured,
     sourceStatus,
     hasSettled,
     selectedCategory,
@@ -468,6 +523,7 @@ function WorkflowTemplatesPageContent() {
     actionError,
     isBootstrapping,
     installingCanonicalId,
+    copyingFeaturedWorkflowId,
   } = state;
 
   const mountedRef = useRef(true);
@@ -489,6 +545,7 @@ function WorkflowTemplatesPageContent() {
    * for a source, made in the current auth scope, may write its state.
    */
   const requestGenerationRef = useRef<Record<DataSource, number>>({
+    featured: 0,
     systemCatalog: 0,
     templates: 0,
   });
@@ -574,7 +631,7 @@ function WorkflowTemplatesPageContent() {
   const hrefRef = useRef(href);
   hrefRef.current = href;
 
-  const isAnySourceLoading = DATA_SOURCES.some(
+  const isAnySourceLoading = CATALOG_DATA_SOURCES.some(
     (source) => sourceStatus[source] === 'loading',
   );
   // The catalog decides between installing an official workflow and
@@ -736,6 +793,35 @@ function WorkflowTemplatesPageContent() {
     [getService, href, replace],
   );
 
+  /**
+   * "Use" on a Featured workflow (#5511): copies it into this organization as
+   * a new draft and opens the copy. The pinned source is never modified.
+   */
+  const copyFeaturedWorkflow = useCallback(
+    async (workflowId: string) => {
+      dispatch({ type: 'COPY_FEATURED_START', workflowId });
+
+      try {
+        const service = await getService();
+        const workflow = await service.copyFeatured(workflowId);
+        replace(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${workflow.id}`));
+      } catch (err) {
+        logger.error('Failed to use featured workflow', {
+          error: err,
+          workflowId,
+        });
+        dispatch({
+          type: 'COPY_FEATURED_ERROR',
+          error: {
+            detail: err instanceof Error ? err.message : undefined,
+            key: 'copyFeatured',
+          },
+        });
+      }
+    },
+    [getService, href, replace],
+  );
+
   const catalogItems = useMemo(
     () =>
       buildCatalogItems({
@@ -757,8 +843,8 @@ function WorkflowTemplatesPageContent() {
   );
 
   const featuredItems = useMemo(
-    () => selectFeaturedItems(catalogItems),
-    [catalogItems],
+    () => buildFeaturedItems(featured, translate('untitledWorkflow')),
+    [featured, translate],
   );
 
   const typeTiles = useMemo(
@@ -766,11 +852,11 @@ function WorkflowTemplatesPageContent() {
     [catalogItems, translate],
   );
 
-  const failedSources = DATA_SOURCES.filter(
+  const failedSources = CATALOG_DATA_SOURCES.filter(
     (source) => sourceStatus[source] === 'error',
   );
-  const isTemplatesLoading = sourceStatus.templates === 'loading';
-  const isFeaturedLoading = isBootstrapping || isTemplatesLoading;
+  const isFeaturedLoading =
+    isBootstrapping || sourceStatus.featured === 'loading';
   // A retry keeps whatever already loaded on screen; only an empty All
   // falls back to skeletons while a request is in flight.
   const isAllLoading =
@@ -786,7 +872,7 @@ function WorkflowTemplatesPageContent() {
   function factsLine(item: CatalogItem): string {
     return [
       sourceLabel(item.source),
-      categoryLabel(item.category, translate),
+      item.category ? categoryLabel(item.category, translate) : null,
       cadenceLabel(item.schedule, translate),
     ]
       .filter(Boolean)
@@ -797,9 +883,14 @@ function WorkflowTemplatesPageContent() {
     if (sources.length > 1) {
       return translate('errors.load');
     }
-    return sources[0] === 'templates'
-      ? translate('errors.loadTemplates')
-      : translate('errors.loadCatalog');
+    switch (sources[0]) {
+      case 'featured':
+        return translate('errors.loadFeatured');
+      case 'templates':
+        return translate('errors.loadTemplates');
+      default:
+        return translate('errors.loadCatalog');
+    }
   }
 
   function renderLoadError(sources: readonly DataSource[]) {
@@ -818,6 +909,23 @@ function WorkflowTemplatesPageContent() {
   }
 
   function renderPrimaryAction(item: CatalogItem) {
+    const { featuredWorkflowId } = item;
+    if (featuredWorkflowId) {
+      const isCopying = featuredWorkflowId === copyingFeaturedWorkflowId;
+      return (
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          size={ButtonSize.SM}
+          disabled={isCopying}
+          onClick={() => void copyFeaturedWorkflow(featuredWorkflowId)}
+        >
+          {isCopying
+            ? translate('actions.copying')
+            : translate('actions.useTemplate')}
+        </Button>
+      );
+    }
+
     if (item.href) {
       return (
         <Button
@@ -871,6 +979,21 @@ function WorkflowTemplatesPageContent() {
     }
 
     return actions;
+  }
+
+  /** The dialog's primary action when it is a command rather than a link. */
+  function detailsInstallAction(
+    item: CatalogItem | null,
+  ): (() => void) | undefined {
+    const featuredWorkflowId = item?.featuredWorkflowId;
+    if (featuredWorkflowId) {
+      return () => void copyFeaturedWorkflow(featuredWorkflowId);
+    }
+    const entry = item?.systemEntry;
+    if (entry && !item?.href) {
+      return () => void installSystemEntry(entry, true);
+    }
+    return undefined;
   }
 
   function renderItemActions(item: CatalogItem) {
@@ -983,8 +1106,8 @@ function WorkflowTemplatesPageContent() {
           itemCount={isFeaturedLoading ? 0 : featuredItems.length}
           error={
             // Held while a template bootstraps; the page is about to leave.
-            !isBootstrapping && sourceStatus.templates === 'error'
-              ? renderLoadError(['templates'])
+            !isBootstrapping && sourceStatus.featured === 'error'
+              ? renderLoadError(['featured'])
               : undefined
           }
           data-testid="templates-featured-section"
@@ -1148,26 +1271,20 @@ function WorkflowTemplatesPageContent() {
       <WorkflowTemplateDetailsDialog
         actionLabel={translate('actions.useTemplate')}
         categoryLabel={
-          detailsItem ? categoryLabel(detailsItem.category, translate) : ''
+          detailsItem?.category
+            ? categoryLabel(detailsItem.category, translate)
+            : ''
         }
         changeSummary={detailsItem?.changeSummary}
         description={detailsItem?.description ?? ''}
         href={detailsItem?.href}
         isInstalling={
-          detailsItem?.systemEntry?.canonicalId === installingCanonicalId
+          detailsItem?.featuredWorkflowId
+            ? detailsItem.featuredWorkflowId === copyingFeaturedWorkflowId
+            : detailsItem?.systemEntry?.canonicalId === installingCanonicalId
         }
         isOpen={detailsItem !== null}
-        onInstall={
-          detailsItem?.systemEntry && !detailsItem.href
-            ? () => {
-                const entry = detailsItem.systemEntry;
-                if (!entry) {
-                  return;
-                }
-                void installSystemEntry(entry, true);
-              }
-            : undefined
-        }
+        onInstall={detailsInstallAction(detailsItem)}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
             setDetailsItem(null);

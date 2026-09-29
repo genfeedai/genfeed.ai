@@ -63,6 +63,7 @@ export * from './auth/role.interface';
 export * from './automation/calendar-event.interface';
 export * from './automation/clip-chain-identity.interface';
 export * from './automation/content-delivery-workflow.interface';
+export * from './automation/featured-workflow.interface';
 export * from './automation/metadata.interface';
 export * from './automation/setting.interface';
 export * from './automation/setting-option.interface';

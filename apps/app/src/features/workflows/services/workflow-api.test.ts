@@ -852,19 +852,25 @@ describe('WorkflowApiService', () => {
     });
   });
 
-  it('passes the showcase featuredRank through on templates', async () => {
-    mocks.get.mockResolvedValueOnce({
-      data: {
-        data: [
-          { featuredRank: 1, id: 'founder-x-thread' },
-          { id: 'launch-kit' },
-        ],
-      },
+  it('lists the pinned Featured workflows in pin order (#5511)', async () => {
+    const featured = [
+      { featuredRank: 1, id: 'wf-b', label: 'B' },
+      { featuredRank: 2, id: 'wf-a', label: 'A' },
+    ];
+    mocks.get.mockResolvedValueOnce({ data: { data: featured } });
+
+    await expect(service().listFeatured()).resolves.toEqual(featured);
+    expect(mocks.get).toHaveBeenCalledWith('/featured');
+  });
+
+  it('copies a Featured workflow into the active organization (#5511)', async () => {
+    mocks.post.mockResolvedValueOnce({ data: { data: workflow() } });
+
+    await service().copyFeatured('wf-pinned');
+
+    expect(mocks.post).toHaveBeenCalledWith('', {
+      sourceType: 'featured-workflow',
+      sourceWorkflowId: 'wf-pinned',
     });
-
-    const templates = await service().listTemplates();
-
-    expect(templates[0]?.featuredRank).toBe(1);
-    expect(templates[1]?.featuredRank).toBeUndefined();
   });
 });

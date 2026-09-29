@@ -296,9 +296,14 @@ export default function PlatformSettingsPage() {
     }
 
     setIsSaving(true);
-    // Module and feature flags are edited on Admin → Flags (#5468); resending
-    // the copy loaded here would undo a flag switched there meanwhile.
-    const { flags: _flagsEditedElsewhere, ...switches } = featureSettings;
+    // Module and feature flags are edited on Admin → Flags (#5468) and
+    // Featured pins on Admin → Automation → Workflows (#5511); resending the
+    // copy loaded here would undo a change made there meanwhile.
+    const {
+      featuredWorkflowIds: _pinsEditedElsewhere,
+      flags: _flagsEditedElsewhere,
+      ...switches
+    } = featureSettings;
 
     try {
       const service = await getPlatformSettingsService();

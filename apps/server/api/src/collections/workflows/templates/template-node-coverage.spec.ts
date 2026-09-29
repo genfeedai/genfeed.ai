@@ -1,8 +1,6 @@
 import { getNodeDefinition } from '@api/collections/workflows/registry/node-registry-adapter';
-import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-  WORKFLOW_TEMPLATES,
-} from '@api/collections/workflows/templates/workflow-templates';
+import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { getActionDefinition } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
 
@@ -133,7 +131,7 @@ describe('workflow template wiring guard (#5533)', () => {
   });
 
   it('keeps every showcase template off the known-defect baselines', () => {
-    const showcaseIds = new Set<string>(SHOWCASE_WORKFLOW_TEMPLATE_IDS);
+    const showcaseIds = new Set<string>(ENGINE_VERIFIED_TEMPLATE_IDS);
     const baselinedShowcase = [
       ...KNOWN_UNRESOLVED_SOURCE_HANDLES,
       ...KNOWN_UNDECLARED_PLACEHOLDERS,

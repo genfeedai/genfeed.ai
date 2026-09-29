@@ -173,7 +173,6 @@
     "apps/app/app/(protected)/admin/automation/trainings/[id]/sources/training-sources-tab.tsx": 1,
     "apps/app/app/(protected)/admin/automation/trainings/[id]/training-detail.tsx": 10,
     "apps/app/app/(protected)/admin/automation/trainings/admin-trainings-page.tsx": 2,
-    "apps/app/app/(protected)/admin/automation/workflows/workflows-page.tsx": 7,
     "apps/app/app/(protected)/admin/configuration/elements/blacklists/blacklists-list.tsx": 8,
     "apps/app/app/(protected)/admin/configuration/elements/camera-movements/camera-movements-list.tsx": 6,
     "apps/app/app/(protected)/admin/configuration/elements/cameras/cameras-list.tsx": 6,

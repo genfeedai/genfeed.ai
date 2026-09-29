@@ -4778,7 +4778,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'untrustedContentMinConfidence',
       'updatedAt',
     ],
-    listFields: [],
+    listFields: ['featuredWorkflowIds'],
     enumFields: {
       marginInputMode: { enumType: 'MarginInputMode', isRequired: true },
     },
