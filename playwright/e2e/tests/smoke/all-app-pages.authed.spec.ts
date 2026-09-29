@@ -63,7 +63,7 @@ function buildProtectedRoutes(orgSlug: string, brandSlug: string): string[] {
     createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.AUTOMATION.WORKFLOWS),
     createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.ROOT),
     createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.TASKS),
-    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.STUDIO.EDIT),
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.STUDIO.EDITOR),
     createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.ROOT),
   ];
 }

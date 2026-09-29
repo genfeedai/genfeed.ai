@@ -5,8 +5,8 @@
  * `lg` control inside an `md` container makes the inner corner bulge — pick the
  * step *below* the parent for anything inset by a single padding step.
  *
- * `card` is deliberately sharp. That is a brand decision, not an oversight:
- * cards separate by plane and hairline, not by rounding.
+ * `card` matches the workspace content panel (`lg`), so a card sitting in the
+ * panel reads as part of the same rounded surface.
  */
 export type RadiusTokenName =
   | 'none'
@@ -25,7 +25,7 @@ export type RadiusTokenName =
 export const radiusTokens = {
   '2xl': '12px',
   '3xl': '16px',
-  card: '0px',
+  card: '8px',
   full: '9999px',
   lg: '8px',
   md: '6px',

@@ -151,7 +151,7 @@ export default function AppLayout({
                     <div
                       // The drawer starts under the fixed topbar (z-50), so the
                       // rail begins below that band or its first app is hidden.
-                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col pt-12"
+                      className="flex h-full w-[var(--desktop-rail-width)] shrink-0 flex-col bg-foreground/[0.04] pt-12"
                       data-testid="mobile-app-rail"
                     >
                       {mobileRailContent}
@@ -175,11 +175,12 @@ export default function AppLayout({
               'relative flex flex-col',
               hasChrome
                 ? cn(
-                    // Codex: the content surface sits one inset below the top
-                    // (so the rail, sidebar header and topbar share a row) and
-                    // runs flush to the right and bottom edges. The docked
-                    // inspector reserves its width inside that surface.
-                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] xl:pr-[var(--workspace-inspector-width,0px)]',
+                    // Codex: the content panel floats one inset from the top,
+                    // right and bottom of the window (so the rail, sidebar
+                    // header and topbar share a row) and bounds the page
+                    // instead of letting it run to the edge. The inspector
+                    // attaches to its right side; its width is reserved here.
+                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))] md:pr-[var(--shell-inset)] md:pb-[var(--shell-inset)] xl:pr-[calc(var(--shell-inset)+var(--workspace-inspector-width,0px))]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -198,9 +199,10 @@ export default function AppLayout({
               className={cn(
                 'flex flex-1 flex-col bg-background',
                 hasChrome &&
-                  // One hairline where the content meets the chrome: the
-                  // sidebar edge and the top, rounded where they meet.
-                  'md:min-h-0 md:overflow-hidden md:rounded-tl-lg md:border-t md:border-l md:border-border',
+                  // The content panel: bordered and rounded on every side. With
+                  // the inspector open it stays bordered on the right (the
+                  // divider) but squares that edge to meet the inspector.
+                  'md:min-h-0 md:overflow-hidden md:rounded-lg md:border md:border-border xl:[[data-inspector-open=true]_&]:rounded-r-none',
               )}
             >
               {topbarContent ? (

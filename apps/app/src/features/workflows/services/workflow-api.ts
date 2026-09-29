@@ -1,7 +1,10 @@
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type { IPaginationParams } from '@genfeedai/contracts/interfaces';
-import { getSystemWorkflowMetadata } from '@genfeedai/contracts/interfaces';
+import {
+  getSystemWorkflowMetadata,
+  parseWorkflowTemplateExampleOutput,
+} from '@genfeedai/contracts/interfaces';
 import {
   deserializeCollection,
   deserializeResource,
@@ -542,7 +545,9 @@ export class WorkflowApiService extends HTTPBaseService {
       const response = await this.instance.get<{ data: WorkflowTemplate[] }>(
         '/templates',
       );
-      return response.data.data;
+      return response.data.data.map((template) =>
+        this.normalizeTemplateExampleOutput(template),
+      );
     } catch (error) {
       logger.error('Failed to list workflow templates', { error });
       throw error;
@@ -645,6 +650,24 @@ export class WorkflowApiService extends HTTPBaseService {
     };
   }
 
+  /** A malformed example output falls back to the graph preview. */
+  private parseExampleOutputField(
+    value: unknown,
+  ): Pick<WorkflowTemplate, 'exampleOutput'> {
+    const exampleOutput = parseWorkflowTemplateExampleOutput(value);
+    return exampleOutput ? { exampleOutput } : {};
+  }
+
+  private normalizeTemplateExampleOutput(
+    template: WorkflowTemplate,
+  ): WorkflowTemplate {
+    if (template.exampleOutput === undefined) {
+      return template;
+    }
+    const { exampleOutput, ...rest } = template;
+    return { ...rest, ...this.parseExampleOutputField(exampleOutput) };
+  }
+
   /**
    * Map the plain catalog list payload into a stable client shape.
    * Preserves `installed` / `installedWorkflowId` even if a field is missing
@@ -691,6 +714,7 @@ export class WorkflowApiService extends HTTPBaseService {
               : '',
           description:
             typeof record.description === 'string' ? record.description : '',
+          ...this.parseExampleOutputField(record.exampleOutput),
           family: typeof record.family === 'string' ? record.family : 'product',
           ...(typeof record.icon === 'string' ? { icon: record.icon } : {}),
           installable: record.installable !== false,

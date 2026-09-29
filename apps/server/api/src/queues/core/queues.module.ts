@@ -16,6 +16,7 @@ import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queu
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { WorkspaceTaskWorkflowQueueService } from '@api/services/task-orchestration/workspace-task-workflow-queue.service';
 import {
+  AGENT_TURN_QUEUE,
   DEFAULT_QUEUE,
   HEYGEN_POLL_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
@@ -90,6 +91,16 @@ import { Module } from '@nestjs/common';
           removeOnFail: 50,
         },
         name: WORKFLOW_BACKGROUND_QUEUE,
+      },
+      // Live agent-conversation turns only (#5622): nothing else produces to
+      // this queue, so no other producer can backlog a turn a user is waiting on.
+      {
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: AGENT_TURN_QUEUE,
       },
       {
         defaultJobOptions: {

@@ -13,6 +13,7 @@ import {
   upsertRuntimeBinding,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import { AgentThreadStatusPublisherService } from '@api/services/agent-threading/services/agent-thread-status-publisher.service';
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -59,6 +60,17 @@ export interface AppendAgentThreadEventParams {
   eventId?: string;
   occurredAt?: string;
 }
+
+type AppendedAgentThreadEvent =
+  | { event: AgentThreadEventDocument; isCreated: false }
+  | {
+      /** The snapshot the appended event produced. */
+      after: AgentThreadSnapshotDocument;
+      /** The snapshot before the event was applied. */
+      before: AgentThreadSnapshotDocument;
+      event: AgentThreadEventDocument;
+      isCreated: true;
+    };
 
 export interface ResolveAgentInputRequestParams {
   brandId?: string;
@@ -184,6 +196,8 @@ export class AgentThreadEngineService {
     private readonly loggerService: LoggerService,
     @Optional()
     private readonly threadContextCompressorService?: ThreadContextCompressorService,
+    @Optional()
+    private readonly threadStatusPublisher?: AgentThreadStatusPublisherService,
   ) {}
 
   private optionalString(value: string | null | undefined): string | undefined {
@@ -216,6 +230,15 @@ export class AgentThreadEngineService {
             params.organizationId,
             params.threadId,
           );
+          // Every state change of a thread — user turn, workflow, schedule,
+          // recovery — is recorded through here, so this is where a status
+          // change is published (#5636).
+          await this.threadStatusPublisher?.publishIfChanged({
+            after: appended.after,
+            before: appended.before,
+            organizationId: params.organizationId,
+            threadId: params.threadId,
+          });
         }
         return appended.event;
       } catch (error: unknown) {
@@ -242,7 +265,7 @@ export class AgentThreadEngineService {
     tx: Prisma.TransactionClient,
     params: AppendAgentThreadEventParams,
     thread: { source?: string; status?: string; title?: string },
-  ): Promise<{ event: AgentThreadEventDocument; isCreated: boolean }> {
+  ): Promise<AppendedAgentThreadEvent> {
     const existingRow = await tx.agentThreadEvent.findFirst({
       where: scopedWhere(params.organizationId, {
         commandId: params.commandId,
@@ -320,22 +343,33 @@ export class AgentThreadEngineService {
       ),
       event,
     );
+    const nextSnapshotData = {
+      ...snapshotData,
+      ...projected,
+      lastSequence: sequence,
+      source: thread.source,
+      threadStatus: thread.status,
+      title: thread.title,
+    };
     await tx.agentThreadSnapshot.update({
       where: scopedWhere(params.organizationId, { id: snapshotRow.id }),
       data: {
-        data: toPrismaJson({
-          ...snapshotData,
-          ...projected,
-          lastSequence: sequence,
-          source: thread.source,
-          threadStatus: thread.status,
-          title: thread.title,
-        }),
+        data: toPrismaJson(nextSnapshotData),
         updatedAt: new Date(),
       },
     });
 
-    return { event, isCreated: true };
+    return {
+      after: toPrismaSnapshotDocument({
+        ...(snapshotRow as unknown as Record<string, unknown>),
+        data: nextSnapshotData,
+      }),
+      before: toPrismaSnapshotDocument(
+        snapshotRow as unknown as Record<string, unknown>,
+      ),
+      event,
+      isCreated: true,
+    };
   }
 
   async listEvents(

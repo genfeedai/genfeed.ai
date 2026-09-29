@@ -412,19 +412,34 @@ export default function IngredientsListContent({
     [onSetIngredients, onReprompt, translateRetry],
   );
 
-  const handleMediaClick = useCallback(
+  const openIngredientPreview = useCallback(
     (ingredient: IIngredient) => {
-      if (scope === PageScope.SUPERADMIN) {
-        return;
-      }
-
       const opened = onOpenLightbox(ingredient);
 
       if (!opened) {
         onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
       }
     },
-    [onOpenIngredientModal, onOpenLightbox, scope],
+    [onOpenIngredientModal, onOpenLightbox],
+  );
+
+  // A brand Library shows the selected asset in the workspace sidebar, so a
+  // click inspects it there and the sidebar preview opens the lightbox. Other
+  // scopes have no sidebar and keep opening the preview straight away.
+  const handleMediaClick = useCallback(
+    (ingredient: IIngredient) => {
+      if (scope === PageScope.SUPERADMIN) {
+        return;
+      }
+
+      if (scope === PageScope.BRAND) {
+        onSelectionChange([ingredient.id]);
+        return;
+      }
+
+      openIngredientPreview(ingredient);
+    },
+    [onSelectionChange, openIngredientPreview, scope],
   );
 
   const handleToggleSelection = useCallback(
@@ -666,8 +681,11 @@ export default function IngredientsListContent({
    * library surface adapter reads it back and renders the asset into the
    * context sidebar, so the canvas never carries a second inspector.
    */
-  const { selectedIngredient: publishedIngredient, setSelectedAsset } =
-    useAssetSelection();
+  const {
+    lightboxRequestCount,
+    selectedIngredient: publishedIngredient,
+    setSelectedAsset,
+  } = useAssetSelection();
   const confirmedPublishedIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -696,6 +714,19 @@ export default function IngredientsListContent({
       onSelectionChange([]);
     }
   }, [inspectedIngredient, onSelectionChange, publishedIngredient]);
+
+  // The sidebar preview asks for the lightbox by bumping a counter; a request
+  // that predates this grid's mount is not ours to honor.
+  const handledLightboxRequestRef = useRef(lightboxRequestCount);
+  useEffect(() => {
+    if (lightboxRequestCount === handledLightboxRequestRef.current) {
+      return;
+    }
+    handledLightboxRequestRef.current = lightboxRequestCount;
+    if (inspectedIngredient) {
+      openIngredientPreview(inspectedIngredient);
+    }
+  }, [inspectedIngredient, lightboxRequestCount, openIngredientPreview]);
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.
