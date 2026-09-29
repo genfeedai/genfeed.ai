@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
@@ -12,14 +12,14 @@ import type {
   OAuthDecisionResponse,
 } from '@props/auth/oauth-consent-content.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import Card from '@ui/card/Card';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
-import { Lock } from 'lucide-react';
+import { ArrowUpRight, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { redirectToOAuthClient } from './redirect';
 
 function getRequestedScopeLabels(scope: string | null): string[] {
@@ -55,6 +55,7 @@ export default function OAuthConsentContent() {
   const [consentState, setConsentState] = useState<ConsentState>({
     error: null,
     isSubmitting: false,
+    result: null,
   });
 
   const callbackPath = `/oauth/consent?${searchParams.toString()}`;
@@ -84,11 +85,23 @@ export default function OAuthConsentContent() {
     [],
   );
 
+  // Returning from a native app via the back/forward cache restores this page
+  // frozen in its last state; unlock it so the request can be reviewed again.
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent): void {
+      if (event.persisted) {
+        setConsentState({ error: null, isSubmitting: false, result: null });
+      }
+    }
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
+
   async function submitDecision(approved: boolean): Promise<void> {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
-    setConsentState({ error: null, isSubmitting: true });
+    setConsentState({ error: null, isSubmitting: true, result: null });
 
     try {
       const token = await resolveAuthToken(getToken);
@@ -126,6 +139,14 @@ export default function OAuthConsentContent() {
             'The authorization request could not be completed.',
         );
       }
+      setConsentState({
+        error: null,
+        isSubmitting: false,
+        result: {
+          decision: approved ? 'approved' : 'denied',
+          redirectUrl: data.redirectUrl,
+        },
+      });
       redirectToOAuthClient(data.redirectUrl);
     } catch (error: unknown) {
       if (controller.signal.aborted) {
@@ -137,6 +158,7 @@ export default function OAuthConsentContent() {
             ? error.message
             : 'The authorization request could not be completed.',
         isSubmitting: false,
+        result: null,
       });
     }
   }
@@ -145,96 +167,119 @@ export default function OAuthConsentContent() {
     return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
   }
 
-  return (
-    <AuthFormLayout>
-      <div className="mx-auto w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mb-5 inline-flex size-12 items-center justify-center rounded-xl border border-border bg-background-tertiary">
-            <Lock className="size-5 text-muted-foreground" />
-          </div>
-          <h1 className="mb-1.5 text-xl font-semibold tracking-tight text-balance">
-            Authorize Genfeed access
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Review what this client can access before continuing.
-          </p>
-        </div>
+  const { result } = consentState;
 
-        <Card className="border-transparent shadow-border">
-          <CardContent className="space-y-6 p-8">
-            {!hasRequiredParams ? (
-              <div className="space-y-2 text-center">
-                <h2 className="font-semibold">Invalid authorization request</h2>
-                <p className="text-sm text-muted-foreground">
-                  Required OAuth parameters are missing. Restart the connection
-                  from your MCP client.
+  return (
+    <AuthFormLayout
+      description="Review what this client can access before continuing."
+      logoSize="compact"
+      title="Authorize Genfeed access"
+    >
+      <div className="space-y-6">
+        {!hasRequiredParams ? (
+          <div className="space-y-2">
+            <h2 className="font-semibold">Invalid authorization request</h2>
+            <p className="text-sm text-muted-foreground">
+              Required OAuth parameters are missing. Restart the connection from
+              your MCP client.
+            </p>
+          </div>
+        ) : !isSignedIn ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h2 className="font-semibold">Sign in required</h2>
+              <p className="text-sm text-muted-foreground">
+                Sign in to review and authorize this connection.
+              </p>
+            </div>
+            <Button asChild className="w-full" withWrapper={false}>
+              <Link href={loginHref}>Sign in to continue</Link>
+            </Button>
+          </div>
+        ) : result ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h2 className="font-semibold">
+                {result.decision === 'approved'
+                  ? 'Authorization sent'
+                  : 'Access denied'}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Return to {clientName} to continue. You can close this tab.
+              </p>
+            </div>
+            <Button asChild className="w-full" withWrapper={false}>
+              <a href={result.redirectUrl}>
+                Return to {clientName}
+                <ArrowUpRight className="size-4" />
+              </a>
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Card
+              bodyClassName="flex-row items-start gap-3 p-4"
+              variant={CardVariant.BORDERED}
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-background">
+                <Lock className="size-4 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Requesting client
+                </p>
+                <h2 className="truncate text-base font-semibold">
+                  {clientName}
+                </h2>
+                <p className="truncate text-xs text-muted-foreground">
+                  Returns to {getCallbackHost(redirectUri)}
                 </p>
               </div>
-            ) : !isSignedIn ? (
-              <div className="space-y-4 text-center">
-                <div className="space-y-2">
-                  <h2 className="font-semibold">Sign in required</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Sign in to review and authorize this connection.
-                  </p>
-                </div>
-                <Button asChild className="w-full" withWrapper={false}>
-                  <Link href={loginHref}>Sign in to continue</Link>
-                </Button>
+            </Card>
+
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Wants to access</p>
+              <div className="flex flex-wrap gap-2">
+                {scopeLabels.map((label) => (
+                  <span
+                    className="rounded-full border border-border bg-background-tertiary px-3 py-1 text-xs text-muted-foreground"
+                    key={label}
+                  >
+                    {label}
+                  </span>
+                ))}
               </div>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Requesting client
-                  </p>
-                  <h2 className="text-lg font-semibold">{clientName}</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Returns to {getCallbackHost(redirectUri)}
-                  </p>
-                </div>
+            </div>
 
-                <div className="space-y-3 border-y border-border py-5">
-                  <p className="text-sm font-medium">Wants to access</p>
-                  <div className="flex flex-wrap gap-2">
-                    {scopeLabels.map((label) => (
-                      <span
-                        className="rounded-full border border-border bg-background-tertiary px-3 py-1 text-xs text-muted-foreground"
-                        key={label}
-                      >
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {consentState.error && (
-                  <p className="text-sm text-destructive" role="alert">
-                    {consentState.error}
-                  </p>
-                )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    disabled={consentState.isSubmitting}
-                    variant={ButtonVariant.SECONDARY}
-                    onClick={() => submitDecision(false)}
-                  >
-                    Deny
-                  </Button>
-                  <Button
-                    disabled={consentState.isSubmitting}
-                    onClick={() => submitDecision(true)}
-                  >
-                    {consentState.isSubmitting ? 'Authorizing…' : 'Authorize'}
-                  </Button>
-                </div>
-              </>
+            {consentState.error && (
+              <p className="text-sm text-destructive" role="alert">
+                {consentState.error}
+              </p>
             )}
-          </CardContent>
-        </Card>
 
-        <p className="mt-5 text-center text-2xs leading-relaxed text-muted-foreground/50">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                className="w-full"
+                disabled={consentState.isSubmitting}
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
+                onClick={() => submitDecision(false)}
+              >
+                Deny
+              </Button>
+              <Button
+                className="w-full"
+                disabled={consentState.isSubmitting}
+                withWrapper={false}
+                onClick={() => submitDecision(true)}
+              >
+                {consentState.isSubmitting ? 'Authorizing…' : 'Authorize'}
+              </Button>
+            </div>
+          </>
+        )}
+
+        <p className="text-center text-2xs leading-relaxed text-muted-foreground/60">
           Access is limited to the Genfeed MCP resource and can be revoked from
           API key settings.
         </p>

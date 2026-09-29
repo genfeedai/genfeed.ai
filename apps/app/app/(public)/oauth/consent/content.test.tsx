@@ -84,11 +84,13 @@ function oauthParams(overrides: Record<string, string> = {}) {
   });
 }
 
-function mockDecisionResponse(): void {
+function mockDecisionResponse(
+  redirectUrl = 'https://claude.ai/oauth/callback?code=one-time',
+): void {
   globalThis.fetch = vi.fn(async () => {
     return new Response(
       JSON.stringify({
-        redirectUrl: 'https://claude.ai/oauth/callback?code=one-time',
+        redirectUrl,
       }),
       { headers: { 'content-type': 'application/json' }, status: 200 },
     );
@@ -196,6 +198,39 @@ describe('OAuthConsentPage', () => {
       });
     },
   );
+
+  it('unlocks the page with a return link after handing off to a native app', async () => {
+    mockDecisionResponse(
+      'claude://claude.ai/mcp-auth-callback/sdk?code=one-time',
+    );
+
+    render(<OAuthConsentPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+
+    const link = await screen.findByRole('link', { name: /Return to/ });
+    expect(link).toHaveAttribute(
+      'href',
+      'claude://claude.ai/mcp-auth-callback/sdk?code=one-time',
+    );
+    expect(screen.queryByRole('button', { name: 'Authorizing…' })).toBeNull();
+  });
+
+  it('resets a frozen submit state when restored from the back/forward cache', async () => {
+    render(<OAuthConsentPage />);
+    globalThis.fetch = vi.fn(() => new Promise(() => {})) as typeof fetch;
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+    expect(
+      await screen.findByRole('button', { name: 'Authorizing…' }),
+    ).toBeDisabled();
+
+    const event = new Event('pageshow') as PageTransitionEvent;
+    Object.defineProperty(event, 'persisted', { value: true });
+    fireEvent(window, event);
+
+    expect(
+      await screen.findByRole('button', { name: 'Authorize' }),
+    ).toBeEnabled();
+  });
 
   it('renders and submits a PKCE-only request that omits state', async () => {
     const params = oauthParams();
