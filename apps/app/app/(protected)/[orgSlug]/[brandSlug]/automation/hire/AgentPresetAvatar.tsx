@@ -146,7 +146,7 @@ export default function AgentPresetAvatar({
         className={cn(
           'size-full rounded-full fill-current',
           brand
-            ? cn(brand.faceClassName, 'text-white')
+            ? cn(brand.faceClassName, 'text-white') // design-system-allow-content-color
             : 'bg-foreground text-background',
         )}
         viewBox="0 0 64 64"
