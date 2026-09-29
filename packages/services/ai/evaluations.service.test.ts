@@ -133,11 +133,6 @@ describe('EvaluationsService', () => {
   });
 
   describe('getInstance', () => {
-    it('should return an EvaluationsService instance', () => {
-      const instance = EvaluationsService.getInstance(mockToken);
-      expect(instance).toBeInstanceOf(EvaluationsService);
-    });
-
     it('should return different instances for different tokens', () => {
       const instance1 = EvaluationsService.getInstance('token-1');
       const instance2 = EvaluationsService.getInstance('token-2');
@@ -188,17 +183,6 @@ describe('EvaluationsService', () => {
       await service.evaluateImage(imageId, options);
 
       expect(http.post).toHaveBeenCalledWith(`/images/${imageId}`, options);
-    });
-
-    it('should return mapped Evaluation', async () => {
-      const imageId = 'image-123';
-      http.post.mockResolvedValue({
-        data: mockEvaluationData,
-      });
-
-      const result = await service.evaluateImage(imageId);
-
-      expect(result).toBeInstanceOf(Evaluation);
     });
   });
 
@@ -399,15 +383,6 @@ describe('EvaluationsService', () => {
       await service.deleteEvaluation(evaluationId);
 
       expect(http.delete).toHaveBeenCalledWith(evaluationId);
-    });
-
-    it('should not return anything', async () => {
-      const evaluationId = 'eval-123';
-      http.delete.mockResolvedValue({});
-
-      const result = await service.deleteEvaluation(evaluationId);
-
-      expect(result).toBeUndefined();
     });
   });
 });

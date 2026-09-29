@@ -20,16 +20,6 @@ describe('usePagination', () => {
     expect(result.current).toHaveProperty('hasPrevious');
   });
 
-  it('sets total pages dynamically', () => {
-    const { result } = renderHook(() => usePagination({ pageSize: 10 }));
-
-    act(() => {
-      result.current.setTotalPages(10);
-    });
-
-    expect(result.current.totalPages).toBe(10);
-  });
-
   it('handles page navigation', () => {
     const { result } = renderHook(() => usePagination({ pageSize: 10 }));
 
@@ -51,18 +41,5 @@ describe('usePagination', () => {
     expect(result.current.currentPage).toBe(1);
     expect(result.current.pageSize).toBe(24);
     expect(result.current.totalPages).toBe(1);
-  });
-
-  it('respects initialPage option', () => {
-    const { result } = renderHook(() =>
-      usePagination({ initialPage: 5, pageSize: 10 }),
-    );
-
-    // Need to set total pages to make initialPage valid
-    act(() => {
-      result.current.setTotalPages(10);
-    });
-
-    expect(result.current.currentPage).toBe(5);
   });
 });

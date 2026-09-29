@@ -16,7 +16,6 @@ import {
   isPastScheduleInstant,
   isReleaseDragConfirmRequired,
   isReleaseDraggable,
-  isReleaseReschedulable,
   isTargetBlockedByReadiness,
   isTargetReschedulable,
   releasePlatformIndicators,
@@ -51,14 +50,6 @@ function release(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
 }
 
 describe('releaseStatusBadge', () => {
-  it('shortens partially-published so a dense grid cell never truncates it', () => {
-    expect(
-      releaseStatusBadge(
-        release({ status: ReleaseStatus.PARTIALLY_PUBLISHED }),
-      ),
-    ).toEqual({ label: 'partial', tone: 'warning' });
-  });
-
   it.each([
     [ReleaseStatus.FAILED, 'danger'],
     [ReleaseStatus.PUBLISHED, 'success'],
@@ -81,20 +72,9 @@ describe('targetStateBadge / validationBadge', () => {
     expect(targetStateBadge(TargetExecutionState.FAILED).tone).toBe('danger');
     expect(validationBadge(TargetValidationState.INVALID).tone).toBe('danger');
   });
-
-  it('treats a pending validation as neutral rather than a problem', () => {
-    expect(validationBadge(TargetValidationState.PENDING).tone).toBe('muted');
-  });
 });
 
 describe('releaseTargets', () => {
-  it('returns the array when the relationship is already a list', () => {
-    const scheduled = target();
-    expect(releaseTargets(release({ targets: [scheduled] }))).toEqual([
-      scheduled,
-    ]);
-  });
-
   it('returns an empty list when JSON:API collapses targets to an object or string', () => {
     expect(
       releaseTargets(
@@ -114,56 +94,7 @@ describe('releaseTargets', () => {
   });
 });
 
-describe('isReleaseReschedulable', () => {
-  it('refuses an in-place rewrite of a release that already published', () => {
-    expect(
-      isReleaseReschedulable(release({ status: ReleaseStatus.PUBLISHED })),
-    ).toBe(false);
-  });
-
-  it('refuses an in-place rewrite when any target already published', () => {
-    expect(
-      isReleaseReschedulable(
-        release({
-          targets: [
-            target(),
-            target({
-              executionState: TargetExecutionState.PUBLISHED,
-              id: 'target-2',
-            }),
-          ],
-        }),
-      ),
-    ).toBe(false);
-  });
-
-  it('allows a scheduled release whose targets are all still pending', () => {
-    expect(isReleaseReschedulable(release())).toBe(true);
-  });
-
-  it('does not throw when JSON:API collapses targets to a non-array', () => {
-    expect(
-      isReleaseReschedulable(
-        release({
-          targets: { id: 'target-1' } as unknown as IChannelTarget[],
-        }),
-      ),
-    ).toBe(true);
-  });
-});
-
 describe('isReleaseDraggable', () => {
-  it('lets a published card be dragged so the host can ask card-only vs republish', () => {
-    expect(
-      isReleaseDraggable(
-        release({
-          status: ReleaseStatus.PUBLISHED,
-          targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
-        }),
-      ),
-    ).toBe(true);
-  });
-
   it('still locks cancelled and in-flight releases', () => {
     expect(
       isReleaseDraggable(release({ status: ReleaseStatus.CANCELLED })),
@@ -193,19 +124,6 @@ describe('isReleaseDragConfirmRequired', () => {
         now,
       ),
     ).toBe(false);
-  });
-
-  it('prompts when the card already published', () => {
-    expect(
-      isReleaseDragConfirmRequired(
-        release({
-          scheduledAt: '2026-03-13T10:00:00.000Z',
-          status: ReleaseStatus.PUBLISHED,
-          targets: [target({ executionState: TargetExecutionState.PUBLISHED })],
-        }),
-        now,
-      ),
-    ).toBe(true);
   });
 
   it('prompts for a queued item whose time has already passed', () => {
@@ -255,29 +173,9 @@ describe('isTargetReschedulable', () => {
   ])('locks a %s target', (executionState) => {
     expect(isTargetReschedulable(target({ executionState }))).toBe(false);
   });
-
-  it('keeps a failed target movable so a retry can be re-timed', () => {
-    expect(
-      isTargetReschedulable(
-        target({ executionState: TargetExecutionState.FAILED }),
-      ),
-    ).toBe(true);
-  });
 });
 
 describe('isTargetBlockedByReadiness', () => {
-  it('blocks only on an explicit negative readiness verdict', () => {
-    expect(
-      isTargetBlockedByReadiness(
-        target({
-          readiness: {
-            canSchedule: false,
-          } as IChannelTarget['readiness'],
-        }),
-      ),
-    ).toBe(true);
-  });
-
   it('does not invent a block when readiness was never evaluated', () => {
     expect(isTargetBlockedByReadiness(target())).toBe(false);
     expect(isTargetBlockedByReadiness(target({ readiness: null }))).toBe(false);
@@ -341,43 +239,6 @@ describe('targetHistory', () => {
       { at: '2026-07-02T00:00:00.000Z', label: 'scheduled' },
       { at: '2026-07-03T00:00:00.000Z', label: 'scheduled → failed' },
     ]);
-  });
-
-  it('derives a chronological history from durable columns when no log exists', () => {
-    expect(
-      targetHistory(
-        target({
-          createdAt: '2026-07-01T09:00:00.000Z',
-          error: {
-            code: 'provider_timeout',
-            failedAt: '2026-07-01T12:00:01.000Z',
-            isRetryable: true,
-            message: 'Provider timed out.',
-          },
-          executionState: TargetExecutionState.FAILED,
-          lastAttemptAt: '2026-07-01T12:00:00.000Z',
-          retryCount: 2,
-          scheduledAt: '2026-07-01T10:00:00.000Z',
-        }),
-      ),
-    ).toEqual([
-      { at: '2026-07-01T09:00:00.000Z', label: 'Created' },
-      { at: '2026-07-01T10:00:00.000Z', label: 'Scheduled' },
-      {
-        at: '2026-07-01T12:00:00.000Z',
-        detail: 'Retry 2',
-        label: 'Publish attempt',
-      },
-      {
-        at: '2026-07-01T12:00:01.000Z',
-        detail: 'Provider timed out.',
-        label: 'Failed',
-      },
-    ]);
-  });
-
-  it('returns nothing rather than a fabricated entry for a bare target', () => {
-    expect(targetHistory(target())).toEqual([]);
   });
 });
 

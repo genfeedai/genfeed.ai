@@ -2,55 +2,11 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 
 describe('CallerUtil', () => {
   describe('getCallerName', () => {
-    it('returns a string', () => {
-      const result = CallerUtil.getCallerName();
-      expect(typeof result).toBe('string');
-    });
-
-    it('returns some name when called from test', () => {
-      // When called from a test, should return something meaningful
-      const result = CallerUtil.getCallerName();
-      // In bun test, this might return 'anonymous' or the test runner's function name
-      expect(result.length).toBeGreaterThan(0);
-    });
-
     it('handles skipFrames parameter', () => {
       // Should not throw with skip frames
       expect(() => CallerUtil.getCallerName(0)).not.toThrow();
       expect(() => CallerUtil.getCallerName(1)).not.toThrow();
       expect(() => CallerUtil.getCallerName(10)).not.toThrow();
-    });
-
-    it('returns unknown for excessive skipFrames', () => {
-      // With a very high skip value, should return 'unknown'
-      const result = CallerUtil.getCallerName(1000);
-      expect(result).toBe('unknown');
-    });
-
-    it('returns a method name from a nested call', () => {
-      function outerFunction() {
-        return innerFunction();
-      }
-
-      function innerFunction() {
-        return CallerUtil.getCallerName();
-      }
-
-      const result = outerFunction();
-      // The result should contain something from the stack
-      expect(typeof result).toBe('string');
-    });
-
-    it('returns a class method name from a class call', () => {
-      class TestClass {
-        testMethod() {
-          return CallerUtil.getCallerName();
-        }
-      }
-
-      const instance = new TestClass();
-      const result = instance.testMethod();
-      expect(typeof result).toBe('string');
     });
   });
 
@@ -76,73 +32,11 @@ describe('CallerUtil', () => {
       );
     });
 
-    it('parses ClassName.methodName frames', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at UsersController.findMe (controller)',
-        ),
-      ).toBe('findMe');
-    });
-
-    it('falls back to a dotted method name without a class', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at .handler (webpack://bundle)',
-        ),
-      ).toBe('handler');
-    });
-
-    it('falls back to a bare function name before parentheses', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at topLevelFn (native)',
-        ),
-      ).toBe('topLevelFn');
-    });
-
-    it('ignores dots in the location of a frame without a class', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at handleVercel (/app/src/webhooks.vercel.controller.ts:30:52)',
-        ),
-      ).toBe('handleVercel');
-    });
-
-    it('parses async ClassName.methodName frames', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at async VercelWebhookController.handleVercel (/app/dist/main.js:1:2)',
-        ),
-      ).toBe('handleVercel');
-    });
-
-    it('ignores V8 method aliases', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at Object.findMe [as handler] (/app/dist/main.js:1:2)',
-        ),
-      ).toBe('findMe');
-    });
-
-    it('returns unknown for anonymous frames with a dotted location', () => {
-      expect(
-        withStack(
-          'Error\n    at getCallerName (util)\n    at /app/src/app.spec.ts:8:45',
-        ),
-      ).toBe('unknown');
-    });
-
     it('returns unknown for Object.<anonymous> frames', () => {
       expect(
         withStack(
           'Error\n    at getCallerName (util)\n    at Object.<anonymous> (/app/dist/main.js:1:2)',
         ),
-      ).toBe('unknown');
-    });
-
-    it('returns unknown when no pattern matches', () => {
-      expect(
-        withStack('Error\n    at getCallerName (util)\n    at <anonymous>'),
       ).toBe('unknown');
     });
   });

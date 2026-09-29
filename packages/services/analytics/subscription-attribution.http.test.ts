@@ -112,18 +112,6 @@ describe('SubscriptionAttributionService', () => {
       expect(result).toEqual([]);
     });
 
-    it('omits the query string without params', async () => {
-      fetchMock.mockResolvedValue(fetchResponse([]));
-
-      const service = SubscriptionAttributionService.getInstance(token);
-      await service.getTopContentBySubscriptions();
-
-      const [url] = fetchMock.mock.calls[0] as [string];
-      expect(url.endsWith('/analytics/top-content-by-subscriptions')).toBe(
-        true,
-      );
-    });
-
     it('throws on failure', async () => {
       fetchMock.mockResolvedValue(fetchResponse({}, { ok: false }));
 

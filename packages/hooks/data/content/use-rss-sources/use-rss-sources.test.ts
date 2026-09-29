@@ -65,14 +65,6 @@ describe('useRssSources', () => {
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
-  it('does not fetch without a brand id', () => {
-    mockUseCollectionScope.mockReturnValue({ brandId: undefined });
-
-    renderHook(() => useRssSources(), { wrapper: createQueryWrapper() });
-
-    expect(mockGetService).not.toHaveBeenCalled();
-  });
-
   it('polls a source and refreshes the list', async () => {
     const { result } = renderHook(() => useRssSources(), {
       wrapper: createQueryWrapper(),

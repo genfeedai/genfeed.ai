@@ -7,10 +7,6 @@ import {
 
 describe('bot-command.enum', () => {
   describe('BotCommandType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(BotCommandType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(BotCommandType.PROMPT_IMAGE).toBe('prompt-image');
       expect(BotCommandType.PROMPT_VIDEO).toBe('prompt-video');
@@ -20,12 +16,6 @@ describe('bot-command.enum', () => {
   });
 
   describe('BotInteractionType', () => {
-    it('should have 5 members', () => {
-      expect(
-        Object.values(BotInteractionType).filter((v) => typeof v === 'number'),
-      ).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(BotInteractionType.PING).toBe(1);
       expect(BotInteractionType.APPLICATION_COMMAND).toBe(2);
@@ -36,12 +26,6 @@ describe('bot-command.enum', () => {
   });
 
   describe('BotResponseType', () => {
-    it('should have 7 members', () => {
-      expect(
-        Object.values(BotResponseType).filter((v) => typeof v === 'number'),
-      ).toHaveLength(7);
-    });
-
     it('should have correct values', () => {
       expect(BotResponseType.PONG).toBe(1);
       expect(BotResponseType.CHANNEL_MESSAGE).toBe(4);

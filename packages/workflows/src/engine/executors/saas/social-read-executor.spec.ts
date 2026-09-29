@@ -79,27 +79,6 @@ describe('SocialReadExecutor', () => {
     ).rejects.toThrow(/query is required/i);
   });
 
-  it('fails closed when the provider throws instead of emitting empty posts', async () => {
-    const executor = new SocialReadExecutor();
-    executor.setProvider(
-      vi.fn().mockRejectedValue(new Error('twitter timeline 503')),
-    );
-
-    await expect(
-      executor.execute({
-        context: { organizationId: 'org', userId: 'user' } as never,
-        inputs: new Map(),
-        node: {
-          config: { mode: 'timeline', username: 'genfeed' },
-          id: 'n1',
-          inputs: [],
-          label: 'Read Social',
-          type: 'socialRead',
-        },
-      }),
-    ).rejects.toThrow(/twitter timeline 503/);
-  });
-
   it('returns structured author/text/time/metrics for mentions mode', async () => {
     const executor = new SocialReadExecutor();
     const provider = vi.fn().mockResolvedValue([

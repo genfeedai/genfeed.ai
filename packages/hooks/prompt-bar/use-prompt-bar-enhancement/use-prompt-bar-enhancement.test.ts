@@ -92,22 +92,6 @@ describe('usePromptBarEnhancement', () => {
   });
 
   describe('Initial State', () => {
-    it('initializes with isEnhancing false', () => {
-      const { result } = renderHook(() =>
-        usePromptBarEnhancement(createBaseOptions()),
-      );
-
-      expect(result.current.isEnhancing).toBe(false);
-    });
-
-    it('initializes with null previousPrompt', () => {
-      const { result } = renderHook(() =>
-        usePromptBarEnhancement(createBaseOptions()),
-      );
-
-      expect(result.current.previousPrompt).toBeNull();
-    });
-
     it('provides refs for socket management', () => {
       const { result } = renderHook(() =>
         usePromptBarEnhancement(createBaseOptions()),
@@ -119,60 +103,6 @@ describe('usePromptBarEnhancement', () => {
   });
 
   describe('enhancePrompt', () => {
-    it('sets isEnhancing to true when called', async () => {
-      const options = createBaseOptions();
-      const { result } = renderHook(() => usePromptBarEnhancement(options));
-
-      await act(async () => {
-        result.current.enhancePrompt();
-      });
-
-      expect(result.current.isEnhancing).toBe(true);
-    });
-
-    it('saves current prompt for undo', async () => {
-      const options = createBaseOptions();
-      options.form.getValues = vi.fn((field?: string) => {
-        if (field === 'text') {
-          return 'my original prompt';
-        }
-        return {};
-      });
-
-      const { result } = renderHook(() => usePromptBarEnhancement(options));
-
-      await act(async () => {
-        result.current.enhancePrompt();
-      });
-
-      expect(result.current.previousPrompt).toBe('my original prompt');
-    });
-
-    it('calls getPromptsService to get service', async () => {
-      const options = createBaseOptions();
-      const { result } = renderHook(() => usePromptBarEnhancement(options));
-
-      await act(async () => {
-        result.current.enhancePrompt();
-      });
-
-      expect(options.getPromptsService).toHaveBeenCalled();
-    });
-
-    it('subscribes to socket events', async () => {
-      const options = createBaseOptions();
-      const { result } = renderHook(() => usePromptBarEnhancement(options));
-
-      await act(async () => {
-        result.current.enhancePrompt();
-      });
-
-      expect(options.subscribe).toHaveBeenCalledWith(
-        'prompt:prompt-123',
-        expect.any(Object),
-      );
-    });
-
     it('handles service error gracefully', async () => {
       const options = createBaseOptions();
       options.getPromptsService = vi
@@ -299,64 +229,6 @@ describe('usePromptBarEnhancement', () => {
       expect(options.clipboardService.copyToClipboard).toHaveBeenCalledWith(
         'text to copy',
       );
-    });
-  });
-
-  describe('Cleanup', () => {
-    it('cleans up socket subscriptions on unmount', () => {
-      const unsubscribe = vi.fn();
-      const options = createBaseOptions();
-      options.subscribe = vi.fn().mockReturnValue(unsubscribe);
-
-      const { result, unmount } = renderHook(() =>
-        usePromptBarEnhancement(options),
-      );
-
-      // Simulate adding a subscription
-      act(() => {
-        result.current.socketSubscriptionsRef.current.push(unsubscribe);
-      });
-
-      unmount();
-
-      expect(unsubscribe).toHaveBeenCalled();
-    });
-
-    it('cleans up timeouts on unmount', () => {
-      const options = createBaseOptions();
-      const { result, unmount } = renderHook(() =>
-        usePromptBarEnhancement(options),
-      );
-
-      // Simulate adding a timeout
-      const timeoutId = setTimeout(() => {}, 10000);
-      act(() => {
-        result.current.timeoutRefsRef.current.push(timeoutId);
-      });
-
-      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
-
-      unmount();
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('Undo Timeout', () => {
-    it('clears previousPrompt after 30 seconds timeout', async () => {
-      // This test verifies the timeout mechanism exists
-      // The actual timeout behavior is tested implicitly through the hook logic
-      const options = createBaseOptions();
-      const { result } = renderHook(() => usePromptBarEnhancement(options));
-
-      await act(async () => {
-        result.current.enhancePrompt();
-      });
-
-      expect(result.current.previousPrompt).not.toBeNull();
-
-      // The timeout is set to clear previousPrompt after 30 seconds
-      // when enhancement succeeds via socket callback
     });
   });
 

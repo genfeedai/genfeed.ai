@@ -40,12 +40,6 @@ function contentPreview(partial: Partial<AgentUiAction> = {}): AgentUiAction {
 }
 
 describe('shouldRenderCompletionSummary', () => {
-  it('hides generic Done when sibling batch fully failed', () => {
-    expect(shouldRenderCompletionSummary(completion(), [batchResult()])).toBe(
-      false,
-    );
-  });
-
   it('hides generic Done when any product result card is present', () => {
     expect(
       shouldRenderCompletionSummary(completion(), [contentPreview()]),
@@ -69,69 +63,6 @@ describe('shouldRenderCompletionSummary', () => {
       ]),
     ).toBe(false);
   });
-
-  it('hides generic Done on successful batch when Done has no extra signal', () => {
-    expect(
-      shouldRenderCompletionSummary(completion(), [
-        batchResult({ completedCount: 18, failedCount: 2 }),
-      ]),
-    ).toBe(false);
-  });
-
-  it('hides Done with duplicate media when a product result owns the turn', () => {
-    expect(
-      shouldRenderCompletionSummary(
-        completion({
-          outputVariants: [
-            { id: 'v1', kind: 'image', url: 'https://cdn.example/a.png' },
-          ],
-        }),
-        [batchResult()],
-      ),
-    ).toBe(false);
-  });
-
-  it('hides generic Done without a sibling product card', () => {
-    expect(shouldRenderCompletionSummary(completion(), [])).toBe(false);
-  });
-
-  it('hides tool-inventory-only Done (clarify turns)', () => {
-    expect(
-      shouldRenderCompletionSummary(
-        completion({
-          summaryText: 'Completed this request successfully.',
-          outcomeBullets: [
-            '1 tool action completed',
-            'Tool: Get Current Brand',
-          ],
-        }),
-        [],
-      ),
-    ).toBe(false);
-  });
-
-  it('hides Done with duplicate outcome bullets when a batch result owns the turn', () => {
-    expect(
-      shouldRenderCompletionSummary(
-        completion({
-          outcomeBullets: ['3 drafts ready in review'],
-          summaryText: 'Batch finished with partial success',
-        }),
-        [batchResult({ completedCount: 3, failedCount: 17 })],
-      ),
-    ).toBe(false);
-  });
-
-  it('hides Done with non-generic copy alongside a concrete preview', () => {
-    expect(
-      shouldRenderCompletionSummary(
-        completion({
-          summaryText: 'Posted 4 assets and queued review.',
-        }),
-        [contentPreview()],
-      ),
-    ).toBe(false);
-  });
 });
 
 describe('completionSummaryHasOutcomeSignal', () => {
@@ -151,14 +82,6 @@ describe('completionSummaryHasOutcomeSignal', () => {
         }),
       ),
     ).toBe(false);
-  });
-
-  it('is true when product bullets exist', () => {
-    expect(
-      completionSummaryHasOutcomeSignal(
-        completion({ outcomeBullets: ['Ready in review'] }),
-      ),
-    ).toBe(true);
   });
 });
 

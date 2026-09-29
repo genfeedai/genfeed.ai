@@ -51,10 +51,4 @@ describe('agent_messages cursor index migrations (#2822)', () => {
     expect(cleanupSql).not.toContain('CONCURRENTLY');
     expect(cleanupSql).not.toMatch(/CREATE\s+INDEX/i);
   });
-
-  it('maps the Prisma index to the replacement database name', () => {
-    expect(schemaSource).toContain(
-      `@@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id(sort: Desc)], map: "${replacementIndexName}")`,
-    );
-  });
 });

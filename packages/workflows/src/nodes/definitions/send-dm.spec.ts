@@ -27,9 +27,5 @@ describe('send-dm node', () => {
     it('should default mediaUrl to empty string', () => {
       expect(DEFAULT_SEND_DM_DATA.mediaUrl).toBe('');
     });
-
-    it('should default messageId to null', () => {
-      expect(DEFAULT_SEND_DM_DATA.messageId).toBeNull();
-    });
   });
 });

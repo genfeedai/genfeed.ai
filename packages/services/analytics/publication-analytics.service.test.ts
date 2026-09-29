@@ -32,20 +32,8 @@ describe('PostAnalyticsService', () => {
     service = new PostAnalyticsService(mockToken);
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(PostAnalyticsService);
-  });
-
-  it('has analytics retrieval method', () => {
-    expect(typeof service.getPostAnalytics).toBe('function');
-  });
-
   it('has analytics refresh methods', () => {
     expect(typeof service.postAnalytics).toBe('function');
     expect(typeof service.postAllAnalytics).toBe('function');
-  });
-
-  it('has getInstance static method', () => {
-    expect(typeof PostAnalyticsService.getInstance).toBe('function');
   });
 });

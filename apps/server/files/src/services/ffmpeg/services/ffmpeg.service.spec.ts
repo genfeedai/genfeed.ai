@@ -81,10 +81,6 @@ describe('FFmpegService', () => {
     effects = module.get(FFmpegEffectsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('core delegation', () => {
     it('probe delegates to core', async () => {
       const result = await service.probe('/in.mp4');

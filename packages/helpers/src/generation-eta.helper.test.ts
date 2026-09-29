@@ -140,17 +140,6 @@ describe('workflow eta helper', () => {
     );
   });
 
-  it('handles skipped nodes when calculating remaining time', () => {
-    const estimate = buildWorkflowEtaSnapshot({
-      completedNodeIds: ['image'],
-      edges: [{ source: 'image', target: 'video' }],
-      nodes,
-      skippedNodeIds: ['article'],
-    });
-
-    expect(estimate.criticalPathNodeIds).toEqual(['video']);
-  });
-
   it('falls back on low confidence when the graph is cyclic', () => {
     const estimate = estimateWorkflowCriticalPath(
       [

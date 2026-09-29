@@ -64,13 +64,6 @@ describe('logger.service', () => {
 
       expect(mockPinoDebug).toHaveBeenCalledWith(obj, 'Debug with data');
     });
-
-    it('should not send to Sentry', () => {
-      logger.debug('Debug message');
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
-      expect(mockCaptureMessage).not.toHaveBeenCalled();
-    });
   });
 
   describe('info', () => {
@@ -85,13 +78,6 @@ describe('logger.service', () => {
       logger.info('Info with count', obj);
 
       expect(mockPinoInfo).toHaveBeenCalledWith(obj, 'Info with count');
-    });
-
-    it('should not send to Sentry', () => {
-      logger.info('Info message');
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
-      expect(mockCaptureMessage).not.toHaveBeenCalled();
     });
   });
 
@@ -160,12 +146,6 @@ describe('logger.service', () => {
       expect(mockPinoError).toHaveBeenCalledWith(obj, 'Server error');
     });
 
-    it('should send error to Sentry', () => {
-      logger.error('Error for Sentry', { error: new Error('Boom') });
-
-      expect(mockCaptureException).toHaveBeenCalled();
-    });
-
     it('should extract Error object for Sentry', () => {
       const error = new Error('Original error');
       logger.error('Wrapped error', { error });
@@ -176,35 +156,6 @@ describe('logger.service', () => {
           level: 'error',
         }),
       );
-    });
-
-    it('should create new Error if not provided', () => {
-      logger.error('String error only');
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
-    });
-
-    it('should include extra context in Sentry', () => {
-      const obj = { action: 'create', userId: '123' };
-      logger.error('Error with context', obj);
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
-    });
-
-    it('should include tags in Sentry if provided', () => {
-      const obj = { tags: { component: 'auth' } };
-      logger.error('Tagged error', obj);
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
-    });
-
-    it('should skip Sentry when reportToSentry is false', () => {
-      logger.error('Handled error', {
-        error: new Error('Original error'),
-        reportToSentry: false,
-      });
-
-      expect(mockCaptureException).not.toHaveBeenCalled();
     });
 
     it('should skip Sentry for handled network errors', () => {

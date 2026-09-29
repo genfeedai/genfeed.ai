@@ -154,36 +154,6 @@ describe('registerDiscordBotHandlers', () => {
 
       expect(ctx.mocks[handlerName]).toHaveBeenCalled();
     });
-
-    it('should ignore unknown slash commands', async () => {
-      const ctx = createContext();
-      const interaction = createCommandInteraction('unknown');
-
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(ctx.mocks.handleWorkflowsCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleStatusCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleCancelCommand).not.toHaveBeenCalled();
-      expect(ctx.mocks.handleSettingsCommand).not.toHaveBeenCalled();
-    });
-
-    it('should route button interactions with the org id', async () => {
-      const ctx = createContext();
-      const interaction = {
-        customId: 'confirm:run',
-        isButton: vi.fn().mockReturnValue(true),
-        isChatInputCommand: vi.fn().mockReturnValue(false),
-        isRepliable: vi.fn().mockReturnValue(true),
-        user: { id: 'user-1' },
-      };
-
-      await ctx.listeners.get('interactionCreate')?.(interaction);
-
-      expect(ctx.mocks.handleButtonInteraction).toHaveBeenCalledWith(
-        interaction,
-        'org-1',
-      );
-    });
   });
 
   describe('messageCreate', () => {

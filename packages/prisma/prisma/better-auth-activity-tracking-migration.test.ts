@@ -18,11 +18,6 @@ const userModel = schemaSource.slice(
 );
 
 describe('Better Auth activity tracking migration', () => {
-  it('stores the optional dashboard activity timestamp on User', () => {
-    expect(userModel).toContain('lastActiveAt');
-    expect(userModel).toMatch(/lastActiveAt\s+DateTime\?/u);
-  });
-
   it('adds the nullable column without inventing historical activity', () => {
     expect(migrationSource).toContain(
       'ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3)',

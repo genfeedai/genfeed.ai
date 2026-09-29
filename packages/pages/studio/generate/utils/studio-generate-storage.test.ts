@@ -94,12 +94,6 @@ describe('sanitizeStudioGenerateSettings', () => {
     ).toBe('720p');
   });
 
-  it('never restores speech copy from a previous session', () => {
-    expect(
-      sanitizeStudioGenerateSettings('voice', { speech: 'old script' }).speech,
-    ).toBeUndefined();
-  });
-
   it('keeps branding on unless it was explicitly turned off', () => {
     expect(
       sanitizeStudioGenerateSettings('image', { brandingMode: 'off' })
@@ -124,14 +118,6 @@ describe('sanitizeStudioGenerateSettings', () => {
       sanitizeStudioGenerateSettings('image', { prioritize: 'fastest' })
         .prioritize,
     ).toBe(RouterPriority.BALANCED);
-  });
-
-  it('restores the chosen portrait url for avatar', () => {
-    expect(
-      sanitizeStudioGenerateSettings('avatar', {
-        avatarPhotoUrl: 'https://cdn.genfeed.test/portrait.png',
-      }).avatarPhotoUrl,
-    ).toBe('https://cdn.genfeed.test/portrait.png');
   });
 
   it('keeps Look elements and drops blank ones', () => {

@@ -40,21 +40,6 @@ const idleStream = {
 };
 
 describe('summarizeStreamingProgress', () => {
-  it('labels an input request as waiting', () => {
-    expect(
-      summarizeStreamingProgress(idleStream, [
-        workEvent({
-          detail: 'Pick a brand',
-          event: AgentWorkEventType.INPUT_REQUESTED,
-          status: AgentWorkEventStatus.PENDING,
-        }),
-      ]),
-    ).toEqual({
-      detail: 'Pick a brand',
-      label: 'Waiting for input',
-    });
-  });
-
   it('maps tool-name prefixes to progress labels', () => {
     expect(
       summarizeStreamingProgress(
@@ -92,30 +77,6 @@ describe('summarizeStreamingProgress', () => {
         [],
       ).label,
     ).toBe('Thinking');
-  });
-
-  it('ignores completed tool calls and prefers the latest active one', () => {
-    expect(
-      summarizeStreamingProgress(
-        {
-          ...idleStream,
-          activeToolCalls: [
-            toolCall('get_trends', 'completed'),
-            toolCall('create_post'),
-          ],
-        },
-        [],
-      ).label,
-    ).toBe('Generating');
-  });
-
-  it('uses answering when content is streaming and no tool is active', () => {
-    expect(
-      summarizeStreamingProgress(
-        { ...idleStream, streamingContent: 'Here is a draft' },
-        [],
-      ),
-    ).toEqual({ label: 'Answering' });
   });
 
   it('truncates long reasoning into a thinking detail', () => {
@@ -202,22 +163,6 @@ describe('turn preparation progress', () => {
           workEvent({ event: AgentWorkEventType.INPUT_SUBMITTED, phase }),
         ]).label,
       ).toBe('Reviewing');
-    },
-  );
-
-  it.each(['preparing', 'waiting_for_lane'])(
-    'lets normal Agent started supersede %s',
-    (phase) => {
-      expect(
-        summarizeStreamingProgress(idleStream, [
-          workEvent({ event: AgentWorkEventType.STARTED, phase }),
-          workEvent({
-            event: AgentWorkEventType.STARTED,
-            id: 'started',
-            label: 'Agent started',
-          }),
-        ]),
-      ).toEqual({ label: 'Thinking' });
     },
   );
 

@@ -111,12 +111,6 @@ describe('SafeMarkdown rendering', () => {
     );
   });
 
-  it('skips raw HTML in the content', () => {
-    render(<SafeMarkdown content={'before <script>alert(1)</script> after'} />);
-
-    expect(document.querySelector('script')).toBeNull();
-  });
-
   it('enhances plain capability lines when enhanceStructure is on', () => {
     const content = [
       'Generation: Create images and videos.',

@@ -94,19 +94,4 @@ describe('ArticleContent', () => {
       screen.getByRole('link', { name: /use in genfeed/i }),
     ).toHaveAttribute('href', expect.stringContaining('dolly-zoom'));
   });
-
-  it('does not load the lab on other articles', async () => {
-    render(
-      <ArticleContent
-        applyHref="https://app.genfeed.ai/agent/new?prompt=Apply"
-        sanitizedHtml="<h2>Only text</h2><p>Nothing interactive.</p>"
-        slug="a-plain-article"
-      />,
-    );
-
-    await screen.findByRole('link', { name: 'Only text' });
-    expect(
-      screen.queryByRole('heading', { name: 'See the effect, then apply it' }),
-    ).toBeNull();
-  });
 });

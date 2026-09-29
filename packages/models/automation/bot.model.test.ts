@@ -133,11 +133,6 @@ describe('Bot', () => {
       expect(bot.targets?.[0].isEnabled).toBe(true);
     });
 
-    it('should leave livestream settings undefined when omitted', () => {
-      const bot = new Bot();
-      expect(bot.livestreamSettings).toBeUndefined();
-    });
-
     it('should normalize livestream settings with defaults', () => {
       const bot = new Bot({
         livestreamSettings: {},

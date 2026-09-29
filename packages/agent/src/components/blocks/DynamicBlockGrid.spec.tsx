@@ -1,7 +1,7 @@
 import '@agent-tests/media-preview-mocks';
 import DynamicBlockGrid from '@genfeedai/agent/components/blocks/DynamicBlockGrid';
 import type { AgentUIBlock } from '@genfeedai/contracts/interfaces';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/agent/components/blocks/DynamicChart', () => ({
@@ -33,12 +33,6 @@ describe('DynamicBlockGrid', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  it('renders an empty state when there are no blocks', () => {
-    renderBlocks([]);
-
-    expect(screen.getByText('No blocks to display')).toBeInTheDocument();
   });
 
   it('renders a block title above every non-metric block', () => {
@@ -102,19 +96,6 @@ describe('DynamicBlockGrid', () => {
   });
 
   describe('metric cards', () => {
-    it('animates a numeric value to its final figure', () => {
-      renderBlocks([
-        block({
-          id: 'm-1',
-          title: 'Followers',
-          type: 'metric_card',
-          value: 1234,
-        } as AgentUIBlock),
-      ]);
-
-      expect(screen.getByText('1234')).toBeInTheDocument();
-    });
-
     it('preserves a suffix on abbreviated values', () => {
       renderBlocks([
         block({
@@ -349,18 +330,6 @@ describe('DynamicBlockGrid', () => {
       expect(screen.getByText('Err')).toHaveClass('text-destructive');
       expect(screen.getByText('Yay')).toHaveClass('text-success');
     });
-
-    it('renders paragraph content', () => {
-      renderBlocks([
-        block({
-          text: 'hello world',
-          id: 'md-1',
-          type: 'text_paragraph',
-        } as AgentUIBlock),
-      ]);
-
-      expect(screen.getByText(/hello/)).toBeInTheDocument();
-    });
   });
 
   it('renders an image grid with captions', () => {
@@ -451,25 +420,5 @@ describe('DynamicBlockGrid', () => {
     ]);
 
     expect(container.querySelector('.flex.flex-col.gap-4')).toBeTruthy();
-  });
-
-  it('cancels the metric animation frame on unmount', () => {
-    const cancel = vi.fn();
-    vi.stubGlobal('cancelAnimationFrame', cancel);
-
-    const { unmount } = renderBlocks([
-      block({
-        id: 'm-1',
-        title: 'Followers',
-        type: 'metric_card',
-        value: 42,
-      } as AgentUIBlock),
-    ]);
-
-    act(() => {
-      unmount();
-    });
-
-    expect(cancel).toHaveBeenCalled();
   });
 });

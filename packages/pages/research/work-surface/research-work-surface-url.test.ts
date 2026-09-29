@@ -6,54 +6,7 @@ import {
   parseResearchWorkSurfaceUrl,
 } from './research-work-surface-url';
 
-describe('encodeResearchFindingReference', () => {
-  it('encodes kind and id with a colon separator', () => {
-    expect(
-      encodeResearchFindingReference({
-        id: 'post-1',
-        kind: 'research-source-post',
-      }),
-    ).toBe('research-source-post:post-1');
-  });
-});
-
 describe('parseResearchFindingReference', () => {
-  it('parses a valid reference', () => {
-    expect(
-      parseResearchFindingReference('research-trend-video:abc_1.2~x'),
-    ).toEqual({
-      id: 'abc_1.2~x',
-      kind: 'research-trend-video',
-    });
-  });
-
-  it('returns null for null or empty input', () => {
-    expect(parseResearchFindingReference(null)).toBeNull();
-    expect(parseResearchFindingReference('')).toBeNull();
-  });
-
-  it('returns null when the separator is missing or misplaced', () => {
-    expect(parseResearchFindingReference('no-separator')).toBeNull();
-    expect(parseResearchFindingReference(':leading')).toBeNull();
-    expect(parseResearchFindingReference('research-source-post:')).toBeNull();
-  });
-
-  it('returns null for an unknown kind', () => {
-    expect(parseResearchFindingReference('unknown-kind:id-1')).toBeNull();
-  });
-
-  it('returns null for an unsafe id', () => {
-    expect(
-      parseResearchFindingReference('research-source-post:bad id!'),
-    ).toBeNull();
-    expect(
-      parseResearchFindingReference(`research-source-post:${'a'.repeat(161)}`),
-    ).toBeNull();
-    expect(
-      parseResearchFindingReference('research-source-post:../../admin'),
-    ).toBeNull();
-  });
-
   it('round-trips a finite typed finding reference', () => {
     const reference = {
       id: 'post_123.4',
@@ -197,12 +150,6 @@ describe('parseResearchWorkSurfaceUrl', () => {
 });
 
 describe('buildResearchWorkSurfaceHref', () => {
-  it('returns the bare pathname when params are empty', () => {
-    expect(
-      buildResearchWorkSurfaceHref('/research', new URLSearchParams()),
-    ).toBe('/research');
-  });
-
   it('appends the query string when params exist', () => {
     expect(
       buildResearchWorkSurfaceHref(

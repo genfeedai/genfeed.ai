@@ -10,10 +10,6 @@ import {
 
 describe('subscription.enum', () => {
   describe('SubscriptionCategory', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(SubscriptionCategory)).toHaveLength(2);
-    });
-
     it('should have correct values', () => {
       expect(SubscriptionCategory.MONTHLY).toBe('monthly');
       expect(SubscriptionCategory.PAYG).toBe('payg');
@@ -21,10 +17,6 @@ describe('subscription.enum', () => {
   });
 
   describe('SubscriptionPlan', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SubscriptionPlan)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(SubscriptionPlan.MONTHLY).toBe('monthly');
       expect(SubscriptionPlan.YEARLY).toBe('yearly');

@@ -88,14 +88,6 @@ describe('useTags', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('should not auto-load when autoLoad is false', () => {
-    renderHook(() => useTags({ autoLoad: false }), {
-      wrapper: createQueryWrapper(),
-    });
-
-    expect(mockGetTagsService).not.toHaveBeenCalled();
-  });
-
   it('should load tags with scope when provided', async () => {
     const { result } = renderHook(
       () => useTags({ scope: TagCategory.INGREDIENT }),

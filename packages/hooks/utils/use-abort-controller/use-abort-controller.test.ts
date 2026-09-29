@@ -7,16 +7,6 @@ describe('useAbortController', () => {
     vi.clearAllMocks();
   });
 
-  it('returns abort controller instance', () => {
-    const { result } = renderHook(() => useAbortController());
-    expect(result.current).toBeInstanceOf(AbortController);
-  });
-
-  it('provides signal property', () => {
-    const { result } = renderHook(() => useAbortController());
-    expect(result.current.signal).toBeDefined();
-  });
-
   it('cleans up on unmount', () => {
     const { result, unmount } = renderHook(() => useAbortController());
     const abortSpy = vi.spyOn(result.current, 'abort');

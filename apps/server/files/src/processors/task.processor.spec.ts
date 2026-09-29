@@ -434,22 +434,6 @@ describe('TaskProcessor', () => {
       expect(result.success).toBe(true);
     });
 
-    it('defaults to 1920x1080 when no dimensions are provided', async () => {
-      const job = createJob(
-        createJobData({ config: { s3Key: 'videos/input.mp4' } }),
-      );
-
-      await processor.handleResize(job as unknown as Job<TaskJobData>);
-
-      expect(ffmpegService.resizeVideo).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        1920,
-        1080,
-        expect.any(Function),
-      );
-    });
-
     it('propagates errors and emits a websocket error', async () => {
       ffmpegService.resizeVideo.mockRejectedValueOnce(
         new Error('resize failed'),

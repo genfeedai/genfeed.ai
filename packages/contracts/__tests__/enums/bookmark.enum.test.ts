@@ -3,10 +3,6 @@ import { BookmarkIntent } from '../../src/enums/bookmark.enum';
 
 describe('bookmark.enum', () => {
   describe('BookmarkIntent', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(BookmarkIntent)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(BookmarkIntent.VIDEO).toBe('VIDEO');
       expect(BookmarkIntent.IMAGE).toBe('IMAGE');

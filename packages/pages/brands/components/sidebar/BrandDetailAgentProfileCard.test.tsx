@@ -525,37 +525,6 @@ describe('BrandDetailAgentProfileCard', () => {
     });
   });
 
-  it('saves verbatim exemplars and measured rules without splitting on commas', async () => {
-    const user = userEvent.setup();
-    render(
-      <BrandDetailAgentProfileCard
-        brand={brand}
-        brandId="brand-1"
-        onRefreshBrand={onRefreshBrand}
-      />,
-    );
-
-    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
-
-    await waitFor(() => {
-      expect(updateAgentConfigMock).toHaveBeenCalledWith(
-        'brand-1',
-        expect.objectContaining({
-          voice: expect.objectContaining({
-            exemplarTexts: [
-              'shipped it, docs later',
-              'nah, ship the boring version first',
-            ],
-            writingRules: [
-              'Keep replies short, under ~90 characters',
-              'Never use em dashes',
-            ],
-          }),
-        }),
-      );
-    });
-  });
-
   it('warns with the fix when the own-posts corpus is too thin', async () => {
     const user = userEvent.setup();
     const guidance =

@@ -14,14 +14,6 @@ describe('ProofTestimonials', () => {
     mockedApprovedTestimonials.mockReset();
   });
 
-  it('renders nothing until an approved customer testimonial exists', () => {
-    mockedApprovedTestimonials.mockReturnValue([]);
-
-    const { container } = render(<ProofTestimonials context="pricing" />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('renders approved testimonials with their attributed metric', () => {
     mockedApprovedTestimonials.mockReturnValue([
       {

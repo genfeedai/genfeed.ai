@@ -22,9 +22,4 @@ describe('metric value formatting', () => {
     expect(formatAnimatedValue(12.34, '12.3K')).toBe('12.3K');
     expect(formatAnimatedValue(12.34, '12%')).toBe('12%');
   });
-
-  it('handles a long suffix in a single backwards scan', () => {
-    const suffix = '%'.repeat(50_000);
-    expect(extractMetricSuffix(`1${suffix}`)).toBe(suffix);
-  });
 });

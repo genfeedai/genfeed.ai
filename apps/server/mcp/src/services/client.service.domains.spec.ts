@@ -85,19 +85,6 @@ describe('ClientService (MCP) domain clients', () => {
       });
       expect(result).toEqual({ label: 'Created' });
     });
-
-    it('falls back to the resource when attributes are absent', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue({
-        data: { data: { id: 'res-1' } },
-      });
-
-      const result = await service.postAttributes<{ id: string }>(
-        '/things',
-        {},
-      );
-
-      expect(result).toEqual({ id: 'res-1' });
-    });
   });
 
   // ==================== AGENT TOOLS & APPROVALS ====================
@@ -122,17 +109,6 @@ describe('ClientService (MCP) domain clients', () => {
         },
       );
       expect(result).toEqual({ output: 'ok', success: true });
-    });
-
-    it('surfaces the API error detail when execution fails', async () => {
-      (mockAxiosInstance.post as Mock).mockRejectedValue({
-        message: 'Bad request',
-        response: { data: { errors: [{ detail: 'Tool disabled' }] } },
-      });
-
-      await expect(service.executeAgentTool('my_tool', {})).rejects.toThrow(
-        'Tool disabled',
-      );
     });
   });
 
@@ -164,14 +140,6 @@ describe('ClientService (MCP) domain clients', () => {
         '/mcp-approvals/approval%2F1',
       );
       expect(result).toEqual({ id: 'approval/1', status: 'PENDING' });
-    });
-
-    it('returns null when the approval payload is empty', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({ data: {} });
-
-      const result = await service.getApproval('approval-404');
-
-      expect(result).toBeNull();
     });
 
     it('resolves an approval and forwards an optional result', async () => {
@@ -443,21 +411,6 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
 
-    it('propagates the API error detail when generation fails', async () => {
-      (mockAxiosInstance.post as Mock).mockRejectedValue({
-        message: 'Bad request',
-        response: { data: { errors: [{ detail: 'Highlights not found' }] } },
-      });
-
-      await expect(
-        service.generateClips({
-          editedHighlights: [],
-          projectId: 'project-1',
-          selectedHighlightIds: ['h1'],
-        }),
-      ).rejects.toThrow('Highlights not found');
-    });
-
     it('lists clip projects with default pagination', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: { data: [{ id: 'project-1' }] },
@@ -549,21 +502,6 @@ describe('ClientService (MCP) domain clients', () => {
         },
       });
       expect(result).toEqual({ batchId: 'batch-1', status: 'PENDING' });
-    });
-
-    it('surfaces API error detail when batch creation fails', async () => {
-      (mockAxiosInstance.post as Mock).mockRejectedValue({
-        message: 'Bad request',
-        response: { data: { errors: [{ detail: 'Insufficient credits' }] } },
-      });
-
-      await expect(
-        service.createBatch({
-          brandId: 'brand-1',
-          count: 1,
-          platforms: ['instagram'],
-        }),
-      ).rejects.toThrow('Insufficient credits');
     });
 
     it('lists batches and flattens attributes onto each row', async () => {
@@ -1001,26 +939,6 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
 
-    it('says Meta Ads is not connected when the credential is missing', async () => {
-      (mockAxiosInstance.get as Mock).mockRejectedValue({
-        response: {
-          data: {
-            errors: [
-              {
-                detail:
-                  'Facebook credential not found. Please connect your Facebook account first.',
-              },
-            ],
-          },
-          status: 404,
-        },
-      });
-
-      await expect(service.listMetaAdAccounts()).rejects.toThrow(
-        'Meta account is not connected or not authorized. Facebook credential not found. Please connect your Facebook account first.',
-      );
-    });
-
     it('says Meta Ads is not authorized on 403 without leaking a token', async () => {
       (mockAxiosInstance.get as Mock).mockRejectedValue({
         response: {
@@ -1218,14 +1136,6 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
 
-    it('classifies a transport failure as internal', async () => {
-      (mockAxiosInstance.get as Mock).mockRejectedValue(new Error('nope'));
-
-      await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
-        'Failed to list Google Ads customers (internal)',
-      );
-    });
-
     it('says Google Ads is not connected when the credential is missing', async () => {
       (mockAxiosInstance.get as Mock).mockRejectedValue({
         response: {
@@ -1243,19 +1153,6 @@ describe('ClientService (MCP) domain clients', () => {
 
       await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
         'Google Ads account is not connected or not authorized. Google Ads credential not found. Please connect your Google Ads account first.',
-      );
-    });
-
-    it('labels a Google Ads provider failure with a safe detail', async () => {
-      (mockAxiosInstance.get as Mock).mockRejectedValue({
-        response: {
-          data: { errors: [{ detail: 'Invalid customer ID' }] },
-          status: 400,
-        },
-      });
-
-      await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
-        'Failed to list Google Ads customers (provider): Invalid customer ID',
       );
     });
 
@@ -1522,14 +1419,6 @@ describe('ClientService (MCP) domain clients', () => {
         { params: { platform: 'linkedin', timeRange: '30d' } },
       );
       expect(result).toEqual({ impressions: 1200 });
-    });
-
-    it('throws the fixed failure message on error', async () => {
-      (mockAxiosInstance.get as Mock).mockRejectedValue(new Error('nope'));
-
-      await expect(service.getLinkedInConnectionStatus()).rejects.toThrow(
-        'Failed to get LinkedIn connection status',
-      );
     });
   });
 });

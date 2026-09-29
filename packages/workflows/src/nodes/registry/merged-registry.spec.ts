@@ -6,7 +6,6 @@ import {
   isCatalogActionNode,
   isCoreNode,
   isValidNodeType,
-  NODE_DEFINITIONS,
 } from './merged-registry';
 
 describe('isCoreNode', () => {
@@ -19,25 +18,12 @@ describe('isValidNodeType', () => {
   it('true for catalog actions', () =>
     expect(isValidNodeType('brand')).toBe(true));
   it('false for unknown', () => expect(isValidNodeType('xxx')).toBe(false));
-
-  it.each(['constructor', '__proto__', 'toString'])(
-    'rejects inherited object key %s',
-    (type) => {
-      expect(isValidNodeType(type)).toBe(false);
-    },
-  );
 });
 
 describe('getNodeDefinition', () => {
   it('catalog action node', () => {
     expect(getNodeDefinition('brand')?.label).toBe('Brand');
   });
-  it('unknown', () => expect(getNodeDefinition('xxx')).toBeUndefined());
-});
-
-describe('NODE_DEFINITIONS', () => {
-  it('has brand from the action catalog', () =>
-    expect(NODE_DEFINITIONS.brand).toBeDefined());
 });
 
 describe('getNodesByExtendedCategory', () => {

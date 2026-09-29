@@ -86,28 +86,6 @@ const look: IStudioLook = {
 };
 
 describe('Studio Look preset contract', () => {
-  it('captures every widened Preset field from the shared generation-setup values', () => {
-    expect(buildStudioLookPayload(' Saved ', 'video', values)).toEqual({
-      aspectRatio: '1:1',
-      assetType: 'video',
-      brandingMode: 'brand',
-      camera: 'camera-1',
-      cameraMovement: 'move-1',
-      duration: 8,
-      label: 'Saved',
-      lens: 'lens-1',
-      lighting: 'lighting-1',
-      modelKey: 'model-1',
-      mood: 'mood-1',
-      outputs: 4,
-      prioritize: RouterPriority.BALANCED,
-      promptTemplate: 'preset-1',
-      resolution: '1K',
-      scene: 'scene-1',
-      style: 'style-1',
-    });
-  });
-
   it('nulls cameraMovement and duration for image Presets', () => {
     const imageValues: GenerationSetupValues = { ...values, type: 'image' };
     const payload = buildStudioLookPayload('Saved', 'image', imageValues);

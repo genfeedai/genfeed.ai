@@ -371,26 +371,6 @@ describe('StudioGenerateInspector', () => {
     }
   });
 
-  it('offers only Vary while the asset has no persisted ingredient', () => {
-    render(
-      <StudioGenerateInspector
-        job={recipeJob}
-        onRemix={vi.fn()}
-        onUseInPost={vi.fn()}
-        onSelect={vi.fn()}
-        onVary={vi.fn()}
-        runJobs={[recipeJob]}
-      />,
-    );
-
-    const actions = screen.getByRole('group', { name: 'Asset actions' });
-    expect(
-      within(actions)
-        .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual(['Vary']);
-  });
-
   it('shows the enriched recipe instead of the raw composer text', () => {
     render(
       <StudioGenerateInspector
@@ -504,26 +484,6 @@ describe('StudioGenerateInspector', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
     expect(onVary).toHaveBeenCalledWith(recipeJob);
-  });
-
-  it('does not fetch relations for a synthetic failed card', () => {
-    render(
-      <StudioGenerateInspector
-        job={{
-          ...recipeJob,
-          ingredientId: undefined,
-          status: IngredientStatus.FAILED,
-        }}
-        onRemix={vi.fn()}
-        onUseInPost={vi.fn()}
-        onSelect={vi.fn()}
-        onVary={vi.fn()}
-        runJobs={[recipeJob]}
-      />,
-    );
-
-    expect(mocks.getPosts).not.toHaveBeenCalled();
-    expect(mocks.findChildren).not.toHaveBeenCalled();
   });
 
   it('still offers recipe when the gallery row only has ingredient metadata', () => {

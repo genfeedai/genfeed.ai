@@ -14,10 +14,6 @@ import {
 
 describe('ingredient.enum', () => {
   describe('IngredientCategory', () => {
-    it('should have 12 members', () => {
-      expect(Object.values(IngredientCategory)).toHaveLength(12);
-    });
-
     it('should have correct values', () => {
       expect(IngredientCategory.IMAGE).toBe('IMAGE');
       expect(IngredientCategory.VIDEO).toBe('VIDEO');
@@ -35,10 +31,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('IngredientStatus', () => {
-    it('should have 8 members', () => {
-      expect(Object.values(IngredientStatus)).toHaveLength(8);
-    });
-
     it('matches Prisma IngredientStatus SCREAMING_SNAKE labels', () => {
       expect(Object.values(IngredientStatus)).toEqual([
         'DRAFT',
@@ -54,10 +46,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('TransformationCategory', () => {
-    it('should have 20 members', () => {
-      expect(Object.values(TransformationCategory)).toHaveLength(20);
-    });
-
     it('should have correct values', () => {
       expect(TransformationCategory.UPSCALED).toBe('UPSCALED');
       expect(TransformationCategory.RESIZED).toBe('RESIZED');
@@ -87,10 +75,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('IngredientExtension', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(IngredientExtension)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(IngredientExtension.JPG).toBe('jpg');
       expect(IngredientExtension.MP3).toBe('mp3');
@@ -101,10 +85,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('IngredientFormat', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(IngredientFormat)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(IngredientFormat.LANDSCAPE).toBe('landscape');
       expect(IngredientFormat.PORTRAIT).toBe('portrait');
@@ -113,10 +93,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('IngredientAvatarCategory', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(IngredientAvatarCategory)).toHaveLength(2);
-    });
-
     it('should have correct values', () => {
       expect(IngredientAvatarCategory.AVATAR).toBe('avatar');
       expect(IngredientAvatarCategory.AVATAR_VIDEO).toBe('avatar-video');
@@ -124,10 +100,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('FleetReviewStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(FleetReviewStatus)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(FleetReviewStatus.PENDING).toBe('PENDING');
       expect(FleetReviewStatus.APPROVED).toBe('APPROVED');
@@ -137,10 +109,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('FleetAssetLabel', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(FleetAssetLabel)).toHaveLength(6);
-    });
-
     it('should have correct values', () => {
       expect(FleetAssetLabel.HERO).toBe('HERO');
       expect(FleetAssetLabel.FILLER).toBe('FILLER');
@@ -152,10 +120,6 @@ describe('ingredient.enum', () => {
   });
 
   describe('ContentRating', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(ContentRating)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(ContentRating.SFW).toBe('SFW');
       expect(ContentRating.SUGGESTIVE).toBe('SUGGESTIVE');

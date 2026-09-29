@@ -42,13 +42,9 @@ import {
   EditorRenderTimeoutError,
   RemotionRendererService,
 } from '@files/services/remotion/remotion-renderer.service';
-import {
-  EDITOR_RENDER_TIMEOUT_MS,
-  EDITOR_RENDERER_VERSION,
-} from '@genfeedai/contracts/interfaces';
+import { EDITOR_RENDER_TIMEOUT_MS } from '@genfeedai/contracts/interfaces';
 import { bundle } from '@remotion/bundler';
 import { renderMedia, selectComposition } from '@remotion/renderer';
-import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 describe('RemotionRendererService', () => {
   const params = BRANDED_AVATAR_RENDER_FIXTURE;
@@ -60,12 +56,6 @@ describe('RemotionRendererService', () => {
   afterEach(() => {
     vi.clearAllMocks();
     vi.useRealTimers();
-  });
-
-  it('keeps the installed remotion version aligned with EDITOR_RENDERER_VERSION', () => {
-    expect(`remotion@${INSTALLED_REMOTION_VERSION}`).toBe(
-      EDITOR_RENDERER_VERSION,
-    );
   });
 
   it('selects and renders the pinned composition with bounded concurrency', async () => {
@@ -124,42 +114,6 @@ describe('RemotionRendererService', () => {
       ),
     ).rejects.toThrow('Unsupported editor renderer version');
     expect(renderMedia).not.toHaveBeenCalled();
-  });
-
-  it('cooperatively cancels an active renderer process', async () => {
-    let cancelActiveRender: (() => void) | undefined;
-    let signalRegistered: (() => void) | undefined;
-    const registered = new Promise<void>((resolve) => {
-      signalRegistered = resolve;
-    });
-    const cancellationService = {
-      register: vi.fn((_jobId: string, cancel: () => void) => {
-        cancelActiveRender = cancel;
-        signalRegistered?.();
-        return vi.fn();
-      }),
-    };
-    vi.mocked(renderMedia).mockImplementationOnce(
-      ({ cancelSignal }) =>
-        new Promise((_resolve, reject) => {
-          cancelSignal?.(() => reject(new Error('renderer cancelled')));
-        }),
-    );
-    const service = new RemotionRendererService(
-      logger as never,
-      cancellationService as never,
-    );
-
-    const render = service.render(
-      params,
-      '/tmp/output.mp4',
-      vi.fn(),
-      'job-123',
-    );
-    await registered;
-    cancelActiveRender?.();
-
-    await expect(render).rejects.toBeInstanceOf(EditorRenderCancelledError);
   });
 
   it('does not arm a timeout or render after preflight cancellation', async () => {

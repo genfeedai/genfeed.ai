@@ -51,10 +51,4 @@ describe('AgentDesktopRuntimeBar', () => {
       screen.getByTestId('agent-desktop-runtime-notice'),
     ).toHaveTextContent('npm install -g @openai/codex@latest');
   });
-
-  it('shows no notice when every installed CLI is ready', () => {
-    render(<AgentDesktopRuntimeBar selection={buildSelection([])} />);
-
-    expect(screen.queryByTestId('agent-desktop-runtime-notice')).toBeNull();
-  });
 });

@@ -13,15 +13,6 @@ describe('AnalyticsContext', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <AnalyticsProvider>
-        <div data-testid="child" />
-      </AnalyticsProvider>,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <AnalyticsProvider>

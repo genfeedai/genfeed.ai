@@ -168,16 +168,6 @@ describe('buildMusicPayload', () => {
     expect(payload.text).toBe('lofi beat');
   });
 
-  it('omits unresolved Auto duration and model', () => {
-    const payload = buildMusicPayload(
-      makePromptData({ autoSelectModel: true }),
-      'music-model',
-    );
-
-    expect(payload.duration).toBeUndefined();
-    expect(payload.model).toBeUndefined();
-  });
-
   it('drops lyrics when instrumental is requested', () => {
     const payload = buildMusicPayload(
       makePromptData({
@@ -215,32 +205,6 @@ describe('buildMusicPayload', () => {
     expect(payload.instrumental).toBe(true);
     expect(payload.lyrics).toBeUndefined();
   });
-
-  it('drops stale lyrics text for MusicGen even without the instrumental flag', () => {
-    const payload = buildMusicPayload(
-      makePromptData({ lyrics: 'stale text' }),
-      MODEL_KEYS.REPLICATE_META_MUSICGEN,
-      10,
-    );
-
-    expect(payload.lyrics).toBeUndefined();
-  });
-
-  it('clears settings until Auto resolves a model', () => {
-    const payload = buildMusicPayload(
-      makePromptData({
-        autoSelectModel: true,
-        instrumental: true,
-        lyrics: 'Verse one',
-      }),
-      MODEL_KEYS.REPLICATE_META_MUSICGEN,
-      10,
-    );
-
-    expect(payload.instrumental).toBeUndefined();
-    expect(payload.lyrics).toBeUndefined();
-    expect(payload.duration).toBeUndefined();
-  });
 });
 
 describe('buildAvatarPayload', () => {
@@ -259,10 +223,6 @@ describe('buildAvatarPayload', () => {
       text: 'A cinematic product shot',
       voiceId: 'voice-1',
     });
-  });
-
-  it('defaults speech to an empty string', () => {
-    expect(buildAvatarPayload(makePromptData()).speech).toBe('');
   });
 
   it('uses a Genfeed portrait URL instead of its internal ingredient id', () => {

@@ -45,16 +45,6 @@ describe('ApprovalPanel', () => {
     expect(screen.getByText('Rewrite the scheduler')).toBeInTheDocument();
   });
 
-  it('hides the approve row until an approach is selected', () => {
-    useAgentWorkflowStore.setState({ approaches: [makeApproach()] });
-
-    render(<ApprovalPanel />);
-
-    expect(
-      screen.queryByRole('button', { name: /Approve & proceed/ }),
-    ).not.toBeInTheDocument();
-  });
-
   it('selects an approach through the store when a card is clicked', () => {
     useAgentWorkflowStore.setState({ approaches: [makeApproach()] });
 

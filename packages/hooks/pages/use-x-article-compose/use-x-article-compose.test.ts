@@ -72,12 +72,6 @@ describe('useXArticleCompose', () => {
     expect(result.current.phase).toBe('idle');
   });
 
-  it('initializes with null article and metadata', () => {
-    const { result } = renderHook(() => useXArticleCompose());
-    expect(result.current.article).toBeNull();
-    expect(result.current.metadata).toBeNull();
-  });
-
   it('initializes with null error and isGeneratingImage false', () => {
     const { result } = renderHook(() => useXArticleCompose());
     expect(result.current.error).toBeNull();

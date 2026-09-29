@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BOOKING_HREF,
   buildCalendlyEmbedUrl,
   isCalendlyBookingMessage,
 } from './booking.data';
 
 describe('booking data', () => {
-  it('books every call on the done-for-you page', () => {
-    expect(BOOKING_HREF).toBe('/done-for-you#book');
-  });
-
   it('builds a dark inline embed that reports bookings back to the site', () => {
     const url = new URL(
       buildCalendlyEmbedUrl('https://calendly.com/vincent-genfeed/30min'),

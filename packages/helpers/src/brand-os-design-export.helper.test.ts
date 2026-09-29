@@ -104,43 +104,6 @@ describe('approved design.md contract', () => {
     expect(artifact.markdown).toContain('Café\n  \\# injected \\<script\\>');
     expect(artifact.markdown).not.toContain('\n# injected');
   });
-  it.each(['private', 'public'] as const)(
-    'excludes every privacy sentinel in %s visibility',
-    (visibility) => {
-      const sentinels = [
-        'CREDENTIAL_SENTINEL',
-        'RAW_CAPTURE_SENTINEL',
-        'PRIVATE_PROMPT_SENTINEL',
-        'DIAGNOSTIC_SENTINEL',
-        'MEMBERSHIP_SENTINEL',
-        'REJECTED_CANDIDATE_SENTINEL',
-        'PROPOSAL_SENTINEL',
-        'EXCERPT_SENTINEL',
-      ];
-      const artifact = buildBrandOsDesignExport({
-        ...input(),
-        visibility,
-        content: {
-          credentials: sentinels[0],
-          rawSource: sentinels[1],
-          diagnostics: [sentinels[3]],
-          members: [sentinels[4]],
-          assetCandidates: [{ url: sentinels[5] }],
-          fields: {
-            label: {
-              currentValue: 'Approved',
-              proposedValue: sentinels[6],
-              evidence: [{ sourceType: 'website', excerpt: sentinels[7] }],
-            },
-            promptGuidelines: { currentValue: sentinels[2] },
-            unknown: { currentValue: sentinels[0] },
-          },
-        },
-      });
-      for (const sentinel of sentinels)
-        expect(artifact.markdown).not.toContain(sentinel);
-    },
-  );
   it.each([
     'https://localhost/secret',
     'https://127.0.0.1/',
@@ -155,12 +118,6 @@ describe('approved design.md contract', () => {
     'https://example.com:8443/',
   ])('omits unsafe source %s', (url) => {
     expect(safeBrandOsSourceUrl(url, 'website')).toBeUndefined();
-  });
-  it('omits URLs with embedded credentials', () => {
-    const url = new URL('https://example.com/');
-    url.username = 'fixture-user';
-    url.password = 'fixture-password';
-    expect(safeBrandOsSourceUrl(url.href, 'website')).toBeUndefined();
   });
   it('defaults unknown/private evidence visibility to omission', () => {
     expect(

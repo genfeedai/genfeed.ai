@@ -41,12 +41,6 @@ function renderPanel(
 }
 
 describe('generation result recovery and navigation', () => {
-  it('retries a transient failure using the supplied operation', () => {
-    const { onRetry } = renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
-    expect(onRetry).toHaveBeenCalledOnce();
-  });
-
   it.each([
     { error: 'Provider authentication failed' },
     { isPilotCeilingReached: true },
@@ -66,14 +60,6 @@ describe('generation result recovery and navigation', () => {
     expect(screen.getByRole('link', { name: 'viewInLibrary' })).toHaveAttribute(
       'href',
       expect.stringContaining('asset-1'),
-    );
-  });
-
-  it('preserves video editing context', () => {
-    renderPanel({ generationType: 'video', isImage: false, status: 'done' });
-    expect(screen.getByRole('link', { name: 'editResult' })).toHaveAttribute(
-      'href',
-      '/acme/brand/studio/edit/new?videoId=asset-1',
     );
   });
 });

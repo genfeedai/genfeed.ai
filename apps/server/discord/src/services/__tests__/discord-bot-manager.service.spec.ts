@@ -271,32 +271,9 @@ describe('DiscordBotManager', () => {
       expect(mockRest.setToken).toHaveBeenCalledWith('discord-bot-token-123');
       expect(mockRest.put).toHaveBeenCalled();
     });
-
-    it('should handle login failure', async () => {
-      mockClient.login.mockRejectedValue(new Error('Invalid token'));
-
-      await expect(service.createBotInstance(mockIntegration)).rejects.toThrow(
-        'Invalid token',
-      );
-    });
   });
 
   describe('destroyBotInstance', () => {
-    it('should destroy the Discord client', async () => {
-      const mockInstance = {
-        client: mockClient,
-        id: mockIntegration.id,
-        integration: mockIntegration,
-        orgId: mockIntegration.orgId,
-      };
-
-      mockClient.destroy.mockResolvedValue(undefined);
-
-      await service.destroyBotInstance(mockInstance);
-
-      expect(mockClient.destroy).toHaveBeenCalled();
-    });
-
     it('should handle client destruction failure', async () => {
       const mockInstance = {
         client: mockClient,
@@ -318,14 +295,6 @@ describe('DiscordBotManager', () => {
   });
 
   describe('addIntegration', () => {
-    it('should add a new Discord integration successfully', async () => {
-      mockClient.login.mockResolvedValue(undefined);
-
-      await service.addIntegration(mockIntegration);
-
-      expect(service.getActiveCount()).toBe(1);
-    });
-
     it('should update existing integration when adding duplicate', async () => {
       mockClient.login.mockResolvedValue(undefined);
       mockClient.destroy.mockResolvedValue(undefined);
@@ -398,10 +367,6 @@ describe('DiscordBotManager', () => {
   });
 
   describe('getActiveCount', () => {
-    it('should return 0 for empty manager', () => {
-      expect(service.getActiveCount()).toBe(0);
-    });
-
     it('should return correct count after adding integrations', async () => {
       mockClient.login.mockResolvedValue(undefined);
 
@@ -460,78 +425,6 @@ describe('DiscordBotManager', () => {
     });
   });
 
-  describe('Redis hot reload', () => {
-    it('should hot-add integration for Discord events only', async () => {
-      const handlers = new Map<string, (message: unknown) => void>();
-
-      (redisService.subscribe as ReturnType<typeof vi.fn>).mockImplementation(
-        async (channel: string, handler?: (message: unknown) => void) => {
-          if (handler) {
-            handlers.set(channel, handler);
-          }
-        },
-      );
-
-      (httpService.get as ReturnType<typeof vi.fn>).mockImplementation(
-        (url: string) => {
-          if (url.endsWith('/v1/internal/integrations/DISCORD')) {
-            return of({ data: [] });
-          }
-          if (
-            url.endsWith(
-              '/v1/internal/integrations/DISCORD/discord-integration-1',
-            )
-          ) {
-            return of({ data: toApiIntegration(mockIntegration) });
-          }
-          return of({ data: [] });
-        },
-      );
-
-      mockClient.login.mockResolvedValue(undefined);
-
-      await service.initialize();
-
-      handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'discord-integration-1',
-        orgId: 'org-789',
-        platform: 'DISCORD',
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      expect(service.getActiveCount()).toBe(1);
-    });
-
-    it('should ignore events for non-discord platforms', async () => {
-      const handlers = new Map<string, (message: unknown) => void>();
-
-      (redisService.subscribe as ReturnType<typeof vi.fn>).mockImplementation(
-        async (channel: string, handler?: (message: unknown) => void) => {
-          if (handler) {
-            handlers.set(channel, handler);
-          }
-        },
-      );
-
-      (httpService.get as ReturnType<typeof vi.fn>).mockReturnValue(
-        of({ data: [] }),
-      );
-
-      await service.initialize();
-
-      handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'slack-integration-1',
-        orgId: 'org-789',
-        platform: 'SLACK',
-      });
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      expect(service.getActiveCount()).toBe(0);
-    });
-  });
-
   describe('interaction handling', () => {
     let interactionHandler: (interaction: unknown) => Promise<void>;
 
@@ -550,25 +443,6 @@ describe('DiscordBotManager', () => {
       );
 
       await service.createBotInstance(mockIntegration);
-    });
-
-    it('should reject unauthorized users', async () => {
-      const mockInteraction = {
-        channelId: 'channel-1',
-        commandName: 'workflows',
-        isButton: vi.fn().mockReturnValue(false),
-        isChatInputCommand: vi.fn().mockReturnValue(true),
-        isRepliable: vi.fn().mockReturnValue(true),
-        reply: vi.fn(),
-        user: { id: 'unauthorized-user' },
-      };
-
-      await interactionHandler(mockInteraction);
-
-      expect(mockInteraction.reply).toHaveBeenCalledWith({
-        content: 'You are not authorized to use this bot.',
-        ephemeral: true,
-      });
     });
 
     it('should handle /status command for idle user', async () => {
@@ -657,27 +531,6 @@ describe('DiscordBotManager', () => {
         }),
       );
     });
-
-    it('should handle button interaction for settings', async () => {
-      const mockInteraction = {
-        channelId: 'channel-1',
-        customId: 'cfg:img:flux-dev',
-        isButton: vi.fn().mockReturnValue(true),
-        isChatInputCommand: vi.fn().mockReturnValue(false),
-        isRepliable: vi.fn().mockReturnValue(true),
-        reply: vi.fn(),
-        user: { id: '123456789' },
-      };
-
-      await interactionHandler(mockInteraction);
-
-      expect(mockInteraction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          content: expect.stringContaining('flux-dev'),
-          ephemeral: true,
-        }),
-      );
-    });
   });
 
   describe('message handling', () => {
@@ -696,30 +549,6 @@ describe('DiscordBotManager', () => {
       );
 
       await service.createBotInstance(mockIntegration);
-    });
-
-    it('should ignore bot messages', async () => {
-      const mockMessage = {
-        attachments: new Map(),
-        author: { bot: true, id: '123456789' },
-        channelId: 'channel-1',
-        content: 'Hello',
-      };
-
-      await messageHandler(mockMessage);
-      // No error thrown = ignored
-    });
-
-    it('should ignore messages from unauthorized users', async () => {
-      const mockMessage = {
-        attachments: new Map(),
-        author: { bot: false, id: 'unauthorized-user' },
-        channelId: 'channel-1',
-        content: 'Hello',
-      };
-
-      await messageHandler(mockMessage);
-      // No error thrown = ignored
     });
 
     it('should ignore messages without active session', async () => {

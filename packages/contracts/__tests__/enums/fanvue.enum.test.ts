@@ -11,10 +11,6 @@ import {
 
 describe('fanvue.enum', () => {
   describe('FanvueSubscriberStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(FanvueSubscriberStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(FanvueSubscriberStatus.ACTIVE).toBe('active');
       expect(FanvueSubscriberStatus.EXPIRED).toBe('expired');
@@ -23,10 +19,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueContentStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(FanvueContentStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(FanvueContentStatus.DRAFT).toBe('draft');
       expect(FanvueContentStatus.PUBLISHED).toBe('published');
@@ -35,10 +27,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueContentType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(FanvueContentType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(FanvueContentType.IMAGE).toBe('image');
       expect(FanvueContentType.VIDEO).toBe('video');
@@ -48,10 +36,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueScheduleStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(FanvueScheduleStatus)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(FanvueScheduleStatus.PENDING).toBe('pending');
       expect(FanvueScheduleStatus.PUBLISHED).toBe('published');
@@ -61,10 +45,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueEarningsType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(FanvueEarningsType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(FanvueEarningsType.SUBSCRIPTION).toBe('subscription');
       expect(FanvueEarningsType.TIP).toBe('tip');
@@ -74,10 +54,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueSyncAction', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(FanvueSyncAction)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(FanvueSyncAction.UPLOAD).toBe('upload');
       expect(FanvueSyncAction.PUBLISH).toBe('publish');
@@ -88,10 +64,6 @@ describe('fanvue.enum', () => {
   });
 
   describe('FanvueSyncStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(FanvueSyncStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(FanvueSyncStatus.SUCCESS).toBe('success');
       expect(FanvueSyncStatus.FAILED).toBe('failed');

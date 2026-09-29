@@ -50,12 +50,6 @@ function makePost(overrides: Partial<IPost> = {}): IPost {
 }
 
 describe('buildPostTargetPreview', () => {
-  it('returns null when the post has no resolved platform', () => {
-    expect(
-      buildPostTargetPreview(makePost({ platform: undefined }), '', undefined),
-    ).toBeNull();
-  });
-
   it('prefers the live description draft over the persisted description', () => {
     const preview = buildPostTargetPreview(
       makePost(),
@@ -65,12 +59,6 @@ describe('buildPostTargetPreview', () => {
 
     expect(preview?.release.baseContent).toBe('Draft caption');
     expect(preview?.target.settings).toEqual({});
-  });
-
-  it('strips HTML from the persisted description when no draft is present', () => {
-    const preview = buildPostTargetPreview(makePost(), '', undefined);
-
-    expect(preview?.release.baseContent).toBe('Hello world');
   });
 
   it('maps ingredients with a resolvable URL onto release media', () => {
@@ -118,15 +106,5 @@ describe('buildPostTargetPreview', () => {
 
     const withoutCredential = buildPostTargetPreview(makePost(), '', undefined);
     expect(withoutCredential?.credential.platform).toBe(Platform.TWITTER);
-  });
-
-  it('treats a missing ingredients array as empty media', () => {
-    const preview = buildPostTargetPreview(
-      makePost({ ingredients: undefined }),
-      '',
-      undefined,
-    );
-
-    expect(preview?.release.media).toEqual([]);
   });
 });

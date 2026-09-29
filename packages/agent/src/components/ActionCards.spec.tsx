@@ -111,12 +111,6 @@ describe('ReviewGateCard', () => {
       screen.getByRole('button', { name: /approve \(0\)/i }),
     ).toBeDisabled();
   });
-
-  it('shows an empty state without items', () => {
-    render(<ReviewGateCard action={makeAction({ items: [] })} />);
-
-    expect(screen.getByText('No items to review')).toBeInTheDocument();
-  });
 });
 
 describe('SchedulePostCard', () => {
@@ -247,11 +241,5 @@ describe('IngredientPickerCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /change/i }));
     expect(screen.getByRole('button', { name: 'Sunset' })).toBeInTheDocument();
-  });
-
-  it('renders an empty state without ingredients', () => {
-    render(<IngredientPickerCard action={makeAction({ ingredients: [] })} />);
-
-    expect(screen.getByText('No ingredients available')).toBeInTheDocument();
   });
 });

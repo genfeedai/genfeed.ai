@@ -129,14 +129,6 @@ function renderHeader(overrides: Partial<IPost> = {}, props = {}) {
 }
 
 describe('PostDetailHeader', () => {
-  it('renders the post label as the heading', () => {
-    renderHeader();
-
-    expect(
-      screen.getByRole('heading', { name: 'Launch announcement' }),
-    ).toBeInTheDocument();
-  });
-
   it('falls back to a platform label when the post has no label', () => {
     renderHeader({ label: undefined });
 
@@ -144,14 +136,6 @@ describe('PostDetailHeader', () => {
       screen.queryByRole('heading', { name: 'Launch announcement' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Post detail')).toBeInTheDocument();
-  });
-
-  it('shows exactly one primary button: Publish now for an unscheduled draft', () => {
-    renderHeader();
-
-    expect(
-      screen.getByRole('button', { name: 'Publish now' }),
-    ).toBeInTheDocument();
   });
 
   it('switches the primary action to Schedule once the schedule draft is dirty', async () => {
@@ -189,14 +173,6 @@ describe('PostDetailHeader', () => {
     expect(deleteButton).toHaveAttribute('data-destructive', 'true');
   });
 
-  it('hides edit-only controls once the post is published', () => {
-    renderHeader({}, { isPublished: true });
-
-    expect(
-      screen.queryByRole('button', { name: 'Delete' }),
-    ).not.toBeInTheDocument();
-  });
-
   it('toggles the view mode from the overflow menu', async () => {
     const user = userEvent.setup();
     const { onViewModeChange } = renderHeader();
@@ -204,31 +180,6 @@ describe('PostDetailHeader', () => {
     await user.click(screen.getByRole('button', { name: 'Preview' }));
 
     expect(onViewModeChange).toHaveBeenCalledWith('preview');
-  });
-
-  it('calls onDelete when the overflow delete action is pressed', async () => {
-    const user = userEvent.setup();
-    const { onDelete } = renderHeader();
-
-    await user.click(screen.getByRole('button', { name: 'Delete' }));
-
-    expect(onDelete).toHaveBeenCalledTimes(1);
-  });
-
-  it('offers expand-to-thread from the overflow for an editable twitter post without children', () => {
-    renderHeader();
-
-    expect(
-      screen.getByRole('button', { name: 'Expand to Thread' }),
-    ).toBeInTheDocument();
-  });
-
-  it('hides expand-to-thread once the post already has children', () => {
-    renderHeader({}, { hasChildren: true });
-
-    expect(
-      screen.queryByRole('button', { name: 'Expand to Thread' }),
-    ).not.toBeInTheDocument();
   });
 
   it('lists a live post link in the overflow when the platform url is present', () => {

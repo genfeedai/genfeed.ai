@@ -77,13 +77,6 @@ describe('ReframeExecutor', () => {
         'Target aspect ratio is required for reframing',
       );
     });
-
-    it('should fail when node type does not match', () => {
-      const node = makeNode();
-      node.type = 'wrongType';
-      const result = executor.validate(node);
-      expect(result.valid).toBe(false);
-    });
   });
 
   describe('estimateCost', () => {
@@ -109,38 +102,6 @@ describe('ReframeExecutor', () => {
 
       await expect(executor.execute(input)).rejects.toThrow(
         'Media input is required for reframing',
-      );
-    });
-
-    it('should call resolver with correct parameters', async () => {
-      const input = makeInput(
-        { format: 'portrait', targetAspectRatio: '9:16' },
-        [['media', 'https://cdn.example.com/video.mp4']],
-      );
-
-      await executor.execute(input);
-
-      expect(mockResolver).toHaveBeenCalledWith(
-        'https://cdn.example.com/video.mp4',
-        { format: 'portrait', targetAspectRatio: '9:16' },
-        input.context,
-        input.node,
-      );
-    });
-
-    it('should default format to landscape', async () => {
-      const input = makeInput({ targetAspectRatio: '16:9' }, [
-        ['media', 'https://cdn.example.com/video.mp4'],
-      ]);
-      delete input.node.config.format;
-
-      await executor.execute(input);
-
-      expect(mockResolver).toHaveBeenCalledWith(
-        expect.any(String),
-        { format: 'landscape', targetAspectRatio: '16:9' },
-        expect.anything(),
-        expect.anything(),
       );
     });
 

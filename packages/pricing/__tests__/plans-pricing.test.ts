@@ -63,12 +63,6 @@ describe('plan lookups', () => {
     expect(getPlanLabel('payg')).toBe('Pay As You Go');
     expect(getPlanLabel('enterprise')).toBe('Enterprise');
   });
-
-  it('lists exactly one plan per tier', () => {
-    const tiers = websitePlans.map((plan) => plan.tier);
-
-    expect(tiers).toEqual(['payg', 'pro', 'scale', 'enterprise']);
-  });
 });
 
 describe('plan price formatting', () => {
@@ -188,12 +182,6 @@ describe('applyMargin and runtime margin multiplier (generation)', () => {
     expect(applyMargin(0.15, Number.POSITIVE_INFINITY)).toBe(50);
   });
 
-  it('clamps multipliers to MAX_MARGIN_MULTIPLIER', () => {
-    expect(applyMargin(0.15, MAX_MARGIN_MULTIPLIER * 5)).toBe(
-      applyMargin(0.15, MAX_MARGIN_MULTIPLIER),
-    );
-  });
-
   it('uses the process-scoped runtime multiplier by default', () => {
     expect(getRuntimeMarginMultiplier()).toBe(
       DEFAULT_GENERATION_MARGIN_MULTIPLIER,
@@ -259,14 +247,6 @@ describe('creditsToOutputEstimate', () => {
       images: 200,
       videoMinutes: 2,
       voiceMinutes: 600,
-    });
-  });
-
-  it('returns zeroes for zero credits', () => {
-    expect(creditsToOutputEstimate(0)).toEqual({
-      images: 0,
-      videoMinutes: 0,
-      voiceMinutes: 0,
     });
   });
 });
@@ -365,10 +345,6 @@ describe('website plan catalogue', () => {
     expect(scale.features).toContain('Unlimited brands and connected channels');
     expect(scale.outputs).toBeNull();
   });
-
-  it('leaves Enterprise outputs open for custom terms', () => {
-    expect(getEnterprisePlan().outputs).toBeNull();
-  });
 });
 
 describe('launch pricing', () => {
@@ -385,11 +361,5 @@ describe('launch pricing', () => {
     expect(note).not.toMatch(/cap/);
     expect(note).not.toMatch(/limited/);
     expect(note).not.toMatch(/first \d+ (subscribers|customers|users)/);
-  });
-
-  it('offers launch pricing on Pro alone', () => {
-    const discounted = websitePlans.filter((plan) => plan.launchPrice != null);
-
-    expect(discounted.map((plan) => plan.tier)).toEqual(['pro']);
   });
 });

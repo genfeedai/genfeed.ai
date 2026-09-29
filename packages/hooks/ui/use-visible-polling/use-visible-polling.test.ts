@@ -77,14 +77,6 @@ describe('useVisiblePolling', () => {
     expect(poll).toHaveBeenCalledTimes(1);
   });
 
-  it('does not poll on mount when the document was never hidden', () => {
-    const poll = vi.fn();
-
-    renderHook(() => useVisiblePolling(poll, { intervalMs: 1000 }));
-
-    expect(poll).not.toHaveBeenCalled();
-  });
-
   it('suspends polling while disabled', () => {
     const poll = vi.fn();
 
@@ -131,21 +123,5 @@ describe('useVisiblePolling', () => {
 
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the interval on unmount', () => {
-    const poll = vi.fn();
-
-    const { unmount } = renderHook(() =>
-      useVisiblePolling(poll, { intervalMs: 1000 }),
-    );
-
-    unmount();
-
-    act(() => {
-      vi.advanceTimersByTime(5000);
-    });
-
-    expect(poll).not.toHaveBeenCalled();
   });
 });

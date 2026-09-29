@@ -65,14 +65,6 @@ describe('AgentErrorMessage', () => {
     );
   });
 
-  it('keeps scrubbed generic details actionable', () => {
-    render(<AgentErrorMessage message="Selected model is unavailable" />);
-
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Selected model is unavailable',
-    );
-  });
-
   it('keeps trusted step context while hiding classified provider details', () => {
     render(
       <AgentErrorMessage

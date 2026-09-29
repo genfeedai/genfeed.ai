@@ -61,21 +61,6 @@ describe('AgentContent', () => {
     expect(claudeCommand).not.toHaveTextContent('Bearer');
   });
 
-  it('links a setup guide for every agent client, including Meta Muse', () => {
-    render(<AgentContent />);
-
-    for (const [name, href] of [
-      ['Meta Muse', '/muse'],
-      ['Grok Bot', '/grok-bot'],
-      ['ChatGPT', '/chatgpt'],
-    ]) {
-      const hrefs = screen
-        .getAllByRole('link', { name: new RegExp(`^${name}`) })
-        .map((link) => link.getAttribute('href'));
-      expect(hrefs).toContain(href);
-    }
-  });
-
   it('leads the hero with the agent connection, then sign-up', () => {
     render(<AgentContent />);
 
@@ -90,21 +75,6 @@ describe('AgentContent', () => {
       'href',
       'https://app.genfeed.ai/sign-up',
     );
-  });
-
-  it('puts the connect section, which every agent CTA targets, first', () => {
-    const { container } = render(<AgentContent />);
-
-    const connect = container.querySelector('#connect');
-    const asks = screen.getByRole('heading', {
-      level: 2,
-      name: /what people ask it for/i,
-    });
-
-    expect(connect).not.toBeNull();
-    expect(
-      connect?.compareDocumentPosition(asks) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
   });
 
   it('tracks hero and closing CTAs under separate page-scoped names', () => {

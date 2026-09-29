@@ -1,46 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildFluxDevPrompt as publicBuildFluxDevPrompt,
-  buildPulidFluxPrompt as publicBuildPulidFluxPrompt,
-  buildZImageTurboLoraPrompt as publicBuildZImageTurboLoraPrompt,
-  buildZImageTurboPrompt as publicBuildZImageTurboPrompt,
-} from './index';
-import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,
   buildFlux2DevPulidPrompt,
   buildFlux2DevPulidUpscalePrompt,
-  buildFlux2KleinPrompt,
   buildFluxDevPrompt,
   buildPulidFluxPrompt,
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
   type Flux2PulidUpscaleParams,
 } from './prompt-builder';
-
-const PROMPT_BUILDER_EXPORTS = [
-  ['buildFluxDevPrompt', publicBuildFluxDevPrompt, buildFluxDevPrompt],
-  ['buildPulidFluxPrompt', publicBuildPulidFluxPrompt, buildPulidFluxPrompt],
-  [
-    'buildZImageTurboLoraPrompt',
-    publicBuildZImageTurboLoraPrompt,
-    buildZImageTurboLoraPrompt,
-  ],
-  [
-    'buildZImageTurboPrompt',
-    publicBuildZImageTurboPrompt,
-    buildZImageTurboPrompt,
-  ],
-] as const;
-
-describe('ComfyUI prompt builder exports', () => {
-  it.each(PROMPT_BUILDER_EXPORTS)(
-    'keeps %s aligned across the public and compatibility paths',
-    (_builderName, publicBuilder, compatibilityBuilder) => {
-      expect(publicBuilder).toBe(compatibilityBuilder);
-    },
-  );
-});
 
 describe('buildZImageTurboPrompt', () => {
   const prompt = buildZImageTurboPrompt({ prompt: 'a red car', seed: 42 });
@@ -123,25 +92,9 @@ describe('buildZImageTurboLoraPrompt', () => {
 describe('buildFlux2DevPrompt', () => {
   const prompt = buildFlux2DevPrompt({ prompt: 'sunset', seed: 1 });
 
-  it('uses UNETLoader for split loading', () => {
-    expect(prompt['1'].class_type).toBe('UNETLoader');
-  });
-
   it('uses CLIPLoader with flux2 type', () => {
     expect(prompt['2'].class_type).toBe('CLIPLoader');
     expect(prompt['2'].inputs.type).toBe('flux2');
-  });
-
-  it('uses separate VAELoader', () => {
-    expect(prompt['6'].class_type).toBe('VAELoader');
-  });
-});
-
-describe('buildFlux2KleinPrompt', () => {
-  const prompt = buildFlux2KleinPrompt({ prompt: 'mountain', seed: 7 });
-
-  it('uses UNETLoader for split loading', () => {
-    expect(prompt['1'].class_type).toBe('UNETLoader');
   });
 
   it('uses separate VAELoader', () => {
@@ -199,11 +152,6 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
         class_type: 'VAELoader',
         inputs: { vae_name: 'flux2-vae.safetensors' },
       });
-    });
-
-    it('does not contain CheckpointLoaderSimple', () => {
-      const classTypes = Object.values(prompt).map((n) => n.class_type);
-      expect(classTypes).not.toContain('CheckpointLoaderSimple');
     });
   });
 

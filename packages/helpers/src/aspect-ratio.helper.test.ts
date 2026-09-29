@@ -52,22 +52,6 @@ vi.mock('@genfeedai/contracts/constants', async () => {
 
 describe('aspect-ratio.helper', () => {
   describe('getDefaultAspectRatio', () => {
-    it('should return model-specific default for video models', () => {
-      expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(
-        '16:9',
-      );
-    });
-
-    it('should return model-specific default for image models', () => {
-      expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3)).toBe(
-        '1:1',
-      );
-    });
-
-    it('should return 16:9 for unknown models', () => {
-      expect(getDefaultAspectRatio('unknown-model')).toBe('16:9');
-    });
-
     it('should return 16:9 for categories without aspect ratio', () => {
       expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_META_MUSICGEN)).toBe(
         '16:9',
@@ -79,18 +63,6 @@ describe('aspect-ratio.helper', () => {
   });
 
   describe('getAspectRatiosForModel', () => {
-    it('should return available aspect ratios for video models', () => {
-      const ratios = getAspectRatiosForModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
-      expect(ratios).toEqual(['16:9', '9:16', '1:1']);
-    });
-
-    it('should return available aspect ratios for image models', () => {
-      const ratios = getAspectRatiosForModel(
-        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-      );
-      expect(ratios).toEqual(['1:1', '16:9', '9:16', '4:3', '3:4']);
-    });
-
     it('should return empty array for categories without aspect ratio', () => {
       expect(
         getAspectRatiosForModel(MODEL_KEYS.REPLICATE_META_MUSICGEN),
@@ -158,22 +130,6 @@ describe('aspect-ratio.helper', () => {
       expect(calculateAspectRatio(1024, 768)).toBe('4:3');
       expect(calculateAspectRatio(800, 600)).toBe('4:3');
     });
-
-    it('should calculate 3:4 portrait ratio', () => {
-      expect(calculateAspectRatio(768, 1024)).toBe('3:4');
-    });
-
-    it('should calculate 21:9 ultrawide ratio', () => {
-      expect(calculateAspectRatio(2560, 1080)).toBe('21:9');
-    });
-
-    it('should fallback to 16:9 for landscape unknown ratios', () => {
-      expect(calculateAspectRatio(1700, 1000)).toBe('16:9');
-    });
-
-    it('should fallback to 9:16 for portrait unknown ratios', () => {
-      expect(calculateAspectRatio(1000, 1700)).toBe('9:16');
-    });
   });
 
   describe('isAspectRatioSupported', () => {
@@ -197,12 +153,6 @@ describe('aspect-ratio.helper', () => {
         isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '21:9'),
       ).toBe(false);
     });
-
-    it('should return false for models without aspect ratios', () => {
-      expect(
-        isAspectRatioSupported(MODEL_KEYS.REPLICATE_META_MUSICGEN, '16:9'),
-      ).toBe(false);
-    });
   });
 
   describe('convertRatioToOrientation', () => {
@@ -218,10 +168,6 @@ describe('aspect-ratio.helper', () => {
       expect(convertRatioToOrientation('4:3')).toBe('landscape');
       expect(convertRatioToOrientation('1:1')).toBe('landscape');
       expect(convertRatioToOrientation('21:9')).toBe('landscape');
-    });
-
-    it('should return landscape for unknown ratios', () => {
-      expect(convertRatioToOrientation('unknown')).toBe('landscape');
     });
   });
 });

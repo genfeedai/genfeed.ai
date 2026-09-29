@@ -75,12 +75,6 @@ describe('useIngredientMetadata', () => {
     vi.clearAllMocks();
   });
 
-  it('initializes with isUpdating false', () => {
-    const { result } = renderHook(() => useIngredientMetadata(baseIngredient));
-
-    expect(result.current.isUpdating).toBe(false);
-  });
-
   it('requires ingredient id', async () => {
     const { result } = renderHook(() => useIngredientMetadata(null));
 

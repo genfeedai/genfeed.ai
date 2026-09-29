@@ -52,19 +52,4 @@ describe('getBrandVoiceFailureView', () => {
       messageKey: BRAND_VOICE_FAILURE_FALLBACK_KEY,
     });
   });
-
-  it.each(['constructor', 'toString', '__proto__', 'hasOwnProperty'])(
-    'does not treat the prototype member %s as a known code',
-    (code) => {
-      expect(getBrandVoiceFailureView(buildApiError(code))).toEqual({
-        messageKey: BRAND_VOICE_FAILURE_FALLBACK_KEY,
-      });
-    },
-  );
-
-  it('never returns the server prose for the UI to render', () => {
-    const view = getBrandVoiceFailureView(buildApiError('something_new'));
-
-    expect(JSON.stringify(view)).not.toContain('server prose');
-  });
 });

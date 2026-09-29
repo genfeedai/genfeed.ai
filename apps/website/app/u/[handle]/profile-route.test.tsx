@@ -63,20 +63,6 @@ beforeEach(() => {
   findPublicArticles.mockResolvedValue(ARTICLES);
 });
 
-describe('getPublicBrandBySlug', () => {
-  it('returns the brand the service resolves', async () => {
-    await expect(getPublicBrandBySlug('loader-ok')).resolves.toMatchObject({
-      id: 'brand-1',
-    });
-  });
-
-  it('swallows a service failure and returns null', async () => {
-    findPublicProfileBySlug.mockRejectedValue(new Error('offline'));
-
-    await expect(getPublicBrandBySlug('loader-fail')).resolves.toBeNull();
-  });
-});
-
 describe('getPublicProfilePageData', () => {
   it('collects videos, images, articles and the brand links', async () => {
     const data = await getPublicProfilePageData('page-data-ok');

@@ -103,13 +103,6 @@ describe('ImageGenExecutor', () => {
       expect(result.metadata?.provider).toBe('replicate');
     });
 
-    it('uses prompt from input over config', async () => {
-      await executor.execute(
-        makeInput({ model: 'flux', prompt: 'config' }, { prompt: 'input' }),
-      );
-      // The resolver receives 'input' prompt
-    });
-
     it('passes upstream image input as references and preserves image-guided params', async () => {
       const resolver = vi.fn().mockResolvedValue({
         filename: 'guided.png',

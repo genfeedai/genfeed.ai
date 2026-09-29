@@ -289,38 +289,6 @@ describe('PublishingContentLibrary', () => {
     );
   });
 
-  it('uses a target schedule even when the release has no group schedule', () => {
-    mocks.queryData = {
-      articles: [],
-      newsletters: [],
-      posts: [],
-      releases: [
-        {
-          id: 'release-soon',
-          title: 'Target schedule',
-          createdAt: '2026-09-28T12:00:00Z',
-          status: 'draft',
-          scheduledAt: null,
-          targets: [
-            {
-              id: 'target-soon',
-              platform: Platform.INSTAGRAM,
-              executionState: TargetExecutionState.SCHEDULED,
-              scheduledAt: new Date(Date.now() + 3600000).toISOString(),
-            },
-          ],
-        },
-      ],
-    };
-    render(<PublishingContentLibrary />);
-    expect(
-      within(screen.getByRole('region', { name: 'needsYou' })).getByRole(
-        'link',
-        { name: 'Open Target schedule' },
-      ),
-    ).toBeVisible();
-  });
-
   it('keeps board status columns and card actions available', () => {
     mocks.search = 'view=board';
     render(<PublishingContentLibrary />);

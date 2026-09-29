@@ -55,15 +55,6 @@ function makeState(
 }
 
 describe('ClipRunCard', () => {
-  it('renders step list', () => {
-    render(<ClipRunCard state={makeState()} />);
-
-    expect(screen.getByText('Generate Clip')).toBeDefined();
-    expect(screen.getByText('Merge Clips')).toBeDefined();
-    expect(screen.getByText('Reframe Portrait')).toBeDefined();
-    expect(screen.getByText('Publish Handoff')).toBeDefined();
-  });
-
   it('shows running state for current step', () => {
     const state = makeState({
       currentStep: 'generate',

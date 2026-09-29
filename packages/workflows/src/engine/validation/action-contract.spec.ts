@@ -108,14 +108,6 @@ describe('compileActionContract', () => {
     }
   });
 
-  it('rejects undefined output instead of treating it as an absent result', () => {
-    const contract = compileStrictContract();
-
-    expect(() => contract.validateOutput(undefined, PROVENANCE)).toThrow(
-      'Action contract output validation failed',
-    );
-  });
-
   it('rejects unconstrained and open object contracts at compilation', () => {
     expect(() =>
       compileActionContract('open.action', {

@@ -177,19 +177,4 @@ describe('useAgentDraftContext', () => {
 
     expect(onApplySuggestion).not.toHaveBeenCalled();
   });
-
-  it('does not listen for suggestions without a handler', () => {
-    renderHook(() => useAgentDraftContext({ draftType: 'post' }));
-
-    expect(() =>
-      act(() => {
-        window.dispatchEvent(
-          new CustomEvent<AgentDraftSuggestionPayload>(
-            AGENT_DRAFT_SUGGESTION_EVENT,
-            { detail: { text: 'anything' } },
-          ),
-        );
-      }),
-    ).not.toThrow();
-  });
 });

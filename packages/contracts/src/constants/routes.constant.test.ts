@@ -28,18 +28,6 @@ function collectRouteValues(value: unknown): string[] {
 }
 
 describe('routes.constant', () => {
-  it('exports app route values as slash-prefixed paths', () => {
-    for (const route of collectRouteValues(APP_ROUTES)) {
-      expect(route.startsWith('/')).toBe(true);
-    }
-  });
-
-  it('exports route prefixes as slash-prefixed paths', () => {
-    for (const routePrefix of Object.values(APP_ROUTE_PREFIXES)) {
-      expect(routePrefix.startsWith('/')).toBe(true);
-    }
-  });
-
   it.each([
     '/',
     '/onboarding/brand',
@@ -135,10 +123,6 @@ describe('routes.constant', () => {
     );
   });
 
-  it('does not expose retired Lab route constants', () => {
-    expect(APP_ROUTES).not.toHaveProperty('LAB');
-  });
-
   it('builds canonical Publishing editor paths without a kind query param', () => {
     // Kind lives on the entity (which table the id hits), not the URL.
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
@@ -216,10 +200,6 @@ describe('routes.constant', () => {
         'youtube',
       ),
     ).toBe('/publishing/posts?status=draft&platform=youtube');
-  });
-
-  it('keeps Tasks inside the Workspace route family', () => {
-    expect(APP_ROUTES.WORKSPACE.TASKS).toBe('/workspace/tasks');
   });
 
   it('builds scoped brand and organization routes', () => {

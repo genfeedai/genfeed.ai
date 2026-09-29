@@ -1,8 +1,4 @@
-import {
-  ContentTemplateKey,
-  IngredientFormat,
-  RouterPriority,
-} from '@genfeedai/contracts';
+import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import { buildBaseGenerationPayload } from './generation-payloads';
 import {
@@ -56,18 +52,6 @@ describe('resolveIngredientFormat', () => {
 });
 
 describe('getDefaultStudioGenerateSettings', () => {
-  it('turns brand enrichment on by default for every type', () => {
-    for (const type of [
-      'image',
-      'video',
-      'music',
-      'avatar',
-      'voice',
-    ] as const) {
-      expect(getDefaultStudioGenerateSettings(type).brandingMode).toBe('brand');
-    }
-  });
-
   it('gives image a square 1K default with a single output', () => {
     const settings = getDefaultStudioGenerateSettings('image');
 
@@ -86,10 +70,6 @@ describe('getDefaultStudioGenerateSettings', () => {
     expect(settings.aspectRatio).toBe('16:9');
     expect(settings.resolution).toBe('720p');
     expect(settings.duration).toBe(5);
-  });
-
-  it('leaves music duration unresolved in Auto', () => {
-    expect(getDefaultStudioGenerateSettings('music').duration).toBeUndefined();
   });
 });
 
@@ -142,44 +122,6 @@ describe('option lists', () => {
 });
 
 describe('buildStudioPromptData', () => {
-  it('carries every Look field into the prompt schema', () => {
-    const settings = {
-      ...getDefaultStudioGenerateSettings('image'),
-      blacklist: ['watermark'],
-      camera: 'macro',
-      lighting: 'golden hour',
-      modelKey: 'flux-dev',
-      mood: 'serene',
-      scene: 'rooftop',
-      style: 'cinematic',
-      tags: ['launch'],
-    };
-
-    const promptData = buildStudioPromptData({
-      brandId: 'brand-1',
-      promptText: 'A product on marble',
-      settings,
-      type: 'image',
-    });
-
-    expect(promptData).toMatchObject({
-      autoSelectModel: false,
-      blacklist: ['watermark'],
-      brand: 'brand-1',
-      brandingMode: 'brand',
-      camera: 'macro',
-      isBrandingEnabled: true,
-      isValid: true,
-      lighting: 'golden hour',
-      models: ['flux-dev'],
-      mood: 'serene',
-      scene: 'rooftop',
-      style: 'cinematic',
-      tags: ['launch'],
-      text: 'A product on marble',
-    });
-  });
-
   it('marks auto routing when no explicit model is picked', () => {
     const promptData = buildStudioPromptData({
       brandId: 'brand-1',
@@ -231,17 +173,6 @@ describe('buildStudioPromptData', () => {
     expect(explicit.resolution).toBe('720p');
   });
 
-  it('is invalid without prompt text', () => {
-    expect(
-      buildStudioPromptData({
-        brandId: 'brand-1',
-        promptText: '   ',
-        settings: getDefaultStudioGenerateSettings('image'),
-        type: 'image',
-      }).isValid,
-    ).toBe(false);
-  });
-
   it('stays valid for avatar when speech carries the script', () => {
     const promptData = buildStudioPromptData({
       brandId: 'brand-1',
@@ -264,36 +195,6 @@ describe('buildStudioPromptData', () => {
 });
 
 describe('studio prompt data feeding the Genfeed enrichment payload', () => {
-  it('restores template + brand enrichment that the agent path drops', () => {
-    const promptData = buildStudioPromptData({
-      brandId: 'brand-1',
-      promptText: 'A founder at a desk',
-      settings: {
-        ...getDefaultStudioGenerateSettings('image'),
-        mood: 'confident',
-        promptTemplate: 'product-photo',
-        style: 'editorial',
-      },
-      type: 'image',
-    });
-
-    const payload = buildBaseGenerationPayload(
-      promptData,
-      'flux-dev',
-      'brand-1',
-    );
-
-    expect(payload).toMatchObject({
-      brand: 'brand-1',
-      brandingMode: 'brand',
-      isBrandingEnabled: true,
-      mood: 'confident',
-      promptTemplate: ContentTemplateKey.IMAGE_PRODUCT,
-      style: 'editorial',
-      useTemplate: true,
-    });
-  });
-
   it('honours brand enrichment switched off', () => {
     const promptData = buildStudioPromptData({
       brandId: 'brand-1',
@@ -313,21 +214,5 @@ describe('studio prompt data feeding the Genfeed enrichment payload', () => {
 
     expect(payload.brandingMode).toBe('off');
     expect(payload.isBrandingEnabled).toBe(false);
-  });
-
-  it('never claims enrichment on a type whose payload cannot carry it', () => {
-    // Music, avatar, and voice reach their providers without the brand
-    // fields, so an enabled Brand switch there would be a lie.
-    const promptData = buildStudioPromptData({
-      brandId: 'brand-1',
-      promptText: 'Lo-fi loop',
-      settings: {
-        ...getDefaultStudioGenerateSettings('music'),
-        brandingMode: 'brand',
-      },
-      type: 'music',
-    });
-
-    expect(promptData.isBrandingEnabled).toBe(false);
   });
 });

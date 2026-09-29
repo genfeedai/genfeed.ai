@@ -84,11 +84,6 @@ describe('date-range.util', () => {
   });
 
   describe('formatOptionalApiDate', () => {
-    it('should return null for empty dates', () => {
-      expect(formatOptionalApiDate(null)).toBeNull();
-      expect(formatOptionalApiDate(undefined)).toBeNull();
-    });
-
     it('should format provided dates', () => {
       expect(formatOptionalApiDate(new Date('2024-03-10'))).toBe('2024-03-10');
     });

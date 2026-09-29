@@ -165,12 +165,6 @@ describe('YoutubeService', () => {
     });
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(service).toBeDefined();
-    });
-  });
-
   describe('uploadVideo', () => {
     beforeEach(() => {
       // Mock the write stream to properly resolve
@@ -381,17 +375,6 @@ describe('YoutubeService', () => {
       const result = await service.uploadVideo(mockUploadParams);
 
       expect(result).toBe('youtube-video-id-123');
-    });
-
-    it('should clean up local file after upload', async () => {
-      (fs.existsSync as Mock)
-        .mockReturnValueOnce(false) // Directory check
-        .mockReturnValueOnce(true) // File cleanup check
-        .mockReturnValueOnce(true); // Directory cleanup check
-
-      await service.uploadVideo(mockUploadParams);
-
-      expect(fs.unlinkSync).toHaveBeenCalled();
     });
 
     it('should remove empty directory after cleanup', async () => {

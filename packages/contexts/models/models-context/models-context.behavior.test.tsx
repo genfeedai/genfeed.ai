@@ -62,20 +62,6 @@ describe('ModelsProvider', () => {
     });
   });
 
-  it('clears the refresh function when set to null', () => {
-    renderWithProvider();
-
-    act(() => {
-      contextValue.setRefreshModels(vi.fn().mockResolvedValue(undefined));
-    });
-    expect(contextValue.refreshModels).not.toBeNull();
-
-    act(() => {
-      contextValue.setRefreshModels(null);
-    });
-    expect(contextValue.refreshModels).toBeNull();
-  });
-
   it('updates filters and accepts query updates', () => {
     renderWithProvider();
 

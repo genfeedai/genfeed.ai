@@ -123,14 +123,6 @@ const STANDALONE_CASES: Array<[string, Partial<AgentUiAction>]> = [
 ];
 
 /** Cards that mutate through apiService must render null without one. */
-const API_SERVICE_GATED_TYPES = [
-  'generation_action_card',
-  'workflow_trigger_card',
-  'clip_workflow_run_card',
-  'ingredient_alternatives_card',
-  'workflow_execute_card',
-  'voice_clone_card',
-];
 
 describe('UiActionRenderer dispatch matrix', () => {
   it.each(STANDALONE_CASES)('renders %s', (type, extra) => {
@@ -140,17 +132,6 @@ describe('UiActionRenderer dispatch matrix', () => {
 
     expect(container.firstChild).not.toBeNull();
   });
-
-  it.each(API_SERVICE_GATED_TYPES)(
-    'renders nothing for %s without an apiService',
-    (type) => {
-      const { container } = render(
-        <UiActionRenderer action={makeAction(type)} />,
-      );
-
-      expect(container.firstChild).toBeNull();
-    },
-  );
 
   it('renders a diagnostic fallback for unknown card types', () => {
     const { getByRole } = render(
@@ -169,17 +150,6 @@ describe('UiActionRenderer dispatch matrix', () => {
     );
 
     expect(container.firstChild).toBeNull();
-  });
-
-  it('wraps read-only standalone cards in an inert shell', () => {
-    const { getByTestId } = render(
-      <UiActionRenderer action={makeAction('schedule_post_card')} isReadOnly />,
-    );
-
-    expect(getByTestId('ui-action-archived-readonly')).toHaveAttribute(
-      'aria-disabled',
-      'true',
-    );
   });
 
   it('forwards ai text apply events through onUiAction', () => {

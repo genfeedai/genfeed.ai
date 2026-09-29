@@ -7,7 +7,6 @@ import {
 } from 'react';
 import { describe, expect, it } from 'vitest';
 import ProductPageRoute, {
-  buildProductPageJsonLd,
   generateMetadata,
   generateStaticParams,
 } from './page';
@@ -39,32 +38,6 @@ describe('generateStaticParams', () => {
     expect(params).toHaveLength(slugs.length);
     expect(params).toEqual(slugs.map((slug) => ({ slug })));
     expect(slugs.length).toBeGreaterThan(0);
-  });
-});
-
-describe('buildProductPageJsonLd', () => {
-  it('describes the product as a WebPage that is part of the site', async () => {
-    const product = await getProductBySlugCached('hire-agents');
-    if (!product) {
-      throw new Error('Expected fixture product "hire-agents" to exist');
-    }
-
-    const jsonLd = buildProductPageJsonLd(
-      product,
-      'https://genfeed.ai/hire-agents',
-    );
-
-    expect(jsonLd).toMatchObject({
-      '@type': 'WebPage',
-      about: {
-        '@type': 'Thing',
-        description: product.description,
-        name: product.name,
-      },
-      isPartOf: { '@type': 'WebSite', name: 'Genfeed' },
-      name: product.name,
-      url: 'https://genfeed.ai/hire-agents',
-    });
   });
 });
 

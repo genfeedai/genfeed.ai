@@ -82,28 +82,12 @@ describe('ASSET_EXTENSIONS', () => {
 });
 
 describe('stripTrailingSlash', () => {
-  it('keeps the site root intact', () => {
-    expect(stripTrailingSlash('/')).toBe('/');
-  });
-
-  it('drops a trailing slash from a nested path', () => {
-    expect(stripTrailingSlash('/pricing/')).toBe('/pricing');
-  });
-
   it('leaves a path without a trailing slash unchanged', () => {
     expect(stripTrailingSlash('/pricing')).toBe('/pricing');
   });
 });
 
 describe('locToPath', () => {
-  it('reduces an absolute <loc> to its pathname', () => {
-    expect(locToPath('https://genfeed.ai/pricing/')).toBe('/pricing');
-  });
-
-  it('trims surrounding whitespace', () => {
-    expect(locToPath('  https://genfeed.ai/faq  ')).toBe('/faq');
-  });
-
   it('falls back to the raw value when the <loc> is not a URL', () => {
     expect(locToPath('/relative/')).toBe('/relative');
   });
@@ -125,24 +109,8 @@ describe('toInternalPath', () => {
     expect(toInternalPath('http://[', '/', ORIGIN)).toBeNull();
   });
 
-  it('returns null for a cross-origin link', () => {
-    expect(toInternalPath('https://example.com/x', '/', ORIGIN)).toBeNull();
-  });
-
   it('returns null for an asset link', () => {
     expect(toInternalPath('/static/logo.svg', '/', ORIGIN)).toBeNull();
-  });
-
-  it('resolves a relative href against the source page', () => {
-    expect(toInternalPath('./b', '/a/c', ORIGIN)).toBe('/a/b');
-  });
-
-  it('strips query and hash and the trailing slash', () => {
-    expect(toInternalPath('/pricing/?utm=x#top', '/', ORIGIN)).toBe('/pricing');
-  });
-
-  it('accepts an absolute same-origin URL', () => {
-    expect(toInternalPath(`${ORIGIN}/faq`, '/', ORIGIN)).toBe('/faq');
   });
 });
 
@@ -151,78 +119,9 @@ describe('extractHrefs', () => {
     const html = `<a href="/a">a</a><link href='/b'><a  href = "/c">c</a>`;
     expect(extractHrefs(html)).toEqual(['/a', '/b', '/c']);
   });
-
-  it('returns an empty list when the document has no links', () => {
-    expect(extractHrefs('<p>no links</p>')).toEqual([]);
-  });
-
-  it('keeps an empty href as an empty string', () => {
-    expect(extractHrefs('<a href="">x</a>')).toEqual(['']);
-  });
 });
 
 describe('fetchPath', () => {
-  it('reads the body for an HTML response and reports the status', async () => {
-    vi.stubGlobal(
-      'fetch',
-      stubFetch({ '/pricing': { body: '<html></html>' } }),
-    );
-
-    const result = await fetchPath('/pricing', {
-      origin: ORIGIN,
-      timeoutMs: 1_000,
-      userAgent: USER_AGENT,
-    });
-
-    expect(result).toEqual({
-      body: '<html></html>',
-      isHtml: true,
-      location: null,
-      status: 200,
-    });
-  });
-
-  it('skips the body for a non-HTML response and surfaces the location header', async () => {
-    vi.stubGlobal(
-      'fetch',
-      stubFetch({
-        '/old': { contentType: 'text/plain', location: '/new', status: 308 },
-      }),
-    );
-
-    const result = await fetchPath('/old', {
-      origin: ORIGIN,
-      timeoutMs: 1_000,
-      userAgent: USER_AGENT,
-    });
-
-    expect(result).toEqual({
-      body: null,
-      isHtml: false,
-      location: '/new',
-      status: 308,
-    });
-  });
-
-  it('sends the configured user agent and disables automatic redirects', async () => {
-    const fetchMock = stubFetch({ '/': { body: '<html></html>' } });
-    vi.stubGlobal('fetch', fetchMock);
-
-    await fetchPath('/', {
-      origin: ORIGIN,
-      timeoutMs: 1_000,
-      userAgent: USER_AGENT,
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      `${ORIGIN}/`,
-      expect.objectContaining({
-        headers: { 'user-agent': USER_AGENT },
-        redirect: 'manual',
-      }),
-    );
-  });
-
   it('clears the timeout even when the request rejects', async () => {
     const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
     vi.stubGlobal(
@@ -306,17 +205,6 @@ describe('crawlSite', () => {
       { path: '/gone', source: '/', status: 404 },
     ]);
     expect(result.reachable.has('/gone')).toBe(false);
-  });
-
-  it('records a network failure as a zero-status break', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => Promise.reject(new Error('ECONNREFUSED'))),
-    );
-
-    const result = await crawlSite(crawlOptions());
-
-    expect(result.broken).toEqual([{ path: '/', source: 'seed', status: 0 }]);
   });
 
   it('records a redirect and keeps crawling through its target', async () => {

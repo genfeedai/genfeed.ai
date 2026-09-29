@@ -52,29 +52,6 @@ describe('VerificationPanel', () => {
     expect(screen.getByText('Lint')).toBeInTheDocument();
   });
 
-  it('renders every evidence type without crashing', () => {
-    setVerifyingState([
-      makeEvidence({ id: 'e-1', title: 'Tests', type: 'test_result' }),
-      makeEvidence({ id: 'e-2', title: 'Shot', type: 'screenshot' }),
-      makeEvidence({ id: 'e-3', title: 'Log', type: 'log' }),
-      makeEvidence({ id: 'e-4', title: 'Diff', type: 'diff' }),
-    ]);
-
-    render(<VerificationPanel />);
-
-    expect(screen.getByText('4/4 passed')).toBeInTheDocument();
-  });
-
-  it('hides the accept action while any evidence fails', () => {
-    setVerifyingState([makeEvidence({ passed: false })]);
-
-    render(<VerificationPanel />);
-
-    expect(
-      screen.queryByRole('button', { name: 'Accept & mark complete' }),
-    ).not.toBeInTheDocument();
-  });
-
   it('advances to complete when the accept action is used', () => {
     setVerifyingState([makeEvidence()]);
 

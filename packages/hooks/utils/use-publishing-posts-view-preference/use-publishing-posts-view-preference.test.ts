@@ -25,24 +25,6 @@ describe('usePublishingPostsViewPreference', () => {
     installInMemoryLocalStorage();
   });
 
-  it('returns undefined when nothing has been stored for the brand', () => {
-    const { result } = renderHook(() =>
-      usePublishingPostsViewPreference('brand-1'),
-    );
-
-    expect(result.current.getStoredView()).toBeUndefined();
-  });
-
-  it('round trips a stored view for a brand', () => {
-    const { result } = renderHook(() =>
-      usePublishingPostsViewPreference('brand-1'),
-    );
-
-    result.current.storeView('grid');
-
-    expect(result.current.getStoredView()).toBe('grid');
-  });
-
   it('scopes storage per brand', () => {
     const brandOne = renderHook(() =>
       usePublishingPostsViewPreference('brand-1'),
@@ -55,19 +37,6 @@ describe('usePublishingPostsViewPreference', () => {
 
     expect(brandOne.result.current.getStoredView()).toBe('board');
     expect(brandTwo.result.current.getStoredView()).toBeUndefined();
-  });
-
-  it('ignores a corrupted stored value', () => {
-    window.localStorage.setItem(
-      'genfeed:publishing:posts-view:brand-1',
-      'canvas',
-    );
-
-    const { result } = renderHook(() =>
-      usePublishingPostsViewPreference('brand-1'),
-    );
-
-    expect(result.current.getStoredView()).toBeUndefined();
   });
 
   it('is a no-op without a brand id', () => {

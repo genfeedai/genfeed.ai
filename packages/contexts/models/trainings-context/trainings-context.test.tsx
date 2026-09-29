@@ -4,24 +4,6 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it } from 'vitest';
 
 describe('TrainingsContext', () => {
-  it('should render without crashing', () => {
-    const { container } = render(
-      <TrainingsProvider>
-        <div data-testid="child" />
-      </TrainingsProvider>,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <TrainingsProvider>
-        <div data-testid="child" />
-      </TrainingsProvider>,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <TrainingsProvider>

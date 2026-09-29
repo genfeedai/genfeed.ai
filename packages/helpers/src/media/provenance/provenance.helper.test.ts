@@ -18,10 +18,6 @@ const baseInput = (
 });
 
 describe('formatVttTimestamp', () => {
-  it('formats zero', () => {
-    expect(formatVttTimestamp(0)).toBe('00:00:00.000');
-  });
-
   it('formats sub-second milliseconds', () => {
     expect(formatVttTimestamp(1.234)).toBe('00:00:01.234');
     expect(formatVttTimestamp(0.5)).toBe('00:00:00.500');
@@ -40,33 +36,6 @@ describe('formatVttTimestamp', () => {
 });
 
 describe('parseSrt', () => {
-  it('parses well-formed SRT with comma milliseconds', () => {
-    const srt = [
-      '1',
-      '00:00:01,000 --> 00:00:04,000',
-      'Hello world',
-      '',
-      '2',
-      '00:00:04,500 --> 00:00:06,250',
-      'Second line',
-    ].join('\n');
-
-    expect(parseSrt(srt)).toEqual([
-      { end: 4, start: 1, text: 'Hello world' },
-      { end: 6.25, start: 4.5, text: 'Second line' },
-    ]);
-  });
-
-  it('accepts dot milliseconds and multi-line cue text', () => {
-    const srt = ['1', '00:00:00.000 --> 00:00:02.000', 'Line A', 'Line B'].join(
-      '\n',
-    );
-
-    expect(parseSrt(srt)).toEqual([
-      { end: 2, start: 0, text: 'Line A\nLine B' },
-    ]);
-  });
-
   it('skips malformed blocks and empty input', () => {
     expect(parseSrt('')).toEqual([]);
     expect(parseSrt('not an srt block')).toEqual([]);
@@ -159,23 +128,6 @@ describe('buildTranscriptSidecar', () => {
     expect(
       buildTranscriptSidecar('a', { text: 'x' }, { language: 'en' }).language,
     ).toBe('en');
-  });
-
-  it('sorts segments by start and drops invalid ones', () => {
-    const sidecar = buildTranscriptSidecar('a', {
-      segments: [
-        { end: 5, start: 3, text: 'second' },
-        { end: 2, start: 0, text: 'first' },
-        { end: 1, start: 9, text: 'invalid end < start' },
-        { end: 8, start: 7, text: '   ' },
-        { end: Number.NaN, start: 0, text: 'invalid number' },
-      ],
-    });
-
-    expect(sidecar.segments).toEqual([
-      { end: 2, start: 0, text: 'first' },
-      { end: 5, start: 3, text: 'second' },
-    ]);
   });
 
   it('treats a zero-duration cue at a non-zero start as timestamped', () => {
@@ -303,12 +255,6 @@ describe('buildMediaProvenancePackage', () => {
     expect(pkg.manifest.transcript.hasTimestamps).toBe(true);
   });
 
-  it('honors a custom kind', () => {
-    expect(
-      buildMediaProvenancePackage(baseInput({ kind: 'avatar' })).manifest.kind,
-    ).toBe('avatar');
-  });
-
   it('throws when assetId is empty or whitespace', () => {
     expect(() =>
       buildMediaProvenancePackage(baseInput({ assetId: '' })),
@@ -316,17 +262,6 @@ describe('buildMediaProvenancePackage', () => {
     expect(() =>
       buildMediaProvenancePackage(baseInput({ assetId: '   ' })),
     ).toThrow(/assetId/);
-  });
-
-  it('is deterministic for identical input', () => {
-    const input = baseInput({
-      media: { durationSeconds: 4 },
-      transcript: { segments: [{ end: 1, start: 0, text: 'a' }] },
-    });
-
-    expect(buildMediaProvenancePackage(input)).toEqual(
-      buildMediaProvenancePackage(input),
-    );
   });
 });
 

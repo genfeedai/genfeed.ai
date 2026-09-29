@@ -84,33 +84,6 @@ describe('StudioRemixRunPanel', () => {
     expect(screen.getByText('Product · Brand Default')).toBeVisible();
   });
 
-  it('does not treat an empty identity object as a paired avatar and voice', () => {
-    render(
-      <StudioRemixRunPanel
-        error={null}
-        isWorking={false}
-        onReview={vi.fn()}
-        onVary={vi.fn()}
-        run={{
-          ...run,
-          draft: {
-            ...run.draft,
-            identity: {},
-            output: {
-              aspectRatio: '9:16',
-              count: 2,
-              kind: 'avatar',
-            },
-          },
-        }}
-      />,
-    );
-
-    expect(
-      screen.queryByLabelText('Canonical identity'),
-    ).not.toBeInTheDocument();
-  });
-
   it('shows the canonical durable identity for an avatar remix', () => {
     render(
       <StudioRemixRunPanel

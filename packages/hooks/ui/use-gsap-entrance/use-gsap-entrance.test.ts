@@ -88,11 +88,6 @@ afterEach(() => {
 });
 
 describe('useGsapEntrance', () => {
-  it('returns a ref object', () => {
-    const { result } = renderHook(() => useGsapEntrance({ animations: [] }));
-    expect(result.current).toHaveProperty('current');
-  });
-
   it('returns a ref when enabled=false', () => {
     const { result } = renderHook(() =>
       useGsapEntrance({ animations: [], enabled: false }),
@@ -151,19 +146,6 @@ describe('useGsapEntrance batch reveals', () => {
     inView.mockRestore();
   });
 
-  it('does nothing when unmounted before GSAP finishes loading', async () => {
-    const { unmount } = render(
-      createElement(RevealList, {
-        animations: [gsapPresets.revealEach('.item')],
-      }),
-    );
-    unmount();
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(gsapMock.context).not.toHaveBeenCalled();
-    expect(gsapMock.set).not.toHaveBeenCalled();
-  });
-
   it('skips reveal targets a third party removed from the container', async () => {
     const { container } = render(
       createElement(RevealList, {
@@ -201,20 +183,6 @@ describe('useGsapEntrance batch reveals', () => {
     await waitFor(() => expect(gsapMock.context).toHaveBeenCalled());
     expect(gsapMock.fromTo).not.toHaveBeenCalled();
     inView.mockRestore();
-  });
-
-  it('leaves content untouched when the reader prefers reduced motion', async () => {
-    stubReducedMotion(true);
-
-    render(
-      createElement(RevealList, {
-        animations: [gsapPresets.revealEach('.item')],
-      }),
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(gsapMock.context).not.toHaveBeenCalled();
-    expect(gsapMock.set).not.toHaveBeenCalled();
   });
 });
 

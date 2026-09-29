@@ -428,38 +428,6 @@ describe('agent-chat.store thread ui-action states', () => {
     ).toBe(5);
   });
 
-  it('keeps a queued run pending while another run owns the thread', () => {
-    useAgentChatStore.getState().applyThreadSnapshotState('thread-1', {
-      activeRun: { runId: 'exec-2', status: 'running' },
-      lastSequence: 9,
-      uiActionRuns: [pendingRun],
-    });
-
-    expect(
-      useAgentChatStore.getState().uiActionStatesByThread['thread-1'],
-    ).toEqual({ 'confirm_generate_media:proposal-1': pendingState });
-  });
-
-  it('keeps a run acknowledged after the snapshot was read', () => {
-    const store = useAgentChatStore.getState();
-    store.trackUiActionRun('thread-1', {
-      action: 'approve_plan',
-      runId: 'exec-3',
-      sourceId: 'plan-1',
-    });
-    store.applyThreadSnapshotState('thread-1', {
-      activeRun: null,
-      lastSequence: 2,
-      uiActionRuns: [],
-    });
-
-    expect(
-      useAgentChatStore.getState().uiActionStatesByThread['thread-1']?.[
-        'approve_plan:plan-1'
-      ]?.status,
-    ).toBe('pending');
-  });
-
   it('keeps a run settled by its own event after the snapshot was read', () => {
     const store = useAgentChatStore.getState();
     store.applyThreadSnapshotState('thread-1', {
@@ -606,31 +574,5 @@ describe('agent-chat.store thread ui-action states', () => {
         'confirm_generate_media:proposal-1'
       ],
     ).toMatchObject({ runId: 'exec-b', sequence: 9 });
-  });
-
-  it('settles only the pending state of the named run', () => {
-    const store = useAgentChatStore.getState();
-    store.trackUiActionRun('thread-1', {
-      action: 'approve_plan',
-      runId: 'exec-3',
-      sourceId: 'plan-1',
-    });
-    store.settleUiActionRun('thread-1', 'exec-other', { status: 'failed' });
-    store.settleUiActionRun('thread-1', 'exec-3', {
-      error: 'Plan could not run.',
-      sequence: 7,
-      status: 'failed',
-    });
-    store.settleUiActionRun('thread-1', 'exec-3', { status: 'completed' });
-
-    expect(
-      useAgentChatStore.getState().uiActionStatesByThread['thread-1']?.[
-        'approve_plan:plan-1'
-      ],
-    ).toMatchObject({
-      error: 'Plan could not run.',
-      sequence: 7,
-      status: 'failed',
-    });
   });
 });

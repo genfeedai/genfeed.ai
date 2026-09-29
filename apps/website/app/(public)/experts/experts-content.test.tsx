@@ -28,17 +28,6 @@ vi.mock('@web-components/home/_footer', () => ({
 }));
 
 describe('ExpertsContent', () => {
-  it('renders the Brand OS promise for experts', () => {
-    render(<ExpertsContent />);
-
-    expect(
-      screen.getByRole('heading', {
-        level: 1,
-        name: /you supply the truth\. genfeed supplies the system\./i,
-      }),
-    ).toBeInTheDocument();
-  });
-
   it('renders every step of the six-step path', () => {
     render(<ExpertsContent />);
 

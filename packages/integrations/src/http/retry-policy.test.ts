@@ -50,20 +50,6 @@ describe('parseIntegrationRetryAfterMs', () => {
 });
 
 describe('getIntegrationRetryDelayMs', () => {
-  it('prefers the first configured retry-after header', () => {
-    const headers = new Headers({
-      'retry-after': '4',
-      'x-rate-limit-reset': '1',
-    });
-
-    expect(
-      getIntegrationRetryDelayMs({
-        attempt: 3,
-        headers,
-      }),
-    ).toBe(4000);
-  });
-
   it('falls back to exponential base delay when no header is present', () => {
     expect(getIntegrationRetryDelayMs({ attempt: 1 })).toBe(500);
     expect(getIntegrationRetryDelayMs({ attempt: 2 })).toBe(1000);

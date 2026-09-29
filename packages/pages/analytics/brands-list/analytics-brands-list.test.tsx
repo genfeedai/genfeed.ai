@@ -101,14 +101,6 @@ describe('AnalyticsBrandsList', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('summarises the brand count in the container description', async () => {
-    render(<AnalyticsBrandsList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('2 brands found')).toBeInTheDocument();
-    });
-  });
-
   it('filters the rendered brands by the context search term', async () => {
     contextFilters = { query: 'zen' };
 
@@ -153,15 +145,5 @@ describe('AnalyticsBrandsList', () => {
     expect(
       screen.getByRole('link', { name: 'Open Acme analytics' }),
     ).toHaveAttribute('href', '/org/analytics/brands/brand-1?range=30d');
-  });
-
-  it('does not call the analytics service while signed out', async () => {
-    getBrandsWithStatsMock.mockResolvedValue({ data: [] });
-
-    render(<AnalyticsBrandsList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('0 brands found')).toBeInTheDocument();
-    });
   });
 });

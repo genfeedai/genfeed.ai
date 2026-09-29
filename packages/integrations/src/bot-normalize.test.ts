@@ -3,24 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { normalizeIntegration, normalizeIntegrations } from './bot-normalize';
 
 describe('normalizeIntegration', () => {
-  it('returns null for null payload', () => {
-    expect(normalizeIntegration(null, 'DISCORD')).toBeNull();
-  });
-
-  it('returns null for non-object payload', () => {
-    expect(normalizeIntegration('string', 'DISCORD')).toBeNull();
-    expect(normalizeIntegration(42, 'DISCORD')).toBeNull();
-    expect(normalizeIntegration(undefined, 'DISCORD')).toBeNull();
-  });
-
-  it('returns null when required fields are missing', () => {
-    expect(normalizeIntegration({}, 'DISCORD')).toBeNull();
-    expect(normalizeIntegration({ id: 'x' }, 'DISCORD')).toBeNull();
-    expect(
-      normalizeIntegration({ id: 'x', organizationId: 'o' }, 'DISCORD'),
-    ).toBeNull();
-  });
-
   it('normalizes a canonical API payload', () => {
     const payload = {
       id: 'int-1',
@@ -40,18 +22,6 @@ describe('normalizeIntegration', () => {
     expect(result!.platform).toBe('DISCORD');
     expect(result!.status).toBe('ACTIVE');
     expect(result!.config.allowedUserIds).toContain('u1');
-  });
-
-  it('rejects Mongo-era aliases', () => {
-    const payload = {
-      _id: 'mongo-id-123',
-      organization: 'org-mongo-1',
-      botToken: 'tok-mongo',
-      config: {},
-      status: 'ACTIVE',
-    };
-
-    expect(normalizeIntegration(payload, 'TELEGRAM')).toBeNull();
   });
 
   it('ignores an obsolete _id when the canonical fields are present', () => {

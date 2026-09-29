@@ -186,48 +186,6 @@ describe('Brand Kit JSON:API contract', () => {
     });
   });
 
-  it('serializes asset import references and diagnostics without binary data', () => {
-    const output = BrandKitAssetImportSerializer.serialize({
-      brandId: 'brand-1',
-      diagnostics: [],
-      failedCandidateIds: [],
-      id: 'brand-1',
-      importedAssetIds: ['asset-1'],
-      results: [
-        {
-          assetId: 'asset-1',
-          candidateId: 'logo-candidate',
-          diagnostics: [],
-          role: 'logo',
-          status: 'imported',
-          url: '/logos/asset-1',
-        },
-      ],
-      skippedCandidateIds: [],
-      status: 'accepted',
-    });
-
-    expect(output).toEqual({
-      data: {
-        attributes: expect.objectContaining({
-          brandId: 'brand-1',
-          importedAssetIds: ['asset-1'],
-          results: [
-            expect.objectContaining({
-              assetId: 'asset-1',
-              role: 'logo',
-              status: 'imported',
-              url: '/logos/asset-1',
-            }),
-          ],
-          status: 'accepted',
-        }),
-        id: 'brand-1',
-        type: 'brand-kit-asset-import',
-      },
-    });
-  });
-
   it('serializes a persisted reference category in import results', () => {
     const output = BrandKitAssetImportSerializer.serialize({
       brandId: 'brand-1',

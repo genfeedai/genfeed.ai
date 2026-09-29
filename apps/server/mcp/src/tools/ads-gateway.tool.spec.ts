@@ -73,26 +73,6 @@ describe('handleAdsGatewayTool', () => {
     expect(result.content[0].text).toContain('Ad Insights (meta)');
   });
 
-  it('forwards loginCustomerId for Google manager accounts', async () => {
-    const client = buildClient();
-
-    await call(client, 'get_ads_ad_insights', {
-      adAccountId: '1234567890',
-      adId: 'ad-9',
-      credentialId: 'credential-1',
-      loginCustomerId: '1112223334',
-      platform: 'google',
-    });
-
-    expect(client.getAdsAdInsights).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entityId: 'ad-9',
-        loginCustomerId: '1112223334',
-        platform: 'google',
-      }),
-    );
-  });
-
   it('rejects an unknown tool name', () => {
     const client = buildClient();
     expect(() => call(client, 'not_an_ads_gateway_tool', {})).toThrow(

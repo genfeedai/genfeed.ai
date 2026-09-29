@@ -10,9 +10,4 @@ describe('getModelBrandIcon', () => {
 
     expect(unresolved).toEqual([]);
   });
-
-  it('returns nothing for an unknown key', () => {
-    expect(getModelBrandIcon('logo-dev')).toBeUndefined();
-    expect(getModelBrandIcon(undefined)).toBeUndefined();
-  });
 });

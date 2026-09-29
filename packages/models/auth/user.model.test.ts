@@ -16,11 +16,6 @@ import { User } from '@models/auth/user.model';
 
 describe('User', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = new User({});
-      expect(instance).toBeDefined();
-    });
-
     it('should create an instance with partial data', () => {
       const instance = new User({
         firstName: 'John',

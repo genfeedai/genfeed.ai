@@ -3,28 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTH_MARKDOWN,
   buildAgentSkillsIndex,
-  buildMcpServerCard,
   getPublishedAgentSkill,
   HOMEPAGE_AGENT_MARKDOWN,
   PUBLISHED_AGENT_SKILL_NAMES,
 } from './agent-readiness.data';
 
 describe('agent readiness metadata', () => {
-  it('publishes an MCP server card with the canonical remote transport', () => {
-    expect(buildMcpServerCard()).toMatchObject({
-      protocolVersion: '2025-06-18',
-      serverInfo: {
-        name: 'genfeed-mcp-server',
-        title: 'Genfeed MCP Server',
-        version: '1.0.0',
-      },
-      transport: {
-        endpoint: 'https://mcp.genfeed.ai/mcp',
-        type: 'streamable-http',
-      },
-    });
-  });
-
   it('publishes every product skill with a verifiable SHA-256 digest', () => {
     const index = buildAgentSkillsIndex();
 

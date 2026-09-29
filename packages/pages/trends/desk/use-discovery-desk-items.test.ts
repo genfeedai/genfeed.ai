@@ -140,23 +140,6 @@ describe('useDiscoveryDeskItems', () => {
     expect(mockGetViralVideos).toHaveBeenCalledWith({ limit: 12 });
   });
 
-  it('does not fetch when the brand is not ready', () => {
-    mockUseCollectionScope.mockReturnValue({
-      brandId: undefined,
-      isReady: true,
-      organizationId: 'org-1',
-      pageScope: 'brand',
-    });
-
-    renderHook(() => useDiscoveryDeskItems(), {
-      wrapper: createQueryWrapper(),
-    });
-
-    expect(mockGetTrendContent).not.toHaveBeenCalled();
-    expect(mockGetFollowingFeed).not.toHaveBeenCalled();
-    expect(mockGetViralVideos).not.toHaveBeenCalled();
-  });
-
   it('starts with an empty item list before data resolves', () => {
     const { result } = renderHook(() => useDiscoveryDeskItems(), {
       wrapper: createQueryWrapper(),

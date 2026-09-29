@@ -183,14 +183,6 @@ describe('Prompt', () => {
       expect(prompt.ingredients).toHaveLength(1);
       expect(prompt.ingredients?.[0]).toBeInstanceOf(Ingredient);
     });
-
-    it('should handle missing extended properties', () => {
-      const prompt = createPrompt({});
-      expect(prompt.label).toBeUndefined();
-      expect(prompt.description).toBeUndefined();
-      expect(prompt.profileId).toBeUndefined();
-      expect(prompt.useRAG).toBeUndefined();
-    });
   });
 
   describe('promptText', () => {
@@ -208,14 +200,6 @@ describe('Prompt', () => {
         original: 'Original only',
       });
       expect(prompt.promptText).toBe('Original only');
-    });
-
-    it('should return undefined when neither enhanced nor original is set', () => {
-      const prompt = createPrompt({
-        enhanced: undefined,
-        original: undefined,
-      });
-      expect(prompt.promptText).toBeUndefined();
     });
 
     it('should return enhanced even when it is empty string', () => {

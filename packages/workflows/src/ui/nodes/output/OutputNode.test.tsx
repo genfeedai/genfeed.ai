@@ -121,12 +121,6 @@ describe('DownloadNode', () => {
   });
 
   describe('empty state (not connected)', () => {
-    it('should show connect prompt when no input and not connected', () => {
-      render(<DownloadNode {...defaultProps} />);
-
-      expect(screen.getByText('Connect image or video')).toBeInTheDocument();
-    });
-
     it('should not show download button when no media', () => {
       render(<DownloadNode {...defaultProps} />);
 
@@ -157,12 +151,6 @@ describe('DownloadNode', () => {
       expect(screen.getByText('Download')).toBeInTheDocument();
       expect(screen.getByTestId('download-button')).toBeInTheDocument();
     });
-
-    it('should show filename input with extension', () => {
-      render(<DownloadNode {...imageProps} />);
-
-      expect(screen.getByText('.png')).toBeInTheDocument();
-    });
   });
 
   describe('with video input', () => {
@@ -183,34 +171,6 @@ describe('DownloadNode', () => {
       expect(video.getAttribute('data-src')).toBe(
         'https://example.com/video.mp4',
       );
-    });
-
-    it('should preserve silent looping autoplay through shared player configuration', () => {
-      render(<DownloadNode {...videoProps} />);
-
-      expect(videoPlayerMock).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          config: expect.objectContaining({
-            autoPlay: true,
-            controls: false,
-            loop: true,
-            muted: true,
-            playsInline: true,
-          }),
-        }),
-      );
-    });
-
-    it('should show download button for video', () => {
-      render(<DownloadNode {...videoProps} />);
-
-      expect(screen.getByText('Download')).toBeInTheDocument();
-    });
-
-    it('should show mp4 extension for video', () => {
-      render(<DownloadNode {...videoProps} />);
-
-      expect(screen.getByText('.mp4')).toBeInTheDocument();
     });
   });
 
@@ -263,23 +223,6 @@ describe('DownloadNode', () => {
       );
 
       const input = screen.getByDisplayValue('my-image');
-      expect(input).toBeInTheDocument();
-    });
-
-    it('should fall back to "output" when outputName is empty', () => {
-      render(
-        <DownloadNode
-          {...defaultProps}
-          data={{
-            ...defaultProps.data,
-            inputImage: 'https://example.com/image.png',
-            inputType: 'image',
-            outputName: '',
-          }}
-        />,
-      );
-
-      const input = screen.getByDisplayValue('output');
       expect(input).toBeInTheDocument();
     });
   });

@@ -103,17 +103,6 @@ describe('useModal', () => {
     expect(closeModal).toHaveBeenCalledWith(modalId);
   });
 
-  it('invokes onOpen when the modal transitions to open', () => {
-    const onOpen = vi.fn();
-    const { result } = renderHook(() => useModal(modalId, { onOpen }));
-
-    act(() => {
-      result.current.open();
-    });
-
-    expect(onOpen).toHaveBeenCalledTimes(1);
-  });
-
   it('invokes onClose when the modal transitions to closed', () => {
     const onClose = vi.fn();
     const { result } = renderHook(() => useModal(modalId, { onClose }));

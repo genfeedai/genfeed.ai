@@ -3,10 +3,6 @@ import { TaskCategory, TaskStatus, TaskType } from '../../src/enums/task.enum';
 
 describe('task.enum', () => {
   describe('TaskStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(TaskStatus)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(TaskStatus.COMPLETED).toBe('completed');
       expect(TaskStatus.FAILED).toBe('failed');
@@ -16,10 +12,6 @@ describe('task.enum', () => {
   });
 
   describe('TaskCategory', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(TaskCategory)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(TaskCategory.GENERATION).toBe('generation');
       expect(TaskCategory.EDITING).toBe('editing');
@@ -28,10 +20,6 @@ describe('task.enum', () => {
   });
 
   describe('TaskType', () => {
-    it('should have 10 members', () => {
-      expect(Object.values(TaskType)).toHaveLength(10);
-    });
-
     it('should have correct values', () => {
       expect(TaskType.GENERATE_IMAGE).toBe('generate-image');
       expect(TaskType.GENERATE_VIDEO).toBe('generate-video');

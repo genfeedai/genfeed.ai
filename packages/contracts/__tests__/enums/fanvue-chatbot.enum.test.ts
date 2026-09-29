@@ -6,10 +6,6 @@ import {
 
 describe('fanvue-chatbot.enum', () => {
   describe('FanvueChatbotMessageRole', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(FanvueChatbotMessageRole)).toHaveLength(2);
-    });
-
     it('should have correct values', () => {
       expect(FanvueChatbotMessageRole.FAN).toBe('fan');
       expect(FanvueChatbotMessageRole.CREATOR).toBe('creator');
@@ -17,10 +13,6 @@ describe('fanvue-chatbot.enum', () => {
   });
 
   describe('FanvueChatbotCreatorStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(FanvueChatbotCreatorStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(FanvueChatbotCreatorStatus.ACTIVE).toBe('active');
       expect(FanvueChatbotCreatorStatus.INACTIVE).toBe('inactive');

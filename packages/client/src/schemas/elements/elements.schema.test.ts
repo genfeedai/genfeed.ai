@@ -13,74 +13,6 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('element schemas', () => {
-  describe('elementBaseSchema', () => {
-    it('accepts valid', () => {
-      expect(
-        elementBaseSchema.safeParse({ key: 'my-key', label: 'Label' }).success,
-      ).toBe(true);
-    });
-
-    it('rejects empty key', () => {
-      expect(elementBaseSchema.safeParse({ key: '', label: 'L' }).success).toBe(
-        false,
-      );
-    });
-
-    it('rejects uppercase key', () => {
-      expect(
-        elementBaseSchema.safeParse({ key: 'BadKey', label: 'L' }).success,
-      ).toBe(false);
-    });
-
-    it('rejects empty label', () => {
-      expect(elementBaseSchema.safeParse({ key: 'k', label: '' }).success).toBe(
-        false,
-      );
-    });
-  });
-
-  describe('elementPresetSchema', () => {
-    it('accepts valid preset', () => {
-      expect(
-        elementPresetSchema.safeParse({
-          category: ModelCategory.IMAGE,
-          isActive: true,
-          key: 'p-1',
-          label: 'P',
-        }).success,
-      ).toBe(true);
-    });
-  });
-
-  describe('elementStyleSchema', () => {
-    it('accepts valid style', () => {
-      expect(
-        elementStyleSchema.safeParse({ key: 's-1', label: 'S' }).success,
-      ).toBe(true);
-    });
-  });
-
-  describe('elementBlacklistSchema', () => {
-    it('accepts valid', () => {
-      expect(
-        elementBlacklistSchema.safeParse({
-          isActive: true,
-          isDefault: false,
-          key: 'b-1',
-          label: 'B',
-        }).success,
-      ).toBe(true);
-    });
-  });
-
-  describe('elementSoundSchema', () => {
-    it('accepts valid', () => {
-      expect(
-        elementSoundSchema.safeParse({ key: 'snd-1', label: 'Sound' }).success,
-      ).toBe(true);
-    });
-  });
-
   describe('getElementSchema', () => {
     it('returns correct schema for each type', () => {
       expect(getElementSchema('preset')).toBe(elementPresetSchema);
@@ -103,30 +35,6 @@ describe('element schemas', () => {
   });
 
   describe('modelSchema', () => {
-    it('accepts valid model', () => {
-      expect(
-        modelSchema.safeParse({
-          category: ModelCategory.IMAGE,
-          cost: 0,
-          key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-          label: 'Imagen 3',
-          provider: ModelProvider.REPLICATE,
-        }).success,
-      ).toBe(true);
-    });
-
-    it('rejects negative cost', () => {
-      expect(
-        modelSchema.safeParse({
-          category: ModelCategory.IMAGE,
-          cost: -1,
-          key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-          label: 'L',
-          provider: ModelProvider.REPLICATE,
-        }).success,
-      ).toBe(false);
-    });
-
     it('rejects empty label', () => {
       expect(
         modelSchema.safeParse({

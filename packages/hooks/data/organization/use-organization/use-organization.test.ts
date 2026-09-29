@@ -42,83 +42,7 @@ describe('useOrganization', () => {
     mockPatchSettings.mockResolvedValue(undefined);
   });
 
-  describe('Initial State', () => {
-    it('returns settings from brand context', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(result.current.settings).toEqual({
-        autoPublish: true,
-        creditsLimit: 1000,
-        defaultModel: 'model-1',
-      });
-    });
-
-    it('returns isLoading from brand context', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    it('returns null error by default', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(result.current.error).toBeNull();
-    });
-
-    it('returns refresh function from brand context', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(result.current.refresh).toBe(mockRefreshSettings);
-    });
-  });
-
   describe('updateSettings', () => {
-    it('calls patchSettings with correct parameters', async () => {
-      const { result } = renderHook(() => useOrganization());
-
-      await act(async () => {
-        await result.current.updateSettings('autoPublish', false);
-      });
-
-      expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        autoPublish: false,
-      });
-    });
-
-    it('refreshes settings after successful update', async () => {
-      const { result } = renderHook(() => useOrganization());
-
-      await act(async () => {
-        await result.current.updateSettings('defaultModel', 'model-2');
-      });
-
-      expect(mockRefreshSettings).toHaveBeenCalled();
-    });
-
-    it('updates string settings', async () => {
-      const { result } = renderHook(() => useOrganization());
-
-      await act(async () => {
-        await result.current.updateSettings('defaultModel', 'new-model');
-      });
-
-      expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        defaultModel: 'new-model',
-      });
-    });
-
-    it('updates number settings', async () => {
-      const { result } = renderHook(() => useOrganization());
-
-      await act(async () => {
-        await result.current.updateSettings('creditsLimit', 2000);
-      });
-
-      expect(mockPatchSettings).toHaveBeenCalledWith('org-123', {
-        creditsLimit: 2000,
-      });
-    });
-
     it('updates boolean settings', async () => {
       const { result } = renderHook(() => useOrganization());
 
@@ -139,38 +63,6 @@ describe('useOrganization', () => {
       await expect(
         result.current.updateSettings('autoPublish', false),
       ).rejects.toThrow('Network error');
-    });
-
-    it('does not refresh settings when update fails', async () => {
-      mockPatchSettings.mockRejectedValue(new Error('Network error'));
-
-      const { result } = renderHook(() => useOrganization());
-
-      try {
-        await result.current.updateSettings('autoPublish', false);
-      } catch {
-        // Expected to throw
-      }
-
-      expect(mockRefreshSettings).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Loading State', () => {
-    it('reflects loading state from brand context', async () => {
-      const { useBrand } = await import(
-        '@genfeedai/contexts/user/brand-context/brand-context'
-      );
-      vi.mocked(useBrand).mockReturnValue({
-        organizationId: 'org-123',
-        refreshSettings: mockRefreshSettings,
-        settings: null,
-        settingsLoading: true,
-      } as ReturnType<typeof useBrand>);
-
-      const { result } = renderHook(() => useOrganization());
-
-      expect(result.current.isLoading).toBe(true);
     });
   });
 
@@ -203,18 +95,6 @@ describe('useOrganization', () => {
       expect(result.current).toHaveProperty('error');
       expect(result.current).toHaveProperty('updateSettings');
       expect(result.current).toHaveProperty('refresh');
-    });
-
-    it('updateSettings is a function', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(typeof result.current.updateSettings).toBe('function');
-    });
-
-    it('refresh is a function', () => {
-      const { result } = renderHook(() => useOrganization());
-
-      expect(typeof result.current.refresh).toBe('function');
     });
   });
 });

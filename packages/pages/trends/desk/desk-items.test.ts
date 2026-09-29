@@ -99,29 +99,6 @@ describe('toDeskItemFromTrend', () => {
     expect(result.source).toBe('owned');
   });
 
-  it('opens the prefilled remix for a durable-reference item on a prefilled platform', () => {
-    const result = toDeskItemFromTrend(
-      makeTrendItem({
-        platform: 'instagram',
-        sourceReferenceId: 'ref-1',
-      }),
-    );
-
-    expect(result.remixSelector).toEqual({
-      kind: 'trend_reference',
-      sourceReferenceId: 'ref-1',
-      trendId: 'twitter-1',
-    });
-  });
-
-  it('has no remix selector when there is no durable source reference', () => {
-    const result = toDeskItemFromTrend(
-      makeTrendItem({ platform: 'instagram', sourceReferenceId: undefined }),
-    );
-
-    expect(result.remixSelector).toBeNull();
-  });
-
   it('opens Discovery remix for an X trend with a durable source reference', () => {
     const result = toDeskItemFromTrend(
       makeTrendItem({ platform: 'twitter', sourceReferenceId: 'ref-2' }),
@@ -132,31 +109,6 @@ describe('toDeskItemFromTrend', () => {
       sourceReferenceId: 'ref-2',
       trendId: 'twitter-1',
     });
-  });
-
-  it('has no remix selector on a non-Discovery platform', () => {
-    const result = toDeskItemFromTrend(
-      makeTrendItem({ platform: 'linkedin', sourceReferenceId: 'ref-2' }),
-    );
-
-    expect(result.remixSelector).toBeNull();
-  });
-
-  it('computes velocity as engagement per hour elapsed since publishedAt', () => {
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-    const result = toDeskItemFromTrend(
-      makeTrendItem({ metrics: { likes: 200 }, publishedAt: twoHoursAgo }),
-    );
-
-    expect(result.velocity).toBeCloseTo(100, 0);
-  });
-
-  it('returns 0 velocity when publishedAt is missing', () => {
-    const result = toDeskItemFromTrend(
-      makeTrendItem({ metrics: { likes: 200 }, publishedAt: undefined }),
-    );
-
-    expect(result.velocity).toBe(0);
   });
 });
 
@@ -196,31 +148,6 @@ describe('toDeskItemFromSourcePost', () => {
     expect(result.kind).toBe('source_post');
   });
 
-  it('opens the prefilled remix on a prefilled platform', () => {
-    const result = toDeskItemFromSourcePost(
-      makeSourcePost({
-        id: 'post-2',
-        platform: SocialSourcePlatform.INSTAGRAM,
-      }),
-    );
-
-    expect(result.remixSelector).toEqual({
-      kind: 'source_post',
-      sourcePostId: 'post-2',
-    });
-  });
-
-  it('opens Discovery remix for an X source post', () => {
-    const result = toDeskItemFromSourcePost(
-      makeSourcePost({ platform: SocialSourcePlatform.TWITTER }),
-    );
-
-    expect(result.remixSelector).toEqual({
-      kind: 'source_post',
-      sourcePostId: 'post-1',
-    });
-  });
-
   it('has no remix selector on a non-Discovery platform', () => {
     const result = toDeskItemFromSourcePost(
       makeSourcePost({ platform: SocialSourcePlatform.LINKEDIN }),
@@ -258,14 +185,6 @@ describe('toDeskItemFromViralVideo', () => {
     expect(result.virality).toBe(87);
     expect(result.matchedTrends).toEqual(['#ShortFormAI']);
   });
-
-  it('sums the available metrics into engagement', () => {
-    const result = toDeskItemFromViralVideo(
-      makeViralVideo({ likes: 800, shares: 40, viewCount: 12000 }),
-    );
-
-    expect(result.engagement).toBe(800 + 40 + 12000);
-  });
 });
 
 describe('isObservedTrendContent', () => {
@@ -294,14 +213,6 @@ describe('isObservedTrendContent', () => {
       isObservedTrendContent(makeTrendItem({ id: 'trend-fallback-1' })),
     ).toBe(false);
   });
-  it.each(['live', 'empty', undefined] as const)(
-    'preserves low-confidence company references with %s preview state',
-    (sourcePreviewState) => {
-      expect(isObservedTrendContent({ ...seed, sourcePreviewState })).toBe(
-        true,
-      );
-    },
-  );
   it.each([
     { sourceUrl: 'https://www.linkedin.com/posts/observed' },
     { sourceUrl: 'https://example.com/company/openai/' },

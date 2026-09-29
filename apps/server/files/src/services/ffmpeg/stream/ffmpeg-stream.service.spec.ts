@@ -96,10 +96,6 @@ describe('FFmpegStreamService', () => {
     service = module.get<FFmpegStreamService>(FFmpegStreamService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('rejects a missing binary before starting file processing', async () => {
     binaryMock.path = null;
     await expect(
@@ -117,18 +113,6 @@ describe('FFmpegStreamService', () => {
   });
 
   describe('processVideoStream', () => {
-    it('resolves when ffmpeg exits successfully', async () => {
-      const { proc, emit } = createMockChildProcess();
-      (spawn as Mock).mockReturnValue(proc);
-
-      const promise = service.processVideoStream('/in.mp4', '/out.mp4');
-      emit('close', 0);
-      emit('exit');
-
-      await expect(promise).resolves.toBeUndefined();
-      expect(mockLoggerService.log).toHaveBeenCalled();
-    });
-
     it('rejects when ffmpeg exits with a non-zero code', async () => {
       const { proc, emit, emitStderrData } = createMockChildProcess();
       (spawn as Mock).mockReturnValue(proc);

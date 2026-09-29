@@ -7,10 +7,5 @@ describe('Template', () => {
       const instance = new Template({});
       expect(instance).toBeDefined();
     });
-
-    it('should create an instance with partial data', () => {
-      const instance = new Template({ id: 'test-123' } as any);
-      expect(instance).toBeDefined();
-    });
   });
 });

@@ -15,25 +15,8 @@ describe('brand-asset node', () => {
       expect(DEFAULT_BRAND_ASSET_DATA.assetType).toBe('logo');
     });
 
-    it('should default brandId to null', () => {
-      expect(DEFAULT_BRAND_ASSET_DATA.brandId).toBeNull();
-    });
-
-    it('should default resolvedUrl to null', () => {
-      expect(DEFAULT_BRAND_ASSET_DATA.resolvedUrl).toBeNull();
-    });
-
     it('should default resolvedUrls to empty array', () => {
       expect(DEFAULT_BRAND_ASSET_DATA.resolvedUrls).toEqual([]);
-    });
-
-    it('should default dimensions and mimeType to null', () => {
-      expect(DEFAULT_BRAND_ASSET_DATA.dimensions).toBeNull();
-      expect(DEFAULT_BRAND_ASSET_DATA.mimeType).toBeNull();
-    });
-
-    it('should default brandLabel to null', () => {
-      expect(DEFAULT_BRAND_ASSET_DATA.brandLabel).toBeNull();
     });
   });
 });

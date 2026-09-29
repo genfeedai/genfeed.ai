@@ -3,10 +3,6 @@ import { ComponentSize } from '../../src/enums/component-size.enum';
 
 describe('component-size.enum', () => {
   describe('ComponentSize', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ComponentSize)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(ComponentSize.XS).toBe('xs');
       expect(ComponentSize.SM).toBe('sm');

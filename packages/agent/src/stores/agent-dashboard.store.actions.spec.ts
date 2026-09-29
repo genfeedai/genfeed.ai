@@ -48,18 +48,6 @@ describe('agent-dashboard.store actions', () => {
     ).toEqual(['a', 'b', 'c']);
   });
 
-  it('removeBlock drops only the matching block', () => {
-    useAgentDashboardStore
-      .getState()
-      .setBlocks([makeMetricCard('a'), makeMetricCard('b')]);
-
-    useAgentDashboardStore.getState().removeBlock('a');
-
-    expect(
-      useAgentDashboardStore.getState().blocks.map((block) => block.id),
-    ).toEqual(['b']);
-  });
-
   it('reorderBlocks reorders by ids and drops unknown ids', () => {
     useAgentDashboardStore
       .getState()

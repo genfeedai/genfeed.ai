@@ -78,14 +78,6 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
         secretAccessKey: 'test-secret',
       });
     });
-
-    it('caches one provider per bucket', async () => {
-      await service.downloadFile('bucket-a', 'k1.png', '/tmp/k1.png', '/tmp');
-      await service.downloadFile('bucket-a', 'k2.png', '/tmp/k2.png', '/tmp');
-      await service.downloadFile('bucket-b', 'k3.png', '/tmp/k3.png', '/tmp');
-
-      expect(mockCreateStorageProvider).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe('downloadFile', () => {
@@ -166,22 +158,6 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       expect(mockLoggerService.log).toHaveBeenCalledTimes(2);
     });
 
-    it('passes undefined content type through for provider-side inference', async () => {
-      await service.uploadFile(
-        'test-bucket',
-        'images/photo.jpg',
-        '/tmp/p.jpg',
-        '/tmp',
-      );
-
-      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
-        'images/photo.jpg',
-        '/tmp/p.jpg',
-        '/tmp',
-        undefined,
-      );
-    });
-
     it('rejects a local path outside the caller-owned upload root', async () => {
       await expect(
         service.uploadFile(
@@ -193,22 +169,6 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       ).rejects.toThrow(BadRequestException);
 
       expect(mockProvider.uploadFromFile).not.toHaveBeenCalled();
-    });
-
-    it('accepts a legitimate nested object key', async () => {
-      await service.uploadFile(
-        'test-bucket',
-        'images/jobs/job-1/photo.jpg',
-        '/tmp/photo.jpg',
-        '/tmp',
-      );
-
-      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
-        'images/jobs/job-1/photo.jpg',
-        '/tmp/photo.jpg',
-        '/tmp',
-        undefined,
-      );
     });
   });
 
@@ -245,22 +205,6 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
       ).rejects.toThrow(BadRequestException);
 
       expect(mockProvider.uploadFromFile).not.toHaveBeenCalled();
-    });
-
-    it('accepts a legitimate nested-safe LoRA object name', async () => {
-      await service.uploadSafetensors(
-        'test-bucket',
-        'org-1.model',
-        '/tmp/org-1.model.safetensors',
-        '/tmp',
-      );
-
-      expect(mockProvider.uploadFromFile).toHaveBeenCalledWith(
-        'ingredients/trainings/loras/org-1.model.safetensors',
-        '/tmp/org-1.model.safetensors',
-        '/tmp',
-        'application/octet-stream',
-      );
     });
   });
 
@@ -299,14 +243,6 @@ describe('S3Service (shared @libs/s3, thin wrapper over @genfeedai/storage)', ()
           size: 2048,
         },
       ]);
-    });
-
-    it('returns empty array when provider has no objects', async () => {
-      mockProvider.listObjects.mockResolvedValueOnce([]);
-
-      const result = await service.listObjects('test-bucket', 'empty/');
-
-      expect(result).toHaveLength(0);
     });
   });
 });

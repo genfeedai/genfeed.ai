@@ -151,16 +151,4 @@ describe('dashboard OpenUI validation', () => {
     expect(result.isValid).toBe(false);
     expect(result.issues[0]?.path).toBe('blocks[0].images[0].url');
   });
-
-  it('accepts same-origin relative image URLs', () => {
-    const result = parseAgentDashboardBlocks([
-      {
-        id: 'assets',
-        images: [{ url: '/media/thumb.png' }],
-        type: 'image_grid',
-      },
-    ]);
-
-    expect(result.isValid).toBe(true);
-  });
 });

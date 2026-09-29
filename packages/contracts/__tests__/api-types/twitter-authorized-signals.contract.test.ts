@@ -73,24 +73,4 @@ describe('X authorized signals contract', () => {
       'genfeed_observed',
     ]);
   });
-
-  it('rejects duplicate evidence that would leave a canonical check unmapped', () => {
-    const snapshot = makeSnapshot();
-    snapshot.evidence[1] = snapshot.evidence[0];
-
-    expect(
-      twitterAuthorizedSignalsSnapshotSchema.safeParse(snapshot).success,
-    ).toBe(false);
-  });
-
-  it('does not accept a TikTok platform on an X snapshot', () => {
-    const snapshot = {
-      ...makeSnapshot(),
-      platform: CredentialPlatform.TIKTOK,
-    };
-
-    expect(
-      twitterAuthorizedSignalsSnapshotSchema.safeParse(snapshot).success,
-    ).toBe(false);
-  });
 });

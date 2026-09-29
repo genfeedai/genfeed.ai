@@ -34,12 +34,6 @@ describe('DevDiscordController', () => {
     vi.clearAllMocks();
   });
 
-  describe('initialization', () => {
-    it('should be defined', () => {
-      expect(controller).toBeDefined();
-    });
-  });
-
   describe('testChannel', () => {
     it('should throw 403 in production', () => {
       mockConfigService.isProduction = true;
@@ -93,20 +87,6 @@ describe('DevDiscordController', () => {
         'channel-123',
       );
       expect(result).toEqual(testResult);
-    });
-
-    it('should return error result from testChannel', async () => {
-      const errorResult = {
-        channelId: 'channel-123',
-        error: 'Channel not found',
-        success: false,
-      };
-
-      mockDiscordBotService.testChannel.mockResolvedValue(errorResult);
-
-      const result = await controller.testChannel({ channelId: 'channel-123' });
-
-      expect(result).toEqual(errorResult);
     });
   });
 

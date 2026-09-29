@@ -3,10 +3,6 @@ import { ReplyLength, ReplyTone } from '../../src/enums/reply.enum';
 
 describe('reply.enum', () => {
   describe('ReplyTone', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(ReplyTone)).toHaveLength(7);
-    });
-
     it('should have correct values', () => {
       expect(ReplyTone.PROFESSIONAL).toBe('professional');
       expect(ReplyTone.CASUAL).toBe('casual');
@@ -19,10 +15,6 @@ describe('reply.enum', () => {
   });
 
   describe('ReplyLength', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(ReplyLength)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(ReplyLength.SHORT).toBe('short');
       expect(ReplyLength.MEDIUM).toBe('medium');

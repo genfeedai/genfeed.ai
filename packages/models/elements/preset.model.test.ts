@@ -28,16 +28,6 @@ import { Preset } from '@models/elements/preset.model';
 
 describe('Preset', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = new Preset({});
-      expect(instance).toBeDefined();
-    });
-
-    it('should create an instance with partial data', () => {
-      const instance = new Preset({ id: 'test-123' } as never);
-      expect(instance).toBeDefined();
-    });
-
     it('hydrates organization and brand objects that carry an id', () => {
       const instance = new Preset({
         brand: { id: 'brand-1' },

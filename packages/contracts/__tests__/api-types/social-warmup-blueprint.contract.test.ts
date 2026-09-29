@@ -419,13 +419,4 @@ describe('social warm-up blueprint contract', () => {
       byId.get('snapshot-organization-publishing-capability')?.completion.key,
     );
   });
-
-  test('keeps generic selection free of TikTok-specific branching', () => {
-    expect(
-      selectCurrentSocialWarmupBlueprint(
-        SOCIAL_WARMUP_BLUEPRINT_CATALOG,
-        CredentialPlatform.INSTAGRAM,
-      ),
-    ).toBe(INSTAGRAM_SOCIAL_WARMUP_BLUEPRINT);
-  });
 });

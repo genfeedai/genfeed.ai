@@ -3,10 +3,6 @@ import { Timeframe } from '../../src/enums/timeframe.enum';
 
 describe('timeframe.enum', () => {
   describe('Timeframe', () => {
-    it('should have 8 members', () => {
-      expect(Object.values(Timeframe)).toHaveLength(8);
-    });
-
     it('should have correct values', () => {
       expect(Timeframe.H1).toBe('1h');
       expect(Timeframe.H6).toBe('6h');

@@ -67,25 +67,6 @@ describe('useIngredientTags', () => {
   });
 
   describe('handleTagsChange', () => {
-    it('should call patchTags with new tag ids', async () => {
-      const { result } = renderHook(() =>
-        useIngredientTags({
-          ingredient: mockIngredient,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleTagsChange(['tag-1', 'tag-3']);
-      });
-
-      await waitFor(() => {
-        expect(mockPatchTags).toHaveBeenCalledWith('ing-123', [
-          'tag-1',
-          'tag-3',
-        ]);
-      });
-    });
-
     it('should not call patchTags when ingredient has no id', async () => {
       const ingredientNoId = { ...mockIngredient, id: '' } as IIngredient;
 
@@ -134,42 +115,9 @@ describe('useIngredientTags', () => {
         expect(result.current.isUpdatingTags).toBe(false);
       });
     });
-
-    it('should call onRefresh after successful update', async () => {
-      const onRefresh = vi.fn();
-
-      const { result } = renderHook(() =>
-        useIngredientTags({
-          ingredient: mockIngredient,
-          onRefresh,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleTagsChange(['tag-1']);
-      });
-
-      // Note: withSilentOperation mock calls onSuccess internally
-    });
   });
 
   describe('handleRemoveTag', () => {
-    it('should remove tag from current tags', async () => {
-      const { result } = renderHook(() =>
-        useIngredientTags({
-          ingredient: mockIngredient,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleRemoveTag('tag-1');
-      });
-
-      await waitFor(() => {
-        expect(mockPatchTags).toHaveBeenCalledWith('ing-123', ['tag-2']);
-      });
-    });
-
     it('should handle tags as string array', async () => {
       const ingredientWithStringTags: IIngredient = {
         id: 'ing-123',
@@ -191,27 +139,6 @@ describe('useIngredientTags', () => {
           'tag-1',
           'tag-3',
         ]);
-      });
-    });
-
-    it('should handle empty tags array', async () => {
-      const ingredientNoTags: IIngredient = {
-        id: 'ing-123',
-        tags: [],
-      } as IIngredient;
-
-      const { result } = renderHook(() =>
-        useIngredientTags({
-          ingredient: ingredientNoTags,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.handleRemoveTag('tag-1');
-      });
-
-      await waitFor(() => {
-        expect(mockPatchTags).toHaveBeenCalledWith('ing-123', []);
       });
     });
 

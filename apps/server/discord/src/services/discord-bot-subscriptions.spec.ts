@@ -79,35 +79,6 @@ describe('DiscordBotSubscriptions', () => {
   });
 
   describe('integration event handling', () => {
-    it('should dispatch valid Discord integration events', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'int-1',
-        platform: 'DISCORD',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.handleIntegrationEvent).toHaveBeenCalledWith(
-        REDIS_EVENTS.INTEGRATION_CREATED,
-        { integrationId: 'int-1', platform: 'DISCORD' },
-      );
-    });
-
-    it('should ignore events for other platforms', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.INTEGRATION_UPDATED)?.({
-        integrationId: 'int-1',
-        platform: 'SLACK',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.handleIntegrationEvent).not.toHaveBeenCalled();
-    });
-
     it('should ignore malformed integration payloads', async () => {
       const ctx = createContext();
       await ctx.subscriptions.subscribe();
@@ -142,20 +113,6 @@ describe('DiscordBotSubscriptions', () => {
   });
 
   describe('send-to-channel event handling', () => {
-    it('should dispatch valid send-to-channel events', async () => {
-      const ctx = createContext();
-      await ctx.subscriptions.subscribe();
-
-      ctx.handlers.get(REDIS_EVENTS.DISCORD_SEND_TO_CHANNEL)?.({
-        channelId: 'ch-1',
-        message: 'hello',
-        orgId: 'org-1',
-      });
-      await flushMicrotasks();
-
-      expect(ctx.sendToChannel).toHaveBeenCalledWith('org-1', 'ch-1', 'hello');
-    });
-
     it('should ignore malformed send-to-channel payloads', async () => {
       const ctx = createContext();
       await ctx.subscriptions.subscribe();
@@ -190,14 +147,6 @@ describe('DiscordBotSubscriptions', () => {
   });
 
   describe('unsubscribe', () => {
-    it('should be a no-op before subscribing', async () => {
-      const ctx = createContext();
-
-      await ctx.subscriptions.unsubscribe();
-
-      expect(ctx.redis.unsubscribe).not.toHaveBeenCalled();
-    });
-
     it('should unsubscribe from the integration events', async () => {
       const ctx = createContext();
       await ctx.subscriptions.subscribe();

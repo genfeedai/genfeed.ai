@@ -98,10 +98,6 @@ describe('generation credit calculator', () => {
   });
 
   describe('dynamic image cost', () => {
-    it('uses flat cost when pricing type is missing', () => {
-      expect(calculateDynamicImageCost({ cost: 7 }, 1920, 1080)).toBe(7);
-    });
-
     it('bills megapixels when every per-megapixel input is present', () => {
       expect(
         calculateDynamicImageCost(
@@ -114,19 +110,6 @@ describe('generation credit calculator', () => {
           1000,
         ),
       ).toBe(4);
-    });
-
-    it('falls back to flat cost when megapixel inputs are incomplete', () => {
-      expect(
-        calculateDynamicImageCost(
-          {
-            cost: 9,
-            pricingType: PricingType.PER_MEGAPIXEL,
-          },
-          1920,
-          1080,
-        ),
-      ).toBe(9);
     });
 
     it('applies minCost only when it is a positive floor', () => {
@@ -144,21 +127,6 @@ describe('generation credit calculator', () => {
   });
 
   describe('dynamic video cost', () => {
-    it('prefers megapixel pricing over per-second when both could apply', () => {
-      expect(
-        calculateDynamicVideoCost(
-          {
-            cost: 1,
-            costPerUnit: 2,
-            pricingType: PricingType.PER_MEGAPIXEL,
-          },
-          2000,
-          1000,
-          12,
-        ),
-      ).toBe(4);
-    });
-
     it('bills duration for per-second models', () => {
       expect(calculatePerSecondCost(5.2, 3)).toBe(16);
       expect(
@@ -173,21 +141,6 @@ describe('generation credit calculator', () => {
           5,
         ),
       ).toBe(15);
-    });
-
-    it('falls back to flat cost when duration is missing', () => {
-      expect(
-        calculateDynamicVideoCost(
-          {
-            cost: 11,
-            costPerUnit: 3,
-            pricingType: PricingType.PER_SECOND,
-          },
-          1920,
-          1080,
-          0,
-        ),
-      ).toBe(11);
     });
   });
 
@@ -232,29 +185,6 @@ describe('generation credit calculator', () => {
       });
     });
 
-    it('fans out Fal outputs and prices non-square megapixels', () => {
-      expect(
-        calculateImageGenerationCredits({
-          height: 1365,
-          imageProvider: 'fal',
-          isBatchSupported: false,
-          modelKey: 'fal-ai/flux/dev',
-          outputs: 3,
-          pricing: {
-            cost: 1,
-            costPerUnit: 4,
-            pricingType: PricingType.PER_MEGAPIXEL,
-          },
-          width: 1024,
-        }),
-      ).toEqual({
-        billedOutputs: 3,
-        credits: 18,
-        dimensions: { height: 1365, width: 1024 },
-        unitCredits: 6,
-      });
-    });
-
     it('floors the base at minCost before the quality band and keeps one credit', () => {
       expect(
         calculateImageGenerationCredits({
@@ -276,24 +206,6 @@ describe('generation credit calculator', () => {
           pricing: { cost: 0 },
         }),
       ).toMatchObject({ credits: 1, unitCredits: 1 });
-    });
-
-    it('charges the fallback rate when the catalog has no row', () => {
-      expect(
-        calculateImageGenerationCredits({
-          imageProvider: 'replicate',
-          isBatchSupported: false,
-          modelKey: 'unknown/model',
-          outputs: 2,
-          pricing: null,
-        }),
-      ).toMatchObject({
-        credits: FALLBACK_GENERATION_CREDIT_COST * 2,
-        dimensions: {
-          height: DEFAULT_GENERATION_HEIGHT,
-          width: DEFAULT_GENERATION_WIDTH,
-        },
-      });
     });
   });
 

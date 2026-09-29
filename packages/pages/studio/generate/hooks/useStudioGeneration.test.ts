@@ -322,25 +322,6 @@ describe('useStudioGeneration socket tracking', () => {
     expect(result.current.jobs[0]?.status).toBe(IngredientStatus.PROCESSING);
   });
 
-  it('keeps the requested aspect ratio while a generated asset is pending', async () => {
-    const { result } = renderStudioGeneration({
-      settings: {
-        ...getDefaultStudioGenerateSettings('image'),
-        aspectRatio: '4:5',
-      },
-    });
-
-    await act(async () => {
-      await result.current.submit('A founder at a desk');
-    });
-
-    expect(result.current.jobs[0]).toMatchObject({
-      height: 1024,
-      ingredientId: 'img-1',
-      width: 816,
-    });
-  });
-
   it('resolves the finished asset and marks the card generated', async () => {
     const ingredient = {
       cdnUrl: 'https://a/i.png',
@@ -396,18 +377,6 @@ describe('useStudioGeneration socket tracking', () => {
 
     expect(result.current.jobs[0]?.status).toBe(IngredientStatus.FAILED);
     expect(mockNotificationsError).toHaveBeenCalledWith('GPU timeout');
-  });
-
-  it('drops every subscription on unmount', async () => {
-    const { result, unmount } = renderStudioGeneration();
-
-    await act(async () => {
-      await result.current.submit('A founder at a desk');
-    });
-
-    unmount();
-
-    expect(mockUnsubscribe).toHaveBeenCalled();
   });
 
   it('stamps one run id and recipe onto every output of a submit', async () => {
@@ -599,25 +568,6 @@ describe('useStudioGeneration failures', () => {
       width: 1024,
     });
     expect(result.current.jobs[0]).not.toHaveProperty('ingredientId');
-  });
-
-  it('keeps a failed submission in the requested non-square ratio', async () => {
-    mockImagesPost.mockRejectedValue(new Error('Provider unavailable'));
-    const { result } = renderStudioGeneration({
-      settings: {
-        ...getDefaultStudioGenerateSettings('image'),
-        aspectRatio: '4:5',
-      },
-    });
-
-    await act(async () => {
-      await result.current.submit('A founder at a desk');
-    });
-
-    expect(result.current.jobs[0]).toMatchObject({
-      height: 1024,
-      width: 816,
-    });
   });
 
   it('refuses to submit without a brand', async () => {

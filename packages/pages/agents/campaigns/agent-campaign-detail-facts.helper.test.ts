@@ -29,14 +29,6 @@ describe('buildAgentCampaignFacts', () => {
     expect(byId.get('agents')).toBe(2);
   });
 
-  it('omits the end date and quota when the campaign has none', () => {
-    const facts = buildAgentCampaignFacts(buildCampaign(), 'Active');
-    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
-
-    expect(byId.get('endDate')).toBeUndefined();
-    expect(byId.get('quota')).toBeUndefined();
-  });
-
   it('summarizes a content quota when the campaign has one', () => {
     const facts = buildAgentCampaignFacts(
       buildCampaign({

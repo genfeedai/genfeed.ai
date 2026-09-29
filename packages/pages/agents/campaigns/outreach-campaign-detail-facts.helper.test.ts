@@ -33,27 +33,4 @@ describe('buildOutreachCampaignFacts', () => {
     expect(byId.get('status')).toBe('Active');
     expect(byId.get('type')).toBe(CampaignType.DM_OUTREACH);
   });
-
-  it('omits dates the campaign has not reached yet', () => {
-    const facts = buildOutreachCampaignFacts(buildCampaign(), 'X', 'Active');
-    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
-
-    expect(byId.get('startedAt')).toBeFalsy();
-    expect(byId.get('lastActivityAt')).toBeFalsy();
-  });
-
-  it('formats the started and last-activity dates once known', () => {
-    const facts = buildOutreachCampaignFacts(
-      buildCampaign({
-        lastActivityAt: '2026-05-02T00:00:00.000Z',
-        startedAt: '2026-05-01T00:00:00.000Z',
-      }),
-      'X',
-      'Active',
-    );
-    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
-
-    expect(byId.get('startedAt')).toBeTruthy();
-    expect(byId.get('lastActivityAt')).toBeTruthy();
-  });
 });

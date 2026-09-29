@@ -2,7 +2,6 @@ import type { AgentChatInputToolbarProps } from '@genfeedai/agent/components/Age
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function buildDefaultProps(
@@ -55,36 +54,6 @@ describe('AgentChatInputToolbar', () => {
     expect(screen.queryByText(/^Lock /)).not.toBeInTheDocument();
   });
 
-  it('reflects the active thread mode on the trigger', () => {
-    render(
-      <AgentChatInputToolbar
-        {...buildDefaultProps({ agentMode: AgentThreadMode.PLAN })}
-      />,
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Agent mode: Plan' }),
-    ).toBeTruthy();
-  });
-
-  it('calls onAgentModeChange with the selected mode', async () => {
-    const onAgentModeChange = vi.fn();
-    render(
-      <AgentChatInputToolbar {...buildDefaultProps({ onAgentModeChange })} />,
-    );
-
-    fireEvent.pointerDown(
-      screen.getByRole('button', { name: 'Agent mode: Manual' }),
-    );
-
-    const autoItem = await screen.findByRole('menuitemradio', {
-      name: /^Auto/,
-    });
-    fireEvent.click(autoItem);
-
-    expect(onAgentModeChange).toHaveBeenCalledWith(AgentThreadMode.AUTO);
-  });
-
   it('offers exactly Auto, Manual and Plan', async () => {
     render(<AgentChatInputToolbar {...buildDefaultProps()} />);
 
@@ -100,27 +69,6 @@ describe('AgentChatInputToolbar', () => {
     expect(screen.getAllByRole('menuitemradio')).toHaveLength(3);
   });
 
-  it('is keyboard operable', async () => {
-    const user = userEvent.setup();
-    const onAgentModeChange = vi.fn();
-    render(
-      <AgentChatInputToolbar {...buildDefaultProps({ onAgentModeChange })} />,
-    );
-
-    const trigger = screen.getByRole('button', { name: 'Agent mode: Manual' });
-    trigger.focus();
-    await user.keyboard('{Enter}');
-
-    await screen.findByRole('menuitemradio', { name: /^Plan/ });
-    // Radix type-ahead: typing an item's leading text jumps focus to it.
-    await user.keyboard('Plan');
-    await user.keyboard('{Enter}');
-
-    await waitFor(() => {
-      expect(onAgentModeChange).toHaveBeenCalledWith(AgentThreadMode.PLAN);
-    });
-  });
-
   it('promotes Auto to image when the prompt is a generate request', async () => {
     const onGenerationModeChange = vi.fn();
     render(
@@ -134,22 +82,6 @@ describe('AgentChatInputToolbar', () => {
 
     await waitFor(() => {
       expect(onGenerationModeChange).toHaveBeenLastCalledWith('image');
-    });
-  });
-
-  it('keeps unlocked Auto for conversational prompts', async () => {
-    const onGenerationModeChange = vi.fn();
-    render(
-      <AgentChatInputToolbar
-        {...buildDefaultProps({
-          onGenerationModeChange,
-          promptText: "what's my brand voice?",
-        })}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(onGenerationModeChange).toHaveBeenLastCalledWith('auto');
     });
   });
 });

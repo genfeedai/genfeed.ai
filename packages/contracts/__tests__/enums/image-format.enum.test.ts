@@ -3,10 +3,6 @@ import { ImageFormat } from '../../src/enums/image-format.enum';
 
 describe('image-format.enum', () => {
   describe('ImageFormat', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(ImageFormat)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(ImageFormat.JPG).toBe('jpg');
       expect(ImageFormat.PNG).toBe('png');

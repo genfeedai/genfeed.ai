@@ -67,35 +67,6 @@ describe('StudioGenerateSettingsPopover', () => {
 
     expect(onChange).toHaveBeenCalledWith({ duration: 300 });
   });
-
-  it('resets settings via the Reset action', () => {
-    const onReset = vi.fn();
-    render(
-      <StudioGenerateSettingsPopover
-        onChange={vi.fn()}
-        onReset={onReset}
-        settings={{
-          aspectRatio: '1:1',
-          blacklist: [],
-          brandingMode: 'brand',
-          isAudioEnabled: false,
-          modelKey: 'auto',
-          outputs: 1,
-          prioritize: RouterPriority.BALANCED,
-          resolution: '1K',
-          tags: [],
-        }}
-        type="image"
-      />,
-    );
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Generation settings' }),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
-
-    expect(onReset).toHaveBeenCalled();
-  });
 });
 
 describe('music Remix controls', () => {

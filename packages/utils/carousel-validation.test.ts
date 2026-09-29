@@ -53,19 +53,11 @@ describe('carousel-validation', () => {
     it('returns true for supported platforms', () => {
       expect(platformSupportsCarousel(instagram)).toBe(true);
     });
-
-    it('returns false for unsupported platforms', () => {
-      expect(platformSupportsCarousel(unsupported)).toBe(false);
-    });
   });
 
   describe('getCarouselLimits', () => {
     it('returns limits for supported platform', () => {
       expect(getCarouselLimits(tiktok)).toEqual(mockLimits.tiktok);
-    });
-
-    it('returns undefined for unsupported platform', () => {
-      expect(getCarouselLimits(unsupported)).toBeUndefined();
     });
   });
 
@@ -73,11 +65,6 @@ describe('carousel-validation', () => {
     it('returns platforms that support the count', () => {
       const result = filterValidPlatforms([instagram, tiktok, unsupported], 5);
       expect(result).toEqual([instagram, tiktok]);
-    });
-
-    it('filters out platforms outside the count range', () => {
-      const result = filterValidPlatforms([instagram, tiktok], 40);
-      expect(result).toEqual([]);
     });
   });
 

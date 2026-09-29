@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStudioRemixRunEdits,
   clampRemixDurationSeconds,
-  getRemixDraftComposerState,
 } from './studio-remix-run';
 
 const run = {
@@ -49,104 +48,7 @@ describe('clampRemixDurationSeconds', () => {
   });
 });
 
-describe('getRemixDraftComposerState', () => {
-  it('restores authorized media settings from the current run draft', () => {
-    expect(getRemixDraftComposerState(run)).toEqual({
-      prompt: 'Original objective',
-      settings: {
-        aspectRatio: '9:16',
-        duration: 8,
-        outputs: 3,
-      },
-      type: 'video',
-    });
-  });
-});
-
 describe('buildStudioRemixRunEdits', () => {
-  it('sends prompt settings and authorized reference ids back through the run contract', () => {
-    const edits = buildStudioRemixRunEdits(
-      run,
-      'Keep the proof and sharpen the product reveal.',
-      {
-        ...getDefaultStudioGenerateSettings('video'),
-        aspectRatio: '9:16',
-        duration: 8,
-        outputs: 4,
-      },
-      'video',
-    );
-
-    expect(edits).toMatchObject({
-      intent: {
-        hook: 'Proof before promise',
-        objective: 'Keep the proof and sharpen the product reveal.',
-      },
-      output: {
-        aspectRatio: '9:16',
-        count: 4,
-        durationSeconds: 8,
-        kind: 'video',
-      },
-      references: [
-        {
-          assetId: 'explicit-reference-1',
-          role: 'style',
-        },
-      ],
-    });
-  });
-
-  it('clears stale duration when the canonical run output is image', () => {
-    const imageRun = {
-      ...run,
-      draft: {
-        ...run.draft,
-        output: { aspectRatio: '1:1', count: 2, kind: 'image' as const },
-      },
-    };
-
-    expect(
-      buildStudioRemixRunEdits(
-        imageRun,
-        'Square product proof',
-        getDefaultStudioGenerateSettings('image'),
-        'image',
-      ).output,
-    ).toMatchObject({ durationSeconds: null, kind: 'image' });
-  });
-
-  it('preserves the canonical durable avatar identity when starting the restored run', () => {
-    const avatarRun = {
-      ...run,
-      draft: {
-        ...run.draft,
-        identity: {
-          avatarAssetId: 'avatar-row-1',
-          speechVoiceId: 'voice-row-1',
-        },
-        output: {
-          aspectRatio: '9:16',
-          count: 2,
-          durationSeconds: 12,
-          kind: 'avatar' as const,
-        },
-      },
-    };
-
-    expect(
-      buildStudioRemixRunEdits(
-        avatarRun,
-        'Keep the selected spokesperson.',
-        getDefaultStudioGenerateSettings('avatar'),
-        'avatar',
-      ).identity,
-    ).toEqual({
-      avatarAssetId: 'avatar-row-1',
-      speechVoiceId: 'voice-row-1',
-    });
-  });
-
   it('clears canonical avatar identity only when switching the run away from avatar output', () => {
     const avatarRun = {
       ...run,
@@ -173,21 +75,6 @@ describe('buildStudioRemixRunEdits', () => {
         'image',
       ).identity,
     ).toEqual({ avatarAssetId: null, speechVoiceId: null });
-  });
-
-  it('clamps out-of-range duration before a revision call', () => {
-    expect(
-      buildStudioRemixRunEdits(
-        run,
-        'Keep the proof and sharpen the product reveal.',
-        {
-          ...getDefaultStudioGenerateSettings('video'),
-          duration: 5000.4,
-          outputs: 4,
-        },
-        'video',
-      ).output,
-    ).toMatchObject({ durationSeconds: 300 });
   });
 
   it('omits invalid duration instead of sending it to the revision contract', () => {

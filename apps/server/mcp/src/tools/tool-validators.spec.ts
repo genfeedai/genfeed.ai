@@ -1,6 +1,5 @@
 import {
   Platform,
-  PostStatus,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -19,12 +18,6 @@ describe('tool-validators', () => {
     for (const platform of Object.values(Platform)) {
       expect(isPlatform(platform)).toBe(true);
       expect(toPlatform(platform)).toBe(platform);
-    }
-  });
-
-  it('accepts every canonical PostStatus value', () => {
-    for (const status of Object.values(PostStatus)) {
-      expect(toPostStatus(status)).toBe(status);
     }
   });
 

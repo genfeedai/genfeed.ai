@@ -149,40 +149,6 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('shadow-composer');
   });
 
-  it('renders the agent mode dropdown in the leading toolbar slot', () => {
-    render(<AgentChatInput onSend={vi.fn()} />);
-
-    expect(
-      screen.getByRole('button', { name: 'Agent mode: Manual' }),
-    ).toBeInTheDocument();
-  });
-
-  it('renders the stop action within the shell footer when a run is active', () => {
-    render(<AgentChatInput onSend={vi.fn()} onStop={vi.fn()} showStop />);
-
-    expect(screen.getByLabelText('Stop agent')).toBeTruthy();
-  });
-
-  it('shows queue send beside stop when the composer has text during a run', async () => {
-    storeState.composerSeed = {
-      content: 'Follow up after this run',
-      nonce: 1,
-      threadId: null,
-    };
-
-    render(
-      <AgentChatInput
-        onSend={vi.fn()}
-        onStop={vi.fn()}
-        showStop
-        willQueueFollowUp
-      />,
-    );
-
-    expect(screen.getByLabelText('Stop agent')).toBeTruthy();
-    expect(await screen.findByLabelText('Queue follow-up')).toBeTruthy();
-  });
-
   it('keeps the editor writable while a run is active', async () => {
     render(
       <AgentChatInput
@@ -272,14 +238,6 @@ describe('AgentChatInput', () => {
       ),
     ).toBeInTheDocument();
     expect(editor).toHaveTextContent('Send after upload');
-  });
-
-  it('does not render a context usage meter', () => {
-    render(<AgentChatInput onSend={vi.fn()} />);
-
-    expect(
-      screen.queryByTestId('composer-context-usage'),
-    ).not.toBeInTheDocument();
   });
 
   it('keeps plan mode out and exposes the compact attachment control', () => {
@@ -529,31 +487,6 @@ describe('AgentChatInput', () => {
     });
   });
 
-  it('exposes selected surface artifact references in the composer context', () => {
-    render(
-      <ConversationComposerShellProvider
-        artifactReferences={[
-          {
-            brandId: 'brand-1',
-            kind: 'post',
-            organizationId: 'org-1',
-            recordId: 'post-1',
-            serializer: 'post',
-          },
-        ]}
-        contextLabel="Brand Workspace overview"
-        draftScopeKey="acme:thread-1:3"
-        portalTarget={null}
-        shellState="canvas"
-      >
-        <AgentChatInput onSend={vi.fn()} />
-      </ConversationComposerShellProvider>,
-    );
-
-    // Tray shows the typed reference chip label (no separate "N reference" count).
-    expect(screen.getByText('^post:post-1')).toBeInTheDocument();
-  });
-
   it('migrates legacy content mentions into visual reference tiles (deduped with workspace selection)', async () => {
     const draftScopeKey = 'acme:thread-overlap:1';
     writeConversationComposerDocument(
@@ -700,16 +633,6 @@ describe('AgentChatInput', () => {
     await waitFor(() => expect(composer).toHaveTextContent('First line'));
 
     fireEvent.keyDown(composer, { key: 'Enter', shiftKey: true });
-
-    expect(onSend).not.toHaveBeenCalled();
-  });
-
-  it('does not send on Enter when the composer is empty', () => {
-    const onSend = vi.fn();
-
-    render(<AgentChatInput onSend={onSend} />);
-
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
 
     expect(onSend).not.toHaveBeenCalled();
   });

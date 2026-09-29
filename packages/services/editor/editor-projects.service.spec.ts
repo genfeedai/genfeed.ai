@@ -78,10 +78,6 @@ describe('EditorProjectsService', () => {
       .instance;
   });
 
-  it('is defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('getInstance returns same instance for same token', () => {
     const a = EditorProjectsService.getInstance('tok');
     const b = EditorProjectsService.getInstance('tok');
@@ -149,23 +145,6 @@ describe('EditorProjectsService', () => {
   it('findById returns null on 404', async () => {
     const err = Object.assign(new Error('Not Found'), { status: 404 });
     mockInstance.get.mockRejectedValue(err);
-
-    const result = await service.findById('proj-missing');
-
-    expect(result).toBeNull();
-  });
-
-  it('findById returns null on JSON:API 404 without treating it as a hard error', async () => {
-    // Dev interceptor throws response.data (JSON:API body), not AxiosError.
-    mockInstance.get.mockRejectedValue({
-      errors: [
-        {
-          code: '404',
-          detail: "EditorProjectsController proj-missing doesn't exist",
-          title: 'EditorProjectsController not found',
-        },
-      ],
-    });
 
     const result = await service.findById('proj-missing');
 

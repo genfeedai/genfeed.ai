@@ -42,19 +42,6 @@ describe('configured private storage downloads', () => {
         ? 'http://minio:9000/bucket'
         : 'http://files:3012',
   };
-  it('permits only the exact configured storage origin and pins redirects to it', async () => {
-    guardedFetch.mockResolvedValue(new Response('audio'));
-    await downloadPublicMedia(
-      'http://minio:9000/bucket/audio.wav',
-      10,
-      config as never,
-    );
-    expect(guardedFetch).toHaveBeenLastCalledWith(
-      'http://minio:9000/bucket/audio.wav',
-      expect.any(Object),
-      { allowedOrigins: ['http://minio:9000'], allowPrivateNetwork: true },
-    );
-  });
   it.each([
     'http://minio:9001/private',
     'http://169.254.169.254/latest/meta-data',

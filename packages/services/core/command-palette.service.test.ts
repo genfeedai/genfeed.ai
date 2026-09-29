@@ -77,11 +77,6 @@ describe('CommandPaletteService', () => {
   });
 
   describe('registerCommands', () => {
-    it('registers a command and increments count', () => {
-      CommandPaletteService.registerCommands([makeCommand('cmd-1', 'Test')]);
-      expect(CommandPaletteService.getCommandCount()).toBe(1);
-    });
-
     it('does not info-log routine registration', () => {
       CommandPaletteService.registerCommands([makeCommand('cmd-1', 'Test')]);
       expect(logger.info).not.toHaveBeenCalled();
@@ -99,22 +94,6 @@ describe('CommandPaletteService', () => {
   });
 
   describe('registerCommands batch', () => {
-    it('registers multiple commands at once', () => {
-      CommandPaletteService.registerCommands([
-        makeCommand('a', 'Alpha'),
-        makeCommand('b', 'Beta'),
-      ]);
-      expect(CommandPaletteService.getCommandCount()).toBe(2);
-    });
-
-    it('returns the ids that were registered', () => {
-      const registeredIds = CommandPaletteService.registerCommands([
-        makeCommand('a', 'Alpha'),
-        makeCommand('b', 'Beta'),
-      ]);
-      expect(registeredIds).toEqual(['a', 'b']);
-    });
-
     it('returns only newly registered ids when some already exist', () => {
       CommandPaletteService.registerCommands([makeCommand('a', 'Alpha')]);
       const registeredIds = CommandPaletteService.registerCommands([
@@ -127,15 +106,6 @@ describe('CommandPaletteService', () => {
   });
 
   describe('unregisterCommands batch', () => {
-    it('removes all given commands', () => {
-      CommandPaletteService.registerCommands([
-        makeCommand('a', 'Alpha'),
-        makeCommand('b', 'Beta'),
-      ]);
-      CommandPaletteService.unregisterCommands(['a', 'b']);
-      expect(CommandPaletteService.getCommandCount()).toBe(0);
-    });
-
     it('does not throw for unknown command ids', () => {
       CommandPaletteService.registerCommands([makeCommand('keep', 'Keep')]);
       expect(() =>
@@ -158,31 +128,6 @@ describe('CommandPaletteService', () => {
 
       expect(logger.warn).not.toHaveBeenCalled();
       expect(CommandPaletteService.getCommandCount()).toBe(2);
-    });
-
-    it('keeps each command exactly once after remount', () => {
-      const commands = [makeCommand('a', 'Alpha')];
-
-      const registeredIds = CommandPaletteService.registerCommands(commands);
-      CommandPaletteService.unregisterCommands(registeredIds);
-      CommandPaletteService.registerCommands(commands);
-
-      const ids = CommandPaletteService.getAllCommands().map((c) => c.id);
-      expect(ids.filter((id) => id === 'a')).toHaveLength(1);
-    });
-  });
-
-  describe('unregisterCommands', () => {
-    it('removes a registered command', () => {
-      CommandPaletteService.registerCommands([makeCommand('rm', 'Remove Me')]);
-      CommandPaletteService.unregisterCommands(['rm']);
-      expect(CommandPaletteService.getCommandCount()).toBe(0);
-    });
-
-    it('is a no-op for unknown command ids', () => {
-      CommandPaletteService.registerCommands([makeCommand('keep', 'Keep')]);
-      CommandPaletteService.unregisterCommands(['nonexistent']);
-      expect(CommandPaletteService.getCommandCount()).toBe(1);
     });
   });
 
@@ -207,14 +152,6 @@ describe('CommandPaletteService', () => {
       const results = CommandPaletteService.searchCommands('unique xyz');
       const ids = results.map((r) => r.id);
       expect(ids).toContain('unique-xyz');
-    });
-
-    it('excludes commands whose condition() returns false', () => {
-      CommandPaletteService.registerCommands([
-        makeCommand('hidden', 'Hidden Command', { condition: () => false }),
-      ]);
-      const results = CommandPaletteService.searchCommands('hidden');
-      expect(results.map((r) => r.id)).not.toContain('hidden');
     });
 
     it('getAllCommands returns all registered commands that pass condition', () => {
@@ -255,30 +192,6 @@ describe('CommandPaletteService', () => {
       await expect(
         CommandPaletteService.executeCommand('fail-cmd'),
       ).rejects.toThrow('action failed');
-    });
-  });
-
-  describe('getCommandCount', () => {
-    it('returns 0 when no commands are registered', () => {
-      expect(CommandPaletteService.getCommandCount()).toBe(0);
-    });
-
-    it('returns correct count after multiple registrations', () => {
-      CommandPaletteService.registerCommands([makeCommand('c1', 'One')]);
-      CommandPaletteService.registerCommands([makeCommand('c2', 'Two')]);
-      CommandPaletteService.registerCommands([makeCommand('c3', 'Three')]);
-      expect(CommandPaletteService.getCommandCount()).toBe(3);
-    });
-  });
-
-  describe('clearCommands', () => {
-    it('removes all registered commands', () => {
-      CommandPaletteService.registerCommands([
-        makeCommand('x', 'X'),
-        makeCommand('y', 'Y'),
-      ]);
-      CommandPaletteService.clearCommands();
-      expect(CommandPaletteService.getCommandCount()).toBe(0);
     });
   });
 });

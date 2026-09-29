@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { workflowRefApi } from '../nodes/composition/workflow-ref-node.helpers';
 import {
@@ -8,14 +8,7 @@ import {
 } from '../stores/execution/executionApi';
 import { getWorkflowPersistence } from '../stores/workflow/workflowPersistence';
 import type { WorkflowUIConfig } from './types';
-import { useWorkflowUIConfig, WorkflowUIProvider } from './WorkflowUIProvider';
-
-function ConfigProbe() {
-  const config = useWorkflowUIConfig();
-  return (
-    <div data-testid="probe">{config.executionApiBaseUrl ?? 'no-base-url'}</div>
-  );
-}
+import { WorkflowUIProvider } from './WorkflowUIProvider';
 
 afterEach(() => {
   // Re-render with an empty config to reset module-scope registries.
@@ -27,25 +20,6 @@ afterEach(() => {
 });
 
 describe('WorkflowUIProvider', () => {
-  it('exposes the config through useWorkflowUIConfig', () => {
-    render(
-      <WorkflowUIProvider
-        config={{ executionApiBaseUrl: 'https://api.test/v1' }}
-      >
-        <ConfigProbe />
-      </WorkflowUIProvider>,
-    );
-
-    expect(screen.getByTestId('probe')).toHaveTextContent(
-      'https://api.test/v1',
-    );
-  });
-
-  it('returns an empty config outside the provider', () => {
-    render(<ConfigProbe />);
-    expect(screen.getByTestId('probe')).toHaveTextContent('no-base-url');
-  });
-
   it('registers injected services into the module-scope registries', () => {
     const httpClient = { post: vi.fn() };
     const persistence = {

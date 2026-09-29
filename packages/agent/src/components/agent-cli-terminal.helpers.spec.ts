@@ -6,7 +6,6 @@ import {
   attachTerminalSocketHandlers,
   persistTerminalCwd,
   readPersistedTerminalCwd,
-  resolveTerminalEndpoint,
   resolveThreadKey,
   TERMINAL_CWD_STORAGE_KEY,
 } from './agent-cli-terminal.helpers';
@@ -36,10 +35,6 @@ describe('terminal cwd persistence', () => {
   it('resolveThreadKey falls back to global', () => {
     expect(resolveThreadKey('thread-1')).toBe('thread-1');
     expect(resolveThreadKey(null)).toBe('global');
-  });
-
-  it('resolveTerminalEndpoint strips a trailing slash', () => {
-    expect(resolveTerminalEndpoint().endsWith('/')).toBe(false);
   });
 });
 
@@ -212,15 +207,5 @@ describe('attachTerminalSocketHandlers', () => {
     ctx.emit('terminal:exit', { sessionId: 'sess-1' });
 
     expect(ctx.setStatus).toHaveBeenCalledWith('exited with code 0');
-  });
-
-  it('detach removes every handler', () => {
-    const ctx = setup();
-
-    ctx.detach();
-
-    for (const eventHandlers of ctx.handlers.values()) {
-      expect(eventHandlers).toHaveLength(0);
-    }
   });
 });

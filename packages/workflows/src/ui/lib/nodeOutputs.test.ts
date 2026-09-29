@@ -13,15 +13,6 @@ function createNode(data: Record<string, unknown>): WorkflowNode {
 }
 
 describe('getNodeOutputForHandle', () => {
-  it('prefers text output over prompt fallback', () => {
-    const value = getNodeOutputForHandle(
-      createNode({ outputText: 'generated', prompt: 'fallback' }),
-      'text',
-    );
-
-    expect(value).toBe('generated');
-  });
-
   it('uses the prompt fallback and returns undefined when text is unavailable', () => {
     expect(
       getNodeOutputForHandle(createNode({ prompt: 'fallback' }), 'text'),

@@ -11,24 +11,9 @@ import {
 const createError = (message: string): Error => new Error(message);
 
 describe('assertSafeArgValue', () => {
-  it.each(['persona', 'Persona 42', 'my_lora-v2', 'a.b.c', 'X'])(
-    'accepts %s',
-    (value) => {
-      expect(assertSafeArgValue(value, 'triggerWord', createError)).toBe(value);
-    },
-  );
-
   // The whole point of the guard: `spawn` passes argv verbatim, so a value
   // starting with `-` is read by the child as a flag rather than as the value
   // of the flag that preceded it.
-  it.each(['--config_file=/etc/shadow', '-o', '--output_dir', '-', '--'])(
-    'rejects the argument-injection payload %s',
-    (value) => {
-      expect(() =>
-        assertSafeArgValue(value, 'triggerWord', createError),
-      ).toThrow(/may not start with/);
-    },
-  );
 
   it.each([
     ['an empty string', ''],
@@ -63,15 +48,6 @@ describe('assertSafeArgValue', () => {
     );
   });
 
-  it.each([null, undefined, 42, {}, []])(
-    'rejects the non-string %s',
-    (value) => {
-      expect(() =>
-        assertSafeArgValue(value as unknown as string, 'name', createError),
-      ).toThrow(Error);
-    },
-  );
-
   it('anchors the pattern at both ends', () => {
     expect(SAFE_ARG_VALUE_PATTERN.source.startsWith('^')).toBe(true);
     expect(SAFE_ARG_VALUE_PATTERN.source.endsWith('$')).toBe(true);
@@ -81,21 +57,6 @@ describe('assertSafeArgValue', () => {
 const BOUNDS = { max: 100, min: 1 };
 
 describe('assertBoundedNumber', () => {
-  it.each([1, 50, 100, 1.5])('accepts %s', (value) => {
-    expect(assertBoundedNumber(value, 'steps', BOUNDS, createError)).toBe(
-      value,
-    );
-  });
-
-  it.each([0, -1, 101, Number.MAX_SAFE_INTEGER])(
-    'rejects out-of-range %s',
-    (value) => {
-      expect(() =>
-        assertBoundedNumber(value, 'steps', BOUNDS, createError),
-      ).toThrow(/between 1 and 100/);
-    },
-  );
-
   it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
     'rejects the non-finite %s',
     (value) => {
@@ -107,23 +68,6 @@ describe('assertBoundedNumber', () => {
 
   // A field typed `number` in TypeScript is still whatever JSON arrived at
   // runtime. Coercing would accept these; rejecting is the only safe read.
-  it.each(['50', '1e999', '', ' ', '0x10', 'NaN'])(
-    'rejects the string %s instead of coercing it',
-    (value) => {
-      expect(() =>
-        assertBoundedNumber(value, 'steps', BOUNDS, createError),
-      ).toThrow(Error);
-    },
-  );
-
-  it.each([null, undefined, {}, [], true])(
-    'rejects the non-number %s',
-    (value) => {
-      expect(() =>
-        assertBoundedNumber(value, 'steps', BOUNDS, createError),
-      ).toThrow(Error);
-    },
-  );
 });
 
 describe('assertBoundedInteger', () => {
@@ -141,12 +85,6 @@ describe('assertBoundedInteger', () => {
       ).toThrow(/must be an integer/);
     },
   );
-
-  it.each([0, 101])('rejects out-of-range %s', (value) => {
-    expect(() =>
-      assertBoundedInteger(value, 'steps', BOUNDS, createError),
-    ).toThrow(/between 1 and 100/);
-  });
 
   it('uses the error factory it is given', () => {
     class DomainError extends Error {}

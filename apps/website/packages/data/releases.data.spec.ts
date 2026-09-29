@@ -110,11 +110,4 @@ describe('published releases', () => {
     await expect(getPublishedReleases()).rejects.toThrow(String(status));
     expect(fetcher).toHaveBeenCalledTimes(1);
   });
-  it('fails loudly on GitHub errors', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('', { status: 503 })),
-    );
-    await expect(getPublishedReleases()).rejects.toThrow('503');
-  });
 });

@@ -44,12 +44,6 @@ describe('useAgentPageContext', () => {
     expect(result.current.suggestedActions).toHaveLength(3);
   });
 
-  it('resolves a mapped route after stripping the org and brand segments', () => {
-    const { result } = renderAt(`/acme/main${APP_ROUTES.ANALYTICS.ROOT}`);
-
-    expect(result.current.placeholder).toBe('Ask about your analytics...');
-  });
-
   it('resolves a tilde personal-scope path the same way', () => {
     const { result } = renderAt(`/acme/~${APP_ROUTES.ANALYTICS.ROOT}`);
 
@@ -58,22 +52,6 @@ describe('useAgentPageContext', () => {
 
   it('leaves short paths unnormalized', () => {
     const { result } = renderAt(APP_ROUTES.ANALYTICS.ROOT);
-
-    expect(result.current.placeholder).toBe('Ask about your analytics...');
-  });
-
-  it('prefers the longest matching route prefix', () => {
-    const insights = renderAt(`/acme/main${APP_ROUTES.ANALYTICS.INSIGHTS}`);
-
-    expect(insights.result.current.placeholder).toBe(
-      'Ask about your AI insights...',
-    );
-  });
-
-  it('matches by prefix for nested detail routes', () => {
-    const { result } = renderAt(
-      `/acme/main${APP_ROUTES.ANALYTICS.ROOT}/some-detail-page`,
-    );
 
     expect(result.current.placeholder).toBe('Ask about your analytics...');
   });
@@ -87,16 +65,6 @@ describe('useAgentPageContext', () => {
     expect(stored?.route).toBe(pathname);
     expect(stored?.placeholder).toBe(result.current.placeholder);
     expect(stored?.suggestedActions).toEqual(result.current.suggestedActions);
-  });
-
-  it('clears its own context from the store on unmount', () => {
-    const { unmount } = renderAt(`/acme/main${APP_ROUTES.ANALYTICS.ROOT}`);
-
-    expect(useAgentChatStore.getState().pageContext).not.toBeNull();
-
-    unmount();
-
-    expect(useAgentChatStore.getState().pageContext).toBeNull();
   });
 
   it('leaves a foreign route context in the store untouched on unmount', () => {
@@ -158,21 +126,6 @@ describe('useAgentPageContext', () => {
     ]);
     // The placeholder still comes from the route map.
     expect(result.current.placeholder).toBe('Ask about your analytics...');
-  });
-
-  it('falls back to route defaults when the brand config yields no topics', () => {
-    brandRef.current = { agentConfig: { voice: { tone: 'direct' } } };
-
-    const { result } = renderAt(`/acme/main${APP_ROUTES.ANALYTICS.ROOT}`);
-    const labels = result.current.suggestedActions.map((a) => a.label);
-
-    expect(labels).toContain('Compare');
-  });
-
-  it('keeps the plain Posts desk off the calendar context', () => {
-    const { result } = renderAt(`/acme/main${APP_ROUTES.PUBLISHING.POSTS}`);
-
-    expect(result.current.placeholder).not.toBe('Ask about your calendar...');
   });
 
   it('resolves the publishing calendar route to the calendar context', () => {

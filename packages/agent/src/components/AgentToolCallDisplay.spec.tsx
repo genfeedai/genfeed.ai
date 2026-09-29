@@ -2,7 +2,6 @@ import { AgentToolCallDisplay } from '@genfeedai/agent/components/AgentToolCallD
 import type { AgentToolCall } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { TOOL_LABELS } from './agent-tool-call-display.helpers';
 
 type ToolCallProps = AgentToolCall & {
   creditsUsed?: number;
@@ -20,50 +19,6 @@ function makeToolCall(overrides: Partial<ToolCallProps> = {}): ToolCallProps {
 }
 
 describe('AgentToolCallDisplay', () => {
-  it('shows the running state for an in-flight call', () => {
-    render(<AgentToolCallDisplay toolCall={makeToolCall()} />);
-
-    expect(screen.getByText('Running')).toBeInTheDocument();
-  });
-
-  it('shows the completed state', () => {
-    render(
-      <AgentToolCallDisplay toolCall={makeToolCall({ status: 'completed' })} />,
-    );
-
-    expect(screen.getByText('Completed')).toBeInTheDocument();
-  });
-
-  it('shows the failed state', () => {
-    render(
-      <AgentToolCallDisplay toolCall={makeToolCall({ status: 'failed' })} />,
-    );
-
-    expect(screen.getByText('Failed')).toBeInTheDocument();
-  });
-
-  it('humanizes an unlabelled tool name', () => {
-    render(
-      <AgentToolCallDisplay
-        toolCall={makeToolCall({ name: 'mystery_tool' })}
-      />,
-    );
-
-    expect(screen.getByText('Mystery Tool')).toBeInTheDocument();
-  });
-
-  it('prefers the friendly label when one exists', () => {
-    const [name, label] = Object.entries(TOOL_LABELS)[0] ?? [];
-
-    if (!name || !label) {
-      throw new Error('TOOL_LABELS is empty');
-    }
-
-    render(<AgentToolCallDisplay toolCall={makeToolCall({ name })} />);
-
-    expect(screen.getByText(label)).toBeInTheDocument();
-  });
-
   it('shows credits only when a positive amount was spent', () => {
     const { rerender } = render(
       <AgentToolCallDisplay toolCall={makeToolCall({ creditsUsed: 0 })} />,

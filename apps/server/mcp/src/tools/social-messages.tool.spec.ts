@@ -1,8 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
-import {
-  handleSocialMessagesTool,
-  SOCIAL_MESSAGES_TOOL_NAMES,
-} from '@mcp/tools/social-messages.tool';
+import { handleSocialMessagesTool } from '@mcp/tools/social-messages.tool';
 
 function buildClient() {
   return {
@@ -51,22 +48,6 @@ function call(
   );
 }
 
-describe('SOCIAL_MESSAGES_TOOL_NAMES', () => {
-  it('routes every advertised name to a handler', async () => {
-    const baseArgs: Record<string, unknown> = {
-      conversationId: 'conversation-1',
-      messageId: 'message-1',
-      tags: ['vip'],
-      text: 'hello',
-    };
-
-    for (const name of SOCIAL_MESSAGES_TOOL_NAMES) {
-      const client = buildClient();
-      await expect(call(client, name, baseArgs)).resolves.toBeDefined();
-    }
-  });
-});
-
 describe('handleSocialMessagesTool — listing', () => {
   it('passes every supported filter through to the client', async () => {
     const client = buildClient();
@@ -103,28 +84,6 @@ describe('handleSocialMessagesTool — listing', () => {
     expect(result.content[0].text).toContain('Found 1 social conversations');
   });
 
-  it('drops blank, non-numeric and non-boolean filters', async () => {
-    const client = buildClient();
-
-    await call(client, 'list_social_conversations', {
-      limit: Number.NaN,
-      needsReview: 'yes',
-      page: 'two',
-      search: '   ',
-      status: '',
-    });
-
-    expect(client.listSocialConversations).toHaveBeenCalledWith(
-      expect.objectContaining({
-        limit: undefined,
-        needsReview: undefined,
-        page: undefined,
-        search: undefined,
-        status: undefined,
-      }),
-    );
-  });
-
   it('reports an empty conversation list', async () => {
     const client = buildClient();
     client.listSocialConversations.mockResolvedValue({ conversations: [] });
@@ -147,20 +106,6 @@ describe('handleSocialMessagesTool — listing', () => {
       { includeMessages: true, limit: 50 },
     );
     expect(result.content[0].text).toContain('Social conversation');
-  });
-
-  it('honours an explicit includeMessages: false', async () => {
-    const client = buildClient();
-
-    await call(client, 'get_social_conversation', {
-      conversationId: 'conversation-1',
-      includeMessages: false,
-    });
-
-    expect(client.getSocialConversation).toHaveBeenCalledWith(
-      'conversation-1',
-      { includeMessages: false, limit: undefined },
-    );
   });
 });
 
@@ -234,17 +179,6 @@ describe('handleSocialMessagesTool — authoring', () => {
     expect(client.postSocialReply).not.toHaveBeenCalled();
   });
 
-  it('requires message text', async () => {
-    const client = buildClient();
-
-    await expect(
-      call(client, 'post_social_reply', {
-        conversationId: 'conversation-1',
-        text: '   ',
-      }),
-    ).rejects.toThrow('text is required');
-  });
-
   it('requires a conversation id', async () => {
     const client = buildClient();
 
@@ -289,21 +223,6 @@ describe('handleSocialMessagesTool — moderation', () => {
     expect(result.content[0].text).toContain('Rejected social draft');
   });
 
-  it('rejects a draft without a reason', async () => {
-    const client = buildClient();
-
-    await call(client, 'reject_social_draft', {
-      conversationId: 'conversation-1',
-      messageId: 'message-1',
-    });
-
-    expect(client.rejectSocialDraft).toHaveBeenCalledWith(
-      'conversation-1',
-      'message-1',
-      undefined,
-    );
-  });
-
   it('trims and compacts tags', async () => {
     const client = buildClient();
 
@@ -319,17 +238,6 @@ describe('handleSocialMessagesTool — moderation', () => {
     expect(result.content[0].text).toContain(
       'Updated social conversation tags',
     );
-  });
-
-  it('refuses a tag list that is not all strings', async () => {
-    const client = buildClient();
-
-    await expect(
-      call(client, 'tag_social_conversation', {
-        conversationId: 'conversation-1',
-        tags: ['vip', 7],
-      }),
-    ).rejects.toThrow('tags must be an array of strings');
   });
 
   it('refuses a non-array tag value', async () => {

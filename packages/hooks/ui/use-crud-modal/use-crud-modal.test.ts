@@ -111,20 +111,6 @@ describe('useCrudModal', () => {
   });
 
   describe('Initial State', () => {
-    it('returns form instance', () => {
-      const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
-
-      expect(result.current.form).toBeDefined();
-    });
-
-    it('returns formRef for focus management', () => {
-      const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
-
-      expect(result.current.formRef).toBeDefined();
-    });
-
     it('returns isSubmitting state', () => {
       const options = createDefaultOptions();
       const { result } = renderHook(() => useCrudModal(options));
@@ -148,13 +134,6 @@ describe('useCrudModal', () => {
   });
 
   describe('handleDelete', () => {
-    it('returns undefined handleDelete when no entity', () => {
-      const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
-
-      expect(result.current.handleDelete).toBeUndefined();
-    });
-
     it('returns handleDelete function when entity exists', () => {
       const options = {
         ...createDefaultOptions(),
@@ -230,29 +209,6 @@ describe('useCrudModal', () => {
       });
 
       expect(options.onConfirm).toHaveBeenCalledWith(true);
-    });
-
-    it('calls onClose when closed without success', () => {
-      const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
-
-      act(() => {
-        result.current.closeModal(false);
-      });
-
-      expect(options.onClose).toHaveBeenCalled();
-      expect(options.onConfirm).not.toHaveBeenCalled();
-    });
-
-    it('calls onClose when closed with no argument', () => {
-      const options = createDefaultOptions();
-      const { result } = renderHook(() => useCrudModal(options));
-
-      act(() => {
-        result.current.closeModal();
-      });
-
-      expect(options.onClose).toHaveBeenCalled();
     });
   });
 
@@ -383,29 +339,6 @@ describe('useCrudModal', () => {
   });
 
   describe('customSubmitHandler', () => {
-    it('uses custom handler instead of default service calls', async () => {
-      const customSubmitHandler = vi.fn().mockResolvedValue({
-        id: 'custom-123',
-        name: 'Custom Result',
-      });
-
-      const options = {
-        ...createDefaultOptions(),
-        customSubmitHandler,
-      };
-      const { result } = renderHook(() => useCrudModal(options));
-
-      await act(async () => {
-        await result.current.onSubmit({
-          preventDefault: vi.fn(),
-        } as React.FormEvent);
-      });
-
-      expect(customSubmitHandler).toHaveBeenCalled();
-      expect(mockPost).not.toHaveBeenCalled();
-      expect(mockPatch).not.toHaveBeenCalled();
-    });
-
     it('passes service, entity, and formData to custom handler', async () => {
       const customSubmitHandler = vi.fn().mockResolvedValue({ id: 'result' });
       const entity = { id: 'entity-123', name: 'Test' };

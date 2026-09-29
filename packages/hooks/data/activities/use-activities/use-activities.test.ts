@@ -145,18 +145,6 @@ describe('useActivities', () => {
     });
   });
 
-  it('updates filter state', async () => {
-    const { result } = renderHook(() => useActivities({ initialFilter: '' }), {
-      wrapper: createQueryWrapper(),
-    });
-
-    act(() => {
-      result.current.setFilter('alpha');
-    });
-
-    expect(result.current.filter).toBe('alpha');
-  });
-
   it('marks all unread activities as read', async () => {
     const { result } = renderHook(() => useActivities(), {
       wrapper: createQueryWrapper(),

@@ -168,14 +168,6 @@ describe('PromptNode', () => {
       );
     });
 
-    it('should not open save modal when prompt is empty', () => {
-      render(<PromptNode {...defaultProps} />);
-
-      fireEvent.click(screen.getByTitle('Save to library'));
-
-      expect(mockOpenCreateModal).not.toHaveBeenCalled();
-    });
-
     it('should disable save button when prompt is empty', () => {
       render(<PromptNode {...defaultProps} />);
 

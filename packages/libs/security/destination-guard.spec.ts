@@ -864,17 +864,6 @@ describe('destination guard', () => {
     expect(followOnRequest?.end).toHaveBeenCalledWith('payload');
   });
 
-  it('returns a bodyless response for HEAD requests', async () => {
-    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
-    mockHttpResponse(200);
-
-    const response = await safeFetch('http://public.example/asset', {
-      method: 'HEAD',
-    });
-
-    expect(response.body).toBeNull();
-  });
-
   it('serializes a Blob without a content type', async () => {
     dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
     mockHttpResponse(200);

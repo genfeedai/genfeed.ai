@@ -9,12 +9,6 @@ import {
 } from './library-asset-type.util';
 
 describe('LIBRARY_ASSET_TYPES', () => {
-  it('never lists the same category twice', () => {
-    const all = LIBRARY_ASSET_TYPES.flatMap((type) => [...type.categories]);
-
-    expect(all).toEqual(Array.from(new Set(all)));
-  });
-
   it('uses singular title-case labels for the filter and the pill', () => {
     expect(LIBRARY_ASSET_TYPES.map((type) => type.label)).toEqual([
       'Image',

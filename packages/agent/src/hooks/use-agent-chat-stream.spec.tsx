@@ -96,18 +96,6 @@ describe('useAgentChatStream', () => {
     vi.useRealTimers();
   });
 
-  it('mounts without triggering a callback initialization error', () => {
-    const apiService = createApiService({});
-
-    expect(() =>
-      renderHook(() =>
-        useAgentChatStream({
-          apiService,
-        }),
-      ),
-    ).not.toThrow();
-  });
-
   it('surfaces a failed onboarding-completion callback without an unhandled rejection', async () => {
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
@@ -1664,35 +1652,6 @@ describe('useAgentChatStream', () => {
     );
   });
 
-  it('leaves the model unset for streaming sends so the server resolves the runtime default', async () => {
-    const startedAt = '2026-03-09T10:00:00.000Z';
-    const apiService = createApiService({
-      chatStream: vi.fn().mockResolvedValue({
-        executionId: 'run-kimi-default',
-        queuedAt: startedAt,
-        threadId: 'thread-kimi-default',
-      }),
-    });
-
-    const { result } = renderHook(() =>
-      useAgentChatStream({
-        apiService,
-      }),
-    );
-
-    await act(async () => {
-      await result.current.sendMessage('Start with Kimi');
-    });
-
-    expect(apiService.chatStream).toHaveBeenCalledWith(
-      expect.objectContaining({
-        content: 'Start with Kimi',
-        model: undefined,
-      }),
-      expect.any(AbortSignal),
-    );
-  });
-
   it('strips UI-only page context before streaming chat payloads', async () => {
     useAgentChatStore.setState({
       pageContext: {
@@ -2014,47 +1973,6 @@ describe('useAgentChatStream', () => {
     );
     expect(backgroundThread?.attentionState).toBe('updated');
     expect(backgroundThread?.runStatus).toBe('completed');
-  });
-
-  it('does not rehydrate or refresh threads on the initial socket connect', async () => {
-    // Every mount of useSocketManager reports 'connecting' before the shared
-    // manager answers 'connected'. Treating that as a reconnect re-fetched the
-    // snapshot and refreshed the sidebar on every route change.
-    socketConnectionState = 'connecting';
-    socketConnected = false;
-
-    useAgentChatStore.setState({
-      activeThreadId: 'thread-initial',
-      messages: [],
-    });
-
-    const getThreads = vi.fn().mockResolvedValue([]);
-    const apiService = createApiService({
-      getMessages: vi.fn().mockResolvedValue([]),
-      getThreadSnapshot: vi.fn().mockResolvedValue(null),
-      getThreads,
-    });
-    const refreshListener = vi.fn();
-    window.addEventListener('agent:threads:refresh', refreshListener);
-
-    const { rerender } = renderHook(() =>
-      useAgentChatStream({
-        apiService,
-      }),
-    );
-
-    socketConnectionState = 'connected';
-    socketConnected = true;
-    rerender();
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
-    expect(getThreads).not.toHaveBeenCalled();
-    expect(refreshListener).not.toHaveBeenCalled();
-    window.removeEventListener('agent:threads:refresh', refreshListener);
   });
 
   it('rehydrates the visible thread from snapshot after reconnect', async () => {

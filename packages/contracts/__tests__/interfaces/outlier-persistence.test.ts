@@ -25,11 +25,4 @@ describe('outlier configuration contract', () => {
   ])('rejects invalid settings %j', (value) => {
     expect(outlierConfigurationSchema.safeParse(value).success).toBe(false);
   });
-  it('accepts a zero-hour maturity override', () => {
-    expect(
-      outlierConfigurationSchema.parse({
-        maturityHoursByPlatform: { twitter: 0 },
-      }).maturityHoursByPlatform.twitter,
-    ).toBe(0);
-  });
 });

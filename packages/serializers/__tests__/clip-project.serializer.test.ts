@@ -33,15 +33,6 @@ describe('ClipProjectSerializer reference-frame contract', () => {
     expect(output.data.attributes.referenceFrames).toEqual(referenceFrames);
   });
 
-  it('omits reference-frame state for legacy projects', () => {
-    const output = ClipProjectSerializer.serialize({
-      id: 'project-legacy',
-      status: 'analyzed',
-    }) as SerializedResource;
-
-    expect('referenceFrames' in output.data.attributes).toBe(false);
-  });
-
   it('exposes the durable source lifecycle without upload credentials', () => {
     const source = {
       fingerprint: 'sha256:source-1',

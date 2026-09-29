@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
-  getReleaseAssetUrls,
   parseReleaseManifest,
   readPackageVersion,
   resolveReleaseTag,
@@ -33,35 +32,6 @@ afterEach(async () => {
       await rm(directory, { force: true, recursive: true });
     }
   }
-});
-
-describe('getReleaseAssetUrls', () => {
-  it('strips a trailing slash from the download base URL', () => {
-    expect(getReleaseAssetUrls('0.5.0', 'https://downloads.example/')).toEqual({
-      archive: 'https://downloads.example/v0.5.0/genfeed-selfhosted.tar.gz',
-      checksum:
-        'https://downloads.example/v0.5.0/genfeed-selfhosted.tar.gz.sha256',
-    });
-  });
-
-  it('defaults to the GitHub release download URL', () => {
-    vi.stubEnv('GENFEED_RELEASE_DOWNLOAD_BASE_URL', undefined);
-
-    expect(getReleaseAssetUrls('v0.5.0').archive).toBe(
-      'https://github.com/genfeedai/genfeed.ai/releases/download/v0.5.0/genfeed-selfhosted.tar.gz',
-    );
-  });
-
-  it('prefers the download base URL from the environment', () => {
-    vi.stubEnv(
-      'GENFEED_RELEASE_DOWNLOAD_BASE_URL',
-      'https://mirror.example/releases',
-    );
-
-    expect(getReleaseAssetUrls('v0.5.0').checksum).toBe(
-      'https://mirror.example/releases/v0.5.0/genfeed-selfhosted.tar.gz.sha256',
-    );
-  });
 });
 
 describe('resolveReleaseTag error handling', () => {

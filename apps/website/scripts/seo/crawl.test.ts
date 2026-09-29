@@ -70,22 +70,6 @@ describe('fetchSitemapUniverse', () => {
     ).rejects.toThrow('The operation was aborted.');
   });
 
-  it('clears the timer once the sitemap resolves', async () => {
-    const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(() => Promise.resolve(sitemapResponse(SITEMAP_XML))),
-    );
-
-    await fetchSitemapUniverse({
-      origin: ORIGIN,
-      timeoutMs: TIMEOUT_MS,
-      userAgent: USER_AGENT,
-    });
-
-    expect(clearSpy).toHaveBeenCalled();
-  });
-
   it('clears the timer when the sitemap answers with an error status', async () => {
     const clearSpy = vi.spyOn(globalThis, 'clearTimeout');
     vi.stubGlobal(

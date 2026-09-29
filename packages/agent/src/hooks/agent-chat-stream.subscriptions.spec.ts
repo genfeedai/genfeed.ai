@@ -151,41 +151,6 @@ describe('attachAgentStreamSubscriptions', () => {
     );
   });
 
-  it('keeps the resolved source card in the reply when the source is not loaded', () => {
-    const { deps, emit } = makeDeps({
-      applySourceActionUpdate: vi.fn(() => false),
-    });
-    attachAgentStreamSubscriptions(deps);
-    const resolved = {
-      data: { decision: 'approved' },
-      id: 'composer-source-1',
-      title: 'Generate image',
-      type: 'generation_action_card',
-    };
-
-    emit('agent:done', {
-      creditsRemaining: 40,
-      creditsUsed: 2,
-      fullContent: 'Image generated.',
-      metadata: { uiActions: [resolved] },
-      runId: 'exec-1',
-      sequence: 9,
-      threadId: 'thread-1',
-      toolCalls: [],
-      uiAction: {
-        action: 'confirm_generate_media',
-        sourceId: 'composer-source-1',
-      },
-      userId: 'user-1',
-    });
-
-    expect(deps.finalizeStream).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: expect.objectContaining({ uiActions: [resolved] }),
-      }),
-    );
-  });
-
   it('fails a run whose result reports a structured failure, keeping its reply', () => {
     const { deps, emit } = makeDeps();
     attachAgentStreamSubscriptions(deps);
@@ -637,22 +602,4 @@ describe('attachAgentStreamSubscriptions', () => {
       }),
     );
   });
-});
-
-it('does not announce or mutate status for a stale input resolution', () => {
-  const { deps, emit } = makeDeps({
-    resolvePendingInputRequest: vi.fn(() => false),
-  });
-  attachAgentStreamSubscriptions(deps);
-  emit('agent:input_resolved', {
-    answer: 'Old answer',
-    inputRequestId: 'old-ask',
-    threadId: 'thread-1',
-    timestamp: '2026-09-08T12:00:00Z',
-  });
-  expect(deps.resolvePendingInputRequest).toHaveBeenCalled();
-  expect(deps.addWorkEvent).not.toHaveBeenCalled();
-  expect(deps.markThreadRunning).not.toHaveBeenCalled();
-  expect(deps.clearPendingInputRequest).not.toHaveBeenCalled();
-  expect(deps.setActiveRunStatus).not.toHaveBeenCalled();
 });

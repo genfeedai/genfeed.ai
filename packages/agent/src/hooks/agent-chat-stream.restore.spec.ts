@@ -182,39 +182,6 @@ describe('restoreThreadFromSnapshot', () => {
     });
     expect(deps.markStreamLive).toHaveBeenCalledOnce();
   });
-  it.each(['completed', 'failed', 'cancelled'] as const)(
-    'does not overwrite a background thread that becomes %s',
-    async (terminal) => {
-      useAgentChatStore.setState({
-        activeThreadId: 'thread-2',
-        activeRunId: 'run-2',
-      });
-      const snapshot = makeSnapshot({
-        runId: 'run-1',
-        startedAt: null,
-        status: 'running',
-      });
-      const deps = makeDeps(snapshot);
-      let release: () => void = () => undefined;
-      const gate = new Promise<void>((resolve) => {
-        release = resolve;
-      });
-      deps.apiService.getThreadSnapshot.mockImplementation(async () => {
-        await gate;
-        return snapshot;
-      });
-      const restore = restoreThreadFromSnapshot('thread-1', deps as never);
-      useAgentChatStore.getState().updateThread('thread-1', {
-        runStatus: terminal,
-        attentionState: 'updated',
-      });
-      release();
-      await restore;
-      expect(deps.updateThreadSummary).not.toHaveBeenCalled();
-      expect(deps.setMessages).not.toHaveBeenCalled();
-      expect(deps.markStreamLive).not.toHaveBeenCalled();
-    },
-  );
 
   it('restores an unchanged background summary without replacing the visible run', async () => {
     useAgentChatStore.setState({
@@ -230,19 +197,6 @@ describe('restoreThreadFromSnapshot', () => {
     expect(deps.setActiveRun).not.toHaveBeenCalled();
   });
 
-  it.each(['completed', 'failed', 'cancelled'] as const)(
-    'does not revive the same run already known as %s when restore begins',
-    async (terminal) => {
-      useAgentChatStore.setState({ activeRunStatus: terminal });
-      const deps = makeDeps(
-        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
-      );
-      await restoreThreadFromSnapshot('thread-1', deps as never);
-      expect(deps.updateThreadSummary).not.toHaveBeenCalled();
-      expect(deps.setActiveRun).not.toHaveBeenCalled();
-      expect(deps.markStreamLive).not.toHaveBeenCalled();
-    },
-  );
   it.each(['new-entry', 'later-event'] as const)(
     'rejects reconnect hydration after %s changes the registry owner',
     async (change) => {

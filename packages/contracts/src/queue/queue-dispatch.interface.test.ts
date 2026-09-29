@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   isQueueDispatchEnqueued,
   QueueDegradationReason,
-  type QueueDispatchDegraded,
   type QueueDispatchEnqueued,
   QueueDispatchStatus,
 } from './queue-dispatch.interface';
@@ -30,19 +29,9 @@ describe('queue-dispatch.interface', () => {
       queueName: 'default',
       status: QueueDispatchStatus.ENQUEUED,
     };
-    const degraded: QueueDispatchDegraded = {
-      detail: 'no broker configured for this deployment',
-      queueName: 'default',
-      reason: QueueDegradationReason.NO_BROKER_CONFIGURED,
-      status: QueueDispatchStatus.DEGRADED,
-    };
 
     it('narrows an enqueued result to the enqueued branch', () => {
       expect(isQueueDispatchEnqueued(enqueued)).toBe(true);
-    });
-
-    it('rejects a degraded result', () => {
-      expect(isQueueDispatchEnqueued(degraded)).toBe(false);
     });
   });
 });

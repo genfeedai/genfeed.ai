@@ -18,11 +18,6 @@ describe('ConfigService (Files)', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    const service = new ConfigService();
-    expect(service).toBeDefined();
-  });
-
   it('should get environment variable', () => {
     process.env.NODE_ENV = 'development';
     const service = new ConfigService();

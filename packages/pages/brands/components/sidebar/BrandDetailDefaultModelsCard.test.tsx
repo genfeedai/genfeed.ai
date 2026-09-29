@@ -23,13 +23,6 @@ describe('BrandDetailDefaultModelsCard', () => {
     expect(screen.getByText('Video')).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <BrandDetailDefaultModelsCard brand={brand} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <BrandDetailDefaultModelsCard brand={brand} />,

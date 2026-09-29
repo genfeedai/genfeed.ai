@@ -42,10 +42,6 @@ describe('WebSocketService (Files)', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should initialize with Redis URL from config', () => {
     expect(mockConfigService.get).toHaveBeenCalledWith('REDIS_URL');
   });

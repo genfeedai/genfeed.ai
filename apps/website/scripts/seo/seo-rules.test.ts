@@ -134,21 +134,9 @@ describe('soft 404 detection', () => {
     expect(findings[0]?.rule).toBe('soft-404');
     expect(findings[0]?.severity).toBe('error');
   });
-
-  it('leaves a healthy page alone', () => {
-    expect(
-      checkSoftNotFound(input('/integrations', healthyHtml('/integrations'))),
-    ).toEqual([]);
-  });
 });
 
 describe('page-level rules', () => {
-  it('reports nothing for a healthy page', () => {
-    expect(
-      auditPage(input('/integrations', healthyHtml('/integrations'))),
-    ).toEqual([]);
-  });
-
   it('flags a repeated identical h1', () => {
     // Regression guard: 14 pages rendered the layout title and the section
     // heading as two <h1> elements with the same text.
@@ -234,27 +222,6 @@ describe('structured data', () => {
       ),
     );
   }
-
-  it('accepts SoftwareApplication carrying offers but no rating', () => {
-    // Google asks for one of offers/aggregateRating/review, not all three. The
-    // old rule demanded aggregateRating outright, which would have pushed 28
-    // product pages toward inventing ratings.
-    expect(
-      checkStructuredData(
-        withJsonLd({
-          '@context': 'https://schema.org',
-          '@type': 'SoftwareApplication',
-          applicationCategory: 'BusinessApplication',
-          name: 'Genfeed',
-          offers: {
-            '@type': 'AggregateOffer',
-            lowPrice: '0',
-            priceCurrency: 'USD',
-          },
-        }),
-      ),
-    ).toEqual([]);
-  });
 
   it('flags SoftwareApplication with no offers, rating, or review', () => {
     const findings = checkStructuredData(

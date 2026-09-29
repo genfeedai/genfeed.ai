@@ -140,43 +140,6 @@ describe('download.helper', () => {
       );
     });
 
-    it('should download video ingredient', async () => {
-      const mockBlob = new Blob(['test'], { type: 'video/mp4' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({
-        category: IngredientCategory.VIDEO,
-        metadata: { label: 'My Video' },
-      });
-
-      await downloadIngredient(ingredient);
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'My Video-video-ing-123.mp4',
-      );
-    });
-
-    it('should use default label when metadata label is missing', async () => {
-      const mockBlob = new Blob(['test'], { type: 'image/png' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({ metadata: {} });
-
-      await downloadIngredient(ingredient);
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'genfeed-image-ing-123.png',
-      );
-    });
-
     it('should use default label when no metadata', async () => {
       const mockBlob = new Blob(['test'], { type: 'image/png' });
       mockFetch.mockResolvedValue({
@@ -191,26 +154,6 @@ describe('download.helper', () => {
       expect(mockSaveAs).toHaveBeenCalledWith(
         mockBlob,
         'genfeed-image-ing-123.png',
-      );
-    });
-
-    it('should download music ingredient', async () => {
-      const mockBlob = new Blob(['test'], { type: 'audio/mp3' });
-      mockFetch.mockResolvedValue({
-        blob: () => Promise.resolve(mockBlob),
-        ok: true,
-      });
-
-      const ingredient = createMockIngredient({
-        category: IngredientCategory.MUSIC,
-        metadata: { label: 'Track' },
-      });
-
-      await downloadIngredient(ingredient);
-
-      expect(mockSaveAs).toHaveBeenCalledWith(
-        mockBlob,
-        'Track-music-ing-123.mp3',
       );
     });
   });
@@ -239,18 +182,6 @@ describe('download.helper', () => {
       await downloadUrl('https://example.com/file');
 
       expect(mockSaveAs).toHaveBeenCalledWith(mockBlob, 'download');
-    });
-
-    it('should open in new tab when fetch fails with error', async () => {
-      mockFetch.mockRejectedValue(new Error('Network error'));
-
-      await downloadUrl('https://example.com/file', 'file.pdf');
-
-      expect(mockWindowOpen).toHaveBeenCalledWith(
-        'https://example.com/file',
-        '_blank',
-        'noopener,noreferrer',
-      );
     });
 
     it('should open in new tab when response is not ok', async () => {

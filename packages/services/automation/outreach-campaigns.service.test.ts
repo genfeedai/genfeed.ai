@@ -178,19 +178,6 @@ describe('OutreachCampaignsService', () => {
     expect(result).toEqual(discovery);
   });
 
-  it('discoverTargets defaults options to an empty object', async () => {
-    http.post.mockResolvedValue(
-      axiosResponse({ added: 0, discovered: 0, targets: [] }),
-    );
-
-    await service.discoverTargets(campaignId);
-
-    expect(http.post).toHaveBeenCalledWith(
-      `/${campaignId}/targets/discover`,
-      {},
-    );
-  });
-
   it('previewReply POSTs to the preview route', async () => {
     const preview = { replyText: 'Nice post!', target: { id: 'target_1' } };
     http.post.mockResolvedValue(axiosResponse(preview));

@@ -12,12 +12,6 @@ describe('CaptionsService', () => {
     service = new CaptionsService(mockToken);
   });
 
-  describe('constructor', () => {
-    it('initializes correctly', () => {
-      expect(service).toBeInstanceOf(CaptionsService);
-    });
-  });
-
   describe('caption management', () => {
     it('has findAll method for fetching all captions', () => {
       expect(service.findAll).toBeDefined();
@@ -42,20 +36,6 @@ describe('CaptionsService', () => {
     it('has delete method for removing captions', () => {
       expect(service.delete).toBeDefined();
       expect(typeof service.delete).toBe('function');
-    });
-  });
-
-  describe('caption-specific features', () => {
-    it('supports caption template management', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('supports AI-generated captions', () => {
-      expect(service).toBeDefined();
-    });
-
-    it('supports caption library', () => {
-      expect(service).toBeDefined();
     });
   });
 });

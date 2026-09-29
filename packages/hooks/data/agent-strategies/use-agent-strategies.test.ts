@@ -184,15 +184,6 @@ describe('useAgentStrategy', () => {
     expect(mockGetById).toHaveBeenCalledWith('strategy-1');
   });
 
-  it('stays idle without an id', () => {
-    const { result } = renderHook(() => useAgentStrategy(''), {
-      wrapper: createQueryWrapper(),
-    });
-
-    expect(mockGetById).not.toHaveBeenCalled();
-    expect(result.current.strategy).toBeNull();
-  });
-
   it('returns null without an auth token', async () => {
     mockResolveAuthToken.mockResolvedValue(null);
 

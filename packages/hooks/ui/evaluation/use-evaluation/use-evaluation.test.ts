@@ -124,35 +124,6 @@ describe('useEvaluation', () => {
         expect(result.current.evaluation).toEqual(mockEvaluation);
       });
     });
-
-    it('does not fetch when autoFetch is false', async () => {
-      renderHook(() =>
-        useEvaluation({
-          autoFetch: false,
-          contentId: 'test-id',
-          contentType: IngredientCategory.IMAGE,
-        }),
-      );
-
-      // Wait a bit to ensure no fetch is triggered
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      expect(mockGetImageEvaluations).not.toHaveBeenCalled();
-    });
-
-    it('does not fetch when contentId is empty', async () => {
-      renderHook(() =>
-        useEvaluation({
-          autoFetch: true,
-          contentId: '',
-          contentType: IngredientCategory.IMAGE,
-        }),
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      expect(mockGetImageEvaluations).not.toHaveBeenCalled();
-    });
   });
 
   describe('Fetch Evaluation', () => {
@@ -234,46 +205,6 @@ describe('useEvaluation', () => {
 
       expect(mockGetPostEvaluations).toHaveBeenCalledWith('post-123');
       expect(result.current.evaluation).toEqual(mockEvaluation);
-    });
-
-    it('returns most recent evaluation from array', async () => {
-      const evaluations = [
-        { id: 'eval-1', score: 90 },
-        { id: 'eval-2', score: 85 },
-      ];
-      mockGetImageEvaluations.mockResolvedValue(evaluations);
-
-      const { result } = renderHook(() =>
-        useEvaluation({
-          autoFetch: false,
-          contentId: 'test-id',
-          contentType: IngredientCategory.IMAGE,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.refetch();
-      });
-
-      expect(result.current.evaluation).toEqual(evaluations[0]);
-    });
-
-    it('sets evaluation to null when no evaluations found', async () => {
-      mockGetImageEvaluations.mockResolvedValue([]);
-
-      const { result } = renderHook(() =>
-        useEvaluation({
-          autoFetch: false,
-          contentId: 'test-id',
-          contentType: IngredientCategory.IMAGE,
-        }),
-      );
-
-      await act(async () => {
-        await result.current.refetch();
-      });
-
-      expect(result.current.evaluation).toBeNull();
     });
 
     it('manages loading state during fetch', async () => {

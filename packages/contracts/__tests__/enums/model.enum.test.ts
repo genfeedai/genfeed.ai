@@ -11,10 +11,6 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 128 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(128);
-    });
-
     it('should have correct values', () => {
       expect(MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER).toBe(
         'replicate/fast-flux-trainer',
@@ -284,10 +280,6 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(ModelProvider.REPLICATE).toBe('replicate');
       expect(ModelProvider.FAL).toBe('fal');
@@ -298,10 +290,6 @@ describe('model.enum', () => {
   });
 
   describe('ModelCategory', () => {
-    it('should have 10 members', () => {
-      expect(Object.values(ModelCategory)).toHaveLength(10);
-    });
-
     it('should have correct values', () => {
       expect(ModelCategory.TEXT).toBe('text');
       expect(ModelCategory.EMBEDDING).toBe('embedding');
@@ -317,10 +305,6 @@ describe('model.enum', () => {
   });
 
   describe('QualityTier', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(QualityTier)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(QualityTier.BASIC).toBe('basic');
       expect(QualityTier.STANDARD).toBe('standard');
@@ -330,10 +314,6 @@ describe('model.enum', () => {
   });
 
   describe('CostTier', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(CostTier)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(CostTier.LOW).toBe('low');
       expect(CostTier.MEDIUM).toBe('medium');
@@ -342,10 +322,6 @@ describe('model.enum', () => {
   });
 
   describe('SpeedTier', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(SpeedTier)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(SpeedTier.FAST).toBe('fast');
       expect(SpeedTier.MEDIUM).toBe('medium');
@@ -354,10 +330,6 @@ describe('model.enum', () => {
   });
 
   describe('PricingType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(PricingType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(PricingType.FLAT).toBe('flat');
       expect(PricingType.PER_MEGAPIXEL).toBe('per-megapixel');

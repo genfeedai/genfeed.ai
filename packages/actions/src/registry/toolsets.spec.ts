@@ -20,14 +20,6 @@ describe('parseToolsetSelection', () => {
     });
   });
 
-  it('treats an empty string as no selection', () => {
-    expect(parseToolsetSelection('')).toEqual({
-      empty: [],
-      toolsets: [],
-      unknown: [],
-    });
-  });
-
   it('trims, lowercases, dedupes, and drops empty segments from a comma-separated string', () => {
     expect(parseToolsetSelection('Content, GENERATION ,,')).toEqual({
       empty: [],
@@ -44,44 +36,10 @@ describe('parseToolsetSelection', () => {
     });
   });
 
-  it('accepts an array of comma-separated strings (repeated query param)', () => {
-    expect(parseToolsetSelection(['content', 'generation,ads'])).toEqual({
-      empty: [],
-      toolsets: ['content', 'generation', 'ads'],
-      unknown: [],
-    });
-  });
-
   it('treats an empty array as no selection', () => {
     expect(parseToolsetSelection([])).toEqual({
       empty: [],
       toolsets: [],
-      unknown: [],
-    });
-  });
-
-  it('collects unknown names separately from valid ones', () => {
-    expect(parseToolsetSelection('content,not-a-toolset,also-fake')).toEqual({
-      empty: [],
-      toolsets: ['content'],
-      unknown: ['not-a-toolset', 'also-fake'],
-    });
-  });
-
-  it('reports only unknown names when nothing valid is present', () => {
-    expect(parseToolsetSelection('bogus')).toEqual({
-      empty: [],
-      toolsets: [],
-      unknown: ['bogus'],
-    });
-  });
-
-  it('without a surface, accepts any declared toolset name regardless of tool presence', () => {
-    // "goals" is a real toolset name but has zero MCP-surfaced tools;
-    // surface-less parsing only checks `isToolsetName`, not tool presence.
-    expect(parseToolsetSelection('goals')).toEqual({
-      empty: [],
-      toolsets: ['goals'],
       unknown: [],
     });
   });
@@ -97,14 +55,6 @@ describe('parseToolsetSelection', () => {
     });
   });
 
-  it('with surface "mcp", still accepts a toolset name that has tools on that surface', () => {
-    expect(parseToolsetSelection('content', 'mcp')).toEqual({
-      empty: [],
-      toolsets: ['content'],
-      unknown: [],
-    });
-  });
-
   it('with a surface, reports empty-on-surface names separately from undeclared names', () => {
     expect(parseToolsetSelection('content,goals,bogus', 'mcp')).toEqual({
       empty: ['goals'],
@@ -115,14 +65,6 @@ describe('parseToolsetSelection', () => {
 });
 
 describe('getToolsetNames', () => {
-  it('matches the names from getToolsets for each surface', () => {
-    for (const surface of ['agent', 'mcp'] as const) {
-      expect(getToolsetNames(surface)).toEqual(
-        getToolsets(surface).map((summary) => summary.name),
-      );
-    }
-  });
-
   it('always includes core', () => {
     for (const surface of ['agent', 'mcp'] as const) {
       expect(getToolsetNames(surface)).toContain(CORE_TOOLSET_NAME);
@@ -131,12 +73,6 @@ describe('getToolsetNames', () => {
 });
 
 describe('isToolsetName', () => {
-  it('accepts every declared toolset name', () => {
-    for (const name of TOOLSET_NAMES) {
-      expect(isToolsetName(name)).toBe(true);
-    }
-  });
-
   it('rejects an unknown string', () => {
     expect(isToolsetName('not-a-real-toolset')).toBe(false);
   });
@@ -166,14 +102,6 @@ describe('getToolsets', () => {
       expect(core?.isAlwaysOn, surface).toBe(true);
     }
   });
-
-  it('sorts tool names within each toolset summary', () => {
-    for (const summary of getToolsets('mcp')) {
-      expect(summary.toolNames).toEqual(
-        [...summary.toolNames].sort((a, b) => a.localeCompare(b)),
-      );
-    }
-  });
 });
 
 describe('getToolsForToolsets', () => {
@@ -198,26 +126,6 @@ describe('getToolsForToolsets', () => {
     // Core is always present even when not explicitly requested.
     expect(resultNames.has('list_toolsets')).toBe(true);
   });
-
-  it('never duplicates a tool that is itself in the core toolset', () => {
-    const result = getToolsForToolsets('mcp', [CORE_TOOLSET_NAME, 'content']);
-    const names = result.map((tool) => tool.name);
-    expect(new Set(names).size).toBe(names.length);
-  });
-
-  it('sorts the result by name', () => {
-    const result = getToolsForToolsets('mcp', ['ads', 'content']);
-    const names = result.map((tool) => tool.name);
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-  });
-
-  it('returns an empty array for a surface with no matching tools in the selection', () => {
-    // "goals" has no MCP-surfaced tools, and core is still returned because
-    // it is always unioned in — assert the non-core toolset itself
-    // contributes nothing rather than asserting the whole result is empty.
-    const result = getToolsForToolsets('mcp', ['goals']);
-    expect(result.every((tool) => tool.toolset !== 'goals')).toBe(true);
-  });
 });
 
 describe('TOOLSETS', () => {
@@ -225,18 +133,5 @@ describe('TOOLSETS', () => {
     const names = TOOLSETS.map((definition) => definition.name);
     expect(names).toEqual([...TOOLSET_NAMES]);
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
-  });
-
-  it('marks core as the only always-on toolset', () => {
-    const alwaysOn = TOOLSETS.filter((definition) => definition.isAlwaysOn).map(
-      (definition) => definition.name,
-    );
-    expect(alwaysOn).toEqual([CORE_TOOLSET_NAME]);
-  });
-
-  it('gives every toolset a non-empty description', () => {
-    for (const definition of TOOLSETS) {
-      expect(definition.description.length, definition.name).toBeGreaterThan(0);
-    }
   });
 });

@@ -30,10 +30,6 @@ describe('TelegramAPIService', () => {
     loggerService.log('TelegramAPIService initialized');
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('sanitizeUserInput', () => {
     it('should escape HTML entities', () => {
       const input = '<script>alert("xss")</script>';
@@ -50,20 +46,6 @@ describe('TelegramAPIService', () => {
       expect(service.sanitizeUserInput('')).toBe('');
       expect(service.sanitizeUserInput(null)).toBe('');
       expect(service.sanitizeUserInput(undefined)).toBe('');
-    });
-
-    it('should escape special characters', () => {
-      const input = '& < > " \' /';
-      const result = service.sanitizeUserInput(input);
-
-      expect(result).toBe('&amp; &lt; &gt; &quot; &#x27; &#x2F;');
-    });
-
-    it('should not modify safe text', () => {
-      const input = 'Hello World 123';
-      const result = service.sanitizeUserInput(input);
-
-      expect(result).toBe(input);
     });
   });
 

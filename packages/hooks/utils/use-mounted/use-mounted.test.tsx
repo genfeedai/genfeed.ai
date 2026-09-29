@@ -3,20 +3,6 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('useMounted', () => {
-  it('returns false initially', () => {
-    const { result } = renderHook(() => useMounted());
-    // Note: useEffect runs synchronously in tests, so it's already true
-    // This test verifies the hook works, but the initial state is immediately updated
-    expect(result.current).toBe(true);
-  });
-
-  it('returns true after mount', () => {
-    const { result } = renderHook(() => useMounted());
-
-    // After the effect runs, it should be true
-    expect(result.current).toBe(true);
-  });
-
   it('maintains true value after re-renders', () => {
     const { result, rerender } = renderHook(() => useMounted());
 

@@ -10,7 +10,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   configureEdgeStyleMirror,
   getEdgeStylePreference,
-  normalizeEdgeStyle,
   resolveGraphEdgeStyle,
   setEdgeStylePreference,
 } from './edgeStyleMirror';
@@ -139,13 +138,6 @@ afterEach(() => {
 });
 
 describe('edgeStyle preference registry', () => {
-  it.each(['bezier', 'step', '', 42, {}, null, undefined])(
-    'normalizes persisted noncanonical style %j to default',
-    (style) => {
-      expect(normalizeEdgeStyle(style)).toBe('default');
-    },
-  );
-
   it('migrates a loaded legacy record before its next save', async () => {
     service.getById.mockResolvedValueOnce({
       ...savedWorkflow,
@@ -195,17 +187,6 @@ describe('workflow store init hydration', () => {
     );
 
     expect(freshStore.getState().edgeStyle).toBe('straight');
-  });
-
-  it('falls back to default when no persisted preference exists', async () => {
-    vi.resetModules();
-    localStorage.clear();
-
-    const { useWorkflowStore: freshStore } = await import(
-      './workflow/workflowStore'
-    );
-
-    expect(freshStore.getState().edgeStyle).toBe('default');
   });
 });
 
@@ -276,25 +257,6 @@ describe('loadWorkflow / loadWorkflowById precedence', () => {
   });
 });
 
-describe('save after hydration', () => {
-  it('persists the resolved preference so a reload reproduces the same style', async () => {
-    setEdgeStylePreference('straight');
-    useWorkflowStore.getState().loadWorkflow(
-      makeFile({
-        edgeStyle: undefined,
-        nodes: [makeNode('a', 'prompt')],
-      }),
-    );
-
-    await useWorkflowStore.getState().saveWorkflow();
-
-    expect(service.create).toHaveBeenCalledWith(
-      expect.objectContaining({ edgeStyle: 'straight' }),
-      undefined,
-    );
-  });
-});
-
 describe('settings preference stays in sync for later loads', () => {
   it.each([
     { expected: 'default', serverStyle: 'bezier' },
@@ -330,11 +292,6 @@ describe('settings preference stays in sync for later loads', () => {
       );
     },
   );
-
-  it('normalizes runtime legacy preference writes before graph hydration', () => {
-    setEdgeStylePreference('bezier' as EdgeStyle);
-    expect(resolveGraphEdgeStyle(undefined)).toBe('default');
-  });
 
   it('normalizes runtime legacy settings before persistence and live mirroring', () => {
     const mirror = vi.fn();

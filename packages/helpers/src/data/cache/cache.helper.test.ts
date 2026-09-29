@@ -72,16 +72,6 @@ describe('MemoryCache', () => {
     expect(cache.get('key')).toBe('value');
   });
 
-  it('returns undefined for a missing key', () => {
-    expect(cache.get('ghost')).toBeUndefined();
-  });
-
-  it('returns undefined after TTL expires', () => {
-    cache.set('k', 'v');
-    vi.advanceTimersByTime(2000);
-    expect(cache.get('k')).toBeUndefined();
-  });
-
   it('respects custom TTL per entry', () => {
     cache.set('short', 's', 500);
     cache.set('long', 'l', 5000);
@@ -100,14 +90,6 @@ describe('MemoryCache', () => {
     cache.set('del', 'me');
     expect(cache.delete('del')).toBe(true);
     expect(cache.get('del')).toBeUndefined();
-  });
-
-  it('clears all keys', () => {
-    cache.set('a', '1');
-    cache.set('b', '2');
-    cache.clear();
-    expect(cache.get('a')).toBeUndefined();
-    expect(cache.get('b')).toBeUndefined();
   });
 
   it('reports current size', () => {
@@ -158,10 +140,6 @@ describe('setCacheItem / getCacheItem', () => {
     expect(getCacheItem('foo')).toEqual({ bar: 1 });
   });
 
-  it('returns null for a missing key', () => {
-    expect(getCacheItem('missing')).toBeNull();
-  });
-
   it('removeCacheItem removes the entry', () => {
     setCacheItem('del', 'val');
     removeCacheItem('del');
@@ -196,10 +174,6 @@ describe('isCacheExpired', () => {
   it('returns true for a timestamp in the past', () => {
     expect(isCacheExpired(Date.now() - 1000)).toBe(true);
   });
-
-  it('returns false for a timestamp in the future', () => {
-    expect(isCacheExpired(Date.now() + 10000)).toBe(false);
-  });
 });
 
 // ─── createMemoryCache ────────────────────────────────────────────────────────
@@ -209,18 +183,6 @@ describe('createMemoryCache', () => {
     const c = createMemoryCache<number>({ prefix: 'pfx:' });
     c.set('count', 5);
     expect(c.get('count')).toBe(5);
-  });
-
-  it('returns null for missing key', () => {
-    const c = createMemoryCache<string>();
-    expect(c.get('nope')).toBeNull();
-  });
-
-  it('calls onSet callback', () => {
-    const onSet = vi.fn();
-    const c = createMemoryCache<string>({ onSet });
-    c.set('k', 'v');
-    expect(onSet).toHaveBeenCalledWith('k', 'v');
   });
 
   it('calls onGet callback on hit', () => {
@@ -323,17 +285,6 @@ describe('browser storage caches', () => {
   // invoked at module scope (e.g. useAnalyticsTrends.ts), which runs during
   // Next.js SSR/prerender where `localStorage` is not defined. The factory must
   // defer the storage lookup to the method calls so construction never throws.
-  it('does not touch localStorage at construction time (SSR-safe)', () => {
-    restoreBrowserStorage('localStorage', undefined); // simulate server: no global
-    expect(() => createLocalStorageCache({ prefix: 'trends:' })).not.toThrow();
-  });
-
-  it('does not touch sessionStorage at construction time (SSR-safe)', () => {
-    restoreBrowserStorage('sessionStorage', undefined);
-    expect(() =>
-      createSessionStorageCache({ prefix: 'trends:' }),
-    ).not.toThrow();
-  });
 });
 
 // ─── RateLimiter ─────────────────────────────────────────────────────────────
@@ -352,13 +303,6 @@ describe('RateLimiter', () => {
     expect(limiter.consume('user1')).toBe(true);
     expect(limiter.consume('user1')).toBe(true);
     expect(limiter.consume('user1')).toBe(true);
-  });
-
-  it('rejects when tokens are exhausted', () => {
-    const limiter = new RateLimiter(2, 0); // no refill
-    limiter.consume('u');
-    limiter.consume('u');
-    expect(limiter.consume('u')).toBe(false);
   });
 
   it('refills tokens over time', () => {

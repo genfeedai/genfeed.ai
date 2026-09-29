@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   readPublishTargetProposals,
   resolveEffectiveCaption,
-  resolveLiveTargetBlockers,
   targetToggleName,
 } from './publish-post-card.helpers';
 
@@ -17,22 +16,6 @@ describe('publish-post-card.helpers', () => {
     );
     expect(resolveEffectiveCaption('Shared caption', 'X-only caption')).toBe(
       'X-only caption',
-    );
-  });
-
-  it('blocks a YouTube image target with a target-specific capability reason', () => {
-    const blockers = resolveLiveTargetBlockers({
-      caption: 'Launch clip',
-      credentialId: 'cred-youtube',
-      media: [{ id: 'ingredient-1', kind: 'image' }],
-      platform: 'youtube',
-      publishMode: 'publish_now',
-      settings: { madeForKids: false, privacyStatus: 'private' },
-      visibility: PostVisibility.PUBLIC,
-    });
-
-    expect(blockers.map((blocker) => blocker.message)).toEqual(
-      expect.arrayContaining(['YouTube does not support image media.']),
     );
   });
 

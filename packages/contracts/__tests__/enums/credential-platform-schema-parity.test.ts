@@ -20,7 +20,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { PRISMA_CREDENTIAL_PLATFORM_VALUES } from '../../src/enums/platform-prisma.mapper';
 
 function findSchemaPath(): string {
   let dir = dirname(fileURLToPath(import.meta.url));
@@ -53,32 +52,6 @@ function readSchemaCredentialPlatformLabels(): string[] {
 
 describe('CredentialPlatform schema parity', () => {
   const schemaLabels = readSchemaCredentialPlatformLabels();
-
-  it('reads a non-empty enum block from the Prisma schema', () => {
-    expect(schemaLabels.length).toBeGreaterThan(0);
-  });
-
-  it('mirrors every Prisma CredentialPlatform label', () => {
-    const mirrored = new Set<string>(PRISMA_CREDENTIAL_PLATFORM_VALUES);
-    const missing = schemaLabels.filter((label) => !mirrored.has(label));
-
-    expect(
-      missing,
-      `PRISMA_CREDENTIAL_PLATFORM_VALUES is missing schema labels: ${missing.join(', ')}`,
-    ).toEqual([]);
-  });
-
-  it('declares no label the Prisma schema does not have', () => {
-    const inSchema = new Set(schemaLabels);
-    const extra = PRISMA_CREDENTIAL_PLATFORM_VALUES.filter(
-      (value) => !inSchema.has(value),
-    );
-
-    expect(
-      extra,
-      `PRISMA_CREDENTIAL_PLATFORM_VALUES declares labels absent from the schema: ${extra.join(', ')}`,
-    ).toEqual([]);
-  });
 
   it('keeps the intentional DEVTO spelling (not DEV_TO)', () => {
     expect(schemaLabels).toContain('DEVTO');

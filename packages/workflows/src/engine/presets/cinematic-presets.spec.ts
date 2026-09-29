@@ -14,21 +14,6 @@ describe('CinematicPresets', () => {
       expect(presets).toHaveLength(6);
     });
 
-    it('should have all required preset IDs', () => {
-      const expectedIds = [
-        'hollywood_blockbuster',
-        'documentary_raw',
-        'social_media_cinematic',
-        'indie_film',
-        'vintage_35mm',
-        'commercial_clean',
-      ];
-
-      expectedIds.forEach((id) => {
-        expect(CINEMATIC_PRESETS[id]).toBeDefined();
-      });
-    });
-
     it('should have valid structure for each preset', () => {
       const presets = getAllPresets();
 
@@ -216,11 +201,6 @@ describe('CinematicPresets', () => {
       const preset = getPresetById('hollywood_blockbuster');
       expect(preset).toBeDefined();
       expect(preset?.id).toBe('hollywood_blockbuster');
-    });
-
-    it('should return null when invalid ID is provided', () => {
-      const preset = getPresetById('nonexistent_preset');
-      expect(preset).toBeNull();
     });
   });
 

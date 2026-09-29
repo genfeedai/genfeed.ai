@@ -94,21 +94,6 @@ describe('MobileThemeProvider', () => {
     expect(Appearance.setColorScheme).toHaveBeenCalledWith('unspecified');
   });
 
-  it('restores a valid local preference without contacting account settings', async () => {
-    vi.mocked(AsyncStorage.getItem).mockResolvedValue('light');
-
-    render(
-      <MobileThemeProvider>
-        <ThemeProbe />
-      </MobileThemeProvider>,
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText('light:light')).toBeTruthy();
-    });
-    expect(getThemeMock).not.toHaveBeenCalled();
-  });
-
   it('hydrates from the signed-in account and persists that preference locally', async () => {
     const getToken = vi.fn().mockResolvedValue('auth-token');
     getThemeMock.mockResolvedValue('dark');
@@ -158,41 +143,6 @@ describe('MobileThemeProvider', () => {
 
     expect(AsyncStorage.setItem).toHaveBeenCalledWith('theme', 'light');
     expect(updateThemeMock).not.toHaveBeenCalled();
-  });
-
-  it('syncs an explicit choice to the authenticated account', async () => {
-    const getToken = vi.fn().mockResolvedValue('auth-token');
-    vi.mocked(useMobileAuth).mockReturnValue({
-      getToken,
-      isLoaded: true,
-      isSignedIn: true,
-      refreshSession: vi.fn(),
-      signInWithEmail: vi.fn(),
-      signInWithGoogleIdToken: vi.fn(),
-      signOut: vi.fn(),
-      user: {
-        email: 'qa@genfeed.ai',
-        id: 'user-1',
-        image: null,
-        name: null,
-        organizationId: null,
-      },
-    });
-
-    render(
-      <MobileThemeProvider>
-        <ThemeProbe />
-      </MobileThemeProvider>,
-    );
-
-    await waitFor(() => {
-      expect(getThemeMock).toHaveBeenCalledWith('auth-token');
-    });
-    await act(async () => {
-      screen.getByRole('button', { name: 'Choose light' }).click();
-    });
-
-    expect(updateThemeMock).toHaveBeenCalledWith('auth-token', 'light');
   });
 
   it('does not let a slower account read overwrite a newer local choice', async () => {

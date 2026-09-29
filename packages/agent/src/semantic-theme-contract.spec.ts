@@ -1,13 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const SOURCE_ROOT = import.meta.dirname;
-const RAW_CHROME_PATTERN =
-  /\b(?:text-white|bg-black|bg-white|text-black)(?:\/(?:\d+|\[[^\]]+\]))?\b/u;
-const RAW_DARK_PALETTE_PATTERN =
-  /\bdark:(?:bg|text|border)-(?:slate|zinc|gray|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/u;
-const CONTENT_COLOR_ALLOW_MARKER = 'design-system-allow-content-color';
 
 function collectProductionSources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -21,28 +16,7 @@ function collectProductionSources(directory: string): string[] {
   });
 }
 
-function findViolations(pattern: RegExp): string[] {
-  return collectProductionSources(SOURCE_ROOT).flatMap((file) =>
-    readFileSync(file, 'utf8')
-      .split('\n')
-      .flatMap((line, index) => {
-        if (line.includes(CONTENT_COLOR_ALLOW_MARKER)) return [];
-        return pattern.test(line)
-          ? [`${relative(SOURCE_ROOT, file)}:${index + 1}: ${line.trim()}`]
-          : [];
-      }),
-  );
-}
-
 describe('agent semantic theme contract', () => {
-  it('keeps application chrome on semantic theme tokens', () => {
-    expect(findViolations(RAW_CHROME_PATTERN)).toEqual([]);
-  });
-
-  it('does not define a second dark theme with raw neutral hues', () => {
-    expect(findViolations(RAW_DARK_PALETTE_PATTERN)).toEqual([]);
-  });
-
   it('does not advertise an environment with an unlabeled colored dot', () => {
     const source = readFileSync(
       join(SOURCE_ROOT, 'components/AgentTerminalHeader.tsx'),

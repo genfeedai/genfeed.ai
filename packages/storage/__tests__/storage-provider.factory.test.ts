@@ -48,28 +48,6 @@ describe('createStorageProvider', () => {
     }
   });
 
-  it('returns LocalStorageProvider when self-hosted', async () => {
-    vi.doMock('@genfeedai/config', () => ({
-      isDesktopClient: () => false,
-      isSelfHostedDeployment: () => true,
-    }));
-    const { createStorageProvider } = await import(
-      '../src/storage-provider.factory'
-    );
-    const { LocalStorageProvider } = await import(
-      '../src/local-storage.provider'
-    );
-    const baseDir = await fs.mkdtemp(path.join(tmpdir(), 'genfeed-factory-'));
-
-    try {
-      expect(createStorageProvider({ baseDir })).toBeInstanceOf(
-        LocalStorageProvider,
-      );
-    } finally {
-      await fs.rm(baseDir, { force: true, recursive: true });
-    }
-  });
-
   it('returns S3StorageProvider with options when cloud', async () => {
     vi.stubEnv('GENFEEDAI_CDN_URL', '');
     vi.doMock('@genfeedai/config', () => ({

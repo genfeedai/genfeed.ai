@@ -3,10 +3,6 @@ import { SoundCategory } from '../../src/enums/sound-category.enum';
 
 describe('sound-category.enum', () => {
   describe('SoundCategory', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(SoundCategory)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(SoundCategory.AMBIENCE).toBe('ambience');
       expect(SoundCategory.SFX).toBe('sfx');

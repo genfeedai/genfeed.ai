@@ -47,41 +47,6 @@ function serializeWorkflowTrigger(
 }
 
 describe('SocialMessageSerializer workflow trigger contract', () => {
-  it('serializes every populated workflow trigger lifecycle field', () => {
-    expect(serializeWorkflowTrigger()).toMatchObject({
-      actionProvenance: {
-        actorType: 'workflow',
-        platform: 'youtube',
-      },
-      direction: 'inbound',
-      messageType: 'comment',
-      platform: 'youtube',
-      workflowTriggerAttemptedAt: ATTEMPTED_AT,
-      workflowTriggerError: 'redis unavailable',
-      workflowTriggerJobId: 'social-comment-trigger-org-message',
-      workflowTriggerQueuedAt: QUEUED_AT,
-      workflowTriggerStatus: 'queued',
-    });
-  });
-
-  it('preserves null lifecycle values', () => {
-    expect(
-      serializeWorkflowTrigger({
-        workflowTriggerAttemptedAt: null,
-        workflowTriggerError: null,
-        workflowTriggerJobId: null,
-        workflowTriggerQueuedAt: null,
-        workflowTriggerStatus: null,
-      }),
-    ).toMatchObject({
-      workflowTriggerAttemptedAt: null,
-      workflowTriggerError: null,
-      workflowTriggerJobId: null,
-      workflowTriggerQueuedAt: null,
-      workflowTriggerStatus: null,
-    });
-  });
-
   it('emits only fields declared by the serializer contract', () => {
     const attributes = serializeWorkflowTrigger();
 

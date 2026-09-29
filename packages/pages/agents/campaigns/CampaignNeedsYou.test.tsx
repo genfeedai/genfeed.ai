@@ -4,33 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 describe('CampaignNeedsYou', () => {
-  it('renders nothing when the campaign is not paused', () => {
-    const { container } = render(
-      <CampaignNeedsYou
-        isPaused={false}
-        onResume={vi.fn()}
-        pausedDescription="Paused"
-        resumeLabel="Resume"
-        title="Needs you"
-      />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('renders nothing when there is no resume handler even if paused', () => {
-    const { container } = render(
-      <CampaignNeedsYou
-        isPaused
-        pausedDescription="Paused"
-        resumeLabel="Resume"
-        title="Needs you"
-      />,
-    );
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('surfaces a paused campaign with a resume action', () => {
     const onResume = vi.fn();
     render(

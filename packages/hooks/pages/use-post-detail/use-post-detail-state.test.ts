@@ -95,18 +95,4 @@ describe('usePostDetailState', () => {
     expect(result.current).toHaveProperty('getReleaseGroupsService');
     expect(result.current).toHaveProperty('notificationsService');
   });
-
-  it('initializes post as null', () => {
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1' }),
-    );
-    expect(result.current.post).toBeNull();
-  });
-
-  it('initializes isLoading as true', () => {
-    const { result } = renderHook(() =>
-      usePostDetailState({ postId: 'post-1' }),
-    );
-    expect(result.current.isLoading).toBe(true);
-  });
 });

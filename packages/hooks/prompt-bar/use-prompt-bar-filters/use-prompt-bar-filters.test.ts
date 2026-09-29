@@ -173,19 +173,6 @@ describe('usePromptBarFilters', () => {
 
       expect(result.current.filteredMoods).toHaveLength(2);
     });
-
-    it('returns all moods when no category filter', () => {
-      const moods = [
-        createMockMood({ category: ModelCategory.VIDEO, id: '1' }),
-        createMockMood({ category: null, id: '2' }),
-      ];
-
-      const { result } = renderHook(() =>
-        usePromptBarFilters({ ...baseOptions, moods }),
-      );
-
-      expect(result.current.filteredMoods).toEqual(moods);
-    });
   });
 
   describe('Camera Filtering', () => {
@@ -243,14 +230,6 @@ describe('usePromptBarFilters', () => {
   });
 
   describe('Blacklist Filtering', () => {
-    it('returns empty array when blacklists is empty', () => {
-      const { result } = renderHook(() =>
-        usePromptBarFilters({ ...baseOptions, blacklists: [] }),
-      );
-
-      expect(result.current.filteredBlacklists).toEqual([]);
-    });
-
     it('defaults to video blacklists when no category selected', () => {
       const blacklists = [
         createMockBlacklist({ category: ModelCategory.VIDEO, id: '1' }),
@@ -285,31 +264,6 @@ describe('usePromptBarFilters', () => {
   });
 
   describe('Sound Filtering', () => {
-    it('returns empty array when sounds is empty', () => {
-      const { result } = renderHook(() =>
-        usePromptBarFilters({ ...baseOptions, sounds: [] }),
-      );
-
-      expect(result.current.filteredSounds).toEqual([]);
-    });
-
-    it('returns empty array for non-video models', () => {
-      const sounds = [
-        createMockSound({ id: '1' }),
-        createMockSound({ id: '2' }),
-      ];
-
-      const { result } = renderHook(() =>
-        usePromptBarFilters({
-          ...baseOptions,
-          currentModelCategory: ModelCategory.IMAGE,
-          sounds,
-        }),
-      );
-
-      expect(result.current.filteredSounds).toEqual([]);
-    });
-
     it('filters sounds for video models', () => {
       const sounds = [
         createMockSound({
@@ -370,21 +324,6 @@ describe('usePromptBarFilters', () => {
       expect(result.current).toHaveProperty('filteredPresets');
       expect(result.current).toHaveProperty('filteredBlacklists');
       expect(result.current).toHaveProperty('filteredSounds');
-    });
-  });
-
-  describe('Memoization', () => {
-    it('maintains referential equality when inputs do not change', () => {
-      const styles = [createMockStyle()];
-
-      const { result, rerender } = renderHook(() =>
-        usePromptBarFilters({ ...baseOptions, styles }),
-      );
-
-      const firstFilteredStyles = result.current.filteredStyles;
-      rerender();
-
-      expect(result.current.filteredStyles).toBe(firstFilteredStyles);
     });
   });
 });

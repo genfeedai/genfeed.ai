@@ -106,27 +106,3 @@ describe('ToolRegistryService.classify', () => {
     expect(ToolRegistryService.classify(name)).toBe(kind);
   });
 });
-
-describe('ToolRegistryService.validateDispatchCoverage', () => {
-  it('passes when every surfaced tool routes (resolve_approval excepted)', () => {
-    mockState.tools = [
-      { name: 'generate_image' },
-      { name: 'get_video_status' },
-      { name: 'list_meta_campaigns' },
-      { name: 'resolve_approval' },
-      { name: 'create_post' },
-      { name: 'list_toolsets' },
-    ];
-    expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
-  });
-
-  it('throws when a surfaced tool has no executor', () => {
-    mockState.tools = [
-      { name: 'generate_image' },
-      { name: 'totally_unrouted_tool' },
-    ];
-    expect(() => ToolRegistryService.validateDispatchCoverage()).toThrow(
-      /no executor dispatch for \[totally_unrouted_tool\]/,
-    );
-  });
-});

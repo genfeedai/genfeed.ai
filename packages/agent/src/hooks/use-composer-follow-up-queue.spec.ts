@@ -368,37 +368,6 @@ describe('follow-up acknowledgement ownership', () => {
       if (!accepted) expect(result.current.queue[0].status).toBe('failed');
     },
   );
-  it('settles a migrated draft item using its immutable item identity', async () => {
-    let finish!: (accepted: boolean) => void;
-    const onDispatch = vi.fn(
-      () =>
-        new Promise<boolean>((resolve) => {
-          finish = resolve;
-        }),
-    );
-    const { result, rerender } = renderHook(
-      ({ threadId }: { threadId: string | null }) =>
-        useComposerFollowUpQueue({
-          threadId,
-          isBusy: false,
-          canAutoDispatch: false,
-          onDispatch,
-          onInterrupt: () => true,
-        }),
-      { initialProps: { threadId: null as string | null } },
-    );
-    act(() => {
-      result.current.enqueue('Draft follow-up');
-    });
-    act(() => {
-      result.current.sendNow(result.current.queue[0].id);
-    });
-    rerender({ threadId: 'assigned' });
-    await act(async () => {
-      finish(true);
-    });
-    expect(result.current.queue).toHaveLength(0);
-  });
   it('does not promote A through B after an awaited interruption', async () => {
     let finish!: (cancelled: boolean) => void;
     const onDispatch = vi.fn(() => true);

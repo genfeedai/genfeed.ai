@@ -20,16 +20,6 @@ import { Asset } from '@models/ingredients/asset.model';
 
 describe('Asset', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = new Asset({});
-      expect(instance).toBeDefined();
-    });
-
-    it('should create an instance with partial data', () => {
-      const instance = new Asset({ id: 'test-123' } as never);
-      expect(instance).toBeDefined();
-    });
-
     it('hydrates a user object that carries an id', () => {
       const instance = new Asset({
         user: { id: 'user-1' },

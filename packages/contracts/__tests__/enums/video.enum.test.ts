@@ -3,10 +3,6 @@ import { VideoEaseCurve, VideoTransition } from '../../src/enums/video.enum';
 
 describe('video.enum', () => {
   describe('VideoTransition', () => {
-    it('should have 11 members', () => {
-      expect(Object.values(VideoTransition)).toHaveLength(11);
-    });
-
     it('should have correct values', () => {
       expect(VideoTransition.NONE).toBe('none');
       expect(VideoTransition.FADE).toBe('fade');
@@ -23,10 +19,6 @@ describe('video.enum', () => {
   });
 
   describe('VideoEaseCurve', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(VideoEaseCurve)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(VideoEaseCurve.EASE_IN_OUT_EXPO).toBe('easyinoutexpo');
       expect(VideoEaseCurve.EASE_IN_EXPO_OUT_CUBIC).toBe('easyinexpooutcubic');

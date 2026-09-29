@@ -12,12 +12,6 @@ describe('PromptsService', () => {
     service = new PromptsService(mockToken);
   });
 
-  describe('constructor', () => {
-    it('initializes correctly', () => {
-      expect(service).toBeInstanceOf(PromptsService);
-    });
-  });
-
   describe('prompt management', () => {
     it('has findAll method for fetching all prompts', () => {
       expect(service.findAll).toBeDefined();

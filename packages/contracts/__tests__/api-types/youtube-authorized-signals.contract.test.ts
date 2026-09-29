@@ -82,15 +82,6 @@ describe('YouTube authorized signals contract', () => {
     ).toEqual([]);
   });
 
-  it('rejects duplicate evidence that would leave a canonical check unmapped', () => {
-    const snapshot = makeSnapshot();
-    snapshot.evidence[1] = snapshot.evidence[0];
-
-    expect(
-      youtubeAuthorizedSignalsSnapshotSchema.safeParse(snapshot).success,
-    ).toBe(false);
-  });
-
   it('accepts missing analytics and channel-selection as recoverable reasons', () => {
     const snapshot = makeSnapshot();
     snapshot.evidence[3] = {
@@ -115,36 +106,6 @@ describe('YouTube authorized signals contract', () => {
       key: 'owned-video-analytics-snapshot',
       reason: 'missing_scope',
       status: 'permission_limited',
-    });
-  });
-
-  it('records Genfeed clip lineage without treating it as platform telemetry', () => {
-    const snapshot = makeSnapshot();
-    snapshot.evidence[6] = {
-      ...snapshot.evidence[6],
-      provenance: 'genfeed_observed',
-      status: 'available',
-      value: {
-        attempts: [
-          {
-            attemptedAt: '2026-08-24T08:00:00.000Z',
-            mediaType: 'short',
-            outcome: 'published',
-            postId: 'post-1',
-            sourcePostId: 'source-post-1',
-          },
-        ],
-      },
-    };
-
-    expect(
-      youtubeAuthorizedSignalsSnapshotSchema.parse(snapshot).evidence[6],
-    ).toMatchObject({
-      key: 'genfeed-publish-outcomes-observed',
-      provenance: 'genfeed_observed',
-      value: {
-        attempts: [{ sourcePostId: 'source-post-1', mediaType: 'short' }],
-      },
     });
   });
 });

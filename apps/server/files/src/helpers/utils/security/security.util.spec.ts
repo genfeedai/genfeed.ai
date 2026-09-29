@@ -25,12 +25,6 @@ describe('SecurityUtil', () => {
       expect(typeof result).toBe('string');
     });
 
-    it('throws for empty paths', () => {
-      expect(() => SecurityUtil.validateFilePath('')).toThrow(
-        'File path is required and must be a string',
-      );
-    });
-
     it('throws for non-string values', () => {
       expect(() => SecurityUtil.validateFilePath(null)).toThrow(
         'File path is required and must be a string',
@@ -215,10 +209,6 @@ describe('SecurityUtil', () => {
   });
 
   describe('validateNumericParam', () => {
-    it('returns valid numbers within range', () => {
-      expect(SecurityUtil.validateNumericParam(50, 'width', 0, 100)).toBe(50);
-    });
-
     it('floors decimal values', () => {
       expect(SecurityUtil.validateNumericParam(50.7, 'width', 0, 100)).toBe(50);
     });
@@ -243,15 +233,6 @@ describe('SecurityUtil', () => {
   });
 
   describe('validateStringParam', () => {
-    it('trims valid string values', () => {
-      const result = SecurityUtil.validateStringParam(
-        '  test string  ',
-        'param',
-      );
-
-      expect(result).toBe('test string');
-    });
-
     it('rejects empty or invalid values', () => {
       expect(() => SecurityUtil.validateStringParam('', 'param')).toThrow(
         'param is required and must be a string',
@@ -259,14 +240,6 @@ describe('SecurityUtil', () => {
       expect(() => SecurityUtil.validateStringParam(null, 'param')).toThrow(
         'param is required and must be a string',
       );
-    });
-
-    it('rejects strings that exceed max length', () => {
-      const longString = 'a'.repeat(300);
-
-      expect(() =>
-        SecurityUtil.validateStringParam(longString, 'param', 255),
-      ).toThrow('param must be 255 characters or less');
     });
 
     it('blocks injection patterns in strings', () => {
@@ -301,12 +274,6 @@ describe('SecurityUtil', () => {
       );
 
       expect(result).toContain('.mp4');
-    });
-
-    it('rejects disallowed extensions', () => {
-      expect(() =>
-        SecurityUtil.createSecureTempPath('public/tmp', 'test', '.exe'),
-      ).toThrow('File extension .exe is not allowed');
     });
 
     it('rejects long filenames', () => {

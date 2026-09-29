@@ -3,10 +3,6 @@ import { ReferenceSource } from '../../src/enums/reference.enum';
 
 describe('reference.enum', () => {
   describe('ReferenceSource', () => {
-    it('should have 1 members', () => {
-      expect(Object.values(ReferenceSource)).toHaveLength(1);
-    });
-
     it('should have correct values', () => {
       expect(ReferenceSource.BRAND).toBe('brand');
     });

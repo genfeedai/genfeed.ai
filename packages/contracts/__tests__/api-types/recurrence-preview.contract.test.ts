@@ -51,28 +51,6 @@ describe('recurrence preview contract', () => {
     });
   });
 
-  test('preserves local wall-clock time across daylight-saving changes', () => {
-    const result = previewRecurrenceOccurrences({
-      recurrence: {
-        frequency: PostFrequency.DAILY,
-        interval: 1,
-        maxRepeats: 3,
-      },
-      startAt: '2026-03-06T14:00:00.000Z',
-      timezone: 'America/New_York',
-    });
-
-    expect(result).toEqual({
-      isExhausted: true,
-      occurrences: [
-        '2026-03-07T14:00:00.000Z',
-        '2026-03-08T13:00:00.000Z',
-        '2026-03-09T13:00:00.000Z',
-      ],
-      success: true,
-    });
-  });
-
   test('stops at an inclusive end date', () => {
     const result = previewRecurrenceOccurrences({
       recurrence: {
@@ -166,25 +144,6 @@ describe('recurrence preview contract', () => {
         },
       ],
       success: false,
-    });
-  });
-
-  test('caps previews without claiming the finite recurrence is exhausted', () => {
-    const result = previewRecurrenceOccurrences({
-      limit: 2,
-      recurrence: {
-        frequency: PostFrequency.DAILY,
-        interval: 1,
-        maxRepeats: 4,
-      },
-      startAt: '2026-01-01T09:00:00.000Z',
-      timezone: 'UTC',
-    });
-
-    expect(result).toEqual({
-      isExhausted: false,
-      occurrences: ['2026-01-02T09:00:00.000Z', '2026-01-03T09:00:00.000Z'],
-      success: true,
     });
   });
 

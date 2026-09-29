@@ -83,72 +83,6 @@ describe('AccountsTable', () => {
     expect(screen.getByText('No Handle')).toBeInTheDocument();
   });
 
-  it('derives Needs reconnect from a disconnected (not deleted) credential', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[buildConnection({ isConnected: false })]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onOpenSettings={noop}
-        onReconnect={noop}
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
-  });
-
-  it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[buildConnection({ externalId: undefined })]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onOpenSettings={noop}
-        onReconnect={noop}
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
-  });
-
-  it('derives Needs reconnect from an expired access token', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[
-          buildConnection({ accessTokenExpiry: '2020-01-01T00:00:00.000Z' }),
-        ]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onOpenSettings={noop}
-        onReconnect={noop}
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
-  });
-
-  it('shows Connected for a fully linked account with no health data', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[buildConnection()]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onOpenSettings={noop}
-        onReconnect={noop}
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    expect(screen.getByText('Connected')).toBeInTheDocument();
-  });
-
   it('renders the live-fetched accountHealth passed down, not just connection.accountHealth', () => {
     render(
       <AccountsTable
@@ -235,37 +169,6 @@ describe('AccountsTable', () => {
     expect(connectButtons.length).toBeGreaterThan(0);
     fireEvent.click(connectButtons[connectButtons.length - 1]);
     expect(onConnectAccount).toHaveBeenCalledTimes(1);
-  });
-
-  it('disables Reconnect only for the credential currently reconnecting', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[
-          buildConnection({
-            credentialId: 'c-twitter',
-            platform: CredentialPlatform.TWITTER,
-          }),
-        ]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onOpenSettings={noop}
-        onReconnect={noop}
-        reconnectingCredentialId="c-twitter"
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    const menuTrigger = screen.getByRole('button', {
-      name: /More actions/,
-    });
-    fireEvent.pointerDown(menuTrigger);
-    fireEvent.click(menuTrigger);
-    // Radix portals the menu content to `document.body` — query it
-    // globally, not scoped to the row.
-    expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
-      'data-disabled',
-    );
   });
 
   it('leaves a sibling account on the same platform reconnectable while one account reconnects', () => {

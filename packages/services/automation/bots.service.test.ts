@@ -89,19 +89,6 @@ describe('BotsService', () => {
     vi.clearAllMocks();
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(BotsService);
-  });
-
-  it('has CRUD methods', () => {
-    expect(service.findAll).toBeDefined();
-    expect(service.findAllPages).toBeDefined();
-    expect(service.findOne).toBeDefined();
-    expect(service.post).toBeDefined();
-    expect(service.patch).toBeDefined();
-    expect(service.delete).toBeDefined();
-  });
-
   describe('findAllByOrganization', () => {
     it('calls findAllPages with organization scope', async () => {
       const orgId = 'org-123';

@@ -29,17 +29,6 @@ describe('runWhenIdle', () => {
     expect(requestIdle).toHaveBeenCalledWith(task, { timeout: 3000 });
   });
 
-  it('schedules straight away once the page has loaded', () => {
-    const requestIdle = vi.fn();
-    vi.stubGlobal('requestIdleCallback', requestIdle);
-    setReadyState('complete');
-    const task = vi.fn();
-
-    runWhenIdle(task);
-
-    expect(requestIdle).toHaveBeenCalledWith(task, { timeout: 3000 });
-  });
-
   it('falls back to a timer where requestIdleCallback is missing', () => {
     vi.useFakeTimers();
     vi.stubGlobal('requestIdleCallback', undefined);

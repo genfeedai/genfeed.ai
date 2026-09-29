@@ -56,13 +56,4 @@ describe('buildAudioOverlayArgs', () => {
     expect(filterFrom(args)).not.toContain('[0:a]');
     expect(filterFrom(args)).toContain('[aout]');
   });
-
-  it('ducks background audio to thirty percent of its requested volume', () => {
-    const args = buildAudioOverlayArgs({
-      ...baseOptions,
-      mixMode: 'background',
-    });
-
-    expect(filterFrom(args)).toContain('[1:a]volume=0.24,apad');
-  });
 });

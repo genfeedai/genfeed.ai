@@ -6,10 +6,6 @@ import {
 
 describe('credit.enum', () => {
   describe('CreditTransactionCategory', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(CreditTransactionCategory)).toHaveLength(7);
-    });
-
     it('should have correct values', () => {
       expect(CreditTransactionCategory.ADD).toBe('add');
       expect(CreditTransactionCategory.DEDUCT).toBe('deduct');
@@ -22,10 +18,6 @@ describe('credit.enum', () => {
   });
 
   describe('CreditEntityModel', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(CreditEntityModel)).toHaveLength(2);
-    });
-
     it('should have correct values', () => {
       expect(CreditEntityModel.ORGANIZATION).toBe('Organization');
       expect(CreditEntityModel.USER).toBe('User');

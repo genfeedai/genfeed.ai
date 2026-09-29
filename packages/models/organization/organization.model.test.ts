@@ -128,21 +128,6 @@ describe('Organization', () => {
       expect(org).toBeDefined();
     });
 
-    it('should instantiate settings when provided as object', () => {
-      const org = createOrganization({
-        settings: createOrganizationSetting({ isAdvancedMode: true }),
-      });
-      expect(org.settings).toBeDefined();
-    });
-
-    it('should instantiate credits when provided as object', () => {
-      const org = createOrganization({
-        credits: createCredit({ balance: 1000 }),
-      });
-      expect(org.credits).toBeDefined();
-      expect(org.credits?.balance).toBe(1000);
-    });
-
     it('should not wrap settings when not an object', () => {
       const org = createOrganization({
         settings: 'setting-string',

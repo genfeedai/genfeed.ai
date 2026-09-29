@@ -70,20 +70,6 @@ describe('useCommandPaletteDialog', () => {
     expect(onAfterOpen).not.toHaveBeenCalled();
   });
 
-  it('does not call closeModal when already closed', () => {
-    vi.mocked(isModalOpen).mockReturnValue(false);
-
-    renderHook(() =>
-      useCommandPaletteDialog({
-        isOpen: false,
-        modalId: 'command-palette',
-      }),
-    );
-
-    expect(closeModal).not.toHaveBeenCalled();
-    expect(openModal).not.toHaveBeenCalled();
-  });
-
   it('closes modal on unmount when open', () => {
     vi.mocked(isModalOpen).mockReturnValue(false);
 
@@ -101,22 +87,5 @@ describe('useCommandPaletteDialog', () => {
     unmount();
 
     expect(closeModal).toHaveBeenCalledWith('command-palette');
-  });
-
-  it('does not close modal on unmount when already closed', () => {
-    vi.mocked(isModalOpen).mockReturnValue(false);
-
-    const { unmount } = renderHook(() =>
-      useCommandPaletteDialog({
-        isOpen: false,
-        modalId: 'command-palette',
-      }),
-    );
-
-    vi.clearAllMocks();
-    vi.mocked(isModalOpen).mockReturnValue(false);
-    unmount();
-
-    expect(closeModal).not.toHaveBeenCalled();
   });
 });

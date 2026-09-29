@@ -378,16 +378,6 @@ describe('DiscordBotManager command handlers', () => {
       };
     }
 
-    it('should report idle without a session', async () => {
-      const interaction = createReplyInteraction();
-
-      await internals.handleStatusCommand(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Idle — no active workflow'),
-      );
-    });
-
     it.each([
       ['selecting', 'Selecting a workflow'],
       ['confirming', 'Waiting for confirmation'],
@@ -501,23 +491,6 @@ describe('DiscordBotManager command handlers', () => {
       };
     }
 
-    it('should report nothing to cancel without a session', async () => {
-      const interaction = createReplyInteraction();
-
-      await internals.handleCancelCommand(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith('Nothing to cancel.');
-    });
-
-    it('should report nothing to cancel for an idle session', async () => {
-      internals.sessions.set(SESSION_KEY, createSession({ state: 'idle' }));
-      const interaction = createReplyInteraction();
-
-      await internals.handleCancelCommand(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith('Nothing to cancel.');
-    });
-
     it('should cancel the running execution and clear the session', async () => {
       internals.sessions.set(
         SESSION_KEY,
@@ -569,23 +542,6 @@ describe('DiscordBotManager command handlers', () => {
   });
 
   describe('handleSettingsCommand', () => {
-    it('should render defaults when the user has no settings', async () => {
-      const interaction: CommandInteraction = {
-        channelId: 'ch-1',
-        reply: vi.fn().mockResolvedValue(undefined),
-        user: { id: 'user-1' },
-      };
-
-      await internals.handleSettingsCommand(interaction);
-
-      expect(interaction.reply).toHaveBeenCalledWith(
-        expect.objectContaining({
-          components: expect.any(Array),
-          content: expect.stringContaining('Settings'),
-        }),
-      );
-    });
-
     it('should highlight the stored user settings', async () => {
       internals.userSettings.set('user-1', {
         imageModel: 'sdxl',
@@ -719,15 +675,6 @@ describe('DiscordBotManager command handlers', () => {
         content: 'Video model set to: **kling**',
         ephemeral: true,
       });
-    });
-
-    it('should ignore unknown custom ids', async () => {
-      const interaction = createButtonInteraction('something:else');
-
-      await internals.handleButtonInteraction(interaction, 'org-1');
-
-      expect(interaction.reply).not.toHaveBeenCalled();
-      expect(interaction.update).not.toHaveBeenCalled();
     });
   });
 
@@ -1244,20 +1191,6 @@ describe('DiscordBotManager command handlers', () => {
       );
     });
 
-    it('should add the integration returned by fetchAndAddIntegration', async () => {
-      vi.spyOn(
-        internals.internalApiClient,
-        'fetchIntegration',
-      ).mockResolvedValue(mockIntegration);
-      const addSpy = vi
-        .spyOn(service, 'addIntegration')
-        .mockResolvedValue(undefined);
-
-      await internals.fetchAndAddIntegration('int-1');
-
-      expect(addSpy).toHaveBeenCalledWith(mockIntegration);
-    });
-
     it('should warn when fetchAndAddIntegration cannot normalize the payload', async () => {
       vi.spyOn(
         internals.internalApiClient,
@@ -1286,20 +1219,6 @@ describe('DiscordBotManager command handlers', () => {
         'Failed to fetch and add integration int-1:',
         expect.objectContaining({ message: error.message }),
       );
-    });
-
-    it('should update the integration returned by fetchAndUpdateIntegration', async () => {
-      vi.spyOn(
-        internals.internalApiClient,
-        'fetchIntegration',
-      ).mockResolvedValue(mockIntegration);
-      const updateSpy = vi
-        .spyOn(service, 'updateIntegration')
-        .mockResolvedValue(undefined);
-
-      await internals.fetchAndUpdateIntegration('int-1');
-
-      expect(updateSpy).toHaveBeenCalledWith(mockIntegration);
     });
 
     it('should warn when fetchAndUpdateIntegration cannot normalize the payload', async () => {
@@ -1359,14 +1278,6 @@ describe('DiscordBotManager command handlers', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('open to all users'),
       );
-    });
-
-    it('should not warn for allowlisted bots', async () => {
-      mockClient.login.mockResolvedValue('token');
-
-      await service.createBotInstance(mockIntegration);
-
-      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 });

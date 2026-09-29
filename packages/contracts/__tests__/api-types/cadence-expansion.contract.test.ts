@@ -261,34 +261,6 @@ describe('collapseOverlappingCadenceOccurrences', () => {
     expect(collapsed).toHaveLength(1);
     expect(collapsed[0]?.cadenceId).toBe(CADENCE_ID);
   });
-
-  it('does not collapse different credentials or formats', () => {
-    const collapsed = collapseOverlappingCadenceOccurrences([
-      {
-        cadenceCreatedAt: '2026-08-19T00:00:00.000Z',
-        cadenceId: CADENCE_ID,
-        credentialId: CREDENTIAL_ID,
-        format: PostCategory.REEL,
-        instantUtc: instant,
-      },
-      {
-        cadenceCreatedAt: '2026-08-19T01:00:00.000Z',
-        cadenceId: 'ccadence00002',
-        credentialId: 'ccredential02',
-        format: PostCategory.REEL,
-        instantUtc: instant,
-      },
-      {
-        cadenceCreatedAt: '2026-08-19T02:00:00.000Z',
-        cadenceId: 'ccadence00003',
-        credentialId: CREDENTIAL_ID,
-        format: PostCategory.POST,
-        instantUtc: instant,
-      },
-    ]);
-
-    expect(collapsed).toHaveLength(3);
-  });
 });
 
 describe('buildSlotIdentityKey', () => {

@@ -15,13 +15,6 @@ describe('json-api-status.util (dependency-free — no @genfeedai/services impor
     ])('parses %p as %i', (input, expected) => {
       expect(parseHttpStatusCode(input)).toBe(expected);
     });
-
-    it.each([undefined, null, 'NOT_FOUND', 'BRAND_SCRAPE_UNKNOWN', {}, []])(
-      'returns undefined for %p',
-      (input) => {
-        expect(parseHttpStatusCode(input)).toBeUndefined();
-      },
-    );
   });
 
   describe('isAxiosError', () => {

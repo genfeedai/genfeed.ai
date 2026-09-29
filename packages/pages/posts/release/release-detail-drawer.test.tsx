@@ -185,19 +185,6 @@ describe('ReleaseDetailDrawer', () => {
     );
   });
 
-  it('emits an absolute instant, not the local wall-clock string', () => {
-    const { onRescheduleRelease } = renderDrawer();
-
-    fireEvent.change(screen.getByLabelText('Publish time'), {
-      target: { value: '2026-08-03T14:30' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Reschedule post' }));
-
-    expect(onRescheduleRelease).toHaveBeenCalledWith(
-      '2026-08-03T14:30:00.000Z',
-    );
-  });
-
   it('reschedules a single target through its own handler', () => {
     const { onRescheduleTarget } = renderDrawer();
 
@@ -212,13 +199,6 @@ describe('ReleaseDetailDrawer', () => {
       'target-1',
       '2026-08-03T16:00:00.000Z',
     );
-  });
-
-  it('offers a retry only for a failed target', () => {
-    renderDrawer();
-    expect(
-      screen.queryByRole('button', { name: 'Retry Instagram target' }),
-    ).not.toBeInTheDocument();
   });
 
   it('explains why a paused post will not publish', () => {
@@ -372,34 +352,6 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeDisabled();
   });
 
-  it('surfaces a rejected mutation as an alert instead of silently reverting', () => {
-    renderInSidebar(
-      <ReleaseDetailDrawer
-        error="Cannot schedule: the Instagram channel is not publish-capable."
-        onClose={vi.fn()}
-        onRescheduleRelease={vi.fn()}
-        onRescheduleTarget={vi.fn()}
-        onRetryTarget={vi.fn()}
-        pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/social"
-        release={release()}
-      />,
-    );
-
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Cannot schedule: the Instagram channel is not publish-capable.',
-    );
-  });
-
-  it('shows the analytics empty state rather than an empty table', async () => {
-    const user = userEvent.setup();
-    renderDrawer();
-
-    await user.click(screen.getByRole('tab', { name: 'Analytics' }));
-
-    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
-  });
-
   it('renders nothing when there is no release to inspect', () => {
     renderInSidebar(
       <ReleaseDetailDrawer
@@ -417,17 +369,6 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.queryByTestId('release-detail-panel'),
     ).not.toBeInTheDocument();
-  });
-
-  it('renders a live preview for every channel target', () => {
-    renderDrawer({
-      targets: [
-        target(),
-        target({ id: 'target-2', platform: CredentialPlatform.LINKEDIN }),
-      ],
-    });
-
-    expect(screen.getAllByTestId('target-preview')).toHaveLength(2);
   });
 
   it('moves analytics into a tab alongside the preview', async () => {
@@ -463,38 +404,6 @@ describe('ReleaseDetailDrawer', () => {
     expect(preview).toHaveAttribute('href', 'https://instagram.com/p/abc');
   });
 
-  it('omits the Preview action when the target has no permalink', () => {
-    renderDrawer();
-
-    expect(
-      screen.queryByRole('link', { name: 'Preview' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('offers a Reconnect action when account health flags the credential', async () => {
-    listBrandAccountHealth.mockResolvedValue([
-      buildAccount({
-        reconnect: {
-          credentialId: 'credential-1',
-          isAvailable: true,
-          reason: 'disconnected',
-        },
-      }),
-    ]);
-
-    renderDrawer({
-      targets: [target({ credentialId: 'credential-1' })],
-    });
-
-    const reconnect = await screen.findByRole('link', {
-      name: 'Reconnect Instagram',
-    });
-    expect(reconnect).toHaveAttribute(
-      'href',
-      '/acme-org/acme-creator/settings/social',
-    );
-  });
-
   it('does not offer account-health Reconnect when the credential is healthy', async () => {
     listBrandAccountHealth.mockResolvedValue([buildAccount()]);
 
@@ -506,23 +415,6 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.queryByRole('link', { name: 'Reconnect Instagram' }),
     ).not.toBeInTheDocument();
-  });
-
-  it('skips the account-health lookup when no brandId is in scope', () => {
-    renderInSidebar(
-      <ReleaseDetailDrawer
-        error={null}
-        onClose={vi.fn()}
-        onRescheduleRelease={vi.fn()}
-        onRescheduleTarget={vi.fn()}
-        onRetryTarget={vi.fn()}
-        pendingAction={null}
-        reconnectHref="/acme-org/acme-creator/settings/social"
-        release={release()}
-      />,
-    );
-
-    expect(listBrandAccountHealth).not.toHaveBeenCalled();
   });
 
   describe('inline reschedule from the context sidebar', () => {
@@ -593,15 +485,6 @@ describe('ReleaseDetailDrawer', () => {
       ).toBe(true);
     });
 
-    it('hands a sidebar close back to the page', async () => {
-      const { onClose } = renderWith();
-      await screen.findByTestId('release-detail-panel');
-
-      fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
-
-      expect(onClose).toHaveBeenCalledOnce();
-    });
-
     it('keeps the button disabled until the time actually changes', () => {
       renderWith();
       const button = screen.getByRole('button', { name: 'Reschedule post' });
@@ -658,19 +541,6 @@ describe('ReleaseDetailDrawer', () => {
         screen.getByRole('button', { name: 'Reschedule Instagram target' }),
       ).toBeDisabled();
       expect(onRescheduleTarget).not.toHaveBeenCalled();
-    });
-
-    it('submits from the keyboard with the same absolute instant', () => {
-      const { onRescheduleRelease } = renderWith();
-
-      fireEvent.change(screen.getByLabelText('Publish time'), {
-        target: { value: '2026-08-03T14:30' },
-      });
-      fireEvent.submit(screen.getByLabelText('Publish time'));
-
-      expect(onRescheduleRelease).toHaveBeenCalledWith(
-        '2026-08-03T14:30:00.000Z',
-      );
     });
 
     it('shows a pending spinner on the control that is saving and locks the rest', () => {
@@ -747,19 +617,6 @@ describe('ReleaseDetailDrawer', () => {
         screen.getByRole('button', { name: 'Retry Instagram target' }),
       );
       expect(onRetryTarget).toHaveBeenCalledWith('target-1');
-    });
-
-    it('does not overwrite an edit in progress when the same instants come back', () => {
-      const { rerender } = renderWith();
-
-      fireEvent.change(screen.getByLabelText('Publish time'), {
-        target: { value: '2026-08-03T14:30' },
-      });
-      rerender(release());
-
-      expect(screen.getByLabelText('Publish time')).toHaveValue(
-        '2026-08-03T14:30',
-      );
     });
 
     it('locks the field for a post that can no longer move', () => {

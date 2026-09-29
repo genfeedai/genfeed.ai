@@ -34,31 +34,6 @@ describe('WorkflowEditorShell', () => {
     stores.showPalette = true;
   });
 
-  it('renders the shared editor layout around injected app content', () => {
-    render(
-      <WorkflowEditorShell
-        modalContent={<div>Modal Host</div>}
-        rightPanel={<div>Right Panel</div>}
-        toolbar={<div>Toolbar Slot</div>}
-      />,
-    );
-
-    expect(screen.getByText('Toolbar Slot')).toBeTruthy();
-    expect(screen.getByText('Shared Node Palette')).toBeTruthy();
-    expect(screen.getByText('Shared Workflow Canvas')).toBeTruthy();
-    expect(screen.getByText('Shared Bottom Bar')).toBeTruthy();
-    expect(screen.getByText('Shared Viewport Guard')).toBeTruthy();
-    expect(screen.getByText('Right Panel')).toBeTruthy();
-    expect(screen.getByText('Modal Host')).toBeTruthy();
-  });
-
-  it('renders the canvas without a stacked toolbar slot', () => {
-    render(<WorkflowEditorShell />);
-
-    expect(screen.queryByText('Toolbar Slot')).toBeNull();
-    expect(screen.getByText('Shared Workflow Canvas')).toBeTruthy();
-  });
-
   it('respects palette visibility from the shared UI store', () => {
     stores.showPalette = false;
 

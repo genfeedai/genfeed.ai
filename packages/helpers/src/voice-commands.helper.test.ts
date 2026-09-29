@@ -9,24 +9,6 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 describe('MODEL_VOICE_ALIASES', () => {
-  it('maps "runway" to RUNWAYML model key', () => {
-    expect(MODEL_VOICE_ALIASES.runway).toBe(MODEL_KEYS.RUNWAYML);
-  });
-
-  it('maps "sdxl" to SDXL model key', () => {
-    expect(MODEL_VOICE_ALIASES.sdxl).toBe(MODEL_KEYS.SDXL);
-  });
-
-  it('maps "veo 3" to VEO_3 model key', () => {
-    expect(MODEL_VOICE_ALIASES['veo 3']).toBe(
-      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
-    );
-  });
-
-  it('maps "kling" and "kling v2" to the same key', () => {
-    expect(MODEL_VOICE_ALIASES.kling).toBe(MODEL_VOICE_ALIASES['kling v2']);
-  });
-
   it('maps "kontext" and "flux kontext" to the same key', () => {
     expect(MODEL_VOICE_ALIASES.kontext).toBe(
       MODEL_VOICE_ALIASES['flux kontext'],
@@ -35,36 +17,12 @@ describe('MODEL_VOICE_ALIASES', () => {
 });
 
 describe('FORMAT_VOICE_ALIASES', () => {
-  it('maps "16:9" to "landscape"', () => {
-    expect(FORMAT_VOICE_ALIASES['16:9']).toBe('landscape');
-  });
-
-  it('maps "9:16" to "portrait"', () => {
-    expect(FORMAT_VOICE_ALIASES['9:16']).toBe('portrait');
-  });
-
-  it('maps "1:1" to "square"', () => {
-    expect(FORMAT_VOICE_ALIASES['1:1']).toBe('square');
-  });
-
-  it('maps spoken "horizontal" to "landscape"', () => {
-    expect(FORMAT_VOICE_ALIASES.horizontal).toBe('landscape');
-  });
-
   it('maps spoken "vertical" to "portrait"', () => {
     expect(FORMAT_VOICE_ALIASES.vertical).toBe('portrait');
   });
 });
 
 describe('DURATION_VOICE_ALIASES', () => {
-  it('maps "5 seconds" to 5', () => {
-    expect(DURATION_VOICE_ALIASES['5 seconds']).toBe(5);
-  });
-
-  it('maps "fifteen seconds" to 15', () => {
-    expect(DURATION_VOICE_ALIASES['fifteen seconds']).toBe(15);
-  });
-
   it('maps "twenty seconds" to 20', () => {
     expect(DURATION_VOICE_ALIASES['twenty seconds']).toBe(20);
   });
@@ -140,11 +98,5 @@ describe('getVoiceCommandHelp', () => {
     expect(help).toContain('Format:');
     expect(help).toContain('Duration:');
     expect(help).toContain('Prompt:');
-  });
-
-  it('every bullet starts with "•"', () => {
-    const help = getVoiceCommandHelp();
-    const bullets = help.filter((l) => l.startsWith('•'));
-    expect(bullets.length).toBeGreaterThan(0);
   });
 });

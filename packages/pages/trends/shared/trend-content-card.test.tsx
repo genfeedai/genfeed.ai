@@ -121,32 +121,6 @@ describe('TrendContentCard', () => {
     expect(mocks.push).not.toHaveBeenCalled();
   });
 
-  it.each(['instagram', 'youtube', 'twitter'] as const)(
-    'opens the shared prefilled brief for eligible %s trend content',
-    (platform) => {
-      render(
-        <TrendContentCard
-          item={{
-            ...item,
-            contentType: 'video',
-            platform,
-            sourceReferenceId: `${platform}-reference-1`,
-            trendId: `${platform}-trend-1`,
-          }}
-        />,
-      );
-
-      fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
-
-      expect(mocks.openRemix).toHaveBeenCalledWith({
-        kind: 'trend_reference',
-        sourceReferenceId: `${platform}-reference-1`,
-        trendId: `${platform}-trend-1`,
-      });
-      expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
-    },
-  );
-
   it('falls back to Studio generate when the Discovery surface is missing on TikTok', () => {
     mocks.isRemixAvailable = false;
     render(
@@ -186,29 +160,6 @@ describe('TrendContentCard', () => {
       screen.getByRole('button', { name: 'Remix unavailable' }),
     ).toBeDisabled();
     expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
-  });
-
-  it('does not offer direct remix when TikTok content has no durable source reference', () => {
-    render(
-      <TrendContentCard
-        finding={{
-          metadata: [],
-          reference: { id: 'content-1', kind: 'research-trend-content' },
-          title: 'TikTok context',
-        }}
-        item={{
-          ...item,
-          contentType: 'video',
-          platform: 'tiktok',
-          sourceReferenceId: undefined,
-        }}
-        onSelectAction={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
-    // Use as context lives in the overflow menu, never beside Remix.
-    expect(screen.queryByRole('button', { name: 'Use as context' })).toBeNull();
   });
 
   it('shows Remix as the only visible action and moves the rest to overflow', async () => {
@@ -328,23 +279,4 @@ describe('TrendContentCard', () => {
     expect(card).toHaveClass('rounded-card', 'shadow-border');
     expect(card.className).not.toMatch(/gen-glass|gen-hover-lift|rounded-lg/);
   });
-
-  it.each(['instagram', 'youtube'] as const)(
-    'does not fall back to Studio generate for %s content without a durable source reference',
-    (platform) => {
-      render(
-        <TrendContentCard
-          item={{
-            ...item,
-            contentType: 'video',
-            platform,
-            sourceReferenceId: undefined,
-          }}
-        />,
-      );
-
-      expect(screen.queryByRole('button', { name: 'Remix' })).toBeNull();
-      expect(screen.queryByRole('link', { name: 'Remix' })).toBeNull();
-    },
-  );
 });

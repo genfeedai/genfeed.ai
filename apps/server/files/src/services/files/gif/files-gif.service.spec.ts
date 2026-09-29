@@ -48,10 +48,6 @@ describe('FilesGifService', () => {
     service = module.get<FilesGifService>(FilesGifService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('videoToGif', () => {
     it('converts the video frame to a gif and returns the output path', async () => {
       const result = await service.videoToGif('ingredient-1');

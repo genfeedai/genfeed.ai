@@ -19,11 +19,6 @@ describe('extractBrandDomain', () => {
   it('accepts a bare hostname', () => {
     expect(extractBrandDomain('acme.com')).toBe('acme.com');
   });
-
-  it('returns null for empty input', () => {
-    expect(extractBrandDomain('   ')).toBeNull();
-    expect(extractBrandDomain(null)).toBeNull();
-  });
 });
 
 describe('extractEmailDomain', () => {

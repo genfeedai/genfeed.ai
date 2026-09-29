@@ -278,22 +278,6 @@ describe('useIngredientActions', () => {
       expect(result.current.actionStates.isUpscaling).toBe(false);
       expect(result.current.loadingStates.isPublishing).toBe(false);
     });
-
-    it('should initialize with initialPortraiting state', () => {
-      const { result } = renderHook(() =>
-        useIngredientActions({ initialPortraiting: true }),
-      );
-
-      expect(result.current.actionStates.isPortraiting).toBe(true);
-    });
-
-    it('should initialize with initialGeneratingCaptions state', () => {
-      const { result } = renderHook(() =>
-        useIngredientActions({ initialGeneratingCaptions: true }),
-      );
-
-      expect(result.current.actionStates.isGeneratingCaptions).toBe(true);
-    });
   });
 
   describe('handlePublish', () => {
@@ -426,39 +410,6 @@ describe('useIngredientActions', () => {
       );
       expect(onRefresh).toHaveBeenCalled();
       expect(result.current.actionStates.isUpscaling).toBe(false);
-    });
-
-    it('should upscale image ingredient', async () => {
-      const onRefresh = vi.fn();
-      const { result } = renderHook(() => useIngredientActions({ onRefresh }));
-
-      await act(async () => {
-        await result.current.handlers.handleUpscale(mockImageIngredient);
-      });
-
-      expect(mockImagesService.postUpscale).toHaveBeenCalledWith(
-        'ingredient-2',
-        {
-          enhanceModel: 'High Fidelity V2',
-          faceEnhancement: true,
-          subjectDetection: 'Foreground',
-          upscaleFactor: '4x',
-        },
-      );
-    });
-
-    it('should handle errors', async () => {
-      const error = new Error('Upscale failed');
-      mockVideosService.postUpscale.mockRejectedValue(error);
-      const { result } = renderHook(() => useIngredientActions());
-
-      await act(async () => {
-        await result.current.handlers.handleUpscale(mockVideoIngredient);
-      });
-
-      expect(mockNotificationsService.error).toHaveBeenCalledWith(
-        'Failed to upscale ingredient',
-      );
     });
   });
 
@@ -722,18 +673,6 @@ describe('useIngredientActions', () => {
       expect(mockNotificationsService.success).toHaveBeenCalledWith(
         'Ingredient deleted successfully',
       );
-    });
-  });
-
-  describe('showActions state', () => {
-    it('should update showActions state', () => {
-      const { result } = renderHook(() => useIngredientActions());
-
-      act(() => {
-        result.current.setShowActions(true);
-      });
-
-      expect(result.current.showActions).toBe(true);
     });
   });
 

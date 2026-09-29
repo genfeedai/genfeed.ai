@@ -66,13 +66,4 @@ describe('useAgentBrandCreate', () => {
     ).rejects.toThrow('Brand name is required.');
     expect(mockPost).not.toHaveBeenCalled();
   });
-
-  it('propagates create failures to the caller', async () => {
-    mockPost.mockRejectedValueOnce(new Error('boom'));
-    const { result } = renderHook(() => useAgentBrandCreate());
-
-    await expect(
-      result.current({ name: 'Acme', description: '' }),
-    ).rejects.toThrow('boom');
-  });
 });

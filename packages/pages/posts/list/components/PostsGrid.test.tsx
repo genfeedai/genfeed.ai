@@ -129,38 +129,6 @@ describe('PostsGrid', () => {
     expect(retry.onClick).toHaveBeenCalledOnce();
   });
 
-  it('renders attached tweet media in the card', () => {
-    render(
-      <PostsGrid
-        posts={[basePost]}
-        onPostEvaluated={vi.fn()}
-        primaryAction={primaryAction}
-      />,
-    );
-
-    expect(screen.getByRole('img', { name: /tweet image/i })).toHaveAttribute(
-      'src',
-      expect.stringContaining('tweet-image.jpg'),
-    );
-  });
-
-  it('links each card to the post detail route', () => {
-    render(
-      <PostsGrid
-        posts={[basePost]}
-        onPostEvaluated={vi.fn()}
-        primaryAction={primaryAction}
-      />,
-    );
-
-    // A real anchor, not a click handler: the router prefetches the detail
-    // route before the click and cmd-click opens it in a new tab.
-    // `useOrgUrl` scopes the href to the active org/brand route params.
-    expect(
-      screen.getByRole('link', { name: /a draft post preview/i }),
-    ).toHaveAttribute('href', '/genfeed-ai/paperclip/publishing/posts/post-1');
-  });
-
   it('uses the contextual open callback when provided', () => {
     render(
       <PostsGrid

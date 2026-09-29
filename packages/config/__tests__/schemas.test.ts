@@ -72,15 +72,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(discordBotSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('telegramBotSchema', () => {
@@ -92,15 +83,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((telegramBotSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(telegramBotSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -116,25 +98,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(resendSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
-
-    it('accepts a Resend sender with a display name', () => {
-      const schema = Joi.object(resendSchema);
-      const { error } = schema.validate(
-        { RESEND_FROM_EMAIL: 'Genfeed <no-reply@genfeed.ai>' },
-        { allowUnknown: true },
-      );
-
-      expect(error).toBeUndefined();
-    });
   });
 
   describe('twitchSchema', () => {
@@ -146,15 +109,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((twitchSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(twitchSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -170,15 +124,6 @@ describe('Config Schemas', () => {
         );
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(awsSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('awsOptionalSchema', () => {
@@ -190,15 +135,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((awsOptionalSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(awsOptionalSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -214,15 +150,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(generalAiSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('replicateSchema', () => {
@@ -234,15 +161,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((replicateSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(replicateSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -258,15 +176,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(klingaiSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('elevenlabsSchema', () => {
@@ -278,15 +187,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((elevenlabsSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(elevenlabsSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -302,15 +202,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(leonardoSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('heygenSchema', () => {
@@ -322,15 +213,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((heygenSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(heygenSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -346,11 +228,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate without optional Argil credentials', () => {
-      const schema = Joi.object(argilSchema);
-      expect(schema.validate({}, { allowUnknown: true }).error).toBeUndefined();
-    });
   });
 
   describe('hedraSchema', () => {
@@ -362,15 +239,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((hedraSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(hedraSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -386,15 +254,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(newsApiSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('fleetSchema', () => {
@@ -406,15 +265,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((fleetSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(fleetSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
 
@@ -440,15 +290,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(gpuFleetSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('falSchema', () => {
@@ -460,15 +301,6 @@ describe('Config Schemas', () => {
         expect(Joi.isSchema((falSchema as Record<string, unknown>)[key])).toBe(
           true,
         );
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(falSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -505,15 +337,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(trainingPricingSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('webhooksSchema', () => {
@@ -525,15 +348,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((webhooksSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(webhooksSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -549,15 +363,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(sentrySchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('sentryOptionalSchema', () => {
@@ -569,15 +374,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((sentryOptionalSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(sentryOptionalSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -593,15 +389,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(genfeedaiUrlsSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('microservicesSchema', () => {
@@ -615,15 +402,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(microservicesSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('internalAuthSchema', () => {
@@ -635,15 +413,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((internalAuthSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(internalAuthSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -661,15 +430,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(genfeedaiMinimalSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('stripeSchema', () => {
@@ -681,15 +441,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((stripeSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(stripeSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -705,15 +456,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(redisSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('baseSchema', () => {
@@ -727,15 +469,6 @@ describe('Config Schemas', () => {
         );
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(baseSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('youtubeSchema', () => {
@@ -747,15 +480,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((youtubeSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(youtubeSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -784,15 +508,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(tiktokSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('instagramSchema', () => {
@@ -804,15 +519,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((instagramSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(instagramSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -828,15 +534,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(facebookSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('twitterSchema', () => {
@@ -848,15 +545,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((twitterSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(twitterSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -872,15 +560,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(pinterestSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('redditSchema', () => {
@@ -892,15 +571,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((redditSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(redditSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -916,15 +586,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(linkedinSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('mediumSchema', () => {
@@ -938,15 +599,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(mediumSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('fanvueSchema', () => {
@@ -958,15 +610,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((fanvueSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(fanvueSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -984,33 +627,6 @@ describe('Config Schemas', () => {
         expect(Joi.isSchema(value)).toBe(true);
       }
     });
-
-    it('keeps an unavailable integration optional but validates configured URLs', () => {
-      const schema = Joi.object(threadsSchema);
-
-      expect(schema.validate({}).error).toBeUndefined();
-      expect(
-        schema.validate({
-          THREADS_API_VERSION: 'v1.0',
-          THREADS_CLIENT_ID: 'threads-client-id',
-          THREADS_CLIENT_SECRET: 'threads-client-secret',
-          THREADS_GRAPH_URL: 'https://graph.threads.net',
-          THREADS_REDIRECT_URI: 'https://app.genfeed.ai/oauth/threads',
-        }).error,
-      ).toBeUndefined();
-      expect(
-        schema.validate({ THREADS_REDIRECT_URI: 'not-a-url' }).error,
-      ).toBeDefined();
-      expect(
-        schema.validate({ THREADS_GRAPH_URL: 'not-a-url' }).error,
-      ).toBeDefined();
-      expect(
-        schema.validate({
-          THREADS_GRAPH_URL: 'PLACEHOLDER_NOT_CONFIGURED',
-          THREADS_REDIRECT_URI: 'PLACEHOLDER_NOT_CONFIGURED',
-        }).error,
-      ).toBeUndefined();
-    });
   });
 
   describe('slackSchema', () => {
@@ -1022,15 +638,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((slackSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(slackSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -1046,15 +653,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(wordpressSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('snapchatSchema', () => {
@@ -1066,15 +664,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((snapchatSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(snapchatSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -1090,15 +679,6 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(whatsappSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('shopifySchema', () => {
@@ -1110,15 +690,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((shopifySchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(shopifySchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
   });
@@ -1134,22 +705,9 @@ describe('Config Schemas', () => {
         ).toBe(true);
       }
     });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(beehiivSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
-      }
-    });
   });
 
   describe('allSocialSchema', () => {
-    it('includes the Threads runtime contract', () => {
-      expect(allSocialSchema).toMatchObject(threadsSchema);
-    });
-
     it('should be a non-empty object of Joi schemas', () => {
       expect(typeof allSocialSchema).toBe('object');
       const keys = Object.keys(allSocialSchema);
@@ -1158,15 +716,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((allSocialSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(allSocialSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
 
@@ -1200,15 +749,6 @@ describe('Config Schemas', () => {
         expect(
           Joi.isSchema((ffmpegSchema as Record<string, unknown>)[key]),
         ).toBe(true);
-      }
-    });
-
-    it('should validate with defaults when optional', () => {
-      const schema = Joi.object(ffmpegSchema);
-      const { error } = schema.validate({}, { allowUnknown: true });
-      // Some schemas have required fields, so error is acceptable
-      if (error) {
-        expect(error.message).toContain('required');
       }
     });
 

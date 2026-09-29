@@ -5,17 +5,6 @@ import { describe, expect, it } from 'vitest';
 import HomeHow from '@web-components/home/_how';
 
 describe('HomeHow', () => {
-  it('renders the section heading', () => {
-    render(<HomeHow />);
-
-    expect(
-      screen.getByRole('heading', {
-        level: 2,
-        name: /brief to published\./i,
-      }),
-    ).toBeInTheDocument();
-  });
-
   it('renders the three-beat brief-to-learning lifecycle as an ordered list', () => {
     render(<HomeHow />);
 

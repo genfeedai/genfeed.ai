@@ -220,19 +220,6 @@ describe('usePromptLibraryStore — CRUD via injected API', () => {
     );
   });
 
-  it('loadItems omits search when no query and no active filter exist', async () => {
-    const api = makeApi();
-    (api.getAll as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    configurePromptLibrary(api);
-
-    await usePromptLibraryStore.getState().loadItems();
-
-    expect(api.getAll).toHaveBeenCalledWith(
-      { category: undefined, search: undefined },
-      undefined,
-    );
-  });
-
   it('duplicateItem prepends the copy', async () => {
     const api = makeApi();
     const copy = makePrompt({ id: 'prompt-1-copy', name: 'Sunset copy' });

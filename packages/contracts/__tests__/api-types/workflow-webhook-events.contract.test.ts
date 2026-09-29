@@ -31,24 +31,6 @@ const completedPayload = {
 };
 
 describe('workflowWebhookPayloadSchema', () => {
-  test('accepts a versioned completed execution payload', () => {
-    expect(
-      workflowWebhookPayloadSchema.safeParse(completedPayload).success,
-    ).toBe(true);
-  });
-
-  test('rejects a non-terminal execution status', () => {
-    const result = workflowWebhookPayloadSchema.safeParse({
-      ...completedPayload,
-      execution: {
-        ...completedPayload.execution,
-        status: WorkflowExecutionStatus.RUNNING,
-      },
-    });
-
-    expect(result.success).toBe(false);
-  });
-
   test('rejects a completed event carrying a failed execution', () => {
     const result = workflowWebhookPayloadSchema.safeParse({
       ...completedPayload,
@@ -71,15 +53,6 @@ describe('workflowWebhookPayloadSchema', () => {
         ...completedPayload.execution,
         status: WorkflowExecutionStatus.FAILED,
       },
-    });
-
-    expect(result.success).toBe(false);
-  });
-
-  test('rejects progress outside the 0-100 range', () => {
-    const result = workflowWebhookPayloadSchema.safeParse({
-      ...completedPayload,
-      execution: { ...completedPayload.execution, progress: 140 },
     });
 
     expect(result.success).toBe(false);

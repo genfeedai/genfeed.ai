@@ -74,11 +74,6 @@ describe('BaseConfigService', () => {
   }
 
   describe('instantiation', () => {
-    it('should be defined', () => {
-      const service = new ConcreteConfigService();
-      expect(service).toBeDefined();
-    });
-
     it('should throw on config validation error for invalid NODE_ENV', () => {
       process.env.NODE_ENV = 'invalid-env';
       expect(() => new ConcreteConfigService()).toThrow(
@@ -147,11 +142,6 @@ describe('BaseConfigService', () => {
 
       const service = new ConcreteConfigService();
       expect(service.SOME_OPTIONAL_VAR).toBe('from-file');
-    });
-
-    it('should work with workingDir=root', () => {
-      const service = new ConcreteConfigService({ workingDir: 'root' });
-      expect(service).toBeDefined();
     });
 
     it('should not throw when env files do not exist', () => {

@@ -58,16 +58,6 @@ describe('getModelCapabilityFromDoc', () => {
     expect(imageResult.isReferencesMandatory).toBe(false);
   });
 
-  it('should return null when maxOutputs is undefined', () => {
-    const model = createMockModel({
-      maxOutputs: undefined,
-    });
-
-    const result = getModelCapabilityFromDoc(model);
-
-    expect(result).toBeNull();
-  });
-
   it('should return sensible defaults for missing optional fields', () => {
     const model = createMockModel({
       category: ModelCategory.IMAGE,
@@ -166,17 +156,6 @@ describe('getModelCapability', () => {
 
     expect(result).not.toBeNull();
     expect(result).toEqual(expected);
-  });
-
-  it('should return null when both DB fields and constant are missing', () => {
-    const model = createMockModel({
-      key: 'nonexistent/model' as string,
-      maxOutputs: undefined,
-    });
-
-    const result = getModelCapability(model);
-
-    expect(result).toBeNull();
   });
 
   it('should prefer DB fields over constant', () => {

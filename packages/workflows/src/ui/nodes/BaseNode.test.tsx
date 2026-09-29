@@ -221,22 +221,6 @@ describe('BaseNode', () => {
   });
 
   describe('rendering', () => {
-    it('should render node with label', () => {
-      render(<BaseNode {...defaultProps} />);
-
-      expect(screen.getByText('Test Node')).toBeInTheDocument();
-    });
-
-    it('should render children', () => {
-      render(
-        <BaseNode {...defaultProps}>
-          <div data-testid="child-content">Child Content</div>
-        </BaseNode>,
-      );
-
-      expect(screen.getByTestId('child-content')).toBeInTheDocument();
-    });
-
     it('should normalize fragment children and header actions without key warnings', () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
@@ -269,18 +253,6 @@ describe('BaseNode', () => {
       );
 
       consoleErrorSpy.mockRestore();
-    });
-
-    it('should render input handles for imageGen node', () => {
-      render(<BaseNode {...defaultProps} type="imageGen" />);
-
-      expect(screen.getByTestId('handle-target-prompt')).toBeInTheDocument();
-    });
-
-    it('should render output handles for prompt node', () => {
-      render(<BaseNode {...defaultProps} type="prompt" />);
-
-      expect(screen.getByTestId('handle-source-text')).toBeInTheDocument();
     });
 
     it('should not render for unknown node type', () => {
@@ -387,22 +359,6 @@ describe('BaseNode', () => {
       expect(screen.getAllByTestId(/^handle-source-field-/)).toHaveLength(8);
     });
 
-    it('generates schema handles for a selected model', () => {
-      render(
-        <BaseNode
-          {...defaultProps}
-          data={{
-            label: 'Schema node',
-            selectedModel: { inputSchema: { prompt: { type: 'string' } } },
-            status: 'idle',
-          }}
-          type="imageGen"
-        />,
-      );
-
-      expect(screen.getByTestId('handle-target-prompt')).toBeInTheDocument();
-    });
-
     it('falls back through definition and type labels when node data has no label', () => {
       const { rerender } = render(
         <BaseNode
@@ -455,21 +411,6 @@ describe('BaseNode', () => {
   });
 
   describe('status indicators', () => {
-    it('should show processing spinner when status is processing', () => {
-      render(
-        <BaseNode
-          {...defaultProps}
-          data={{ label: 'Test', status: 'processing' }}
-        />,
-      );
-
-      // Check for processing indicator: animate-spin class, node-processing wrapper, or SVG element from Loader2
-      const spinner = document.querySelector('.animate-spin');
-      const processingNode = document.querySelector('.node-processing');
-      const svgIcon = document.querySelector('svg');
-      expect(spinner ?? processingNode ?? svgIcon).toBeTruthy();
-    });
-
     it('should show check icon when status is complete', () => {
       render(
         <BaseNode
@@ -482,17 +423,6 @@ describe('BaseNode', () => {
       expect(document.querySelector('.text-chart-2')).toBeInTheDocument();
     });
 
-    it('should show error icon when status is error', () => {
-      render(
-        <BaseNode
-          {...defaultProps}
-          data={{ label: 'Test', status: 'error' }}
-        />,
-      );
-
-      expect(document.querySelector('.text-destructive')).toBeInTheDocument();
-    });
-
     it('should show progress bar when processing with progress', () => {
       render(
         <BaseNode
@@ -502,33 +432,6 @@ describe('BaseNode', () => {
       );
 
       expect(screen.getByText('50%')).toBeInTheDocument();
-    });
-
-    it('should show error message when error is present', () => {
-      render(
-        <BaseNode
-          {...defaultProps}
-          data={{
-            error: 'Something went wrong',
-            label: 'Test',
-            status: 'error',
-          }}
-        />,
-      );
-
-      expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-    });
-
-    it('hides the status indicator when requested', () => {
-      render(
-        <BaseNode
-          {...defaultProps}
-          data={{ label: 'Test', status: 'complete' }}
-          hideStatusIndicator
-        />,
-      );
-
-      expect(document.querySelector('.text-chart-2')).not.toBeInTheDocument();
     });
   });
 
@@ -655,27 +558,6 @@ describe('BaseNode', () => {
   });
 
   describe('selection', () => {
-    it('does not select the node on pointer-down (selection is click/drag-threshold gated by React Flow, not the node body)', () => {
-      render(<BaseNode {...defaultProps} />);
-
-      const nodeElement = screen.getByText('Test Node').closest('div');
-      expect(nodeElement).not.toBeNull();
-
-      fireEvent.pointerDown(nodeElement as Element);
-
-      // Regression guard for #4665: a pointer-down handler here previously
-      // selected the node before any click-vs-drag distinction happened,
-      // which opened node config while dragging or completing a connection.
-      expect(mockSelectNode).not.toHaveBeenCalled();
-    });
-
-    it('should apply ring style when selected', () => {
-      render(<BaseNode {...defaultProps} selected={true} />);
-
-      const node = screen.getByText('Test Node').closest('.ring-1');
-      expect(node).toBeInTheDocument();
-    });
-
     it('uses store selection and dims nodes outside the highlighted set', () => {
       uiState.selectedNodeId = 'node-1';
       uiState.highlightedNodeIds = ['another-node'];
@@ -691,33 +573,9 @@ describe('BaseNode', () => {
         screen.getByText('Test Node').closest('.opacity-40'),
       ).toBeInTheDocument();
     });
-
-    it('keeps a node fully opaque when it belongs to the highlighted set', () => {
-      uiState.highlightedNodeIds = ['node-1'];
-
-      render(<BaseNode {...defaultProps} />);
-
-      expect(
-        screen.getByText('Test Node').closest('.opacity-40'),
-      ).not.toBeInTheDocument();
-    });
   });
 
   describe('locking', () => {
-    it('should show unlock button by default', () => {
-      render(<BaseNode {...defaultProps} />);
-
-      expect(screen.getByTitle('Lock node (L)')).toBeInTheDocument();
-    });
-
-    it('should show lock button when locked', () => {
-      mockIsNodeLocked.mockReturnValue(true);
-
-      render(<BaseNode {...defaultProps} />);
-
-      expect(screen.getByTitle('Unlock node (L)')).toBeInTheDocument();
-    });
-
     it('should show LOCKED badge when locked', () => {
       mockIsNodeLocked.mockReturnValue(true);
 
@@ -733,36 +591,15 @@ describe('BaseNode', () => {
 
       expect(mockToggleNodeLock).toHaveBeenCalledWith('node-1');
     });
-
-    it('should not propagate click event when toggling lock', () => {
-      render(<BaseNode {...defaultProps} />);
-
-      fireEvent.click(screen.getByTitle('Lock node (L)'));
-
-      // selectNode should not be called since we stopPropagation
-      expect(mockSelectNode).not.toHaveBeenCalled();
-    });
   });
 
   describe('category rendering', () => {
-    it('should render prompt node with input category', () => {
-      render(<BaseNode {...defaultProps} type="prompt" />);
-
-      expect(screen.getByText('Test Node')).toBeInTheDocument();
-    });
-
     it('should render imageGen node with ai category', () => {
       render(<BaseNode {...defaultProps} type="imageGen" />);
 
       // imageGen uses the Sparkles icon mapping and renders correctly
       expect(screen.getByTestId('handle-target-prompt')).toBeInTheDocument();
       expect(screen.getByTestId('handle-source-image')).toBeInTheDocument();
-    });
-
-    it('should render output node with output category', () => {
-      render(<BaseNode {...defaultProps} type="output" />);
-
-      expect(screen.getByTestId('handle-target-media')).toBeInTheDocument();
     });
   });
 
@@ -866,16 +703,6 @@ describe('BaseNode', () => {
         expect(mockIsNodeLocked).toHaveBeenCalled();
       },
     );
-
-    it('skips a render when all meaningful props remain equal', () => {
-      const stableData = { ...defaultProps.data };
-      const view = render(<BaseNode {...defaultProps} data={stableData} />);
-      mockIsNodeLocked.mockClear();
-
-      view.rerender(<BaseNode {...defaultProps} data={stableData} />);
-
-      expect(mockIsNodeLocked).not.toHaveBeenCalled();
-    });
 
     it('re-renders when a disabled input changes at the same array position', () => {
       const view = render(

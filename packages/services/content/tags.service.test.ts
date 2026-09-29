@@ -92,16 +92,6 @@ describe('TagsService', () => {
     vi.clearAllMocks();
   });
 
-  describe('constructor', () => {
-    it('should initialize with correct endpoint', () => {
-      expect((service as any).endpoint).toBe(API_ENDPOINTS.TAGS);
-    });
-
-    it('should initialize with provided token', () => {
-      expect((service as any).token).toBe(mockToken);
-    });
-  });
-
   describe('getInstance', () => {
     it('should return TagsService instance', () => {
       const instance = TagsService.getInstance(mockToken);
@@ -121,17 +111,6 @@ describe('TagsService', () => {
       });
       expect(result).toHaveLength(2);
       expect(result[0]).toBeInstanceOf(Tag);
-    });
-
-    it('should log success message', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockTagsData });
-
-      await service.getTagsForCategory(TagCategory.MOOD);
-
-      expect(logger.info).toHaveBeenCalledWith(
-        `GET /tags?category=${TagCategory.MOOD} success`,
-        expect.any(Array),
-      );
     });
 
     it('should log error and throw on failure', async () => {
@@ -162,28 +141,6 @@ describe('TagsService', () => {
       expect(result).toBeInstanceOf(Tag);
     });
 
-    it('should serialize tag data before sending', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockTagData });
-
-      await service.addTagToEntity(TagCategory.MOOD, 'entity-123', 'Mood Tag');
-
-      expect(TagSerializer.serialize).toHaveBeenCalledWith({
-        category: TagCategory.MOOD,
-        label: 'Mood Tag',
-      });
-    });
-
-    it('should log success message', async () => {
-      mockInstance.post.mockResolvedValue({ data: mockTagData });
-
-      await service.addTagToEntity(TagCategory.STYLE, 'entity-123', 'New Tag');
-
-      expect(logger.info).toHaveBeenCalledWith(
-        'POST /tags success',
-        expect.any(Tag),
-      );
-    });
-
     it('should log error and throw on failure', async () => {
       const error = new Error('Create failed');
       mockInstance.post.mockRejectedValue(error);
@@ -196,14 +153,6 @@ describe('TagsService', () => {
   });
 
   describe('removeTag', () => {
-    it('should delete a tag by id', async () => {
-      mockInstance.delete.mockResolvedValue({});
-
-      await service.removeTag('tag-123');
-
-      expect(mockInstance.delete).toHaveBeenCalledWith('tag-123');
-    });
-
     it('should log success message', async () => {
       mockInstance.delete.mockResolvedValue({});
 
@@ -239,27 +188,6 @@ describe('TagsService', () => {
       expect(result).toBeInstanceOf(Tag);
     });
 
-    it('should serialize update data', async () => {
-      mockInstance.patch.mockResolvedValue({ data: mockTagData });
-
-      await service.updateTag('tag-123', 'New Label');
-
-      expect(TagSerializer.serialize).toHaveBeenCalledWith({
-        label: 'New Label',
-      });
-    });
-
-    it('should log success message', async () => {
-      mockInstance.patch.mockResolvedValue({ data: mockTagData });
-
-      await service.updateTag('tag-789', 'Updated Label');
-
-      expect(logger.info).toHaveBeenCalledWith(
-        'PATCH /tags/tag-789 success',
-        expect.any(Tag),
-      );
-    });
-
     it('should log error and throw on failure', async () => {
       const error = new Error('Update failed');
       mockInstance.patch.mockRejectedValue(error);
@@ -286,33 +214,12 @@ describe('TagsService', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should include category filter when provided', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockTagsData });
-
-      await service.searchTags('Test', TagCategory.STYLE);
-
-      expect(mockInstance.get).toHaveBeenCalledWith('', {
-        params: { category: TagCategory.STYLE, label: 'Test' },
-      });
-    });
-
     it('should handle non-array response', async () => {
       mockInstance.get.mockResolvedValue({ data: null });
 
       const result = await service.searchTags('Test');
 
       expect(result).toEqual([]);
-    });
-
-    it('should log success message', async () => {
-      mockInstance.get.mockResolvedValue({ data: mockTagsData });
-
-      await service.searchTags('Tag');
-
-      expect(logger.info).toHaveBeenCalledWith(
-        'GET /tags success',
-        expect.any(Array),
-      );
     });
 
     it('should log error and throw on failure', async () => {

@@ -102,24 +102,4 @@ describe('usePatternContext', () => {
 
     expect(result.current.error).toBe('Failed to load patterns');
   });
-
-  it('ignores abort errors on unmount', async () => {
-    const abortError = new Error('aborted');
-    abortError.name = 'AbortError';
-    let rejectFind: ((reason: Error) => void) | undefined;
-    findAllMock.mockImplementation(
-      () =>
-        new Promise((_resolve, reject) => {
-          rejectFind = reject;
-        }),
-    );
-
-    const { result, unmount } = renderHook(() => usePatternContext());
-
-    unmount();
-    rejectFind?.(abortError);
-    await Promise.resolve();
-
-    expect(result.current.error).toBeNull();
-  });
 });

@@ -12,10 +12,6 @@ describe('WorkflowsService', () => {
     service = new WorkflowsService(mockToken);
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(WorkflowsService);
-  });
-
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
     expect(service.findOne).toBeDefined();

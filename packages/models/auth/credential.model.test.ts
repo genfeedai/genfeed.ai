@@ -147,14 +147,6 @@ describe('Credential', () => {
       expect(cred.externalHandle).toBe('user123');
     });
 
-    it('should instantiate populated user', () => {
-      const cred = createCredential({
-        user: createUser({ id: 'user-123' }),
-      });
-      expect(cred.user).toBeDefined();
-      expect((cred.user as { id: string }).id).toBe('user-123');
-    });
-
     it('keeps the canonical user ID independently of population', () => {
       const cred = createCredential({ userId: 'user-string-id' });
       expect(cred.userId).toBe('user-string-id');

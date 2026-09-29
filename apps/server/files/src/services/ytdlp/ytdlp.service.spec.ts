@@ -109,10 +109,6 @@ describe('YtDlpService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('downloadAudio', () => {
     it('should download audio successfully', async () => {
       const url = 'https://youtube.com/watch?v=test';

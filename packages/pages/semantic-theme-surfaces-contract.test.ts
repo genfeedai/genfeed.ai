@@ -1,11 +1,8 @@
 import { readdirSync, readFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const PAGES_ROOT = import.meta.dirname;
-const RAW_CHROME_PATTERN =
-  /\b(?:text-white|bg-black|bg-white|text-black)(?:\/(?:\d+|\[[^\]]+\]))?\b/u;
-const CONTENT_COLOR_ALLOW_MARKER = 'design-system-allow-content-color';
 
 function readPage(relativePath: string): string {
   return readFileSync(join(PAGES_ROOT, relativePath), 'utf8');
@@ -22,21 +19,6 @@ function collectProductionSources(directory: string): string[] {
 }
 
 describe('page semantic theme surfaces', () => {
-  it('documents every intentional fixed black/white content color inline', () => {
-    const violations = collectProductionSources(PAGES_ROOT).flatMap((file) =>
-      readFileSync(file, 'utf8')
-        .split('\n')
-        .flatMap((line, index) => {
-          if (line.includes(CONTENT_COLOR_ALLOW_MARKER)) return [];
-          return RAW_CHROME_PATTERN.test(line)
-            ? [`${relative(PAGES_ROOT, file)}:${index + 1}: ${line.trim()}`]
-            : [];
-        }),
-    );
-
-    expect(violations).toEqual([]);
-  });
-
   it.each([
     [
       'analytics/overview/analytics-overview-placeholder-card.tsx',

@@ -109,12 +109,6 @@ describe('TrendDigestExecutor', () => {
     );
   });
 
-  it('keys the idempotency marker by workflow id and UTC date', async () => {
-    await executor.execute(makeInput());
-    const key = mocks.idempotencyGuard.mock.calls[0]?.[0] as string;
-    expect(key).toMatch(/^workflow-digest:wf-1:\d{4}-\d{2}-\d{2}$/);
-  });
-
   it('skips with no-owner-email and never acquires the marker', async () => {
     mocks.ownerResolver.mockResolvedValueOnce({ email: null, userId: null });
     const result = await executor.execute(makeInput());

@@ -196,13 +196,6 @@ describe('Article', () => {
       expect(article.brand).toBeDefined();
     });
 
-    it('should instantiate populated user', () => {
-      const article = createArticle({
-        user: createUser({ handle: 'johndoe' }),
-      });
-      expect(article.user).toBeDefined();
-    });
-
     it('should instantiate populated tags array', () => {
       const article = createArticle({
         tags: [createTag({ label: 'tag1' }), createTag({ label: 'tag2' })],
@@ -292,11 +285,6 @@ describe('Article', () => {
 
     it('should return undefined when user is missing', () => {
       const article = createArticle({ user: undefined as never });
-      expect(article.author).toBeUndefined();
-    });
-
-    it('should return undefined when user has no handle', () => {
-      const article = createArticle({ user: createUser({ handle: '' }) });
       expect(article.author).toBeUndefined();
     });
   });

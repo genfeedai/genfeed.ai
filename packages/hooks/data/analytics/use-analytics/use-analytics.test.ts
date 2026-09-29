@@ -182,61 +182,6 @@ describe('useAnalytics', () => {
     });
   });
 
-  describe('Scope State Management', () => {
-    it('initializes selectedScope to provided scope', async () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.BRAND }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      expect(result.current.selectedScope).toBe(PageScope.BRAND);
-    });
-
-    it('provides setSelectedScope function', () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.ORGANIZATION }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      expect(typeof result.current.setSelectedScope).toBe('function');
-    });
-
-    it('can update selectedScope', () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.ORGANIZATION }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      act(() => {
-        result.current.setSelectedScope(PageScope.BRAND);
-      });
-
-      expect(result.current.selectedScope).toBe(PageScope.BRAND);
-    });
-
-    it('provides setSelectedScopeId function', () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.ORGANIZATION }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      expect(typeof result.current.setSelectedScopeId).toBe('function');
-    });
-
-    it('can update selectedScopeId', () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.ORGANIZATION }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      act(() => {
-        result.current.setSelectedScopeId('new-scope-id');
-      });
-
-      expect(result.current.selectedScopeId).toBe('new-scope-id');
-    });
-  });
-
   describe('autoLoad Option', () => {
     it('defaults to autoLoad true', async () => {
       const { result } = renderHook(
@@ -270,15 +215,6 @@ describe('useAnalytics', () => {
   });
 
   describe('Refresh Methods', () => {
-    it('provides refresh method', () => {
-      const { result } = renderHook(
-        () => useAnalytics({ scope: PageScope.ORGANIZATION }),
-        { wrapper: createQueryWrapper() },
-      );
-
-      expect(typeof result.current.refresh).toBe('function');
-    });
-
     it('refresh triggers re-fetch', async () => {
       const { result } = renderHook(
         () => useAnalytics({ scope: PageScope.ORGANIZATION }),

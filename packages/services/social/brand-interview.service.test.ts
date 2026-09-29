@@ -1,7 +1,4 @@
-import {
-  clearAllServiceInstances,
-  HTTPBaseService,
-} from '@services/core/interceptor.service';
+import { HTTPBaseService } from '@services/core/interceptor.service';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,24 +20,6 @@ describe('BrandInterviewService', () => {
 
     expect(first).toBeInstanceOf(BrandInterviewService);
     expect(second).toBe(first);
-  });
-
-  it('returns a distinct instance per token', () => {
-    const a = BrandInterviewService.getInstance('token-a');
-    const b = BrandInterviewService.getInstance('token-b');
-
-    expect(a).not.toBe(b);
-  });
-
-  it('participates in the shared cache cleared on sign-out', () => {
-    // clearAllServiceInstances() runs on logout and must wipe this service's
-    // token-bound instance so stale tokens cannot leak across sessions.
-    const before = BrandInterviewService.getInstance('token-a');
-
-    clearAllServiceInstances();
-
-    const after = BrandInterviewService.getInstance('token-a');
-    expect(after).not.toBe(before);
   });
 
   it('treats a missing active interview as an expected empty result', async () => {

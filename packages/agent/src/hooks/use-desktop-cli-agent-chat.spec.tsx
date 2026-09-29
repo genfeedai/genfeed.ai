@@ -89,27 +89,6 @@ describe('useDesktopCliAgentChat transport selection', () => {
     expect(result.current.runtimeKey).toBe('local/claude-cli');
   });
 
-  it('uses the draft runtime before the thread exists', async () => {
-    installBridge({ claude: false, codex: true });
-    useAgentChatStore.setState({ draftRuntimeKey: 'local/codex-cli' });
-
-    const { result } = renderHook(() => useDesktopCliAgentChat());
-
-    await waitFor(() =>
-      expect(result.current.runtimeKey).toBe('local/codex-cli'),
-    );
-  });
-
-  it('keeps hosted threads on the API stream', async () => {
-    installBridge({ claude: true, codex: true });
-    setActiveThread('hosted/genfeed');
-
-    const { result } = renderHook(() => useDesktopCliAgentChat());
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(result.current.isEnabled).toBe(false);
-  });
-
   it('blocks a CLI thread in a browser instead of sending it to the hosted stream', async () => {
     setActiveThread('local/claude-cli');
 

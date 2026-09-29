@@ -78,14 +78,6 @@ describe('WatchlistService', () => {
     );
   });
 
-  it('has CRUD methods', () => {
-    expect(service.findAll).toBeDefined();
-    expect(service.findOne).toBeDefined();
-    expect(service.post).toBeDefined();
-    expect(service.patch).toBeDefined();
-    expect(service.delete).toBeDefined();
-  });
-
   describe('quickAdd', () => {
     it('posts to the generic create endpoint with platform and handle', async () => {
       const postSpy = vi.spyOn(service, 'post').mockResolvedValue({
@@ -100,17 +92,6 @@ describe('WatchlistService', () => {
         handle: 'testuser',
         platform: 'twitter',
       });
-    });
-
-    it('returns watchlist item', async () => {
-      vi.spyOn(service, 'post').mockResolvedValue({
-        handle: 'company',
-        id: 'w1',
-        platform: 'linkedin',
-      } as never);
-
-      const result = await service.quickAdd('linkedin', 'company');
-      expect(result).toBeDefined();
     });
   });
 

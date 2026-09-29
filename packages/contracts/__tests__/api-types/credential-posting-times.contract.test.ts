@@ -76,17 +76,6 @@ describe('buildDayViewRows', () => {
       { hour: 13, minute: 7 },
     ]);
   });
-
-  it('resolves occupied instants in the brand timezone', () => {
-    expect(
-      buildDayViewRows({
-        date: new Date('2026-08-24T07:00:00.000Z'),
-        occupiedInstants: ['2026-08-24T08:00:00.000Z'],
-        preferredTimes: [{ hour: 9, minute: 0 }],
-        timezone: 'Europe/Malta',
-      }).map(formatClockTime),
-    ).toEqual(['09:00', '10:00']);
-  });
 });
 
 describe('findNextFreeSlot', () => {

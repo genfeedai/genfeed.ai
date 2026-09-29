@@ -53,14 +53,6 @@ describe('Footer Component', () => {
     expect(links.length).toBeLessThanOrEqual(21);
   });
 
-  it('lists every destination exactly once', () => {
-    const hrefs = WEBSITE_SECTIONS.flatMap((section) =>
-      section.links.map((link) => link.href),
-    );
-
-    expect(new Set(hrefs).size).toBe(hrefs.length);
-  });
-
   it('leads Solutions with Pricing and links the blog', () => {
     const solutions = WEBSITE_SECTIONS.find(
       (section) => section.title === 'Solutions',

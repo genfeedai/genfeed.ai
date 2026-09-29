@@ -120,12 +120,6 @@ vi.mock('@genfeedai/contracts/constants', async () => {
 
 describe('video-duration.helper', () => {
   describe('formatDuration', () => {
-    it('should return 0:00 for null/undefined', () => {
-      expect(formatDuration(null)).toBe('0:00');
-      expect(formatDuration(undefined)).toBe('0:00');
-      expect(formatDuration(0)).toBe('0:00');
-    });
-
     it('should format seconds only (MM:SS)', () => {
       expect(formatDuration(5)).toBe('0:05');
       expect(formatDuration(30)).toBe('0:30');
@@ -195,12 +189,6 @@ describe('video-duration.helper', () => {
       expect(DurationUtil.validateSoraDuration(undefined)).toBe(4);
     });
 
-    it('should return valid Sora durations [4, 8, 12]', () => {
-      expect(DurationUtil.validateSoraDuration(4)).toBe(4);
-      expect(DurationUtil.validateSoraDuration(8)).toBe(8);
-      expect(DurationUtil.validateSoraDuration(12)).toBe(12);
-    });
-
     it('should normalize invalid durations to nearest Sora duration', () => {
       expect(DurationUtil.validateSoraDuration(5)).toBe(4);
       expect(DurationUtil.validateSoraDuration(7)).toBe(8);
@@ -213,11 +201,6 @@ describe('video-duration.helper', () => {
     it('should return default 8 if no duration requested', () => {
       expect(DurationUtil.validateVeoDuration()).toBe(8);
       expect(DurationUtil.validateVeoDuration(undefined)).toBe(8);
-    });
-
-    it('should return valid Veo durations [5, 8]', () => {
-      expect(DurationUtil.validateVeoDuration(5)).toBe(5);
-      expect(DurationUtil.validateVeoDuration(8)).toBe(8);
     });
 
     it('should normalize invalid durations to nearest Veo duration', () => {

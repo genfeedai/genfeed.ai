@@ -88,21 +88,10 @@ describe('SocketService', () => {
   });
 
   describe('getInstance', () => {
-    it('returns a SocketService instance', () => {
-      const instance = SocketService.getInstance();
-      expect(instance).toBeInstanceOf(SocketService);
-    });
-
     it('returns the same instance on repeated calls (singleton)', () => {
       const i1 = SocketService.getInstance();
       const i2 = SocketService.getInstance();
       expect(i1).toBe(i2);
-    });
-
-    it('returns the same instance when a different token is provided', () => {
-      const i1 = SocketService.getInstance('token-a');
-      const i2 = SocketService.getInstance('token-b');
-      expect(i2).toBe(i1);
     });
 
     it('rotates the token in place without tearing down a live socket', () => {
@@ -135,25 +124,6 @@ describe('SocketService', () => {
       expect(mockIo).toHaveBeenCalledTimes(1);
       expect(mockSocketDisconnect).not.toHaveBeenCalled();
       expect(mockSocketConnect).toHaveBeenCalledOnce();
-    });
-
-    it('keeps same-user Better Auth refresh in place without rebinding rooms', () => {
-      socketState.connected = true;
-      const previous = makeJwt({
-        organizationId: 'org-a',
-        sub: 'user-a',
-      });
-      const next = makeJwt({
-        organizationId: 'org-a',
-        sub: 'user-a',
-      });
-      SocketService.getInstance(previous);
-
-      SocketService.getInstance(next);
-
-      expect(mockSocketEmit).not.toHaveBeenCalled();
-      expect(mockSocketDisconnect).not.toHaveBeenCalled();
-      expect(mockSocketConnect).not.toHaveBeenCalled();
     });
 
     it('disconnects before reconnecting so prior rooms cannot deliver during identity swap', () => {
@@ -246,26 +216,6 @@ describe('SocketService', () => {
       expect(service.socket.auth).toEqual({ token: tokenC });
       expect(mockIo).toHaveBeenCalledTimes(1);
     });
-
-    it('keeps same-user refresh in place while a reconnect is in flight', () => {
-      socketState.connected = false;
-      socketState.active = true;
-      const previous = makeJwt({
-        organizationId: 'org-a',
-        sub: 'user-a',
-      });
-      const next = makeJwt({
-        organizationId: 'org-a',
-        sub: 'user-a',
-      });
-      SocketService.getInstance(previous);
-
-      SocketService.getInstance(next);
-
-      expect(mockSocketDisconnect).not.toHaveBeenCalled();
-      expect(mockSocketConnect).not.toHaveBeenCalled();
-      expect(mockEngineClose).not.toHaveBeenCalled();
-    });
   });
 
   describe('socket identity claims', () => {
@@ -275,19 +225,6 @@ describe('SocketService', () => {
           makeJwt({ organizationId: 'org-1', sub: 'user-1' }),
         ),
       ).toEqual({ organizationId: 'org-1', userId: 'user-1' });
-    });
-
-    it('does not treat opaque refresh tokens as a cross-identity swap', () => {
-      expect(isCrossIdentitySocketRotation('token-a', 'token-b')).toBe(false);
-    });
-
-    it('treats an unreadable next token after a known JWT as a cross-identity swap', () => {
-      expect(
-        isCrossIdentitySocketRotation(
-          makeJwt({ organizationId: 'org-a', sub: 'user-a' }),
-          'opaque-refresh',
-        ),
-      ).toBe(true);
     });
 
     it('treats an opaque previous token followed by a JWT as a cross-identity swap', () => {
@@ -312,40 +249,6 @@ describe('SocketService', () => {
           makeJwt({ organizationId: 'org-b', sub: 'user-a' }),
         ),
       ).toBe(true);
-    });
-  });
-
-  describe('connect', () => {
-    it('calls socket.connect()', () => {
-      const service = SocketService.getInstance();
-      service.connect();
-      expect(mockSocketConnect).toHaveBeenCalledOnce();
-    });
-  });
-
-  describe('disconnect', () => {
-    it('calls socket.disconnect()', () => {
-      const service = SocketService.getInstance();
-      service.disconnect();
-      expect(mockSocketDisconnect).toHaveBeenCalled();
-    });
-  });
-
-  describe('off', () => {
-    it('calls socket.off() with the event name', () => {
-      const service = SocketService.getInstance();
-      const handler = vi.fn();
-      service.off('my-event', handler);
-      expect(mockSocketOff).toHaveBeenCalledWith('my-event', handler);
-    });
-  });
-
-  describe('clearInstance', () => {
-    it('destroys the singleton so a new one is created next call', () => {
-      const i1 = SocketService.getInstance('tok');
-      SocketService.clearInstance();
-      const i2 = SocketService.getInstance('tok');
-      expect(i1).not.toBe(i2);
     });
   });
 

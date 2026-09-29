@@ -11,22 +11,4 @@ describe('ElementsFiltersProvider', () => {
     );
     expect(screen.getByTestId('child')).toBeInTheDocument();
   });
-
-  it('should handle user interactions correctly', () => {
-    render(
-      <ElementsFiltersProvider>
-        <span data-testid="child">test</span>
-      </ElementsFiltersProvider>,
-    );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    render(
-      <ElementsFiltersProvider>
-        <span data-testid="child">test</span>
-      </ElementsFiltersProvider>,
-    );
-    expect(screen.getByTestId('child')).toBeInTheDocument();
-  });
 });

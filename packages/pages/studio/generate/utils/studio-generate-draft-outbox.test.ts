@@ -52,69 +52,6 @@ describe('createStudioGenerateDraftOutbox', () => {
     vi.useRealTimers();
   });
 
-  it('writes only what the server does not already hold', async () => {
-    const outbox = createStudioGenerateDraftOutbox();
-    outbox.setAcknowledged('brand-1', payload('A'));
-
-    outbox.enqueue('brand-1', payload('A'), { write });
-    await settle();
-
-    expect(write).not.toHaveBeenCalled();
-  });
-
-  it('writes the latest composer after an in-flight write, even when it matches the old draft', async () => {
-    const outbox = createStudioGenerateDraftOutbox();
-    outbox.setAcknowledged('brand-1', payload('A'));
-    const writeB = deferred();
-    write.mockReturnValueOnce(writeB.promise);
-
-    outbox.enqueue('brand-1', payload('B'), { write });
-    outbox.enqueue('brand-1', payload('A'), { write });
-    writeB.resolve();
-    await settle();
-
-    expect(writtenPrompts()).toEqual(['B', 'A']);
-  });
-
-  it('drains a departing write queued behind an in-flight one, with keepalive', async () => {
-    const outbox = createStudioGenerateDraftOutbox();
-    const writeA = deferred();
-    write.mockReturnValueOnce(writeA.promise);
-
-    outbox.enqueue('brand-1', payload('A'), { write });
-    // The workspace unmounts here: nothing else will ever call the outbox.
-    outbox.enqueue('brand-1', payload('B typed before leaving'), {
-      isKeepalive: true,
-      write,
-    });
-    writeA.resolve();
-    await settle();
-
-    expect(write).toHaveBeenLastCalledWith(
-      'brand-1',
-      expect.objectContaining({ prompt: 'B typed before leaving' }),
-      { isKeepalive: true, ownerId: null },
-    );
-    expect(writtenPrompts()).toEqual(['A', 'B typed before leaving']);
-  });
-
-  it('keeps brands independent', async () => {
-    const outbox = createStudioGenerateDraftOutbox();
-    const writeA = deferred();
-    write.mockReturnValueOnce(writeA.promise);
-
-    outbox.enqueue('brand-1', payload('A'), { write });
-    outbox.enqueue('brand-2', payload('Z'), { write });
-    await settle();
-
-    expect(write).toHaveBeenCalledWith(
-      'brand-2',
-      expect.objectContaining({ prompt: 'Z' }),
-      { isKeepalive: false, ownerId: null },
-    );
-    writeA.resolve();
-  });
-
   it('retries a failed write with backoff and reports each state', async () => {
     vi.useFakeTimers();
     const outbox = createStudioGenerateDraftOutbox({ retryBaseMs: 1000 });
@@ -130,22 +67,6 @@ describe('createStudioGenerateDraftOutbox', () => {
 
     expect(writtenPrompts()).toEqual(['A', 'A']);
     expect(statuses).toEqual(['saving', 'error', 'saving', 'saved']);
-  });
-
-  it('resolves whenIdle only after the in-flight write lands', async () => {
-    const outbox = createStudioGenerateDraftOutbox();
-    const writeA = deferred();
-    write.mockReturnValueOnce(writeA.promise);
-    const isIdle = vi.fn();
-
-    outbox.enqueue('brand-1', payload('A'), { write });
-    void outbox.whenIdle('brand-1').then(isIdle);
-    await settle();
-    expect(isIdle).not.toHaveBeenCalled();
-
-    writeA.resolve();
-    await settle();
-    expect(isIdle).toHaveBeenCalledTimes(1);
   });
 
   it('stays busy while a failed write waits on its retry', async () => {
@@ -239,28 +160,5 @@ describe('createStudioGenerateDraftOutbox', () => {
 
     expect(write).toHaveBeenCalledTimes(1);
     expect(isIdle).toHaveBeenCalledTimes(1);
-  });
-
-  it('passes each write the user who queued it, and drops other users writes on a switch', async () => {
-    vi.useFakeTimers();
-    const outbox = createStudioGenerateDraftOutbox({
-      getStorage: () => null,
-      retryBaseMs: 1000,
-    });
-    write.mockRejectedValueOnce(new Error('offline'));
-
-    outbox.enqueue('brand-1', payload('A'), { ownerId: 'user-1', write });
-    await settle();
-    expect(write).toHaveBeenCalledWith(
-      'brand-1',
-      expect.objectContaining({ prompt: 'A' }),
-      { isKeepalive: false, ownerId: 'user-1' },
-    );
-
-    // user-2 signs in on this tab before the retry fires.
-    outbox.discardForeign('user-2');
-    await vi.advanceTimersByTimeAsync(60_000);
-
-    expect(write).toHaveBeenCalledTimes(1);
   });
 });

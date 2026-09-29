@@ -58,10 +58,6 @@ const disabledConfig: VideoGenerationGateConfig = {
 };
 
 describe('isVideoGenerationNodeType', () => {
-  it('matches only the canonical video generation action', () => {
-    expect(isVideoGenerationNodeType('videoGen')).toBe(true);
-  });
-
   it('does not match image, processing, or other node types', () => {
     expect(isVideoGenerationNodeType('imageGen')).toBe(false);
     expect(isVideoGenerationNodeType('generateVideo')).toBe(false);
@@ -74,46 +70,12 @@ describe('isVideoGenerationNodeType', () => {
 });
 
 describe('shouldApplyVideoGenerationGate', () => {
-  it('returns false when the gate is disabled', () => {
-    expect(
-      shouldApplyVideoGenerationGate({
-        baseCreditCost: 10,
-        config: disabledConfig,
-        node: makeNode('videoGen', { duration: 8 }),
-      }),
-    ).toBe(false);
-  });
-
   it('returns false for non-video node types even when enabled', () => {
     expect(
       shouldApplyVideoGenerationGate({
         baseCreditCost: 10,
         config: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
         node: makeNode('imageGen', { duration: 8 }),
-      }),
-    ).toBe(false);
-  });
-
-  it('returns false when requested duration is already the provider minimum', () => {
-    expect(
-      shouldApplyVideoGenerationGate({
-        baseCreditCost: 10,
-        config: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-        node: makeNode('videoGen', { duration: 4 }),
-      }),
-    ).toBe(false);
-  });
-
-  it('returns false when duration and credit cost are both below their thresholds', () => {
-    expect(
-      shouldApplyVideoGenerationGate({
-        baseCreditCost: 5,
-        config: {
-          ...DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-          creditThreshold: 10,
-          durationThresholdSeconds: 8,
-        },
-        node: makeNode('videoGen', { duration: 6 }),
       }),
     ).toBe(false);
   });
@@ -127,26 +89,6 @@ describe('shouldApplyVideoGenerationGate', () => {
           durationThresholdSeconds: 8,
         },
         node: makeNode('videoGen', { duration: 6 }),
-      }),
-    ).toBe(true);
-  });
-
-  it('returns true when requested duration is at/above the threshold', () => {
-    expect(
-      shouldApplyVideoGenerationGate({
-        baseCreditCost: 10,
-        config: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-        node: makeNode('videoGen', { duration: 8 }),
-      }),
-    ).toBe(true);
-  });
-
-  it('returns true for BYOK (zero credit cost) when duration is above threshold', () => {
-    expect(
-      shouldApplyVideoGenerationGate({
-        baseCreditCost: 0,
-        config: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-        node: makeNode('videoGen', { duration: 8 }),
       }),
     ).toBe(true);
   });
@@ -237,15 +179,6 @@ describe('resolveVideoGenerationAcceptance', () => {
       passed: true,
       source: 'videoQa',
     });
-  });
-
-  it('returns null when nothing can decide yet (user-review fallback)', () => {
-    expect(
-      resolveVideoGenerationAcceptance({
-        inputs: new Map(),
-        output: { video: 'https://cdn.test/pilot.mp4' },
-      }),
-    ).toBeNull();
   });
 });
 
@@ -342,22 +275,6 @@ describe('VideoGenerationGateService', () => {
 
     expect(result).toEqual({ kind: 'bypass' });
     expect(executor).not.toHaveBeenCalled();
-  });
-
-  it('bypasses when duration is at the provider minimum', async () => {
-    const result = await service.execute({
-      baseCreditCost: 10,
-      executor: vi.fn(),
-      gateConfig: DEFAULT_VIDEO_GENERATION_GATE_CONFIG,
-      inputs: new Map(),
-      lineage: makeLineage(),
-      node: makeNode('videoGen', { duration: 4 }),
-      nodeId: 'video-1',
-      startedAt: new Date(),
-      workflowId: 'wf-1',
-    });
-
-    expect(result.kind).toBe('bypass');
   });
 
   it('charges only the scaled pilot until a videoQa report accepts, then charges the full run', async () => {

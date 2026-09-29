@@ -119,15 +119,6 @@ describe('credentialFromAccount', () => {
 });
 
 describe('visibleAccounts', () => {
-  it('returns every account when no chip is selected', () => {
-    const accounts = [
-      buildAccount(),
-      buildAccount({ credentialId: 'credential-x', handle: '@x' }),
-    ];
-
-    expect(visibleAccounts(accounts, [])).toEqual(accounts);
-  });
-
   it('keeps only selected credential ids', () => {
     const accounts = [
       buildAccount(),
@@ -153,17 +144,6 @@ describe('computeGapSlots', () => {
     expect(gaps[0]).toBe('2026-09-03T09:00:00.000Z');
     expect(gaps).toHaveLength(3);
     expect(gaps).not.toContain('2026-09-02T15:00:00.000Z');
-  });
-
-  it('returns no gaps when posting times are missing', () => {
-    expect(
-      computeGapSlots({
-        now: NOW,
-        occupiedInstants: [],
-        postingTimes: [],
-        timezone: 'UTC',
-      }),
-    ).toEqual([]);
   });
 });
 

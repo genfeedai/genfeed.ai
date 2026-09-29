@@ -6,10 +6,6 @@ import {
 
 describe('content-source.enum', () => {
   describe('AlertFrequency', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(AlertFrequency)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(AlertFrequency.INSTANT).toBe('instant');
       expect(AlertFrequency.HOURLY).toBe('hourly');
@@ -18,10 +14,6 @@ describe('content-source.enum', () => {
   });
 
   describe('ContentSourceType', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(ContentSourceType)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(ContentSourceType.QUEUE).toBe('queue');
       expect(ContentSourceType.TEMPLATE).toBe('template');

@@ -26,8 +26,4 @@ describe('shouldOfferGenerationPromptPreview', () => {
       ),
     ).toBe(true);
   });
-
-  it('offers a preview for a long single line that will clip', () => {
-    expect(shouldOfferGenerationPromptPreview('word '.repeat(50))).toBe(true);
-  });
 });

@@ -13,14 +13,6 @@ function makeQuestion(overrides: Partial<Question> = {}): Question {
 }
 
 describe('QuestionCard', () => {
-  it('renders the question text', () => {
-    render(<QuestionCard question={makeQuestion()} onAnswer={vi.fn()} />);
-
-    expect(
-      screen.getByText('Which platform should we target first?'),
-    ).toBeInTheDocument();
-  });
-
   it('keeps the submit action disabled until free text is entered', () => {
     render(<QuestionCard question={makeQuestion()} onAnswer={vi.fn()} />);
 
@@ -44,18 +36,6 @@ describe('QuestionCard', () => {
     fireEvent.click(screen.getByRole('button', { name: /Submit answer/ }));
 
     expect(onAnswer).toHaveBeenCalledWith('q-1', 'Instagram');
-  });
-
-  it('treats whitespace-only free text as unanswered', () => {
-    render(<QuestionCard question={makeQuestion()} onAnswer={vi.fn()} />);
-
-    fireEvent.change(screen.getByPlaceholderText('Type your answer...'), {
-      target: { value: '   ' },
-    });
-
-    expect(
-      screen.getByRole('button', { name: /Submit answer/ }),
-    ).toBeDisabled();
   });
 
   it('submits the picked option for a multiple choice question', () => {

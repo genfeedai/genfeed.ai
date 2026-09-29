@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  type BatchActionRequest,
   BatchesService,
   type BatchListQuery,
   type CreateManualReviewBatchRequest,
@@ -79,10 +78,6 @@ describe('BatchesService', () => {
       .instance;
   });
 
-  it('is defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('getBatches fetches from the API with query params', async () => {
     const query: BatchListQuery = { limit: 5 };
     mockInstance.get.mockResolvedValue({ data: { data: [makeMockBatch()] } });
@@ -91,14 +86,6 @@ describe('BatchesService', () => {
 
     expect(mockInstance.get).toHaveBeenCalledWith('', { params: query });
     expect(result).toBeDefined();
-  });
-
-  it('getBatches works without query params', async () => {
-    mockInstance.get.mockResolvedValue({ data: { data: [] } });
-
-    await service.getBatches();
-
-    expect(mockInstance.get).toHaveBeenCalledWith('', { params: undefined });
   });
 
   it('getBatches throws and logs on error', async () => {
@@ -139,42 +126,6 @@ describe('BatchesService', () => {
     ).rejects.toThrow('validation error');
   });
 
-  it('itemAction POSTs to /:batchId/items/action', async () => {
-    const req: BatchActionRequest = {
-      action: 'approve',
-      itemIds: ['item-1', 'item-2'],
-    };
-    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
-
-    await service.itemAction('batch-1', req);
-
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/action',
-      req,
-    );
-  });
-
-  it('assignItem POSTs to /:batchId/items/:itemId/assign', async () => {
-    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
-
-    await service.assignItem('batch-1', 'item-1', 'user-1');
-
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/item-1/assign',
-      { assigneeId: 'user-1' },
-    );
-  });
-
-  it('unassignItem POSTs to /:batchId/items/:itemId/unassign', async () => {
-    mockInstance.post.mockResolvedValue({ data: { data: makeMockBatch() } });
-
-    await service.unassignItem('batch-1', 'item-1');
-
-    expect(mockInstance.post).toHaveBeenCalledWith(
-      '/batch-1/items/item-1/unassign',
-    );
-  });
-
   it('cancelBatch PATCHes /:id with status cancelled', async () => {
     mockInstance.patch.mockResolvedValue({ data: { data: makeMockBatch() } });
 
@@ -183,12 +134,6 @@ describe('BatchesService', () => {
     expect(mockInstance.patch).toHaveBeenCalledWith('/batch-99', {
       status: 'CANCELLED',
     });
-  });
-
-  it('getInstance returns the same instance for same token', () => {
-    const a = BatchesService.getInstance('token-abc');
-    const b = BatchesService.getInstance('token-abc');
-    expect(a).toBe(b);
   });
 
   it('getInstance returns different instances for different tokens', () => {

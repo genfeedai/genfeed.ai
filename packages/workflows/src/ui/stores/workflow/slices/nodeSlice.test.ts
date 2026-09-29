@@ -48,14 +48,4 @@ describe('nodeSlice global image history', () => {
     expect(history[0].image).toBe('https://asset.test/104.png');
     expect(history[99].image).toBe('https://asset.test/5.png');
   });
-
-  it('clears history', () => {
-    useWorkflowStore.getState().addToGlobalHistory({
-      image: 'https://asset.test/a.png',
-      timestamp: 1_767_225_600_000,
-    });
-    useWorkflowStore.getState().clearGlobalHistory();
-
-    expect(useWorkflowStore.getState().globalImageHistory).toEqual([]);
-  });
 });

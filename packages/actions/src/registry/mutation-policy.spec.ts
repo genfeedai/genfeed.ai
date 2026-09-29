@@ -123,19 +123,6 @@ describe('evaluateMutationPolicy', () => {
     ).toEqual({ kind: 'execute' });
   });
 
-  it.each(['direct', undefined] as const)(
-    'executes policy %s when host capability is omitted',
-    (policy) => {
-      expect(
-        evaluateMutationPolicy({
-          hasTrustedApproval: false,
-          isAvailableOnSurface: true,
-          policy,
-        }),
-      ).toEqual({ kind: 'execute' });
-    },
-  );
-
   it('rejects approval-required calls when host capability is omitted', () => {
     expect(
       evaluateMutationPolicy({

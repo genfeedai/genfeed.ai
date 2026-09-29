@@ -10,10 +10,6 @@ import {
 
 describe('insight.enum', () => {
   describe('InsightCategory', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(InsightCategory)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(InsightCategory.TREND).toBe('trend');
       expect(InsightCategory.OPPORTUNITY).toBe('opportunity');
@@ -23,10 +19,6 @@ describe('insight.enum', () => {
   });
 
   describe('InsightImpact', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(InsightImpact)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(InsightImpact.HIGH).toBe('high');
       expect(InsightImpact.MEDIUM).toBe('medium');
@@ -35,10 +27,6 @@ describe('insight.enum', () => {
   });
 
   describe('ContentSuggestionType', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ContentSuggestionType)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(ContentSuggestionType.TIMING).toBe('timing');
       expect(ContentSuggestionType.FORMAT).toBe('format');
@@ -49,10 +37,6 @@ describe('insight.enum', () => {
   });
 
   describe('SmartAlertType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SmartAlertType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(SmartAlertType.ANOMALY).toBe('anomaly');
       expect(SmartAlertType.MILESTONE).toBe('milestone');
@@ -62,10 +46,6 @@ describe('insight.enum', () => {
   });
 
   describe('SmartAlertSeverity', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(SmartAlertSeverity)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(SmartAlertSeverity.CRITICAL).toBe('critical');
       expect(SmartAlertSeverity.WARNING).toBe('warning');
@@ -75,10 +55,6 @@ describe('insight.enum', () => {
   });
 
   describe('AnomalySeverity', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(AnomalySeverity)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(AnomalySeverity.CRITICAL).toBe('critical');
       expect(AnomalySeverity.WARNING).toBe('warning');

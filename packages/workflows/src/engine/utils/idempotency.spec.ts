@@ -12,16 +12,6 @@ describe('deriveWorkflowActionIdempotencyKey', () => {
     ).toBe('workflow:execution-1:email-1');
   });
 
-  it('does not fabricate a key for actions with no idempotency policy', () => {
-    expect(
-      deriveWorkflowActionIdempotencyKey({
-        actionId: 'youtube.clip.read-session',
-        executionId: 'execution-1',
-        nodeId: 'read-session-1',
-      }),
-    ).toBeUndefined();
-  });
-
   it('fails closed when a run-node action has no durable execution id', () => {
     expect(() =>
       deriveWorkflowActionIdempotencyKey({

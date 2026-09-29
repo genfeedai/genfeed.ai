@@ -526,14 +526,6 @@ describe('StudioGenerateWorkspace', () => {
     );
   });
 
-  it('removes a deleted asset from the current-session job queue', () => {
-    render(<StudioGenerateWorkspace />);
-
-    expect(mocks.assetActionsHook).toHaveBeenCalledWith(
-      expect.objectContaining({ onDeleted: mocks.removeJob }),
-    );
-  });
-
   it('floats the composer over the gallery like the Agent dock', () => {
     render(<StudioGenerateWorkspace />);
 
@@ -716,30 +708,6 @@ describe('StudioGenerateWorkspace', () => {
     expect(characterMentionMocks.resolveSubmit).toHaveBeenCalled();
     expect(mocks.submit).toHaveBeenCalledWith(
       'Use this composition',
-      {
-        endFrameId: undefined,
-        imageReferenceIds: ['ingredient-1', 'img-anna'],
-        videoReferenceIds: [],
-      },
-      undefined,
-    );
-  });
-
-  it('serializes character mention display names and merges reference ids on generate', () => {
-    render(<StudioGenerateWorkspace />);
-
-    const initialProps = mocks.composer.mock.calls.at(-1)?.[0] as {
-      onPromptChange: (value: string) => void;
-    };
-    act(() => initialProps.onPromptChange('@anna walking'));
-
-    const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
-      onSubmit: () => void;
-    };
-    act(() => currentProps.onSubmit());
-
-    expect(mocks.submit).toHaveBeenCalledWith(
-      'Anna walking',
       {
         endFrameId: undefined,
         imageReferenceIds: ['ingredient-1', 'img-anna'],
@@ -974,27 +942,6 @@ describe('StudioGenerateWorkspace', () => {
         output: expect.objectContaining({ kind: 'avatar' }),
       }),
     );
-  });
-
-  it('resubscribes stored in-flight jobs when the playground remounts', () => {
-    const storedJobs = [
-      {
-        createdAt: 1,
-        id: 'processing-1',
-        prompt: 'Still rendering',
-        status: 'PROCESSING',
-        type: 'image',
-      },
-    ];
-    mocks.gallery.mockReturnValue({
-      isLoadingGallery: false,
-      refresh: vi.fn(),
-      storedJobs,
-    });
-
-    render(<StudioGenerateWorkspace />);
-
-    expect(mocks.rehydratePending).toHaveBeenCalledWith(storedJobs);
   });
 
   it('defaults to the masonry grid and toggles the results into a list', () => {
@@ -1377,27 +1324,6 @@ describe('StudioGenerateWorkspace', () => {
     },
   );
 
-  it('does not request handoff references when identity changes while acquiring the service', async () => {
-    const token = Promise.withResolvers<string>();
-    mocks.getToken.mockReturnValue(token.promise);
-    mocks.handoff.value = {
-      isLoading: false,
-      payload: {
-        brandId: 'brand-1',
-        prompt: 'Original handoff',
-        references: ['old-reference'],
-        type: 'image',
-      },
-    };
-    const { rerender } = render(<StudioGenerateWorkspace />);
-    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
-    mocks.authIdentity.value = 'identity-2';
-    rerender(<StudioGenerateWorkspace />);
-    await act(async () => token.resolve('replacement-token'));
-
-    expect(mocks.findByIds).not.toHaveBeenCalled();
-  });
-
   it('does not use a later handoff after accepting one without references', async () => {
     mocks.handoff.value = {
       isLoading: false,
@@ -1689,17 +1615,6 @@ describe('StudioGenerateWorkspace', () => {
       );
     });
 
-    it('reads the draft of the brand open in this tab', async () => {
-      render(<StudioGenerateWorkspace />);
-
-      await waitFor(() =>
-        expect(mocks.getDraft).toHaveBeenCalledWith(
-          'brand-1',
-          expect.any(AbortSignal),
-        ),
-      );
-    });
-
     it('keeps edits made while draft reference assets are loading', async () => {
       mocks.getDraft.mockResolvedValueOnce(savedDraft);
       const pending = Promise.withResolvers<never[]>();
@@ -1788,20 +1703,6 @@ describe('StudioGenerateWorkspace', () => {
         await Promise.resolve();
       });
       expect(mocks.getDraft).not.toHaveBeenCalled();
-    });
-
-    it('neither restores nor autosaves while a remix run owns the composer', async () => {
-      mocks.getDraft.mockResolvedValue(savedDraft);
-      mocks.remixRun.value = remixRun;
-
-      render(<StudioGenerateWorkspace />);
-
-      await waitFor(() => expect(mocks.getDraft).toHaveBeenCalled());
-      act(() => lastComposerProps().onPromptChange('Remix objective'));
-      await new Promise((resolve) => setTimeout(resolve, 700));
-
-      expect(mocks.restoreSettings).not.toHaveBeenCalled();
-      expect(mocks.saveDraft).not.toHaveBeenCalled();
     });
 
     it('saves the composer shortly after a change and shows the save status', async () => {

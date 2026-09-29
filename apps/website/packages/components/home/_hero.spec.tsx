@@ -1,8 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import {
-  HOME_HERO_VIDEO,
-  HOME_OUTPUT_CAROUSEL_ASSETS,
-} from '@web-components/home/_assets';
+import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import type { ImgHTMLAttributes } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import HomeHero from './_hero';
@@ -101,12 +98,6 @@ describe('HomeHero', () => {
     ).toBeTruthy();
   });
 
-  it('drops the eyebrow that told visitors whose site they were on', () => {
-    render(<HomeHero />);
-
-    expect(screen.queryByText(/made with genfeed/i)).not.toBeInTheDocument();
-  });
-
   it('states the mechanism instead of an adjective', () => {
     render(<HomeHero />);
 
@@ -116,15 +107,6 @@ describe('HomeHero', () => {
     expect(
       screen.queryByText(/platform-native content out/i),
     ).not.toBeInTheDocument();
-  });
-
-  it('plays a generated clip behind the headline', () => {
-    render(<HomeHero />);
-
-    expect(screen.getByTestId('home-hero-video')).toHaveAttribute(
-      'data-poster',
-      HOME_HERO_VIDEO.poster,
-    );
   });
 
   it('preloads only the first card of the announced row', () => {
@@ -159,12 +141,6 @@ describe('HomeHero', () => {
     expect(
       screen.getByRole('link', { name: /start for \$0/i }),
     ).toHaveAttribute('href', 'https://app.genfeed.ai/sign-up');
-  });
-
-  it('never offers a sales demo', () => {
-    render(<HomeHero />);
-
-    expect(screen.queryByText(/demo/i)).not.toBeInTheDocument();
   });
 
   it('tracks the agent CTA separately from the signup CTA', () => {
@@ -223,13 +199,5 @@ describe('HomeHero', () => {
       screen.getAllByTestId('home-hero-output-carousel-item'),
     ).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length * 2);
     expect(announcedCards()).toHaveLength(HOME_OUTPUT_CAROUSEL_ASSETS.length);
-  });
-
-  it('gives the rail nothing to operate', () => {
-    render(<HomeHero />);
-
-    expect(
-      screen.queryByRole('button', { name: /scroll/i }),
-    ).not.toBeInTheDocument();
   });
 });

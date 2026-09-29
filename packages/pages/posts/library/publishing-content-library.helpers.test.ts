@@ -49,44 +49,6 @@ const collections = {
 };
 
 describe('publishing content library federation', () => {
-  it('normalizes all three canonical content types and sorts them newest first', () => {
-    const items = createPublishingContentLibraryItems(collections);
-
-    expect(
-      items.map(({ channel, id, status, type }) => ({
-        channel,
-        id,
-        status,
-        type,
-      })),
-    ).toEqual([
-      {
-        channel: Platform.INSTAGRAM,
-        id: 'post-1',
-        status: PostStatus.SCHEDULED,
-        type: 'post',
-      },
-      {
-        channel: 'web',
-        id: 'article-1',
-        status: 'published',
-        type: 'article',
-      },
-      {
-        channel: 'email',
-        id: 'newsletter-1',
-        status: 'ready_for_review',
-        type: 'newsletter',
-      },
-      {
-        channel: Platform.TWITTER,
-        id: 'article-2',
-        status: 'draft',
-        type: 'article',
-      },
-    ]);
-  });
-
   it('merges publishing jobs without duplicating their post targets and keeps empty drafts', () => {
     const releases = [
       {

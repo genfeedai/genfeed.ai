@@ -7,10 +7,6 @@ describe('isPublicAssetScope', () => {
     expect(isPublicAssetScope(AssetScope.PUBLIC)).toBe(true);
   });
 
-  it('accepts the uppercase Prisma wire value', () => {
-    expect(isPublicAssetScope('PUBLIC')).toBe(true);
-  });
-
   it('rejects every other scope', () => {
     expect(isPublicAssetScope(AssetScope.BRAND)).toBe(false);
     expect(isPublicAssetScope('ORGANIZATION')).toBe(false);

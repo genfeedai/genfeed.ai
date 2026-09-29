@@ -10,10 +10,6 @@ import {
 
 describe('post.enum', () => {
   describe('PostStatus', () => {
-    it('should have 8 members', () => {
-      expect(Object.values(PostStatus)).toHaveLength(8);
-    });
-
     it('should have correct values', () => {
       expect(PostStatus.PUBLIC).toBe('public');
       expect(PostStatus.PRIVATE).toBe('private');
@@ -37,10 +33,6 @@ describe('post.enum', () => {
   });
 
   describe('PostFrequency', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(PostFrequency)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(PostFrequency.DAILY).toBe('daily');
       expect(PostFrequency.WEEKLY).toBe('weekly');
@@ -59,10 +51,6 @@ describe('post.enum', () => {
   });
 
   describe('PostCategory', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(PostCategory)).toHaveLength(7);
-    });
-
     it('should have correct values', () => {
       expect(PostCategory.ARTICLE).toBe('ARTICLE');
       expect(PostCategory.VIDEO).toBe('VIDEO');
@@ -75,10 +63,6 @@ describe('post.enum', () => {
   });
 
   describe('PostEntityModel', () => {
-    it('should have 2 members', () => {
-      expect(Object.values(PostEntityModel)).toHaveLength(2);
-    });
-
     it('should have correct values', () => {
       expect(PostEntityModel.INGREDIENT).toBe('INGREDIENT');
       expect(PostEntityModel.ARTICLE).toBe('ARTICLE');

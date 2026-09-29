@@ -42,10 +42,6 @@ describe('NewLikeTriggerExecutor', () => {
     executor.setChecker(mockChecker);
   });
 
-  it('creates via factory', () => {
-    expect(executor.nodeType).toBe('newLikeTrigger');
-  });
-
   it('throws if checker not configured', async () => {
     const fresh = new NewLikeTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });

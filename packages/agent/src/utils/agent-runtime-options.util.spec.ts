@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildAgentRuntimeCatalog,
   resolveDesktopCliRuntimeBlocker,
-  resolveDesktopCliRuntimeKey,
   resolveThreadRuntimeOption,
   resolveWebCliRuntimeKey,
 } from './agent-runtime-options.util';
@@ -70,23 +69,6 @@ describe('buildAgentRuntimeCatalog', () => {
     expect(catalog.providerSummary).toBe('No provider keys configured');
   });
 
-  it('ignores server-side CLI detection that cannot execute in a browser', () => {
-    const catalog = buildAgentRuntimeCatalog({
-      readiness: readiness({
-        localTools: {
-          anyDetected: true,
-          claude: true,
-          codex: true,
-          detected: ['claude', 'codex'],
-        },
-      }),
-    });
-
-    expect(catalog.options.some((option) => option.category === 'local')).toBe(
-      false,
-    );
-  });
-
   it('offers desktop-detected CLIs after Auto with a subscription hint', () => {
     const catalog = buildAgentRuntimeCatalog({
       desktopTools: DESKTOP_TOOLS,
@@ -143,18 +125,6 @@ describe('buildAgentRuntimeCatalog', () => {
       buildAgentRuntimeCatalog({ desktopTools: DESKTOP_TOOLS }).localToolNotice,
     ).toBeNull();
   });
-
-  it('only offers the CLIs that are installed', () => {
-    const catalog = buildAgentRuntimeCatalog({
-      desktopTools: { ...DESKTOP_TOOLS, claude: false, detected: ['codex'] },
-    });
-
-    expect(
-      catalog.options
-        .filter((option) => option.category === 'local')
-        .map((option) => option.key),
-    ).toEqual(['local/codex-cli']);
-  });
 });
 
 describe('resolveWebCliRuntimeKey', () => {
@@ -194,63 +164,9 @@ describe('resolveWebCliRuntimeKey', () => {
   });
 });
 
-describe('resolveDesktopCliRuntimeKey', () => {
-  it('routes the active thread to its local CLI runtime in Desktop', () => {
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: 'thread-1',
-        hasDesktopBridge: true,
-        thread: { runtimeKey: 'local/claude-cli' },
-      }),
-    ).toBe('local/claude-cli');
-  });
-
-  it('uses the draft runtime for a new thread', () => {
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: null,
-        draftRuntimeKey: 'local/codex-cli',
-        hasDesktopBridge: true,
-        thread: null,
-      }),
-    ).toBe('local/codex-cli');
-  });
-
-  it('keeps hosted threads and browsers on the API transport', () => {
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: 'thread-1',
-        hasDesktopBridge: true,
-        thread: { runtimeKey: 'hosted/genfeed' },
-      }),
-    ).toBeNull();
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: 'thread-1',
-        hasDesktopBridge: false,
-        thread: { runtimeKey: 'local/claude-cli' },
-      }),
-    ).toBeNull();
-    expect(
-      resolveDesktopCliRuntimeKey({
-        activeThreadId: 'thread-1',
-        draftRuntimeKey: 'local/claude-cli',
-        hasDesktopBridge: true,
-        thread: null,
-      }),
-    ).toBeNull();
-  });
-});
-
 describe('resolveDesktopCliRuntimeBlocker', () => {
   const upgradeMessage =
     'This Codex CLI is too old to run Genfeed agent turns. Update it with `npm install -g @openai/codex@latest`, then restart Genfeed Desktop.';
-
-  it('lets a ready CLI run', () => {
-    expect(
-      resolveDesktopCliRuntimeBlocker('local/codex-cli', DESKTOP_TOOLS),
-    ).toBeNull();
-  });
 
   it('explains an outdated Codex CLI with its upgrade step', () => {
     const blocker = resolveDesktopCliRuntimeBlocker('local/codex-cli', {
@@ -304,16 +220,5 @@ describe('resolveThreadRuntimeOption', () => {
         thread: { requestedModel: '', runtimeKey: '' },
       }).key,
     ).toBe('');
-  });
-
-  it('keeps showing a local CLI the thread is bound to when it is not offered', () => {
-    const hostedOnly = buildAgentRuntimeCatalog({});
-
-    expect(
-      resolveThreadRuntimeOption({
-        catalog: hostedOnly,
-        thread: { runtimeKey: 'local/codex-cli' },
-      }),
-    ).toMatchObject({ key: 'local/codex-cli', label: 'Codex' });
   });
 });

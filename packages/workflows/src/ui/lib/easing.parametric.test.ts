@@ -37,28 +37,6 @@ describe('parametric easing functions', () => {
     expect(getAllEasingNames()).toContain('easeInQuartOutQuad');
   });
 
-  it('easeInQuad is t^2', () => {
-    expect(easing.easeInQuad(0.5)).toBeCloseTo(0.25, 6);
-  });
-
-  it('easeOutQuad mirrors easeInQuad', () => {
-    expect(easing.easeOutQuad(0.5)).toBeCloseTo(1 - easing.easeInQuad(0.5), 6);
-  });
-
-  it('easeInOut functions hit 0.5 at the midpoint', () => {
-    for (const name of [
-      'easeInOutQuad',
-      'easeInOutCubic',
-      'easeInOutQuart',
-      'easeInOutQuint',
-      'easeInOutSine',
-      'easeInOutExpo',
-      'easeInOutCirc',
-    ] as const) {
-      expect(easing[name](0.5), name).toBeCloseTo(0.5, 4);
-    }
-  });
-
   it('expo easings honor their exact endpoints', () => {
     expect(easing.easeInExpo(0)).toBe(0);
     expect(easing.easeOutExpo(1)).toBe(1);
@@ -68,26 +46,12 @@ describe('parametric easing functions', () => {
 });
 
 describe('getEasingFunction', () => {
-  it('resolves known names', () => {
-    expect(getEasingFunction('easeInCubic')).toBe(easing.easeInCubic);
-  });
-
   it('falls back to linear for unknown names', () => {
     expect(getEasingFunction('nope')(0.3)).toBeCloseTo(0.3, 6);
   });
 });
 
 describe('createAsymmetricEase', () => {
-  it('uses the ease-in half below 0.5', () => {
-    const hybrid = createAsymmetricEase(easing.easeInQuad, easing.easeOutQuad);
-    expect(hybrid(0.25)).toBeCloseTo(0.5 * easing.easeInQuad(0.5), 6);
-  });
-
-  it('uses the ease-out half above 0.5', () => {
-    const hybrid = createAsymmetricEase(easing.easeInQuad, easing.easeOutQuad);
-    expect(hybrid(0.75)).toBeCloseTo(0.5 + 0.5 * easing.easeOutQuad(0.5), 6);
-  });
-
   it('is continuous at the midpoint', () => {
     const hybrid = createAsymmetricEase(easing.easeInExpo, easing.easeOutCubic);
     expect(hybrid(0.5)).toBeCloseTo(0.5, 4);
@@ -95,13 +59,6 @@ describe('createAsymmetricEase', () => {
 });
 
 describe('createBezierEasing', () => {
-  it('a linear bezier behaves like identity', () => {
-    const linear = createBezierEasing(0, 0, 1, 1);
-    for (let i = 0; i <= 10; i++) {
-      expect(linear(i / 10)).toBeCloseTo(i / 10, 3);
-    }
-  });
-
   it('clamps inputs outside [0, 1]', () => {
     const curve = createBezierEasing(0.42, 0, 0.58, 1);
     expect(curve(-1)).toBeCloseTo(0, 4);

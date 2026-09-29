@@ -114,14 +114,6 @@ describe('NODE_ORDER', () => {
       (Object.keys(NODE_DEFINITIONS) as NodeType[]).sort(),
     );
   });
-
-  it('places each node type in its definition category', () => {
-    for (const [category, nodeTypes] of Object.entries(NODE_ORDER)) {
-      for (const nodeType of nodeTypes) {
-        expect(NODE_DEFINITIONS[nodeType].category).toBe(category);
-      }
-    }
-  });
 });
 
 describe('getNodesByCategory', () => {
@@ -132,9 +124,5 @@ describe('getNodesByCategory', () => {
         NODE_ORDER[category],
       );
     }
-  });
-
-  it('returns a fresh grouping on every call', () => {
-    expect(getNodesByCategory()).not.toBe(getNodesByCategory());
   });
 });

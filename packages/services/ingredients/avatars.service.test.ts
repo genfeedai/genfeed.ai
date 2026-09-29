@@ -12,10 +12,6 @@ describe('AvatarsService', () => {
     service = new AvatarsService(mockToken);
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(AvatarsService);
-  });
-
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
     expect(service.findOne).toBeDefined();

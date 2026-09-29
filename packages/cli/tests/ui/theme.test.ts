@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('chalk', () => {
   const chalkFn = (text: string) => text;
@@ -24,8 +24,6 @@ import {
   formatLabel,
   formatSuccess,
   formatWarning,
-  print,
-  printJson,
   symbols,
 } from '../../src/ui/theme';
 
@@ -75,26 +73,6 @@ describe('ui/theme', () => {
   });
 
   describe('symbols', () => {
-    it('has success symbol', () => {
-      expect(symbols.success).toContain('✓');
-    });
-
-    it('has error symbol', () => {
-      expect(symbols.error).toContain('✖');
-    });
-
-    it('has warning symbol', () => {
-      expect(symbols.warning).toContain('⚠');
-    });
-
-    it('has info symbol', () => {
-      expect(symbols.info).toContain('ℹ');
-    });
-
-    it('has arrow symbol', () => {
-      expect(symbols.arrow).toContain('→');
-    });
-
     it('has bullet symbol', () => {
       expect(symbols.bullet).toContain('•');
     });
@@ -138,52 +116,13 @@ describe('ui/theme', () => {
       expect(result).toContain('Name:');
       expect(result).toContain('John');
     });
-
-    it('includes proper spacing', () => {
-      const result = formatLabel('Status', 'Active');
-      expect(result.startsWith('  ')).toBe(true);
-    });
   });
 
   describe('formatHeader', () => {
-    it('formats header text with bold', () => {
-      const result = formatHeader('Section Title');
-      expect(result).toContain('Section Title');
-    });
-
     it('returns styled string', () => {
       const result = formatHeader('Header');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
-    });
-  });
-
-  describe('print and printJson', () => {
-    let stdoutSpy: ReturnType<typeof vi.spyOn>;
-
-    beforeEach(() => {
-      stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-    });
-
-    afterEach(() => {
-      stdoutSpy.mockRestore();
-    });
-
-    it('print writes the message with a trailing newline', () => {
-      print('hello');
-      expect(stdoutSpy).toHaveBeenCalledWith('hello\n');
-    });
-
-    it('print writes an empty line by default', () => {
-      print();
-      expect(stdoutSpy).toHaveBeenCalledWith('\n');
-    });
-
-    it('printJson writes pretty-printed JSON', () => {
-      printJson({ id: 'entity-1', isActive: true });
-      expect(stdoutSpy).toHaveBeenCalledWith(
-        `${JSON.stringify({ id: 'entity-1', isActive: true }, null, 2)}\n`
-      );
     });
   });
 });

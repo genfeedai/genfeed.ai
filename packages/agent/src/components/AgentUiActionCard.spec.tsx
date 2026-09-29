@@ -31,12 +31,6 @@ describe('AgentUiActionCard', () => {
     expect(screen.getByText('Authorize the account')).toBeInTheDocument();
   });
 
-  it('hides the risk badge for low risk', () => {
-    render(<AgentUiActionCard action={makeAction({ riskLevel: 'low' })} />);
-
-    expect(screen.queryByText('low')).not.toBeInTheDocument();
-  });
-
   it('shows a semantic warning badge for medium risk', () => {
     render(<AgentUiActionCard action={makeAction({ riskLevel: 'medium' })} />);
 

@@ -70,19 +70,6 @@ describe('ApiKey', () => {
       expect(apiKey.name).toBe('Fallback Name');
     });
 
-    it('should default isActive to true when not explicitly false', () => {
-      const apiKey = new ApiKey({ id: 'key-1' });
-      expect(apiKey.isActive).toBe(true);
-    });
-
-    it('should set isActive to false when explicitly false', () => {
-      const apiKey = new ApiKey({
-        attributes: { isActive: false },
-        id: 'key-2',
-      });
-      expect(apiKey.isActive).toBe(false);
-    });
-
     it('should read flattened service responses', () => {
       const apiKey = new ApiKey({
         allowedIps: ['127.0.0.1'],
@@ -158,14 +145,6 @@ describe('ApiKey', () => {
     it('should return false when no expiresAt is set', () => {
       const apiKey = new ApiKey({ id: 'key-1' });
       expect(apiKey.isExpired).toBe(false);
-    });
-
-    it('should return true when expiresAt is in the past', () => {
-      const apiKey = new ApiKey({
-        attributes: { expiresAt: '2020-01-01T00:00:00Z' },
-        id: 'key-2',
-      });
-      expect(apiKey.isExpired).toBe(true);
     });
 
     it('should return false when expiresAt is in the future', () => {

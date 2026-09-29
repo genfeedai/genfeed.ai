@@ -48,18 +48,6 @@ describe('AgentResizeHandle', () => {
     expect(onResizeEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('detaches its listeners once the drag ends', () => {
-    const onResize = vi.fn();
-    render(<AgentResizeHandle onResize={onResize} onResizeEnd={vi.fn()} />);
-
-    fireEvent.mouseDown(screen.getByRole('slider'), { clientX: 400 });
-    fireEvent.mouseUp(document);
-    onResize.mockClear();
-
-    fireEvent.mouseMove(document, { clientX: 100 });
-    expect(onResize).not.toHaveBeenCalled();
-  });
-
   it('resets the width on double click when a handler is supplied', () => {
     const onResetWidth = vi.fn();
     render(

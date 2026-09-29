@@ -21,22 +21,6 @@ function collectSourceFiles(directory: string): string[] {
 }
 
 describe('mobile runtime theme styles', () => {
-  it('does not capture a static color palette in route or component modules', () => {
-    const sourceFiles = [
-      ...collectSourceFiles(path.join(mobileRoot, 'app')),
-      ...collectSourceFiles(path.join(mobileRoot, 'components')),
-    ];
-
-    const staticColorImports = sourceFiles.filter((filePath) => {
-      const source = readFileSync(filePath, 'utf8');
-      return /import\s*\{[^}]*\bcolors\b[^}]*\}\s*from\s*['"]@\/constants(?:\/theme)?['"]/.test(
-        source,
-      );
-    });
-
-    expect(staticColorImports).toEqual([]);
-  });
-
   it('defines matching light and dark native splash surfaces', () => {
     const appJson = JSON.parse(
       readFileSync(path.join(mobileRoot, 'app.json'), 'utf8'),

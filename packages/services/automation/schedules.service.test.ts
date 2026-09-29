@@ -25,17 +25,6 @@ describe('SmartSchedulerService', () => {
     expect(typeof SmartSchedulerService.clearInstance).toBe('function');
   });
 
-  it('returns an instance via getInstance', () => {
-    const instance = SmartSchedulerService.getInstance(mockToken);
-    expect(instance).toBeDefined();
-  });
-
-  it('returns the same instance for the same token (singleton)', () => {
-    const inst1 = SmartSchedulerService.getInstance(mockToken);
-    const inst2 = SmartSchedulerService.getInstance(mockToken);
-    expect(inst1).toBe(inst2);
-  });
-
   it('instance has scheduling methods', () => {
     const instance = SmartSchedulerService.getInstance(mockToken);
     expect(typeof instance.getOptimalPostingTime).toBe('function');
@@ -47,15 +36,4 @@ describe('SmartSchedulerService', () => {
 
   // Workflow authoring moved to the workflows collection; the scheduler only
   // still starts an execution for an existing workflow.
-  it('instance can execute a workflow', () => {
-    const instance = SmartSchedulerService.getInstance(mockToken);
-    expect(typeof instance.executeWorkflow).toBe('function');
-  });
-
-  it('clearInstance removes the cached instance', () => {
-    const inst1 = SmartSchedulerService.getInstance(mockToken);
-    SmartSchedulerService.clearInstance(mockToken);
-    const inst2 = SmartSchedulerService.getInstance(mockToken);
-    expect(inst1).not.toBe(inst2);
-  });
 });

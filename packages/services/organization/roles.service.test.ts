@@ -12,12 +12,6 @@ describe('RolesService', () => {
     service = new RolesService(mockToken);
   });
 
-  describe('constructor', () => {
-    it('initializes correctly', () => {
-      expect(service).toBeInstanceOf(RolesService);
-    });
-  });
-
   describe('CRUD operations', () => {
     it('has findAll method', () => {
       expect(service.findAll).toBeDefined();

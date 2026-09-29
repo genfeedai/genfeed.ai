@@ -20,16 +20,6 @@ import { Link } from '@models/social/link.model';
 
 describe('Link', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = new Link({});
-      expect(instance).toBeDefined();
-    });
-
-    it('should create an instance with partial data', () => {
-      const instance = new Link({ id: 'test-123' } as never);
-      expect(instance).toBeDefined();
-    });
-
     it('hydrates a brand object that carries an id', () => {
       const instance = new Link({
         brand: { id: 'brand-1' },

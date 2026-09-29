@@ -76,45 +76,6 @@ const platformGroups: OAuthConnectPlatformGroup<ResolvedOAuthConnectPlatform>[] 
   ];
 
 describe('ConnectAccountModal', () => {
-  it('renders the modal title and description from the real catalog, not a raw key path', () => {
-    render(
-      <ConnectAccountModal
-        connectingPlatform={null}
-        onConnect={vi.fn()}
-        onOpenChange={vi.fn()}
-        open
-        platformConnectedCounts={{}}
-        platformGroups={platformGroups}
-      />,
-    );
-
-    // A key/catalog mismatch makes the stub return the dotted key path
-    // itself (e.g. "brandSocialMedia.connectAccountDescription") instead of
-    // copy — asserting the real sentence catches that regression.
-    expect(
-      screen.getByText(
-        'Choose a platform to connect. Search or browse by category.',
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it('starts oauth for an available platform', () => {
-    const onConnect = vi.fn();
-    render(
-      <ConnectAccountModal
-        connectingPlatform={null}
-        onConnect={onConnect}
-        onOpenChange={vi.fn()}
-        open
-        platformConnectedCounts={{ [CredentialPlatform.TWITTER]: 1 }}
-        platformGroups={platformGroups}
-      />,
-    );
-
-    fireEvent.click(screen.getByText('Twitter'));
-    expect(onConnect).toHaveBeenCalledWith(twitter);
-  });
-
   it('shows the connected count per platform', () => {
     render(
       <ConnectAccountModal
@@ -131,21 +92,6 @@ describe('ConnectAccountModal', () => {
     // YouTube has no entry in `platformConnectedCounts` and falls back to
     // zero. Threads shows its unavailable reason instead of a count.
     expect(screen.getByText('0 connected')).toBeInTheDocument();
-  });
-
-  it('shows a reason instead of a count for an unavailable platform', () => {
-    render(
-      <ConnectAccountModal
-        connectingPlatform={null}
-        onConnect={vi.fn()}
-        onOpenChange={vi.fn()}
-        open
-        platformConnectedCounts={{}}
-        platformGroups={platformGroups}
-      />,
-    );
-
-    expect(screen.getByText('Not available yet')).toBeInTheDocument();
   });
 
   it('selects an enabled platform through a real keyboard selection path', () => {
@@ -220,25 +166,6 @@ describe('ConnectAccountModal', () => {
 
     expect(screen.getByText('YouTube')).toBeInTheDocument();
     expect(screen.queryByText('Twitter')).not.toBeInTheDocument();
-  });
-
-  it('shows a no-results state when the search matches nothing', () => {
-    render(
-      <ConnectAccountModal
-        connectingPlatform={null}
-        onConnect={vi.fn()}
-        onOpenChange={vi.fn()}
-        open
-        platformConnectedCounts={{}}
-        platformGroups={platformGroups}
-      />,
-    );
-
-    fireEvent.change(screen.getByPlaceholderText('Search platforms…'), {
-      target: { value: 'nonexistent-platform' },
-    });
-
-    expect(screen.getByText('No platforms found.')).toBeInTheDocument();
   });
 
   it('associates the search field with a real <label>, not just a placeholder fallback', () => {

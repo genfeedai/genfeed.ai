@@ -43,10 +43,6 @@ describe('FilesSplitScreenService', () => {
     service = module.get<FilesSplitScreenService>(FilesSplitScreenService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateSplitScreen', () => {
     it('creates a vertical split screen and returns the output path', async () => {
       const result = await service.generateSplitScreen(

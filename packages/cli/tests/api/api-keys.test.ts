@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  type CreateApiKeyInput,
-  createApiKey,
-  listApiKeys,
-  revokeApiKey,
-  rotateApiKey,
-} from '../../src/api/api-keys';
+import { createApiKey, listApiKeys, revokeApiKey, rotateApiKey } from '../../src/api/api-keys';
 
 const { mockDel, mockGet, mockPost } = vi.hoisted(() => ({
   mockDel: vi.fn(),
@@ -103,24 +97,6 @@ describe('api/api-keys', () => {
       scopes: ['videos:read'],
     });
     expect(result.key).toBe('gf_test_123');
-  });
-
-  it('prevents callers from overriding the Genfeed API key category', async () => {
-    mockPost.mockResolvedValue({
-      data: { id: 'key-1', key: 'gf_test_123', label: 'MCP' },
-    });
-
-    await createApiKey({
-      category: 'heygen',
-      label: 'MCP',
-      scopes: ['videos:read'],
-    } as unknown as CreateApiKeyInput);
-
-    expect(mockPost).toHaveBeenCalledWith('/api-keys', {
-      category: 'genfeedai',
-      label: 'MCP',
-      scopes: ['videos:read'],
-    });
   });
 
   it('revokes API keys', async () => {

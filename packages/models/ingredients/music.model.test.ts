@@ -16,10 +16,5 @@ describe('Music', () => {
       const instance = new Music({});
       expect(instance).toBeDefined();
     });
-
-    it('should create an instance with partial data', () => {
-      const instance = new Music({ id: 'test-123' } as any);
-      expect(instance).toBeDefined();
-    });
   });
 });

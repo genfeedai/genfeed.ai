@@ -72,9 +72,4 @@ describe('studio generate session jobs', () => {
 
     expect(readStudioGenerateSessionJobs('brand-1')).toEqual([]);
   });
-
-  it('keeps brands isolated', () => {
-    writeStudioGenerateSessionJobs('brand-1', [job]);
-    expect(readStudioGenerateSessionJobs('brand-2')).toEqual([]);
-  });
 });

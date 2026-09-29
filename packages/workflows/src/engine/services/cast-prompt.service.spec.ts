@@ -148,16 +148,6 @@ describe('CASTPromptService', () => {
       expect(() => generateCASTPrompt(input)).toThrow('Mood is required');
     });
 
-    it('should return correct preset config', () => {
-      const result = generateCASTPrompt(validInput);
-      // colorGrade/filmGrain/lensEffects live on the cinematic arm of the
-      // VideoPromptPreset union; read them through the narrowing accessor.
-      const config = extractPostProcessingConfig(result.preset);
-      expect(config.colorGrade).toBeDefined();
-      expect(config.filmGrain).toBeDefined();
-      expect(config.lensEffects).toBeDefined();
-    });
-
     it('should count words correctly', () => {
       const shortInput: CASTInput = {
         action: 'product showcase',
@@ -303,31 +293,6 @@ describe('CASTPromptService', () => {
       expect(config.filmGrain.stock).toBeTruthy();
       expect(typeof config.filmGrain.intensity).toBe('number');
       expect(typeof config.filmGrain.colorGrain).toBe('boolean');
-    });
-
-    it('should extract lens effects config from preset', () => {
-      const result = generateCASTPrompt(validInput);
-      const config = extractPostProcessingConfig(result.preset);
-
-      expect(config.lensEffects).toBeDefined();
-      expect(config.lensEffects.vignette).toBeDefined();
-      expect(config.lensEffects.chromaticAberration).toBeDefined();
-      expect(config.lensEffects.barrelDistortion).toBeDefined();
-      expect(config.lensEffects.bloom).toBeDefined();
-    });
-
-    it('should work with different presets', () => {
-      const presets = ['indie_film', 'vintage_35mm', 'documentary_raw'];
-
-      presets.forEach((presetId) => {
-        const input = { ...validInput, presetId };
-        const result = generateCASTPrompt(input);
-        const config = extractPostProcessingConfig(result.preset);
-
-        expect(config.colorGrade).toBeDefined();
-        expect(config.filmGrain).toBeDefined();
-        expect(config.lensEffects).toBeDefined();
-      });
     });
   });
 

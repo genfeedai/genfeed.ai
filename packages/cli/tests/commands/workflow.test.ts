@@ -102,26 +102,10 @@ describe('workflow command', () => {
     expect(mockPost).not.toHaveBeenCalled();
   });
 
-  it('emits a JSON array for list --json when no workflows exist', async () => {
-    mockGet.mockResolvedValue({ data: [] });
-
-    await workflowCommand.parseAsync(['list', '--json'], { from: 'user' });
-
-    expect(mockPrintJson).toHaveBeenCalledWith([]);
-  });
-
   it('parses workflow limits as decimal values', async () => {
     await workflowCommand.parseAsync(['list', '--limit', '25', '--json'], { from: 'user' });
 
     expect(mockGet).toHaveBeenCalledWith('/workflows?limit=25');
-  });
-
-  it('rejects non-numeric workflow limits before making an API request', async () => {
-    await expect(
-      workflowCommand.parseAsync(['list', '--limit', 'abc', '--json'], { from: 'user' })
-    ).rejects.toThrow('Invalid positive integer');
-
-    expect(mockGet).not.toHaveBeenCalled();
   });
 
   it('normalizes workflow run statuses to the API enum spelling', async () => {

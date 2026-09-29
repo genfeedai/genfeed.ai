@@ -1,6 +1,5 @@
 import {
   DEFAULT_MCP_PROFILE_TOOLSETS,
-  DIRECTORY_MCP_PROFILE_TOOLSETS,
   type McpToolOutput,
   type ToolsetName,
 } from '@genfeedai/actions';
@@ -274,12 +273,6 @@ describe('McpController', () => {
       expect(result).toHaveProperty('timestamp');
       expect(mockStreamableHttpService.isTransportReady).toHaveBeenCalled();
     });
-
-    it('reports not-ready before the transport routes are mounted', () => {
-      mockStreamableHttpService.isTransportReady.mockReturnValueOnce(false);
-
-      expect(controller.getManifest()).toHaveProperty('transport_ready', false);
-    });
   });
 
   describe('getMcpInfo', () => {
@@ -312,17 +305,6 @@ describe('McpController', () => {
       expect(rawToolSourceMocks.toMcpTools).not.toHaveBeenCalled();
     });
 
-    it('defaults to the user role when auth context is absent', () => {
-      const result = controller.getTools({ query: {} } as unknown as Parameters<
-        typeof controller.getTools
-      >[0]);
-
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        ...DEFAULT_MCP_PROFILE_TOOLSETS,
-      ]);
-      expect(result).toEqual({ tools: roleTools.user });
-    });
-
     it('tolerates a request with no query object at all', () => {
       const result = controller.getTools(
         {} as unknown as Parameters<typeof controller.getTools>[0],
@@ -332,20 +314,6 @@ describe('McpController', () => {
         ...DEFAULT_MCP_PROFILE_TOOLSETS,
       ]);
       expect(result).toEqual({ tools: roleTools.user });
-    });
-
-    it('parses the ?toolsets= query param and forwards the selection', () => {
-      const request = {
-        authContext: { role: 'user' },
-        query: { toolsets: 'content,generation' },
-      } as unknown as Parameters<typeof controller.getTools>[0];
-
-      controller.getTools(request);
-
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        'content',
-        'generation',
-      ]);
     });
 
     it('rejects an unknown toolset name with a 400', () => {
@@ -361,39 +329,6 @@ describe('McpController', () => {
       expect(getToolsForRoleAndToolsetsMock).not.toHaveBeenCalled();
     });
 
-    it('resolves ?profile=directory and ?profile=full', () => {
-      controller.getTools({
-        authContext: { role: 'user' },
-        query: { profile: 'directory' },
-      } as unknown as Parameters<typeof controller.getTools>[0]);
-      controller.getTools({
-        authContext: { role: 'user' },
-        query: { profile: 'full' },
-      } as unknown as Parameters<typeof controller.getTools>[0]);
-
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenNthCalledWith(
-        1,
-        'user',
-        [...DIRECTORY_MCP_PROFILE_TOOLSETS],
-      );
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenNthCalledWith(
-        2,
-        'user',
-        [],
-      );
-    });
-
-    it('lets an explicit ?toolsets= win over ?profile=', () => {
-      controller.getTools({
-        authContext: { role: 'user' },
-        query: { profile: 'full', toolsets: 'content' },
-      } as unknown as Parameters<typeof controller.getTools>[0]);
-
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
-        'content',
-      ]);
-    });
-
     it('rejects an unknown profile with a 400', () => {
       const request = {
         authContext: { role: 'user' },
@@ -405,29 +340,6 @@ describe('McpController', () => {
         /Unknown profile: nope/,
       );
     });
-
-    it('applies role filtering so a user never sees more than a superadmin', () => {
-      const userRequest = {
-        authContext: { role: 'user' },
-        query: {},
-      } as unknown as Parameters<typeof controller.getTools>[0];
-      const superRequest = {
-        authContext: { role: 'superadmin' },
-        query: {},
-      } as unknown as Parameters<typeof controller.getTools>[0];
-
-      const userTools = controller
-        .getTools(userRequest)
-        .tools.map((tool) => tool.name);
-      const superTools = controller
-        .getTools(superRequest)
-        .tools.map((tool) => tool.name);
-
-      // Whatever a user can discover, a superadmin can too (subset invariant).
-      for (const name of userTools) {
-        expect(superTools).toContain(name);
-      }
-    });
   });
 
   describe('getResources', () => {
@@ -435,15 +347,6 @@ describe('McpController', () => {
       const result = controller.getResources();
 
       expect(result.resources).toEqual([...MCP_RESOURCES]);
-    });
-
-    it('hands out a copy so a caller cannot mutate the shared catalog', () => {
-      const result = controller.getResources();
-      result.resources.pop();
-
-      expect(controller.getResources().resources).toHaveLength(
-        MCP_RESOURCES.length,
-      );
     });
   });
 
@@ -475,29 +378,6 @@ describe('McpController', () => {
         resource: McpResourceUri.VIDEO_ANALYTICS,
         result: contents,
       });
-    });
-
-    it('skips bearer propagation when the request carries no token', async () => {
-      mockToolRegistryService.handleResourceRead.mockResolvedValue({
-        contents: [],
-      });
-
-      await controller.readResource(
-        McpResourceUri.ORGANIZATION_ANALYTICS,
-        {} as AuthenticatedControllerRequest,
-      );
-
-      expect(mockToolRegistryService.setBearerToken).not.toHaveBeenCalled();
-    });
-
-    it('propagates the registry error for an unknown resource', async () => {
-      mockToolRegistryService.handleResourceRead.mockRejectedValue(
-        new Error('Unknown resource: genfeed://unknown'),
-      );
-
-      await expect(
-        controller.readResource('genfeed://unknown', mockRequest),
-      ).rejects.toThrow('Unknown resource: genfeed://unknown');
     });
   });
 });

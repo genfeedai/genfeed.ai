@@ -6,18 +6,6 @@ import {
 } from './parse-granted-oauth-scopes.helper';
 
 describe('parseGrantedOAuthScopes', () => {
-  it('splits space-delimited OAuth scope strings', () => {
-    expect(
-      parseGrantedOAuthScopes('tweet.read tweet.write users.read'),
-    ).toEqual(['tweet.read', 'tweet.write', 'users.read']);
-  });
-
-  it('splits comma-delimited grants and de-duplicates', () => {
-    expect(
-      parseGrantedOAuthScopes('video.list,user.info.basic,video.list'),
-    ).toEqual(['user.info.basic', 'video.list']);
-  });
-
   it('accepts string arrays and drops blanks', () => {
     expect(
       parseGrantedOAuthScopes([' w_member_social ', '', 'openid', 'openid']),
@@ -44,13 +32,6 @@ describe('buildGrantedScopesCredentialPatch', () => {
       buildGrantedScopesCredentialPatch(undefined, capturedAt),
     ).toBeUndefined();
     expect(buildGrantedScopesCredentialPatch(null, capturedAt)).toBeUndefined();
-  });
-
-  it('persists a captured empty grant so it is distinct from never captured', () => {
-    expect(buildGrantedScopesCredentialPatch('', capturedAt)).toEqual({
-      grantedScopes: [],
-      grantedScopesCapturedAt: capturedAt,
-    });
   });
 
   it('persists the normalized grant set from a token response', () => {

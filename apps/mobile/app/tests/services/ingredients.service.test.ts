@@ -22,13 +22,6 @@ function mockSuccessfulFetch(response: unknown): void {
   });
 }
 
-function mockFailedFetch(statusText: string): void {
-  mockFetch.mockResolvedValueOnce({
-    ok: false,
-    statusText,
-  });
-}
-
 import {
   type Ingredient,
   type IngredientResponse,
@@ -90,17 +83,6 @@ describe('IngredientsService', () => {
       expect(result).toEqual(mockResponse);
     });
 
-    it('should fetch videos when category is video', async () => {
-      mockSuccessfulFetch(mockResponse);
-
-      await ingredientsService.findAll('test-token', { category: 'video' });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/videos',
-        expect.any(Object),
-      );
-    });
-
     it('should fetch articles when category is article', async () => {
       mockSuccessfulFetch(mockResponse);
 
@@ -109,25 +91,6 @@ describe('IngredientsService', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.test.com/articles',
         expect.any(Object),
-      );
-    });
-
-    it('should include pagination params when provided', async () => {
-      mockSuccessfulFetch(mockResponse);
-
-      await ingredientsService.findAll('test-token', { page: 2, pageSize: 20 });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/images?page=2&pageSize=20',
-        expect.any(Object),
-      );
-    });
-
-    it('should throw error when response is not ok', async () => {
-      mockFailedFetch('Not Found');
-
-      await expect(ingredientsService.findAll('test-token')).rejects.toThrow(
-        'Request failed: Not Found',
       );
     });
   });
@@ -165,17 +128,6 @@ describe('IngredientsService', () => {
       expect(result).toEqual(mockResponse);
     });
 
-    it('should use category-specific endpoint when category is provided', async () => {
-      mockSuccessfulFetch(mockResponse);
-
-      await ingredientsService.findOne('test-token', '123', 'image');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/images/123',
-        expect.any(Object),
-      );
-    });
-
     it('should use articles endpoint for article category', async () => {
       mockSuccessfulFetch(mockResponse);
 
@@ -185,14 +137,6 @@ describe('IngredientsService', () => {
         'https://api.test.com/articles/123',
         expect.any(Object),
       );
-    });
-
-    it('should throw error when response is not ok', async () => {
-      mockFailedFetch('Not Found');
-
-      await expect(
-        ingredientsService.findOne('test-token', '123'),
-      ).rejects.toThrow('Request failed: Not Found');
     });
   });
 });

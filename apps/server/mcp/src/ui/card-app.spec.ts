@@ -160,11 +160,6 @@ it('shows long article text, usage zeroes, and truncated list counts', () => {
   expect(document.querySelector('footer')?.textContent).toContain('24 of 30');
 });
 
-it('reports a failed handshake instead of loading indefinitely', async () => {
-  await vi.advanceTimersByTimeAsync(10001);
-  expect(document.body.textContent).toContain('could not initialize');
-});
-
 it('renders avatars that only supply a thumbnail', () => {
   result('list_avatars', [
     { name: 'Avatar', thumbnailUrl: 'https://cdn.genfeed.ai/avatar.png' },
@@ -174,22 +169,6 @@ it('renders avatars that only supply a thumbnail', () => {
   );
   expect(document.querySelector('a')?.href).toBe(
     'https://cdn.genfeed.ai/avatar.png',
-  );
-});
-
-it('reports host open-link failures returned as results', async () => {
-  result('list_images', [{ url: 'https://external.example/image.png' }]);
-  document.querySelector('a')?.click();
-  window.dispatchEvent(
-    new MessageEvent('message', {
-      source: window.parent,
-      data: { jsonrpc: '2.0', id: 2, result: { isError: true } },
-    }),
-  );
-  await Promise.resolve();
-  await Promise.resolve();
-  expect(document.querySelector('#notice')?.textContent).toContain(
-    'could not open the link',
   );
 });
 

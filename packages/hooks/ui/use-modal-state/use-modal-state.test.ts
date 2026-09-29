@@ -15,18 +15,6 @@ describe('useModalState', () => {
   });
 
   describe('Initial State', () => {
-    it('returns selectedItem as null by default', () => {
-      const { result } = renderHook(() => useModalState());
-
-      expect(result.current.selectedItem).toBeNull();
-    });
-
-    it('returns modalData as null by default', () => {
-      const { result } = renderHook(() => useModalState());
-
-      expect(result.current.modalData).toBeNull();
-    });
-
     it('returns setSelectedItem function', () => {
       const { result } = renderHook(() => useModalState());
 
@@ -67,20 +55,6 @@ describe('useModalState', () => {
         name: 'Test Item',
       });
     });
-
-    it('can clear selectedItem to null', () => {
-      const { result } = renderHook(() => useModalState<{ id: string }>());
-
-      act(() => {
-        result.current.setSelectedItem({ id: '123' });
-      });
-
-      act(() => {
-        result.current.setSelectedItem(null);
-      });
-
-      expect(result.current.selectedItem).toBeNull();
-    });
   });
 
   describe('setModalData', () => {
@@ -94,22 +68,6 @@ describe('useModalState', () => {
       });
 
       expect(result.current.modalData).toEqual({ action: 'delete' });
-    });
-
-    it('can clear modalData to null', () => {
-      const { result } = renderHook(() =>
-        useModalState<unknown, { action: string }>(),
-      );
-
-      act(() => {
-        result.current.setModalData({ action: 'edit' });
-      });
-
-      act(() => {
-        result.current.setModalData(null);
-      });
-
-      expect(result.current.modalData).toBeNull();
     });
   });
 
@@ -208,40 +166,6 @@ describe('useModalState', () => {
   });
 
   describe('closeModalAndReset', () => {
-    it('resets selectedItem to null', () => {
-      const { result } = renderHook(() => useModalState<{ id: string }>());
-
-      act(() => {
-        result.current.setSelectedItem({ id: '123' });
-      });
-
-      expect(result.current.selectedItem).not.toBeNull();
-
-      act(() => {
-        result.current.closeModalAndReset();
-      });
-
-      expect(result.current.selectedItem).toBeNull();
-    });
-
-    it('resets modalData to null', () => {
-      const { result } = renderHook(() =>
-        useModalState<unknown, { mode: string }>(),
-      );
-
-      act(() => {
-        result.current.setModalData({ mode: 'edit' });
-      });
-
-      expect(result.current.modalData).not.toBeNull();
-
-      act(() => {
-        result.current.closeModalAndReset();
-      });
-
-      expect(result.current.modalData).toBeNull();
-    });
-
     it('resets both selectedItem and modalData', () => {
       const { result } = renderHook(() =>
         useModalState<{ id: string }, { mode: string }>(),

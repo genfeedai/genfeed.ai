@@ -32,20 +32,8 @@ describe('StripeService', () => {
     service = new StripeService(mockToken);
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(StripeService);
-  });
-
   it('has checkout and portal methods', () => {
     expect(typeof service.createCheckoutSession).toBe('function');
     expect(typeof service.getPortalUrl).toBe('function');
-  });
-
-  it('has static subscription utility method', () => {
-    expect(typeof StripeService.isSubscriptionActive).toBe('function');
-  });
-
-  it('has getInstance static method', () => {
-    expect(typeof StripeService.getInstance).toBe('function');
   });
 });

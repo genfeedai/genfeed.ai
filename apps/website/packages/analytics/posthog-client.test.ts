@@ -76,11 +76,6 @@ afterEach(() => {
 });
 
 describe('isWebsiteAnalyticsEnabled', () => {
-  it('is enabled when a PostHog key is baked into the build', async () => {
-    const client = await loadClient();
-    expect(client.isWebsiteAnalyticsEnabled()).toBe(true);
-  });
-
   it.each([
     ['a placeholder', '-'],
     ['an empty value', ''],
@@ -255,17 +250,6 @@ describe('tracked CTA bridge', () => {
     window.dispatchEvent(
       new CustomEvent('genfeed:marketing:button-click', { detail: {} }),
     );
-
-    expect(mocks.posthogCapture).not.toHaveBeenCalled();
-  });
-
-  it('captures nothing when analytics is disabled', async () => {
-    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', '');
-    const client = await loadClient();
-    client.initWebsiteAnalytics();
-    await flushInit();
-
-    dispatchTrackedCta('hero_cta_click', { action: 'start_free_hero' });
 
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });

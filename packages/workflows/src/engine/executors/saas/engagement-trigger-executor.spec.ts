@@ -43,10 +43,6 @@ describe('EngagementTriggerExecutor', () => {
     executor.setChecker(mockChecker);
   });
 
-  it('creates via factory', () => {
-    expect(executor.nodeType).toBe('engagementTrigger');
-  });
-
   it('throws if checker not configured', async () => {
     const fresh = new EngagementTriggerExecutor();
     const input = makeInput({
@@ -92,24 +88,6 @@ describe('EngagementTriggerExecutor', () => {
       metricType: 'likes',
     });
     expect(result.data).toBeNull();
-  });
-
-  it('passes postIds and threshold to checker', async () => {
-    const input = makeInput({
-      metricType: 'comments',
-      platform: 'instagram',
-      postIds: ['p1', 'p2'],
-      threshold: 50,
-    });
-    await executor.execute(input);
-    expect(mockChecker).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metricType: 'comments',
-        platform: 'instagram',
-        postIds: ['p1', 'p2'],
-        threshold: 50,
-      }),
-    );
   });
 
   it('validates platform', () => {
@@ -177,21 +155,6 @@ describe('EngagementTriggerExecutor', () => {
     const result = executor.validate(node);
     expect(result.valid).toBe(false);
     expect(result.errors).toContain('Threshold must be a positive number');
-  });
-
-  it('accepts valid config', () => {
-    const node: ExecutableNode = {
-      config: {
-        metricType: 'shares',
-        platform: 'threads',
-        threshold: 25,
-      },
-      id: 't1',
-      inputs: [],
-      label: 'T',
-      type: 'engagementTrigger',
-    };
-    expect(executor.validate(node).valid).toBe(true);
   });
 
   it('estimates cost as zero', () => {

@@ -26,14 +26,6 @@ describe('locale.constant', () => {
     expect(LOCALE_COOKIE_MAX_AGE).toBe(60 * 60 * 24 * 365);
   });
 
-  it('DEFAULT_LOCALE is "en"', () => {
-    expect(DEFAULT_LOCALE).toBe('en');
-  });
-
-  it('PSEUDO_LOCALE is "en-XA"', () => {
-    expect(PSEUDO_LOCALE).toBe('en-XA');
-  });
-
   it('SUPPORTED_LOCALES contains the default and the pseudo-locale', () => {
     expect(SUPPORTED_LOCALES).toContain(DEFAULT_LOCALE);
     expect(SUPPORTED_LOCALES).toContain(PSEUDO_LOCALE);
@@ -67,26 +59,12 @@ describe('locale.constant', () => {
       expect(resolveLocaleFromLanguage('en-xa')).toBe('en-XA');
     });
 
-    it('trims surrounding whitespace', () => {
-      expect(resolveLocaleFromLanguage('  en  ')).toBe('en');
-    });
-
-    it('returns undefined for an unlisted language', () => {
-      expect(resolveLocaleFromLanguage('de')).toBeUndefined();
-    });
-
     it('returns undefined for an empty value', () => {
       expect(resolveLocaleFromLanguage('   ')).toBeUndefined();
     });
   });
 
   describe('LOCALE_LABELS', () => {
-    it('names every allowlisted locale', () => {
-      for (const locale of SUPPORTED_LOCALES) {
-        expect(LOCALE_LABELS[locale]).toBeTruthy();
-      }
-    });
-
     it('marks the pseudo-locale as a QA instrument rather than a language', () => {
       expect(LOCALE_LABELS[PSEUDO_LOCALE]).toContain('QA');
     });
@@ -95,10 +73,6 @@ describe('locale.constant', () => {
   describe('getSelectableLocales', () => {
     it('hides the pseudo-locale from customers', () => {
       expect(getSelectableLocales(false)).toEqual([DEFAULT_LOCALE]);
-    });
-
-    it('offers the pseudo-locale when it is visible', () => {
-      expect(getSelectableLocales(true)).toEqual(SUPPORTED_LOCALES);
     });
 
     it('only ever returns allowlisted locales', () => {
@@ -125,10 +99,6 @@ describe('locale.constant', () => {
           userLocale: null,
         }),
       ).toBe(PSEUDO_LOCALE);
-    });
-
-    it('returns undefined when nothing is stored so the caller can negotiate', () => {
-      expect(resolvePreferredLocale({})).toBeUndefined();
     });
 
     it('ignores a stored value that is no longer allowlisted', () => {

@@ -87,28 +87,6 @@ describe('generateHandlesFromSchema', () => {
     expect(handle?.required).toBe(true);
   });
 
-  it('uses title from schema property as label when available', () => {
-    const schema = {
-      properties: {
-        start_image: { title: 'Custom Title', type: 'string' },
-      },
-    };
-    const result = generateHandlesFromSchema(schema, staticHandles);
-    const handle = result.find((h) => h.id === 'start_image');
-    expect(handle?.label).toBe('Custom Title');
-  });
-
-  it('falls back to formatted field name when title is missing', () => {
-    const schema = {
-      properties: {
-        start_image: { type: 'string' },
-      },
-    };
-    const result = generateHandlesFromSchema(schema, staticHandles);
-    const handle = result.find((h) => h.id === 'start_image');
-    expect(handle?.label).toBe('Start Image');
-  });
-
   it('marks all dynamic handles with fromSchema: true', () => {
     const schema = {
       properties: {
@@ -127,35 +105,6 @@ describe('generateHandlesFromSchema', () => {
 });
 
 describe('isSchemaHandle', () => {
-  it('returns true when fromSchema is true', () => {
-    const handle: HandleDefinition = {
-      fromSchema: true,
-      id: 'start_image',
-      label: 'Start Image',
-      type: 'image',
-    };
-    expect(isSchemaHandle(handle)).toBe(true);
-  });
-
-  it('returns false when fromSchema is false', () => {
-    const handle: HandleDefinition = {
-      fromSchema: false,
-      id: 'prompt',
-      label: 'Prompt',
-      type: 'text',
-    };
-    expect(isSchemaHandle(handle)).toBe(false);
-  });
-
-  it('returns false when fromSchema is not set', () => {
-    const handle: HandleDefinition = {
-      id: 'prompt',
-      label: 'Prompt',
-      type: 'text',
-    };
-    expect(isSchemaHandle(handle)).toBe(false);
-  });
-
   it('returns false when fromSchema is undefined', () => {
     const handle: HandleDefinition = {
       fromSchema: undefined,

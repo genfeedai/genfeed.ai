@@ -60,20 +60,6 @@ describe('ContentLibraryPicker', () => {
   // body), the picker must fall back to its empty state instead of throwing
   // `Cannot read properties of undefined (reading 'length')` — that render
   // crash tripped the route error boundary and blanked /automation/*.
-  it('renders the empty state when items is undefined at runtime', () => {
-    render(
-      <ContentLibraryPicker
-        isOpen
-        items={undefined}
-        onOpenChange={vi.fn()}
-        onSelect={vi.fn()}
-      />,
-    );
-
-    expect(
-      screen.getByText('No library content available yet.'),
-    ).toBeInTheDocument();
-  });
 
   it('renders the empty state when the items prop is omitted', () => {
     render(

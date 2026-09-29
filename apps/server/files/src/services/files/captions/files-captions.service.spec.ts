@@ -83,19 +83,6 @@ describe('FilesCaptionsService', () => {
     service = module.get<FilesCaptionsService>(FilesCaptionsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('parses srt content', () => {
-    const srt = `1\n00:00:00,000 --> 00:00:01,500\nHello world`;
-    const words = service.filterCaptions(srt);
-    expect(words).toEqual([
-      { end: 750, start: 0, text: 'HELLO' },
-      { end: 1500, start: 750, text: 'WORLD' },
-    ]);
-  });
-
   it('splits captions into words with timing', () => {
     const srt = `1\n00:00:00,000 --> 00:00:02,000\nHello world`;
     const words = service.filterCaptionsByWord(srt);

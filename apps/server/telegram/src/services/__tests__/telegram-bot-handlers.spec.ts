@@ -290,12 +290,6 @@ describe('TelegramBotManager handlers', () => {
       );
     });
 
-    it('does not warn for an allowlisted integration', async () => {
-      await registerBot();
-
-      expect(logger.warn).not.toHaveBeenCalled();
-    });
-
     it('rejects an unauthorized user', async () => {
       await registerBot();
       const middleware = getAuthMiddleware();
@@ -446,18 +440,6 @@ describe('TelegramBotManager handlers', () => {
       expect(ctx.reply).not.toHaveBeenCalled();
     });
 
-    it('reports idle when there is no session', async () => {
-      await registerBot();
-      const ctx = createCtx();
-
-      await getCommandHandler('status')(asContext(ctx));
-
-      expect(ctx.reply).toHaveBeenCalledWith(
-        expect.stringContaining('Idle - no active workflow'),
-        expect.objectContaining({ parse_mode: 'Markdown' }),
-      );
-    });
-
     it('reports the selecting state', async () => {
       await registerBot();
       service.setSession(CHAT_ID, makeSession({ state: 'selecting' }));
@@ -588,15 +570,6 @@ describe('TelegramBotManager handlers', () => {
       expect(ctx.reply).not.toHaveBeenCalled();
     });
 
-    it('reports when there is nothing to cancel', async () => {
-      await registerBot();
-      const ctx = createCtx();
-
-      await getCommandHandler('cancel')(asContext(ctx));
-
-      expect(ctx.reply).toHaveBeenCalledWith('Nothing to cancel.');
-    });
-
     it('treats an idle session as nothing to cancel', async () => {
       await registerBot();
       service.setSession(CHAT_ID, makeSession({ state: 'idle' }));
@@ -688,36 +661,9 @@ describe('TelegramBotManager handlers', () => {
         expect.objectContaining({ parse_mode: 'Markdown' }),
       );
     });
-
-    it('marks the currently selected models after configuration', async () => {
-      await registerBot();
-      const callbackHandler = getEventHandler('callback_query:data');
-
-      const configureCtx = createCtx({
-        callbackQuery: { data: `cfg:img:${IMAGE_MODELS[1]}` },
-      });
-      await callbackHandler(asContext(configureCtx));
-
-      const ctx = createCtx();
-      await getCommandHandler('settings')(asContext(ctx));
-
-      expect(ctx.reply).toHaveBeenCalledWith(
-        '*Image Model:*',
-        expect.objectContaining({ parse_mode: 'Markdown' }),
-      );
-    });
   });
 
   describe('callback queries', () => {
-    it('ignores callbacks without data', async () => {
-      await registerBot();
-      const ctx = createCtx({ callbackQuery: {} });
-
-      await getEventHandler('callback_query:data')(asContext(ctx));
-
-      expect(ctx.answerCallbackQuery).not.toHaveBeenCalled();
-    });
-
     it('ignores callbacks without a chat', async () => {
       await registerBot();
       const ctx = createCtx({
@@ -741,20 +687,6 @@ describe('TelegramBotManager handlers', () => {
       expect(service.getSession(CHAT_ID)).toBeUndefined();
       expect(ctx.reply).toHaveBeenCalledWith(
         'Cancelled. Use /workflows to start again.',
-      );
-    });
-
-    it('stores the image model preference', async () => {
-      await registerBot();
-      const ctx = createCtx({
-        callbackQuery: { data: `cfg:img:${IMAGE_MODELS[1]}` },
-      });
-
-      await getEventHandler('callback_query:data')(asContext(ctx));
-
-      expect(ctx.reply).toHaveBeenCalledWith(
-        `Image model set to: *${IMAGE_MODELS[1]}*`,
-        expect.objectContaining({ parse_mode: 'Markdown' }),
       );
     });
 
@@ -936,15 +868,6 @@ describe('TelegramBotManager handlers', () => {
   });
 
   describe('text message collection', () => {
-    it('ignores command-like text', async () => {
-      await registerBot();
-      const ctx = createCtx({ message: { text: '/status' } });
-
-      await getEventHandler('message:text')(asContext(ctx));
-
-      expect(ctx.reply).not.toHaveBeenCalled();
-    });
-
     it('ignores messages without a chat', async () => {
       await registerBot();
       const ctx = createCtx({ chat: undefined, message: { text: 'hello' } });

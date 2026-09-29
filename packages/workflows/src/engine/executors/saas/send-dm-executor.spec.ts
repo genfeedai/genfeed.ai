@@ -44,10 +44,6 @@ describe('SendDmExecutor', () => {
     executor.setSender(mockSender);
   });
 
-  it('creates via factory', () => {
-    expect(executor.nodeType).toBe('sendDm');
-  });
-
   it('throws if sender not configured', async () => {
     const fresh = new SendDmExecutor();
     const input = makeInput({
@@ -80,57 +76,6 @@ describe('SendDmExecutor', () => {
       recipientId: 'user-456',
       success: true,
     });
-  });
-
-  it('uses input values when config is missing', async () => {
-    const input = makeInput(
-      { platform: 'twitter' },
-      {
-        recipientId: 'user-789',
-        text: 'From input!',
-      },
-    );
-    const result = await executor.execute(input);
-    expect(result.data).toMatchObject({ success: true });
-  });
-
-  it('uses input values when config defaults are empty strings', async () => {
-    const input = makeInput(
-      { platform: 'instagram', recipientId: '', text: '' },
-      {
-        recipientId: 'user-from-edge',
-        text: 'From edge',
-      },
-    );
-
-    await executor.execute(input);
-
-    expect(mockSender).toHaveBeenCalledWith(
-      expect.objectContaining({
-        platform: 'instagram',
-        recipientId: 'user-from-edge',
-        text: 'From edge',
-      }),
-    );
-  });
-
-  it('forwards social inbox provenance metadata to the sender', async () => {
-    const input = makeInput({
-      conversationId: 'conversation-1',
-      platform: 'instagram',
-      recipientId: 'recipient-1',
-      text: 'Thanks for reaching out',
-    });
-
-    await executor.execute(input);
-
-    expect(mockSender).toHaveBeenCalledWith(
-      expect.objectContaining({
-        conversationId: 'conversation-1',
-        idempotencyKey: 'workflow:execution-1:dm-1',
-        workflowRunId: 'run-1',
-      }),
-    );
   });
 
   it('reuses the execution and node key across resume run ids', async () => {

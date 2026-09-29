@@ -16,10 +16,5 @@ describe('MonitoredAccount', () => {
       const instance = new MonitoredAccount({});
       expect(instance).toBeDefined();
     });
-
-    it('should create an instance with partial data', () => {
-      const instance = new MonitoredAccount({ id: 'test-123' } as any);
-      expect(instance).toBeDefined();
-    });
   });
 });

@@ -12,10 +12,6 @@ import {
 
 describe('marketplace.enum', () => {
   describe('ListingType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(ListingType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(ListingType.WORKFLOW).toBe('workflow');
       expect(ListingType.PROMPT).toBe('prompt');
@@ -25,10 +21,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('ListingStatus', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ListingStatus)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(ListingStatus.DRAFT).toBe('draft');
       expect(ListingStatus.PENDING_REVIEW).toBe('pending_review');
@@ -39,10 +31,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('SellerBadgeTier', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(SellerBadgeTier)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(SellerBadgeTier.NEW).toBe('new');
       expect(SellerBadgeTier.VERIFIED).toBe('verified');
@@ -51,10 +39,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('SellerStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(SellerStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(SellerStatus.PENDING).toBe('pending');
       expect(SellerStatus.APPROVED).toBe('approved');
@@ -63,10 +47,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('PurchaseStatus', () => {
-    it('should have 6 members', () => {
-      expect(Object.values(PurchaseStatus)).toHaveLength(6);
-    });
-
     it('should have correct values', () => {
       expect(PurchaseStatus.PENDING).toBe('pending');
       expect(PurchaseStatus.PROCESSING).toBe('processing');
@@ -78,10 +58,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('PayoutStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(PayoutStatus)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(PayoutStatus.PENDING).toBe('pending');
       expect(PayoutStatus.PROCESSING).toBe('processing');
@@ -91,10 +67,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('ReviewStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(ReviewStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(ReviewStatus.ACTIVE).toBe('active');
       expect(ReviewStatus.HIDDEN).toBe('hidden');
@@ -103,10 +75,6 @@ describe('marketplace.enum', () => {
   });
 
   describe('PricingTier', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(PricingTier)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(PricingTier.FREE).toBe('free');
       expect(PricingTier.PAID).toBe('paid');

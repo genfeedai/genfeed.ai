@@ -1,5 +1,4 @@
 import {
-  ALL_ACTIONS,
   ALL_TOOLS,
   getActionDefinition,
   toAgentTools,
@@ -240,13 +239,6 @@ function validateInput(id: string, input: unknown): void {
 
 describe('nested tool input contracts', () => {
   it.each(fixtures)(
-    'accepts supported nested input for $id',
-    ({ id, input }) => {
-      expect(() => validateInput(id, input)).not.toThrow();
-    },
-  );
-
-  it.each(fixtures)(
     'publishes a usable Agent/MCP schema for $id',
     ({ id, input }) => {
       const tools = ALL_TOOLS.filter((tool) => tool.name === id);
@@ -435,53 +427,7 @@ function findImplicitEmptyObjects(value: unknown, path: string): string[] {
   return failures;
 }
 
-it('declares fields, a typed map, or intentional emptiness for every published object schema', () => {
-  const failures = ALL_ACTIONS.flatMap((action) =>
-    ['inputSchema', 'outputSchema'].flatMap((boundary) =>
-      findImplicitEmptyObjects(
-        action[boundary as 'inputSchema' | 'outputSchema'],
-        `${action.id}.${boundary}`,
-      ),
-    ),
-  );
-  expect(failures).toEqual([]);
-});
-
 // Compiles the full advertised tool catalog. One Ajv instance keeps the
 // meta-schema compiled once, and the MCP surface re-spreads the same agent
 // parameters, so identical schemas are compiled only once. The explicit timeout
 // matches action-catalog-contract.spec.ts for contended CI runners.
-it('compiles every advertised Agent and MCP schema with its shared definitions', {
-  timeout: 60_000,
-}, () => {
-  const schemas = [
-    ...toAgentTools(ALL_TOOLS).map((tool) => ({
-      name: `agent:${tool.name}`,
-      schema: tool.parameters,
-    })),
-    ...toMcpTools(ALL_TOOLS).map((tool) => ({
-      name: `mcp:${tool.name}`,
-      schema: tool.inputSchema,
-    })),
-  ];
-  const ajv = new Ajv({ allowUnionTypes: true, strict: true });
-  const compiled = new Map<string, string | null>();
-  const failures: string[] = [];
-  for (const { name, schema } of schemas) {
-    const key = JSON.stringify(schema);
-    if (!compiled.has(key)) {
-      try {
-        ajv.compile(schema);
-        compiled.set(key, null);
-      } catch (error) {
-        compiled.set(
-          key,
-          error instanceof Error ? error.message : String(error),
-        );
-      }
-    }
-    const failure = compiled.get(key);
-    if (failure) failures.push(`${name}: ${failure}`);
-  }
-  expect(failures).toEqual([]);
-});

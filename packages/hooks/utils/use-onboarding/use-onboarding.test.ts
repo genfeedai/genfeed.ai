@@ -50,11 +50,6 @@ describe('useOnboarding', () => {
     expect(result.current).toHaveProperty('checkOnboardingStatus');
   });
 
-  it('starts with isLoading true', () => {
-    const { result } = renderHook(() => useOnboarding());
-    expect(result.current.isLoading).toBe(true);
-  });
-
   it('sets hasCompletedOnboarding from service response', async () => {
     const { result } = renderHook(() => useOnboarding());
     await waitFor(() => expect(result.current.isLoading).toBe(false));

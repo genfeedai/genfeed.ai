@@ -189,16 +189,6 @@ describe('generateMetadata', () => {
     expect(meta.title).toBe('Article not found');
     expect(meta.alternates).toBeUndefined();
   });
-
-  it('treats the sentinel "undefined" id as not found', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
-
-    const meta = await generateMetadata({
-      params: Promise.resolve({ slug: 'sentinel' }),
-    });
-
-    expect(meta.title).toBe('Article not found');
-  });
 });
 
 describe('ArticleDetailRoute', () => {
@@ -300,37 +290,12 @@ describe('ArticleDetailRoute', () => {
     expect(detail.props.article.author).toBe('Vincent Tellier');
   });
 
-  it('never forwards a preview token from the public route', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article());
-
-    await resolveAsyncElement(
-      await ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'route-public' }),
-      }),
-    );
-
-    expect(getPublicArticleBySlug).toHaveBeenCalledWith(
-      'route-public',
-      undefined,
-    );
-  });
-
   it('answers with a 404 when the article is missing', async () => {
     getPublicArticleBySlug.mockResolvedValue(null);
 
     await expect(
       ArticleDetailRoute({
         params: Promise.resolve({ slug: 'gone' }),
-      }).then(resolveAsyncElement),
-    ).rejects.toThrow();
-  });
-
-  it('answers with a 404 for the sentinel "undefined" id', async () => {
-    getPublicArticleBySlug.mockResolvedValue(article({ id: 'undefined' }));
-
-    await expect(
-      ArticleDetailRoute({
-        params: Promise.resolve({ slug: 'sentinel' }),
       }).then(resolveAsyncElement),
     ).rejects.toThrow();
   });

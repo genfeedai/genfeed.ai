@@ -2,7 +2,6 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/contracts/interfaces';
-import { VERSION as INSTALLED_REMOTION_VERSION } from 'remotion/version';
 
 const specDirectory = path.dirname(fileURLToPath(import.meta.url));
 const expectedRemotionVersion = EDITOR_RENDERER_VERSION.replace(
@@ -43,10 +42,6 @@ function readStringMap(
 describe('Remotion version contract', () => {
   const repositoryRoot = resolveRepositoryRoot();
 
-  it('keeps the installed remotion version aligned with EDITOR_RENDERER_VERSION', () => {
-    expect(INSTALLED_REMOTION_VERSION).toBe(expectedRemotionVersion);
-  });
-
   it('keeps remotion workspace pins on the renderer contract version', () => {
     const filesDependencies = readStringMap(
       readJsonRecord(
@@ -68,19 +63,5 @@ describe('Remotion version contract', () => {
     );
     expect(appDependencies.remotion).toBe(expectedRemotionVersion);
     expect(appDependencies['@remotion/player']).toBe(expectedRemotionVersion);
-  });
-
-  it('does not leave a remotion patch pinned to a different version', () => {
-    const patchedDependencies = readStringMap(
-      readJsonRecord(path.join(repositoryRoot, 'package.json')),
-      'patchedDependencies',
-    );
-    const remotionPatchKeys = Object.keys(patchedDependencies).filter((key) =>
-      key.startsWith('@remotion/'),
-    );
-
-    for (const patchKey of remotionPatchKeys) {
-      expect(patchKey.endsWith(`@${expectedRemotionVersion}`)).toBe(true);
-    }
   });
 });

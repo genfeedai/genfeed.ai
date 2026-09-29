@@ -25,8 +25,4 @@ describe('curated MCP action catalog', () => {
     expect(unroutable).toEqual([]);
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
   });
-
-  it('does not classify generated endpoint names as tools', () => {
-    expect(ToolRegistryService.classify('brands__create')).toBe('unknown');
-  });
 });

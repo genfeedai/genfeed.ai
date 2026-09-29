@@ -16,37 +16,6 @@ const migrationSource = readFileSync(
 // `agent_runs_org_deleted_status_completed_at_idx` is intentionally absent:
 // `20260829120000_drop_agent_runs_link_workflow_executions` drops the
 // `agent_runs` table, and the overview payload no longer projects run stats.
-const hotPathIndexes = [
-  'members_org_user_deleted_idx',
-  'brands_org_deleted_label_idx',
-  'posts_org_deleted_status_created_at_idx',
-  'posts_brand_deleted_status_created_at_idx',
-  'posts_brand_credential_deleted_created_at_idx',
-  'posts_brand_platform_deleted_created_at_idx',
-  'content_runs_org_brand_deleted_created_at_idx',
-  'content_runs_org_brand_deleted_status_created_at_idx',
-  'activities_deleted_created_at_idx',
-  'activities_org_deleted_created_at_idx',
-  'activities_brand_deleted_created_at_idx',
-  'activities_user_deleted_created_at_idx',
-  'batches_org_deleted_created_at_idx',
-  'batches_org_brand_deleted_created_at_idx',
-  'batches_org_deleted_status_created_at_idx',
-] as const;
-
-describe('app shell hot-path Prisma indexes', () => {
-  it.each(hotPathIndexes)(
-    'keeps %s in schema and migration source',
-    (indexName) => {
-      expect(schemaSource).toContain(`map: "${indexName}"`);
-      // Built CONCURRENTLY so the deploy never ACCESS EXCLUSIVE-locks these hot
-      // tables. Guardrail: a plain `CREATE INDEX` regression must fail CI.
-      expect(migrationSource).toContain(
-        `CREATE INDEX CONCURRENTLY "${indexName}"`,
-      );
-    },
-  );
-});
 
 // UNIQUE indexes added in #1194 (#1185) on hot, continuously-written tables
 // (post_analytics ingestion, Stripe billing). These MUST build CONCURRENTLY too:

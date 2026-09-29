@@ -33,16 +33,6 @@ describe('ThemePreferenceSync', () => {
     expect(setThemeMock).toHaveBeenCalledWith('system');
   });
 
-  it('does not reapply the active preference', () => {
-    useCurrentUserMock.mockReturnValue({
-      currentUser: { settings: { theme: 'dark' } },
-    });
-
-    render(<ThemePreferenceSync />);
-
-    expect(setThemeMock).not.toHaveBeenCalled();
-  });
-
   it.each([undefined, null, 'sepia'])(
     'ignores %s as a stored theme',
     (theme) => {

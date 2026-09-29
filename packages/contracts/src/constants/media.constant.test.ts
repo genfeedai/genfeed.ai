@@ -22,20 +22,6 @@ describe('media.constant', () => {
   });
 
   describe('VIDEO_FORMAT_DIMENSIONS', () => {
-    it('portrait is 1080x1920', () => {
-      expect(VIDEO_FORMAT_DIMENSIONS[IngredientFormat.PORTRAIT]).toEqual({
-        height: 1920,
-        width: 1080,
-      });
-    });
-
-    it('landscape is 1920x1080', () => {
-      expect(VIDEO_FORMAT_DIMENSIONS[IngredientFormat.LANDSCAPE]).toEqual({
-        height: 1080,
-        width: 1920,
-      });
-    });
-
     it('square is 1080x1080', () => {
       expect(VIDEO_FORMAT_DIMENSIONS[IngredientFormat.SQUARE]).toEqual({
         height: 1080,

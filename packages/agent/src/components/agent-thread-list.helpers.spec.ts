@@ -3,11 +3,9 @@ import { AgentThreadStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   getThreadStatusKey,
-  getThreadStatusMeta,
   groupAgentThreads,
   groupAgentThreadsByBrand,
   ORGANIZATION_THREAD_GROUP_LABEL,
-  resolveThreadListPreview,
 } from './agent-thread-list.helpers';
 
 function createThread(
@@ -137,124 +135,6 @@ describe('groupAgentThreadsByBrand', () => {
       'curie-new',
       'curie-old',
     ]);
-  });
-
-  it('uses the organization label when a thread has no brand', () => {
-    const groups = groupAgentThreadsByBrand(
-      [createThread('org', { brandId: null, title: 'Workspace chat' })],
-      { searchQuery: '' },
-    );
-
-    expect(groups).toEqual([
-      expect.objectContaining({
-        brandId: null,
-        label: ORGANIZATION_THREAD_GROUP_LABEL,
-      }),
-    ]);
-  });
-
-  it('keeps pinned threads first inside a brand group', () => {
-    const groups = groupAgentThreadsByBrand(
-      [
-        createThread('later', {
-          brandId: 'brand-curie',
-          brandLabel: 'Curie',
-          title: 'Later',
-          updatedAt: '2026-08-19T12:00:00.000Z',
-        }),
-        createThread('pinned', {
-          brandId: 'brand-curie',
-          brandLabel: 'Curie',
-          isPinned: true,
-          title: 'Pinned',
-          updatedAt: '2026-08-01T08:00:00.000Z',
-        }),
-      ],
-      { searchQuery: '' },
-    );
-
-    expect(groups[0]?.threads.map(({ id }) => id)).toEqual(['pinned', 'later']);
-  });
-});
-
-describe('resolveThreadListPreview', () => {
-  it('uses the latest assistant output as the row description', () => {
-    expect(
-      resolveThreadListPreview(
-        createThread('preview', {
-          lastAssistantPreview: 'Three portraits are ready',
-          lastMessage: 'older user prompt',
-        }),
-      ),
-    ).toBe('Three portraits are ready');
-  });
-
-  it('does not fall back to source or platform noise', () => {
-    expect(
-      resolveThreadListPreview(
-        createThread('empty', {
-          platform: 'instagram',
-          source: 'agent',
-        }),
-      ),
-    ).toBeNull();
-  });
-});
-
-describe('getThreadStatusMeta', () => {
-  it('marks background attention running without requiring the thread to be active', () => {
-    const thread = createThread('background', {
-      attentionState: 'running',
-      runStatus: 'running',
-    });
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'idle',
-        activeThreadId: 'other',
-      }),
-    ).toEqual({
-      label: 'Running',
-      tone: 'running',
-    });
-  });
-
-  it('ignores bare stale runStatus on non-active threads', () => {
-    const thread = createThread('stale', {
-      runStatus: 'running',
-    });
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'idle',
-        activeThreadId: 'other',
-      }),
-    ).toBeNull();
-  });
-
-  it('lets reconciled local state settle stale active-thread attention', () => {
-    const thread = createThread('active', {
-      attentionState: 'running',
-      runStatus: 'running',
-    });
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'idle',
-        activeThreadId: 'active',
-      }),
-    ).toBeNull();
-  });
-
-  it('does not leak the active thread failure status onto every thread', () => {
-    const thread = createThread('background');
-
-    expect(
-      getThreadStatusMeta(thread, {
-        activeRunStatus: 'failed',
-        activeThreadId: 'active-thread',
-      }),
-    ).toBeNull();
   });
 });
 

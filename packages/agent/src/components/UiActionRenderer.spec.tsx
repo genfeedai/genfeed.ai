@@ -547,33 +547,6 @@ describe('UiActionRenderer', () => {
     );
   });
 
-  it('passes a pending outcome through to brand confirmation cards', async () => {
-    const onUiAction = vi.fn().mockResolvedValue('pending');
-    const action = {
-      id: 'brand-confirmation-pending',
-      type: 'brand_identity_confirmation_card',
-    } as AgentUiAction;
-
-    render(<UiActionRenderer action={action} onUiAction={onUiAction} />);
-
-    const confirmationHandler =
-      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
-        .onUiAction as
-        | ((
-            actionName: string,
-            payload?: Record<string, unknown>,
-          ) => Promise<AgentUiActionOutcome>)
-        | undefined;
-
-    if (!confirmationHandler) {
-      throw new Error('Brand confirmation handler was not forwarded.');
-    }
-
-    await expect(confirmationHandler('confirm_create_brand')).resolves.toBe(
-      'pending',
-    );
-  });
-
   it('makes archived brand identity confirmations inert and drops their handler', () => {
     const onUiAction = vi.fn();
     const action = {

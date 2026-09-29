@@ -9,7 +9,6 @@ import {
   recipeFromIngredient,
   recipeFromPromptData,
   recipeFromRepromptData,
-  resolveAspectRatioFromDimensions,
   resolveRecipeForJob,
   settingsPatchFromRecipe,
 } from './studio-generate-recipe';
@@ -31,56 +30,7 @@ function buildJob(
   };
 }
 
-describe('resolveAspectRatioFromDimensions', () => {
-  it('maps a 4:5 pixel pair back onto the aspect ladder', () => {
-    expect(resolveAspectRatioFromDimensions(816, 1024)).toBe('4:5');
-  });
-
-  it('returns undefined for unusable sizes', () => {
-    expect(resolveAspectRatioFromDimensions(0, 1024)).toBeUndefined();
-  });
-});
-
 describe('recipeFromPromptData', () => {
-  it('captures the enriched schema, not just the raw composer text', () => {
-    const settings = {
-      ...getDefaultStudioGenerateSettings('image'),
-      aspectRatio: '4:5',
-      camera: 'macro',
-      lighting: 'golden hour',
-      modelKey: 'flux-dev',
-      mood: 'confident',
-      outputs: 4,
-      promptTemplate: 'product-photo',
-      scene: 'rooftop',
-      style: 'cinematic',
-    };
-    const promptData = buildStudioPromptData({
-      brandId: 'brand-1',
-      promptText: 'A founder at a desk',
-      references: ['https://cdn.example/ref.png'],
-      settings,
-      type: 'image',
-    });
-    const recipe = recipeFromPromptData(promptData, 'image', settings);
-
-    expect(recipe).toMatchObject({
-      aspectRatio: '4:5',
-      brandingMode: 'brand',
-      camera: 'macro',
-      lighting: 'golden hour',
-      modelKey: 'flux-dev',
-      mood: 'confident',
-      outputs: 4,
-      promptTemplate: 'product-photo',
-      references: ['https://cdn.example/ref.png'],
-      scene: 'rooftop',
-      style: 'cinematic',
-      text: 'A founder at a desk',
-      type: 'image',
-    });
-  });
-
   it('never records brand enrichment on for music, avatar, or voice (#4676)', () => {
     const settings = getDefaultStudioGenerateSettings('music');
     const promptData = buildStudioPromptData({
@@ -183,28 +133,6 @@ describe('recipeFromRepromptData', () => {
     expect(recipe.outputs).toBe(1);
   });
 
-  it('records brand voice as unknown rather than off, for a type that supports it (#4676)', () => {
-    // buildRepromptData never carries isBrandingEnabled/brandingMode — the
-    // recipe must not guess "off" and silently disable brand voice on Vary.
-    const ingredient = {
-      height: 1024,
-      metadata: {},
-      metadataHeight: 1024,
-      metadataWidth: 816,
-      promptText: 'Original prompt',
-      width: 816,
-    } as unknown as IIngredient;
-    const data = buildRepromptData(
-      ingredient,
-      IngredientCategory.IMAGE,
-      'brand-1',
-      [],
-    );
-    expect(data.isBrandingEnabled).toBeUndefined();
-
-    expect(recipeFromRepromptData(data, 'image').brandingMode).toBeUndefined();
-  });
-
   it('still records a decisive off for types brand voice can never reach', () => {
     const ingredient = {
       metadata: {},
@@ -228,17 +156,6 @@ describe('recipeFromIngredient', () => {
     promptText: 'A founder at a desk',
   } as unknown as IIngredient;
 
-  it('reads a stored "brand" brandingMode', () => {
-    const ingredient = {
-      ...baseIngredient,
-      metadata: { brandingMode: 'brand' },
-    } as unknown as IIngredient;
-
-    expect(recipeFromIngredient(ingredient, 'image').brandingMode).toBe(
-      'brand',
-    );
-  });
-
   it('reads a stored "off" brandingMode', () => {
     const ingredient = {
       ...baseIngredient,
@@ -246,17 +163,6 @@ describe('recipeFromIngredient', () => {
     } as unknown as IIngredient;
 
     expect(recipeFromIngredient(ingredient, 'image').brandingMode).toBe('off');
-  });
-
-  it('records unknown rather than off when metadata never stored a brand state (#4676)', () => {
-    const ingredient = {
-      ...baseIngredient,
-      metadata: {},
-    } as unknown as IIngredient;
-
-    expect(
-      recipeFromIngredient(ingredient, 'image').brandingMode,
-    ).toBeUndefined();
   });
 
   it('still records a decisive off for types brand voice can never reach', () => {

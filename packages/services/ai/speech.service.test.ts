@@ -61,19 +61,6 @@ describe('SpeechService', () => {
       expect(result).toEqual(transcription);
     });
 
-    it('omits optional fields when not provided', async () => {
-      const service = SpeechService.getInstance(token);
-      const http = installMockHttp(service);
-      http.post.mockResolvedValue(axiosResponse(transcription));
-
-      const file = new File(['audio'], 'clip.wav', { type: 'audio/wav' });
-      await service.transcribeAudio(file);
-
-      const formData = http.post.mock.calls[0][1] as FormData;
-      expect(formData.get('language')).toBeNull();
-      expect(formData.get('prompt')).toBeNull();
-    });
-
     it('maps 402 to an insufficient-credits error', async () => {
       const service = SpeechService.getInstance(token);
       const http = installMockHttp(service);

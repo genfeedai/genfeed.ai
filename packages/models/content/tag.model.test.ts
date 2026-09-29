@@ -163,33 +163,9 @@ const createTag = (partial: Partial<ITag> = {}) =>
 
 describe('Tag', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = createTag();
-      expect(instance).toBeDefined();
-    });
-
-    it('should create an instance with partial data', () => {
-      const instance = createTag({ id: 'test-123', label: 'My Tag' });
-      expect(instance).toBeDefined();
-    });
-
-    it('should instantiate populated user', () => {
-      const tag = createTag({ user: createUser({ id: 'user-1' }) });
-      expect(tag.user).toBeDefined();
-      expect((tag.user as { id: string }).id).toBe('user-1');
-    });
-
     it('should not wrap user when it has no id', () => {
       const tag = createTag({ user: 'user-string' as never });
       expect(tag.user).toBe('user-string');
-    });
-
-    it('should instantiate populated organization', () => {
-      const tag = createTag({
-        organization: createOrganization({ id: 'org-1' }),
-      });
-      expect(tag.organization).toBeDefined();
-      expect((tag.organization as { id: string }).id).toBe('org-1');
     });
 
     it('should not wrap organization when it has no id', () => {
@@ -197,28 +173,9 @@ describe('Tag', () => {
       expect(tag.organization).toBe('org-string');
     });
 
-    it('should instantiate populated brand', () => {
-      const tag = createTag({
-        brand: createBrand({ id: 'brand-1' }),
-      });
-      expect(tag.brand).toBeDefined();
-      expect((tag.brand as { id: string }).id).toBe('brand-1');
-    });
-
     it('should not wrap brand when it has no id', () => {
       const tag = createTag({ brand: 'brand-string' as never });
       expect(tag.brand).toBe('brand-string');
-    });
-
-    it('should handle all relations being objects simultaneously', () => {
-      const tag = createTag({
-        brand: createBrand({ id: 'brand-1' }),
-        organization: createOrganization({ id: 'org-1' }),
-        user: createUser({ id: 'user-1' }),
-      });
-      expect(tag.user).toBeDefined();
-      expect(tag.organization).toBeDefined();
-      expect(tag.brand).toBeDefined();
     });
   });
 });

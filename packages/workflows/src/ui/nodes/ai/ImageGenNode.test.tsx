@@ -275,14 +275,6 @@ describe('ImageGenNode', () => {
   });
 
   describe('generate button', () => {
-    it('should call handleGenerate when generate button clicked', () => {
-      render(<ImageGenNode {...defaultProps} />);
-
-      fireEvent.click(screen.getByText('Generate'));
-
-      expect(mockHandleGenerate).toHaveBeenCalled();
-    });
-
     it('should show Generating text when processing', () => {
       render(
         <ImageGenNode

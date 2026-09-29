@@ -25,11 +25,6 @@ describe('BrokenCircuitError', () => {
     expect(err.message).toContain('5');
     expect(err.name).toBe('BrokenCircuitError');
   });
-
-  it('is an instance of Error', () => {
-    const err = new BrokenCircuitError('processor', 3);
-    expect(err).toBeInstanceOf(Error);
-  });
 });
 
 describe('ProcessorCircuitBreaker', () => {
@@ -110,13 +105,6 @@ describe('ProcessorCircuitBreaker', () => {
 describe('createProcessorCircuitBreaker', () => {
   it('creates a ProcessorCircuitBreaker instance', () => {
     const breaker = createProcessorCircuitBreaker('test');
-    expect(breaker).toBeInstanceOf(ProcessorCircuitBreaker);
-  });
-
-  it('creates breaker with custom options', () => {
-    const breaker = createProcessorCircuitBreaker('test', undefined, {
-      threshold: 10,
-    });
     expect(breaker).toBeInstanceOf(ProcessorCircuitBreaker);
   });
 });

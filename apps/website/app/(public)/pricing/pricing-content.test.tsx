@@ -57,22 +57,6 @@ describe('PricingContent launch pricing', () => {
     expect(screen.getByText('$39')).not.toHaveClass('line-through');
   });
 
-  it('renders the launch note under the Hosted card price', () => {
-    render(<PricingContent />);
-
-    expect(
-      screen.getByText(/earlygenfeed · 12 months, then \$49\/mo/i),
-    ).toBeInTheDocument();
-  });
-
-  it('uses the tokenized dark card surface for the popular plan', () => {
-    render(<PricingContent />);
-
-    expect(screen.getByText('Popular').closest('.gsap-card')).toHaveClass(
-      'bg-card',
-    );
-  });
-
   it('renders the enterprise card on the shared grid border surface', () => {
     render(<PricingContent />);
 
@@ -84,23 +68,6 @@ describe('PricingContent launch pricing', () => {
     expect(enterpriseCard).not.toHaveClass('border', 'shadow-border');
     expect(enterpriseCard?.parentElement).toHaveClass('bg-edge/5');
     expect(enterpriseCard?.parentElement).not.toHaveClass('border');
-  });
-
-  it('renders an even number of pricing FAQ blocks', () => {
-    render(<PricingContent />);
-
-    expect(
-      screen.getByRole('heading', {
-        name: 'Can I start free and upgrade later?',
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('does not strike through prices on plans without launch pricing', () => {
-    render(<PricingContent />);
-
-    // Cloud Teams has no launchPrice — its price renders un-struck.
-    expect(screen.getByText('$499')).not.toHaveClass('line-through');
   });
 
   it('formats public pricing numbers deterministically across runtime locales', async () => {

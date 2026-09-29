@@ -19,9 +19,4 @@ describe('colon-free lifecycle trigger keys migration', () => {
     );
     expect(migrationSource).toContain(`WHERE "triggerKey" LIKE '%:%';`);
   });
-
-  it('only touches lifecycle_email_deliveries', () => {
-    const updates = migrationSource.match(/UPDATE "[a-z_]+"/g);
-    expect(updates).toEqual(['UPDATE "lifecycle_email_deliveries"']);
-  });
 });

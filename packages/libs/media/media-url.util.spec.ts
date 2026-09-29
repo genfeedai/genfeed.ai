@@ -85,13 +85,6 @@ describe('resolveIngredientMediaUrl', () => {
     ).toBe('https://replicate.delivery/clip.mp4');
   });
 
-  it('returns undefined when no playable URL exists', () => {
-    expect(resolveIngredientMediaUrl({}, CDN)).toBeUndefined();
-    expect(
-      resolveIngredientMediaUrl({ metadata: 'meta-id-only' }, CDN),
-    ).toBeUndefined();
-  });
-
   it('rewrites files-host and /local/ disk paths onto the public CDN', () => {
     expect(
       resolveIngredientMediaUrl(
@@ -309,12 +302,6 @@ describe('withExternalMediaFallback', () => {
     ]) {
       expect(withExternalMediaFallback(doc)).toBe(doc);
     }
-  });
-
-  it('does not mutate the input', () => {
-    const doc = { cdnUrl: null, metadata: { result: 'https://x.test/a.mp4' } };
-    withExternalMediaFallback(doc);
-    expect(doc.cdnUrl).toBeNull();
   });
 });
 

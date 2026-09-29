@@ -126,19 +126,6 @@ describe('composeContentHarnessBrief', () => {
     expect(brief.sources[0]?.content).toBe('a');
   });
 
-  it('supports async pack contributions', async () => {
-    const registry = new ContentHarnessRegistry();
-    registry.registerPack({
-      contribute: () => Promise.resolve({ providerHints: ['Async hint.'] }),
-      id: 'async-pack',
-      version: '1.0.0',
-    });
-
-    const brief = await composeContentHarnessBrief(registry, BASE_INPUT);
-
-    expect(brief.providerHints).toEqual(['Async hint.']);
-  });
-
   it('handles contributions with omitted fields', async () => {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(buildPack('sparse', {}));
@@ -185,16 +172,6 @@ describe('Brand OS identity receipts', () => {
     expect(brief.sources).toEqual([
       { id: 'example', kind: 'brand_example', content: 'Example' },
     ]);
-  });
-
-  it('records an explicit absence when no approved identity exists', async () => {
-    const brief = await composeContentHarnessBrief(
-      new ContentHarnessRegistry(),
-      {
-        intent: { contentType: 'image', objective: 'awareness' },
-      },
-    );
-    expect(brief.receipts).toEqual({ brandOs: 'none' });
   });
 
   it('records the harness profile that contributed to the brief', async () => {

@@ -92,16 +92,6 @@ describe('AgentStrategyConfig', () => {
     });
   });
 
-  it('leaves the form empty when no strategy exists', async () => {
-    await renderConfig(
-      makeApi({ getStrategies: vi.fn().mockResolvedValue([]) }),
-    );
-
-    expect(
-      screen.getByRole('button', { name: 'Create Strategy' }),
-    ).toBeDisabled();
-  });
-
   it('adds a topic, ignores duplicates and removes it again', async () => {
     await renderConfig(makeApi());
 

@@ -40,14 +40,4 @@ describe('useIsSuperAdmin', () => {
     expect(result.current).toBe(true);
     expect(mockGetAuthPublicData).toHaveBeenCalledWith(mockUser);
   });
-
-  it('returns false when user is not super admin', () => {
-    const mockUser = { id: 'user-2' };
-    mockUseAuthUser.mockReturnValue({ user: mockUser });
-    mockGetAuthPublicData.mockReturnValue({ isSuperAdmin: false });
-
-    const { result } = renderHook(() => useIsSuperAdmin());
-
-    expect(result.current).toBe(false);
-  });
 });

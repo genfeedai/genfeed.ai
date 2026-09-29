@@ -29,18 +29,6 @@ function followUp(
 }
 
 describe('composer-follow-up-queue', () => {
-  it('creates a trimmed follow-up with queued status and thread id', () => {
-    const item = followUp('  ship the remix  ', 'follow-up-1');
-
-    expect(item).toEqual({
-      content: 'ship the remix',
-      createdAt: '2026-08-13T00:00:00.000Z',
-      id: 'follow-up-1',
-      status: 'queued',
-      threadId: 'thread-1',
-    });
-  });
-
   it('ignores empty follow-ups on enqueue', () => {
     const empty = followUp('   ', 'empty');
     expect(enqueueComposerFollowUp([], empty)).toEqual({

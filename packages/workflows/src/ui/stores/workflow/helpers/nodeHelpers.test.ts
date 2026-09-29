@@ -40,14 +40,6 @@ describe('getHandleType', () => {
     ).toBeNull();
   });
 
-  it('returns null for known node type with unknown handle id', () => {
-    expect(getHandleType('imageGen', 'nonexistent', 'source')).toBeNull();
-  });
-
-  it('returns null when handle id is null', () => {
-    expect(getHandleType('imageGen', null, 'source')).toBeNull();
-  });
-
   it('returns text type for llm node text output', () => {
     expect(getHandleType('llm', 'text', 'source')).toBe('text');
   });

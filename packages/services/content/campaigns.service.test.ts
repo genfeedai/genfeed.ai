@@ -2,7 +2,6 @@ import {
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
 } from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import {
   axiosResponse,
   collectionDocument,
@@ -27,10 +26,6 @@ describe('CampaignsService', () => {
     vi.clearAllMocks();
     service = new CampaignsService('campaigns-token');
     http = installMockHttp(service);
-  });
-
-  it('targets the publish content-campaign collection', () => {
-    expect(API_ENDPOINTS.CAMPAIGNS).toBe('/campaigns');
   });
 
   it('getInstance caches per token', () => {

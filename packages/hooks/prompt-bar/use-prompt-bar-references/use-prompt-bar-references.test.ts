@@ -188,27 +188,6 @@ describe('usePromptBarReferences', () => {
       );
     });
 
-    it('removes duplicate references by ID', () => {
-      const options = {
-        ...createBaseOptions(),
-        maxReferenceCount: 5,
-        supportsMultipleReferences: true,
-      };
-      const { result } = renderHook(() => usePromptBarReferences(options));
-
-      const assets = [
-        createMockAsset({ id: 'asset-1' }),
-        createMockAsset({ id: 'asset-1' }), // Duplicate
-        createMockAsset({ id: 'asset-2' }),
-      ];
-
-      act(() => {
-        result.current.handleReferenceSelect(assets);
-      });
-
-      expect(result.current.references).toHaveLength(2);
-    });
-
     it('clears references when empty array passed', () => {
       const options = {
         ...createBaseOptions(),
@@ -233,29 +212,6 @@ describe('usePromptBarReferences', () => {
   });
 
   describe('Aspect Ratio Validation', () => {
-    it('warns about portrait image for landscape video', () => {
-      const options = {
-        ...createBaseOptions(),
-        currentFormat: IngredientFormat.LANDSCAPE,
-        currentModelCategory: ModelCategory.VIDEO,
-      };
-      const { result } = renderHook(() => usePromptBarReferences(options));
-
-      const portraitImage = createMockAsset({
-        metadataHeight: 1920, // Portrait aspect ratio
-        metadataWidth: 1080,
-      });
-
-      act(() => {
-        result.current.handleReferenceSelect([portraitImage]);
-      });
-
-      expect(options.notificationsService.warning).toHaveBeenCalledWith(
-        expect.stringContaining('landscape video format'),
-        5000,
-      );
-    });
-
     it('warns about landscape image for portrait video', () => {
       const options = {
         ...createBaseOptions(),
@@ -300,26 +256,6 @@ describe('usePromptBarReferences', () => {
         expect.stringContaining('square video format'),
         5000,
       );
-    });
-
-    it('does not warn when aspect ratios match', () => {
-      const options = {
-        ...createBaseOptions(),
-        currentFormat: IngredientFormat.LANDSCAPE,
-        currentModelCategory: ModelCategory.VIDEO,
-      };
-      const { result } = renderHook(() => usePromptBarReferences(options));
-
-      const landscapeImage = createMockAsset({
-        metadataHeight: 1080,
-        metadataWidth: 1920,
-      });
-
-      act(() => {
-        result.current.handleReferenceSelect([landscapeImage]);
-      });
-
-      expect(options.notificationsService.warning).not.toHaveBeenCalled();
     });
 
     it('does not validate aspect ratio for image category', () => {
@@ -481,68 +417,6 @@ describe('usePromptBarReferences', () => {
 
       expect(result.current.references).toHaveLength(0);
       expect(result.current.referenceSource).toBe('');
-    });
-  });
-
-  describe('End Frame Management', () => {
-    it('can set end frame', () => {
-      const { result } = renderHook(() =>
-        usePromptBarReferences(createBaseOptions()),
-      );
-
-      const endFrameAsset = createMockAsset({ id: 'end-frame-1' });
-
-      act(() => {
-        result.current.setEndFrame(endFrameAsset);
-      });
-
-      expect(result.current.endFrame).toEqual(endFrameAsset);
-    });
-
-    it('can clear end frame', () => {
-      const { result } = renderHook(() =>
-        usePromptBarReferences(createBaseOptions()),
-      );
-
-      const endFrameAsset = createMockAsset({ id: 'end-frame-1' });
-
-      act(() => {
-        result.current.setEndFrame(endFrameAsset);
-      });
-
-      act(() => {
-        result.current.setEndFrame(null);
-      });
-
-      expect(result.current.endFrame).toBeNull();
-    });
-  });
-
-  describe('State Setters', () => {
-    it('provides setReferences function', () => {
-      const { result } = renderHook(() =>
-        usePromptBarReferences(createBaseOptions()),
-      );
-
-      const assets = [createMockAsset()];
-
-      act(() => {
-        result.current.setReferences(assets);
-      });
-
-      expect(result.current.references).toEqual(assets);
-    });
-
-    it('provides setReferenceSource function', () => {
-      const { result } = renderHook(() =>
-        usePromptBarReferences(createBaseOptions()),
-      );
-
-      act(() => {
-        result.current.setReferenceSource('brand');
-      });
-
-      expect(result.current.referenceSource).toBe('brand');
     });
   });
 

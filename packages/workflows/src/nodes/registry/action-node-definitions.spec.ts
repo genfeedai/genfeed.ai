@@ -4,8 +4,6 @@ import {
   ACTION_NODE_DEFINITIONS,
   buildActionNodeDefinitions,
 } from './action-node-definitions';
-import { ENGINE_NATIVE_NODE_DEFINITIONS } from './engine-native-definitions';
-import { NODE_DEFINITIONS } from './merged-registry';
 
 describe('ACTION_NODE_DEFINITIONS', () => {
   it('derives one builder definition for every workflow-visible action', () => {
@@ -136,28 +134,6 @@ describe('ACTION_NODE_DEFINITIONS', () => {
         (output) => output.id,
       ),
     ).toEqual(['output']);
-  });
-});
-
-describe('engine-native vs generated inventories', () => {
-  it('does not duplicate engine-native types in the generated action map', () => {
-    for (const type of Object.keys(ENGINE_NATIVE_NODE_DEFINITIONS)) {
-      if (type === 'genfeedAction') {
-        continue;
-      }
-      expect(ACTION_NODE_DEFINITIONS[type]).toBeUndefined();
-    }
-  });
-
-  it('merges catalog actions into NODE_DEFINITIONS', () => {
-    expect(NODE_DEFINITIONS.brand).toBeDefined();
-    expect(NODE_DEFINITIONS.publish).toBeDefined();
-    expect(NODE_DEFINITIONS.talkingHeadScript).toBeDefined();
-    expect(NODE_DEFINITIONS.socialRead).toBeDefined();
-    expect(NODE_DEFINITIONS.reportDelivery).toBeDefined();
-    expect(NODE_DEFINITIONS.commentTrigger).toBeDefined();
-    expect(NODE_DEFINITIONS.workflowInput).toBeDefined();
-    expect(NODE_DEFINITIONS.genfeedAction).toBeDefined();
   });
 });
 

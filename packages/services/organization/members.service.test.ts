@@ -1,5 +1,3 @@
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import { Member } from '@genfeedai/models/organization/member.model';
 import { MembersService } from '@services/organization/members.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,22 +11,6 @@ describe('MembersService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     service = new MembersService(mockToken);
-  });
-
-  describe('constructor', () => {
-    it('initializes with correct parameters', () => {
-      expect(service).toBeInstanceOf(MembersService);
-    });
-
-    it('uses correct API endpoint', () => {
-      // The constructor passes API_ENDPOINTS.MEMBERS to BaseService
-      expect(API_ENDPOINTS.MEMBERS).toBeDefined();
-    });
-
-    it('uses Member model', () => {
-      // Constructor passes Member class to BaseService
-      expect(Member).toBeDefined();
-    });
   });
 
   describe('inheritance from BaseService', () => {

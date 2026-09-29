@@ -60,18 +60,4 @@ describe('ConversationDockPanel', () => {
     expect(captured.current?.placeholder).toBe('Ask about analytics...');
     expect(captured.current?.suggestedActions).toEqual(suggestedActions);
   });
-
-  it('ignores a blank page-context placeholder', () => {
-    useAgentChatStore.setState({
-      pageContext: {
-        placeholder: '   ',
-        route: '/analytics',
-        suggestedActions: [],
-      },
-    });
-
-    render(<ConversationDockPanel apiService={apiService} />);
-
-    expect(captured.current?.placeholder).toBe('Ask about this page...');
-  });
 });

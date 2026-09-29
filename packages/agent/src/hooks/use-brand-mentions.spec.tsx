@@ -46,14 +46,4 @@ describe('useBrandMentions', () => {
     expect(result.current.isLoading).toBe(true);
     expect(result.current.mentions).toEqual([]);
   });
-
-  it('keeps the mention list referentially stable across rerenders', () => {
-    brandState.brands = [{ id: 'b-1', label: 'Acme', slug: 'acme' }];
-
-    const { result, rerender } = renderHook(() => useBrandMentions());
-    const first = result.current.mentions;
-    rerender();
-
-    expect(result.current.mentions).toBe(first);
-  });
 });

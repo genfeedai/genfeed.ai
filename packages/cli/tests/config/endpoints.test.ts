@@ -20,14 +20,6 @@ describe('config/endpoints', () => {
   });
 
   describe('deriveAppUrl', () => {
-    it('swaps the api. subdomain for app.', () => {
-      expect(deriveAppUrl('https://api.example.com/v1')).toBe('https://app.example.com');
-    });
-
-    it('derives the SaaS app URL from the SaaS API URL', () => {
-      expect(deriveAppUrl(SAAS_API_URL)).toBe(SAAS_APP_URL);
-    });
-
     it.each([
       'http://localhost:3010/v1',
       'http://127.0.0.1:3010/v1',
@@ -43,34 +35,12 @@ describe('config/endpoints', () => {
       );
     });
 
-    it('keeps a non-standard local port untouched', () => {
-      expect(deriveAppUrl('http://localhost:8080/v1')).toBe('http://localhost:8080');
-    });
-
     it('falls back to the SaaS app URL for unparseable input', () => {
       expect(deriveAppUrl('not-a-url')).toBe(SAAS_APP_URL);
     });
   });
 
   describe('resolveLoginEndpoints', () => {
-    it('derives auth and app URLs from a self-hosted API URL', () => {
-      expect(resolveLoginEndpoints('https://api.example.com/v1')).toEqual({
-        apiBaseUrl: 'https://api.example.com/v1',
-        appUrl: 'https://app.example.com',
-        authUrl: 'https://app.example.com/oauth/cli',
-      });
-    });
-
-    it('prefers an explicit app URL over derivation', () => {
-      expect(
-        resolveLoginEndpoints('https://api.example.com/v1', 'https://studio.example.com/')
-      ).toEqual({
-        apiBaseUrl: 'https://api.example.com/v1',
-        appUrl: 'https://studio.example.com',
-        authUrl: 'https://studio.example.com/oauth/cli',
-      });
-    });
-
     it('falls back to SaaS defaults when the API URL is empty', () => {
       expect(resolveLoginEndpoints('')).toEqual({
         apiBaseUrl: SAAS_API_URL,

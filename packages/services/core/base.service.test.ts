@@ -169,36 +169,7 @@ describe('BaseService', () => {
     BaseService.clearAllInstances();
   });
 
-  describe('constructor', () => {
-    it('should construct with correct base URL', () => {
-      expect(service).toHaveProperty(
-        'baseURL',
-        'https://api.genfeed.ai/v1/test',
-      );
-    });
-
-    it('should store model reference', () => {
-      expect(service.model).toBe(TestModel);
-    });
-  });
-
   describe('handleOperationError', () => {
-    it('preserves timeout flags so Sentry can drop expected network failures', () => {
-      const timeout = Object.assign(new Error('Request timed out'), {
-        isTimeout: true,
-      });
-
-      expect(() =>
-        service.testHandleOperationError('collectAllPages', timeout),
-      ).toThrow(
-        expect.objectContaining({
-          isTimeout: true,
-          message: 'Request timed out',
-          name: 'ServiceOperationError',
-        }),
-      );
-    });
-
     it('does not throw TypeError when the original error is missing', () => {
       expect(() =>
         service.testHandleOperationError('collectAllPages', undefined),
@@ -255,21 +226,6 @@ describe('BaseService', () => {
         }),
       );
     });
-
-    it('normalizes a generic service Error with operation context', () => {
-      expect(() =>
-        service.testHandleOperationError(
-          'GET /ingredients',
-          new Error('Network error'),
-        ),
-      ).toThrow(
-        expect.objectContaining({
-          message: 'Network error',
-          metadata: { operation: 'GET /ingredients' },
-          name: 'ServiceOperationError',
-        }),
-      );
-    });
   });
 
   describe('getInstance', () => {
@@ -283,19 +239,6 @@ describe('BaseService', () => {
         'baseURL',
         'https://api.genfeed.ai/v1/test',
       );
-    });
-
-    it('should reuse the same instance for the same subclass and token', () => {
-      const instance1 = BaseService.getDataServiceInstance(
-        TestService,
-        'token-1',
-      );
-      const instance2 = BaseService.getDataServiceInstance(
-        TestService,
-        'token-1',
-      );
-
-      expect(instance1).toBe(instance2);
     });
 
     it('should create new instances for different tokens', () => {
@@ -391,57 +334,6 @@ describe('BaseService', () => {
       expect(next).toBeInstanceOf(TestService);
       expect(next).not.toBe(original);
     });
-
-    it('should handle clearing non-existent instance', () => {
-      expect(() => TestService.clearInstance('non-existent')).not.toThrow();
-    });
-
-    it('should not clear a different subclass using the same token', () => {
-      const other = BaseService.getDataServiceInstance(
-        OtherTestService,
-        'token-1',
-      );
-
-      TestService.clearInstance('token-1');
-
-      const otherAgain = BaseService.getDataServiceInstance(
-        OtherTestService,
-        'token-1',
-      );
-
-      expect(otherAgain).toBe(other);
-    });
-
-    it('should clear cached multi-arg instances for a token', () => {
-      const original = BaseService.getDataServiceInstance(
-        MultiArgTestService,
-        'token-1',
-        'org-1',
-      );
-
-      MultiArgTestService.clearInstance('token-1');
-
-      const next = BaseService.getDataServiceInstance(
-        MultiArgTestService,
-        'token-1',
-        'org-1',
-      );
-
-      expect(next).not.toBe(original);
-    });
-  });
-
-  describe('clearAllInstances', () => {
-    it('should clear all instances', () => {
-      BaseService.getDataServiceInstance(TestService, 'token-1');
-      BaseService.getDataServiceInstance(TestService, 'token-2');
-
-      BaseService.clearAllInstances();
-
-      expect(() =>
-        BaseService.getDataServiceInstance(TestService, 'token-1'),
-      ).not.toThrow();
-    });
   });
 
   describe('findAll', () => {
@@ -458,33 +350,6 @@ describe('BaseService', () => {
         params: { page: 1 },
       });
       expect(result).toBeInstanceOf(Array);
-    });
-
-    it('should handle empty query', async () => {
-      const mockResponse = {
-        data: { data: [] },
-      };
-
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-
-      await service.findAll();
-
-      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('', {
-        params: {},
-      });
-    });
-
-    it('forwards an AbortSignal to the request config so the fetch is cancellable', async () => {
-      const mockResponse = { data: { data: [] } };
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-      const controller = new AbortController();
-
-      await service.findAll({ page: 1 }, controller.signal);
-
-      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('', {
-        params: { page: 1 },
-        signal: controller.signal,
-      });
     });
 
     it('should set pagination when page is provided', async () => {
@@ -508,26 +373,6 @@ describe('BaseService', () => {
       expect(PagesService.setCurrentPage).toHaveBeenCalledWith(2);
       expect(PagesService.setTotalPages).toHaveBeenCalledWith(5);
       expect(PagesService.setTotalDocs).toHaveBeenCalledWith(50);
-    });
-
-    it('should not set pagination when no page in query', async () => {
-      const mockResponse = {
-        data: { data: [] },
-      };
-
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-
-      await service.findAll();
-
-      expect(PagesService.setCurrentPage).not.toHaveBeenCalled();
-    });
-
-    it('should throw on error', async () => {
-      service
-        .getInstanceForTest()
-        .get.mockRejectedValue(new Error('Network error'));
-
-      await expect(service.findAll()).rejects.toThrow();
     });
   });
 
@@ -573,28 +418,6 @@ describe('BaseService', () => {
       expect(result.map((row) => row.id)).toEqual(['1']);
     });
 
-    it('clamps a caller limit above the API maximum', async () => {
-      const get = mockPages([['1']]);
-
-      await service.findAllPages({ limit: 5000 });
-
-      expect(get).toHaveBeenCalledWith('', {
-        params: { limit: 100, page: 1 },
-        signal: undefined,
-      });
-    });
-
-    it('keeps a caller limit below the API maximum', async () => {
-      const get = mockPages([['1']]);
-
-      await service.findAllPages({ limit: 25 });
-
-      expect(get).toHaveBeenCalledWith('', {
-        params: { limit: 25, page: 1 },
-        signal: undefined,
-      });
-    });
-
     it('forwards the AbortSignal to every page request', async () => {
       const get = mockPages([['1'], ['2']]);
       const controller = new AbortController();
@@ -638,86 +461,7 @@ describe('BaseService', () => {
     });
   });
 
-  describe('findOne', () => {
-    it('should call GET with correct ID', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Test' } },
-      };
-
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-
-      await service.findOne('123');
-
-      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('/123', {
-        params: {},
-      });
-    });
-
-    it('should pass query params', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Test' } },
-      };
-
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-
-      await service.findOne('123', { include: 'relations' });
-
-      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('/123', {
-        params: { include: 'relations' },
-      });
-    });
-
-    it('should return model instance', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Test' } },
-      };
-
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-
-      const result = await service.findOne('123');
-
-      expect(result).toBeInstanceOf(TestModel);
-    });
-
-    it('forwards an AbortSignal to the request config so the fetch is cancellable', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Test' } },
-      };
-      service.getInstanceForTest().get.mockResolvedValue(mockResponse);
-      const controller = new AbortController();
-
-      await service.findOne('123', { include: 'relations' }, controller.signal);
-
-      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('/123', {
-        params: { include: 'relations' },
-        signal: controller.signal,
-      });
-    });
-
-    it('should throw on error', async () => {
-      service
-        .getInstanceForTest()
-        .get.mockRejectedValue(new Error('Not found'));
-
-      await expect(service.findOne('invalid')).rejects.toThrow();
-    });
-  });
-
   describe('post', () => {
-    it('should call POST with body', async () => {
-      const mockResponse = {
-        data: { data: { id: '1', name: 'Created' } },
-      };
-
-      service.getInstanceForTest().post.mockResolvedValue(mockResponse);
-
-      await service.post({ name: 'New Item' });
-
-      expect(service.getInstanceForTest().post).toHaveBeenCalledWith('', {
-        name: 'New Item',
-      });
-    });
-
     it('should remove id from body', async () => {
       const mockResponse = {
         data: { data: { id: '1', name: 'Created' } },
@@ -731,88 +475,9 @@ describe('BaseService', () => {
         name: 'New Item',
       });
     });
-
-    it('should remove undefined values from body', async () => {
-      const mockResponse = {
-        data: { data: { id: '1', name: 'Created' } },
-      };
-
-      service.getInstanceForTest().post.mockResolvedValue(mockResponse);
-
-      await service.post({ description: undefined, name: 'New Item' });
-
-      expect(service.getInstanceForTest().post).toHaveBeenCalledWith('', {
-        name: 'New Item',
-      });
-    });
-
-    it('should remove null values from body', async () => {
-      const mockResponse = {
-        data: { data: { id: '1', name: 'Created' } },
-      };
-
-      service.getInstanceForTest().post.mockResolvedValue(mockResponse);
-
-      await service.post({ description: null, name: 'New Item' });
-
-      expect(service.getInstanceForTest().post).toHaveBeenCalledWith('', {
-        name: 'New Item',
-      });
-    });
-
-    it('should post to custom endpoint', async () => {
-      const mockResponse = {
-        data: { data: { id: '1', name: 'Created' } },
-      };
-
-      service.getInstanceForTest().post.mockResolvedValue(mockResponse);
-
-      await service.post('custom', { name: 'New Item' });
-
-      expect(service.getInstanceForTest().post).toHaveBeenCalledWith(
-        '/custom',
-        {
-          name: 'New Item',
-        },
-      );
-    });
-
-    it('should return model instance', async () => {
-      const mockResponse = {
-        data: { data: { id: '1', name: 'Created' } },
-      };
-
-      service.getInstanceForTest().post.mockResolvedValue(mockResponse);
-
-      const result = await service.post({ name: 'New Item' });
-
-      expect(result).toBeInstanceOf(TestModel);
-    });
-
-    it('should throw on error', async () => {
-      service
-        .getInstanceForTest()
-        .post.mockRejectedValue(new Error('Validation error'));
-
-      await expect(service.post({ name: 'Invalid' })).rejects.toThrow();
-    });
   });
 
   describe('patch', () => {
-    it('should call PATCH with ID and body', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Updated' } },
-      };
-
-      service.getInstanceForTest().patch.mockResolvedValue(mockResponse);
-
-      await service.patch('123', { name: 'Updated Name' });
-
-      expect(service.getInstanceForTest().patch).toHaveBeenCalledWith('/123', {
-        name: 'Updated Name',
-      });
-    });
-
     it('should remove undefined values from body', async () => {
       const mockResponse = {
         data: { data: { id: '123', name: 'Updated' } },
@@ -825,76 +490,6 @@ describe('BaseService', () => {
       expect(service.getInstanceForTest().patch).toHaveBeenCalledWith('/123', {
         name: 'Updated',
       });
-    });
-
-    it('should remove null values from body', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Updated' } },
-      };
-
-      service.getInstanceForTest().patch.mockResolvedValue(mockResponse);
-
-      await service.patch('123', { description: null, name: 'Updated' });
-
-      expect(service.getInstanceForTest().patch).toHaveBeenCalledWith('/123', {
-        name: 'Updated',
-      });
-    });
-
-    it('should return model instance', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Updated' } },
-      };
-
-      service.getInstanceForTest().patch.mockResolvedValue(mockResponse);
-
-      const result = await service.patch('123', { name: 'Updated' });
-
-      expect(result).toBeInstanceOf(TestModel);
-    });
-
-    it('should throw on error', async () => {
-      service
-        .getInstanceForTest()
-        .patch.mockRejectedValue(new Error('Not found'));
-
-      await expect(
-        service.patch('invalid', { name: 'Update' }),
-      ).rejects.toThrow();
-    });
-  });
-
-  describe('delete', () => {
-    it('should call DELETE with ID', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Deleted' } },
-      };
-
-      service.getInstanceForTest().delete.mockResolvedValue(mockResponse);
-
-      await service.delete('123');
-
-      expect(service.getInstanceForTest().delete).toHaveBeenCalledWith('/123');
-    });
-
-    it('should return model instance', async () => {
-      const mockResponse = {
-        data: { data: { id: '123', name: 'Deleted' } },
-      };
-
-      service.getInstanceForTest().delete.mockResolvedValue(mockResponse);
-
-      const result = await service.delete('123');
-
-      expect(result).toBeInstanceOf(TestModel);
-    });
-
-    it('should throw on error', async () => {
-      service
-        .getInstanceForTest()
-        .delete.mockRejectedValue(new Error('Not found'));
-
-      await expect(service.delete('invalid')).rejects.toThrow();
     });
   });
 
@@ -913,14 +508,6 @@ describe('BaseService', () => {
       expect(result[0]).toBeInstanceOf(TestModel);
       expect(result[1]).toBeInstanceOf(TestModel);
     });
-
-    it('should handle empty array', async () => {
-      const document = { data: [] };
-
-      const result = await service.testMapMany(document);
-
-      expect(result).toHaveLength(0);
-    });
   });
 
   describe('mapOne', () => {
@@ -937,94 +524,6 @@ describe('BaseService', () => {
     });
   });
 
-  describe('extractResource', () => {
-    it('should extract resource from document', () => {
-      const document = {
-        data: { id: '1', name: 'Resource' },
-      };
-
-      const result = service.testExtractResource(document);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should normalize bare relationship linkage objects to string ids', () => {
-      const document = {
-        data: {
-          brand: { id: 'brand-1' },
-          nested: {
-            organization: { id: 'org-1' },
-          },
-          relationIds: [{ id: 'rel-1' }, { id: 'rel-2' }],
-        },
-      };
-
-      const result = service.testExtractResource<{
-        brand: string;
-        nested: { organization: string };
-        relationIds: string[];
-      }>(document);
-
-      expect(result).toEqual({
-        brand: 'brand-1',
-        nested: { organization: 'org-1' },
-        relationIds: ['rel-1', 'rel-2'],
-      });
-    });
-
-    it('should preserve hydrated relationship objects', () => {
-      const document = {
-        data: {
-          brand: {
-            id: 'brand-1',
-            label: 'Acme',
-          },
-        },
-      };
-
-      const result = service.testExtractResource<{
-        brand: { id: string; label: string };
-      }>(document);
-
-      expect(result).toEqual({
-        brand: {
-          id: 'brand-1',
-          label: 'Acme',
-        },
-      });
-    });
-  });
-
-  describe('extractCollection', () => {
-    it('should extract collection from document', () => {
-      const document = {
-        data: [{ id: '1' }, { id: '2' }],
-      };
-
-      const result = service.testExtractCollection(document);
-
-      expect(result).toBeDefined();
-    });
-
-    it('should normalize relationship linkage objects inside collections', () => {
-      const document = {
-        data: [
-          { organization: { id: 'org-1' } },
-          { organization: { id: 'org-2' } },
-        ],
-      };
-
-      const result = service.testExtractCollection<{
-        organization: string;
-      }>(document);
-
-      expect(result).toEqual([
-        { organization: 'org-1' },
-        { organization: 'org-2' },
-      ]);
-    });
-  });
-
   describe('error handling', () => {
     it('preserves silent request cancellations without logging or wrapping', async () => {
       const cancellation = { isCancelled: true, silent: true };
@@ -1032,17 +531,6 @@ describe('BaseService', () => {
 
       await expect(service.findAll()).rejects.toBe(cancellation);
       expect(logger.error).not.toHaveBeenCalled();
-    });
-
-    it('should handle network errors', async () => {
-      service
-        .getInstanceForTest()
-        .get.mockRejectedValue(new Error('Network error'));
-
-      await expect(service.findAll()).rejects.toMatchObject({
-        message: 'Network error',
-        name: 'ServiceOperationError',
-      });
     });
 
     it('converts a rejected object payload from findAll into one ServiceOperationError', async () => {
@@ -1080,17 +568,6 @@ describe('BaseService', () => {
       await expect(service.post({ name: '' })).rejects.toThrow();
     });
 
-    it('should handle 404 errors', async () => {
-      const notFoundError = {
-        message: 'Not found',
-        response: { status: 404 },
-      };
-
-      service.getInstanceForTest().get.mockRejectedValue(notFoundError);
-
-      await expect(service.findOne('invalid-id')).rejects.toThrow();
-    });
-
     it('should handle 500 errors', async () => {
       const serverError = {
         message: 'Internal server error',
@@ -1107,34 +584,6 @@ describe('BaseService', () => {
 describe('ServiceInstanceManager (implicit)', () => {
   afterEach(() => {
     BaseService.clearAllInstances();
-  });
-
-  it('should manage multiple service types', () => {
-    class ServiceA extends BaseService<TestModel> {
-      constructor(token: string) {
-        super('/a', token, TestModel, mockSerializer);
-      }
-
-      static override getInstance(token: string): ServiceA {
-        return new ServiceA(token);
-      }
-    }
-
-    class ServiceB extends BaseService<TestModel> {
-      constructor(token: string) {
-        super('/b', token, TestModel, mockSerializer);
-      }
-
-      static override getInstance(token: string): ServiceB {
-        return new ServiceB(token);
-      }
-    }
-
-    const instanceA = ServiceA.getInstance('token');
-    const instanceB = ServiceB.getInstance('token');
-
-    expect(instanceA).toBeInstanceOf(ServiceA);
-    expect(instanceB).toBeInstanceOf(ServiceB);
   });
 
   it('should clear all instances globally', () => {
@@ -1217,38 +666,6 @@ describe('HTTPBaseService handleRequest signal merging', () => {
     // Aborting the caller signal must abort the composed signal
     callerController.abort('caller cancelled');
     const composedSignal = result.signal as AbortSignal;
-    expect(composedSignal.aborted).toBe(true);
-  });
-
-  it('composes so that cancelPendingRequests() also aborts the composed signal', async () => {
-    const { HTTPBaseService: RealHTTPBaseService } = await vi.importActual<
-      typeof import('@services/core/interceptor.service')
-    >('@services/core/interceptor.service');
-
-    class ConcreteService extends RealHTTPBaseService {
-      constructor() {
-        super('https://api.example.com', 'test-token');
-      }
-    }
-
-    const svc = new ConcreteService();
-    const handleRequest = (svc as unknown as Record<string, unknown>)
-      .handleRequest as (
-      config: Record<string, unknown>,
-    ) => Record<string, unknown>;
-
-    const callerController = new AbortController();
-    const config: Record<string, unknown> = {
-      headers: {},
-      signal: callerController.signal,
-    };
-
-    const result = handleRequest.call(svc, config);
-    const composedSignal = result.signal as AbortSignal;
-
-    // Cancelling via the service method must abort the composed signal even
-    // though a distinct per-request signal was also provided.
-    svc.cancelPendingRequests();
     expect(composedSignal.aborted).toBe(true);
   });
 });

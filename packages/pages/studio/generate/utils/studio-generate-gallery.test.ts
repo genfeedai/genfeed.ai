@@ -7,22 +7,6 @@ import {
 } from './studio-generate-gallery';
 
 describe('resolveStudioGalleryCategories', () => {
-  it('loads every generated output category through the hydrated ingredients collection', () => {
-    expect(resolveStudioGalleryCategories('all')).toEqual([
-      IngredientCategory.IMAGE,
-      IngredientCategory.VIDEO,
-      IngredientCategory.MUSIC,
-      IngredientCategory.VOICE,
-      IngredientCategory.GIF,
-    ]);
-  });
-
-  it('never requests one output category twice', () => {
-    const categories = resolveStudioGalleryCategories('all');
-
-    expect(new Set(categories).size).toBe(categories.length);
-  });
-
   it('maps a concrete filter to its persisted output category', () => {
     expect(resolveStudioGalleryCategories('music')).toEqual([
       IngredientCategory.MUSIC,
@@ -58,9 +42,5 @@ describe('buildStudioGalleryQuery', () => {
       limit: STUDIO_GALLERY_PAGE_SIZE,
       sort: 'createdAt: -1',
     });
-  });
-
-  it('honours an explicit limit', () => {
-    expect(buildStudioGalleryQuery('brand-1', 'video', 4).limit).toBe(4);
   });
 });

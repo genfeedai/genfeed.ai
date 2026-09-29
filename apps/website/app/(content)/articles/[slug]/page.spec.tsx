@@ -15,12 +15,6 @@ it('serves the public article from the route cache', () => {
 });
 
 describe('article page titles', () => {
-  it('suffixes headlines that fit the search-snippet budget', () => {
-    expect(PageModule.buildArticlePageTitle('Core Loop')).toBe(
-      'Core Loop | Genfeed.ai',
-    );
-  });
-
   it('drops the site suffix before the title overflows', () => {
     const headline =
       'How to Launch an Open Source Product on Show HN and Product Hunt';

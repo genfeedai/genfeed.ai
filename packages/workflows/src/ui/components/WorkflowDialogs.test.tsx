@@ -58,14 +58,4 @@ describe('shared workflow dialogs', () => {
       await waitFor(() => expect(state.closeModal).toHaveBeenCalledTimes(1));
     },
   );
-
-  it('focuses Find Node search when its portal opens', async () => {
-    state.activeModal = 'nodeSearch';
-    render(<NodeSearch />);
-    await waitFor(() =>
-      expect(
-        screen.getByRole('textbox', { name: 'Search nodes' }),
-      ).toHaveFocus(),
-    );
-  });
 });

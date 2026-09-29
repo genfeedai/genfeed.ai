@@ -12,35 +12,13 @@ import {
   UGC_PRESETS,
   UGC_VOCABULARY_LABELS,
   type UgcCameraMode,
-  type UgcPreset,
 } from './ugc-presets';
-
-const CINEMATIC_GLOSS_PATTERNS: RegExp[] = [
-  /\banamorphic\b/i,
-  /red v-?raptor/i,
-  /sony venice/i,
-  /\barri\b/i,
-  /panavision/i,
-  /cinealta/i,
-  /lens flare/i,
-  /cinema[- ]camera/i,
-  /cooke s7/i,
-  /blackmagic/i,
-];
 
 const UGC_PRESET_IDS = [
   'ugc_selfie_handheld',
   'ugc_tripod_vlog',
   'ugc_filmed_by_another',
 ] as const;
-
-function expectNoCinematicGloss(text: string): void {
-  for (const pattern of CINEMATIC_GLOSS_PATTERNS) {
-    expect(text, `unexpected cinematic gloss matching ${pattern}`).not.toMatch(
-      pattern,
-    );
-  }
-}
 
 describe('UgcPresets', () => {
   describe('three camera modes', () => {
@@ -321,37 +299,6 @@ describe('UgcPresets', () => {
       });
       expect(compiled).toContain(withReference.identityLock);
       expect(compiled).toMatch(/start-frame reference/i);
-    });
-  });
-
-  describe('cinematic-vocab-absent', () => {
-    it('omits cinematic-gloss vocabulary from every UGC preset block and compiled prompt', () => {
-      const presets = getAllUgcPresets();
-
-      presets.forEach((preset: UgcPreset) => {
-        expectNoCinematicGloss(preset.name);
-        expectNoCinematicGloss(preset.description);
-
-        const blocks = composeUgcPromptBlocks({
-          hasStartFrameReference: true,
-          preset,
-        });
-        expectNoCinematicGloss(blocks.microExpression);
-        expectNoCinematicGloss(blocks.cameraImperfection);
-        expectNoCinematicGloss(blocks.identityLock);
-        expectNoCinematicGloss(blocks.framingAnchor);
-
-        const compiled = compileUgcPrompt({
-          action: 'talking-head product mention',
-          colorPalette: 'everyday room color',
-          hasStartFrameReference: true,
-          lighting: 'overhead room light',
-          mood: 'unpolished, genuine',
-          presetId: preset.id,
-          subject: 'creator holding a phone',
-        });
-        expectNoCinematicGloss(compiled);
-      });
     });
   });
 

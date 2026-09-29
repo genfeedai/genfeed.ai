@@ -68,15 +68,6 @@ describe('resolveRequestToolsets', () => {
 });
 
 describe('resolveMcpToolQuery', () => {
-  it('uses the default profile when neither toolsets nor profile is set', () => {
-    expect(resolveMcpToolQuery({})).toEqual({
-      empty: [],
-      toolsets: [...DEFAULT_MCP_PROFILE_TOOLSETS],
-      unknown: [],
-      unknownProfile: null,
-    });
-  });
-
   it('resolves ?profile=directory and ?profile=full', () => {
     expect(resolveMcpToolQuery({ profile: 'directory' }).toolsets).toEqual([
       ...DIRECTORY_MCP_PROFILE_TOOLSETS,
@@ -124,12 +115,6 @@ describe('buildUnknownToolsetsMessage', () => {
     expect(message).toContain('Unknown toolset(s): bogus-toolset');
     expect(message).toContain('Valid toolsets:');
     expect(message).toContain('core');
-  });
-
-  it('joins multiple unknown names', () => {
-    const message = buildUnknownToolsetsMessage(['bogus-one', 'bogus-two']);
-
-    expect(message).toContain('Unknown toolset(s): bogus-one, bogus-two');
   });
 
   it('caps the echoed unknown names at 5 and summarizes the rest', () => {

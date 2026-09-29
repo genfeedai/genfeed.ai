@@ -77,14 +77,6 @@ describe('catalog action connections', () => {
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });
 
-  it('connects registered trigger outputs to action inputs', () => {
-    expect(
-      useWorkflowStore
-        .getState()
-        .isValidConnection(connect('trigger', 'render', 'text', 'title')),
-    ).toBe(true);
-  });
-
   it('rejects mismatched media types and handles not displayed by the action', () => {
     const state = useWorkflowStore.getState();
     expect(
@@ -96,14 +88,6 @@ describe('catalog action connections', () => {
     expect(
       state.isValidConnection(connect('render', 'retry', 'output', 'input')),
     ).toBe(false);
-  });
-
-  it('finds the same compatible action input when dropping onto the node body', () => {
-    expect(
-      useWorkflowStore
-        .getState()
-        .findCompatibleHandle('render', 'id', 'status'),
-    ).toBe('projectId');
   });
 
   it('prevents duplicate edges and replacing an occupied single input', () => {

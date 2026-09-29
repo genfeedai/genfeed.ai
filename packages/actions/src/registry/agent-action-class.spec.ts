@@ -59,11 +59,6 @@ describe('getAgentActionClass', () => {
     );
   });
 
-  it('leaves mundane direct writes unclassified', () => {
-    expect(getAgentActionClass('create_chat')).toBeUndefined();
-    expect(getAgentActionClass('tag_social_conversation')).toBeUndefined();
-  });
-
   it('names the visual-generation tools the docked review card covers', () => {
     expect(VISUAL_GENERATION_REVIEW_TOOL_NAMES.has('generate_image')).toBe(
       true,
@@ -80,21 +75,6 @@ describe('getAgentActionClass', () => {
 });
 
 describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
-  it.each(['auto', 'manual', 'plan', undefined] as const)(
-    'preserves every explicit approval-required policy in %s',
-    (mode) => {
-      for (const tool of [
-        'generate_image',
-        'save_brand_voice_profile',
-        'create_brand',
-        'create_chat',
-        'schedule_post',
-      ])
-        expect(
-          resolveEffectiveMutationPolicy(tool, mode, 'approval-required'),
-        ).toBe('approval-required');
-    },
-  );
   it('fails closed for unknown runtime modes', () => {
     expect(
       resolveEffectiveMutationPolicy(

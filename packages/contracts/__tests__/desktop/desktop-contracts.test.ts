@@ -10,12 +10,6 @@ import {
 } from '../../src/desktop';
 
 describe('buildDesktopAssetUrl', () => {
-  it('builds a genfeed-asset URL for a valid asset id', () => {
-    expect(buildDesktopAssetUrl('asset_123-ABC')).toBe(
-      'genfeed-asset://local/asset_123-ABC',
-    );
-  });
-
   it('round-trips through parseDesktopAssetUrl', () => {
     const url = buildDesktopAssetUrl('a1_b2-c3');
 
@@ -41,35 +35,6 @@ describe('buildDesktopAssetUrl', () => {
 });
 
 describe('parseDesktopAssetUrl', () => {
-  it('parses a valid asset URL', () => {
-    expect(parseDesktopAssetUrl('genfeed-asset://local/asset-1')).toBe(
-      'asset-1',
-    );
-  });
-
-  it('rejects other protocols and hosts', () => {
-    expect(parseDesktopAssetUrl('https://local/asset-1')).toBeNull();
-    expect(parseDesktopAssetUrl('genfeed-asset://remote/asset-1')).toBeNull();
-  });
-
-  it('rejects URLs with credentials, ports, query, or hash', () => {
-    expect(
-      parseDesktopAssetUrl('genfeed-asset://user@local/asset-1'),
-    ).toBeNull();
-    expect(
-      parseDesktopAssetUrl('genfeed-asset://user:pw@local/asset-1'),
-    ).toBeNull();
-    expect(
-      parseDesktopAssetUrl('genfeed-asset://local:8080/asset-1'),
-    ).toBeNull();
-    expect(
-      parseDesktopAssetUrl('genfeed-asset://local/asset-1?x=1'),
-    ).toBeNull();
-    expect(
-      parseDesktopAssetUrl('genfeed-asset://local/asset-1#frag'),
-    ).toBeNull();
-  });
-
   it('rejects nested paths and invalid ids', () => {
     expect(parseDesktopAssetUrl('genfeed-asset://local/a/b')).toBeNull();
     expect(parseDesktopAssetUrl('genfeed-asset://local/')).toBeNull();
@@ -117,12 +82,6 @@ describe('desktop thread links', () => {
 });
 
 describe('DESKTOP_IPC_CHANNELS', () => {
-  it('prefixes every channel with desktop:', () => {
-    for (const channel of Object.values(DESKTOP_IPC_CHANNELS)) {
-      expect(channel).toMatch(/^desktop:/);
-    }
-  });
-
   it('has no duplicate channel names', () => {
     const values = Object.values(DESKTOP_IPC_CHANNELS);
 

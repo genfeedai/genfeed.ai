@@ -42,10 +42,6 @@ describe('NewRepostTriggerExecutor', () => {
     executor.setChecker(mockChecker);
   });
 
-  it('creates via factory', () => {
-    expect(executor.nodeType).toBe('newRepostTrigger');
-  });
-
   it('throws if checker not configured', async () => {
     const fresh = new NewRepostTriggerExecutor();
     const input = makeInput({ platform: 'twitter' });

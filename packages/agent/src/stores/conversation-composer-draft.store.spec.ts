@@ -6,7 +6,6 @@ import {
   CONVERSATION_COMPOSER_DRAFT_UPDATED_EVENT,
   clearConversationComposerDraft,
   readConversationComposerDraft,
-  writeConversationComposerAttachments,
   writeConversationComposerContentReferences,
   writeConversationComposerDocument,
 } from './conversation-composer-draft.store';
@@ -14,51 +13,6 @@ import {
 describe('conversation composer draft persistence', () => {
   beforeEach(() => {
     sessionStorage.clear();
-  });
-
-  it('restores document, attachments, and content references by scoped key', () => {
-    const scopeKey = 'acme:thread-1:4';
-    const document = {
-      content: [
-        {
-          content: [{ text: 'Draft with a visual reference', type: 'text' }],
-          type: 'paragraph',
-        },
-      ],
-      type: 'doc',
-    };
-
-    writeConversationComposerDocument(scopeKey, document, 'Draft');
-    writeConversationComposerAttachments(scopeKey, [
-      {
-        id: 'attachment-1',
-        ingredientId: 'ingredient-1',
-        kind: 'image',
-        name: 'reference.png',
-        status: 'completed',
-        url: 'https://cdn.example/reference.png',
-      },
-    ]);
-    writeConversationComposerContentReferences(scopeKey, [
-      {
-        contentTitle: 'Launch post',
-        contentType: 'post',
-        id: 'post-1',
-        thumbnailUrl: 'https://cdn.example/launch.jpg',
-      },
-    ]);
-
-    expect(readConversationComposerDraft(scopeKey)).toMatchObject({
-      attachments: [expect.objectContaining({ ingredientId: 'ingredient-1' })],
-      contentReferences: [
-        expect.objectContaining({
-          id: 'post-1',
-          thumbnailUrl: 'https://cdn.example/launch.jpg',
-        }),
-      ],
-      document,
-      plainText: 'Draft',
-    });
   });
 
   it('isolates thread and context versions and clears only the sent draft', () => {

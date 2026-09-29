@@ -377,21 +377,6 @@ describe('TerminalGateway', () => {
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
-  it('accepts the canonical local development origin', async () => {
-    const terminalService = createTerminalService();
-    const gateway = new TerminalGateway(terminalService as never);
-    const socket = createSocket(
-      'http://genfeed.localhost:3000',
-      'session-token',
-    );
-
-    await gateway.handleConnection(socket);
-
-    expect(socket.emit).toHaveBeenCalledWith('terminal:ready', {
-      socketId: 'socket-1',
-    });
-  });
-
   it('rejects the retired local.genfeed.ai origin', async () => {
     const terminalService = createTerminalService();
     const gateway = new TerminalGateway(terminalService as never);

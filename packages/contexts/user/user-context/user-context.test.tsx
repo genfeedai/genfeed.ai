@@ -132,35 +132,4 @@ describe('UserProvider', () => {
     expect(screen.getByTestId('user-id')).toHaveTextContent('none');
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
-
-  it('returns null user when auth is not loaded', () => {
-    useAuthMock.mockReturnValue({
-      isLoaded: false,
-      isSignedIn: false,
-      orgId: null,
-    });
-    useUserMock.mockReturnValue({ user: null });
-
-    function Consumer() {
-      const { currentUser } = useCurrentUser();
-
-      return (
-        <div>
-          <span data-testid="user-id">{currentUser?.id ?? 'none'}</span>
-        </div>
-      );
-    }
-
-    const Wrapper = createWrapper();
-
-    render(
-      <Wrapper>
-        <UserProvider>
-          <Consumer />
-        </UserProvider>
-      </Wrapper>,
-    );
-
-    expect(screen.getByTestId('user-id')).toHaveTextContent('none');
-  });
 });

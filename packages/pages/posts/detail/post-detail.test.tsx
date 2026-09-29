@@ -184,34 +184,6 @@ describe('PostDetail', () => {
     expect(screen.getByText('Post not found')).toBeInTheDocument();
   });
 
-  it('warns when the post failed to publish', () => {
-    mockUsePostDetail.mockReturnValue(
-      buildHookData({ post: buildPost({ status: PostStatus.FAILED }) }),
-    );
-
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-
-    expect(
-      screen.getByText('This post failed to publish.'),
-    ).toBeInTheDocument();
-  });
-
-  it('does not warn for a healthy post', () => {
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-
-    expect(
-      screen.queryByText('This post failed to publish.'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('applies the page container only for the page presentation', () => {
-    const { container } = render(
-      <PostDetail postId="post-1" scope={PageScope.PUBLISHING} />,
-    );
-
-    expect(container.querySelector('.container')).not.toBeNull();
-  });
-
   it('drops the page container in the overlay presentation', () => {
     const { container } = render(
       <PostDetail
@@ -222,28 +194,6 @@ describe('PostDetail', () => {
     );
 
     expect(container.querySelector('.container')).toBeNull();
-  });
-
-  it('hands the sidebar to the host when a context renderer is provided', () => {
-    const renderContextSidebar = vi.fn((sidebar: ReactNode, label: string) => (
-      <div data-testid="context-host" data-label={label}>
-        {sidebar}
-      </div>
-    ));
-
-    render(
-      <PostDetail
-        postId="post-1"
-        scope={PageScope.PUBLISHING}
-        renderContextSidebar={renderContextSidebar}
-      />,
-    );
-
-    expect(screen.getByTestId('context-host')).toHaveAttribute(
-      'data-label',
-      'My post',
-    );
-    expect(screen.getAllByTestId('post-sidebar')).toHaveLength(1);
   });
 
   it('falls back to an untitled context label when no label exists', () => {
@@ -276,12 +226,6 @@ describe('PostDetail', () => {
     render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
 
     expect(screen.queryByTestId('engagement-preview')).not.toBeInTheDocument();
-  });
-
-  it('does not render a live preview when the post has no resolved platform', () => {
-    render(<PostDetail postId="post-1" scope={PageScope.PUBLISHING} />);
-
-    expect(screen.queryByTestId('target-preview')).not.toBeInTheDocument();
   });
 
   it('renders a live preview once the post has a resolved platform', () => {

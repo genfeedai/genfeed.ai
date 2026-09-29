@@ -86,10 +86,6 @@ describe('VideoThumbnailService', () => {
     s3Service = module.get(S3Service);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('generateThumbnail', () => {
     it('should generate thumbnail from video URL', async () => {
       const videoUrl = 'https://example.com/video.mp4';
@@ -132,33 +128,6 @@ describe('VideoThumbnailService', () => {
         expect.any(String),
         expect.any(String),
         timeInSeconds,
-      );
-    });
-
-    it('cleans the three contained temp files after success', async () => {
-      await service.generateThumbnail(
-        'https://example.com/video.mp4',
-        'test-id',
-      );
-
-      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
-        expect.stringContaining('input.mp4'),
-        expect.stringContaining('thumbnail.jpg'),
-        expect.stringContaining('thumbnail_resized.jpg'),
-      );
-    });
-
-    it('should use custom width', async () => {
-      const videoUrl = 'https://example.com/video.mp4';
-      const ingredientId = 'test-id';
-      const width = 1280;
-
-      await service.generateThumbnail(videoUrl, ingredientId, 1, width);
-
-      expect(s3Service.uploadFile).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.stringContaining('thumbnail_resized.jpg'),
-        'image/jpeg',
       );
     });
   });

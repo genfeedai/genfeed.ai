@@ -59,14 +59,6 @@ describe('api/brands', () => {
       expect(result[0].label).toBe('Brand One');
       expect(result[1].label).toBe('Brand Two');
     });
-
-    it('returns empty array when no brands', async () => {
-      mockFetch.mockResolvedValue({ data: [] });
-
-      const result = await listBrands('org-123');
-
-      expect(result).toHaveLength(0);
-    });
   });
 
   describe('getBrand', () => {

@@ -8,10 +8,6 @@ import {
 
 describe('editor.enum', () => {
   describe('EditorProjectStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(EditorProjectStatus)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(EditorProjectStatus.DRAFT).toBe('draft');
       expect(EditorProjectStatus.RENDERING).toBe('rendering');
@@ -22,10 +18,6 @@ describe('editor.enum', () => {
   });
 
   describe('EditorTrackType', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(EditorTrackType)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(EditorTrackType.VIDEO).toBe('video');
       expect(EditorTrackType.AUDIO).toBe('audio');
@@ -34,10 +26,6 @@ describe('editor.enum', () => {
   });
 
   describe('EditorTransitionType', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(EditorTransitionType)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(EditorTransitionType.NONE).toBe('none');
       expect(EditorTransitionType.FADE).toBe('fade');
@@ -48,10 +36,6 @@ describe('editor.enum', () => {
   });
 
   describe('EditorEffectType', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(EditorEffectType)).toHaveLength(7);
-    });
-
     it('should have correct values', () => {
       expect(EditorEffectType.NONE).toBe('none');
       expect(EditorEffectType.BLUR).toBe('blur');

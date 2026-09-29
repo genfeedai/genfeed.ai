@@ -3,10 +3,6 @@ import { WorkflowNodeStatus } from '../../src/enums/workflow-node-status.enum';
 
 describe('workflow-node-status.enum', () => {
   describe('WorkflowNodeStatus', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(WorkflowNodeStatus)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(WorkflowNodeStatus.IDLE).toBe('idle');
       expect(WorkflowNodeStatus.PENDING).toBe('pending');

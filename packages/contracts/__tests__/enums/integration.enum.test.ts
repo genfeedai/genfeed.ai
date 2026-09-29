@@ -6,10 +6,6 @@ import {
 
 describe('integration.enum', () => {
   describe('IntegrationPlatform', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(IntegrationPlatform)).toHaveLength(5);
-    });
-
     it('should have correct values', () => {
       expect(IntegrationPlatform.TELEGRAM).toBe('TELEGRAM');
       expect(IntegrationPlatform.SLACK).toBe('SLACK');
@@ -20,10 +16,6 @@ describe('integration.enum', () => {
   });
 
   describe('IntegrationStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(IntegrationStatus)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(IntegrationStatus.ACTIVE).toBe('ACTIVE');
       expect(IntegrationStatus.PAUSED).toBe('PAUSED');

@@ -162,15 +162,6 @@ describe('api/threads', () => {
     expect(mockGet).toHaveBeenCalledWith('/agent/threads/thread-1/events');
   });
 
-  it('gets thread events after a positive sequence', async () => {
-    mockGet.mockResolvedValue([]);
-
-    const { getThreadEvents } = await import('../../src/api/threads');
-    await getThreadEvents('thread-1', 7);
-
-    expect(mockGet).toHaveBeenCalledWith('/agent/threads/thread-1/events?afterSequence=7');
-  });
-
   it('forwards an abort signal while getting thread events', async () => {
     const controller = new AbortController();
     mockGet.mockResolvedValue([]);

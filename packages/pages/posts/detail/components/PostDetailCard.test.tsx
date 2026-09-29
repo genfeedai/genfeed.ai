@@ -2,7 +2,7 @@ import { PageScope, Platform } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -100,34 +100,6 @@ describe('PostDetailCard', () => {
     };
   });
 
-  it('renders the card body', () => {
-    render(<PostDetailCard {...buildProps()} />);
-
-    expect(screen.getByTestId('card-body')).toBeInTheDocument();
-  });
-
-  it('marks the card draggable when editable and draggable', () => {
-    const { container } = render(<PostDetailCard {...buildProps()} />);
-
-    expect(container.firstChild).toHaveAttribute('draggable', 'true');
-  });
-
-  it('is not draggable for a grok tweet', () => {
-    hookResult = { ...hookResult, isGrokTweet: true };
-
-    const { container } = render(<PostDetailCard {...buildProps()} />);
-
-    expect(container.firstChild).toHaveAttribute('draggable', 'false');
-  });
-
-  it('is not draggable outside an editable scope', () => {
-    hookResult = { ...hookResult, isEditable: false };
-
-    const { container } = render(<PostDetailCard {...buildProps()} />);
-
-    expect(container.firstChild).toHaveAttribute('draggable', 'false');
-  });
-
   it('starts a drag with the post reorder payload', () => {
     const props = buildProps();
     const { container } = render(<PostDetailCard {...props} />);
@@ -160,27 +132,5 @@ describe('PostDetailCard', () => {
     );
 
     expect(container.firstChild).toHaveClass('opacity-80');
-  });
-
-  it('keeps the card fully opaque when it is the focused post', () => {
-    const { container } = render(
-      <PostDetailCard {...buildProps({ focusedPostId: 'post-1' })} />,
-    );
-
-    expect(container.firstChild).toHaveClass('opacity-100');
-  });
-
-  it('renders the enhancement bar in an editable publisher scope', () => {
-    render(<PostDetailCard {...buildProps()} />);
-
-    expect(screen.getByTestId('enhancement-bar')).toBeInTheDocument();
-  });
-
-  it('hides the enhancement bar when the card is not editable', () => {
-    hookResult = { ...hookResult, isEditable: false };
-
-    render(<PostDetailCard {...buildProps()} />);
-
-    expect(screen.queryByTestId('enhancement-bar')).not.toBeInTheDocument();
   });
 });

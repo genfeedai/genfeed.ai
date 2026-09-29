@@ -96,12 +96,6 @@ describe('ServiceLandingPage', () => {
     }
   });
 
-  it('keeps the scope sections off every other landing page', () => {
-    render(<ServiceLandingPage slug="founder-content" />);
-
-    expect(screen.queryByText('Smaller scopes')).not.toBeInTheDocument();
-  });
-
   it('renders the X growth page with both paths spelled out', () => {
     render(<ServiceLandingPage slug="x" />);
 

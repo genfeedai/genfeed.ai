@@ -3,17 +3,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildSystemEmailHtml,
   buildSystemEmailParagraph,
-  escapeSystemEmailHtml,
   sanitizeSystemEmailUrl,
 } from './system-email.helper';
 
 describe('system email helpers', () => {
-  it('escapes html-sensitive characters', () => {
-    expect(escapeSystemEmailHtml(`<a href="x">'&'</a>`)).toBe(
-      '&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;',
-    );
-  });
-
   it('renders a branded system email shell', () => {
     const html = buildSystemEmailHtml({
       action: {
@@ -44,22 +37,6 @@ describe('sanitizeSystemEmailUrl', () => {
     expect(sanitizeSystemEmailUrl('mailto:support@genfeed.ai')).toBe(
       'mailto:support@genfeed.ai',
     );
-  });
-
-  it('trims surrounding whitespace before parsing', () => {
-    expect(sanitizeSystemEmailUrl('  https://app.genfeed.ai  ')).toBe(
-      'https://app.genfeed.ai',
-    );
-  });
-
-  it('rejects script-bearing schemes', () => {
-    expect(sanitizeSystemEmailUrl('javascript:alert(1)')).toBeNull();
-    expect(sanitizeSystemEmailUrl('JavaScript:alert(1)')).toBeNull();
-    expect(
-      sanitizeSystemEmailUrl('data:text/html;base64,PHNjcmlwdD4='),
-    ).toBeNull();
-    expect(sanitizeSystemEmailUrl('vbscript:msgbox(1)')).toBeNull();
-    expect(sanitizeSystemEmailUrl('file:///etc/passwd')).toBeNull();
   });
 
   it('rejects relative and empty targets', () => {

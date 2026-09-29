@@ -200,24 +200,6 @@ describe('FileProcessor', () => {
       expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
 
-    it('reports download progress via updateProgress', async () => {
-      const job = createMockJob(
-        'download-file',
-        createJobData({
-          params: {
-            index: 0,
-            type: 'voices',
-            url: 'https://example.com/a.mp3',
-          },
-        }),
-      );
-
-      await processor.handleDownloadFile(job);
-
-      expect(job.updateProgress).toHaveBeenCalled();
-      expect(websocketService.sendProgress).toHaveBeenCalled();
-    });
-
     it('logs and rethrows when the download fails', async () => {
       httpService.get.mockReturnValue(
         throwError(() => new Error('network down')),
@@ -443,20 +425,6 @@ describe('FileProcessor', () => {
         'MyBrand',
         expect.any(Object),
         expect.any(Function),
-      );
-    });
-
-    it('logs and rethrows when watermarking fails', async () => {
-      ffmpegService.addTextOverlay.mockRejectedValueOnce(
-        new Error('ffmpeg failed'),
-      );
-      const job = createMockJob(
-        'add-watermark',
-        createJobData({ params: { filePath: '/tmp/output/a.mp4' } }),
-      );
-
-      await expect(processor.handleAddWatermark(job)).rejects.toThrow(
-        'ffmpeg failed',
       );
     });
   });

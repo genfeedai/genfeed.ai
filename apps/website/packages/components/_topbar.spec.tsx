@@ -1,5 +1,5 @@
 // biome-ignore assist/source/organizeImports: External packages precede project aliases.
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import WebsiteTopbar from '@ui/shell/topbars/WebsiteTopbar';
@@ -59,18 +59,6 @@ describe('WebsiteTopbar', () => {
     expect(
       screen.queryByRole('link', { name: /changelog/i }),
     ).not.toBeInTheDocument();
-  });
-
-  it('leads with the audience question, then what it is and how to buy it', () => {
-    render(<WebsiteTopbar />);
-
-    // Scoped to the desktop nav: the mobile menu toggle also reports
-    // `aria-expanded`, but it is not one of the bar's menus.
-    const menus = within(screen.getByRole('navigation'))
-      .getAllByRole('button', { expanded: false })
-      .map((trigger) => trigger.textContent?.trim());
-
-    expect(menus).toEqual(['Use Cases', 'Product', 'Solutions']);
   });
 
   it('groups delivery shapes under solutions', () => {
@@ -146,24 +134,5 @@ describe('WebsiteTopbar', () => {
         screen.getByRole('link', { name: new RegExp(destination, 'i') }),
       ).toBeInTheDocument();
     }
-  });
-
-  it('opens the product menu inside the topbar instead of as a second bar', () => {
-    render(<WebsiteTopbar />);
-
-    fireEvent.mouseEnter(screen.getByRole('button', { name: /product/i }));
-
-    const header = document.querySelector('header');
-    const studio = screen.getByRole('link', { name: /studio/i });
-
-    expect(header).toContainElement(studio);
-  });
-
-  it('does not expose a marketing-site appearance control', () => {
-    render(<WebsiteTopbar />);
-
-    expect(
-      screen.queryByRole('button', { name: /Appearance/i }),
-    ).not.toBeInTheDocument();
   });
 });

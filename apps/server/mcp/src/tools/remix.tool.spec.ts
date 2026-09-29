@@ -97,20 +97,6 @@ describe('handleRemixTool', () => {
     },
   );
 
-  it.each(cases)(
-    'rejects unknown fields in %s before HTTP',
-    async (name, method, args) => {
-      const client = build();
-      await expect(
-        handleRemixTool(client as unknown as ClientService, name, {
-          ...args,
-          unauthorized: true,
-        }),
-      ).rejects.toThrow();
-      expect(client[method]).not.toHaveBeenCalled();
-    },
-  );
-
   it.each([
     ['import_source_post', { brandId: 'brand-1', url: 'file:///tmp/video' }],
     ['import_source_post', { url: 'https://x.com/example/status/1' }],

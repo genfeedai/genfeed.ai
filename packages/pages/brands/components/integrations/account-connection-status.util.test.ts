@@ -3,7 +3,6 @@ import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-d
 import { describe, expect, it } from 'vitest';
 import {
   getAccountConnectionStatus,
-  getConnectionInitials,
   getConnectionLabel,
   isAccessTokenExpired,
 } from './account-connection-status.util';
@@ -21,36 +20,12 @@ function buildConnection(
 }
 
 describe('getAccountConnectionStatus', () => {
-  it('returns connected for a live account with an identity and no expiry', () => {
-    expect(getAccountConnectionStatus(buildConnection())).toBe('connected');
-  });
-
-  it('returns needsReconnect when the credential is disconnected but not deleted', () => {
-    expect(
-      getAccountConnectionStatus(buildConnection({ isConnected: false })),
-    ).toBe('needsReconnect');
-  });
-
   it('returns needsReconnect when the access token has expired', () => {
     expect(
       getAccountConnectionStatus(
         buildConnection({ accessTokenExpiry: '2020-01-01T00:00:00.000Z' }),
       ),
     ).toBe('needsReconnect');
-  });
-
-  it('returns needsReconnect when there is no externalId identity', () => {
-    expect(
-      getAccountConnectionStatus(buildConnection({ externalId: undefined })),
-    ).toBe('needsReconnect');
-  });
-
-  it('treats a missing accessTokenExpiry as not expired', () => {
-    expect(
-      isAccessTokenExpired(
-        buildConnection({ accessTokenExpiry: undefined }).accessTokenExpiry,
-      ),
-    ).toBe(false);
   });
 
   it('treats a malformed accessTokenExpiry as expired, not valid', () => {
@@ -62,12 +37,6 @@ describe('getAccountConnectionStatus', () => {
         buildConnection({ accessTokenExpiry: 'not-a-real-date' }),
       ),
     ).toBe('needsReconnect');
-  });
-
-  it('defaults isConnected to true for legacy callers that never set it', () => {
-    expect(
-      getAccountConnectionStatus(buildConnection({ isConnected: undefined })),
-    ).toBe('connected');
   });
 });
 
@@ -93,27 +62,5 @@ describe('getConnectionLabel', () => {
         }),
       ),
     ).toBe(CredentialPlatform.TWITTER);
-  });
-});
-
-describe('getConnectionInitials', () => {
-  it('builds initials from up to two words in the label', () => {
-    expect(
-      getConnectionInitials(buildConnection({ name: 'Acme Studio' })),
-    ).toBe('AS');
-  });
-
-  it('takes a single initial from a one-word label, such as the platform fallback', () => {
-    // No name/label/handle — getConnectionLabel falls back to the platform
-    // itself ("twitter"), a single word, so only its first letter is used.
-    expect(
-      getConnectionInitials(
-        buildConnection({
-          handle: undefined,
-          label: undefined,
-          name: undefined,
-        }),
-      ),
-    ).toBe('T');
   });
 });

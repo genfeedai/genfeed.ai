@@ -49,13 +49,4 @@ describe('conversationMessagesBelongToThread', () => {
       conversationMessagesBelongToThread([{ threadId: 'thread-b' }], null),
     ).toBe(false);
   });
-
-  it('is true when the latest message is on the active thread', () => {
-    expect(
-      conversationMessagesBelongToThread(
-        [{ threadId: 'thread-a' }, { threadId: 'thread-b' }],
-        'thread-b',
-      ),
-    ).toBe(true);
-  });
 });

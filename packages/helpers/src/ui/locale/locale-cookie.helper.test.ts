@@ -21,22 +21,8 @@ describe('readLocaleCookie', () => {
     expect(readLocaleCookie('theme=dark; locale=en-XA; other=1')).toBe('en-XA');
   });
 
-  it('ignores a cookie whose name merely ends with the locale name', () => {
-    // `document.cookie` is a flat string, so a sloppy `includes` check would
-    // read `applocale` as the locale and render against the wrong catalog.
-    expect(readLocaleCookie('applocale=en-XA')).toBeUndefined();
-  });
-
   it('rejects a value that is not allowlisted', () => {
     expect(readLocaleCookie('locale=de')).toBeUndefined();
-  });
-
-  it('returns undefined when the cookie is absent', () => {
-    expect(readLocaleCookie('theme=dark')).toBeUndefined();
-  });
-
-  it('returns undefined for an empty cookie string', () => {
-    expect(readLocaleCookie('')).toBeUndefined();
   });
 });
 

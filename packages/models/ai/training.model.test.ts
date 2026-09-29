@@ -20,11 +20,6 @@ import { Training } from '@models/ai/training.model';
 
 describe('Training', () => {
   describe('constructor', () => {
-    it('should create an instance with empty partial', () => {
-      const instance = new Training({});
-      expect(instance).toBeDefined();
-    });
-
     it('should create an instance with partial data', () => {
       const instance = new Training({ id: 'test-123' } as never);
       expect(instance).toBeDefined();

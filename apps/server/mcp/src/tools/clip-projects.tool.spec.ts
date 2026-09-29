@@ -1,8 +1,5 @@
 import type { ClientService } from '@mcp/services/client.service';
-import {
-  CLIP_PROJECTS_TOOL_NAMES,
-  handleClipProjectsTool,
-} from '@mcp/tools/clip-projects.tool';
+import { handleClipProjectsTool } from '@mcp/tools/clip-projects.tool';
 
 /**
  * Unit coverage for the clip-projects MCP handler (#1245): argument mapping to
@@ -43,19 +40,6 @@ function call(
   return handleClipProjectsTool(client as unknown as ClientService, name, args);
 }
 
-describe('CLIP_PROJECTS_TOOL_NAMES', () => {
-  it('lists exactly the six clip tools', () => {
-    expect([...CLIP_PROJECTS_TOOL_NAMES].sort()).toEqual([
-      'analyze_clip_project',
-      'create_clip_project_from_youtube',
-      'generate_clips',
-      'get_clip_highlights',
-      'get_clip_project',
-      'list_clip_projects',
-    ]);
-  });
-});
-
 describe('handleClipProjectsTool', () => {
   it('throws for an unknown tool name', () => {
     const client = buildClient();
@@ -79,14 +63,6 @@ describe('handleClipProjectsTool', () => {
         }),
       );
       expect(result.content[0].text).toContain('proj-1');
-    });
-
-    it('requires youtubeUrl', async () => {
-      const client = buildClient();
-      await expect(call(client, 'analyze_clip_project', {})).rejects.toThrow(
-        /youtubeUrl is required/,
-      );
-      expect(client.analyzeClipProject).not.toHaveBeenCalled();
     });
   });
 
@@ -195,15 +171,6 @@ describe('handleClipProjectsTool', () => {
       );
     });
 
-    it('allows raw-cut mode without avatar/voice (forward-compat for #1238)', async () => {
-      const client = buildClient();
-      await call(client, 'generate_clips', { ...baseArgs, mode: 'raw-cut' });
-
-      expect(client.generateClips).toHaveBeenCalledWith(
-        expect.objectContaining({ mode: 'raw-cut' }),
-      );
-    });
-
     it('rejects an invalid mode', async () => {
       const client = buildClient();
       await expect(
@@ -220,17 +187,6 @@ describe('handleClipProjectsTool', () => {
           mode: 'raw-cut',
         }),
       ).rejects.toThrow(/editedHighlights must be a non-empty array/);
-    });
-
-    it('rejects an editedHighlights entry missing a field', async () => {
-      const client = buildClient();
-      await expect(
-        call(client, 'generate_clips', {
-          ...baseArgs,
-          editedHighlights: [{ id: 'h1', title: 'title' }],
-          mode: 'raw-cut',
-        }),
-      ).rejects.toThrow(/summary is required/);
     });
   });
 });

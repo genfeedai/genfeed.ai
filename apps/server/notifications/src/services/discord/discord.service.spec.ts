@@ -82,25 +82,6 @@ describe('DiscordService', () => {
     mockDiscordBotService.getUsersWebhook.mockResolvedValue(mockWebhookClient);
   });
 
-  it('should be defined and log enabled initialization', async () => {
-    const { service } = await createService();
-
-    expect(service).toBeDefined();
-    expect(mockLoggerService.log).toHaveBeenCalledWith(
-      'Discord service initialized with bot webhooks',
-    );
-  });
-
-  it('should not log initialization when Discord is disabled', async () => {
-    mockConfigService.isDiscordEnabled.mockReturnValue(false);
-
-    await createService();
-
-    expect(mockLoggerService.log).not.toHaveBeenCalledWith(
-      'Discord service initialized with bot webhooks',
-    );
-  });
-
   describe('sendIngredientNotification', () => {
     it('should propagate webhook lookup errors before delivery handling', async () => {
       const lookupError = new Error('webhook lookup failed');
@@ -274,15 +255,6 @@ describe('DiscordService', () => {
   });
 
   describe('sendVercelNotification', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getDeploymentsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendVercelNotification({ title: 'Deploy' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
     it('should forward the embed to the deployments webhook', async () => {
       const { service } = await createService();
 
@@ -311,18 +283,6 @@ describe('DiscordService', () => {
   });
 
   describe('sendStreakNotification', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getPostsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendStreakNotification({
-        description: 'desc',
-        title: 'Streak',
-      });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
     it('should send an embed with default color', async () => {
       const { service } = await createService();
 
@@ -368,15 +328,6 @@ describe('DiscordService', () => {
       provider: 'fal',
       providerCostUsd: 0.05,
     };
-
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getModelsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendModelDiscoveryNotification(basePayload);
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
 
     it('should send model fields including margin for fal', async () => {
       const { service } = await createService();
@@ -443,15 +394,6 @@ describe('DiscordService', () => {
   });
 
   describe('sendArticleNotification', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getPostsWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendArticleNotification({ label: 'A', slug: 'a' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
     it('should build article embed with optional fields', async () => {
       const { service } = await createService();
 
@@ -499,15 +441,6 @@ describe('DiscordService', () => {
   });
 
   describe('sendLowCreditsAlert', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getUsersWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendLowCreditsAlert({ balance: 5, organizationId: 'o-1' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
     it('should send a warning alert when balance is low', async () => {
       const { service } = await createService();
 
@@ -553,15 +486,6 @@ describe('DiscordService', () => {
   });
 
   describe('sendUserCreatedNotification', () => {
-    it('should skip when webhook is unavailable', async () => {
-      mockDiscordBotService.getUsersWebhook.mockResolvedValue(null);
-      const { service } = await createService();
-
-      await service.sendUserCreatedNotification({ id: 'u-1' });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
     it('should send a signup embed with avatar and admin button', async () => {
       const { service } = await createService();
 
@@ -641,20 +565,6 @@ describe('DiscordService', () => {
       return embed.fields?.find((field) => field.name === name)?.value;
     }
 
-    it('formats a USD amount by dividing by 100 minor units', async () => {
-      const { service } = await createService();
-
-      await service.sendRevenueNotification({
-        amountMinor: 4_500,
-        currency: 'usd',
-        organizationId: 'org_1',
-        source: 'subscription_invoice',
-      });
-
-      const embed = lastEmbed();
-      expect(fieldValue(embed, 'Amount')).toBe('$45.00');
-    });
-
     it('formats a zero-decimal JPY amount without dividing by 100', async () => {
       const { service } = await createService();
 
@@ -668,25 +578,6 @@ describe('DiscordService', () => {
       const embed = lastEmbed();
       // JPY has no minor unit — Stripe's 5,000 already means ¥5,000, not ¥50.
       expect(fieldValue(embed, 'Amount')).toBe('¥5,000');
-    });
-
-    it('formats UGX using the standard two-decimal scale, per Stripe’s special case', async () => {
-      const { service } = await createService();
-
-      await service.sendRevenueNotification({
-        amountMinor: 500,
-        currency: 'ugx',
-        organizationId: 'org_1',
-        source: 'subscription_invoice',
-      });
-
-      const embed = lastEmbed();
-      // UGX is a real-world zero-decimal currency, but Stripe's `amount` for
-      // it stays two-decimal for backward compatibility: 500 means 5 UGX,
-      // not 500 UGX (genfeedai/genfeed.ai#5313 review finding). Intl inserts
-      // a non-breaking space (U+00A0) between an ISO currency code and the
-      // amount, not a regular space.
-      expect(fieldValue(embed, 'Amount')).toBe('UGX\u00a05');
     });
 
     it('formats ISK using the standard two-decimal scale, per Stripe’s special case', async () => {

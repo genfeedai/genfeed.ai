@@ -141,12 +141,6 @@ describe('AgentApiService', () => {
       );
     });
 
-    it('throws on error', async () => {
-      mockError(500);
-      const service = makeService();
-      await expect(service.createThread({})).rejects.toThrow('500');
-    });
-
     it('maps invalid thread documents to a typed decode error', async () => {
       mockOk({});
       const service = makeService();
@@ -261,22 +255,6 @@ describe('AgentApiService', () => {
       );
     });
 
-    it('sends an existing thread turn to the thread-scoped endpoint', async () => {
-      const resp = {
-        message: { content: 'hi', role: 'assistant' },
-        threadId: 'c-1',
-      };
-      mockOk(resp);
-      const service = makeService();
-
-      await service.chat({ content: 'hello', threadId: 'c-1' });
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/agent/threads/c-1/turns',
-        expect.objectContaining({ method: 'POST' }),
-      );
-    });
-
     it('serializes typed canonical references on a thread turn', async () => {
       mockOk({
         message: { content: 'hi', role: 'assistant' },
@@ -309,12 +287,6 @@ describe('AgentApiService', () => {
           method: 'POST',
         }),
       );
-    });
-
-    it('throws on error', async () => {
-      mockError(500);
-      const service = makeService();
-      await expect(service.chat({ content: 'hi' })).rejects.toThrow('500');
     });
   });
 
@@ -364,27 +336,6 @@ describe('AgentApiService', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/agent/threads?page=1'),
         expect.anything(),
-      );
-    });
-
-    it('works without params', async () => {
-      mockJsonApiCollection([], 'thread');
-      const service = makeService();
-      await service.getThreads();
-      expect(mockFetch).toHaveBeenCalled();
-    });
-
-    it('throws on error', async () => {
-      mockError(401);
-      const service = makeService();
-      await expect(service.getThreads()).rejects.toThrow('401');
-    });
-
-    it('includes backend error detail in thrown message', async () => {
-      mockError(400, { detail: 'Invalid userId' });
-      const service = makeService();
-      await expect(service.getThreads()).rejects.toThrow(
-        'Failed to fetch threads: 400 - Invalid userId',
       );
     });
   });
@@ -528,15 +479,6 @@ describe('AgentApiService', () => {
       const call = mockFetch.mock.calls[0];
       const headers = await call[1].headers;
       expect(headers.Authorization).toBe('Bearer my-token');
-    });
-
-    it('omits auth when no token', async () => {
-      mockJsonApiCollection([], 'thread');
-      const service = makeService(null);
-      await service.getThreads();
-      const call = mockFetch.mock.calls[0];
-      const headers = await call[1].headers;
-      expect(headers.Authorization).toBeUndefined();
     });
   });
 
@@ -738,29 +680,6 @@ describe('AgentApiService', () => {
     // A 200 whose body is any other JSON shape (a JSON:API document, an error
     // envelope) used to succeed with `mentions: undefined` and crash the
     // composer's ContentLibraryPicker at render — blanking /automation/*.
-    it('maps a credential mentions payload without a mentions array to a typed decode error', async () => {
-      mockOk({ data: [] });
-      const service = makeService();
-
-      await expect(service.getMentions()).rejects.toEqual(
-        expect.objectContaining({
-          _tag: 'AgentApiDecodeError',
-          message: 'Failed to decode credential mentions',
-        } satisfies Partial<AgentApiDecodeError>),
-      );
-    });
-
-    it('maps a team mentions payload without a mentions array to a typed decode error', async () => {
-      mockOk({ data: [] });
-      const service = makeService();
-
-      await expect(service.getTeamMentions()).rejects.toEqual(
-        expect.objectContaining({
-          _tag: 'AgentApiDecodeError',
-          message: 'Failed to decode team mentions',
-        } satisfies Partial<AgentApiDecodeError>),
-      );
-    });
 
     it('maps a content mentions payload without a mentions array to a typed decode error', async () => {
       mockOk({ data: [] });

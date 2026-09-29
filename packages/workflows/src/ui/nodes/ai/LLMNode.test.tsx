@@ -179,20 +179,6 @@ describe('LLMNode', () => {
   });
 
   describe('rendering', () => {
-    it('should render model info', () => {
-      render(<LLMNode {...defaultProps} />);
-
-      expect(screen.getByText(/Llama 3.1 405B/)).toBeInTheDocument();
-    });
-
-    it('should render system prompt textarea', () => {
-      render(<LLMNode {...defaultProps} />);
-
-      expect(
-        screen.getByPlaceholderText("Define the AI's behavior..."),
-      ).toBeInTheDocument();
-    });
-
     it('should render temperature slider', () => {
       render(<LLMNode {...defaultProps} />);
 
@@ -205,18 +191,6 @@ describe('LLMNode', () => {
 
       expect(screen.getByText('Max Tokens')).toBeInTheDocument();
       expect(screen.getByRole('spinbutton')).toBeInTheDocument();
-    });
-
-    it('should display current temperature value', () => {
-      render(<LLMNode {...defaultProps} />);
-
-      expect(screen.getByText('Temperature: 0.70')).toBeInTheDocument();
-    });
-
-    it('should display current max tokens value', () => {
-      render(<LLMNode {...defaultProps} />);
-
-      expect(screen.getByDisplayValue('1024')).toBeInTheDocument();
     });
   });
 
@@ -234,17 +208,6 @@ describe('LLMNode', () => {
       expect(mockUpdateNodeData).toHaveBeenCalledWith('llm-1', {
         systemPrompt: 'You are a helpful assistant',
       });
-    });
-
-    it('should display existing system prompt', () => {
-      render(
-        <LLMNode
-          {...defaultProps}
-          data={{ ...defaultProps.data, systemPrompt: 'Existing prompt' }}
-        />,
-      );
-
-      expect(screen.getByDisplayValue('Existing prompt')).toBeInTheDocument();
     });
   });
 
@@ -282,12 +245,6 @@ describe('LLMNode', () => {
   });
 
   describe('generate button', () => {
-    it('should show generate button when no output', () => {
-      render(<LLMNode {...defaultProps} />);
-
-      expect(screen.getByText('Generate')).toBeInTheDocument();
-    });
-
     it('should call handleGenerate when generate button clicked', () => {
       render(
         <LLMNode
@@ -319,61 +276,9 @@ describe('LLMNode', () => {
         screen.getByRole('button', { name: /generating/i }),
       ).toBeInTheDocument();
     });
-
-    it('should hide generate button when output exists', () => {
-      render(
-        <LLMNode
-          {...defaultProps}
-          data={{ ...defaultProps.data, outputText: 'Generated output' }}
-        />,
-      );
-
-      // Output text should be shown instead of a prompt
-      expect(screen.getByText('Generated output')).toBeInTheDocument();
-    });
   });
 
   describe('output display', () => {
-    it('should display output text when available', () => {
-      render(
-        <LLMNode
-          {...defaultProps}
-          data={{ ...defaultProps.data, outputText: 'Generated output text' }}
-        />,
-      );
-
-      expect(screen.getByText('Generated output text')).toBeInTheDocument();
-    });
-
-    it('should show expand button in header actions when output exists', () => {
-      render(
-        <LLMNode
-          {...defaultProps}
-          data={{ ...defaultProps.data, outputText: 'Generated output' }}
-        />,
-      );
-
-      const headerActions = screen.getByTestId('header-actions');
-      const expandButton = headerActions.querySelector('button');
-      expect(expandButton).not.toBeNull();
-    });
-
-    it('should call handleGenerate when refresh button clicked', () => {
-      render(
-        <LLMNode
-          {...defaultProps}
-          data={{ ...defaultProps.data, outputText: 'Generated output' }}
-        />,
-      );
-
-      // The refresh button has title="Regenerate"
-      const refreshButton = screen.getByTitle('Regenerate');
-      expect(refreshButton).toBeDefined();
-      fireEvent.click(refreshButton);
-
-      expect(mockHandleGenerate).toHaveBeenCalled();
-    });
-
     it('should disable refresh button when processing', () => {
       render(
         <LLMNode

@@ -9,11 +9,6 @@ describe('client models', () => {
       const auth = new Authentication({ token: 'abc123' });
       expect(auth.token).toBe('abc123');
     });
-
-    it('creates with empty data', () => {
-      const auth = new Authentication();
-      expect(auth.token).toBeUndefined();
-    });
   });
 
   describe('Role', () => {

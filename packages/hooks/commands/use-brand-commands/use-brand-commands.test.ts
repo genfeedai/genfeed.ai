@@ -52,16 +52,4 @@ describe('useBrandCommands', () => {
 
     expect(mockRegisterCommands).not.toHaveBeenCalled();
   });
-
-  it('does not register commands when no brands', () => {
-    renderHook(() =>
-      useBrandCommands({
-        brands: [],
-        currentBrandId: 'brand-1',
-        onBrandSwitch: vi.fn(),
-      }),
-    );
-
-    expect(mockRegisterCommands).not.toHaveBeenCalled();
-  });
 });

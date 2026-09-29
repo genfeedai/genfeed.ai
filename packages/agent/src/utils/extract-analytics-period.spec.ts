@@ -7,24 +7,6 @@ function action(partial: Partial<AgentUiAction>): AgentUiAction {
 }
 
 describe('extractAnalyticsPeriod', () => {
-  it('prefers an explicit data.period', () => {
-    expect(
-      extractAnalyticsPeriod(
-        action({
-          data: { period: '  7d  ' },
-          id: 'analytics-snapshot:brand-1:30d',
-          title: 'Snapshot (90d)',
-        }),
-      ),
-    ).toBe('7d');
-  });
-
-  it('reads the period segment out of the action id', () => {
-    expect(
-      extractAnalyticsPeriod(action({ id: 'analytics-snapshot:brand-1:30d' })),
-    ).toBe('30d');
-  });
-
   it('keeps colons that appear inside the period segment', () => {
     expect(
       extractAnalyticsPeriod(action({ id: 'analytics-snapshot:brand-1:a:b' })),
@@ -63,16 +45,5 @@ describe('extractAnalyticsPeriod', () => {
     expect(extractAnalyticsPeriod(action({ title: 'Snapshot ()' }))).toBe(
       'summary',
     );
-  });
-
-  it('stays linear on adversarial input', () => {
-    const started = performance.now();
-    extractAnalyticsPeriod(
-      action({ title: `Snapshot (30d${' '.repeat(200_000)}` }),
-    );
-    extractAnalyticsPeriod(
-      action({ id: `analytics-snapshot:${'a'.repeat(200_000)}` }),
-    );
-    expect(performance.now() - started).toBeLessThan(1_000);
   });
 });

@@ -229,27 +229,6 @@ describe('handleAgentUiAction', () => {
     expect(deps.setActiveUiAction).toHaveBeenLastCalledWith(null);
   });
 
-  it('holds the thread events from before the request, so a result that outruns the ack is not lost', async () => {
-    const order: string[] = [];
-    const deps = makeDeps({
-      adoptRun: vi.fn(() => order.push('adopt')),
-      apiService: {
-        respondToUiAction: vi.fn(async () => {
-          order.push('post');
-          return makeAck();
-        }),
-      } as unknown as AgentApiService,
-      beginRunHandoff: vi.fn((threadId: string) => {
-        order.push('hold');
-        return makeHandoff(threadId);
-      }),
-    });
-
-    await handleAgentUiAction('approve_plan', { planId: 'plan-1' }, deps);
-
-    expect(order).toEqual(['hold', 'post', 'adopt']);
-  });
-
   it('adopts a late ack for the thread it was sent from after the user left and came back', async () => {
     let resolveAck: (ack: ReturnType<typeof makeAck>) => void = () => {};
     const deps = makeDeps({

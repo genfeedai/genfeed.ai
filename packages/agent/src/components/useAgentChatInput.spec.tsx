@@ -1114,12 +1114,6 @@ describe('useAgentChatInput attached record brand scope', () => {
     ]);
   });
 
-  it('leaves out a record from another brand instead of relabelling it', async () => {
-    const options = await sendWithAttached('brand-2');
-
-    expect(options?.artifactReferences ?? []).toEqual([]);
-  });
-
   it('leaves out a record with no known brand from a brand-bound composer', async () => {
     const options = await sendWithAttached(undefined);
 

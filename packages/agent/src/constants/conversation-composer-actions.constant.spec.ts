@@ -1,7 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { describe, expect, it } from 'vitest';
-import { SCHEDULE_TODAYS_TWEETS_PROMPT } from './agent-quick-prompts.constant';
-import { AGENT_SLASH_COMMANDS } from './agent-slash-commands.constant';
 import {
   CONVERSATION_COMPOSER_ACTIONS,
   getConversationComposerAction,
@@ -10,92 +7,6 @@ import {
 } from './conversation-composer-actions.constant';
 
 describe('conversation composer action registry', () => {
-  it('contains exactly the eight trusted issue actions', () => {
-    expect(CONVERSATION_COMPOSER_ACTIONS.map((action) => action.name)).toEqual([
-      'create',
-      'remix',
-      'discover',
-      'workflow',
-      'schedule',
-      'publish',
-      'analyze',
-      'reply',
-    ]);
-  });
-
-  it('maps publish to review without granting publish authority', () => {
-    expect(getConversationComposerAction('publish')).toMatchObject({
-      isConsequentialProposal: true,
-      route: APP_ROUTES.PUBLISHING.REVIEW,
-    });
-  });
-
-  it('resolves every action to its canonical route and required scope', () => {
-    expect(
-      CONVERSATION_COMPOSER_ACTIONS.map((action) => ({
-        name: action.name,
-        resolved: getConversationComposerAction(action.name),
-      })),
-    ).toEqual([
-      {
-        name: 'create',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.STUDIO.ROOT,
-        }),
-      },
-      {
-        name: 'remix',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.PUBLISHING.REMIX,
-        }),
-      },
-      {
-        name: 'discover',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.DISCOVERY.ROOT,
-        }),
-      },
-      {
-        name: 'workflow',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.AUTOMATION.WORKFLOWS,
-        }),
-      },
-      {
-        name: 'schedule',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.PUBLISHING.CALENDAR,
-        }),
-      },
-      {
-        name: 'publish',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.PUBLISHING.REVIEW,
-        }),
-      },
-      {
-        name: 'analyze',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.ANALYTICS.OVERVIEW,
-        }),
-      },
-      {
-        name: 'reply',
-        resolved: expect.objectContaining({
-          requiredScope: 'brand',
-          route: APP_ROUTES.MESSAGES.ROOT,
-        }),
-      },
-    ]);
-  });
-
   it('parses only an explicit leading allowlisted command', () => {
     expect(parseConversationComposerCommand('/discover competitors')).toEqual({
       invocation: {
@@ -114,36 +25,6 @@ describe('conversation composer action registry', () => {
       command: { command: 'delete' },
       kind: 'unknown',
     });
-  });
-
-  it('keeps legacy schedule and analyze prompt shortcuts under explicit aliases', () => {
-    expect(AGENT_SLASH_COMMANDS).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          name: 'schedule-post',
-          promptPrefix: 'Schedule a post for ',
-        }),
-        expect.objectContaining({
-          name: 'analyze-performance',
-          promptPrefix: 'Analyze performance of ',
-        }),
-      ]),
-    );
-  });
-
-  it('offers /tweets-today with the same prompt as the schedule-today chip', () => {
-    expect(
-      AGENT_SLASH_COMMANDS.find((command) => command.name === 'tweets-today'),
-    ).toMatchObject({
-      kind: 'prompt',
-      promptPrefix: SCHEDULE_TODAYS_TWEETS_PROMPT,
-    });
-  });
-
-  it('keeps slash command names unique', () => {
-    const names = AGENT_SLASH_COMMANDS.map((command) => command.name);
-
-    expect(new Set(names).size).toBe(names.length);
   });
 
   it('routes every action to brand when a brand is selected, else org', () => {

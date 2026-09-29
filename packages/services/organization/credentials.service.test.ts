@@ -19,12 +19,6 @@ describe('CredentialsService', () => {
     service = new CredentialsService(mockToken);
   });
 
-  describe('constructor', () => {
-    it('initializes correctly', () => {
-      expect(service).toBeInstanceOf(CredentialsService);
-    });
-  });
-
   describe('credential management', () => {
     it('has findAll method for fetching all credentials', () => {
       expect(service.findAll).toBeDefined();

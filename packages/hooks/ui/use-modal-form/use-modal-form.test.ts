@@ -31,28 +31,12 @@ describe('useModalForm', () => {
     modalId,
   });
 
-  it('initializes with null error', () => {
-    const { result } = renderHook(() => useModalForm(createOptions()));
-    expect(result.current.error).toBeNull();
-  });
-
   it('setError sets error message', () => {
     const { result } = renderHook(() => useModalForm(createOptions()));
     act(() => {
       result.current.setError('Something went wrong');
     });
     expect(result.current.error).toBe('Something went wrong');
-  });
-
-  it('clearError clears the error', () => {
-    const { result } = renderHook(() => useModalForm(createOptions()));
-    act(() => {
-      result.current.setError('Error');
-    });
-    act(() => {
-      result.current.clearError();
-    });
-    expect(result.current.error).toBeNull();
   });
 
   it('resetForm calls form.reset with default values', () => {

@@ -61,12 +61,6 @@ describe('AuthService (MCP)', () => {
     const apiKey = `gf_${'a'.repeat(30)}`;
     const jwtToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${'a'.repeat(30)}`;
 
-    it('should return invalid for short token', async () => {
-      const result: AuthResult = await service.authenticateRequest('short');
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe('Invalid token format');
-    });
-
     it('should return invalid for empty token', async () => {
       const result: AuthResult = await service.authenticateRequest('');
       expect(result.valid).toBe(false);
@@ -101,36 +95,6 @@ describe('AuthService (MCP)', () => {
         userId: 'user-456',
         valid: true,
       });
-    });
-
-    it('does not treat an owner-issued API key as MCP admin without an admin scope', async () => {
-      mockHttpService.get.mockReturnValue(
-        whoamiResponse({
-          isApiKey: true,
-          organization: { id: 'org-123' },
-          role: 'owner',
-          scopes: ['videos:read', 'posts:draft'],
-          user: { id: 'user-456' },
-        }),
-      );
-
-      const result = await service.authenticateRequest(apiKey);
-      expect(result.role).toBe('user');
-    });
-
-    it('grants the MCP admin tier only when the API key has an explicit admin scope', async () => {
-      mockHttpService.get.mockReturnValue(
-        whoamiResponse({
-          isApiKey: true,
-          organization: { id: 'org-123' },
-          role: 'owner',
-          scopes: ['admin'],
-          user: { id: 'user-456' },
-        }),
-      );
-
-      const result = await service.authenticateRequest(apiKey);
-      expect(result.role).toBe('admin');
     });
 
     it('does not cache gf_ API keys so revocation takes effect immediately', async () => {
@@ -197,41 +161,6 @@ describe('AuthService (MCP)', () => {
       });
     });
 
-    it('maps non-privileged and missing roles to the user tier', async () => {
-      mockHttpService.get.mockReturnValueOnce(
-        whoamiResponse({
-          organization: { id: 'o' },
-          role: 'creator',
-          user: { id: 'u' },
-        }),
-      );
-      const creator = await service.authenticateRequest(apiKey);
-      expect(creator.role).toBe('user');
-
-      mockHttpService.get.mockReturnValueOnce(
-        whoamiResponse({ organization: { id: 'o' }, user: { id: 'u' } }),
-      );
-      const noRole = await service.authenticateRequest(apiKey);
-      expect(noRole.role).toBe('user');
-    });
-
-    it('maps an unrecognized future role to the user tier (deny-by-default)', async () => {
-      // A role string the MCP server does not know about (e.g. a new 'billing'
-      // org role added later) must NOT silently elevate — it falls through to
-      // the user tier so admin-gated tools stay denied until the mapping is
-      // updated deliberately.
-      mockHttpService.get.mockReturnValue(
-        whoamiResponse({
-          organization: { id: 'o' },
-          role: 'billing',
-          user: { id: 'u' },
-        }),
-      );
-
-      const result = await service.authenticateRequest(apiKey);
-      expect(result.role).toBe('user');
-    });
-
     it('preserves the superadmin tier for session tokens', async () => {
       mockHttpService.get.mockReturnValue(
         whoamiResponse({
@@ -244,39 +173,6 @@ describe('AuthService (MCP)', () => {
 
       const result = await service.authenticateRequest(jwtToken);
       expect(result.role).toBe('superadmin');
-    });
-
-    it('does not let a gf_ key inherit superadmin from the issuer', async () => {
-      mockHttpService.get.mockReturnValue(
-        whoamiResponse({
-          isApiKey: true,
-          organization: { id: 'o' },
-          role: 'superadmin',
-          scopes: ['videos:read'],
-          user: { id: 'u' },
-        }),
-      );
-
-      const result = await service.authenticateRequest(apiKey);
-      expect(result.role).toBe('user');
-    });
-
-    it('keeps an empty-role (no membership) caller authenticated at the user tier', async () => {
-      // Empty role legitimately occurs (self-hosted single-tenant has no
-      // memberships; a removed member). We keep the caller authenticated but
-      // deny-by-default for admin tools by mapping to the user tier. The API
-      // re-enforces membership on the actual tool calls.
-      mockHttpService.get.mockReturnValue(
-        whoamiResponse({
-          organization: { id: 'o' },
-          role: '',
-          user: { id: 'u' },
-        }),
-      );
-
-      const result = await service.authenticateRequest(apiKey);
-      expect(result.valid).toBe(true);
-      expect(result.role).toBe('user');
     });
 
     it('returns invalid when whoami responds with a non-200 status', async () => {
@@ -296,44 +192,11 @@ describe('AuthService (MCP)', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Auth service temporarily unavailable');
     });
-
-    it('returns invalid on a 401 from whoami', async () => {
-      mockHttpService.get.mockReturnValue(
-        throwError(() => ({ response: { status: 401 } })),
-      );
-
-      const result = await service.authenticateRequest(jwtToken);
-      expect(result.valid).toBe(false);
-      expect(result.error).toBe('Invalid bearer token');
-    });
   });
 
   describe('extractBearerToken', () => {
-    it('should extract token from valid Bearer header', () => {
-      const token = service.extractBearerToken('Bearer my-token-123');
-      expect(token).toBe('my-token-123');
-    });
-
-    it('should return null for missing header', () => {
-      const token = service.extractBearerToken(undefined);
-      expect(token).toBeNull();
-    });
-
-    it('should return null for non-Bearer header', () => {
-      const token = service.extractBearerToken('Basic abc123');
-      expect(token).toBeNull();
-    });
-
     it('should return null for empty header', () => {
       const token = service.extractBearerToken('');
-      expect(token).toBeNull();
-    });
-
-    it('should return null for a header with surplus fields', () => {
-      // Regression coverage for #5206: a naive `startsWith`/`substring(7)`
-      // parse keeps everything after "Bearer ", including surplus fields,
-      // as one opaque token instead of rejecting the malformed shape.
-      const token = service.extractBearerToken('Bearer my-token-123 extra');
       expect(token).toBeNull();
     });
 

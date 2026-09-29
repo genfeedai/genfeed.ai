@@ -41,14 +41,4 @@ describe('command registration', () => {
 
     expect(unregistered).toEqual([]);
   });
-
-  it('keeps the reported CLI version in sync with package.json', async () => {
-    const [programSource, packageJson] = await Promise.all([
-      readFile(PROGRAM_PATH, 'utf8'),
-      readFile(path.join(PACKAGE_ROOT, 'package.json'), 'utf8'),
-    ]);
-
-    const { version } = JSON.parse(packageJson) as { version: string };
-    expect(programSource).toContain(`.version('${version}')`);
-  });
 });

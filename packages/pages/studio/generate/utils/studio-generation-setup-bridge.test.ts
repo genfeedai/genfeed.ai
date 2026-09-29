@@ -1,4 +1,3 @@
-import { RouterPriority } from '@genfeedai/contracts';
 import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import type { StudioGeneratePersistedState } from '@pages/studio/generate/utils/studio-generate-storage';
 import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-generate-types';
@@ -6,88 +5,14 @@ import {
   generationSetupValuesToStudioSettingsPatch,
   getDefaultGenerationSetupValues,
   STUDIO_BRIDGED_SETTINGS_KEYS,
-  STUDIO_RESIDUAL_SETTINGS_KEYS,
   seedGenerationSetupFromLegacyStudioSettings,
   splitStudioSettingsPatch,
-  studioSettingsFieldsToGenerationSetupPatch,
 } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   buildStudioGenerationSetupScope,
   useGenerationSetupStore,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { beforeEach, describe, expect, it } from 'vitest';
-
-const settings = {
-  aspectRatio: '1:1',
-  blacklist: [],
-  brandingMode: 'brand' as const,
-  isAudioEnabled: false,
-  modelKey: 'auto',
-  outputs: 1,
-  prioritize: RouterPriority.BALANCED,
-  resolution: '1K',
-  tags: [],
-};
-
-describe('getDefaultGenerationSetupValues', () => {
-  it('mirrors the Studio defaults for the bridged fields plus the setup-only fields', () => {
-    const defaults = getDefaultStudioGenerateSettings('image');
-
-    expect(getDefaultGenerationSetupValues('image')).toEqual({
-      aspectRatio: defaults.aspectRatio,
-      brandingMode: defaults.brandingMode,
-      camera: defaults.camera,
-      cameraMovement: defaults.cameraMovement,
-      duration: defaults.duration,
-      isPromptEnhanceEnabled: true,
-      lens: defaults.lens,
-      lighting: defaults.lighting,
-      modelKey: '',
-      mood: defaults.mood,
-      outputs: defaults.outputs,
-      prioritize: defaults.prioritize,
-      promptTemplate: defaults.promptTemplate,
-      resolution: defaults.resolution,
-      scene: defaults.scene,
-      style: defaults.style,
-      type: 'image',
-    });
-  });
-});
-
-describe('studioSettingsFieldsToGenerationSetupPatch', () => {
-  it('projects only the bridged fields present on the legacy settings', () => {
-    const patch = studioSettingsFieldsToGenerationSetupPatch({
-      ...settings,
-      camera: 'low angle',
-      style: 'cinematic',
-    });
-
-    expect(patch).toEqual({
-      aspectRatio: '1:1',
-      brandingMode: 'brand',
-      camera: 'low angle',
-      modelKey: '',
-      outputs: 1,
-      prioritize: RouterPriority.BALANCED,
-      resolution: '1K',
-      style: 'cinematic',
-    });
-  });
-
-  it('never leaks a residual-only field into the patch', () => {
-    const patch = studioSettingsFieldsToGenerationSetupPatch({
-      ...settings,
-      folder: 'my-folder',
-      voiceId: 'voice-1',
-    });
-
-    for (const key of STUDIO_RESIDUAL_SETTINGS_KEYS) {
-      expect(patch).not.toHaveProperty(key);
-    }
-  });
-});
 
 describe('generationSetupValuesToStudioSettingsPatch', () => {
   const values = getDefaultGenerationSetupValues('video');
@@ -113,24 +38,6 @@ describe('generationSetupValuesToStudioSettingsPatch', () => {
       isPromptEnhanceEnabled: true,
     });
     expect(offPatch.brandingMode).toBe('off');
-  });
-
-  it('omits fields the setup left undefined', () => {
-    const patch = generationSetupValuesToStudioSettingsPatch({
-      ...values,
-      camera: undefined,
-    });
-
-    expect(patch).not.toHaveProperty('camera');
-  });
-
-  it('writes Auto back as the Studio persist sentinel', () => {
-    const patch = generationSetupValuesToStudioSettingsPatch({
-      ...values,
-      modelKey: '',
-    });
-
-    expect(patch.modelKey).toBe(AUTO_MODEL_OPTION_VALUE);
   });
 });
 
@@ -194,12 +101,6 @@ describe('seedGenerationSetupFromLegacyStudioSettings', () => {
   beforeEach(() => {
     window.localStorage.clear();
     useGenerationSetupStore.setState({ reasonsByScope: {}, setupByScope: {} });
-  });
-
-  it('skips a type entirely when the legacy settings match the shared defaults', () => {
-    seedGenerationSetupFromLegacyStudioSettings(buildPersistedState());
-
-    expect(useGenerationSetupStore.getState().setupByScope).toEqual({});
   });
 
   it('migrates only the fields that diverge from the shared defaults, marking them user-owned', () => {

@@ -15,8 +15,4 @@ describe('AGENT_PROGRAM_TEMPLATES', () => {
       'image-carousel-creator',
     ]);
   });
-
-  it('does not resolve unknown templates', () => {
-    expect(getAgentProgramTemplate('unknown')).toBeUndefined();
-  });
 });

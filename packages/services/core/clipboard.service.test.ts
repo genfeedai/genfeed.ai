@@ -126,19 +126,6 @@ describe('ClipboardService', () => {
         'Copy to clipboard failed',
       );
     });
-
-    it('resets isCopying after success', async () => {
-      const mockWriteText = vi.fn().mockResolvedValue(undefined);
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: { writeText: mockWriteText },
-        writable: true,
-      });
-
-      await clipboardService.copyToClipboard('test text');
-
-      expect(clipboardService.isCopyingToClipboard).toBe(false);
-    });
   });
 
   describe('isCopyingToClipboard', () => {

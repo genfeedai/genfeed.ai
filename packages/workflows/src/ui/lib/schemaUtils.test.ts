@@ -187,13 +187,6 @@ describe('extractEnumValues', () => {
     });
   });
 
-  it('skips schema entries without enum', () => {
-    const schemas = {
-      prompt: { type: 'string' },
-    };
-    expect(extractEnumValues(schemas)).toBeUndefined();
-  });
-
   it('returns only entries that have enums in mixed input', () => {
     const schemas = {
       prompt: { type: 'string' },

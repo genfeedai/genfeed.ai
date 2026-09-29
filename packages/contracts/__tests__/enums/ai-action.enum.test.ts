@@ -3,10 +3,6 @@ import { AiActionType } from '../../src/enums/ai-action.enum';
 
 describe('ai-action.enum', () => {
   describe('AiActionType', () => {
-    it('should have 14 members', () => {
-      expect(Object.values(AiActionType)).toHaveLength(14);
-    });
-
     it('should have correct values', () => {
       expect(AiActionType.ENHANCE_PROMPT).toBe('enhance-prompt');
       expect(AiActionType.REWRITE).toBe('rewrite');

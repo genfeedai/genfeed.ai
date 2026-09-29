@@ -1,8 +1,4 @@
-import {
-  AssetScope,
-  SubscriptionCategory,
-  SubscriptionStatus,
-} from '@genfeedai/contracts';
+import { SubscriptionCategory, SubscriptionStatus } from '@genfeedai/contracts';
 import type {
   IBrand,
   IOrganization,
@@ -137,28 +133,6 @@ const createOrganization = (
   ...partial,
 });
 
-const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
-  ...createBaseEntity<IBrand>(partial),
-  backgroundColor: '#000000',
-  credentials: [],
-  description: 'Brand description',
-  fontFamily: 'Inter',
-  handle: 'test-brand',
-  isActive: true,
-  isFleetEnabled: false,
-  isDefault: false,
-  isSelected: false,
-  isVerified: false,
-  label: 'Test Brand',
-  links: [],
-  organization: createOrganization(),
-  primaryColor: '#ffffff',
-  scope: AssetScope.BRAND,
-  secondaryColor: '#cccccc',
-  user: createUser(),
-  ...partial,
-});
-
 const createSubscription = (partial: SubscriptionFixtureInput = {}) => {
   const fixture: SubscriptionFixtureInput = {
     ...createBaseEntity<ISubscription>(partial as Partial<ISubscription>),
@@ -194,42 +168,11 @@ describe('Subscription', () => {
       expect(sub).toBeDefined();
     });
 
-    it('should instantiate populated organization', () => {
-      const sub = createSubscription({
-        organization: createOrganization({ id: 'org-1', label: 'Test Org' }),
-      });
-      expect(sub.organization).toBeDefined();
-      expect((sub.organization as { id: string }).id).toBe('org-1');
-    });
-
-    it('should instantiate populated brand', () => {
-      const sub = createSubscription({
-        brand: createBrand({ id: 'brand-1' }),
-      });
-      expect(sub.brand).toBeDefined();
-      expect((sub.brand as { id: string }).id).toBe('brand-1');
-    });
-
-    it('should instantiate populated user', () => {
-      const sub = createSubscription({
-        user: createUser({ id: 'user-1' }),
-      });
-      expect(sub.user).toBeDefined();
-      expect((sub.user as { id: string }).id).toBe('user-1');
-    });
-
     it('should not instantiate when value is not an object with id', () => {
       const sub = createSubscription({
         organization: 'org-string-id' as never,
       });
       expect(sub.organization).toBe('org-string-id');
-    });
-
-    it('should not instantiate when value is null', () => {
-      const sub = createSubscription({
-        brand: null as never,
-      });
-      expect(sub.brand).toBeNull();
     });
   });
 });

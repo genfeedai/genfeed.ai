@@ -87,14 +87,6 @@ describe('useLibraryBrowser', () => {
     expect(result.current.contextValue.viewMode).toBe('grid');
   });
 
-  it('puts the selected view in the shared list context', () => {
-    state.search = '?view=list';
-
-    const { result } = renderHook(() => useLibraryBrowser({}));
-
-    expect(result.current.contextValue.viewMode).toBe('list');
-  });
-
   it('seeds the type axis from the route until the URL carries it', () => {
     const seeded = [IngredientCategory.VIDEO, IngredientCategory.VIDEO_EDIT];
 
@@ -130,23 +122,6 @@ describe('useLibraryBrowser', () => {
     expect(pushed.get('sort')).toBe('label: 1');
   });
 
-  it('replaces the type axis from the dropdown selection', () => {
-    state.search = '?categories=IMAGE&categories=IMAGE_EDIT';
-
-    const { result } = renderHook(() => useLibraryBrowser({}));
-
-    act(() => {
-      result.current.handleCategoriesChange([
-        IngredientCategory.VIDEO,
-        IngredientCategory.VIDEO_EDIT,
-      ]);
-    });
-
-    expect(
-      new URLSearchParams(lastPushedSearch()).getAll('categories'),
-    ).toEqual(['VIDEO', 'VIDEO_EDIT']);
-  });
-
   it('leaves the default sort out of the URL', () => {
     const { result } = renderHook(() => useLibraryBrowser({}));
 
@@ -171,18 +146,6 @@ describe('useLibraryBrowser', () => {
     });
 
     expect(lastPushedSearch()).toBe('?view=canvas');
-  });
-
-  it('keeps contact sheet in the URL when switching back to grid', () => {
-    state.search = '?view=list';
-
-    const { result } = renderHook(() => useLibraryBrowser({}));
-
-    act(() => {
-      result.current.handleViewModeChange('grid');
-    });
-
-    expect(lastPushedSearch()).toBe('?view=grid');
   });
 
   it('defaults Recent to most-recently-updated', () => {

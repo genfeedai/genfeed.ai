@@ -21,14 +21,6 @@ describe('ContentHarnessRegistry', () => {
     expect(registry.get('missing')).toBeUndefined();
   });
 
-  it('lists packs in registration order', () => {
-    const registry = new ContentHarnessRegistry();
-    registry.registerPack(buildPack('alpha'));
-    registry.registerPack(buildPack('beta'));
-
-    expect(registry.list().map((pack) => pack.id)).toEqual(['alpha', 'beta']);
-  });
-
   it('replaces a pack registered under the same id', () => {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(buildPack('alpha'));
@@ -41,10 +33,6 @@ describe('ContentHarnessRegistry', () => {
 });
 
 describe('isContentHarnessPack', () => {
-  it('accepts objects with string id and version', () => {
-    expect(isContentHarnessPack(buildPack('alpha'))).toBe(true);
-  });
-
   it('rejects primitives and null', () => {
     expect(isContentHarnessPack(null)).toBe(false);
     expect(isContentHarnessPack(undefined)).toBe(false);

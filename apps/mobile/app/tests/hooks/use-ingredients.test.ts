@@ -77,20 +77,6 @@ describe('useIngredients', () => {
     expect(ingredientsService.findAll).toHaveBeenCalledWith('test-token', {});
   });
 
-  it('should pass options to service', async () => {
-    vi.mocked(ingredientsService.findAll).mockResolvedValue({ data: [] });
-
-    const options = { category: 'video' as const, page: 2, pageSize: 20 };
-    renderHook(() => useIngredients(options));
-
-    await waitFor(() => {
-      expect(ingredientsService.findAll).toHaveBeenCalledWith(
-        'test-token',
-        options,
-      );
-    });
-  });
-
   it('should handle error when token is not available', async () => {
     vi.mocked(useMobileAuth).mockReturnValue({
       getToken: vi.fn().mockResolvedValue(null),

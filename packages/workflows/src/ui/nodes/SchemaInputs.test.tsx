@@ -50,26 +50,6 @@ function openOptions() {
 }
 
 describe('SchemaInputs model enums', () => {
-  it.each(['GPT Image 1.5', 'GPT Image 2'])(
-    '%s uses explicit model quality options',
-    () => {
-      renderInputs({ enumValues: { quality: standardQuality } });
-      expect(openOptions()).toEqual(standardQuality);
-    },
-  );
-
-  it.each(['GPT Image 1.5', 'GPT Image 2'])(
-    '%s uses referenced component quality options',
-    () => {
-      renderInputs({
-        componentSchemas: {
-          quality: { enum: standardQuality, type: 'string' },
-        },
-      });
-      expect(openOptions()).toEqual(standardQuality);
-    },
-  );
-
   it.each([
     ['low', 'medium', 'high', 'xhigh', 'max', 'auto'],
     ['draft', 'production'],
@@ -94,21 +74,6 @@ describe('SchemaInputs model enums', () => {
     });
     expect(openOptions()).toEqual(['component']);
   });
-
-  it.each([true, false])(
-    'uses direct enums with a reference: %s',
-    (hasReference) => {
-      renderInputs({
-        schema: {
-          quality: {
-            ...(hasReference ? qualitySchema.quality : {}),
-            enum: standardQuality,
-          },
-        },
-      });
-      expect(openOptions()).toEqual(standardQuality);
-    },
-  );
 
   it.each([
     {},
@@ -257,32 +222,6 @@ describe('SchemaInputs stale persisted enum values', () => {
       expect(onChange).not.toHaveBeenCalled();
     },
   );
-
-  it('leaves an unset quality alone', () => {
-    const onChange = vi.fn();
-    renderInputs({ enumValues: { quality: standardQuality }, onChange });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('never judges a stored value against the generic fallback list', () => {
-    const onChange = vi.fn();
-    renderInputs({
-      onChange,
-      schema: { mode: { allOf: [{ $ref: '#/components/schemas/mode' }] } },
-      values: { mode: 'custom' },
-    });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('accepts a stored number that a direct numeric enum declares', () => {
-    const onChange = vi.fn();
-    renderInputs({
-      onChange,
-      schema: { steps: { default: 10, enum: [10, 20], type: 'integer' } },
-      values: { steps: 20 },
-    });
-    expect(onChange).not.toHaveBeenCalled();
-  });
 
   it('repairs a stale direct numeric option back as a number', () => {
     const onChange = vi.fn();

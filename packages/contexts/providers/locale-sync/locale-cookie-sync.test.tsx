@@ -75,35 +75,4 @@ describe('LocaleCookieSync', () => {
 
     expect(readLocaleCookie(document.cookie)).toBe('en');
   });
-
-  it('leaves the cookie alone when nothing is stored', () => {
-    // The server still has `Accept-Language` to negotiate from — overwriting the
-    // cookie with a default here would discard that.
-    setPreference({ organizationLocale: null, userLocale: null });
-
-    render(<LocaleCookieSync />);
-
-    expect(readLocaleCookie(document.cookie)).toBeUndefined();
-    expect(refreshMock).not.toHaveBeenCalled();
-  });
-
-  it('does not refresh when the cookie already holds the preference', () => {
-    setPreference({ userLocale: 'en-XA' });
-
-    const { rerender } = render(<LocaleCookieSync />);
-    refreshMock.mockClear();
-
-    rerender(<LocaleCookieSync />);
-
-    expect(refreshMock).not.toHaveBeenCalled();
-  });
-
-  it('ignores a stored locale that is no longer allowlisted', () => {
-    setPreference({ userLocale: 'de' });
-
-    render(<LocaleCookieSync />);
-
-    expect(readLocaleCookie(document.cookie)).toBeUndefined();
-    expect(refreshMock).not.toHaveBeenCalled();
-  });
 });

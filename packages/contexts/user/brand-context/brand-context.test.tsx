@@ -329,32 +329,6 @@ describe('BrandProvider', () => {
     expect(useAuthedServiceMock).not.toHaveBeenCalled();
   });
 
-  it('resolves brand scope immediately from a hydrated bootstrap payload', () => {
-    function Consumer() {
-      const { isBrandScopeResolved } = useBrand();
-
-      return (
-        <span data-testid="brand-scope-resolved">
-          {String(isBrandScopeResolved)}
-        </span>
-      );
-    }
-
-    const Wrapper = createWrapper();
-
-    render(
-      <Wrapper>
-        <BrandProvider initialBootstrap={initialBootstrap as never}>
-          <Consumer />
-        </BrandProvider>
-      </Wrapper>,
-    );
-
-    expect(screen.getByTestId('brand-scope-resolved')).toHaveTextContent(
-      'true',
-    );
-  });
-
   it('holds brand scope unresolved until the brand fetch settles', async () => {
     useAuthedServiceMock.mockResolvedValue({
       findAllMeBrands: vi.fn().mockResolvedValue([

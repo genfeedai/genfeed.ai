@@ -42,18 +42,6 @@ describe('TrendsService', () => {
     service = new TrendsService(mockToken);
   });
 
-  it('initializes correctly', () => {
-    expect(service).toBeInstanceOf(TrendsService);
-  });
-
-  it('has CRUD methods', () => {
-    expect(service.findAll).toBeDefined();
-    expect(service.findOne).toBeDefined();
-    expect(service.post).toBeDefined();
-    expect(service.patch).toBeDefined();
-    expect(service.delete).toBeDefined();
-  });
-
   it('getTrendsDiscovery uses the discovery endpoint', async () => {
     const getSpy = vi
       .spyOn((service as any).instance, 'get')

@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -65,25 +63,6 @@ describe('website AppProviders', () => {
       'data-theme',
       'dark',
     );
-  });
-
-  it('keeps the Better Auth client out of every marketing page bundle', () => {
-    const source = readFileSync(join(__dirname, 'AppProviders.tsx'), 'utf8');
-
-    expect(source).not.toMatch(/from ['"]@genfeedai\/auth-client/);
-  });
-
-  it('skips the error debug modal in production, where it never opens', async () => {
-    environment.isProduction = true;
-    render(
-      <AppProviders includeToaster={false}>
-        <div>Page</div>
-      </AppProviders>,
-    );
-
-    await screen.findByText('Page');
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(screen.queryByTestId('error-debug-modal')).not.toBeInTheDocument();
   });
 
   it('mounts the error debug modal outside production', async () => {

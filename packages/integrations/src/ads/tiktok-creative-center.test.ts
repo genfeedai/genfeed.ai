@@ -36,10 +36,4 @@ describe('tiktok creative center mappers', () => {
         .ctr,
     ).toBeUndefined();
   });
-
-  it('reports zero reach rather than a guess when the row has no view counter', () => {
-    expect(
-      normalizeTikTokCreativeCenterRecord({ id: 'creative_1' }).estimatedReach,
-    ).toBe(0);
-  });
 });

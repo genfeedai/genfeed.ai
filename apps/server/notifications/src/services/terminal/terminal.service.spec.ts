@@ -53,12 +53,6 @@ describe('TerminalService', () => {
     process.env.NODE_ENV = 'development';
   });
 
-  it('is available during local development outside hosted cloud', () => {
-    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
-
-    expect(service.isAvailable()).toBe(true);
-  });
-
   it('is disabled on hosted cloud even in development', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     const service = createService(

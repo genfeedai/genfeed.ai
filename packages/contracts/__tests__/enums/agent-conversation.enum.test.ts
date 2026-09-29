@@ -3,10 +3,6 @@ import { AgentMessageRole } from '../../src/enums/agent-conversation.enum';
 
 describe('agent-conversation.enum', () => {
   describe('AgentMessageRole', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(AgentMessageRole)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(AgentMessageRole.USER).toBe('user');
       expect(AgentMessageRole.ASSISTANT).toBe('assistant');

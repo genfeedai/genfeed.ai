@@ -8,10 +8,6 @@ import {
 
 describe('beat-sync.enum', () => {
   describe('BeatSyncCutStrategy', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(BeatSyncCutStrategy)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(BeatSyncCutStrategy.EVERY_BEAT).toBe('everyBeat');
       expect(BeatSyncCutStrategy.EVERY_OTHER_BEAT).toBe('everyOtherBeat');
@@ -21,10 +17,6 @@ describe('beat-sync.enum', () => {
   });
 
   describe('BeatSyncTransitionType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(BeatSyncTransitionType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(BeatSyncTransitionType.CUT).toBe('cut');
       expect(BeatSyncTransitionType.CROSSFADE).toBe('crossfade');
@@ -34,10 +26,6 @@ describe('beat-sync.enum', () => {
   });
 
   describe('MusicSourceType', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(MusicSourceType)).toHaveLength(4);
-    });
-
     it('should have correct values', () => {
       expect(MusicSourceType.TREND_SOUND).toBe('trendSound');
       expect(MusicSourceType.LIBRARY).toBe('library');
@@ -47,10 +35,6 @@ describe('beat-sync.enum', () => {
   });
 
   describe('BeatSensitivity', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(BeatSensitivity)).toHaveLength(3);
-    });
-
     it('should have correct values', () => {
       expect(BeatSensitivity.LOW).toBe('low');
       expect(BeatSensitivity.MEDIUM).toBe('medium');

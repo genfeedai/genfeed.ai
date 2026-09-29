@@ -62,18 +62,6 @@ describe('discoveryDeskReducer', () => {
     expect(withoutPlatform.filters.platforms.has('tiktok')).toBe(false);
   });
 
-  it('does not mutate the previous filters.platforms set', () => {
-    const initial = createInitialDeskState();
-    const originalPlatforms = initial.filters.platforms;
-
-    discoveryDeskReducer(initial, {
-      platform: 'tiktok',
-      type: 'TOGGLE_PLATFORM',
-    });
-
-    expect(originalPlatforms.has('tiktok')).toBe(false);
-  });
-
   it('sets source, content type, sort, and search', () => {
     let state = createInitialDeskState();
     state = discoveryDeskReducer(state, {
@@ -128,31 +116,9 @@ describe('discoveryDeskReducer', () => {
   describe('MOVE_CURSOR', () => {
     const visibleKeys = ['trend:1', 'trend:2', 'trend:3'];
 
-    it('moves to the first item when no cursor is set and direction is +1', () => {
-      const state = discoveryDeskReducer(createInitialDeskState(), {
-        direction: 1,
-        type: 'MOVE_CURSOR',
-        visibleKeys,
-      });
-      expect(state.cursorKey).toBe('trend:1');
-    });
-
     it('moves to the last item when no cursor is set and direction is -1', () => {
       const state = discoveryDeskReducer(createInitialDeskState(), {
         direction: -1,
-        type: 'MOVE_CURSOR',
-        visibleKeys,
-      });
-      expect(state.cursorKey).toBe('trend:3');
-    });
-
-    it('advances forward and clamps at the last item', () => {
-      let state: DiscoveryDeskState = {
-        ...createInitialDeskState(),
-        cursorKey: 'trend:3',
-      };
-      state = discoveryDeskReducer(state, {
-        direction: 1,
         type: 'MOVE_CURSOR',
         visibleKeys,
       });
@@ -221,17 +187,6 @@ describe('selectVisibleItems', () => {
     }),
   ];
 
-  it('returns every item, sorted by velocity by default', () => {
-    const state = createInitialDeskState();
-    const result = selectVisibleItems(items, state);
-
-    expect(result.map((item) => item.key)).toEqual([
-      'source_post:2',
-      'trend:1',
-      'trend:3',
-    ]);
-  });
-
   it('filters by platform', () => {
     const state: DiscoveryDeskState = {
       ...createInitialDeskState(),
@@ -243,17 +198,6 @@ describe('selectVisibleItems', () => {
 
     expect(selectVisibleItems(items, state).map((item) => item.key)).toEqual([
       'source_post:2',
-    ]);
-  });
-
-  it('filters by source', () => {
-    const state: DiscoveryDeskState = {
-      ...createInitialDeskState(),
-      filters: { ...createInitialDeskState().filters, source: 'owned' },
-    };
-
-    expect(selectVisibleItems(items, state).map((item) => item.key)).toEqual([
-      'trend:3',
     ]);
   });
 
@@ -289,19 +233,6 @@ describe('selectVisibleItems', () => {
       'trend:1',
       'trend:3',
       'source_post:2',
-    ]);
-  });
-
-  it('sorts by engagement', () => {
-    const state: DiscoveryDeskState = {
-      ...createInitialDeskState(),
-      sort: 'engagement',
-    };
-
-    expect(selectVisibleItems(items, state).map((item) => item.key)).toEqual([
-      'source_post:2',
-      'trend:1',
-      'trend:3',
     ]);
   });
 

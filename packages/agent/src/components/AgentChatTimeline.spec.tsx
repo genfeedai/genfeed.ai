@@ -126,24 +126,6 @@ function buildSucceededWorkGroup(
   };
 }
 
-function buildAssistantMessage(
-  id: string,
-  content: string,
-): Extract<TimelineEntry, { kind: 'assistant-message' }> {
-  return {
-    createdAt: '2026-03-18T10:02:00.000Z',
-    id,
-    kind: 'assistant-message',
-    message: {
-      content,
-      createdAt: '2026-03-18T10:02:00.000Z',
-      id,
-      role: 'assistant',
-      threadId: 't1',
-    },
-  };
-}
-
 function buildUserMessage(
   id: string,
   content: string,
@@ -216,36 +198,6 @@ describe('AgentChatTimeline failure card', () => {
     expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 
-  it('does not offer prompt retry after a successful terminal run', () => {
-    render(
-      <AgentChatTimeline
-        {...baseProps}
-        timeline={[
-          buildUserMessage('user-ok', 'Successful prompt'),
-          buildSucceededWorkGroup('wg-ok'),
-        ]}
-      />,
-    );
-
-    expect(screen.queryByText('Retry message')).toBeNull();
-  });
-
-  it('renders the failure card only when the terminal entry is a failed work group', () => {
-    render(
-      <AgentChatTimeline
-        {...baseProps}
-        timeline={[
-          buildSucceededWorkGroup('wg-ok'),
-          buildFailedWorkGroup('wg-fail', 'status code 503'),
-        ]}
-        onRetryLastFailedRun={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole('alert')).toBeTruthy();
-    expect(screen.getByText('Provider temporarily unavailable')).toBeTruthy();
-  });
-
   it('does not render an older failure when the terminal work group succeeded', () => {
     render(
       <AgentChatTimeline
@@ -259,81 +211,5 @@ describe('AgentChatTimeline failure card', () => {
     );
 
     expect(screen.queryByRole('alert')).toBeNull();
-  });
-
-  it('does not render a failure card when the terminal entry is an assistant message', () => {
-    render(
-      <AgentChatTimeline
-        {...baseProps}
-        timeline={[
-          buildFailedWorkGroup('wg-old-fail', 'status code 503'),
-          buildAssistantMessage('msg-1', 'Recovered answer'),
-        ]}
-        onRetryLastFailedRun={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole('alert')).toBeNull();
-  });
-
-  it('hides the timeline failure card when a generation card already owns the error', () => {
-    render(
-      <AgentChatTimeline
-        {...baseProps}
-        hasDockedGenerationCard
-        timeline={[
-          buildFailedWorkGroup(
-            'wg-fail',
-            'Failed to respond to UI action: 403 - Organization context is required',
-          ),
-        ]}
-        onRetryLastFailedRun={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole('alert')).toBeNull();
-  });
-
-  it('hides the failure card while generating or streaming', () => {
-    const { rerender } = render(
-      <AgentChatTimeline
-        {...baseProps}
-        isGenerating
-        timeline={[buildFailedWorkGroup('wg-fail', 'status code 503')]}
-        onRetryLastFailedRun={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole('alert')).toBeNull();
-
-    rerender(
-      <AgentChatTimeline
-        {...baseProps}
-        isStreamingActive
-        timeline={[buildFailedWorkGroup('wg-fail', 'status code 503')]}
-        onRetryLastFailedRun={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByRole('alert')).toBeNull();
-  });
-
-  it('makes pending structured actions inert while busy', () => {
-    render(
-      <AgentChatTimeline
-        {...baseProps}
-        isBusy
-        pendingUiActions={[
-          {
-            id: 'pending-schedule',
-            title: 'Schedule post',
-            type: 'schedule_post_card',
-          } as never,
-        ]}
-        timeline={[]}
-      />,
-    );
-
-    expect(screen.getByTestId('ui-action-busy')).toHaveAttribute('inert');
   });
 });

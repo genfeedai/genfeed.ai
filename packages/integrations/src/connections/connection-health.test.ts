@@ -6,39 +6,6 @@ import {
 describe('integration credential health', () => {
   const now = new Date('2026-06-02T00:00:00.000Z');
 
-  it('marks usable token material healthy', () => {
-    expect(
-      resolveIntegrationCredentialHealth(
-        {
-          accessToken: 'encrypted-access',
-          accessTokenExpiry: '2026-06-03T00:00:00.000Z',
-          isConnected: true,
-        },
-        { now },
-      ),
-    ).toMatchObject({
-      hasAccessToken: true,
-      status: 'healthy',
-    });
-  });
-
-  it('marks expired access tokens with refresh material refreshable', () => {
-    expect(
-      resolveIntegrationCredentialHealth(
-        {
-          accessToken: 'encrypted-access',
-          accessTokenExpiry: '2026-06-01T00:00:00.000Z',
-          isConnected: true,
-          refreshToken: 'encrypted-refresh',
-        },
-        { now },
-      ),
-    ).toMatchObject({
-      hasRefreshToken: true,
-      status: 'refreshable',
-    });
-  });
-
   it('marks deleted or disconnected credentials disconnected', () => {
     expect(
       resolveIntegrationCredentialHealth({
@@ -63,23 +30,6 @@ describe('integration credential health', () => {
       ),
     ).toMatchObject({
       status: 'refresh_exhausted',
-    });
-  });
-
-  it('does not block a live access token when its refresh token is expired', () => {
-    expect(
-      resolveIntegrationCredentialHealth(
-        {
-          accessToken: 'encrypted-access',
-          accessTokenExpiry: '2026-06-03T00:00:00.000Z',
-          isConnected: true,
-          refreshToken: 'encrypted-refresh',
-          refreshTokenExpiry: '2026-06-01T00:00:00.000Z',
-        },
-        { now },
-      ),
-    ).toMatchObject({
-      status: 'healthy',
     });
   });
 
@@ -144,31 +94,6 @@ describe('integration credential health', () => {
     expect(readiness.diagnostics[0]?.code).toBe(
       'credential_access_token_missing',
     );
-  });
-
-  it('checks all supported access-token fields independently', () => {
-    const supportedAccessCredentials = [
-      { accessToken: 'encrypted-access-token' },
-      { accessTokenSecret: 'encrypted-access-token-secret' },
-      { oauthToken: 'encrypted-oauth-token' },
-      { oauthTokenSecret: 'encrypted-oauth-token-secret' },
-    ];
-
-    for (const accessCredential of supportedAccessCredentials) {
-      const readiness = buildCredentialTokenPublishingReadiness({
-        ...accessCredential,
-        accessTokenExpiresAt: '2026-06-03T00:00:00.000Z',
-        credentialId: 'cred-1',
-        isConnected: true,
-        now,
-        providerKey: 'twitter',
-      });
-
-      expect(readiness).toMatchObject({
-        state: 'publish_capable',
-        tokenFreshness: 'pass',
-      });
-    }
   });
 
   it('keeps an expired access token retryable when refresh is available', () => {

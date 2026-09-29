@@ -2,16 +2,6 @@ import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resol
 import { describe, expect, it } from 'vitest';
 
 describe('resolveComposerTranscriptPaddingPx', () => {
-  it('uses a tight inset when the composer is not floating', () => {
-    expect(
-      resolveComposerTranscriptPaddingPx({
-        hasFollowUpChips: true,
-        isComposerVisible: false,
-        overlayHeightPx: 420,
-      }),
-    ).toBe(20);
-  });
-
   it('pads by the measured overlay so a generation card can scroll the transcript above it', () => {
     expect(
       resolveComposerTranscriptPaddingPx({

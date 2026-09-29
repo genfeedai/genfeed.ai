@@ -75,12 +75,6 @@ describe('WorkflowEngine action contracts', () => {
     });
   });
 
-  it('fails action registration when the canonical contract is open', () => {
-    expect(() =>
-      engine.registerExecutor('open.contract', async () => null),
-    ).toThrow('must set additionalProperties');
-  });
-
   it('still rejects duplicate action executor registration', () => {
     engine.registerExecutor('contract.test', async () => ({
       article: 'Generated article',

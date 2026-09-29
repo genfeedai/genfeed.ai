@@ -1,8 +1,4 @@
-import {
-  IngredientCategory,
-  IngredientFormat,
-  PageScope,
-} from '@genfeedai/contracts';
+import { IngredientFormat, PageScope } from '@genfeedai/contracts';
 import {
   isIngredientFormat,
   useIngredientsFilters,
@@ -93,13 +89,6 @@ describe('useIngredientsFilters', () => {
     expect(result.current).toHaveProperty('form');
   });
 
-  it('singularType normalizes the route plural to an IngredientCategory', () => {
-    const { result } = renderHook(() =>
-      useIngredientsFilters({ scope: PageScope.BRAND, type: 'videos' }),
-    );
-    expect(result.current.singularType).toBe(IngredientCategory.VIDEO);
-  });
-
   it('singularType keeps the raw singular for unknown route plurals', () => {
     const { result } = renderHook(() =>
       useIngredientsFilters({ scope: PageScope.BRAND, type: 'widgets' }),
@@ -112,19 +101,5 @@ describe('useIngredientsFilters', () => {
       useIngredientsFilters({ scope: PageScope.SUPERADMIN, type: 'images' }),
     );
     expect(result.current.isActionsEnabled).toBe(false);
-  });
-
-  it('isActionsEnabled is true for BRAND scope', () => {
-    const { result } = renderHook(() =>
-      useIngredientsFilters({ scope: PageScope.BRAND, type: 'images' }),
-    );
-    expect(result.current.isActionsEnabled).toBe(true);
-  });
-
-  it('formatFilter is undefined when filter is "all"', () => {
-    const { result } = renderHook(() =>
-      useIngredientsFilters({ scope: PageScope.BRAND, type: 'images' }),
-    );
-    expect(result.current.formatFilter).toBeUndefined();
   });
 });

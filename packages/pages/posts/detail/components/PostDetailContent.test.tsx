@@ -130,20 +130,8 @@ describe('PostDetailContent', () => {
     expect(screen.queryByTestId('post-list')).not.toBeInTheDocument();
   });
 
-  it('hides the thread extras when nothing can be added', () => {
-    render(<PostDetailContent {...buildProps()} />);
-
-    expect(screen.queryByTestId('thread-extras')).not.toBeInTheDocument();
-  });
-
   it('renders the thread extras when a thread can be added in publisher scope', () => {
     render(<PostDetailContent {...buildProps({ canAddThread: true })} />);
-
-    expect(screen.getByTestId('thread-extras')).toBeInTheDocument();
-  });
-
-  it('renders the thread extras when a first comment can be added', () => {
-    render(<PostDetailContent {...buildProps({ canAddFirstComment: true })} />);
 
     expect(screen.getByTestId('thread-extras')).toBeInTheDocument();
   });

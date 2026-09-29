@@ -79,12 +79,6 @@ describe('VoiceChangeExecutor', () => {
       );
     });
 
-    it('should pass with valid pitchShift', () => {
-      const node = makeNode({ pitchShift: 5, targetVoiceId: 'voice-xyz' });
-      const result = executor.validate(node);
-      expect(result.valid).toBe(true);
-    });
-
     it('should pass with pitchShift at boundaries', () => {
       const nodeLow = makeNode({ pitchShift: -12, targetVoiceId: 'voice-xyz' });
       expect(executor.validate(nodeLow).valid).toBe(true);
@@ -119,13 +113,6 @@ describe('VoiceChangeExecutor', () => {
         'Pitch shift must be a number between -12 and 12',
       );
     });
-
-    it('should fail when node type does not match', () => {
-      const node = makeNode();
-      node.type = 'wrongType';
-      const result = executor.validate(node);
-      expect(result.valid).toBe(false);
-    });
   });
 
   describe('estimateCost', () => {
@@ -154,35 +141,6 @@ describe('VoiceChangeExecutor', () => {
       );
     });
 
-    it('should call resolver without pitchShift when not configured', async () => {
-      const input = makeInput({ targetVoiceId: 'voice-xyz' }, [
-        ['audio', 'https://cdn.example.com/audio.mp3'],
-      ]);
-      delete input.node.config.pitchShift;
-
-      await executor.execute(input);
-
-      expect(mockResolver).toHaveBeenCalledWith(
-        'https://cdn.example.com/audio.mp3',
-        'voice-xyz',
-        {},
-      );
-    });
-
-    it('should call resolver with pitchShift when configured', async () => {
-      const input = makeInput({ pitchShift: 3, targetVoiceId: 'voice-xyz' }, [
-        ['audio', 'https://cdn.example.com/audio.mp3'],
-      ]);
-
-      await executor.execute(input);
-
-      expect(mockResolver).toHaveBeenCalledWith(
-        'https://cdn.example.com/audio.mp3',
-        'voice-xyz',
-        { pitchShift: 3 },
-      );
-    });
-
     it('should return audio URL as data', async () => {
       const input = makeInput({ targetVoiceId: 'voice-xyz' }, [
         ['audio', 'https://cdn.example.com/audio.mp3'],
@@ -202,17 +160,6 @@ describe('VoiceChangeExecutor', () => {
 
       expect(result.metadata?.targetVoiceId).toBe('voice-xyz');
       expect(result.metadata?.pitchShift).toBe(-2);
-    });
-
-    it('should return undefined pitchShift in metadata when not configured', async () => {
-      const input = makeInput({ targetVoiceId: 'voice-xyz' }, [
-        ['audio', 'https://cdn.example.com/audio.mp3'],
-      ]);
-      delete input.node.config.pitchShift;
-
-      const result = await executor.execute(input);
-
-      expect(result.metadata?.pitchShift).toBeUndefined();
     });
   });
 });

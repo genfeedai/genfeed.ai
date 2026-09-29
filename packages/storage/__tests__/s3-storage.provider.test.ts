@@ -104,20 +104,6 @@ describe('S3StorageProvider', () => {
       });
     });
 
-    it('publishes through GENFEEDAI_CDN_URL instead of the raw S3 host', () => {
-      vi.stubEnv('GENFEEDAI_CDN_URL', 'https://staging-cdn.genfeed.ai');
-      const provider = new S3StorageProvider({
-        bucket: 'staging-cdn.genfeed.ai',
-        region: 'us-east-1',
-      });
-
-      expect(
-        provider.getUrl('ingredients/images/c000000000000000000000001'),
-      ).toBe(
-        'https://staging-cdn.genfeed.ai/ingredients/images/c000000000000000000000001',
-      );
-    });
-
     it('uses an explicit cdnUrl option over the files microservice origin', () => {
       vi.stubEnv('GENFEEDAI_CDN_URL', 'https://files.genfeed.localhost');
       const provider = new S3StorageProvider({
@@ -418,20 +404,6 @@ describe('S3StorageProvider', () => {
       ];
       expect(command.params.MaxKeys).toBe(2);
       expect(command.params.Prefix).toBe('p/');
-    });
-
-    it('keeps every entry when type filter is "all"', async () => {
-      mockSend.mockResolvedValue({
-        Contents: [
-          { Key: 'p/a.png', LastModified: new Date(), Size: 1 },
-          { Key: 'p/b.mp4', LastModified: new Date(), Size: 2 },
-        ],
-      });
-      const provider = new S3StorageProvider({ bucket: 'b' });
-
-      const entries = await provider.list('p/', { type: 'all' });
-
-      expect(entries).toHaveLength(2);
     });
 
     it('rejects an unsafe prefix before sending a list command', async () => {

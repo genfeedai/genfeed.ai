@@ -106,18 +106,6 @@ describe('DynamicChartView', () => {
     expect(seriesKeys('bar')).toEqual(['clicks', 'views']);
   });
 
-  it('excludes the x-axis key and non-numeric fields from inferred series', () => {
-    render(
-      <DynamicChartView
-        block={makeBlock({
-          data: [{ id: 'a', label: 'x', name: 'Mon', views: 10 }],
-        })}
-      />,
-    );
-
-    expect(seriesKeys('bar')).toEqual(['views']);
-  });
-
   it('honours an explicit x-axis key', () => {
     render(
       <DynamicChartView

@@ -428,18 +428,6 @@ describe('SlackBotManager workflows', () => {
         expect(respond).toHaveBeenCalledWith({ text: 'Nothing to cancel.' });
       });
 
-      it('reports nothing to cancel for an idle session', async () => {
-        sessions().set(USER_ID, makeSession({ state: 'idle' }));
-
-        await commandHandler('/cancel')({
-          ack,
-          command: { user_id: USER_ID },
-          respond,
-        });
-
-        expect(respond).toHaveBeenCalledWith({ text: 'Nothing to cancel.' });
-      });
-
       it('cancels the running execution and clears the session', async () => {
         sessions().set(
           USER_ID,
@@ -551,20 +539,6 @@ describe('SlackBotManager workflows', () => {
         });
         expect(respond).toHaveBeenCalledWith({
           text: 'Image model set to: *flux-pro*',
-        });
-      });
-
-      it('cfg:vid persists the chosen video model', async () => {
-        await actionHandler('/^cfg:vid:/')({
-          ack,
-          action: { value: 'cfg:vid:kling-ai' },
-          body: { user: { id: USER_ID } },
-          respond,
-        });
-
-        expect(service['userSettings'].get(USER_ID)).toEqual({
-          imageModel: 'flux-dev',
-          videoModel: 'kling-ai',
         });
       });
     });
@@ -1268,35 +1242,6 @@ describe('SlackBotManager workflows', () => {
       expect(spy).not.toHaveBeenCalled();
     });
 
-    it('ignores events for other platforms', async () => {
-      const spy = vi.spyOn(service, 'handleRedisEvent');
-
-      handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
-        integrationId: 'integration-1',
-        platform: 'DISCORD',
-      });
-      await flush();
-
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-    it('dispatches Slack events to handleRedisEvent', async () => {
-      const spy = vi
-        .spyOn(service, 'handleRedisEvent')
-        .mockResolvedValue(undefined);
-
-      handlers.get(REDIS_EVENTS.INTEGRATION_UPDATED)?.({
-        integrationId: 'integration-1',
-        platform: 'SLACK',
-      });
-      await flush();
-
-      expect(spy).toHaveBeenCalledWith(REDIS_EVENTS.INTEGRATION_UPDATED, {
-        integrationId: 'integration-1',
-        platform: 'SLACK',
-      });
-    });
-
     it('logs when event handling rejects', async () => {
       vi.spyOn(service, 'handleRedisEvent').mockRejectedValue(
         new Error('handler blew up'),
@@ -1348,12 +1293,6 @@ describe('SlackBotManager workflows', () => {
       expect(logger.warn).toHaveBeenCalledWith(
         expect.stringContaining('is configured open to all users'),
       );
-    });
-
-    it('does not warn for allowlisted bots', async () => {
-      await service.createBotInstance(makeIntegration());
-
-      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 

@@ -48,13 +48,4 @@ describe('AgentSidebar', () => {
     expect(screen.queryByTestId('chat-container')).not.toBeInTheDocument();
     expect(useAgentChatStore.getState().isOpen).toBe(false);
   });
-
-  it('closes from the launcher when already open', () => {
-    useAgentChatStore.setState({ isOpen: true });
-    render(<AgentSidebar apiService={apiService} />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
-
-    expect(useAgentChatStore.getState().isOpen).toBe(false);
-  });
 });

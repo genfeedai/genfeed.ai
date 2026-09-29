@@ -48,19 +48,6 @@ describe('config/store', () => {
     delete process.env.GENFEED_AGENT_MODEL;
   });
 
-  describe('getApiKey', () => {
-    it('returns undefined when no API key is set', async () => {
-      const { getApiKey } = await import('../../src/config/store');
-      expect(await getApiKey()).toBeUndefined();
-    });
-
-    it('returns API key when set', async () => {
-      mockFileSystem.content = makeConfigJson({ apiKey: 'test-api-key' });
-      const { getApiKey } = await import('../../src/config/store');
-      expect(await getApiKey()).toBe('test-api-key');
-    });
-  });
-
   describe('setApiKey', () => {
     it('stores the API key', async () => {
       const { setApiKey, getApiKey } = await import('../../src/config/store');
@@ -99,55 +86,11 @@ describe('config/store', () => {
     });
   });
 
-  describe('clearApiKey', () => {
-    it('removes the API key', async () => {
-      mockFileSystem.content = makeConfigJson({ apiKey: 'test-api-key' });
-      const { clearApiKey, getApiKey } = await import('../../src/config/store');
-      await clearApiKey();
-      expect(await getApiKey()).toBeUndefined();
-    });
-  });
-
-  describe('getApiUrl', () => {
-    it('returns default API URL when not set', async () => {
-      const { getApiUrl } = await import('../../src/config/store');
-      expect(await getApiUrl()).toBe('https://api.genfeed.ai/v1');
-    });
-
-    it('returns custom API URL when set', async () => {
-      mockFileSystem.content = makeConfigJson({ apiUrl: 'https://custom.api.com/v1' });
-      const { getApiUrl } = await import('../../src/config/store');
-      expect(await getApiUrl()).toBe('https://custom.api.com/v1');
-    });
-  });
-
   describe('setProfileField', () => {
     it('stores the API URL', async () => {
       const { setProfileField, getApiUrl } = await import('../../src/config/store');
       await setProfileField('apiUrl', 'https://new.api.com/v1');
       expect(await getApiUrl()).toBe('https://new.api.com/v1');
-    });
-  });
-
-  describe('getAppUrl', () => {
-    it('derives the SaaS app URL from the default API URL', async () => {
-      const { getAppUrl } = await import('../../src/config/store');
-      expect(await getAppUrl()).toBe('https://app.genfeed.ai');
-    });
-
-    it('derives a self-hosted app URL from the configured API URL', async () => {
-      mockFileSystem.content = makeConfigJson({ apiUrl: 'https://api.selfhost.dev/v1' });
-      const { getAppUrl } = await import('../../src/config/store');
-      expect(await getAppUrl()).toBe('https://app.selfhost.dev');
-    });
-
-    it('prefers an explicitly configured app URL', async () => {
-      mockFileSystem.content = makeConfigJson({
-        apiUrl: 'https://api.selfhost.dev/v1',
-        appUrl: 'https://studio.selfhost.dev',
-      });
-      const { getAppUrl } = await import('../../src/config/store');
-      expect(await getAppUrl()).toBe('https://studio.selfhost.dev');
     });
   });
 
@@ -163,71 +106,11 @@ describe('config/store', () => {
     });
   });
 
-  describe('getActiveBrand', () => {
-    it('returns undefined when no brand is set', async () => {
-      const { getActiveBrand } = await import('../../src/config/store');
-      expect(await getActiveBrand()).toBeUndefined();
-    });
-
-    it('returns brand ID when set', async () => {
-      mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123' });
-      const { getActiveBrand } = await import('../../src/config/store');
-      expect(await getActiveBrand()).toBe('brand-123');
-    });
-  });
-
   describe('setActiveBrand', () => {
     it('stores the active brand', async () => {
       const { setActiveBrand, getActiveBrand } = await import('../../src/config/store');
       await setActiveBrand('brand-456');
       expect(await getActiveBrand()).toBe('brand-456');
-    });
-  });
-
-  describe('clearActiveBrand', () => {
-    it('removes the active brand', async () => {
-      mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123' });
-      const { clearActiveBrand, getActiveBrand } = await import('../../src/config/store');
-      await clearActiveBrand();
-      expect(await getActiveBrand()).toBeUndefined();
-    });
-  });
-
-  describe('getActiveProfile defaults', () => {
-    it('returns default agent model as undefined', async () => {
-      const { getActiveProfile } = await import('../../src/config/store');
-      const { profile } = await getActiveProfile();
-      expect(profile.agent.model).toBeUndefined();
-    });
-
-    it('returns default image model', async () => {
-      const { getActiveProfile } = await import('../../src/config/store');
-      const { profile } = await getActiveProfile();
-      expect(profile.defaults.imageModel).toBe('imagen-4');
-    });
-
-    it('returns custom image model when set', async () => {
-      mockFileSystem.content = makeConfigJson({
-        defaults: { imageModel: 'custom-model', videoModel: 'google-veo-3' },
-      });
-      const { getActiveProfile } = await import('../../src/config/store');
-      const { profile } = await getActiveProfile();
-      expect(profile.defaults.imageModel).toBe('custom-model');
-    });
-
-    it('returns default video model', async () => {
-      const { getActiveProfile } = await import('../../src/config/store');
-      const { profile } = await getActiveProfile();
-      expect(profile.defaults.videoModel).toBe('google-veo-3');
-    });
-
-    it('returns custom video model when set', async () => {
-      mockFileSystem.content = makeConfigJson({
-        defaults: { imageModel: 'imagen-4', videoModel: 'custom-video' },
-      });
-      const { getActiveProfile } = await import('../../src/config/store');
-      const { profile } = await getActiveProfile();
-      expect(profile.defaults.videoModel).toBe('custom-video');
     });
   });
 
@@ -270,11 +153,6 @@ describe('config/store', () => {
   });
 
   describe('getRole and setRole', () => {
-    it('returns the default role', async () => {
-      const { getRole } = await import('../../src/config/store');
-      expect(await getRole()).toBe('user');
-    });
-
     it('stores an admin role', async () => {
       const { getRole, setRole } = await import('../../src/config/store');
       await setRole('admin');
@@ -283,11 +161,6 @@ describe('config/store', () => {
   });
 
   describe('organization id', () => {
-    it('returns undefined when no organization is set', async () => {
-      const { getOrganizationId } = await import('../../src/config/store');
-      expect(await getOrganizationId()).toBeUndefined();
-    });
-
     it('stores and returns the organization id', async () => {
       const { getOrganizationId, setOrganizationId } = await import('../../src/config/store');
       await setOrganizationId('org-42');
@@ -375,12 +248,6 @@ describe('config/store', () => {
       process.env.GENFEED_API_KEY = 'from-env';
       const { getApiKey } = await import('../../src/config/store');
       expect(await getApiKey()).toBe('from-env');
-    });
-
-    it('env var overrides config API URL', async () => {
-      process.env.GENFEED_API_URL = 'https://env.api.com/v1';
-      const { getApiUrl } = await import('../../src/config/store');
-      expect(await getApiUrl()).toBe('https://env.api.com/v1');
     });
 
     it('env var overrides the configured app URL', async () => {

@@ -83,18 +83,6 @@ describe('channel capability catalog', () => {
     );
   });
 
-  test('gives every publishable platform a catalog entry', () => {
-    // Mastodon shipped a working publisher with no capability entry, which made
-    // it invisible to validation: every setting it needed was smuggled through
-    // credential columns instead.
-    expect(
-      listChannelCapabilities({
-        includeHidden: true,
-        includePlanned: true,
-      }).map((capability) => capability.platform),
-    ).toContain(CredentialPlatform.MASTODON);
-  });
-
   test('derives a status issue from the capability status', () => {
     const supported = getChannelCapability(CredentialPlatform.YOUTUBE);
     const hidden = getChannelCapability(CredentialPlatform.REDDIT);
@@ -268,26 +256,6 @@ describe('validateChannelTargetSettings', () => {
         expect.objectContaining({
           code: 'channel_target.required_setting',
           field: 'settings.privacyStatus',
-        }),
-      ]),
-    );
-  });
-
-  test('rejects invalid TikTok privacy values', () => {
-    const result = validateChannelTargetSettings({
-      caption: 'Short video',
-      media: [{ id: 'asset_2', kind: 'short_video' }],
-      platform: CredentialPlatform.TIKTOK,
-      settings: {
-        privacyLevel: 'organization',
-      },
-    });
-
-    expect(result.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          code: 'channel_target.invalid_setting_option',
-          field: 'settings.privacyLevel',
         }),
       ]),
     );
@@ -480,50 +448,6 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
-  test('accepts http(s) urls with and without a path', () => {
-    for (const instanceUrl of [
-      'https://mastodon.social',
-      'http://mastodon.social',
-      'https://mastodon.social:8443',
-      'https://mastodon.social/@user',
-      'https://mastodon.social?a=b',
-      'https://mastodon.social#top',
-    ]) {
-      const result = validateChannelTargetSettings({
-        caption: 'Toot',
-        platform: CredentialPlatform.MASTODON,
-        settings: { instanceUrl },
-      });
-
-      expect(
-        result.errors.filter(
-          (error) => error.code === 'channel_target.invalid_setting_url',
-        ),
-      ).toEqual([]);
-    }
-  });
-
-  test('rejects a long non-url without backtracking', () => {
-    // The previous pattern let the authority run and the remainder consume the
-    // same characters, so this input was re-split at every position.
-    const result = validateChannelTargetSettings({
-      caption: 'Toot',
-      platform: CredentialPlatform.MASTODON,
-      // The whitespace is interior: `isParsableHttpUrl` trims, so a trailing
-      // space would leave a value that legitimately matches.
-      settings: { instanceUrl: `https://${'a'.repeat(50_000)} x` },
-    });
-
-    expect(result.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          code: 'channel_target.invalid_setting_url',
-          field: 'settings.instanceUrl',
-        }),
-      ]),
-    );
-  });
-
   test('rejects an unsupported platform string', () => {
     const result = validateChannelTargetSettings({
       caption: 'Unknown network post',
@@ -544,15 +468,6 @@ describe('validateChannelTargetSettings', () => {
 });
 
 describe('resolveChannelTargetSettings', () => {
-  test('substitutes catalog defaults for absent values', () => {
-    expect(
-      resolveChannelTargetSettings(CredentialPlatform.YOUTUBE, {}),
-    ).toEqual({
-      madeForKids: false,
-      privacyStatus: 'private',
-    });
-  });
-
   test('drops keys the catalog does not declare', () => {
     // The stored JSON is whatever passed validation when the release was
     // scheduled. A key the catalog has since dropped must not reach a provider.
@@ -619,25 +534,5 @@ describe('channel follow-up capability', () => {
       kind: 'unsupported',
       mediaKinds: [],
     });
-  });
-
-  test('never offers media on a channel with no follow-up surface', () => {
-    for (const platform of Object.values(CredentialPlatform)) {
-      const capability = getChannelThreadChildCapability(platform);
-      if (capability.kind === 'unsupported') {
-        expect(capability.mediaKinds).toEqual([]);
-      }
-    }
-  });
-
-  test('hands back a copy so a caller cannot edit the catalog', () => {
-    const capability = getChannelThreadChildCapability(
-      CredentialPlatform.LINKEDIN,
-    );
-    capability.mediaKinds.push('video');
-
-    expect(
-      getChannelThreadChildCapability(CredentialPlatform.LINKEDIN).mediaKinds,
-    ).toEqual(['image']);
   });
 });

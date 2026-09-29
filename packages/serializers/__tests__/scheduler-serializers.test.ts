@@ -14,7 +14,6 @@ import {
 import { RecurrenceRuleSerializer } from '@serializers/server/content/recurrence-rule.serializer';
 import { ReleaseAttachmentSerializer } from '@serializers/server/content/release-attachment.serializer';
 import { ReleaseGroupSerializer } from '@serializers/server/content/release-group.serializer';
-import { Serializer } from 'ts-jsonapi';
 
 describe('Scheduler serializer configs', () => {
   test('release group config wires owner/org/brand and nested targets', () => {
@@ -67,17 +66,6 @@ describe('Scheduler serializer configs', () => {
     );
     expect(releaseAttachmentSerializerConfig.attributes).toContain('kind');
     expect(releaseAttachmentSerializerConfig.attributes).toContain('body');
-  });
-});
-
-describe('Built server serializers', () => {
-  test('all scheduler serializers are constructed', () => {
-    expect(ReleaseGroupSerializer).toBeInstanceOf(Serializer);
-    expect(ChannelTargetSerializer).toBeInstanceOf(Serializer);
-    expect(RecurrenceRuleSerializer).toBeInstanceOf(Serializer);
-    expect(ReleaseAttachmentSerializer).toBeInstanceOf(Serializer);
-    expect(PostingSetSerializer).toBeInstanceOf(Serializer);
-    expect(PostingSignatureSerializer).toBeInstanceOf(Serializer);
   });
 });
 

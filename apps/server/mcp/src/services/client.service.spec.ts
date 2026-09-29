@@ -62,24 +62,6 @@ describe('ClientService (MCP)', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  it('should initialize with API configuration (base normalized to /v1)', () => {
-    expect(mockHttpService.axiosRef.create).toHaveBeenCalledWith({
-      baseURL: 'https://api.genfeed.ai/v1',
-      headers: {
-        Authorization: 'Bearer test-api-key',
-        'Content-Type': 'application/json',
-        [MCP_ACTION_ORIGIN_PROOF_HEADER]: createHash('sha256')
-          .update('test-api-key')
-          .digest('base64url'),
-      },
-      timeout: 30000,
-    });
-  });
-
   describe('setBearerToken', () => {
     it('should update the bearer token without replacing the service proof', () => {
       const newToken = 'new-test-token';
@@ -274,21 +256,6 @@ describe('ClientService (MCP)', () => {
       expect(attributes).not.toHaveProperty('topic');
       expect(attributes).not.toHaveProperty('length');
       expect(attributes).not.toHaveProperty('targetAudience');
-    });
-
-    it('keeps the prompt within the length the DTO accepts', async () => {
-      (mockAxiosInstance.post as Mock).mockResolvedValue({
-        data: { data: [] },
-      });
-
-      await service.createArticle({
-        targetAudience: 'platform engineers',
-        topic: 'a'.repeat(600),
-      });
-
-      const [, body] = (mockAxiosInstance.post as Mock).mock.calls[0];
-
-      expect(body.data.attributes.prompt).toHaveLength(500);
     });
 
     it('returns an empty article when the API generated nothing', async () => {
@@ -882,25 +849,6 @@ describe('ClientService (MCP)', () => {
       expect(result.status).toBe('active');
       expect(result.nodeCount).toBe(3);
     });
-
-    it('uses lastExecutedAt when the payload has no lastRunAt', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({
-        data: {
-          data: {
-            attributes: {
-              lastExecutedAt: '2026-09-23T07:00:00.000Z',
-              name: 'Daily Trends Digest',
-              status: 'active',
-            },
-            id: 'workflow-123',
-          },
-        },
-      });
-
-      const result = await service.getWorkflowStatus('workflow-123');
-
-      expect(result.lastRunAt).toBe('2026-09-23T07:00:00.000Z');
-    });
   });
 
   describe('listWorkflows', () => {
@@ -1185,29 +1133,6 @@ describe('ClientService (MCP)', () => {
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('daily-image-generation');
       expect(result[0].name).toBe('Daily Image Generation');
-    });
-
-    it('reads plain catalog objects that are not JSON:API resources', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({
-        data: {
-          data: [
-            {
-              category: 'content',
-              description: 'Send the morning digest',
-              id: 'daily-trends',
-              name: 'Daily Trends Digest',
-            },
-          ],
-        },
-      });
-
-      const result = await service.listWorkflowTemplates();
-
-      expect(result[0]).toMatchObject({
-        description: 'Send the morning digest',
-        id: 'daily-trends',
-        name: 'Daily Trends Digest',
-      });
     });
   });
 
@@ -1556,19 +1481,6 @@ describe('ClientService (MCP)', () => {
         'Failed to list videos',
       );
       expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should extract error detail from API response', async () => {
-      (mockAxiosInstance.post as Mock).mockRejectedValue({
-        message: 'API Error',
-        response: {
-          data: { errors: [{ detail: 'Specific error message' }] },
-        },
-      });
-
-      await expect(
-        service.createVideo({ description: 'Test', title: 'Test' }),
-      ).rejects.toThrow('Specific error message');
     });
   });
 });

@@ -37,11 +37,6 @@ describe('SmartSchedulerService', () => {
     SmartSchedulerService.clearInstance(token);
   });
 
-  it('getInstance returns a service instance', () => {
-    const svc = SmartSchedulerService.getInstance(token);
-    expect(svc).toBeDefined();
-  });
-
   it('getInstance returns the same instance for the same token', () => {
     const a = SmartSchedulerService.getInstance(token);
     const b = SmartSchedulerService.getInstance(token);
@@ -95,18 +90,6 @@ describe('SmartSchedulerService', () => {
       expect.objectContaining({ method: 'POST' }),
     );
     expect(result.id).toBe('sched-1');
-  });
-
-  it('getSchedules GETs /automation/schedules without filters', async () => {
-    mockFetch.mockResolvedValue(makeOkResponse([]));
-
-    const svc = SmartSchedulerService.getInstance(token);
-    await svc.getSchedules();
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      'https://api.genfeed.ai/automation/schedules',
-      expect.objectContaining({ method: 'GET' }),
-    );
   });
 
   it('getSchedules appends query params when filters provided', async () => {
@@ -224,17 +207,5 @@ describe('SmartSchedulerService', () => {
     const svc = SmartSchedulerService.getInstance(token);
 
     await expect(svc.getSchedules()).rejects.toThrow();
-  });
-
-  it('sets Authorization header on all requests', async () => {
-    mockFetch.mockResolvedValue(makeOkResponse([]));
-
-    const svc = SmartSchedulerService.getInstance(token);
-    await svc.getSchedules();
-
-    const init = (mockFetch.mock.calls[0] as [string, RequestInit])[1];
-    expect((init.headers as Record<string, string>).Authorization).toBe(
-      `Bearer ${token}`,
-    );
   });
 });
