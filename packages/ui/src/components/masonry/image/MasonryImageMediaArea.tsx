@@ -66,7 +66,7 @@ export default function MasonryImageMediaArea({
         data-asset-media-state={mediaState}
         data-testid={`masonry-ingredient-${image.id}`}
         className={cn(
-          'relative size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
+          'relative block size-full cursor-pointer overflow-hidden bg-card shadow-border transition-shadow duration-200 hover:shadow-border-strong',
           isFleetNsfwLocked && 'cursor-not-allowed',
           MASONRY_TILE_RADIUS_CLASS,
         )}
@@ -155,13 +155,13 @@ export default function MasonryImageMediaArea({
         >
           <div
             role="presentation"
-            className="pointer-events-auto"
+            className="pointer-events-auto max-w-full px-2"
             onClick={(e) => e.stopPropagation()}
           >
             <DropdownStatus
               entity={image}
               onStatusChange={onRefresh}
-              className="scale-110"
+              isStacked
             />
           </div>
         </div>

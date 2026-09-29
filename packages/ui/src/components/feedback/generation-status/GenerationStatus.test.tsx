@@ -60,6 +60,23 @@ describe('GenerationStatus', () => {
     expect(cancel).toHaveBeenCalledOnce();
   });
 
+  it('stacks the label, timer and cancel action in a narrow box', () => {
+    render(
+      <GenerationStatus
+        status="generating"
+        assetLabel="image"
+        startedAt={Date.now()}
+        isStacked
+        onCancel={vi.fn()}
+      />,
+    );
+    const row = screen.getByRole('status').parentElement;
+    expect(row).toHaveClass('flex-col', 'justify-center');
+    expect(
+      screen.getByRole('button', { name: 'Cancel generation' }),
+    ).not.toHaveClass('ml-auto');
+  });
+
   it('ends animation and removes cancellation for a terminal state', () => {
     render(
       <GenerationStatus

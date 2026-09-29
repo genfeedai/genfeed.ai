@@ -18,8 +18,12 @@ import {
 export default function LibraryWorkspaceSurfaceAdapter() {
   const translate = useTranslations('pages.library.inspector');
   const { brandId, organizationId } = useBrand();
-  const { selectedCanonicalAsset, selectedIngredient, setSelectedAsset } =
-    useAssetSelection();
+  const {
+    requestLightbox,
+    selectedCanonicalAsset,
+    selectedIngredient,
+    setSelectedAsset,
+  } = useAssetSelection();
   const handleClose = useCallback(() => {
     setSelectedAsset(null);
   }, [setSelectedAsset]);
@@ -77,7 +81,10 @@ export default function LibraryWorkspaceSurfaceAdapter() {
       }
     >
       {selectedIngredient ? (
-        <IngredientInspectorRail ingredient={selectedIngredient} />
+        <IngredientInspectorRail
+          ingredient={selectedIngredient}
+          onOpenPreview={requestLightbox}
+        />
       ) : null}
     </ContextSidebarPanel>
   );
