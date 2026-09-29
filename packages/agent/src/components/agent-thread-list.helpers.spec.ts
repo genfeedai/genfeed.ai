@@ -488,6 +488,19 @@ describe('thread activity across thread switches (real store)', () => {
   it('keeps a running thread in Working after a fresh-cache switch that skips the snapshot', () => {
     const store = useAgentChatStore.getState();
     store.setActiveThread('a');
+    store.setMessagesPage({
+      hasMore: false,
+      messages: [
+        {
+          content: 'hello',
+          createdAt: '2026-07-28T08:00:00.000Z',
+          id: 'm-1',
+          role: 'user',
+          threadId: 'a',
+        },
+      ],
+      nextCursor: null,
+    });
     store.cacheConversation('a');
     store.setActiveThread('b');
     store.setActiveThread('a');
