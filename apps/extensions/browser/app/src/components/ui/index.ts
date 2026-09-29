@@ -11,4 +11,3 @@ export {
   ViewIcon,
 } from '~components/ui/Icons';
 export { LoadingPage } from '~components/ui/LoadingPage';
-export { LoadingSpinner } from '~components/ui/LoadingSpinner';

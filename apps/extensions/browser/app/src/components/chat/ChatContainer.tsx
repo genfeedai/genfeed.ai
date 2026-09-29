@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { type ReactElement, useEffect, useRef } from 'react';
 
 import { BrandVoiceIndicator } from '~components/chat/BrandVoiceIndicator';
@@ -7,7 +8,6 @@ import { ChatActionChips } from '~components/chat/ChatActionChips';
 import { ChatInput } from '~components/chat/ChatInput';
 import { ChatMessage } from '~components/chat/ChatMessage';
 import { PlatformBanner } from '~components/chat/PlatformBanner';
-import { LoadingSpinner } from '~components/ui';
 import { useChat } from '~hooks/use-chat';
 import { usePlatformDetection } from '~hooks/use-platform-detection';
 import { useChatStore } from '~store/use-chat-store';
@@ -75,7 +75,7 @@ export function ChatContainer(): ReactElement {
             ))}
             {isGenerating && (
               <div className="flex items-center gap-2 py-3">
-                <LoadingSpinner size="sm" className="text-primary" />
+                <Spinner className="size-4 text-primary" />
                 <span className="text-xs text-muted-foreground">
                   Generating…
                 </span>
