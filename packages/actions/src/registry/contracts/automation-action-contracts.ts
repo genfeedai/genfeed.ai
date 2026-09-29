@@ -53,15 +53,24 @@ const FAIL_OUTPUT = closedObjectSchema(
 const BASE_INPUT = closedObjectSchema({ organizationId: STRING_SCHEMA }, [
   'organizationId',
 ]);
+// Credit-reset discovery stamps one `now` so every fanned-out reset agrees on
+// the cutoff and `resetCreditWindow` requires it. An unacquired lock returns no
+// items and no `now`, so it stays optional.
+const RESET_BASE_INPUT = closedObjectSchema(
+  { now: STRING_SCHEMA, organizationId: STRING_SCHEMA },
+  ['organizationId'],
+);
 const discoveryOutput = (
   item: ActionJsonSchema = DOC,
   additions: Readonly<Record<string, ActionJsonSchema>> = {},
   required: readonly string[] = [],
+  baseInput: ActionJsonSchema = BASE_INPUT,
 ) =>
-  closedObjectSchema(
-    { baseInput: BASE_INPUT, items: arraySchema(item), ...additions },
-    ['baseInput', 'items', ...required],
-  );
+  closedObjectSchema({ baseInput, items: arraySchema(item), ...additions }, [
+    'baseInput',
+    'items',
+    ...required,
+  ]);
 const sweepFinalInput = batchInput({ discovery: DOC, state: DOC }, [
   'discovery',
   'state',
@@ -440,7 +449,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'agent.autopilot.begin': { inputSchema: input(), outputSchema: BEGIN_OUTPUT },
   'agent.autopilot.discover-credit-resets': {
     inputSchema: input({ state: BEGIN_OUTPUT }, ['state']),
-    outputSchema: discoveryOutput(AGENT_STRATEGY),
+    outputSchema: discoveryOutput(AGENT_STRATEGY, {}, [], RESET_BASE_INPUT),
   },
   'agent.autopilot.reset-credit-window': {
     inputSchema: input(
