@@ -53,10 +53,10 @@ const FAIL_OUTPUT = closedObjectSchema(
 const BASE_INPUT = closedObjectSchema({ organizationId: STRING_SCHEMA }, [
   'organizationId',
 ]);
-// Credit-reset discovery stamps one `now` so every fanned-out reset agrees on
-// the cutoff and `resetCreditWindow` requires it. An unacquired lock returns no
+// Discovery stamps one `now` so every fanned-out item agrees on the cutoff
+// (credit resets and persona preparation both require it). An unacquired lock returns no
 // items and no `now`, so it stays optional.
-const RESET_BASE_INPUT = closedObjectSchema(
+const NOW_BASE_INPUT = closedObjectSchema(
   { now: STRING_SCHEMA, organizationId: STRING_SCHEMA },
   ['organizationId'],
 );
@@ -449,7 +449,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'agent.autopilot.begin': { inputSchema: input(), outputSchema: BEGIN_OUTPUT },
   'agent.autopilot.discover-credit-resets': {
     inputSchema: input({ state: BEGIN_OUTPUT }, ['state']),
-    outputSchema: discoveryOutput(AGENT_STRATEGY, {}, [], RESET_BASE_INPUT),
+    outputSchema: discoveryOutput(AGENT_STRATEGY, {}, [], NOW_BASE_INPUT),
   },
   'agent.autopilot.reset-credit-window': {
     inputSchema: input(
@@ -462,7 +462,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
     outputSchema: closedObjectSchema(
       {
-        status: { const: 'reset', type: 'string' },
+        status: enumSchema(['reset', 'skipped'] as const),
         strategyId: STRING_SCHEMA,
       },
       ['status', 'strategyId'],
@@ -572,7 +572,7 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   },
   'content.production.autopilot.discover-personas': {
     inputSchema: input({ state: BEGIN_OUTPUT }, ['state']),
-    outputSchema: discoveryOutput(PERSONA),
+    outputSchema: discoveryOutput(PERSONA, {}, [], NOW_BASE_INPUT),
   },
   'content.production.autopilot.prepare-persona': {
     inputSchema: input(

@@ -103,6 +103,44 @@ describe('AgentAutopilotWorkflowService atomic actions', () => {
   });
 });
 
+describe('AgentAutopilotWorkflowService.resetCreditWindow', () => {
+  it('reports a strategy that vanished after discovery as skipped, within the output contract', async () => {
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      ),
+      agentStrategy: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const service = new AgentAutopilotWorkflowService(
+      prisma as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+    );
+    const result = await service.resetCreditWindow('org-1', {
+      item: {
+        config: {},
+        id: 'strategy-1',
+        organizationId: 'org-1',
+        userId: 'u',
+      },
+      now: '2026-08-28T00:00:00.000Z',
+    });
+
+    expect(result).toEqual({ status: 'skipped', strategyId: 'strategy-1' });
+    expect(() =>
+      compileOutputContract(
+        'agent.autopilot.reset-credit-window',
+      ).validateOutput(result, PROVENANCE),
+    ).not.toThrow();
+  });
+});
+
 describe('AgentAutopilotWorkflowService dispatch budgets', () => {
   function setup(config: Record<string, unknown>) {
     const row = {
@@ -374,6 +412,31 @@ describe('AgentAutopilotWorkflowService dispatch budgets', () => {
       organizationId: 'org',
     });
     expect(runner.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('emits dispatch results the closed output contract accepts, including skips', async () => {
+    const { service, prisma, row } = setup({ dailyCreditBudget: 10 });
+    const contract = compileOutputContract('agent.autopilot.dispatch-strategy');
+    const enqueued = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'org',
+    });
+    const foreign = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'foreign',
+    });
+    prisma.agentStrategy.findFirst.mockResolvedValue(null as never);
+    const paused = await service.dispatchProactiveStrategy({
+      item: row,
+      organizationId: 'org',
+    });
+
+    expect(enqueued.status).toBe('enqueued');
+    expect(foreign).toEqual({ status: 'skipped' });
+    expect(paused).toEqual({ status: 'skipped' });
+    for (const result of [enqueued, foreign, paused]) {
+      expect(() => contract.validateOutput(result, PROVENANCE)).not.toThrow();
+    }
   });
 });
 
