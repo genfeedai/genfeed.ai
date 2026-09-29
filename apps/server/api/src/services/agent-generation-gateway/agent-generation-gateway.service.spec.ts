@@ -325,6 +325,57 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     },
   );
 
+  it('leaves avatar billing to the request pipeline when it reserved a platform charge', async () => {
+    const generateAvatarVideo = vi.fn().mockResolvedValue({
+      externalId: 'heygen-1',
+      ingredientId: 'ingredient-1',
+      status: 'processing',
+    });
+    const gateway = new AgentGenerationGatewayService(
+      {} as never,
+      {} as never,
+      {} as never,
+      { generateAvatarVideo } as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { invoke } as unknown as AgentEndpointInvoker,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      { findOne: vi.fn().mockResolvedValue({ id: 'ingredient-1' }) } as never,
+      {} as never,
+      {} as never,
+    );
+    await gateway.generateAvatarVideo({
+      body: {},
+      principal: { organizationId: ORGANIZATION_ID, userId: USER_ID },
+    });
+    const descriptor = capturedInOrder[0];
+    const user = {
+      id: USER_ID,
+      organizationId: ORGANIZATION_ID,
+      userId: USER_ID,
+    };
+
+    await descriptor.handle({
+      dto: {},
+      request: { creditsConfig: { amount: 1 } },
+      user,
+    } as never);
+    await descriptor.handle({
+      dto: {},
+      request: { creditsConfig: { amount: 1, isByokBypass: true } },
+      user,
+    } as never);
+
+    expect(generateAvatarVideo.mock.calls.map(([, ctx]) => ctx)).toEqual([
+      expect.objectContaining({ settleCreditsExternally: true }),
+      expect.objectContaining({ settleCreditsExternally: false }),
+    ]);
+  });
+
   it('never reserves credits on a descriptor with no settlement path', async () => {
     const captured = await runAllRoutes();
     for (const [gatewayMethod, descriptor] of captured) {

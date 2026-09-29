@@ -27,6 +27,7 @@ const PUBLIC_WORKFLOW_API_CONTRACTS = [
   'ExecutionEtaMetadata',
   'ExecutionNodeResult',
   'ExecutionResult',
+  'FeaturedWorkflow',
   'ListExecutionsParams',
   'ResumeExecutionResult',
   'SystemWorkflowCatalogEntry',
@@ -186,6 +187,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'workflow',
     'workflowId',
   ],
+  FeaturedWorkflow: ['edges', 'inputVariables', 'nodes'],
   ListExecutionsParams: [
     'brandId',
     'limit',
@@ -277,7 +279,6 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'description',
     'edges',
     'exampleOutput',
-    'featuredRank',
     'icon',
     'id',
     'inputVariables',
@@ -391,6 +392,7 @@ describe('workflow API contract exports', () => {
     expectTypeOf<CompatibilityApi.ExecutionEtaMetadata>().toEqualTypeOf<WorkflowApiContract.ExecutionEtaMetadata>();
     expectTypeOf<CompatibilityApi.ExecutionNodeResult>().toEqualTypeOf<WorkflowApiContract.ExecutionNodeResult>();
     expectTypeOf<CompatibilityApi.ExecutionResult>().toEqualTypeOf<WorkflowApiContract.ExecutionResult>();
+    expectTypeOf<CompatibilityApi.FeaturedWorkflow>().toEqualTypeOf<WorkflowApiContract.FeaturedWorkflow>();
     expectTypeOf<CompatibilityApi.ListExecutionsParams>().toEqualTypeOf<WorkflowApiContract.ListExecutionsParams>();
     expectTypeOf<CompatibilityApi.ResumeExecutionResult>().toEqualTypeOf<WorkflowApiContract.ResumeExecutionResult>();
     expectTypeOf<CompatibilityApi.SystemWorkflowCatalogEntry>().toEqualTypeOf<WorkflowApiContract.SystemWorkflowCatalogEntry>();

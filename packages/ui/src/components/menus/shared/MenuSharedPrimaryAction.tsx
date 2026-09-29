@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { Kbd } from '@genfeedai/ui';
 import MenuItem from '@ui/menus/item/MenuItem';
@@ -32,6 +33,7 @@ export default function MenuSharedPrimaryAction({
   const primaryActionHref = config.primaryAction?.href
     ? (prefixHref(config.primaryAction) ?? config.primaryAction.href)
     : undefined;
+  const isDesktop = useIsDesktopClient();
   const prefetchPrimaryActionHref = useNavigationPrefetch(primaryActionHref);
 
   if (config.primaryAction) {
@@ -58,13 +60,15 @@ export default function MenuSharedPrimaryAction({
               <Plus className="size-4" />
             )}
             <span className="flex-1">{config.primaryAction.label}</span>
-            <Kbd
-              variant="subtle"
-              size="xs"
-              className="bg-foreground/10 text-foreground/52"
-            >
-              {'⌘⇧'}N
-            </Kbd>
+            {isDesktop ? (
+              <Kbd
+                variant="subtle"
+                size="xs"
+                className="bg-foreground/10 text-foreground/52"
+              >
+                {'⌘⇧'}N
+              </Kbd>
+            ) : null}
           </Link>
         ) : (
           <Button
@@ -88,13 +92,15 @@ export default function MenuSharedPrimaryAction({
               <Plus className="size-4" />
             )}
             <span className="flex-1">{config.primaryAction.label}</span>
-            <Kbd
-              variant="subtle"
-              size="xs"
-              className="bg-foreground/10 text-foreground/52"
-            >
-              {'⌘⇧'}N
-            </Kbd>
+            {isDesktop ? (
+              <Kbd
+                variant="subtle"
+                size="xs"
+                className="bg-foreground/10 text-foreground/52"
+              >
+                {'⌘⇧'}N
+              </Kbd>
+            ) : null}
           </Button>
         )}
       </div>

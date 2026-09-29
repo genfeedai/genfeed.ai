@@ -69,11 +69,6 @@ export interface WorkflowTemplate {
    * from `WORKFLOW_TEMPLATE_EXAMPLE_OUTPUTS`, never inline on a graph.
    */
   exampleOutput?: WorkflowTemplateExampleOutput;
-  /**
-   * Position in the templates page Featured row (1 = first). Set only on the
-   * curated showcase set via `SHOWCASE_WORKFLOW_TEMPLATE_IDS`.
-   */
-  featuredRank?: number;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: Array<{
@@ -107,22 +102,6 @@ export interface WorkflowTemplate {
   timezone?: string;
   version?: number;
 }
-
-/**
- * Curated showcase for the templates page Featured row (#5510), in display
- * order: X thread, video (X landscape and portrait), posts for every social,
- * image, social post with image, and YouTube thumbnail plus script. Each entry
- * is a complete graph whose action nodes all have registered executors.
- */
-export const SHOWCASE_WORKFLOW_TEMPLATE_IDS = [
-  'founder-x-thread',
-  'avatar-ugc-x-landscape-heygen',
-  'daily-brand-social-publishing',
-  'avatar-ugc-heygen',
-  'founder-editorial-illustration',
-  'weekly-brand-ai-content-loop',
-  'youtube-thumbnail-script',
-] as const;
 
 const WORKFLOW_TEMPLATE_CATALOG: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
@@ -616,26 +595,5 @@ const WORKFLOW_TEMPLATE_CATALOG: Record<string, WorkflowTemplate> = {
   },
 };
 
-function withShowcaseRanks(
-  templates: Record<string, WorkflowTemplate>,
-): Record<string, WorkflowTemplate> {
-  const featuredRanks = new Map<string, number>(
-    SHOWCASE_WORKFLOW_TEMPLATE_IDS.map((templateId, index) => [
-      templateId,
-      index + 1,
-    ]),
-  );
-
-  return Object.fromEntries(
-    Object.entries(templates).map(([templateId, template]) => {
-      const featuredRank = featuredRanks.get(templateId);
-      return [
-        templateId,
-        featuredRank === undefined ? template : { ...template, featuredRank },
-      ];
-    }),
-  );
-}
-
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> =
-  withExampleOutputs(withShowcaseRanks(WORKFLOW_TEMPLATE_CATALOG));
+  withExampleOutputs(WORKFLOW_TEMPLATE_CATALOG);

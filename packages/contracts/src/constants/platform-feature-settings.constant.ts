@@ -35,12 +35,20 @@ export const PLATFORM_FEATURE_SETTING_BOUNDS = {
 } as const;
 
 /**
+ * Most workflows an operator may pin to the templates Featured row (#5511).
+ * The row is a short carousel, not a second catalog.
+ */
+export const FEATURED_WORKFLOW_LIMIT = 12;
+
+/**
  * What a deployment gets before an operator touches anything (#5407). Each
  * value equals the default of the env variable it replaced.
  */
 export const DEFAULT_PLATFORM_FEATURE_SETTINGS: Readonly<IPlatformFeatureSettings> =
   {
     agentAutoRoutingDecisionMode: 'off',
+    // Nothing pinned: the templates page hides Featured (#5511).
+    featuredWorkflowIds: [],
     flags: DEFAULT_PLATFORM_FLAGS,
     isAgentContextCompressionEnabled: true,
     isAgentTokenStreamingEnabled: false,
@@ -159,6 +167,29 @@ export function parseModerationThresholdOverrides(
 }
 
 /**
+ * Pinned Featured workflow ids (#5511) in pin order: trimmed, non-empty,
+ * unique strings, at most {@link FEATURED_WORKFLOW_LIMIT}. Anything else in a
+ * hand-edited row is dropped rather than trusted, so a malformed column reads
+ * as fewer pins, never as an error.
+ */
+export function parseFeaturedWorkflowIds(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const ids: string[] = [];
+  for (const entry of value) {
+    const id = typeof entry === 'string' ? entry.trim() : '';
+    if (id && !ids.includes(id)) {
+      ids.push(id);
+    }
+    if (ids.length === FEATURED_WORKFLOW_LIMIT) {
+      break;
+    }
+  }
+  return ids;
+}
+
+/**
  * Narrow a persisted platform-settings row to typed feature switches.
  *
  * Fails closed field by field: a value written by a newer deployment, or
@@ -181,6 +212,7 @@ export function parsePlatformFeatureSettings(
       TYPED_DECISION_MODES,
       defaults.agentAutoRoutingDecisionMode,
     ),
+    featuredWorkflowIds: parseFeaturedWorkflowIds(row.featuredWorkflowIds),
     flags: parsePlatformFlags(row.flags),
     isAgentContextCompressionEnabled: pickBoolean(
       row.isAgentContextCompressionEnabled,
