@@ -30,15 +30,6 @@ const mocks = vi.hoisted(() => ({
   useTranslations: vi.fn(),
 }));
 
-vi.stubGlobal(
-  'ResizeObserver',
-  class {
-    disconnect() {}
-    observe() {}
-    unobserve() {}
-  },
-);
-
 vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => mocks.useTranslations(namespace),
 }));
@@ -302,6 +293,14 @@ async function openOverflow(container: HTMLElement) {
 
 describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
     vi.clearAllMocks();
     window.localStorage.clear();
     mocks.scopedGetService = null;
