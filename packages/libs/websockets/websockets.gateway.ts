@@ -1,3 +1,6 @@
+import { getDeploymentFromReader } from '@genfeedai/config/deployment';
+import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
+import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import {
   isBearerScheme,
   parseAuthorizationHeader,
@@ -41,7 +44,7 @@ import {
   WebSocketGateway as WSGateway,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { getUserRoomName } from './room-name.util';
+import { getOrganizationUserRoomName, getUserRoomName } from './room-name.util';
 
 @Injectable()
 @WSGateway({
@@ -264,6 +267,7 @@ export class WebSocketGateway
 
     if (organizationId) {
       await client.join(`org-${organizationId}`);
+      await client.join(getOrganizationUserRoomName(organizationId, userId));
     }
   }
 
@@ -417,6 +421,11 @@ export class WebSocketGateway
     }
 
     const { type, data } = event;
+    if (type === AGENT_THREAD_STATUS_EVENT_TYPE) {
+      this.handleAgentThreadStatus(data as Partial<AgentThreadStatusEvent>);
+      return;
+    }
+
     if (!data?.userId) {
       return;
     }
@@ -426,6 +435,39 @@ export class WebSocketGateway
     this.logger.debug(
       `Sent ${type} to ${getUserRoomName(data.userId)} for thread ${data.threadId}`,
     );
+  }
+
+  /**
+   * A thread's run status changed (#5636). The thread list is per user, so the
+   * event goes to the owner's sockets that authenticated for the thread's
+   * organization — never to the user's sockets for another organization and
+   * never to other members of this one. An event that does not name both is
+   * dropped: there is no unscoped fallback.
+   *
+   * Self-hosted is single-tenant, so a user's own room cannot cross a tenant
+   * boundary; it also reaches a socket whose token carries no organization.
+   */
+  private handleAgentThreadStatus(data: Partial<AgentThreadStatusEvent>): void {
+    const { organizationId, threadId, userId } = data;
+    if (!organizationId || !userId) {
+      this.logger.warn('Dropped thread status without organization or user', {
+        ...this.context,
+        threadId,
+      });
+      return;
+    }
+
+    const room = getOrganizationUserRoomName(organizationId, userId);
+    const isSingleTenant =
+      getDeploymentFromReader((key) => this.configService.get(key)) ===
+      'self-hosted';
+    const target = isSingleTenant
+      ? this.server.to(room).to(getUserRoomName(userId))
+      : this.server.to(room);
+
+    target.emit(AGENT_THREAD_STATUS_EVENT_TYPE, data);
+
+    this.logger.debug(`Sent thread status to ${room} for thread ${threadId}`);
   }
 
   private handleVideoProgress(data: VideoProgressEvent): void {

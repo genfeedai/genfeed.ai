@@ -14,6 +14,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
+import { resolveRunSummaryPatch } from '@genfeedai/agent/utils/agent-thread-run-summary.util';
 import {
   deriveLatestProposedPlan,
   resolveLatestProposedPlan,
@@ -1542,3 +1543,32 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
 }
 
 export const useAgentChatStore = createAgentChatStore();
+
+// The open thread's run status reaches this store through actions, stream
+// projection and snapshot hydration alike, so mirror it into the thread summary
+// at one choke point. The sidebar reads only the summary; without this a run
+// that ends (or starts) on the open thread would leave its row stale. Skipped
+// while the open thread itself changes: the switch resets the status to `idle`,
+// which says nothing about the run (see `resolveRunSummaryPatch`).
+useAgentChatStore.subscribe((next, previous) => {
+  if (
+    next.activeRunStatus === previous.activeRunStatus ||
+    next.activeThreadId !== previous.activeThreadId ||
+    !next.activeThreadId
+  ) {
+    return;
+  }
+
+  const activeThreadId = next.activeThreadId;
+  const thread = next.threads.find((item) => item.id === activeThreadId);
+  const patch = thread && resolveRunSummaryPatch(next.activeRunStatus, thread);
+  if (!patch) {
+    return;
+  }
+
+  useAgentChatStore.setState((state) => ({
+    threads: state.threads.map((item) =>
+      item.id === activeThreadId ? { ...item, ...patch } : item,
+    ),
+  }));
+});

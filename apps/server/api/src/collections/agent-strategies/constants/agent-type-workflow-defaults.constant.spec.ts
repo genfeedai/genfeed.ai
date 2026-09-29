@@ -1,3 +1,4 @@
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { AgentType } from '@genfeedai/contracts';
 import {
   AGENT_TYPE_WORKFLOW_DEFAULTS,
@@ -25,6 +26,16 @@ describe('agent-type-workflow-defaults', () => {
       expect(defaults?.templateId.length).toBeGreaterThan(0);
       expect(defaults?.skillSlugs.length).toBeGreaterThan(0);
     }
+  });
+
+  it('only defaults to templates the workflow catalog lists', () => {
+    const unlisted = Object.entries(AGENT_TYPE_WORKFLOW_DEFAULTS)
+      .filter(
+        ([, defaults]) => !defaults || !WORKFLOW_TEMPLATES[defaults.templateId],
+      )
+      .map(([agentType]) => agentType);
+
+    expect(unlisted).toEqual([]);
   });
 
   it('uses distinct avatar and youtube templates', () => {

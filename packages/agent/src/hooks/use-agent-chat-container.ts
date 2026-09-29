@@ -1135,6 +1135,21 @@ export function useAgentChatContainer({
         // WORKING are on, and no listener is attached to hear the run finish.
         if (isExecutionLive) {
           markStreamLive();
+        } else if (matchingExecution.id === restoredRunId) {
+          // The run this thread was restoring has ended. The sidebar trusts the
+          // thread summary, which the local `idle` above does not touch.
+          const thread = useAgentChatStore
+            .getState()
+            .threads.find((item) => item.id === activeThreadId);
+          if (
+            thread?.runStatus === 'queued' ||
+            thread?.runStatus === 'running'
+          ) {
+            useAgentChatStore.getState().updateThread(activeThreadId, {
+              attentionState: null,
+              runStatus: 'idle',
+            });
+          }
         }
       })
       .catch(() => {

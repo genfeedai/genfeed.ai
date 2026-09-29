@@ -450,384 +450,140 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
       }),
     ],
   },
-  'content-clips': {
-    category: 'editing',
-    description: 'Generate multiple short clips from a longer video',
-    icon: 'cut',
-    id: 'content-clips',
-    name: 'Create Content Clips',
-    nodes: [
-      {
-        id: 'create-clips',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Generate Clips',
-          config: {
-            actionId: 'generate_clips',
-            parameters: {
-              mode: 'raw-cut',
-            },
-          },
-        },
-      },
-      {
-        id: 'add-clip-captions',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
-        data: {
-          label: 'Add Captions to Clips',
-          config: {
-            actionId: 'effect-captions',
-            parameters: {
-              autoSync: true,
-              style: 'dynamic',
-            },
-          },
-        },
-      },
-      {
-        id: 'resize-clips',
-        type: 'genfeedAction',
-        position: { x: 560, y: 0 },
-        data: {
-          label: 'Resize for Social',
-          config: {
-            actionId: 'process-resize',
-            parameters: {
-              aspectRatio: '9:16',
-              maintainQuality: true,
-            },
-          },
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'create-clips' + '-' + 'add-clip-captions',
-        source: 'create-clips',
-        target: 'add-clip-captions',
-      },
-      {
-        id: 'add-clip-captions' + '-' + 'resize-clips',
-        source: 'add-clip-captions',
-        target: 'resize-clips',
-      },
-    ],
-  },
   'multi-platform-resize': {
     category: 'batch',
-    description: 'Create multiple versions for different social platforms',
+    description:
+      'Reframe one video or image into square, portrait and landscape versions for each social platform',
+    edges: [
+      {
+        id: 'edge-media-reframe-square',
+        source: 'workflow-input-media',
+        sourceHandle: 'value',
+        target: 'reframe-square',
+        targetHandle: 'media',
+      },
+      {
+        id: 'edge-reframe-square-output',
+        source: 'reframe-square',
+        sourceHandle: 'mediaUrl',
+        target: 'workflow-output-square',
+        targetHandle: 'value',
+      },
+      {
+        id: 'edge-media-reframe-portrait',
+        source: 'workflow-input-media',
+        sourceHandle: 'value',
+        target: 'reframe-portrait',
+        targetHandle: 'media',
+      },
+      {
+        id: 'edge-reframe-portrait-output',
+        source: 'reframe-portrait',
+        sourceHandle: 'mediaUrl',
+        target: 'workflow-output-portrait',
+        targetHandle: 'value',
+      },
+      {
+        id: 'edge-media-reframe-landscape',
+        source: 'workflow-input-media',
+        sourceHandle: 'value',
+        target: 'reframe-landscape',
+        targetHandle: 'media',
+      },
+      {
+        id: 'edge-reframe-landscape-output',
+        source: 'reframe-landscape',
+        sourceHandle: 'mediaUrl',
+        target: 'workflow-output-landscape',
+        targetHandle: 'value',
+      },
+    ],
     icon: 'resize',
     id: 'multi-platform-resize',
+    inputVariables: [
+      {
+        description: 'Library video or image to reframe for every platform.',
+        key: 'media',
+        label: 'Source Media',
+        required: true,
+        type: 'video',
+      },
+    ],
     name: 'Multi-Platform Resize',
     nodes: [
       {
-        id: 'resize-square',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
         data: {
+          config: {
+            inputName: 'media',
+            inputType: 'video',
+            required: true,
+          },
+          label: 'Source Media',
+        },
+        id: 'workflow-input-media',
+        position: { x: 0, y: 160 },
+        type: 'workflowInput',
+      },
+      createTemplateActionNode('reframe', {
+        data: {
+          config: {
+            targetAspectRatio: '1:1',
+          },
           label: 'Square for Instagram',
-          config: {
-            actionId: 'process-resize',
-            parameters: {
-              aspectRatio: '1:1',
-              height: 1080,
-              platform: 'instagram',
-              width: 1080,
-            },
-          },
         },
-      },
-      {
-        id: 'resize-portrait',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
+        id: 'reframe-square',
+        position: { x: 320, y: 0 },
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
+          config: {
+            outputName: 'square',
+          },
+          label: 'Square Output',
+        },
+        id: 'workflow-output-square',
+        position: { x: 640, y: 0 },
+      }),
+      createTemplateActionNode('reframe', {
+        data: {
+          config: {
+            targetAspectRatio: '9:16',
+          },
           label: 'Portrait for TikTok',
-          config: {
-            actionId: 'process-resize',
-            parameters: {
-              aspectRatio: '9:16',
-              height: 1920,
-              platform: 'tiktok',
-              width: 1080,
-            },
-          },
         },
-      },
-      {
-        id: 'resize-landscape',
-        type: 'genfeedAction',
-        position: { x: 560, y: 0 },
+        id: 'reframe-portrait',
+        position: { x: 320, y: 160 },
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
-          label: 'Landscape for YouTube',
           config: {
-            actionId: 'process-resize',
-            parameters: {
-              aspectRatio: '16:9',
-              height: 1080,
-              platform: 'youtube',
-              width: 1920,
-            },
+            outputName: 'portrait',
           },
+          label: 'Portrait Output',
         },
-      },
-      {
-        id: 'resize-twitter',
-        type: 'genfeedAction',
-        position: { x: 840, y: 0 },
+        id: 'workflow-output-portrait',
+        position: { x: 640, y: 160 },
+      }),
+      createTemplateActionNode('reframe', {
         data: {
-          label: 'Twitter Format',
           config: {
-            actionId: 'process-resize',
-            parameters: {
-              aspectRatio: '16:9',
-              height: 720,
-              platform: 'twitter',
-              width: 1280,
-            },
+            targetAspectRatio: '16:9',
           },
+          label: 'Landscape for YouTube and X',
         },
-      },
-    ],
-    edges: [],
-  },
-  'social-media-publish': {
-    category: 'social',
-    description: 'Transform, upscale and publish to TikTok & Instagram',
-    icon: 'share',
-    id: 'social-media-publish',
-    name: 'Publish to Social Media',
-    nodes: [
-      {
-        id: 'transform-portrait',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
+        id: 'reframe-landscape',
+        position: { x: 320, y: 320 },
+      }),
+      createTemplateActionNode('workflow.collect-output', {
         data: {
-          label: 'Transform to Portrait',
           config: {
-            actionId: 'process-transform',
-            parameters: {
-              aspectRatio: '9:16',
-              maintainQuality: true,
-              orientation: 'portrait',
-            },
+            outputName: 'landscape',
           },
+          label: 'Landscape Output',
         },
-      },
-      {
-        id: 'upscale-1080',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
-        data: {
-          label: 'Upscale to 1080p',
-          config: {
-            actionId: 'upscale',
-            parameters: {
-              fps: 30,
-              quality: 'high',
-              resolution: '1080p',
-            },
-          },
-        },
-      },
-      {
-        id: 'add-captions',
-        type: 'genfeedAction',
-        position: { x: 560, y: 0 },
-        data: {
-          label: 'Add Captions',
-          config: {
-            actionId: 'effect-captions',
-            parameters: {
-              backgroundColor: 'rgba(0,0,0,0.7)',
-              fontColor: '#FFFFFF',
-              fontSize: 'medium',
-              position: 'bottom',
-              style: 'minimal',
-            },
-          },
-        },
-      },
-      {
-        id: 'publish-social',
-        type: 'genfeedAction',
-        position: { x: 840, y: 0 },
-        data: {
-          label: 'Publish to Platforms',
-          config: {
-            actionId: 'publish',
-            parameters: {
-              addWatermark: false,
-              platforms: ['tiktok', 'instagram'],
-              schedule: 'immediate',
-            },
-          },
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'transform-portrait' + '-' + 'upscale-1080',
-        source: 'transform-portrait',
-        target: 'upscale-1080',
-      },
-      {
-        id: 'upscale-1080' + '-' + 'add-captions',
-        source: 'upscale-1080',
-        target: 'add-captions',
-      },
-      {
-        id: 'add-captions' + '-' + 'publish-social',
-        source: 'add-captions',
-        target: 'publish-social',
-      },
-    ],
-  },
-  'webhook-notification': {
-    category: 'integration',
-    description: 'Process content and send webhook notification',
-    icon: 'webhook',
-    id: 'webhook-notification',
-    name: 'Process and Notify',
-    nodes: [
-      {
-        id: 'process-video',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Process Video',
-          config: {
-            actionId: 'upscale',
-            parameters: {
-              quality: 'high',
-              resolution: '1080p',
-            },
-          },
-        },
-      },
-      {
-        id: 'notify-webhook',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
-        data: {
-          label: 'Send Webhook',
-          config: {
-            actionId: 'output-webhook',
-            parameters: {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              includeAssetUrl: true,
-              includeMetadata: true,
-              method: 'POST',
-              // biome-ignore lint/suspicious/noTemplateCurlyInString: workflow template variable
-              url: '${GENFEEDAI_WEBHOOKS_URL}',
-            },
-          },
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'process-video' + '-' + 'notify-webhook',
-        source: 'process-video',
-        target: 'notify-webhook',
-      },
-    ],
-  },
-  'youtube-optimization': {
-    category: 'video',
-    description: 'Optimize video for YouTube with 4K upscaling and chapters',
-    icon: 'youtube',
-    id: 'youtube-optimization',
-    name: 'YouTube Optimization',
-    nodes: [
-      {
-        id: 'transform-landscape',
-        type: 'genfeedAction',
-        position: { x: 0, y: 0 },
-        data: {
-          label: 'Transform to Landscape',
-          config: {
-            actionId: 'process-transform',
-            parameters: {
-              aspectRatio: '16:9',
-              maintainQuality: true,
-              orientation: 'landscape',
-            },
-          },
-        },
-      },
-      {
-        id: 'upscale-4k',
-        type: 'genfeedAction',
-        position: { x: 280, y: 0 },
-        data: {
-          label: 'Upscale to 4K',
-          config: {
-            actionId: 'upscale',
-            parameters: {
-              bitrate: 'high',
-              fps: 60,
-              quality: 'maximum',
-              resolution: '4k',
-            },
-          },
-        },
-      },
-      {
-        id: 'add-youtube-captions',
-        type: 'genfeedAction',
-        position: { x: 560, y: 0 },
-        data: {
-          label: 'Add YouTube Captions',
-          config: {
-            actionId: 'effect-captions',
-            parameters: {
-              generateChapters: true,
-              generateTranscript: true,
-              languages: ['en', 'es', 'fr'],
-              style: 'youtube',
-            },
-          },
-        },
-      },
-      {
-        id: 'publish-youtube',
-        type: 'genfeedAction',
-        position: { x: 840, y: 0 },
-        data: {
-          label: 'Publish to YouTube',
-          config: {
-            actionId: 'publish',
-            parameters: {
-              category: 'entertainment',
-              monetization: true,
-              platforms: ['youtube'],
-              visibility: 'public',
-            },
-          },
-        },
-      },
-    ],
-    edges: [
-      {
-        id: 'transform-landscape' + '-' + 'upscale-4k',
-        source: 'transform-landscape',
-        target: 'upscale-4k',
-      },
-      {
-        id: 'upscale-4k' + '-' + 'add-youtube-captions',
-        source: 'upscale-4k',
-        target: 'add-youtube-captions',
-      },
-      {
-        id: 'add-youtube-captions' + '-' + 'publish-youtube',
-        source: 'add-youtube-captions',
-        target: 'publish-youtube',
-      },
+        id: 'workflow-output-landscape',
+        position: { x: 640, y: 320 },
+      }),
     ],
   },
 };

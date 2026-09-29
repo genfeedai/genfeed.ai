@@ -4,6 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { resolveUploadExtension } from '@api/services/uploads/upload-extension.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
@@ -47,10 +48,10 @@ export class PresignedUploadService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
-    const filenameParts = body.filename.split('.');
-    const lastPart = filenameParts[filenameParts.length - 1];
-    const fileExtension =
-      filenameParts.length > 1 && lastPart ? lastPart : 'jpg';
+    const fileExtension = resolveUploadExtension(
+      body.contentType,
+      body.filename,
+    );
     const category = normalizeCategory(
       body.category ?? IngredientCategory.IMAGE,
     );

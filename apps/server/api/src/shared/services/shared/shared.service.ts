@@ -88,12 +88,13 @@ const resolveMetadataExtension = (
   input: MediaDocumentsInput,
 ): MetadataExtension => {
   if (input.extension !== undefined) {
+    // Callers pass the raw filename extension (`photo.jpg`), while the enum
+    // labels are uppercase, so compare case-insensitively.
+    const extension = String(input.extension).toUpperCase();
     if (
-      Object.values(MetadataExtension).includes(
-        input.extension as MetadataExtension,
-      )
+      Object.values(MetadataExtension).includes(extension as MetadataExtension)
     ) {
-      return input.extension as MetadataExtension;
+      return extension as MetadataExtension;
     }
 
     throw new BadRequestException(
