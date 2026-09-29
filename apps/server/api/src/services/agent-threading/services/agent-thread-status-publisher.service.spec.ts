@@ -304,6 +304,43 @@ describe('AgentThreadStatusPublisherService', () => {
     }
   });
 
+  describe('a run ended through its execution only', () => {
+    const executionRow = (status: string) => ({
+      createdAt: new Date(),
+      id: runId,
+      status,
+      threadId,
+    });
+
+    it('pushes the failure when the recovery event lands before the execution closes', async () => {
+      database.$queryRaw.mockResolvedValue([executionRow('PENDING')]);
+      await record('thread.turn_requested');
+      publish.mockClear();
+
+      await record('run.failed', { error: 'never started' });
+
+      expect(publishedEvents()).toEqual([
+        expect.objectContaining({
+          runStatus: 'failed',
+          runtimeState: 'failed',
+          sequence: 2,
+        }),
+      ]);
+    });
+
+    it('pushes nothing when the event lands after the execution already failed', async () => {
+      database.$queryRaw.mockResolvedValue([executionRow('FAILED')]);
+      await record('thread.turn_requested');
+      publish.mockClear();
+
+      await record('run.failed', { error: 'never started' });
+
+      // The terminal execution already decided the derived status, which is
+      // why recovery must record the event first.
+      expect(publish).not.toHaveBeenCalled();
+    });
+  });
+
   it('publishes nothing for an archived thread', async () => {
     thread = { ...thread, status: AgentThreadStatus.ARCHIVED };
 
