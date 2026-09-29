@@ -181,20 +181,16 @@ test.describe('Studio Edit', () => {
 
       await assertRouteRenders(authenticatedPage, EDIT_ROUTE);
 
-      // Real content (editor-projects-page.tsx): one card per project, with
-      // its contract format and status, plus the header "New Project" link.
+      // Real content (editor-projects-page.tsx): a project shows in both the
+      // "Recent" and "All projects" sections, so scope to the full list. Rows
+      // carry a formatted status; the contract format is no longer listed.
+      // The header "New Project" link sits outside both sections.
+      const allProjects = authenticatedPage.getByTestId('editor-projects-all');
       await expect(
-        authenticatedPage.getByRole('link', { name: 'Open Untitled Project' }),
+        allProjects.getByRole('link', { name: 'Open Untitled Project' }),
       ).toBeVisible();
       await expect(
-        authenticatedPage.getByText(IngredientFormat.LANDSCAPE, {
-          exact: true,
-        }),
-      ).toBeVisible();
-      await expect(
-        authenticatedPage.getByText(EditorProjectStatus.DRAFT, {
-          exact: true,
-        }),
+        allProjects.getByText('Draft', { exact: true }),
       ).toBeVisible();
       await expect(newProjectLink(authenticatedPage)).toBeVisible();
     });

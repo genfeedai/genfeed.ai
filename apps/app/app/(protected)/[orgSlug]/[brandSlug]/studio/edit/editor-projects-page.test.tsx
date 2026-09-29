@@ -14,7 +14,17 @@ import EditorProjectsPage from './editor-projects-page';
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  return {
+    useTranslations: (namespace?: string) => {
+      const translate = translateFromCatalog(namespace);
+      // Real next-intl hands back a new translator when messages resolve
+      // after mount; the flag reproduces that identity change.
+      return mocks.hasUnstableTranslator
+        ? (((...args: Parameters<typeof translate>) =>
+            translate(...args)) as typeof translate)
+        : translate;
+    },
+  };
 });
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   deleteProject: vi.fn(),
   findAll: vi.fn(),
   getEditorService: vi.fn(),
+  hasUnstableTranslator: false,
   loggerError: vi.fn(),
   notificationError: vi.fn(),
   updateProject: vi.fn(),
@@ -121,6 +132,7 @@ vi.mock('@ui/layout/container/Container', () => ({
 describe('EditorProjectsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.hasUnstableTranslator = false;
     localStorage.clear();
     mocks.getEditorService.mockResolvedValue({
       delete: mocks.deleteProject,
@@ -260,6 +272,18 @@ describe('EditorProjectsPage', () => {
     mocks.findAll.mockResolvedValueOnce([]);
     fireEvent.click(screen.getByText('Try again'));
     expect(await screen.findByText('Create Your First Project')).toBeVisible();
+  });
+
+  it('loads projects once even when the translator identity changes', async () => {
+    mocks.hasUnstableTranslator = true;
+    mocks.findAll.mockRejectedValueOnce(new Error('offline'));
+
+    const { rerender } = render(<EditorProjectsPage />);
+    expect(await screen.findByText('Failed to load projects')).toBeVisible();
+    rerender(<EditorProjectsPage />);
+
+    expect(screen.getByText('Failed to load projects')).toBeVisible();
+    expect(mocks.findAll).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the project and reports a failed deletion', async () => {
