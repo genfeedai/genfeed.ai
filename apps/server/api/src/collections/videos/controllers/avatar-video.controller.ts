@@ -1,12 +1,18 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import {
+  AvatarVideoGenerationService,
+  isAvatarBilledByRequest,
+} from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import {
+  CreditsGuard,
+  type CreditsGuardRequest,
+} from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -69,6 +75,9 @@ export class AvatarVideoController {
           {
             brandId: user.brandId,
             organizationId: user.organizationId,
+            settleCreditsExternally: isAvatarBilledByRequest(
+              request as CreditsGuardRequest,
+            ),
             userId: user.userId ?? user.id,
           },
         );

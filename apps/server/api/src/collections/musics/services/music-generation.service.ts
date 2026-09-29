@@ -5,7 +5,6 @@ import type { ModelDocument } from '@api/collections/models/schemas/model.schema
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { isModelMetadataString } from '@api/collections/models/utils/model-key.util';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
-import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
 import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -13,6 +12,7 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -75,7 +75,6 @@ export class MusicGenerationService {
 
   constructor(
     private readonly brandsService: BrandsService,
-    private readonly creditsService: MusicGenerationCreditsService,
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
@@ -363,19 +362,30 @@ export class MusicGenerationService {
       seed: baseSeed,
     });
     if (!firstGenerationId) {
+      this.voidRequestCharge(params.request);
       return pendingIds;
     }
-    await this.creditsService.settle(
-      params.user,
-      params.model,
-      outputs,
-      firstGenerationId,
-      params.createMusicDto.duration,
-    );
     for (let index = 1; index < outputs; index++) {
       await this.prepareAdditionalOutput(params, pendingIds, baseSeed, index);
     }
     return pendingIds;
+  }
+
+  /**
+   * The request-level credits guard/interceptor is the only billing path for
+   * this route. When the primary generation never started, zeroing the
+   * finalized amount makes the interceptor release the reservation instead of
+   * charging for a failed placeholder.
+   */
+  private voidRequestCharge(request: RequestWithSelectedModel): void {
+    const creditsRequest = request as unknown as DeferredCreditsRequest;
+    if (!creditsRequest.creditsConfig) {
+      return;
+    }
+    creditsRequest.creditsConfig = {
+      ...creditsRequest.creditsConfig,
+      amount: 0,
+    };
   }
 
   private async prepareAdditionalOutput(
