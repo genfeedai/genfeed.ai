@@ -15,7 +15,7 @@ import EditorProjectsPage from './editor-projects-page';
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return {
-    useTranslations: (namespace?: string) => {
+    useTranslations: (namespace: string) => {
       const translate = translateFromCatalog(namespace);
       // Real next-intl hands back a new translator when messages resolve
       // after mount; the flag reproduces that identity change.
