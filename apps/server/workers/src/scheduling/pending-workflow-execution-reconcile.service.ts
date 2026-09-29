@@ -1,13 +1,14 @@
 import { StalePendingSystemExecutionFinderService } from '@api/collections/workflow-executions/services/stale-pending-system-execution-finder.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { AgentExecutionRecoveryEventService } from '@api/services/agent-threading/services/agent-execution-recovery-event.service';
 import type {
   StalePendingSystemExecutionCohortFinder,
   StalePendingSystemExecutionLap,
   StalePendingSystemExecutionSweepResult,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 /**
  * A system-workflow execution older than this, still `PENDING`, is treated
@@ -120,6 +121,8 @@ export class PendingWorkflowExecutionReconcileService {
     private readonly staleExecutionFinder: StalePendingSystemExecutionFinderService,
     private readonly queueService: WorkflowExecutionQueueService,
     private readonly logger: LoggerService,
+    @Optional()
+    private readonly agentExecutionRecoveryEvents?: AgentExecutionRecoveryEventService,
   ) {}
 
   async reconcile(): Promise<void> {
@@ -193,6 +196,12 @@ export class PendingWorkflowExecutionReconcileService {
         );
       if (outcome === 'started') return;
 
+      // Before the execution closes, so the thread's status push sees the
+      // change (#5636); the execution alone would leave the thread "Running".
+      await this.agentExecutionRecoveryEvents?.recordExecutionEnded(
+        candidate.id,
+        { error: AGENT_TURN_NEVER_STARTED_ERROR_MESSAGE, type: 'failed' },
+      );
       await this.workflowExecutions.completeExecution(
         candidate.id,
         AGENT_TURN_NEVER_STARTED_ERROR_MESSAGE,
@@ -287,6 +296,10 @@ export class PendingWorkflowExecutionReconcileService {
       if (hasLiveJob) return;
 
       if (action === 'fail') {
+        await this.agentExecutionRecoveryEvents?.recordExecutionEnded(
+          candidate.id,
+          { error: NEVER_CLAIMED_ERROR_MESSAGE, type: 'failed' },
+        );
         await this.workflowExecutions.completeExecution(
           candidate.id,
           NEVER_CLAIMED_ERROR_MESSAGE,
@@ -301,6 +314,14 @@ export class PendingWorkflowExecutionReconcileService {
         return;
       }
 
+      // A drained turn was recent and its thread is on screen; an ancient one
+      // is closed silently and left out of the thread's status.
+      if (candidate.cancelRequestedAt) {
+        await this.agentExecutionRecoveryEvents?.recordExecutionEnded(
+          candidate.id,
+          { type: 'cancelled' },
+        );
+      }
       await this.workflowExecutions.cancelExecution(candidate.id);
       this.logger.log(
         candidate.cancelRequestedAt

@@ -15,6 +15,10 @@ import type {
 import type { AgentMessagesPage } from '@genfeedai/agent/services/agent-api/agent-api.threads';
 import type { AgentPageContextState } from '@genfeedai/agent/utils/agent-page-context.util';
 import {
+  resolveRunSummaryPatch,
+  resolveStatusPushPatch,
+} from '@genfeedai/agent/utils/agent-thread-run-summary.util';
+import {
   deriveLatestProposedPlan,
   resolveLatestProposedPlan,
 } from '@genfeedai/agent/utils/resolve-latest-proposed-plan.util';
@@ -25,6 +29,7 @@ import {
   DEFAULT_AGENT_THREAD_MODE,
 } from '@genfeedai/contracts';
 import {
+  type AgentThreadStatusEvent,
   deriveAgentUiActionStates,
   isAgentUiActionSourceOwner,
 } from '@genfeedai/contracts/interfaces';
@@ -395,6 +400,17 @@ interface AgentChatActions {
   resetStreamState: () => void;
   setSocketConnectionState: (state: AgentSocketConnectionState) => void;
   updateThread: (threadId: string, update: Partial<AgentThread>) => void;
+  /**
+   * Apply a server-pushed run status to a thread's row, in place: position and
+   * `updatedAt` do not move (#5636). Applies only when `event.sequence` is
+   * newer than what the row holds (`statusSequence`) and than
+   * `streamSequenceFloor`, the thread event sequence a live stream this client
+   * owns has already reached. Returns why an event did not apply.
+   */
+  applyThreadStatusPush: (
+    event: AgentThreadStatusEvent,
+    streamSequenceFloor?: number,
+  ) => 'applied' | 'stale' | 'unknown-thread';
   clearThreadAttention: (threadId: string) => void;
   seedComposer: (content: string, threadId?: string | null) => void;
   clearComposerSeed: () => void;
@@ -1494,6 +1510,25 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
           ),
         },
       })),
+    applyThreadStatusPush: (event, streamSequenceFloor = 0) => {
+      const thread = get().threads.find((item) => item.id === event.threadId);
+      if (!thread) {
+        return 'unknown-thread';
+      }
+      if (
+        event.sequence <=
+        Math.max(thread.statusSequence ?? 0, streamSequenceFloor)
+      ) {
+        return 'stale';
+      }
+      const patch = resolveStatusPushPatch(event, thread);
+      set((state) => ({
+        threads: state.threads.map((item) =>
+          item.id === event.threadId ? { ...item, ...patch } : item,
+        ),
+      }));
+      return 'applied';
+    },
     updateThread: (threadId, update) =>
       set((state) => ({
         threads: sortThreads(
@@ -1542,3 +1577,32 @@ export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
 }
 
 export const useAgentChatStore = createAgentChatStore();
+
+// The open thread's run status reaches this store through actions, stream
+// projection and snapshot hydration alike, so mirror it into the thread summary
+// at one choke point. The sidebar reads only the summary; without this a run
+// that ends (or starts) on the open thread would leave its row stale. Skipped
+// while the open thread itself changes: the switch resets the status to `idle`,
+// which says nothing about the run (see `resolveRunSummaryPatch`).
+useAgentChatStore.subscribe((next, previous) => {
+  if (
+    next.activeRunStatus === previous.activeRunStatus ||
+    next.activeThreadId !== previous.activeThreadId ||
+    !next.activeThreadId
+  ) {
+    return;
+  }
+
+  const activeThreadId = next.activeThreadId;
+  const thread = next.threads.find((item) => item.id === activeThreadId);
+  const patch = thread && resolveRunSummaryPatch(next.activeRunStatus, thread);
+  if (!patch) {
+    return;
+  }
+
+  useAgentChatStore.setState((state) => ({
+    threads: state.threads.map((item) =>
+      item.id === activeThreadId ? { ...item, ...patch } : item,
+    ),
+  }));
+});

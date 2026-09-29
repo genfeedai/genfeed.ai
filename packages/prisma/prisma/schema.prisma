@@ -1662,8 +1662,6 @@ model OrganizationSetting {
   isGenerateImagesEnabled        Boolean           @default(true)
   isGenerateMusicEnabled         Boolean           @default(true)
   isAutoEvaluateEnabled          Boolean           @default(false)
-  /// Retired (#5463): no longer read or written; dropped after v0.1.77 rolls out (#5567).
-  isFastlaneEnabled              Boolean           @default(false)
   seatsLimit                     Int               @default(1)
   brandsLimit                    Int               @default(0)
   timezone                       String            @default("UTC")

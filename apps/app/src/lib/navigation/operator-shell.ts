@@ -6,7 +6,7 @@ import type { Task } from '@services/management/tasks.service';
 export type TaskLaunchMode =
   | 'auto'
   | 'automation'
-  | 'edit'
+  | 'editor'
   | 'generate'
   | 'write';
 
@@ -348,9 +348,11 @@ function getTaskLaunchPath(
     return APP_ROUTES.AGENT.NEW;
   }
 
-  if (mode === 'edit') {
-    // Edit is a Studio surface — it follows the same capability gate as generate.
-    return capabilities.studio ? APP_ROUTES.STUDIO.EDIT : APP_ROUTES.AGENT.NEW;
+  if (mode === 'editor') {
+    // Editor is a Studio surface — it follows the same capability gate as generate.
+    return capabilities.studio
+      ? APP_ROUTES.STUDIO.EDITOR
+      : APP_ROUTES.AGENT.NEW;
   }
 
   if (mode === 'automation') {

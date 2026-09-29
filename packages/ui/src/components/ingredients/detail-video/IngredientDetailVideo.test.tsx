@@ -150,7 +150,7 @@ describe('IngredientDetailVideo', () => {
   });
 
   it('offers an org-scoped Edit in Studio entry for the video', () => {
-    // #2309: the editor is Studio's Edit surface, reached artifact-first.
+    // #2309: the editor is Studio's Editor surface, reached artifact-first.
     render(
       <IngredientDetailVideo
         video={video}
@@ -160,7 +160,10 @@ describe('IngredientDetailVideo', () => {
 
     expect(
       screen.getByRole('link', { name: /Edit in Studio/ }),
-    ).toHaveAttribute('href', '/acme/brand-slug/studio/edit/new?video=video-1');
+    ).toHaveAttribute(
+      'href',
+      '/acme/brand-slug/studio/editor/new?video=video-1',
+    );
   });
 
   it('offers a keyboard-reachable, org-scoped Make clips entry for the video', async () => {

@@ -40,12 +40,12 @@ const CONTRACTS: PageContextContract[] = [
     sectionLabel: 'Studio',
   },
   {
-    // #2309: the Remotion editor is Studio's Edit surface, so it renders the
-    // Studio sidebar instead of the old menu-less "Editor" shell.
-    route: `${BRAND_BASE}/studio/edit`,
+    // The Remotion timeline is Studio's Editor surface (#5461), so it renders
+    // the Studio sidebar.
+    route: `${BRAND_BASE}/studio/editor`,
     currentApp: 'studio',
     sectionLabel: 'Studio',
-    sidebarLabels: ['Edit'],
+    sidebarLabels: ['Editor'],
   },
   {
     route: `${BRAND_BASE}/publishing`,

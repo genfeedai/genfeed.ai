@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -13,7 +14,7 @@ import {
 import type { Edge, Node } from '@xyflow/react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import WorkflowCardPreview from '../library/WorkflowCardPreview';
+import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 
 export type WorkflowTemplateDetailsDialogProps = {
   actionLabel: string;
@@ -27,9 +28,9 @@ export type WorkflowTemplateDetailsDialogProps = {
   onOpenChange: (isOpen: boolean) => void;
   preview?: {
     edges?: Edge[];
+    exampleOutput?: WorkflowTemplateExampleOutput;
     name: string;
     nodes?: Node[];
-    thumbnail?: string | null;
   };
   scheduleLabel?: string | null;
   sourceLabel: string;
@@ -76,9 +77,9 @@ export function WorkflowTemplateDetailsDialog({
           <p className="text-sm text-foreground/80">{changeSummary}</p>
         ) : null}
         {preview ? (
-          <WorkflowCardPreview
+          <WorkflowTemplateCardPreview
             name={preview.name}
-            thumbnail={preview.thumbnail}
+            exampleOutput={preview.exampleOutput}
             nodes={preview.nodes}
             edges={preview.edges}
           />

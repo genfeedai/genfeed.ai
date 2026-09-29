@@ -317,7 +317,7 @@ describe('WorkflowExecutionProcessor', () => {
 
     it('does not compensate a failed workflow before its terminal queue attempt', async () => {
       mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
-        new Error('Transient QA failure'),
+        new Error('QA provider ETIMEDOUT'),
       );
       const input = {
         actionType: 'clip-continuity',
@@ -343,7 +343,7 @@ describe('WorkflowExecutionProcessor', () => {
             { opts: { attempts: 2 } },
           ) as never,
         ),
-      ).rejects.toThrow('Transient QA failure');
+      ).rejects.toThrow('QA provider ETIMEDOUT');
       expect(mockSystemWorkflowRunner.runWorkflow).not.toHaveBeenCalled();
     });
 
@@ -457,6 +457,28 @@ describe('WorkflowExecutionProcessor', () => {
         expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
           expect.objectContaining({ canonicalId: 'agent.autopilot.fail' }),
         );
+      });
+
+      it('fails a non-transient failure once, with compensation, instead of retrying it', async () => {
+        mockSystemWorkflowRunner.startWorkflow.mockRejectedValueOnce(
+          new Error('Unknown system workflow: nope'),
+        );
+
+        await expect(
+          processor.process(
+            createMockJob(
+              {
+                systemRun: {
+                  failureWorkflow: { canonicalId: 'agent.autopilot.fail' },
+                  input,
+                },
+                type: 'system-run',
+              },
+              { attemptsMade: 0, opts: { attempts: 3 } },
+            ) as never,
+          ),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+        expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledTimes(1);
       });
 
       it('keeps a transient node failure retryable', async () => {

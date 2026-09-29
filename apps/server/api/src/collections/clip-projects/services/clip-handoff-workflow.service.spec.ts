@@ -108,7 +108,7 @@ describe('ClipHandoffWorkflowService', () => {
     await expect(action(actionRequest)).resolves.toEqual({
       clipProjectId: 'project-1',
       clipResultId: 'clip-1',
-      editorPath: '/studio/edit/editor-1',
+      editorPath: '/studio/editor/editor-1',
       editorProjectId: 'editor-1',
       videoUrl: 'https://cdn.test/clip.mp4',
     });

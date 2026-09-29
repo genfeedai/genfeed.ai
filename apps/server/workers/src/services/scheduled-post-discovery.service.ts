@@ -118,6 +118,13 @@ export class ScheduledPostDiscoveryService {
             },
           },
         },
+        // Never-attempted posts first, then oldest due: with no order the same
+        // 50 already-queued rows can fill every sweep and starve the rest.
+        orderBy: [
+          { lastAttemptAt: { nulls: 'first', sort: 'asc' } },
+          { scheduledDate: { nulls: 'last', sort: 'asc' } },
+          { id: 'asc' },
+        ],
         where,
       },
       { customLabels, limit, page: 1 },

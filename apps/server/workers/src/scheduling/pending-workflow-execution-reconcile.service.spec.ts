@@ -380,6 +380,142 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     });
   });
 
+  describe('thread status for runs ended through their execution (#5636)', () => {
+    const recoveryEvents = { recordExecutionEnded: vi.fn() };
+    let recoveringService: PendingWorkflowExecutionReconcileService;
+
+    beforeEach(() => {
+      recoveryEvents.recordExecutionEnded
+        .mockReset()
+        .mockResolvedValue(undefined);
+      recoveringService = new PendingWorkflowExecutionReconcileService(
+        workflowExecutions as never,
+        staleExecutionFinder as never,
+        queueService as never,
+        logger as never,
+        recoveryEvents as never,
+      );
+    });
+
+    const calledBefore = (first: unknown, second: unknown) =>
+      (first as { mock: { invocationCallOrder: number[] } }).mock
+        .invocationCallOrder[0] <
+      (second as { mock: { invocationCallOrder: number[] } }).mock
+        .invocationCallOrder[0];
+
+    it('records the failed run before closing an agent turn that never started', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 3 * 60_000),
+          id: 'turn-stuck',
+          organizationId: 'org-1',
+        },
+      ]);
+      staleExecutionFinder.agentTurnIds.add('turn-stuck');
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'turn-stuck',
+        { error: expect.stringContaining('never started'), type: 'failed' },
+      );
+      // After the execution is terminal the event no longer moves the derived
+      // status, so the order is what makes the push fire.
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.completeExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records the failed run before failing a never-claimed execution', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-unclaimed',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'execution-unclaimed',
+        {
+          error: expect.stringContaining('no worker ever picked it up'),
+          type: 'failed',
+        },
+      );
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.completeExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records a cancelled run before cancelling a drained execution', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: new Date(Date.now() - 6 * 60_000),
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-drained',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'execution-drained',
+        { type: 'cancelled' },
+      );
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.cancelExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records nothing for an ancient execution closed silently', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 25 * 60 * 60_000),
+          id: 'execution-ancient',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-ancient',
+      );
+      expect(recoveryEvents.recordExecutionEnded).not.toHaveBeenCalled();
+    });
+
+    it('records nothing for a turn a worker has already started', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 5 * 60_000),
+          id: 'turn-running',
+          organizationId: 'org-1',
+        },
+      ]);
+      staleExecutionFinder.agentTurnIds.add('turn-running');
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'started',
+      );
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).not.toHaveBeenCalled();
+    });
+  });
+
   describe('drain cancellation intent (#5450)', () => {
     it('silently cancels a recent execution whose drain cancellation intent was persisted, instead of failing it', async () => {
       staleExecutionFinder.seed([
