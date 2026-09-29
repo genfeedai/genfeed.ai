@@ -42,6 +42,31 @@ describe('DesktopDragStrip', () => {
     expect(document.querySelector('[data-desktop-drag="true"]')).not.toBeNull();
   });
 
+  it('merges with the shell: no border, no blur, opaque shell tokens', () => {
+    pathnameMock.current = '/acme/studio/generate';
+    render(<DesktopDragStrip />);
+    const strip = document.querySelector('[data-desktop-drag="true"]');
+    expect(strip).not.toBeNull();
+    expect(strip).not.toHaveClass('border-b');
+    expect(strip).not.toHaveClass('border-border');
+    expect(strip?.className).not.toContain('backdrop-blur');
+    expect(strip?.className).not.toContain('bg-background/');
+    expect(strip).toHaveClass('bg-background');
+    expect(strip?.className).toContain(
+      '[body:has([data-shell-chrome=true])_&]:bg-gray-100',
+    );
+  });
+
+  it('does not render on desktop outside macOS', () => {
+    vi.stubGlobal('navigator', {
+      platform: 'Win32',
+      userAgentData: { platform: 'Windows' },
+    });
+    pathnameMock.current = '/acme/studio/generate';
+    render(<DesktopDragStrip />);
+    expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
+  });
+
   it('does not render in the browser app', () => {
     desktopClientMock.current = false;
     pathnameMock.current = '/acme/studio/generate';
