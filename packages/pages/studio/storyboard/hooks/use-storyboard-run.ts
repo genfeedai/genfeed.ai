@@ -11,14 +11,13 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { resolvePairedRemixIdentity } from '@pages/studio/generate/utils/studio-remix-run';
-import { parseStudioRemixRunId } from '@pages/studio/generate/utils/studio-remix-run-url';
+import { resolvePairedRunIdentity } from '@pages/studio/storyboard/utils/storyboard-run';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const REMIX_RUN_REFRESH_MS = 3_000;
+const RUN_REFRESH_MS = 3_000;
 const IN_FLIGHT_PHASES = new Set<BrandRemixRunView['phase']>([
   'generating',
   'paid_draft_creating',
@@ -35,7 +34,7 @@ const IN_FLIGHT_SCENE_STATES = new Set([
  * A run keeps refreshing while generation is in flight, including provider
  * scene work still being recorded after a cancellation.
  */
-function isStudioRemixRunInFlight(run: BrandRemixRunView): boolean {
+function isStoryboardRunInFlight(run: BrandRemixRunView): boolean {
   const pipeline = run.scenePipeline;
   if (IN_FLIGHT_PHASES.has(run.phase)) return true;
   if (!pipeline) return false;
@@ -49,14 +48,14 @@ function isStudioRemixRunInFlight(run: BrandRemixRunView): boolean {
   );
 }
 
-export type StudioRemixRunStatus =
+export type StoryboardRunStatus =
   | 'idle'
   | 'loading'
   | 'ready'
   | 'working'
   | 'error';
 
-export interface UseStudioRemixRunResult {
+export interface UseStoryboardRunResult {
   readonly saveScenes: (edits: BrandRemixDraftEdits) => Promise<void>;
   readonly attachSceneSource: (assetId: string | null) => Promise<void>;
   readonly quoteScenes: (
@@ -71,16 +70,16 @@ export interface UseStudioRemixRunResult {
   ) => Promise<void>;
   readonly refresh: () => Promise<void>;
   readonly run: BrandRemixRunView | null;
-  readonly runId: string | null;
+  readonly runId: string;
   readonly start: (edits: BrandRemixDraftEdits) => Promise<void>;
-  readonly status: StudioRemixRunStatus;
+  readonly status: StoryboardRunStatus;
   readonly submitForReview: (variantIds?: string[]) => Promise<void>;
   readonly vary: () => Promise<void>;
 }
 
 function buildVaryEdits(run: BrandRemixRunView): BrandRemixDraftEdits {
   const { draft } = run;
-  const canonicalIdentity = resolvePairedRemixIdentity(draft.identity);
+  const canonicalIdentity = resolvePairedRunIdentity(draft.identity);
   return {
     fidelityMode: draft.fidelityMode,
     ...(canonicalIdentity ? { identity: canonicalIdentity } : {}),
@@ -115,14 +114,8 @@ function getSocketResource(run: BrandRemixRunView): 'images' | 'videos' {
   return run.draft.output.kind === 'image' ? 'images' : 'videos';
 }
 
-export function useStudioRemixRun(): UseStudioRemixRunResult {
+export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   const brandId = useBrandId();
-  const searchParams = useSearchParams();
-  const searchParamsString = searchParams.toString();
-  const runId = useMemo(
-    () => parseStudioRemixRunId(new URLSearchParams(searchParamsString)),
-    [searchParamsString],
-  );
   const router = useRouter();
   const { activeHref } = useOrgUrl();
   const { isReady: isSocketReady, subscribe } = useSocketManager();
@@ -131,20 +124,11 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
   );
   const actionInFlightRef = useRef(false);
   const [run, setRun] = useState<BrandRemixRunView | null>(null);
-  const [status, setStatus] = useState<StudioRemixRunStatus>(
-    runId ? 'loading' : 'idle',
-  );
+  const [status, setStatus] = useState<StoryboardRunStatus>('loading');
   const [error, setError] = useState<string | null>(null);
 
   const fetchRun = useCallback(
     async (signal?: AbortSignal) => {
-      if (!runId) {
-        setRun(null);
-        setStatus('idle');
-        setError(null);
-        return;
-      }
-
       try {
         const service = await getContentRunsService();
         const nextRun = await service.findBrandRemixRun(runId, signal);
@@ -164,7 +148,7 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
         setError(
           getJsonApiErrorMessage(
             caughtError,
-            'The remix run could not be updated.',
+            'The storyboard run could not be updated.',
           ),
         );
         setStatus('error');
@@ -179,20 +163,20 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
 
   useEffect(() => {
     const controller = new AbortController();
-    setStatus(runId ? 'loading' : 'idle');
+    setStatus('loading');
     void fetchRun(controller.signal);
     return () => controller.abort();
-  }, [fetchRun, runId]);
+  }, [fetchRun]);
 
   useEffect(() => {
-    if (!run || !isStudioRemixRunInFlight(run)) {
+    if (!run || !isStoryboardRunInFlight(run)) {
       return;
     }
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       void fetchRun(controller.signal);
-    }, REMIX_RUN_REFRESH_MS);
+    }, RUN_REFRESH_MS);
     return () => {
       controller.abort();
       window.clearTimeout(timer);
@@ -245,7 +229,7 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
         setError(
           getJsonApiErrorMessage(
             caughtError,
-            'The remix run could not be updated.',
+            'The storyboard run could not be updated.',
           ),
         );
         setStatus('error');
@@ -368,9 +352,9 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
       return;
     }
 
-    router.replace(
+    router.push(
       activeHref(
-        `${APP_ROUTES.STUDIO.GENERATE}?run=${encodeURIComponent(variedRun.id)}`,
+        `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(variedRun.id)}`,
       ),
     );
   }, [activeHref, brandId, getContentRunsService, perform, router, run]);

@@ -55,11 +55,11 @@ test.describe('Analytics — Outliers → Hooks → Remix', () => {
     });
     if (await remixButton.count()) {
       await remixButton.first().click();
-      await expect(authenticatedPage).toHaveURL(/studio\/generate\?run=/);
+      await expect(authenticatedPage).toHaveURL(/studio\/storyboard\//);
     } else {
       await assertRouteRenders(
         authenticatedPage,
-        `${BRAND}/studio/generate?run=run-outlier-1`,
+        `${BRAND}/studio/storyboard/run-outlier-1`,
       );
     }
 

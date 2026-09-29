@@ -1,13 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import StoryboardWorkspace from '@pages/studio/storyboard/StoryboardWorkspace';
-import { Suspense } from 'react';
+import StoryboardRunsPage from '@pages/studio/storyboard/StoryboardRunsPage';
 
 export const generateMetadata = createPageMetadata('Storyboard');
 
 export default function StudioStoryboardPage() {
-  return (
-    <Suspense fallback={null}>
-      <StoryboardWorkspace />
-    </Suspense>
-  );
+  return <StoryboardRunsPage />;
 }

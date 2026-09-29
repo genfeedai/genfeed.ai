@@ -268,7 +268,7 @@ export function useStudioGenerateAssetActions({
       onUseAsVideoReference: (ingredient: IIngredient) =>
         router.push(
           href(
-            `/studio/storyboard?mode=scenes&referenceImageId=${ingredient.id}&format=${ingredient.ingredientFormat || IngredientFormat.PORTRAIT}`,
+            `${APP_ROUTES.STUDIO.STORYBOARD_NEW}?mode=scenes&referenceImageId=${ingredient.id}&format=${ingredient.ingredientFormat || IngredientFormat.PORTRAIT}`,
           ),
         ),
     }),

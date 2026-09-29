@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   createBrandRemixRun: vi.fn(),
   findBrandRemixRun: vi.fn(),
   prepareBrandRemixPausedDraft: vi.fn(),
-  replace: vi.fn(),
+  push: vi.fn(),
   reviseBrandRemixRun: vi.fn(),
   startBrandRemixRun: vi.fn(),
   submitBrandRemixRunForReview: vi.fn(),
@@ -19,8 +19,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: mocks.replace }),
-  useSearchParams: () => new URLSearchParams('run=run-1'),
+  useRouter: () => ({ push: mocks.push }),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -57,7 +56,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-import { useStudioRemixRun } from './useStudioRemixRun';
+import { useStoryboardRun } from './use-storyboard-run';
 
 const run: BrandRemixRunView = {
   brand: { contextMode: 'brand', id: 'brand-1', name: 'Northstar' },
@@ -134,7 +133,7 @@ const run: BrandRemixRunView = {
   version: 1,
 };
 
-describe('useStudioRemixRun', () => {
+describe('useStoryboardRun', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findBrandRemixRun.mockResolvedValue(run);
@@ -157,7 +156,7 @@ describe('useStudioRemixRun', () => {
   });
 
   it('restores the durable run and resubscribes its in-flight assets', async () => {
-    const { result } = renderHook(() => useStudioRemixRun());
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
 
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
@@ -171,6 +170,23 @@ describe('useStudioRemixRun', () => {
     );
   });
 
+  it('reloads when the routed run changes', async () => {
+    const { result, rerender } = renderHook(
+      ({ runId }) => useStoryboardRun(runId),
+      { initialProps: { runId: 'run-1' } },
+    );
+    await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
+    mocks.findBrandRemixRun.mockResolvedValueOnce({ ...run, id: 'run-2' });
+
+    rerender({ runId: 'run-2' });
+
+    await waitFor(() => expect(result.current.run?.id).toBe('run-2'));
+    expect(mocks.findBrandRemixRun).toHaveBeenLastCalledWith(
+      'run-2',
+      expect.any(AbortSignal),
+    );
+  });
+
   it('surfaces actionable JSON:API stale-run details', async () => {
     mocks.findBrandRemixRun.mockRejectedValueOnce({
       errors: [
@@ -180,7 +196,7 @@ describe('useStudioRemixRun', () => {
         },
       ],
     });
-    const { result } = renderHook(() => useStudioRemixRun());
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     expect(result.current.error).toBe(
@@ -188,8 +204,8 @@ describe('useStudioRemixRun', () => {
     );
   });
 
-  it('persists Studio edits before starting the returned revision', async () => {
-    const { result } = renderHook(() => useStudioRemixRun());
+  it('persists Storyboard edits before starting the returned revision', async () => {
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
     const edits: BrandRemixDraftEdits = {
       intent: { objective: 'Sharpen the benefit reveal.' },
@@ -210,7 +226,7 @@ describe('useStudioRemixRun', () => {
   });
 
   it('creates a durable sibling recipe when varying a completed run', async () => {
-    const { result } = renderHook(() => useStudioRemixRun());
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
     await act(async () => {
@@ -224,13 +240,13 @@ describe('useStudioRemixRun', () => {
         source: run.sourceSnapshot.selector,
       }),
     );
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/acme/northstar/studio/generate?run=run-variation-1',
+    expect(mocks.push).toHaveBeenCalledWith(
+      '/acme/northstar/studio/storyboard/run-variation-1',
     );
   });
 
   it('submits ready variants to the shared Review queue', async () => {
-    const { result } = renderHook(() => useStudioRemixRun());
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
     await waitFor(() => expect(result.current.run?.id).toBe('run-1'));
 
     await act(async () => {

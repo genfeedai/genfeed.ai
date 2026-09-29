@@ -96,7 +96,7 @@ vi.mock('@hooks/storyboard/use-merge-progress/use-merge-progress', () => ({
   },
 }));
 
-vi.mock('@pages/studio/generate/hooks/useStoryboardGeneration', () => ({
+vi.mock('@pages/studio/storyboard/hooks/use-storyboard-generation', () => ({
   useStoryboardGeneration: () => ({
     cameraMovementPreset: undefined,
     clearStoryboard: vi.fn(),

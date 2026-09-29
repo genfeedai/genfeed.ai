@@ -4,7 +4,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import StudioRemixScenes from './StudioRemixScenes';
+import StoryboardRunScenes from './StoryboardRunScenes';
 
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -22,28 +22,25 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@genfeedai/agent/components/ContentLibraryPicker', () => ({
   ContentLibraryPicker: () => null,
 }));
-vi.mock(
-  '@pages/studio/generate/components/StudioGenerateSettingsPopover',
-  () => ({
-    OptionSelect: ({
-      ariaLabel,
-      onChange,
-    }: {
-      ariaLabel: string;
-      onChange: (value: string) => void;
-    }) => (
-      <span
-        role="option"
-        tabIndex={0}
-        aria-selected={false}
-        onClick={() => onChange(`${ariaLabel}-1`)}
-        onKeyDown={() => onChange(`${ariaLabel}-1`)}
-      >
-        {ariaLabel}
-      </span>
-    ),
-  }),
-);
+vi.mock('@pages/studio/storyboard/components/StoryboardSelect', () => ({
+  default: ({
+    ariaLabel,
+    onChange,
+  }: {
+    ariaLabel: string;
+    onChange: (value: string) => void;
+  }) => (
+    <span
+      role="option"
+      tabIndex={0}
+      aria-selected={false}
+      onClick={() => onChange(`${ariaLabel}-1`)}
+      onKeyDown={() => onChange(`${ariaLabel}-1`)}
+    >
+      {ariaLabel}
+    </span>
+  ),
+}));
 vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: () => null,
 }));
@@ -113,11 +110,15 @@ function fixture() {
     },
   });
 }
-describe('Studio scene explicit actions', () => {
+describe('Storyboard run scene actions', () => {
   beforeEach(() => vi.clearAllMocks());
   it('requests an analysis quote without accepting or executing it', () => {
     render(
-      <StudioRemixScenes run={fixture()} actions={actions} isWorking={false} />,
+      <StoryboardRunScenes
+        run={fixture()}
+        actions={actions}
+        isWorking={false}
+      />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'analyze' }));
     expect(actions.quoteScenes).toHaveBeenCalledWith({ operation: 'analysis' });
@@ -125,7 +126,11 @@ describe('Studio scene explicit actions', () => {
   });
   it('saves an edited narration without generation and preserves scene identity', () => {
     render(
-      <StudioRemixScenes run={fixture()} actions={actions} isWorking={false} />,
+      <StoryboardRunScenes
+        run={fixture()}
+        actions={actions}
+        isWorking={false}
+      />,
     );
     fireEvent.change(screen.getAllByLabelText('narration')[0], {
       target: { value: 'Edited original speech' },
@@ -169,7 +174,7 @@ describe('Studio scene explicit actions', () => {
   }
   it('offers cancellation but not a concurrent resume while paid work is processing', () => {
     render(
-      <StudioRemixScenes
+      <StoryboardRunScenes
         run={withPipeline('generating')}
         actions={actions}
         isWorking={false}
@@ -183,7 +188,7 @@ describe('Studio scene explicit actions', () => {
   it('offers resume once an accepted operation stopped', () => {
     for (const state of ['partial_failure', 'cancelled'] as const) {
       const { unmount } = render(
-        <StudioRemixScenes
+        <StoryboardRunScenes
           run={withPipeline(state)}
           actions={actions}
           isWorking={false}
@@ -196,7 +201,11 @@ describe('Studio scene explicit actions', () => {
   });
   it('blocks saving a scene override until both avatar and voice are chosen', () => {
     render(
-      <StudioRemixScenes run={fixture()} actions={actions} isWorking={false} />,
+      <StoryboardRunScenes
+        run={fixture()}
+        actions={actions}
+        isWorking={false}
+      />,
     );
     fireEvent.click(screen.getAllByRole('option', { name: 'avatar' })[0]);
     expect(screen.getByText('identityPairRequired')).toBeInTheDocument();

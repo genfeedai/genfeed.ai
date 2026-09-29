@@ -60,6 +60,9 @@ describe('STUDIO_MENU_ITEMS', () => {
     const batch = STUDIO_MENU_ITEMS.find(
       (item) => item.href === '/studio/batch',
     );
+    const storyboard = STUDIO_MENU_ITEMS.find(
+      (item) => item.href === '/studio/storyboard',
+    );
 
     expect(edit).toMatchObject({
       href: '/studio/edit',
@@ -70,6 +73,10 @@ describe('STUDIO_MENU_ITEMS', () => {
       href: '/studio/batch',
       label: 'Batch',
       matchPaths: ['/studio/batch', '/studio/batch/new'],
+    });
+    expect(storyboard).toMatchObject({
+      label: 'Storyboard',
+      matchPaths: ['/studio/storyboard', '/studio/storyboard/new'],
     });
   });
 });

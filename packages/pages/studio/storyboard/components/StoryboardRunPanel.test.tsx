@@ -1,7 +1,7 @@
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import StudioRemixRunPanel from './StudioRemixRunPanel';
+import StoryboardRunPanel from './StoryboardRunPanel';
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -58,10 +58,10 @@ const run = {
   },
 } as BrandRemixRunView;
 
-describe('StudioRemixRunPanel', () => {
+describe('StoryboardRunPanel', () => {
   it('shows durable recipe lineage and groups every variation under the run', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -86,7 +86,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('does not treat an empty identity object as a paired avatar and voice', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -113,7 +113,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('shows the canonical durable identity for an avatar remix', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -144,7 +144,7 @@ describe('StudioRemixRunPanel', () => {
     const onReview = vi.fn();
     const onVary = vi.fn();
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={onReview}
@@ -170,7 +170,7 @@ describe('StudioRemixRunPanel', () => {
     } as never);
 
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -220,7 +220,7 @@ describe('StudioRemixRunPanel', () => {
       },
     };
     const { rerender } = render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -239,7 +239,7 @@ describe('StudioRemixRunPanel', () => {
     expect(screen.getByRole('link', { name: 'Open Review' })).toBeVisible();
 
     rerender(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}
@@ -261,7 +261,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('explains why an approved paid Meta run cannot hand off a non-Meta source', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onPreparePaidDraft={vi.fn()}
@@ -307,7 +307,7 @@ describe('StudioRemixRunPanel', () => {
 
   it('links an approved organic run to its canonical Publishing drafts', () => {
     render(
-      <StudioRemixRunPanel
+      <StoryboardRunPanel
         error={null}
         isWorking={false}
         onReview={vi.fn()}

@@ -27,7 +27,10 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
     group: '',
     href: APP_ROUTES.STUDIO.STORYBOARD,
     label: 'Storyboard',
-    matchPaths: [APP_ROUTES.STUDIO.STORYBOARD],
+    matchPaths: [
+      APP_ROUTES.STUDIO.STORYBOARD,
+      APP_ROUTES.STUDIO.STORYBOARD_NEW,
+    ],
     outline: Clapperboard,
     solid: Clapperboard,
   },

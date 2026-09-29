@@ -3,7 +3,10 @@ import {
   remixToJson,
   requireBrandRemixBrandId,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
-import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
+import {
+  projectBrandRemixRun,
+  summarizeBrandRemixRun,
+} from '@api/collections/content-runs/services/brand-remix-run-projection';
 import type {
   BrandRemixRunRecord,
   ResolvedBrandContext,
@@ -96,5 +99,87 @@ describe('brand remix projection', () => {
         updatedAt: new Date('2026-08-20T10:00:00.000Z'),
       } as BrandRemixRunRecord),
     ).toThrow(ConflictException);
+  });
+
+  it('summarizes a run for the storyboard runs list', () => {
+    const sceneConfig = brandRemixRunConfigSchema.parse({
+      ...config,
+      concept: {
+        savedAt: '2026-08-20T10:00:00.000Z',
+        storyboard: [
+          { durationSeconds: 5, ordinal: 1, visualIntent: 'Open on proof.' },
+          { durationSeconds: 7.5, ordinal: 2, visualIntent: 'Show product.' },
+          { ordinal: 3, visualIntent: 'Close on offer.' },
+        ],
+      },
+      draft: {
+        ...config.draft,
+        output: {
+          aspectRatio: '9:16',
+          count: 1,
+          durationSeconds: 30,
+          kind: 'video',
+        },
+      },
+      phase: 'partially_ready',
+    });
+    const run = {
+      brandId: 'brand-1',
+      config: sceneConfig,
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      id: 'run-2',
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: ContentRunStatus.PENDING,
+      updatedAt: new Date('2026-08-21T09:00:00.000Z'),
+    } as BrandRemixRunRecord;
+
+    expect(summarizeBrandRemixRun(run, sceneConfig)).toEqual({
+      brandId: 'brand-1',
+      createdAt: '2026-08-20T10:00:00.000Z',
+      id: 'run-2',
+      outputKind: 'video',
+      phase: 'partially_ready',
+      runtimeSeconds: 12.5,
+      shotCount: 3,
+      sourceKind: 'remix_discovery',
+      title: 'hook',
+      updatedAt: '2026-08-21T09:00:00.000Z',
+    });
+  });
+
+  it('falls back to the requested output duration when a run has no shots', () => {
+    const run = {
+      brandId: 'brand-1',
+      config,
+      createdAt: new Date('2026-08-20T10:00:00.000Z'),
+      id: 'run-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+      status: ContentRunStatus.PENDING,
+      updatedAt: new Date('2026-08-20T10:01:00.000Z'),
+    } as BrandRemixRunRecord;
+    const videoConfig = brandRemixRunConfigSchema.parse({
+      ...config,
+      draft: {
+        ...config.draft,
+        output: {
+          aspectRatio: '9:16',
+          count: 2,
+          durationSeconds: 15,
+          kind: 'video',
+        },
+      },
+    });
+
+    expect(summarizeBrandRemixRun(run, config)).toMatchObject({
+      outputKind: 'image',
+      runtimeSeconds: null,
+      shotCount: 0,
+    });
+    expect(summarizeBrandRemixRun(run, videoConfig)).toMatchObject({
+      runtimeSeconds: 15,
+      shotCount: 0,
+    });
   });
 });

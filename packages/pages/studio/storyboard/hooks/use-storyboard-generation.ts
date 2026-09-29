@@ -11,7 +11,7 @@ import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-man
 import type {
   UseStoryboardGenerationParams,
   UseStoryboardGenerationReturn,
-} from '@pages/studio/generate/types';
+} from '@pages/studio/storyboard/types';
 import {
   buildStoryboardInterpolationPairs,
   getStoryboardCameraPrompt,
@@ -19,7 +19,7 @@ import {
   resolveStoryboardDuration,
   resolveStoryboardFormat,
   resolveStoryboardModelKey,
-} from '@pages/studio/generate/utils/storyboard-generation';
+} from '@pages/studio/storyboard/utils/storyboard-generation';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { createMediaHandler } from '@services/core/socket-manager.service';

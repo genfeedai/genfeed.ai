@@ -6,6 +6,7 @@ export * from './conversation-canvas.interface';
 export * from './conversation-sidebar.interface';
 export * from './generation-setup.interface';
 export * from './recent-asset.interface';
+export * from './storyboard-run.interface';
 export * from './studio-edit.interface';
 export * from './studio-edit-layout.interface';
 export * from './studio-edit-topbar.interface';
