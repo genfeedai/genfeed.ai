@@ -2329,7 +2329,7 @@ describe('useAgentChatStream', () => {
     expect(state.activeRunStatus).toBe('running');
   });
 
-  it('does not refetch the thread list when the socket reconnects', async () => {
+  it('reloads the thread list once when the socket reconnects, without a window event (#5636)', async () => {
     socketConnectionState = 'reconnecting';
     socketConnected = false;
 
@@ -2410,7 +2410,8 @@ describe('useAgentChatStream', () => {
         }),
     );
 
-    expect(getThreads).toHaveBeenCalledTimes(1);
+    // Events are not replayed, so the reconnect is what corrects the rows.
+    expect(getThreads).toHaveBeenCalledTimes(2);
     expect(refreshListener).not.toHaveBeenCalled();
     window.removeEventListener('agent:threads:refresh', refreshListener);
   });

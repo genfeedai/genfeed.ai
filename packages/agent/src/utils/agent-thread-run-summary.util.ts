@@ -1,5 +1,6 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { MappedSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 
 type RunSummaryPatch = Pick<
   AgentThread,
@@ -70,4 +71,44 @@ export function resolveRunSummaryPatch(
       : patch.runStatus === thread.runStatus;
 
   return isUnchanged ? null : patch;
+}
+
+/**
+ * The thread summary fields a pushed status event sets (#5636). The server
+ * derives the event's state with the same function as the thread list, so this
+ * mirrors the list's `attentionState` rule: Working while running, Needs you
+ * while waiting. A client-side `updated` marker survives a terminal status, as
+ * it would across a list reload it was not cleared by.
+ */
+export function resolveStatusPushPatch(
+  event: Pick<
+    AgentThreadStatusEvent,
+    'pendingInputCount' | 'runStatus' | 'runtimeState' | 'sequence'
+  >,
+  thread: Pick<AgentThread, 'attentionState'>,
+): Pick<
+  AgentThread,
+  | 'attentionState'
+  | 'pendingInputCount'
+  | 'runStatus'
+  | 'runtimeState'
+  | 'statusSequence'
+> {
+  const isWaiting = event.runStatus === 'waiting_input';
+  const isRunning =
+    event.runStatus === 'running' || event.runStatus === 'queued';
+
+  return {
+    attentionState: isWaiting
+      ? 'needs-input'
+      : isRunning
+        ? 'running'
+        : thread.attentionState === 'updated'
+          ? 'updated'
+          : null,
+    pendingInputCount: event.pendingInputCount,
+    runStatus: event.runStatus,
+    runtimeState: event.runtimeState,
+    statusSequence: event.sequence,
+  };
 }
