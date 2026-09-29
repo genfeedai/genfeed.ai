@@ -495,6 +495,7 @@ describe('WorkflowTemplatesPage', () => {
   it('renders no sections and one empty state for an empty catalog', async () => {
     mocks.listTemplates.mockResolvedValue([]);
     mocks.listSystemCatalog.mockResolvedValue([]);
+    mocks.listFeatured.mockResolvedValue([]);
     render(<WorkflowTemplatesPage />);
 
     expect(

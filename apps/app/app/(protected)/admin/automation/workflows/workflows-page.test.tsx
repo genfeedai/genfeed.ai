@@ -12,19 +12,29 @@ import WorkflowsPage from './workflows-page';
 
 const mocks = vi.hoisted(() => ({
   delete: vi.fn(),
-  error: vi.fn(),
   findAllPages: vi.fn(),
   getters: new Map<string, () => Promise<unknown>>(),
   list: vi.fn(),
   openConfirmDelete: vi.fn(),
   pin: vi.fn(),
   reorder: vi.fn(),
-  success: vi.fn(),
   unpin: vi.fn(),
 }));
 
+/** Stable translator per namespace, like next-intl's memoized hook. */
+const translators = vi.hoisted(
+  () => new Map<string, ReturnType<typeof translateFromCatalog>>(),
+);
+
 vi.mock('next-intl', () => ({
-  useTranslations: (namespace: string) => translateFromCatalog(namespace),
+  useTranslations: (namespace: string) => {
+    let translator = translators.get(namespace);
+    if (!translator) {
+      translator = translateFromCatalog(namespace);
+      translators.set(namespace, translator);
+    }
+    return translator;
+  },
 }));
 
 /** One stable getter per service factory, like the real hook. */
@@ -64,10 +74,14 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+const notificationsService = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+}));
+
+/** A singleton, like the real service. */
 vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({ error: mocks.error, success: mocks.success }),
-  },
+  NotificationsService: { getInstance: () => notificationsService },
 }));
 
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
@@ -209,7 +223,9 @@ describe('Admin workflows page Featured pins (#5511)', () => {
       ).toHaveLength(3);
     });
     expect(mocks.pin).toHaveBeenCalledWith('wf-tenant');
-    expect(mocks.success).toHaveBeenCalledWith('Pinned to Featured');
+    expect(notificationsService.success).toHaveBeenCalledWith(
+      'Pinned to Featured',
+    );
   });
 
   it('unpins a pinned workflow from its actions menu', async () => {
@@ -273,7 +289,9 @@ describe('Admin workflows page Featured pins (#5511)', () => {
         expect.stringContaining('Founder thread'),
       ]);
     });
-    expect(mocks.success).toHaveBeenCalledWith('Featured order saved');
+    expect(notificationsService.success).toHaveBeenCalledWith(
+      'Featured order saved',
+    );
   });
 
   it('unpins from the Featured row', async () => {
@@ -305,7 +323,9 @@ describe('Admin workflows page Featured pins (#5511)', () => {
     );
 
     await waitFor(() => {
-      expect(mocks.error).toHaveBeenCalledWith('Updating Featured');
+      expect(notificationsService.error).toHaveBeenCalledWith(
+        'Updating Featured',
+      );
     });
     expect(mocks.list).toHaveBeenCalledTimes(2);
   });
