@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ICommandPaletteItemProps } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Kbd } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
@@ -12,6 +13,7 @@ export function CommandPaletteItem({
   isSelected,
   onClick,
 }: ICommandPaletteItemProps): ReactNode {
+  const isDesktop = useIsDesktopClient();
   const IconComponent =
     typeof command.icon === 'function' ? command.icon : null;
   const isStringIcon = typeof command.icon === 'string';
@@ -40,7 +42,7 @@ export function CommandPaletteItem({
       <div className="flex-1 overflow-hidden">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{command.label}</span>
-          {command.shortcut && (
+          {isDesktop && command.shortcut && (
             <div className="ml-auto flex gap-2">
               {command.shortcut.map((key) => (
                 <Kbd key={key} variant="muted" size="xs" className="opacity-60">
