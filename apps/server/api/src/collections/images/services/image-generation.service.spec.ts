@@ -1328,6 +1328,27 @@ describe('ImageGenerationService', () => {
       );
     });
 
+    it('sends resolved reference URLs, not ids, in a compiled Replicate dispatch', async () => {
+      const { service, replicateService, ingredientsService } = createService();
+      mockTenantIngredients(ingredientsService, [
+        { id: sameTenantId, organizationId: ORG },
+        { id: foreignId, organizationId: FOREIGN_ORG },
+      ]);
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          model: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
+          references: [sameTenantId, foreignId],
+        }),
+        buildRequest(),
+      );
+
+      const dispatched = replicateService.generateTextToImage.mock.calls[0][1];
+      expect(dispatched.image_input).toEqual([sameTenantUrl]);
+      expect(JSON.stringify(dispatched)).not.toContain(foreignId);
+    });
+
     it('does not dispatch a foreign-organization reference id to the provider', async () => {
       const { service, falService, ingredientsService } = createService();
       mockTenantIngredients(ingredientsService, [
