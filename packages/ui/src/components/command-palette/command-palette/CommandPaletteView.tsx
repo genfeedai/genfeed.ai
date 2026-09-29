@@ -59,7 +59,7 @@ export function CommandPaletteView({
           />
         </div>
 
-        <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto">
+        <div className="flex-1 min-h-0 max-h-[50vh] overflow-y-auto p-2">
           {displayedCommands.length === 0 ? (
             <div className="px-4 py-8 text-center text-foreground/60">
               {noResultsMessage}
@@ -67,7 +67,7 @@ export function CommandPaletteView({
           ) : (
             <div>
               {!query && displayedCommands.length > 0 && (
-                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
+                <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-foreground/60">
                   Commands
                 </div>
               )}

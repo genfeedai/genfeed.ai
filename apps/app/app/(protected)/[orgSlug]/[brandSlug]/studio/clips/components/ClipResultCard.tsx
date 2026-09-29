@@ -123,7 +123,7 @@ export default function ClipResultCard({
 
       push(href(handoff.editorPath));
     } catch {
-      push(href(APP_ROUTES.STUDIO.EDIT));
+      push(href(APP_ROUTES.STUDIO.EDITOR));
     }
   }, [clip.id, projectId, videoUrl, clipsService, href, push]);
 

@@ -104,6 +104,7 @@ describe.skipIf(!redisAvailable)(
     const interactiveQueueName = `workflow-execution-isolation-test-${runId}`;
     const platformQueueName = `platform-system-workflow-isolation-test-${runId}`;
     const backgroundQueueName = `workflow-background-isolation-test-${runId}`;
+    const agentTurnQueueName = `agent-turn-isolation-test-${runId}`;
     const queues: Queue[] = [];
     const workers: Worker[] = [];
 
@@ -118,6 +119,7 @@ describe.skipIf(!redisAvailable)(
      * `isPlatformSweepWorkflow` lookup, both run for real.
      */
     function createRunner(prismaOverrides: Record<string, unknown> = {}): {
+      agentTurnQueue: Queue;
       backgroundQueue: Queue;
       interactiveQueue: Queue;
       platformQueue: Queue;
@@ -132,13 +134,27 @@ describe.skipIf(!redisAvailable)(
       const backgroundQueue = new Queue(backgroundQueueName, {
         connection: { url: redisUrl },
       });
-      queues.push(interactiveQueue, platformQueue, backgroundQueue);
+      const agentTurnQueue = new Queue(agentTurnQueueName, {
+        connection: { url: redisUrl },
+      });
+      queues.push(
+        interactiveQueue,
+        platformQueue,
+        backgroundQueue,
+        agentTurnQueue,
+      );
 
       const queueService = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(interactiveQueue, platformQueue, backgroundQueue, createMockLogger());
+      )(
+        interactiveQueue,
+        platformQueue,
+        backgroundQueue,
+        agentTurnQueue,
+        createMockLogger(),
+      );
 
       const workflowExecutions = {
         createExecution: vi.fn().mockImplementation(async () => ({
@@ -185,7 +201,13 @@ describe.skipIf(!redisAvailable)(
         },
       );
 
-      return { backgroundQueue, interactiveQueue, platformQueue, runner };
+      return {
+        agentTurnQueue,
+        backgroundQueue,
+        interactiveQueue,
+        platformQueue,
+        runner,
+      };
     }
 
     // Fresh Redis state per test: every test in this file shares the same
@@ -201,15 +223,20 @@ describe.skipIf(!redisAvailable)(
       const backgroundQueue = new Queue(backgroundQueueName, {
         connection: { url: redisUrl },
       });
+      const agentTurnQueue = new Queue(agentTurnQueueName, {
+        connection: { url: redisUrl },
+      });
       await Promise.all([
         interactiveQueue.obliterate({ force: true }),
         platformQueue.obliterate({ force: true }),
         backgroundQueue.obliterate({ force: true }),
+        agentTurnQueue.obliterate({ force: true }),
       ]);
       await Promise.all([
         interactiveQueue.close(),
         platformQueue.close(),
         backgroundQueue.close(),
+        agentTurnQueue.close(),
       ]);
     });
 
@@ -223,6 +250,7 @@ describe.skipIf(!redisAvailable)(
         interactiveQueueName,
         platformQueueName,
         backgroundQueueName,
+        agentTurnQueueName,
       ].map((name) => new Queue(name, { connection: { url: redisUrl } }));
       // `obliterate` refuses a queue that still has waiting/delayed jobs and
       // is not paused — several tests above leave exactly that behind (a
@@ -309,8 +337,9 @@ describe.skipIf(!redisAvailable)(
       ).toHaveLength(0);
     });
 
-    it('enqueueWorkflow keeps a real interactive agent turn on the interactive queue', async () => {
-      const { interactiveQueue, platformQueue, runner } = createRunner();
+    it('enqueueWorkflow routes a real interactive agent turn to the dedicated agent-turn queue (#5622)', async () => {
+      const { agentTurnQueue, interactiveQueue, platformQueue, runner } =
+        createRunner();
       runner.registerWorkflow({
         ...definition,
         canonicalId: 'agent.turn.execute',
@@ -327,16 +356,19 @@ describe.skipIf(!redisAvailable)(
         { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
       );
 
+      expect(await agentTurnQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
+        1,
+      );
       expect(
         await interactiveQueue.getJobs(['waiting', 'delayed']),
-      ).toHaveLength(1);
+      ).toHaveLength(0);
       expect(await platformQueue.getJobs(['waiting', 'delayed'])).toHaveLength(
         0,
       );
     });
 
     it('processes an interactive turn promptly while the platform queue is saturated with a real routed backlog', async () => {
-      const { interactiveQueue, runner } = createRunner();
+      const { agentTurnQueue, runner } = createRunner();
       runner.registerWorkflow({
         ...definition,
         canonicalId: 'agent.autopilot.proactive',
@@ -363,7 +395,7 @@ describe.skipIf(!redisAvailable)(
       workers.push(platformWorker);
 
       const interactiveWorker = new Worker(
-        interactiveQueueName,
+        agentTurnQueueName,
         async (job) => {
           // A real system-run job takes real work between add() and
           // completion; a few ms here keeps this stub realistic enough that
@@ -410,7 +442,7 @@ describe.skipIf(!redisAvailable)(
         { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
       );
 
-      const interactiveJobs = await interactiveQueue.getJobs([
+      const interactiveJobs = await agentTurnQueue.getJobs([
         'waiting',
         'delayed',
         'active',
@@ -432,7 +464,7 @@ describe.skipIf(!redisAvailable)(
         timeout: 5000,
       });
 
-      expect(await interactiveQueue.getJobCounts('waiting', 'active')).toEqual({
+      expect(await agentTurnQueue.getJobCounts('waiting', 'active')).toEqual({
         active: 0,
         waiting: 0,
       });

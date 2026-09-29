@@ -14,7 +14,11 @@ import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
 import { withLongJobWorkerOptions } from '@libs/jobs/bullmq-worker-lock.options';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import {
+  isRetryableSystemRunError,
+  toTerminalSystemRunError,
+} from '@workers/processors/api/collections/workflows/services/system-run-retry.util';
+import { Job, UnrecoverableError } from 'bullmq';
 
 /**
  * BullMQ processor for workflow execution jobs.
@@ -110,9 +114,18 @@ export class WorkflowExecutionProcessor extends WorkerHost {
     }
     try {
       return await this.executeSystemRun(job, systemRun);
-    } catch (error: unknown) {
+    } catch (failure: unknown) {
+      // Only a transient failure is worth another attempt; anything else fails
+      // once instead of multiplying load on a shared queue (#5633).
+      const error = isRetryableSystemRunError(failure)
+        ? failure
+        : toTerminalSystemRunError(failure);
       const attempts = Math.max(job.opts.attempts ?? 1, 1);
-      const isTerminalAttempt = (job.attemptsMade ?? 0) + 1 >= attempts;
+      // An UnrecoverableError never gets another attempt, whatever `attempts`
+      // says, so the failure workflow must run now or never.
+      const isTerminalAttempt =
+        error instanceof UnrecoverableError ||
+        (job.attemptsMade ?? 0) + 1 >= attempts;
       if (!systemRun.failureWorkflow || !isTerminalAttempt) {
         throw error;
       }

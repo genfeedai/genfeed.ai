@@ -12,6 +12,8 @@ import type {
 export interface StatusDropdownProps {
   entity: IIngredient | IArticle | IPost;
   className?: string;
+  /** Stack the generating status vertically for narrow containers. */
+  isStacked?: boolean;
   position?: 'bottom-full' | 'top-full' | 'auto';
   onStatusChange?: (
     status: IngredientStatus | ArticleStatus | PostStatus,

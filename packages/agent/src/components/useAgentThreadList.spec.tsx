@@ -1,7 +1,7 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,13 @@ import { useAgentThreadList } from './useAgentThreadList';
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn() },
+}));
+vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+  useSocketManager: () => ({
+    connectionState: 'connected',
+    isReady: false,
+    subscribe: () => () => {},
+  }),
 }));
 
 function makeThread(
@@ -711,5 +718,71 @@ describe('useAgentThreadList', () => {
 
     await waitFor(() => expect(result.current.threads).toHaveLength(1));
     expect(result.current.threads[0]?.id).toBe('t-1');
+  });
+});
+
+describe('useAgentThreadList status pushes (#5636)', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
+  });
+
+  it('keeps a status pushed while the list request was in flight, not the older response', async () => {
+    let respond: (threads: AgentThread[]) => void = () => {};
+    const getThreads = vi.fn(
+      () =>
+        new Promise<AgentThread[]>((resolve) => {
+          respond = resolve;
+        }),
+    );
+    useAgentChatStore
+      .getState()
+      .setThreads([makeThread('t-1', { statusSequence: 1 })]);
+    const { result } = renderThreadList(makeApiService({ getThreads }));
+    await waitFor(() => expect(getThreads).toHaveBeenCalled());
+
+    act(() => {
+      useAgentChatStore.getState().applyThreadStatusPush({
+        organizationId: 'org-1',
+        pendingInputCount: 0,
+        runStatus: 'running',
+        runtimeState: AgentRuntimeState.RUNNING,
+        sequence: 6,
+        threadId: 't-1',
+        timestamp: '2026-09-29T08:00:00.000Z',
+        userId: 'user-1',
+      });
+    });
+    await act(async () => {
+      respond([makeThread('t-1', { runStatus: 'idle', statusSequence: 3 })]);
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(useAgentChatStore.getState().threads[0]).toMatchObject({
+      attentionState: 'running',
+      runStatus: 'running',
+      statusSequence: 6,
+    });
+  });
+
+  it('takes a list response that is newer than the status it holds', async () => {
+    useAgentChatStore
+      .getState()
+      .setThreads([
+        makeThread('t-1', { runStatus: 'running', statusSequence: 2 }),
+      ]);
+    const getThreads = vi.fn(() =>
+      Promise.resolve([
+        makeThread('t-1', { runStatus: 'completed', statusSequence: 9 }),
+      ]),
+    );
+    const { result } = renderThreadList(makeApiService({ getThreads }));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() =>
+      expect(useAgentChatStore.getState().threads[0]?.runStatus).toBe(
+        'completed',
+      ),
+    );
   });
 });

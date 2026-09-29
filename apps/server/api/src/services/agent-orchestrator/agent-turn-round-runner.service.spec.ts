@@ -14,7 +14,7 @@ import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dt
 import type { CuratedActionName } from '@genfeedai/actions';
 import { RouterPriority } from '@genfeedai/contracts';
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentTurnRoundRunnerService campaign confirmations', () => {
   const creditsUtilsService = {
@@ -176,6 +176,79 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     });
     expect(executeTool).toHaveBeenCalledOnce();
     expect(result).toEqual({ isCancelled: true, wasInterrupted: true });
+  });
+
+  describe('a tool call that never settles', () => {
+    function hungToolRound(strategy?: {
+      onBeforeTool: () => Promise<'cancel' | 'continue'>;
+    }) {
+      const state = createState();
+      const round = runner.executeToolRound({
+        allowedToolNames: new Set(['start_outreach_sequence']),
+        assistantContent: null,
+        context: {
+          executionId: 'run-in-flight',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+        generationPriority: RouterPriority.BALANCED,
+        messages: [{ content: 'Start the campaign', role: 'user' }],
+        model: 'test-model',
+        policy: { organizationId: 'org-1' } as never,
+        state,
+        strategy,
+        threadId: 'thread-1',
+        toolCalls: [
+          {
+            function: {
+              arguments: JSON.stringify({ campaignId: 'campaign-1' }),
+              name: 'start_outreach_sequence',
+            },
+            id: 'tool-1',
+            type: 'function',
+          },
+        ],
+      });
+      return { round, state };
+    }
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      executeTool.mockImplementationOnce(() => new Promise(() => undefined));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('stops waiting as soon as the run is cancelled', async () => {
+      let checks = 0;
+      const { round } = hungToolRound({
+        // The first check is the pre-tool gate; Stop lands while the tool hangs.
+        onBeforeTool: async () => (++checks > 1 ? 'cancel' : 'continue'),
+      });
+
+      await vi.advanceTimersByTimeAsync(1500);
+
+      await expect(round).resolves.toEqual({
+        isCancelled: true,
+        wasInterrupted: true,
+      });
+    });
+
+    it('fails the tool instead of holding the turn forever', async () => {
+      const { round, state } = hungToolRound();
+
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1000);
+
+      await expect(round).resolves.toMatchObject({ isCancelled: false });
+      expect(state.toolCalls).toEqual([
+        expect.objectContaining({
+          error: 'start_outreach_sequence did not finish within 300s',
+          status: 'failed',
+        }),
+      ]);
+    });
   });
 
   it('strips model-spoofed confirmation proof from an unconfirmed campaign tool call', async () => {

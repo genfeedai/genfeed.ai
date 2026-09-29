@@ -37,6 +37,8 @@ export interface AppRailProps {
   isAssetGateLocked?: boolean;
   /** Pinned above the apps, e.g. the organization avatar (Slack workspace icon). */
   header?: ReactNode;
+  /** Pinned at the very bottom, below Admin: Help and the account avatar. */
+  footer?: ReactNode;
   /** Called when an app link is activated, e.g. to close the mobile drawer. */
   onNavigate?: () => void;
   orgSlug: string;

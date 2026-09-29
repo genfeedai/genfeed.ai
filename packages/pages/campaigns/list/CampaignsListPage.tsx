@@ -155,11 +155,11 @@ export default function CampaignsListPage({
       icon={Flag}
       label={translate('title')}
       right={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <Select onValueChange={replaceStatus} value={status ?? 'all'}>
             <SelectTrigger
               aria-label={translate('statusFilter')}
-              className="min-w-36"
+              className="w-36 shrink-0"
             >
               <SelectValue />
             </SelectTrigger>

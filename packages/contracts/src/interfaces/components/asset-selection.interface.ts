@@ -25,6 +25,8 @@ export interface IAssetSelectionContextType {
   generationQueue: IGenerationItem[];
   activeGenerations: IGenerationItem[];
   selectedCanonicalAsset: CanonicalAssetSelection | null;
+  /** Bumps each time a surface asks the grid to open the selected asset's lightbox. */
+  lightboxRequestCount: number;
 
   setSelectedAsset: (ingredient: IIngredient | null) => void;
   setIsGenerating: (generating: boolean) => void;
@@ -37,4 +39,5 @@ export interface IAssetSelectionContextType {
   ) => void;
   removeFromQueue: (id: string) => void;
   clearAll: () => void;
+  requestLightbox: () => void;
 }

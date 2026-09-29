@@ -23,6 +23,13 @@ export interface AgentThreadBrandGroup {
   threads: AgentThread[];
 }
 
+export interface ThreadActivityContext {
+  /** A ui-action on this thread is in flight (`threadUiBusyById`). */
+  isLocallyBusy?: boolean;
+}
+
+export type ThreadActivity = 'needs-you' | 'working' | 'idle';
+
 function isThreadNeedsYou(thread: AgentThread): boolean {
   return (
     thread.attentionState === 'needs-input' ||
@@ -31,30 +38,32 @@ function isThreadNeedsYou(thread: AgentThread): boolean {
   );
 }
 
-function isThreadWorking(
+/**
+ * The one place that decides "working / needs you / idle" for a thread, behind
+ * both the sidebar groups and the row glyph. It reads only the thread's own
+ * summary (`runStatus`, `attentionState`, `pendingInputCount`), which stream
+ * events, snapshots and the store's open-thread mirror keep current. It never
+ * consults the open thread's local run status: that resets to `idle` on every
+ * switch and would demote a running thread. Waiting on the user outranks
+ * working.
+ */
+export function resolveThreadActivity(
   thread: AgentThread,
-  options?: {
-    activeRunStatus?: string | null;
-    activeThreadId?: string | null;
-    isStreaming?: boolean;
-  },
-): boolean {
+  context?: ThreadActivityContext,
+): ThreadActivity {
+  if (isThreadNeedsYou(thread)) {
+    return 'needs-you';
+  }
+
   if (
-    thread.id === options?.activeThreadId &&
-    options.activeRunStatus !== undefined
+    context?.isLocallyBusy === true ||
+    thread.runStatus === 'queued' ||
+    thread.runStatus === 'running'
   ) {
-    return (
-      options.isStreaming === true ||
-      options.activeRunStatus === 'running' ||
-      options.activeRunStatus === 'cancelling'
-    );
+    return 'working';
   }
 
-  if (thread.runStatus === 'queued' || thread.runStatus === 'running') {
-    return true;
-  }
-
-  return false;
+  return 'idle';
 }
 
 function matchesThreadSearch(
@@ -131,13 +140,15 @@ export function groupAgentThreadsByBrand(
 export function groupAgentThreads(
   threads: AgentThread[],
   options: {
-    activeRunStatus?: string | null;
-    activeThreadId?: string | null;
     filter: AgentThreadListFilter;
-    isStreaming?: boolean;
     searchQuery: string;
+    threadUiBusyById?: Record<string, boolean>;
   },
 ): AgentThreadListGroups {
+  const activityOf = (thread: AgentThread): ThreadActivity =>
+    resolveThreadActivity(thread, {
+      isLocallyBusy: options.threadUiBusyById?.[thread.id] === true,
+    });
   const matchingThreads = threads.filter((thread) => {
     if (!matchesThreadSearch(thread, options.searchQuery)) {
       return false;
@@ -145,9 +156,9 @@ export function groupAgentThreads(
 
     switch (options.filter) {
       case 'needs-you':
-        return isThreadNeedsYou(thread);
+        return activityOf(thread) === 'needs-you';
       case 'working':
-        return isThreadWorking(thread, options);
+        return activityOf(thread) === 'working';
       case 'pinned':
         return thread.isPinned === true;
       default:
@@ -163,11 +174,12 @@ export function groupAgentThreads(
   };
 
   for (const thread of matchingThreads) {
-    if (isThreadNeedsYou(thread)) {
+    const activity = activityOf(thread);
+    if (activity === 'needs-you') {
       groups.needsYou.push(thread);
       continue;
     }
-    if (isThreadWorking(thread, options)) {
+    if (activity === 'working') {
       groups.working.push(thread);
       continue;
     }
@@ -210,72 +222,16 @@ export function formatRelativeTime(timestamp?: string): string | null {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
-function isThreadActivelyRunning(
-  thread: AgentThread,
-  options?: {
-    activeRunStatus?:
-      | 'idle'
-      | 'running'
-      | 'cancelling'
-      | 'completed'
-      | 'failed'
-      | 'cancelled'
-      | 'awaiting_input'
-      | 'awaiting_confirmation'
-      | 'interrupted'
-      | 'restoring';
-    activeThreadId?: string | null;
-  },
-): boolean {
-  if (
-    options?.activeThreadId === thread.id &&
-    options.activeRunStatus !== undefined
-  ) {
-    return (
-      options.activeRunStatus === 'running' ||
-      options.activeRunStatus === 'cancelling'
-    );
-  }
-
-  // Prefer explicit attention from stream/API over bare runStatus — the latter
-  // can linger as stale local state after a run ends.
-  if (thread.attentionState === 'running') {
-    return true;
-  }
-
-  if (options?.activeThreadId !== thread.id) {
-    return false;
-  }
-
-  return thread.runStatus === 'queued' || thread.runStatus === 'running';
-}
-
 export function getThreadStatusMeta(
   thread: AgentThread,
-  options?: {
-    activeRunStatus?:
-      | 'idle'
-      | 'running'
-      | 'cancelling'
-      | 'completed'
-      | 'failed'
-      | 'cancelled'
-      | 'awaiting_input'
-      | 'awaiting_confirmation'
-      | 'interrupted'
-      | 'restoring';
-    activeThreadId?: string | null;
-  },
+  options?: ThreadActivityContext,
 ): {
   label: string;
   tone: 'running' | 'warning' | 'failed';
 } | null {
-  if (
-    thread.runtimeState === 'awaiting_confirmation' ||
-    thread.attentionState === 'needs-input' ||
-    (thread.pendingInputCount ?? 0) > 0 ||
-    thread.runStatus === 'waiting_input'
-  ) {
+  const activity = resolveThreadActivity(thread, options);
+
+  if (activity === 'needs-you') {
     return {
       label:
         thread.runtimeState === 'awaiting_confirmation'
@@ -287,18 +243,14 @@ export function getThreadStatusMeta(
     };
   }
 
-  if (isThreadActivelyRunning(thread, options)) {
+  if (activity === 'working') {
     return {
       label: 'Running',
       tone: 'running',
     };
   }
 
-  const isActiveThreadFailure =
-    options?.activeThreadId === thread.id &&
-    options.activeRunStatus === 'failed';
-
-  if (thread.runStatus === 'failed' || isActiveThreadFailure) {
+  if (thread.runStatus === 'failed') {
     return {
       label: 'Failed',
       tone: 'failed',
@@ -344,4 +296,30 @@ export function isAuthError(error: unknown): boolean {
   return (
     error.message.includes('401') || error.message.includes('Unauthorized')
   );
+}
+
+/**
+ * The listed row, with the run status of the row it replaces when that one was
+ * set by a newer status push (#5636). List rows carry the sequence they were
+ * read at, so a response that is older than a push cannot regress it.
+ */
+export function keepNewerRunStatus(
+  listed: AgentThread,
+  current: AgentThread | undefined,
+): AgentThread {
+  if (
+    !current ||
+    (current.statusSequence ?? 0) <= (listed.statusSequence ?? 0)
+  ) {
+    return listed;
+  }
+
+  return {
+    ...listed,
+    attentionState: current.attentionState,
+    pendingInputCount: current.pendingInputCount,
+    runStatus: current.runStatus,
+    runtimeState: current.runtimeState,
+    statusSequence: current.statusSequence,
+  };
 }

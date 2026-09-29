@@ -428,6 +428,8 @@ export interface AgentThread {
     | 'restoring';
   decisionHref?: string | null;
   pendingInputCount?: number;
+  /** The thread event sequence the run summary was read at (#5636). */
+  statusSequence?: number;
   lastActivityAt?: string;
   lastAssistantPreview?: string;
   lastGeneratedAssetUrl?: string | null;

@@ -9,6 +9,7 @@ import type { AppProtectedRailProps } from '@genfeedai/props/ui/app-rail.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import { AppRail } from '@ui/shell/app-rail/AppRail';
+import RailAccount from '@ui/shell/app-rail/RailAccount';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, useCallback } from 'react';
@@ -95,6 +96,7 @@ function AppProtectedRailContent({
     <AppRail
       surface={onNavigate ? 'drawer' : 'desktop'}
       onNavigationEvent={captureAppRailNavigation}
+      footer={<RailAccount />}
       header={
         // Slack workspace icon. Personal-account settings pages have no org
         // context to switch from (#4659).

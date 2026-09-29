@@ -15,7 +15,7 @@ export class CronPostsService {
 
   /**
    * Discovers due posts and queues one immutable workflow graph per target.
-   * Fired every 15 minutes by the platform schedule control plane.
+   * Fired every minute by the platform schedule control plane.
    */
   async publishScheduledPosts(): Promise<void> {
     try {
