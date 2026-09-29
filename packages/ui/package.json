@@ -89,19 +89,13 @@
       "types": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx",
       "import": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx",
       "default": "./src/components/audio/preview-player/AudioPreviewPlayer.tsx"
-    },
-    "./components/feedback/spinner/Spinner": {
-      "types": "./src/components/feedback/spinner/Spinner.tsx",
-      "import": "./src/components/feedback/spinner/Spinner.tsx",
-      "default": "./src/components/feedback/spinner/Spinner.tsx"
     }
   },
   "files": [
     "dist",
     "web-tokens.css",
     "src/components/display/video-player",
-    "src/components/audio/preview-player",
-    "src/components/feedback/spinner"
+    "src/components/audio/preview-player"
   ],
   "license": "MIT",
   "main": "./dist/index.js",

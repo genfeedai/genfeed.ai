@@ -463,8 +463,8 @@ describe('BaseNode', () => {
         />,
       );
 
-      // Check for processing indicator: animate-spin class, node-processing wrapper, or SVG element from Loader2
-      const spinner = document.querySelector('.animate-spin');
+      // Check for processing indicator: loader mark, node-processing wrapper, or any SVG
+      const spinner = document.querySelector('.genfeed-loader-root');
       const processingNode = document.querySelector('.node-processing');
       const svgIcon = document.querySelector('svg');
       expect(spinner ?? processingNode ?? svgIcon).toBeTruthy();

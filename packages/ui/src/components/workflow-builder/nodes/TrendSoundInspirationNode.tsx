@@ -4,8 +4,9 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
-import { LoaderCircle, Music, TrendingUp } from 'lucide-react';
+import { Music, TrendingUp } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useId } from 'react';
 
@@ -110,7 +111,7 @@ function TrendSoundInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             Finding Sounds…
           </>
         ) : (

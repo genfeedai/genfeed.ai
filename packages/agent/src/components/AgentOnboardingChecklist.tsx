@@ -6,6 +6,7 @@ import type {
   OnboardingChecklistStatus,
 } from '@genfeedai/props/ui/agent/agent-onboarding.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Spinner from '@ui/primitives/spinner';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
 
@@ -21,7 +22,7 @@ function StatusIcon({ status }: { status: OnboardingChecklistStatus }) {
   if (status === 'in-progress') {
     return (
       <div className="flex size-6 items-center justify-center">
-        <div className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <Spinner className="size-4 text-primary" />
       </div>
     );
   }

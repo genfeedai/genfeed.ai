@@ -11,8 +11,9 @@ import { Button } from '@genfeedai/ui/primitives/button';
 import { Checkbox } from '@genfeedai/ui/primitives/checkbox';
 import { Input } from '@genfeedai/ui/primitives/input';
 import { Label } from '@genfeedai/ui/primitives/label';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { LoaderCircle, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { type ChangeEvent, memo, useCallback } from 'react';
@@ -189,7 +190,7 @@ function VideoQaNodeComponent(props: NodeProps) {
           variant={ButtonVariant.DEFAULT}
         >
           {isProcessing ? (
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner className="size-4" />
           ) : (
             <ShieldCheck className="size-4" />
           )}

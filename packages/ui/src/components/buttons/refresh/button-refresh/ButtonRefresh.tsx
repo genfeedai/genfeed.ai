@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ButtonRefreshProps } from '@genfeedai/props/ui/forms/button.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   SHELL_ICON_BUTTON_CLASS,
   SHELL_ICON_CLASS,

@@ -5,7 +5,7 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import type { SkillsCheckoutButtonProps } from '@props/website/skills-checkout-button.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
-import { Loader } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
 import { createContext, useCallback, useContext, useState } from 'react';
 
 interface SkillsCheckoutState {
@@ -88,11 +88,7 @@ export default function SkillsCheckoutButton({
       disabled={checkout.isLoading}
       onClick={checkout.startCheckout}
     >
-      {checkout.isLoading ? (
-        <Loader className="size-4 animate-spin" />
-      ) : (
-        children
-      )}
+      {checkout.isLoading ? <Spinner className="size-4" /> : children}
     </Button>
   );
 }

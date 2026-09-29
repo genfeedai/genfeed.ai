@@ -12,21 +12,21 @@ describe('LazyLoadingFallback', () => {
     );
   });
 
-  it('uses the shared spinner for minimal fallbacks', () => {
+  it('uses the brand loader for minimal fallbacks', () => {
     const { container } = render(<LazyLoadingFallback variant="minimal" />);
 
     expect(container.firstChild).toHaveClass('min-h-[60vh]');
     expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass(
-      'animate-spin',
+      'genfeed-loader-root',
     );
   });
 
-  it('uses the shared spinner for full-page fallbacks', () => {
+  it('uses the brand loader for full-page fallbacks', () => {
     const { container } = render(<LazyLoadingFallback variant="full" />);
 
     expect(container.firstChild).toHaveClass('min-h-screen');
     expect(screen.getByRole('status', { name: 'Loading' })).toHaveClass(
-      'animate-spin',
+      'genfeed-loader-root',
     );
   });
 });

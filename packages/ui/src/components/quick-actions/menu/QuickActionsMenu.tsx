@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { QuickActionsMenuProps } from '@genfeedai/props/content/quick-actions.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -13,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import Spinner from '@ui/primitives/spinner';
 import {
   QUICK_ACTION_TRIGGER_CLASS,
   QUICK_ACTION_TRIGGER_SIZE_CLASS,

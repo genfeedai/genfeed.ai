@@ -12,6 +12,7 @@ import type { EvaluationCardProps } from '@genfeedai/props/components/evaluation
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { ArrowUp, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -322,7 +323,7 @@ function EvaluationCardContent({
   if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
     return (
       <div className="flex items-center gap-3">
-        <span className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full" />
+        <Spinner className="size-5 text-primary" />
         <div>
           <p className="text-sm font-medium">
             {evaluationData?.scores

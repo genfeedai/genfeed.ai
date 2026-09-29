@@ -16,8 +16,9 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Download, Grid3X3, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Download, Grid3X3, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -364,7 +365,7 @@ function SplitButton({
       {variant === 'resplit' ? (
         <RefreshCw className="size-3" />
       ) : isProcessing ? (
-        <LoaderCircle className="size-4 animate-spin" />
+        <Spinner className="size-4" />
       ) : (
         <Grid3X3 className="size-4" />
       )}

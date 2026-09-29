@@ -9,6 +9,7 @@ import type {
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
+import Spinner from '@ui/primitives/spinner';
 import { ExternalLink, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { memo } from 'react';
 import { createPortal } from 'react-dom';
@@ -189,7 +190,7 @@ function ModelBrowserModalComponent({
 
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
-              <div className="size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <Spinner className="size-8 text-primary" />
             </div>
           ) : (
             <div className="space-y-6">

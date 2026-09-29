@@ -47,7 +47,7 @@ vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/feedback/spinner/Spinner', () => ({
+vi.mock('@ui/primitives/spinner', () => ({
   default: () => <span>Loading</span>,
 }));
 

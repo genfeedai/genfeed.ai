@@ -4,6 +4,7 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Slider } from '@ui/primitives/slider';
+import Spinner from '@ui/primitives/spinner';
 import type {
   AspectRatio,
   ContentStyle,
@@ -11,7 +12,7 @@ import type {
   TrendPlatform,
   TrendVideoInspirationNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { ExternalLink, LoaderCircle, Sparkles, Video } from 'lucide-react';
+import { ExternalLink, Sparkles, Video } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type {
@@ -203,7 +204,7 @@ function TrendVideoInspirationNodeComponent({
       >
         {isProcessing ? (
           <>
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             Analyzing…
           </>
         ) : (

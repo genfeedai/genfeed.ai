@@ -6,6 +6,7 @@ import type { TrendNotificationSettingsProps } from '@genfeedai/props/settings/n
 import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';
 import { SelectField } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { Bell, Info } from 'lucide-react';
 import { useCallback, useState } from 'react';
@@ -233,7 +234,7 @@ export default function TrendNotificationSettings({
       {/* Status indicator */}
       {isSaving && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="size-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <Spinner className="size-4 text-primary" />
           Saving…
         </div>
       )}

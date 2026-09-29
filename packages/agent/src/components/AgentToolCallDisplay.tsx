@@ -4,6 +4,7 @@ import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { type ReactElement, useState } from 'react';
 import { getAgentToolLabel } from './agent-tool-call-display.helpers';
 
@@ -65,7 +66,7 @@ export function AgentToolCallDisplay({
             </svg>
           )}
           {!isCompleted && !isFailed && (
-            <div className="size-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <Spinner className="size-3.5 text-primary" />
           )}
         </span>
 

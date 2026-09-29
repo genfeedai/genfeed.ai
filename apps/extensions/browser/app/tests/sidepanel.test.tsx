@@ -34,9 +34,6 @@ vi.mock('~components/navigation/SidebarNav', () => ({
 vi.mock('~components/settings/SettingsPanel', () => ({
   SettingsPanel: () => null,
 }));
-vi.mock('~components/ui', () => ({
-  LoadingSpinner: () => null,
-}));
 vi.mock('~store/use-settings-store', () => ({
   useSettingsStore: () => ({}),
 }));

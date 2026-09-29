@@ -4,9 +4,9 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import type { IImage, IMetadata } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import MasonryFailureNotice from '@ui/masonry/shared/MasonryFailureNotice';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import Image from 'next/image';
 import type { MouseEvent, SyntheticEvent } from 'react';
 

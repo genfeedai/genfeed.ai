@@ -5,6 +5,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
+import Spinner from '@ui/primitives/spinner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef } from 'react';
 
@@ -67,7 +68,7 @@ function NewEditorProjectPageContent() {
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+      <Spinner className="size-12 text-primary" />
     </div>
   );
 }

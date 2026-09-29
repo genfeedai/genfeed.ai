@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import {
   Handle,
   type NodeProps,
@@ -55,7 +56,6 @@ import {
   LayoutTemplate,
   Lightbulb,
   Link2,
-  LoaderCircle,
   Lock,
   LockOpen,
   Mail,
@@ -178,7 +178,7 @@ const HANDLE_COLORS: Record<string, string> = {
 function StatusIndicator({ status }: { status: NodeStatus }) {
   switch (status) {
     case 'processing':
-      return <LoaderCircle className="size-4 animate-spin text-primary" />;
+      return <Spinner className="size-4 text-primary" />;
     case 'complete':
       return <CircleCheck className="size-4 text-chart-2" />;
     case 'error':

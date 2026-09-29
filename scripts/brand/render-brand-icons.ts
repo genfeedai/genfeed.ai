@@ -10,7 +10,7 @@ export const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 } as const;
 export const MARK_SOURCE_FILES = [
   CANONICAL_LOGO_PATH,
   'packages/helpers/src/ui/icons/brands/genfeed-icon.ts',
-  'packages/ui/src/components/feedback/brand-loader/BrandLoader.tsx',
+  'packages/ui/src/primitives/brand-mark.tsx',
   'apps/website/app/(content)/articles/[slug]/og/brand-mark.tsx',
   'apps/desktop/app/src/main/boot-screen.ts',
   'apps/extensions/ide/app/assets/icon.svg',

@@ -1,8 +1,8 @@
 'use client';
 
 import type { IngredientDetailProps } from '@props/content/ingredient.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
+import Spinner from '@ui/primitives/spinner';
 import IngredientDetailBody from './ingredient-detail-body';
 import IngredientDetailCacheAlert from './ingredient-detail-cache-alert';
 import IngredientDetailNotFound from './ingredient-detail-not-found';

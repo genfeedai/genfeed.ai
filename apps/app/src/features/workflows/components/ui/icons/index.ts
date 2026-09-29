@@ -9,7 +9,6 @@ export {
   Eye as EyeIcon,
   EyeOff as EyeOffIcon,
   Hash as HashIcon,
-  LoaderCircle as LoaderIcon,
   Mail as MailIcon,
   RefreshCw as RefreshIcon,
   Scissors as ScissorsIcon,

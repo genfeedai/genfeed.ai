@@ -1,7 +1,6 @@
-import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LoadingProps } from '@genfeedai/props/ui/feedback/loading.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import BrandLoader from '@ui/feedback/brand-loader/BrandLoader';
 
 export default function Loading({
   className = '',
@@ -11,7 +10,7 @@ export default function Loading({
   const label = message ?? 'Loading';
 
   return (
-    // Layout container only — the nested <Spinner> is the single status/live
+    // Layout container only — the nested <BrandLoader> is the single status/live
     // region (role=status + aria-label). Making this wrapper an <output> too
     // produced two nested status regions with the same label.
     <div
@@ -22,11 +21,7 @@ export default function Loading({
       )}
     >
       <div className="flex max-w-md flex-col items-center gap-4 px-6">
-        <Spinner
-          ariaLabel={label}
-          className="text-foreground/80"
-          size={ComponentSize.LG}
-        />
+        <BrandLoader label={label} />
         {message ? (
           <span className="text-sm text-muted-foreground">{message}</span>
         ) : null}

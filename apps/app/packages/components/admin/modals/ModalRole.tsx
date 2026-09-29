@@ -11,11 +11,11 @@ import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalRoleProps } from '@props/modals/modal.props';
 import { RolesService } from '@services/organization/roles.service';
 import Alert from '@ui/feedback/alert/Alert';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import { Trash2 } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 

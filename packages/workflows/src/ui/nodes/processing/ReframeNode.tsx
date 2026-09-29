@@ -19,8 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useRef, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -280,9 +281,7 @@ function ReframeNodeComponent(props: NodeProps) {
             disabled={!hasInput || nodeData.status === 'processing'}
             className="mt-1 w-full"
           >
-            {nodeData.status === 'processing' && (
-              <LoaderCircle className="size-4 animate-spin" />
-            )}
+            {nodeData.status === 'processing' && <Spinner className="size-4" />}
             {nodeData.status === 'processing'
               ? 'Reframing...'
               : `Reframe ${inputType === 'video' ? 'Video' : inputType === 'image' ? 'Image' : 'Media'}`}

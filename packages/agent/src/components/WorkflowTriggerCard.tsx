@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { CircleCheck, Zap } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
@@ -165,7 +166,7 @@ export function WorkflowTriggerCard({
         {/* Triggering state */}
         {status === 'triggering' && (
           <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
-            <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <Spinner className="size-4 text-primary" />
             <span className="text-sm text-muted-foreground">
               Starting workflow…
             </span>

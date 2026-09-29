@@ -16,14 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import {
-  CircleAlert,
-  Expand,
-  FileText,
-  LoaderCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { CircleAlert, Expand, FileText, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/execution';
@@ -183,7 +178,7 @@ function TranscribeNodeComponent(props: NodeProps) {
             className="w-full"
           >
             {nodeData.status === 'processing' ? (
-              <LoaderCircle className="size-4 animate-spin" />
+              <Spinner className="size-4" />
             ) : (
               <FileText className="size-4" />
             )}

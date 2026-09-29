@@ -4,8 +4,9 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { ImageInputNodeData } from '@genfeedai/contracts/types';
 import { Button } from '@genfeedai/ui/primitives/button';
 import { Input } from '@genfeedai/ui/primitives/input';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import { Expand, ImageIcon, Link, LoaderCircle, Upload, X } from 'lucide-react';
+import { Expand, ImageIcon, Link, Upload, X } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 import { useMediaUpload } from '../../hooks/useMediaUpload';
@@ -181,7 +182,7 @@ function ImageInputNodeComponent(props: NodeProps) {
         >
           {isUploading ? (
             <>
-              <LoaderCircle className="size-5 text-muted-foreground/50 animate-spin" />
+              <Spinner className="size-5 text-muted-foreground/50" />
               <span className="text-2xs text-muted-foreground/70">
                 Uploading…
               </span>

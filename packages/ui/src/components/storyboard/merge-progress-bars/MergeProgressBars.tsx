@@ -1,7 +1,7 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MergeProgressBarsProps } from '@genfeedai/props/studio/merge.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import Spinner from '@ui/primitives/spinner';
 import { CircleCheck, CircleX } from 'lucide-react';
 
 export default function MergeProgressBars({

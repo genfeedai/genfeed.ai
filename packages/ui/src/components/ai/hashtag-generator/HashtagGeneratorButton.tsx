@@ -7,9 +7,9 @@ import type { IHashtagOptimization } from '@genfeedai/services/ai/optimizers.ser
 import { OptimizersService } from '@genfeedai/services/ai/optimizers.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import Spinner from '@ui/primitives/spinner';
 import { Hash } from 'lucide-react';
 import { useCallback, useState } from 'react';
 

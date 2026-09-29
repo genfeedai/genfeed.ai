@@ -46,6 +46,8 @@ describe('ButtonRefresh', () => {
 
     const refreshing = screen.getByRole('button', { name: 'Refresh' });
     expect(refreshing.querySelector('svg')).toBeNull();
-    expect(refreshing.querySelector('output')).toHaveClass('animate-spin');
+    expect(refreshing.querySelector('output')).toHaveClass(
+      'genfeed-loader-root',
+    );
   });
 });

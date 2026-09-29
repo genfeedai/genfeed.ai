@@ -21,13 +21,9 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
+import Spinner from '@genfeedai/ui/primitives/spinner';
 import type { NodeProps } from '@xyflow/react';
-import {
-  Expand,
-  LoaderCircle,
-  RefreshCw,
-  SquareSplitHorizontal,
-} from 'lucide-react';
+import { Expand, RefreshCw, SquareSplitHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../../stores/execution';
@@ -507,9 +503,7 @@ function UpscaleProcessButton({
       disabled={!hasInput || status === 'processing'}
       className="mt-1 w-full"
     >
-      {status === 'processing' && (
-        <LoaderCircle className="size-4 animate-spin" />
-      )}
+      {status === 'processing' && <Spinner className="size-4" />}
       {label}
     </Button>
   );

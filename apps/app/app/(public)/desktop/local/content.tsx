@@ -8,9 +8,9 @@ import type {
   IDesktopWorkspace,
 } from '@genfeedai/contracts/desktop';
 import Card from '@ui/card/Card';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { FolderOpen, HardDrive, RefreshCw, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';

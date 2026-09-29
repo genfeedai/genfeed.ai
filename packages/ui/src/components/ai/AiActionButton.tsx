@@ -9,8 +9,8 @@ import {
   ComponentSize,
 } from '@genfeedai/contracts';
 import { useAiAction } from '@genfeedai/hooks/ai/use-ai-action';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Sparkles, Undo2 } from 'lucide-react';
 import { useCallback } from 'react';
 

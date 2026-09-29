@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { MessageSquare, TriangleAlert } from 'lucide-react';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -26,7 +27,7 @@ export function AgentThreadListEmptyState({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="size-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner className="size-4 text-primary" />
       </div>
     );
   }
