@@ -7,3 +7,4 @@ export * from './sort.interface';
 export * from './system-workflow-contract.interface';
 export * from './workflow.interface';
 export * from './workflow-builder.interface';
+export * from './workflow-template-example-output.interface';

@@ -8,7 +8,9 @@ import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflow
 import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
+import { withExampleOutputs } from '@api/collections/workflows/templates/workflow-template-example-outputs';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 
 export type RoutineReviewDefaults = {
   autoApproveIfNoResponse: boolean;
@@ -62,6 +64,11 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   changeSummary?: string;
+  /**
+   * What the template produces, shown as its catalog preview (#5498). Set
+   * from `WORKFLOW_TEMPLATE_EXAMPLE_OUTPUTS`, never inline on a graph.
+   */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   /**
    * Position in the templates page Featured row (1 = first). Set only on the
    * curated showcase set via `SHOWCASE_WORKFLOW_TEMPLATE_IDS`.
@@ -875,4 +882,4 @@ function withShowcaseRanks(
 }
 
 export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> =
-  withShowcaseRanks(WORKFLOW_TEMPLATE_CATALOG);
+  withExampleOutputs(withShowcaseRanks(WORKFLOW_TEMPLATE_CATALOG));
