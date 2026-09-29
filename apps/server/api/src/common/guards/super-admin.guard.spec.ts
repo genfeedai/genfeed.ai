@@ -1,5 +1,4 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
-import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 

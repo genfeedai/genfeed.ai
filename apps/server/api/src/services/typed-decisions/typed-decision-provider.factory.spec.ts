@@ -3,7 +3,6 @@ import {
   isTypedDecisionProviderAvailable,
 } from '@api/services/typed-decisions/typed-decision-provider.factory';
 import { UNCONFIGURED_SECRET_SENTINEL } from '@genfeedai/config';
-import type { TypedDecisionProviderName } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';

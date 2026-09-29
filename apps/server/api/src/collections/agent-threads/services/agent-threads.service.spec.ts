@@ -6,7 +6,6 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentThreadStatus } from '@genfeedai/contracts';

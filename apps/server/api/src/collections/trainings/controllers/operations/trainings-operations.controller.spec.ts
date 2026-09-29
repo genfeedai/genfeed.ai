@@ -124,7 +124,22 @@ describe('TrainingsOperationsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('relaunchTraining', () => {
+    it('should relaunch a training successfully', async () => {
+      const result = await controller.relaunchTraining(
+        {} as unknown as Request,
+        mockUser,
+        trainingId,
+      );
+
+      expect(trainingsService.findOne).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should throw 404 when training not found', async () => {
       mockServices.trainingsService.findOne.mockResolvedValueOnce(null);
 

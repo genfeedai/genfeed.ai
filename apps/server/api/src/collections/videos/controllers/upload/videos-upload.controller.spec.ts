@@ -41,8 +41,11 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 describe('VideosUploadController', () => {
+  let controller: VideosUploadController;
   let filesClientService: FilesClientService;
   let sharedService: SharedService;
+
+  const mockReq = { originalUrl: '/videos/upload' } as unknown as Request;
 
   const mockUser = {
     id: 'user_123',
@@ -119,6 +122,7 @@ describe('VideosUploadController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
+    controller = module.get<VideosUploadController>(VideosUploadController);
     filesClientService = module.get<FilesClientService>(FilesClientService);
     sharedService = module.get<SharedService>(SharedService);
   });
@@ -127,7 +131,19 @@ describe('VideosUploadController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createUpload', () => {
+    it('should upload a video file successfully', async () => {
+      const result = await controller.createUpload(mockReq, mockUser, mockFile);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+      expect(filesClientService.uploadToS3).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should throw error when file is missing', () => {
       const pipe = new UploadValidationPipe({
         allowedExtensions: ['mp4', 'avi', 'mov', 'mkv', 'webm'],

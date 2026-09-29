@@ -28,8 +28,18 @@ const ingredientId = testId('ingredient');
 const metadataId = testId('metadata');
 
 describe('MusicsUploadController', () => {
+  let controller: MusicsUploadController;
   let filesClientService: FilesClientService;
   let sharedService: SharedService;
+
+  const mockReq = {} as unknown as Request;
+
+  const mockUser = {
+    id: 'user_123',
+    brandId,
+    organizationId,
+    userId,
+  } as unknown as User;
 
   const mockFile: Express.Multer.File = {
     buffer: Buffer.from('fake audio data'),
@@ -98,6 +108,7 @@ describe('MusicsUploadController', () => {
       .useValue({ canActivate: () => true })
       .compile();
 
+    controller = module.get<MusicsUploadController>(MusicsUploadController);
     filesClientService = module.get<FilesClientService>(FilesClientService);
     sharedService = module.get<SharedService>(SharedService);
   });
@@ -106,7 +117,38 @@ describe('MusicsUploadController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createUpload', () => {
+    it('should upload a music file successfully', async () => {
+      const result = await controller.createUpload(mockReq, mockUser, mockFile);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
+      expect(filesClientService.uploadToS3).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should throw error when file is missing', () => {
+      const pipe = new UploadValidationPipe({
+        allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],
+        allowedMimeTypes: [
+          'audio/mpeg',
+          'audio/mp3',
+          'audio/wav',
+          'audio/aac',
+          'audio/flac',
+          'audio/ogg',
+          'audio/webm',
+        ],
+        maxSizeBytes: 50 * 1024 * 1024,
+      });
+      expect(() =>
+        pipe.transform(null as unknown as Express.Multer.File),
+      ).toThrow(HttpException);
+    });
+
     it('should throw error when file validation fails', () => {
       const pipe = new UploadValidationPipe({
         allowedExtensions: ['mp3', 'wav', 'aac', 'flac', 'ogg', 'webm'],

@@ -45,6 +45,28 @@ const CREDENTIAL_IDENTITY_WRITE =
   /credentialsService\s*\.\s*(?:create|patch|update|updateMany)\s*\([^;]*?\bexternalId:/s;
 
 describe('multi-account connect contract', () => {
+  it('covers every integration', () => {
+    expect(INTEGRATION_SOURCES.length).toBeGreaterThan(100);
+  });
+
+  it('leaves no integration calling a removed single-account helper', () => {
+    const offenders = INTEGRATION_SOURCES.filter(
+      ([, source]) =>
+        source.includes('upsertForBrand') ||
+        source.includes('getOrCreateCredential'),
+    ).map(([file]) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('leaves no integration writing credential identity outside reconciliation', () => {
+    const offenders = INTEGRATION_SOURCES.filter(([, source]) =>
+      CREDENTIAL_IDENTITY_WRITE.test(source),
+    ).map(([file]) => file);
+
+    expect(offenders).toEqual([]);
+  });
+
   it('routes every identity write through the reconciling chokepoint', () => {
     const service = readFileSync(CREDENTIALS_SERVICE_PATH, 'utf8');
 

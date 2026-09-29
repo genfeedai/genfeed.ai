@@ -22,6 +22,19 @@ const PRODUCTION_FILES = readdirSync(dir).filter(
 );
 
 describe('batch items JSON reader ratchet', () => {
+  it('routes production readers through resolveBatchItems, not cloneBatchItems', () => {
+    const offenders: string[] = [];
+
+    for (const name of PRODUCTION_FILES) {
+      const source = readFileSync(join(dir, name), 'utf8');
+      if (source.includes('cloneBatchItems(')) {
+        offenders.push(name);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it('still writes Batch.items JSON from the transactional writer', () => {
     const writer = readFileSync(join(dir, 'batch-item-rows.ts'), 'utf8');
     expect(writer).toContain('writeBatchJsonAndItemRows');

@@ -2,7 +2,6 @@ import { WorkflowExecutionGraphService } from '@api/collections/workflows/servic
 import type {
   ExecutableEdge,
   ExecutableNode,
-  NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 

@@ -1,7 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { FIRST_ORDER_TARGETS } from '@api/collections/brands/constants/brand-org-cascade.constants';
+import {
+  FIRST_ORDER_TARGETS,
+  KNOWN_EXCLUDED_MODELS,
+  SECOND_ORDER_TARGETS,
+} from '@api/collections/brands/constants/brand-org-cascade.constants';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -120,8 +124,31 @@ describe('brand-org-cascade config', () => {
 
   // Map delegate name back to a model name (camelCase → PascalCase) for coverage checks.
   const coveredDelegates = new Set(FIRST_ORDER_TARGETS.map((t) => t.delegate));
+  const excluded = new Set(KNOWN_EXCLUDED_MODELS);
   const delegateOf = (model: string): string =>
     model.charAt(0).toLowerCase() + model.slice(1);
+
+  it('finds dual-keyed models in the schema (sanity)', () => {
+    // If this ever hits zero, the parser broke — not the config.
+    expect(dualKeyed.length).toBeGreaterThan(40);
+  });
+
+  it('covers or explicitly excludes every dual-keyed model', () => {
+    const uncovered = dualKeyed
+      .map((m) => m.name)
+      .filter(
+        (name) =>
+          !coveredDelegates.has(delegateOf(name)) && !excluded.has(name),
+      );
+
+    expect(
+      uncovered,
+      `New dual-keyed model(s) found in schema.prisma with no cascade handling: ` +
+        `${uncovered.join(', ')}. Add each to FIRST_ORDER_TARGETS (with the correct ` +
+        `brand/org field pairing) or to KNOWN_EXCLUDED_MODELS in ` +
+        `brand-org-cascade.constants.ts.`,
+    ).toEqual([]);
+  });
 
   it('every first-order target names fields that exist on its model', () => {
     const byDelegate = new Map(dualKeyed.map((m) => [delegateOf(m.name), m]));
@@ -143,5 +170,24 @@ describe('brand-org-cascade config', () => {
         `${target.delegate}.${target.orgField} not an org scalar`,
       ).toContain(target.orgField);
     }
+  });
+
+  it('has no duplicate first-order delegates', () => {
+    const seen = new Set<string>();
+    const dupes: string[] = [];
+    for (const t of FIRST_ORDER_TARGETS) {
+      if (seen.has(t.delegate)) {
+        dupes.push(t.delegate);
+      }
+      seen.add(t.delegate);
+    }
+    expect(dupes).toEqual([]);
+  });
+
+  it('second-order targets do not overlap first-order delegates', () => {
+    const overlap = SECOND_ORDER_TARGETS.filter((s) =>
+      coveredDelegates.has(s.delegate),
+    ).map((s) => s.delegate);
+    expect(overlap).toEqual([]);
   });
 });

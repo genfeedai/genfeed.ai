@@ -1,7 +1,3 @@
-import type {
-  BaseCommentData,
-  BaseVideoData,
-} from '@api/services/shared/content-normalization.util';
 import {
   CommonExtractors,
   normalizeComments,
