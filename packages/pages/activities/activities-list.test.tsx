@@ -122,6 +122,28 @@ describe('ActivitiesList', () => {
     expect(screen.queryByText('1 credits used')).not.toBeInTheDocument();
   });
 
+  it('shows the settled cost on a generation row', () => {
+    mockActivities = [
+      buildActivity({
+        key: ActivityKey.IMAGE_GENERATED,
+        value: JSON.stringify({ credits: 4, resultId: 'img-1' }),
+      }),
+    ];
+    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    expect(screen.getByText('−4 credits')).toBeInTheDocument();
+  });
+
+  it('shows a dash when a generation has no recorded charge', () => {
+    mockActivities = [
+      buildActivity({
+        key: ActivityKey.IMAGE_GENERATED,
+        value: JSON.stringify({ resultId: 'img-1' }),
+      }),
+    ];
+    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    expect(screen.getByText('—')).toBeInTheDocument();
+  });
+
   it('renders the activities container', () => {
     const { container } = render(
       <ActivitiesList
