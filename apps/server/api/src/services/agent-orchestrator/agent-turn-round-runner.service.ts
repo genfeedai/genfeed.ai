@@ -40,6 +40,76 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const RESULT_SUMMARY_MAX_LENGTH = 500;
+// Every agent tool is itself a nested workflow run. Without a ceiling, one
+// stalled nested run holds the whole turn (and its Stop button) forever, because
+// cancellation was only observed between tools.
+const TOOL_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000;
+const TOOL_CANCEL_POLL_INTERVAL_MS = 1500;
+
+type ToolRaceOutcome<T> =
+  | { kind: 'settled'; value: T }
+  | { kind: 'cancelled' }
+  | { kind: 'timed-out' };
+
+/**
+ * Wait for a tool call, but stop waiting when the run is cancelled or the
+ * call outlives its timeout. The abandoned call is left to finish on its own;
+ * its rejection is swallowed so it cannot surface as an unhandled rejection.
+ */
+async function raceToolExecution<T>(
+  execution: Promise<T>,
+  options: {
+    isCancelled?: () => Promise<boolean>;
+    pollIntervalMs: number;
+    timeoutMs: number;
+  },
+): Promise<ToolRaceOutcome<T>> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  let pollHandle: ReturnType<typeof setTimeout> | undefined;
+  let isDone = false;
+
+  const settled = execution.then(
+    (value): ToolRaceOutcome<T> => ({ kind: 'settled', value }),
+  );
+  settled.catch(() => undefined);
+  const timedOut = new Promise<ToolRaceOutcome<T>>((resolve) => {
+    timeoutHandle = setTimeout(
+      () => resolve({ kind: 'timed-out' }),
+      options.timeoutMs,
+    );
+  });
+  const cancelled = new Promise<ToolRaceOutcome<T>>((resolve) => {
+    const { isCancelled } = options;
+    if (!isCancelled) {
+      return;
+    }
+    const poll = async (): Promise<void> => {
+      if (isDone) {
+        return;
+      }
+      try {
+        if (await isCancelled()) {
+          resolve({ kind: 'cancelled' });
+          return;
+        }
+      } catch {
+        // A transient lookup failure must not end the run; poll again.
+      }
+      if (!isDone) {
+        pollHandle = setTimeout(poll, options.pollIntervalMs);
+      }
+    };
+    pollHandle = setTimeout(poll, options.pollIntervalMs);
+  });
+
+  try {
+    return await Promise.race([settled, timedOut, cancelled]);
+  } finally {
+    isDone = true;
+    clearTimeout(timeoutHandle);
+    clearTimeout(pollHandle);
+  }
+}
 const TERMINAL_RESULT_TOOLS = new Set<CuratedActionName>([
   'generate_image',
   'generate_video',
@@ -587,14 +657,45 @@ export class AgentTurnRoundRunnerService {
         });
       toolParams = preparedToolCall.parameters;
 
-      const result = await this.toolExecutorService.executeTool(
-        toolName,
-        toolParams,
-        this.buildToolExecutionContext(
-          params,
-          preparedToolCall.confirmationContext,
+      const { onBeforeTool } = strategy;
+      const toolOutcome = await raceToolExecution(
+        this.toolExecutorService.executeTool(
+          toolName,
+          toolParams,
+          this.buildToolExecutionContext(
+            params,
+            preparedToolCall.confirmationContext,
+          ),
         ),
+        {
+          isCancelled: onBeforeTool
+            ? async () => (await onBeforeTool()) === 'cancel'
+            : undefined,
+          pollIntervalMs: TOOL_CANCEL_POLL_INTERVAL_MS,
+          timeoutMs: TOOL_EXECUTION_TIMEOUT_MS,
+        },
       );
+      if (toolOutcome.kind === 'cancelled') {
+        this.loggerService.warn(
+          `${this.constructorName} run cancelled while ${toolName} was still running`,
+          { threadId, toolName },
+        );
+        return { isCancelled: true, wasInterrupted: true };
+      }
+      const result: AgentToolResult =
+        toolOutcome.kind === 'timed-out'
+          ? {
+              creditsUsed: 0,
+              error: `${toolName} did not finish within ${TOOL_EXECUTION_TIMEOUT_MS / 1000}s`,
+              success: false,
+            }
+          : toolOutcome.value;
+      if (toolOutcome.kind === 'timed-out') {
+        this.loggerService.error(
+          `${this.constructorName} tool execution timed out`,
+          { threadId, toolName },
+        );
+      }
       const modelVisibleResult =
         this.toolConfirmationService.buildModelVisibleResult(toolName, result);
 
