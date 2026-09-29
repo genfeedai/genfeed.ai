@@ -82,6 +82,13 @@ export interface IPlatformFeatureSettings {
   isEmailVerificationRequired: boolean;
   /** Module and feature flags (#5468), edited from Admin → Flags. */
   flags: IPlatformFlags;
+  /**
+   * Workflows pinned to every organization's templates Featured row (#5511),
+   * in display order. Edited from Admin → Automation → Workflows through the
+   * dedicated pin endpoints, never through the settings patch; empty hides
+   * Featured.
+   */
+  featuredWorkflowIds: readonly string[];
 }
 
 /**
@@ -154,7 +161,9 @@ export interface IPlatformSetting
 
 /** Fields a platform operator may update via `/admin`. */
 export interface IUpdatePlatformSettingPayload
-  extends Partial<Omit<IPlatformFeatureSettings, 'flags'>> {
+  extends Partial<
+    Omit<IPlatformFeatureSettings, 'featuredWorkflowIds' | 'flags'>
+  > {
   /** Flags to change; omitted flags keep their stored value (#5468). */
   flags?: Partial<Record<PlatformFlagKey, boolean>>;
   marginMultiplierGeneration?: number;

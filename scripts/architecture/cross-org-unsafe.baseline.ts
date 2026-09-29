@@ -33,4 +33,12 @@ export const CROSS_ORG_UNSAFE_BASELINE: readonly CrossOrgUnsafeBaselineEntry[] =
       file: 'apps/server/api/src/collections/billing-accounts/services/billing-accounts.service.ts',
       line: 891,
     },
+    // #5511: admin-pinned Featured workflows are platform-curated and read by
+    // every organization. The read is limited to the pinned ids, non-deleted
+    // and non-system, and only a sanitized projection (display fields plus
+    // the graph with source-org bindings blanked) leaves the service.
+    {
+      file: 'apps/server/api/src/collections/workflows/services/featured-workflows.service.ts',
+      line: 214,
+    },
   ];

@@ -11,8 +11,13 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PlatformSettingsPage from './platform-settings-page';
 
-// Flags are edited on Admin → Flags (#5468); the settings page never resends them.
-const { flags: _flags, ...SAVED_SWITCHES } = DEFAULT_PLATFORM_FEATURE_SETTINGS;
+// Flags are edited on Admin → Flags (#5468) and Featured pins on Admin →
+// Automation → Workflows (#5511); the settings page never resends either.
+const {
+  featuredWorkflowIds: _featuredWorkflowIds,
+  flags: _flags,
+  ...SAVED_SWITCHES
+} = DEFAULT_PLATFORM_FEATURE_SETTINGS;
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
@@ -515,6 +520,27 @@ describe('PlatformSettingsPage', () => {
       await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
       expect(mocks.updateSettings.mock.calls[0]?.[0]).not.toHaveProperty(
         'flags',
+      );
+    });
+
+    it('never resends the Featured pins edited on Admin → Workflows (#5511)', async () => {
+      mocks.getSettings.mockResolvedValue({
+        featuredWorkflowIds: ['wf-pinned'],
+        id: 'platform-settings',
+        marginInputMode: 'MARGIN',
+        marginMultiplierAgentChat: 1.7,
+        marginMultiplierGeneration: 3.33,
+        typedDecisionProvider: 'jev',
+      });
+      render(<PlatformSettingsPage />);
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: /save settings/i }),
+      );
+
+      await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
+      expect(mocks.updateSettings.mock.calls[0]?.[0]).not.toHaveProperty(
+        'featuredWorkflowIds',
       );
     });
 

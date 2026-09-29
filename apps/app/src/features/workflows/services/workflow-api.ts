@@ -21,6 +21,7 @@ import type {
   CreateWorkflowInput,
   ExecuteOptions,
   ExecutionResult,
+  FeaturedWorkflow,
   ListExecutionsParams,
   ResumeExecutionResult,
   SystemWorkflowCatalogEntry,
@@ -550,6 +551,42 @@ export class WorkflowApiService extends HTTPBaseService {
       );
     } catch (error) {
       logger.error('Failed to list workflow templates', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * The Featured row (#5511): workflows a platform superadmin pinned, in pin
+   * order. Plain `{ data }` payload like the templates list; empty when
+   * nothing is pinned.
+   */
+  async listFeatured(): Promise<FeaturedWorkflow[]> {
+    try {
+      const response = await this.instance.get<{ data: FeaturedWorkflow[] }>(
+        '/featured',
+      );
+      return response.data.data;
+    } catch (error) {
+      logger.error('Failed to list featured workflows', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * "Use" on a Featured workflow (#5511): copies it into the active
+   * organization as a new draft via `POST /workflows` with
+   * sourceType=featured-workflow. The pinned source is never modified.
+   */
+  async copyFeatured(workflowId: string): Promise<CloudWorkflowData> {
+    try {
+      const response = await this.instance.post<JsonApiResponseDocument>('', {
+        sourceType: 'featured-workflow',
+        sourceWorkflowId: workflowId,
+      });
+      const item = deserializeResource<CloudWorkflowData>(response.data);
+      return this.normalizeWorkflowData(item);
+    } catch (error) {
+      logger.error('Failed to use featured workflow', { error, workflowId });
       throw error;
     }
   }

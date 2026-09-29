@@ -1,4 +1,6 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import type { FeaturedWorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { WorkflowStatus } from '@genfeedai/contracts';
 
@@ -81,6 +83,41 @@ export function buildWorkflowCreatePayload(input: {
   );
 }
 
+/**
+ * Create payload for a copy of an admin-pinned Featured workflow (#5511): a
+ * draft in the caller's organization built only from the Featured projection
+ * (label, description, thumbnail, graph). No config, schedule, locks, owner
+ * or brand of the source organization carries over.
+ */
+export function buildFeaturedWorkflowCopyPayload(input: {
+  brandId?: string;
+  featured: FeaturedWorkflowDocument;
+  organizationId: string;
+  userId: string;
+}): Record<string, unknown> {
+  const { featured } = input;
+  return buildWorkflowCreatePayload({
+    brandId: input.brandId,
+    defaultLabel: 'Featured workflow',
+    organizationId: input.organizationId,
+    userId: input.userId,
+    workflowData: {
+      description: featured.description ?? undefined,
+      edges: featured.edges,
+      edgeStyle: featured.edgeStyle,
+      inputVariables: featured.inputVariables,
+      label: featured.label ?? '',
+      metadata: {
+        sourceFeaturedWorkflowId: featured.id,
+        sourceType: 'featured-workflow',
+      },
+      nodes: featured.nodes,
+      status: WorkflowStatus.DRAFT,
+      thumbnail: featured.thumbnail ?? undefined,
+    },
+  });
+}
+
 export function getDefaultInputValuesFromWorkflowData(
   workflowData: Pick<CreateWorkflowDto, 'inputVariables'>,
 ): Record<string, unknown> {
@@ -111,4 +148,49 @@ function isMissingInputValue(value: unknown): boolean {
     value === null ||
     (typeof value === 'string' && value.trim().length === 0)
   );
+}
+
+/**
+ * When creating from a known template, fills graph/input-schema/schedule
+ * fields the caller left empty. Non-template creates pass through unchanged.
+ */
+export function applyWorkflowTemplateDefaults(
+  workflowData: CreateWorkflowDto,
+  templateMetadata: Record<string, unknown> | undefined,
+): CreateWorkflowDto {
+  if (
+    !workflowData.templateId ||
+    !WORKFLOW_TEMPLATES[workflowData.templateId]
+  ) {
+    return workflowData;
+  }
+
+  const template = WORKFLOW_TEMPLATES[workflowData.templateId];
+  const routineMetadata = template.routine
+    ? { productizedRoutine: template.routine }
+    : {};
+  const shouldUseTemplateEdges =
+    !workflowData.edges || workflowData.edges.length === 0;
+  const shouldUseTemplateInputVariables =
+    !workflowData.inputVariables || workflowData.inputVariables.length === 0;
+  const shouldUseTemplateNodes =
+    !workflowData.nodes || workflowData.nodes.length === 0;
+
+  return {
+    ...workflowData,
+    edges: shouldUseTemplateEdges ? template.edges : workflowData.edges,
+    inputVariables: shouldUseTemplateInputVariables
+      ? template.inputVariables
+      : workflowData.inputVariables,
+    isScheduleEnabled:
+      workflowData.isScheduleEnabled ?? template.isScheduleEnabled,
+    metadata: {
+      ...templateMetadata,
+      ...routineMetadata,
+      ...(workflowData.metadata ?? {}),
+    },
+    nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
+    schedule: workflowData.schedule ?? template.schedule,
+    timezone: workflowData.timezone ?? template.timezone,
+  };
 }

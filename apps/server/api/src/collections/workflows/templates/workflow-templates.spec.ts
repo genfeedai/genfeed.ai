@@ -1,49 +1,21 @@
 import { listSystemWorkflowCatalog } from '@api/collections/workflows/system-workflow-catalog';
-import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
-  WORKFLOW_TEMPLATES,
-} from '@api/collections/workflows/templates/workflow-templates';
+import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
+import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { describe, expect, it } from 'vitest';
 
 const UNRESOLVED_TEMPLATE_PLACEHOLDER = /\$\{[^}]+\}/;
 
-describe('WorkflowTemplates showcase ranking', () => {
-  it('ranks the curated showcase set in display order', () => {
-    expect(
-      SHOWCASE_WORKFLOW_TEMPLATE_IDS.map(
-        (templateId) => WORKFLOW_TEMPLATES[templateId]?.featuredRank,
-      ),
-    ).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(SHOWCASE_WORKFLOW_TEMPLATE_IDS).toEqual([
-      'founder-x-thread',
-      'avatar-ugc-x-landscape-heygen',
-      'daily-brand-social-publishing',
-      'avatar-ugc-heygen',
-      'founder-editorial-illustration',
-      'weekly-brand-ai-content-loop',
-      'youtube-thumbnail-script',
-    ]);
-  });
-
-  it('keeps the Featured row between four and eight templates', () => {
-    expect(SHOWCASE_WORKFLOW_TEMPLATE_IDS.length).toBeGreaterThanOrEqual(4);
-    expect(SHOWCASE_WORKFLOW_TEMPLATE_IDS.length).toBeLessThanOrEqual(8);
-  });
-
-  it('omits featuredRank on every other template', () => {
-    const showcaseIds = new Set<string>(SHOWCASE_WORKFLOW_TEMPLATE_IDS);
-    const rankedOutsideShowcase = Object.entries(WORKFLOW_TEMPLATES)
-      .filter(
-        ([templateId, template]) =>
-          !showcaseIds.has(templateId) && 'featuredRank' in template,
-      )
+describe('WorkflowTemplates engine-verified starters', () => {
+  it('never rank a code template: Featured is admin-pinned (#5511)', () => {
+    const ranked = Object.entries(WORKFLOW_TEMPLATES)
+      .filter(([, template]) => 'featuredRank' in template)
       .map(([templateId]) => templateId);
 
-    expect(rankedOutsideShowcase).toEqual([]);
+    expect(ranked).toEqual([]);
   });
 
-  it('only features complete graphs with wired edges and no unresolved placeholders', () => {
-    for (const templateId of SHOWCASE_WORKFLOW_TEMPLATE_IDS) {
+  it('are complete graphs with wired edges and no unresolved placeholders', () => {
+    for (const templateId of ENGINE_VERIFIED_TEMPLATE_IDS) {
       const template = WORKFLOW_TEMPLATES[templateId];
 
       expect(template?.id).toBe(templateId);
@@ -55,7 +27,7 @@ describe('WorkflowTemplates showcase ranking', () => {
     }
   });
 
-  it('never carries featuredRank on system catalog entries', () => {
+  it('never carry featuredRank on system catalog entries', () => {
     const rankedCatalogEntries = listSystemWorkflowCatalog()
       .filter((entry) => 'featuredRank' in entry)
       .map((entry) => entry.canonicalId);
