@@ -161,25 +161,14 @@ export function AgentThreadListRow({
   // must still render with archived chrome.
   const isArchived =
     isArchivedView || conv.status === AgentThreadStatus.ARCHIVED;
-  // Treat local streaming/busy as running so the glyph stays current.
-  const statusMetaBase = getThreadStatusMeta(conv, {
-    activeRunStatus: activeRunStatus ?? undefined,
+  // Same resolver as the sidebar groups, so the glyph can never disagree with
+  // the section the row sits in.
+  const statusMeta = getThreadStatusMeta(conv, {
+    activeRunStatus,
     activeThreadId,
+    isLocallyBusy: threadUiBusyById[conv.id] === true,
+    isStreaming,
   });
-  const isLocallyWorking =
-    isActiveConversation &&
-    (isStreaming ||
-      activeRunStatus === 'running' ||
-      activeRunStatus === 'cancelling' ||
-      threadUiBusyById[conv.id] === true);
-  const statusMeta =
-    statusMetaBase ??
-    (isLocallyWorking
-      ? {
-          label: translate('running'),
-          tone: 'running' as const,
-        }
-      : null);
 
   const relativeTime = formatRelativeTime(
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,

@@ -1064,8 +1064,8 @@ describe('AgentThreadList', () => {
     ).toBe(true);
   });
 
-  it('does not show a status pill for a non-active thread with stale running status', async () => {
-    const thread = createThread('conv-1', 'Old stuck thread', {
+  it('keeps a running thread Running when it is not the open thread', async () => {
+    const thread = createThread('conv-1', 'Still running thread', {
       runStatus: 'running',
     } as Partial<AgentThread>);
     storeState.activeThreadId = 'conv-2';
@@ -1078,8 +1078,26 @@ describe('AgentThreadList', () => {
 
     render(<AgentThreadList apiService={apiService as never} />);
 
-    expect(await screen.findByText('Old stuck thread')).toBeInTheDocument();
-    expect(screen.queryByText('Running')).toBeNull();
+    expect(await screen.findByText('Still running thread')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Running' })).toBeInTheDocument();
+  });
+
+  it('keeps the open thread Running right after a switch reset its run status to idle', async () => {
+    const thread = createThread('conv-1', 'Just reopened', {
+      runStatus: 'running',
+    } as Partial<AgentThread>);
+    storeState.activeThreadId = 'conv-1';
+    storeState.activeRunStatus = 'idle';
+
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Just reopened')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Running' })).toBeInTheDocument();
   });
 
   it('ignores a previous brand request that rejects after the next load starts', async () => {

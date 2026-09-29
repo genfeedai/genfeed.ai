@@ -95,8 +95,9 @@ export function AgentThreadList({
         // Filtering moved to the command palette; the grouping helpers still
         // take a query, so pass an explicit empty one rather than undefined.
         searchQuery: '',
+        threadUiBusyById,
       }),
-    [activeRunStatus, activeThreadId, isStreaming, threads],
+    [activeRunStatus, activeThreadId, isStreaming, threadUiBusyById, threads],
   );
   const brandGroups = useMemo(
     () => groupAgentThreadsByBrand(threads, { searchQuery: '' }),
