@@ -442,27 +442,29 @@ export const SELF_HOSTED_MODELS = [
   /**
    * HeyGen photo-avatar video (`POST /v2/video/generate`, `type: photo_avatar`).
    * Direct integration (`HeyGenService`), platform key or org BYOK. HeyGen bills
-   * the API in USD per output second (Avatar IV/V: $0.05/s at 720p/1080p, per
-   * HeyGen's 2026 pay-as-you-go API pricing), so this row is `PER_SECOND`. The
-   * render length comes from the audio, which is unknown at admission, so the
-   * guard quotes the capability's `defaultDuration`. Re-check against the
-   * HeyGen dashboard (Developers → API → Pricing) when list prices change.
+   * the API in USD per output second, so this row is `PER_SECOND`. Priced at the
+   * Avatar IV Photo Avatar rate, $0.0385/s at 720p/1080p, from HeyGen's API
+   * pricing table (Avatar III photo is $0.0165/s; Avatar V has no photo avatars).
+   * The render length comes from the audio, which is unknown at admission, so the
+   * guard quotes the capability's `defaultDuration`. Re-check against the HeyGen
+   * dashboard (Developers → API → Pricing) when list prices change.
    * Credits ≈ providerCostUsd × 3.33 margin × 100 (same basis as MiniMax H3).
    */
   {
     category: ModelCategory.VOICE,
-    cost: 167,
-    costPerUnit: 17,
-    costTier: CostTier.HIGH,
+    cost: 128,
+    costPerUnit: 13,
+    costTier: CostTier.MEDIUM,
     description:
       'HeyGen Avatar — talking-photo avatar video from a photo and a voice or audio track.',
     isDefault: false,
     isHighlighted: false,
     key: MODEL_KEYS.HEYGEN_AVATAR,
     label: 'HeyGen Avatar',
-    minCost: 17,
+    minCost: 13,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.HEYGEN,
-    providerCostUsd: 0.05,
+    providerConfig: { name: 'avatar', owner: 'heygen' },
+    providerCostUsd: 0.0385,
   },
 ] as const;
