@@ -87,6 +87,7 @@ describe('MusicGenerationService', () => {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
     const loggerService = {
+      debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
     };
