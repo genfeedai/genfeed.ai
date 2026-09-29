@@ -2,20 +2,20 @@ import { ComponentSize } from '@genfeedai/contracts';
 import { cva } from 'class-variance-authority';
 
 /**
- * CVA spinner variants with multiple sizes
+ * CVA spinner variants; the animated G mark fills the box
  */
 export const spinnerVariants = cva(
-  'inline-block animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]',
+  'genfeed-loader-root inline-flex shrink-0 items-center justify-center',
   {
     defaultVariants: {
       size: ComponentSize.MD,
     },
     variants: {
       size: {
-        [ComponentSize.LG]: 'size-6 border-2',
-        [ComponentSize.MD]: 'size-5 border-2',
-        [ComponentSize.SM]: 'size-4 border',
-        [ComponentSize.XS]: 'size-3 border',
+        [ComponentSize.LG]: 'size-6',
+        [ComponentSize.MD]: 'size-5',
+        [ComponentSize.SM]: 'size-4',
+        [ComponentSize.XS]: 'size-3',
       },
     },
   },

@@ -16,7 +16,7 @@ describe('Spinner', () => {
     const spinner = screen.getByRole('status');
     expect(spinner).toBeInTheDocument();
     expect(spinner).toHaveAttribute('aria-label', 'Loading');
-    expect(spinner).toHaveClass('animate-spin');
+    expect(spinner).toHaveClass('genfeed-loader-root');
   });
 
   it('renders with custom size', () => {
@@ -45,14 +45,14 @@ describe('Spinner', () => {
 
     const spinner = screen.getByRole('status');
     expect(spinner).toBeInTheDocument();
-    expect(spinner).toHaveClass('animate-spin');
+    expect(spinner).toHaveClass('genfeed-loader-root');
   });
 
   it('handles empty string className', () => {
     render(<Spinner className="" />);
 
     const spinner = screen.getByRole('status');
-    expect(spinner).toHaveClass('animate-spin');
+    expect(spinner).toHaveClass('genfeed-loader-root');
   });
 
   it('renders with different size variants', () => {

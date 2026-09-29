@@ -64,8 +64,8 @@ describe('WorkflowToolbar', () => {
       <WorkflowToolbar {...defaultProps} isDirty={true} isSaving={true} />,
     );
     // When isSaving is true, the Button component hides the "Save" label and shows a spinner.
-    // Find the button that contains the spinner (animate-spin class).
-    const spinner = container.querySelector('.animate-spin');
+    // Find the button that contains the spinner (genfeed-loader-root class).
+    const spinner = container.querySelector('.genfeed-loader-root');
     expect(spinner).toBeInTheDocument();
     const saveButton = spinner?.closest('button');
     expect(saveButton).toBeDisabled();
@@ -128,7 +128,7 @@ describe('WorkflowToolbar', () => {
     const { container } = render(
       <WorkflowToolbar {...defaultProps} isDirty={true} isSaving={true} />,
     );
-    // When isSaving is true, a Spinner with animate-spin class is rendered
-    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    // When isSaving is true, a Spinner with genfeed-loader-root class is rendered
+    expect(container.querySelector('.genfeed-loader-root')).toBeInTheDocument();
   });
 });
