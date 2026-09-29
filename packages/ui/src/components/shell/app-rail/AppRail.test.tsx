@@ -147,9 +147,11 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 const { AppRail } = await import('./AppRail');
 
 describe('AppRail', () => {
-  it('shows the same numbered shortcut in the tooltip and palette', () => {
+  it('keeps the web G-then-N shortcut in the palette, not the tooltip', () => {
     render(<AppRail orgSlug="acme" />);
-    expect(screen.getAllByTestId('rail-tooltip')[0]).toHaveTextContent('G 1');
+    expect(
+      screen.getAllByTestId('rail-tooltip')[0].querySelector('kbd'),
+    ).toBeNull();
     expect(commands.registerCommands.mock.lastCall?.[0][0].shortcut).toEqual([
       'G',
       '1',
@@ -425,6 +427,42 @@ describe('AppRail', () => {
         screen.getByRole('link', { name: 'Agent' }),
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('pins the footer at the very bottom, below Admin', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        showAdmin
+        footer={<div data-testid="rail-footer">Help and account</div>}
+      />,
+    );
+
+    const bottom = screen.getByTestId('app-rail-bottom');
+    expect(bottom).toContainElement(
+      screen.getByRole('link', { name: 'Admin' }),
+    );
+    expect(bottom).toContainElement(screen.getByTestId('rail-footer'));
+    expect(
+      screen
+        .getByRole('link', { name: 'Admin' })
+        .compareDocumentPosition(screen.getByTestId('rail-footer')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps the footer when there is no Admin', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        footer={<div data-testid="rail-footer">Help and account</div>}
+      />,
+    );
+
+    expect(screen.getByTestId('rail-footer')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Admin' }),
+    ).not.toBeInTheDocument();
   });
 
   it('pins Admin below the product apps', () => {
@@ -937,13 +975,13 @@ describe('AppRail', () => {
     ).not.toHaveAttribute('aria-current');
   });
 
-  it('highlights Studio for the merged edit surface', () => {
+  it('highlights Studio for the Editor surface', () => {
     // #2309: the editor is no longer a publish-adjacent surface.
     render(
       <AppRail
         orgSlug="acme"
         brandSlug="my-brand"
-        currentPath="/acme/my-brand/studio/edit/new"
+        currentPath="/acme/my-brand/studio/editor/new"
       />,
     );
 

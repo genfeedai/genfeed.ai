@@ -97,13 +97,13 @@ export default function MasonryVideoMediaArea({
             >
               <div
                 role="presentation"
-                className="pointer-events-auto"
+                className="pointer-events-auto max-w-full px-2"
                 onClick={(e) => e.stopPropagation()}
               >
                 <DropdownStatus
                   entity={video}
                   onStatusChange={onRefresh}
-                  className="scale-110"
+                  isStacked
                 />
               </div>
             </div>

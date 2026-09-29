@@ -19,7 +19,10 @@ import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
-  assetSelection: { published: null as { id: string } | null },
+  assetSelection: {
+    lightboxRequestCount: 0,
+    published: null as { id: string } | null,
+  },
   setSelectedAsset: vi.fn(),
 }));
 
@@ -33,6 +36,7 @@ vi.mock('next-intl', async () => {
 
 vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
   useAssetSelection: () => ({
+    lightboxRequestCount: assetSelection.lightboxRequestCount,
     selectedIngredient: assetSelection.published,
     setSelectedAsset,
   }),
@@ -533,7 +537,42 @@ describe('IngredientsListContent audio playback', () => {
 describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
     setSelectedAsset.mockClear();
+    assetSelection.lightboxRequestCount = 0;
     assetSelection.published = null;
+  });
+
+  it('selects a clicked brand asset instead of opening the lightbox', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenLightbox } = renderContent({
+      filteredIngredients: [videoIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+
+    fireEvent.click(screen.getByTestId('media-grid-item'));
+
+    expect(onSelectionChange).toHaveBeenCalledWith([videoIngredient.id]);
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+  });
+
+  it('opens the lightbox for the inspected asset when the sidebar asks', () => {
+    const { onOpenLightbox, rerenderContent } = renderContent({
+      filteredIngredients: [videoIngredient],
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+
+    assetSelection.lightboxRequestCount = 1;
+    rerenderContent();
+
+    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
   });
 
   it('clears its own selection when the sidebar close clears the shared one', () => {

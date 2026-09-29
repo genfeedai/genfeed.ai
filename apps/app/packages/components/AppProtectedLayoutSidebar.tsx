@@ -5,6 +5,7 @@ import { SettingsSurface } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   MenuSharedProps,
   SidebarNavPanel,
@@ -16,16 +17,14 @@ import AppSidebar from '@ui/shell/menus/AppSidebar';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-
 import AppProtectedBrandSwitcher from '@/components/shell/AppProtectedBrandSwitcher';
-import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
+import { useOpenTaskComposer } from './useOpenTaskComposer';
 
 type AppSidebarSurface = {
   active: boolean;
   items: MenuItemConfig[];
   currentApp?: MenuSharedProps['currentApp'];
   sectionLabel?: string;
-  showUserProfile?: boolean;
 };
 
 type Props = {
@@ -112,6 +111,10 @@ export default function AppProtectedLayoutSidebar({
 }: Props) {
   const translate = useTranslations('common.sidebar');
   const router = useRouter();
+  const openTaskComposer = useOpenTaskComposer();
+  // Browsers reserve ⌘⇧N (incognito window), so only the desktop app has it.
+  const isDesktop = useIsDesktopClient();
+  const newItemShortcut = isDesktop ? '⌘⇧N' : undefined;
   const { href } = useOrgUrl();
   // The header carries the brand switcher (Codex "Codex ▾" slot); the
   // organization avatar lives on the app rail. The brand switcher hides itself
@@ -134,8 +137,8 @@ export default function AppProtectedLayoutSidebar({
         ariaLabel={translate('newTaskAriaLabel')}
         icon={<Plus className="size-4 flex-shrink-0" />}
         label={translate('newTask')}
-        onClick={dispatchOpenTaskComposer}
-        shortcut="⌘⇧N"
+        onClick={openTaskComposer}
+        shortcut={newItemShortcut}
         testId="sidebar-primary-action"
       />
       <SidebarSearchTrigger label={translate('search')} />
@@ -152,7 +155,7 @@ export default function AppProtectedLayoutSidebar({
         icon={<Plus className="size-4 flex-shrink-0" />}
         label={translate('newConversation')}
         onClick={() => router.push(href(APP_ROUTES.AGENT.NEW))}
-        shortcut="⌘⇧N"
+        shortcut={newItemShortcut}
         testId="sidebar-primary-action"
       />
       <SidebarSearchTrigger label={translate('search')} />
@@ -198,7 +201,6 @@ export default function AppProtectedLayoutSidebar({
       {
         active: isAdminRoute,
         items: adminMenuItems,
-        showUserProfile: true,
       },
       {
         active: isPublishingRoute,
@@ -255,7 +257,6 @@ export default function AppProtectedLayoutSidebar({
         items={surface.items}
         sectionLabel={navPanel ? navPanel.sectionLabel : surface.sectionLabel}
         headerSlot={headerSlot}
-        showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
         renderTopSlot={
@@ -279,7 +280,6 @@ export default function AppProtectedLayoutSidebar({
       renderTopSlot={renderQuickActions}
       secondaryItems={secondaryMenuItems}
       showPrimaryItems
-      showUserProfile
       sidebarWidth={sidebarWidth}
     />
   );

@@ -73,6 +73,20 @@ const SCHEMA_KEYWORDS = [
   'then',
 ] as const;
 
+const ACTION_CONTRACT_FAILURE_PATTERN =
+  /Action contract (?:compilation failed|(?:input|output) validation failed) \[action=/;
+
+/**
+ * Whether `message` reports an action-contract failure — a schema that does
+ * not compile or a payload that violates it. Both are deterministic: the same
+ * graph and input fail identically on every retry, so a queue must not retry
+ * them. A graph run flattens node errors into a string (`Nodes failed: <node>:
+ * <message>`), so this matches anywhere in the message rather than by type.
+ */
+export function isActionContractFailureMessage(message: string): boolean {
+  return ACTION_CONTRACT_FAILURE_PATTERN.test(message);
+}
+
 export class ActionContractCompilationError extends Error {
   constructor(
     actionId: string,

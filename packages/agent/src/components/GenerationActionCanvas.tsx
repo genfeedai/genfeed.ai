@@ -54,9 +54,9 @@ function libraryHref(type: 'image' | 'video', id: string): string {
   );
 }
 
-function studioEditHref(type: 'image' | 'video', id: string): string {
-  // Studio edit owns production polish; deep-link to the asset in studio context.
-  return `${APP_ROUTES.STUDIO.EDIT}?${type}Id=${encodeURIComponent(id)}`;
+function studioEditorHref(type: 'image' | 'video', id: string): string {
+  // The Studio Editor owns production polish; deep-link to the asset in studio context.
+  return `${APP_ROUTES.STUDIO.EDITOR}?${type}Id=${encodeURIComponent(id)}`;
 }
 
 export function GenerationActionCanvas({
@@ -209,7 +209,7 @@ export function GenerationActionCanvas({
                   {translate('library')}
                 </Link>
                 <Link
-                  href={href(studioEditHref(asset.type, asset.id))}
+                  href={href(studioEditorHref(asset.type, asset.id))}
                   className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                   title={translate('openStudioTitle')}
                 >

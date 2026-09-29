@@ -67,6 +67,19 @@ function useColumnCount(format?: IngredientFormat): number {
   }, [format, viewportWidth]);
 }
 
+/**
+ * CSS `column-count` fills each column top to bottom, so a newest-first list
+ * reads down the first column before touching the second. Dealing items out
+ * round-robin keeps the masonry look while the order reads left to right.
+ */
+function dealIntoColumns<T>(items: T[], columnCount: number): T[][] {
+  const columns: T[][] = Array.from({ length: columnCount }, () => []);
+  items.forEach((item, index) => {
+    columns[index % columnCount].push(item);
+  });
+  return columns;
+}
+
 function IngredientsMediaGridSkeleton({
   columnCount,
 }: {
@@ -199,10 +212,23 @@ export default function IngredientsMediaGrid({
   };
 
   const timeGroups = groupIngredientsByTime(items);
-  const columnStyle = { columnCount, columnGap: COLUMN_GAP };
+
+  const renderColumns = (columnItems: IIngredient[]) => (
+    <div className="flex items-start" style={{ gap: COLUMN_GAP }}>
+      {dealIntoColumns(columnItems, columnCount).map((column, index) => (
+        <div
+          key={index}
+          className="flex min-w-0 flex-1 flex-col"
+          data-masonry-column={index}
+        >
+          {column.map(renderIngredient)}
+        </div>
+      ))}
+    </div>
+  );
 
   if (!timeGroups) {
-    return <div style={columnStyle}>{items.map(renderIngredient)}</div>;
+    return renderColumns(items);
   }
 
   return (
@@ -213,7 +239,7 @@ export default function IngredientsMediaGrid({
             {group.label}
             <span className="text-foreground/55"> · {group.items.length}</span>
           </h3>
-          <div style={columnStyle}>{group.items.map(renderIngredient)}</div>
+          {renderColumns(group.items)}
         </section>
       ))}
     </div>

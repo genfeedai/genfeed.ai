@@ -53,7 +53,10 @@ function DesktopDragStripContent() {
     <div
       aria-hidden="true"
       data-desktop-drag="true"
-      className="border-b border-border bg-background/95 backdrop-blur"
+      // Merged with the shell: no border, no blur, no alpha. The chrome shell
+      // (rail + sidebar + the root behind this strip) paints gray-100; a page
+      // with no chrome paints background.
+      className="bg-background [body:has([data-shell-chrome=true])_&]:bg-gray-100"
       style={{
         height: 32,
         left: 0,

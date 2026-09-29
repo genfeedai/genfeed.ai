@@ -621,9 +621,16 @@ export function useAgentFullPage({
             setThreadPrompt(threadId, thread.systemPrompt ?? undefined);
             const now = new Date().toISOString();
             const firstUserMessage = msgs.find((msg) => msg.role === 'user');
+            // Opening a thread is not activity on it. Stamping `now` here made
+            // every clicked thread jump to the top of the list (the list sorts
+            // by `updatedAt`), so keep the timestamps the server and the list
+            // already carry and only fall back to `now` for an unseen thread.
+            const listedThread = useAgentChatStore
+              .getState()
+              .threads.find((item) => item.id === threadId);
             upsertThread({
               brandId: thread.brandId,
-              createdAt: now,
+              createdAt: thread.createdAt ?? listedThread?.createdAt ?? now,
               contextVersion: thread.contextVersion,
               id: threadId,
               organizationId: thread.organizationId,
@@ -635,7 +642,11 @@ export function useAgentFullPage({
                 firstUserMessage?.content?.slice(0, 60) ??
                 msgs[0]?.content?.slice(0, 60) ??
                 'Current chat',
-              updatedAt: now,
+              updatedAt:
+                thread.updatedAt ??
+                listedThread?.updatedAt ??
+                thread.createdAt ??
+                now,
               ...buildThreadSummaryFromSnapshot(snapshot, {
                 isVisible: true,
                 now,

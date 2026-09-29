@@ -154,8 +154,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
     pattern: '* * * * *',
     timezone: 'UTC',
   },
+  // The sweep only finds due posts and enqueues one job each (the publish runs
+  // on the background queue), so a per-minute tick is one indexed query.
   [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: {
-    pattern: '*/15 * * * *',
+    pattern: '* * * * *',
     timezone: 'UTC',
   },
   // A creator can park a comment one minute behind its post, so this sweep

@@ -302,12 +302,12 @@ describe('operator-shell helpers', () => {
     expect(buildTaskLaunchHref(task, 'auto')).toBe(
       '/agent/new?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
-    expect(buildTaskLaunchHref(task, 'edit')).toBe(
-      '/studio/edit?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
+    expect(buildTaskLaunchHref(task, 'editor')).toBe(
+      '/studio/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
   });
 
-  it('routes edit tasks to Agent when Studio is unavailable', () => {
+  it('routes Editor tasks to Agent when Studio is unavailable', () => {
     const task = {
       executionPathUsed: 'video_generation',
       id: 'task-101',
@@ -315,7 +315,7 @@ describe('operator-shell helpers', () => {
       title: 'Trim launch teaser',
     } as Task;
 
-    expect(buildTaskLaunchHref(task, 'edit', { studio: false })).toBe(
+    expect(buildTaskLaunchHref(task, 'editor', { studio: false })).toBe(
       '/agent/new?taskExecutionPath=video_generation&taskId=task-101&taskOutputType=video&taskSource=workspace&taskTitle=Trim+launch+teaser',
     );
   });

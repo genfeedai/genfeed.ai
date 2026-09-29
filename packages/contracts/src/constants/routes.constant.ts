@@ -145,7 +145,7 @@ export const APP_ROUTES = {
   /**
    * Legacy long-form editor aliases retained for existing deep links. New
    * operator navigation uses the type-aware `/publishing/posts/{id}` route built
-   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDIT, which is the
+   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDITOR, which is the
    * Remotion project canvas.
    */
   EDIT: {
@@ -344,8 +344,8 @@ export const APP_ROUTES = {
     BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',
     CLIPS_NEW: '/studio/clips/new',
-    EDIT: '/studio/edit',
-    EDIT_NEW: '/studio/edit/new',
+    EDITOR: '/studio/editor',
+    EDITOR_NEW: '/studio/editor/new',
     /**
      * The single-asset playground: every generatable type behind one prompt
      * bar. Asset type is composer state, never a route segment.

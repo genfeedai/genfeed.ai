@@ -19,7 +19,6 @@ import CollapsibleGroup from './CollapsibleGroup';
 import MenuSharedConversations from './MenuSharedConversations';
 import MenuSharedGroupedItems from './MenuSharedGroupedItems';
 import MenuSharedPrimaryAction from './MenuSharedPrimaryAction';
-import SidebarUserProfile from './SidebarUserProfile';
 import { useMenuShared } from './useMenuShared';
 
 export default function MenuShared({
@@ -37,7 +36,6 @@ export default function MenuShared({
   showPrimaryItems = true,
   conversationActions,
   renderFooterSlot,
-  showUserProfile = true,
   headerSlot,
   sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: MenuSharedProps) {
@@ -311,10 +309,6 @@ export default function MenuShared({
             </>
           )}
         </div>
-
-        {showUserProfile ? (
-          <SidebarUserProfile isCollapsed={isCollapsed} />
-        ) : null}
       </div>
     </div>
   );

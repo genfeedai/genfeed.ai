@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ButtonVariant,
   ComponentSize,
   IngredientCategory,
   LIBRARY_SHELF_LABELS,
@@ -14,7 +15,9 @@ import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
+import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
+import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
@@ -110,6 +113,7 @@ function InspectorNote({
 export default function IngredientInspectorRail({
   className,
   ingredient,
+  onOpenPreview,
 }: IngredientInspectorRailProps) {
   const translate = useTranslations('pages.library.inspector');
   const shelf = getIngredientShelf(ingredient);
@@ -150,6 +154,25 @@ export default function IngredientInspectorRail({
                 !canOptimizeImageSource(previewUrl)
               }
             />
+          ) : null}
+          {onOpenPreview ? (
+            <Button
+              ariaLabel={translate('openPreview')}
+              className={cn(
+                'absolute z-10 flex items-center justify-center',
+                // A video keeps its own controls, so only its corner opens
+                // the lightbox; an image is one big hit target.
+                videoUrl
+                  ? 'right-2 top-2 size-7 rounded-full bg-background/80 text-foreground backdrop-blur hover:bg-background'
+                  : 'inset-0 cursor-zoom-in',
+              )}
+              onClick={onOpenPreview}
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+            >
+              {videoUrl ? <Maximize2 className="size-3.5" /> : null}
+            </Button>
           ) : null}
         </div>
       ) : null}

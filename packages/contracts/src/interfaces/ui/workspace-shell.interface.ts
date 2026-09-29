@@ -81,7 +81,7 @@ export type WorkspaceShellSurfaceKey =
   | 'platforms'
   | 'protected-bootstrap'
   | 'publishing'
-  | 'studio-edit'
+  | 'studio-editor'
   | 'studio-specialized'
   | 'workspace'
   | 'workspace-overview';

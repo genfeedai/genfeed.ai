@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import { MediaType } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode, StrictMode } from 'react';
@@ -356,7 +357,6 @@ describe('WorkflowTemplatesPage', () => {
     ).toEqual(['Featured', 'Browse by type', 'All templates']);
   });
 
-  // Example-output previews remain #5498; showcase cards use workflow graphs.
   it('features ranked showcase templates and excludes the system catalog', async () => {
     await renderLoadedPage();
     const featured = featuredSection();
@@ -367,6 +367,47 @@ describe('WorkflowTemplatesPage', () => {
     expect(
       within(featured).getByRole('img', {
         name: 'Social blast workflow diagram',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('previews a featured template by its example output instead of its graph', async () => {
+    mocks.listTemplates.mockResolvedValue([
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        exampleOutput: {
+          mediaType: MediaType.IMAGE,
+          url: 'https://cdn.example.com/examples/social-blast.png',
+        },
+      },
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        featuredRank: 1,
+        id: 'graph-only',
+        name: 'Graph only',
+      },
+    ]);
+    await renderLoadedPage();
+
+    const [graphCard, exampleCard] = within(featuredSection()).getAllByTestId(
+      'workflow-template-card',
+    );
+    expect(
+      within(exampleCard).getByRole('img', {
+        name: 'Example output from Social blast',
+      }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/social-blast.png',
+    );
+    expect(
+      within(exampleCard).queryByRole('img', {
+        name: 'Social blast workflow diagram',
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(graphCard).getByRole('img', {
+        name: 'Graph only workflow diagram',
       }),
     ).toBeInTheDocument();
   });

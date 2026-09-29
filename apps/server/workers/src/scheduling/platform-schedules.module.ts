@@ -3,6 +3,7 @@ import { ReferralsModule } from '@api/collections/referrals/referrals.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
+import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { VideoCompletionCoreModule } from '@api/services/video-completion/video-completion-core.module';
@@ -46,6 +47,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 
 @Module({
   imports: [
+    AgentThreadingCoreModule,
     ByokModule,
     ConfigModule,
     LibsConfigModule,

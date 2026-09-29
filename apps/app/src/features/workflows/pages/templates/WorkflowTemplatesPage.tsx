@@ -8,6 +8,7 @@ import {
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -51,11 +52,11 @@ import {
   type WorkflowApiService,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
-import WorkflowCardPreview from '../library/WorkflowCardPreview';
 import {
   workflowCollectionHeaderTabs,
   workflowTemplatesTabPath,
 } from '../workflow-library-tabs';
+import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
 /**
@@ -149,6 +150,7 @@ type CatalogItem = {
   changeSummary?: string;
   description: string;
   edges?: Edge[];
+  exampleOutput?: WorkflowTemplateExampleOutput;
   featuredRank?: number;
   href?: string;
   id: string;
@@ -156,7 +158,6 @@ type CatalogItem = {
   schedule?: string;
   source: Exclude<CatalogSource, 'all'>;
   systemEntry?: SystemWorkflowCatalogEntry;
-  thumbnail?: string | null;
   title: string;
 };
 
@@ -367,6 +368,7 @@ function buildCatalogItems({
     changeSummary: entry.changeSummary,
     description: entry.description,
     edges: entry.edges,
+    exampleOutput: entry.exampleOutput,
     href:
       entry.installed && entry.installedWorkflowId
         ? href(
@@ -386,6 +388,7 @@ function buildCatalogItems({
     changeSummary: template.changeSummary,
     description: template.description,
     edges: template.edges,
+    exampleOutput: template.exampleOutput,
     featuredRank: template.featuredRank,
     href: href(workflowTemplatesTabPath({ template: template.id })),
     id: `template-${template.id}`,
@@ -892,9 +895,9 @@ function WorkflowTemplatesPageContent() {
         bodyClassName="h-full justify-between gap-4"
         data-testid="workflow-template-card"
       >
-        <WorkflowCardPreview
+        <WorkflowTemplateCardPreview
           name={item.title}
-          thumbnail={item.thumbnail}
+          exampleOutput={item.exampleOutput}
           nodes={item.nodes}
           edges={item.edges}
         />
@@ -1177,9 +1180,9 @@ function WorkflowTemplatesPageContent() {
           detailsItem
             ? {
                 edges: detailsItem.edges,
+                exampleOutput: detailsItem.exampleOutput,
                 name: detailsItem.title,
                 nodes: detailsItem.nodes,
-                thumbnail: detailsItem.thumbnail,
               }
             : undefined
         }

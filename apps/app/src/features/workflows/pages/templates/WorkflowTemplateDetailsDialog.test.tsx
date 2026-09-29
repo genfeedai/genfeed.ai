@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { MediaType } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -66,5 +67,34 @@ describe('WorkflowTemplateDetailsDialog', () => {
     expect(screen.getByText('Daily')).toBeInTheDocument();
     expect(screen.getByText('Sends a daily digest email.')).toBeInTheDocument();
     expect(screen.getByText('Daily Trends Digest preview')).toBeInTheDocument();
+  });
+
+  it('previews the template by its example output when it has one', () => {
+    render(
+      <WorkflowTemplateDetailsDialog
+        actionLabel="Use template"
+        categoryLabel="Social Media"
+        description="Post to every social channel at once."
+        isOpen
+        onOpenChange={vi.fn()}
+        sourceLabel="Available"
+        title="Social blast"
+        preview={{
+          exampleOutput: {
+            mediaType: MediaType.IMAGE,
+            url: 'https://cdn.example.com/examples/social-blast.png',
+          },
+          name: 'Social blast',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('img', { name: 'Example output from Social blast' }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/social-blast.png',
+    );
+    expect(screen.queryByText('Social blast preview')).not.toBeInTheDocument();
   });
 });

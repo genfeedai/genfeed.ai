@@ -141,6 +141,7 @@ function getStatusBadgeVariant(
 export default function DropdownStatus({
   entity,
   className = '',
+  isStacked = false,
   position = 'auto',
   onStatusChange,
 }: StatusDropdownProps) {
@@ -343,6 +344,7 @@ export default function DropdownStatus({
         }
         label={isPost || isArticle ? currentMeta.label : undefined}
         compact
+        isStacked={isStacked}
         className={className}
         onCancel={!isArticle && !isPost ? () => void cancel() : undefined}
         isCancelling={isCancelling}

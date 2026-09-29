@@ -90,6 +90,8 @@ export interface ConversationScopeControlsState {
   readonly contextLabel: string;
   readonly isConsequentiallyBlocked: boolean;
   readonly scopeControls: ReactNode;
+  /** Only the notices a scope change needs to surface: no switchers. */
+  readonly scopeStatus: ReactNode;
 }
 
 function contextStorageKey(threadId: string): string {
@@ -540,7 +542,7 @@ export function useConversationScopeControls({
     effectiveOrganization?.label ?? currentOrganizationSlug ?? 'Organization';
   const brandLabel = effectiveBrand?.label ?? 'Organization-wide';
   const contextLabel = `${organizationLabel} · ${brandLabel}`;
-  const scopeControls = (
+  const scopeStatus = (
     <>
       {scopeError ? (
         <p className="text-2xs text-destructive" role="alert">
@@ -559,6 +561,11 @@ export function useConversationScopeControls({
           Synchronize scope
         </Button>
       ) : null}
+    </>
+  );
+  const scopeControls = (
+    <>
+      {scopeStatus}
       <SwitcherDropdown
         className="w-auto"
         emptyMessage="No authorized organizations"
@@ -679,5 +686,6 @@ export function useConversationScopeControls({
     contextLabel,
     isConsequentiallyBlocked: isStale,
     scopeControls,
+    scopeStatus,
   };
 }

@@ -102,6 +102,24 @@ class FakeStaleExecutionFinder {
     },
   );
 
+  /** Rows flagged `isAgentTurn` model `INTERACTIVE` agent-conversation runs. */
+  readonly agentTurnIds = new Set<string>();
+
+  findStalledInteractiveAgentTurns = vi.fn(
+    async (
+      createdBefore: Date,
+      createdAfter: Date,
+      limit: number,
+    ): Promise<FakeRow[]> =>
+      this.matching(
+        (row) =>
+          this.agentTurnIds.has(row.id) &&
+          !row.cancelRequestedAt &&
+          row.createdAt >= createdAfter &&
+          row.createdAt < createdBefore,
+      ).slice(0, limit),
+  );
+
   findUpperBoundaryAncient = vi.fn(
     async (
       createdBefore: Date,
@@ -134,7 +152,10 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     completeExecution: vi.fn(),
   };
   let staleExecutionFinder: FakeStaleExecutionFinder;
-  const queueService = { hasClaimableSystemWorkflowJob: vi.fn() };
+  const queueService = {
+    hasClaimableSystemWorkflowJob: vi.fn(),
+    withdrawUnstartedSystemWorkflowJob: vi.fn(),
+  };
   const logger = { error: vi.fn(), log: vi.fn() };
   let service: PendingWorkflowExecutionReconcileService;
 
@@ -142,6 +163,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     vi.clearAllMocks();
     staleExecutionFinder = new FakeStaleExecutionFinder();
     queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(false);
+    queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue('absent');
     // A successful transition removes the row from the fake's PENDING set,
     // mirroring production: once `status` leaves PENDING, the finder's own
     // `status: PENDING` filter naturally excludes it from every later query
@@ -246,6 +268,252 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       expect.stringContaining('failed to reconcile'),
       expect.objectContaining({ executionId: 'execution-3' }),
     );
+  });
+
+  describe('unstarted interactive agent turns (#5622)', () => {
+    function seedTurn(id: string, ageMs: number): void {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - ageMs),
+          id,
+          organizationId: 'org-1',
+        },
+      ]);
+      staleExecutionFinder.agentTurnIds.add(id);
+    }
+
+    it('withdraws the job and fails a turn that is still waiting 2+ minutes after acceptance, even though its job is claimable', async () => {
+      seedTurn('turn-waiting', 3 * 60_000);
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'removed',
+      );
+
+      await service.reconcile();
+
+      expect(
+        queueService.withdrawUnstartedSystemWorkflowJob,
+      ).toHaveBeenCalledWith('system-workflow-turn-waiting');
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
+        'turn-waiting',
+        expect.stringContaining('never started'),
+      );
+    });
+
+    it('leaves a turn alone once a worker has started its job', async () => {
+      seedTurn('turn-running', 5 * 60_000);
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'started',
+      );
+
+      await service.reconcile();
+
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+    });
+
+    it('does not touch a turn younger than the 2 minute start deadline', async () => {
+      seedTurn('turn-fresh', 60_000);
+
+      await service.reconcile();
+
+      expect(
+        queueService.withdrawUnstartedSystemWorkflowJob,
+      ).not.toHaveBeenCalled();
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+    });
+
+    it('fails a turn whose job is already gone', async () => {
+      seedTurn('turn-orphaned', 3 * 60_000);
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'absent',
+      );
+
+      await service.reconcile();
+
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
+        'turn-orphaned',
+        expect.any(String),
+      );
+    });
+
+    it('surfaces a stuck turn even when 200+ unrelated older PENDING runs with live jobs fill the generic sweep', async () => {
+      staleExecutionFinder.seed(
+        buildRows(
+          PAGE_SIZE + 50,
+          'backlog',
+          new Date(Date.now() - 3 * 3600_000),
+        ),
+      );
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+      seedTurn('turn-behind-backlog', 4 * 60_000);
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'removed',
+      );
+
+      await service.reconcile();
+
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
+        'turn-behind-backlog',
+        expect.any(String),
+      );
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps sweeping the generic cohorts when the agent-turn query throws', async () => {
+      staleExecutionFinder.findStalledInteractiveAgentTurns.mockRejectedValueOnce(
+        new Error('db down'),
+      );
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'generic-1',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await service.reconcile();
+
+      expect(workflowExecutions.completeExecution).toHaveBeenCalledWith(
+        'generic-1',
+        expect.stringContaining('no worker ever picked it up'),
+      );
+    });
+  });
+
+  describe('thread status for runs ended through their execution (#5636)', () => {
+    const recoveryEvents = { recordExecutionEnded: vi.fn() };
+    let recoveringService: PendingWorkflowExecutionReconcileService;
+
+    beforeEach(() => {
+      recoveryEvents.recordExecutionEnded
+        .mockReset()
+        .mockResolvedValue(undefined);
+      recoveringService = new PendingWorkflowExecutionReconcileService(
+        workflowExecutions as never,
+        staleExecutionFinder as never,
+        queueService as never,
+        logger as never,
+        recoveryEvents as never,
+      );
+    });
+
+    const calledBefore = (first: unknown, second: unknown) =>
+      (first as { mock: { invocationCallOrder: number[] } }).mock
+        .invocationCallOrder[0] <
+      (second as { mock: { invocationCallOrder: number[] } }).mock
+        .invocationCallOrder[0];
+
+    it('records the failed run before closing an agent turn that never started', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 3 * 60_000),
+          id: 'turn-stuck',
+          organizationId: 'org-1',
+        },
+      ]);
+      staleExecutionFinder.agentTurnIds.add('turn-stuck');
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'turn-stuck',
+        { error: expect.stringContaining('never started'), type: 'failed' },
+      );
+      // After the execution is terminal the event no longer moves the derived
+      // status, so the order is what makes the push fire.
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.completeExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records the failed run before failing a never-claimed execution', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-unclaimed',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'execution-unclaimed',
+        {
+          error: expect.stringContaining('no worker ever picked it up'),
+          type: 'failed',
+        },
+      );
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.completeExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records a cancelled run before cancelling a drained execution', async () => {
+      staleExecutionFinder.seed([
+        {
+          cancelRequestedAt: new Date(Date.now() - 6 * 60_000),
+          createdAt: new Date(Date.now() - 10 * 60_000),
+          id: 'execution-drained',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
+        'execution-drained',
+        { type: 'cancelled' },
+      );
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.cancelExecution,
+        ),
+      ).toBe(true);
+    });
+
+    it('records nothing for an ancient execution closed silently', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 25 * 60 * 60_000),
+          id: 'execution-ancient',
+          organizationId: 'org-1',
+        },
+      ]);
+
+      await recoveringService.reconcile();
+
+      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+        'execution-ancient',
+      );
+      expect(recoveryEvents.recordExecutionEnded).not.toHaveBeenCalled();
+    });
+
+    it('records nothing for a turn a worker has already started', async () => {
+      staleExecutionFinder.seed([
+        {
+          createdAt: new Date(Date.now() - 5 * 60_000),
+          id: 'turn-running',
+          organizationId: 'org-1',
+        },
+      ]);
+      staleExecutionFinder.agentTurnIds.add('turn-running');
+      queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
+        'started',
+      );
+      queueService.hasClaimableSystemWorkflowJob.mockResolvedValue(true);
+
+      await recoveringService.reconcile();
+
+      expect(recoveryEvents.recordExecutionEnded).not.toHaveBeenCalled();
+    });
   });
 
   describe('drain cancellation intent (#5450)', () => {
