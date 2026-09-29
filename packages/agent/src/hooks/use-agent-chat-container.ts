@@ -78,6 +78,8 @@ interface UseAgentChatContainerParams {
   workspacePlanningTaskId?: string | null;
 }
 
+const CANCEL_SETTLE_TIMEOUT_MS = 10_000;
+
 function isAgentRunActive(status: MappedSnapshotRunStatus): boolean {
   return status === 'running' || status === 'cancelling';
 }
@@ -418,6 +420,18 @@ export function useAgentChatContainer({
     [],
   );
 
+  const cancelSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  useEffect(
+    () => () => {
+      if (cancelSettleTimerRef.current) {
+        clearTimeout(cancelSettleTimerRef.current);
+      }
+    },
+    [],
+  );
+
   const handleStopRun = useCallback(async (): Promise<boolean> => {
     if (cancelDesktopCliTurn()) {
       return true;
@@ -443,6 +457,33 @@ export function useAgentChatContainer({
 
     try {
       await apiService.cancelWorkflowExecution(activeRunId);
+      // The server confirms a stop with an `agent:error` "cancelled" event. If
+      // the run's stream is already gone (server restart, dropped socket) that
+      // event never comes and the composer would sit on "cancelling" forever.
+      // The execution is cancelled server-side, so settle locally instead.
+      if (cancelSettleTimerRef.current) {
+        clearTimeout(cancelSettleTimerRef.current);
+      }
+      cancelSettleTimerRef.current = setTimeout(() => {
+        cancelSettleTimerRef.current = null;
+        const state = useAgentChatStore.getState();
+        if (
+          state.activeRunId !== activeRunId ||
+          state.activeRunStatus !== 'cancelling'
+        ) {
+          return;
+        }
+        state.setActiveRunStatus('cancelled');
+        state.setIsGenerating(false);
+        state.resetStreamState();
+        if (state.activeThreadId) {
+          state.updateThread(state.activeThreadId, {
+            attentionState: null,
+            pendingInputCount: 0,
+            runStatus: 'cancelled',
+          });
+        }
+      }, CANCEL_SETTLE_TIMEOUT_MS);
       return true;
     } catch (error) {
       if (error instanceof AgentApiRequestError && error.status === 404) {
