@@ -1,4 +1,5 @@
 import type { IngredientFormat } from '@genfeedai/contracts';
+import type { EditorSaveStatus } from '@props/studio/editor-save.props';
 
 export interface EditorToolbarProps {
   projectName: string;
@@ -9,6 +10,9 @@ export interface EditorToolbarProps {
   fps: number;
   zoom: number;
   isDirty: boolean;
+  saveStatus: EditorSaveStatus;
+  canUndo: boolean;
+  canRedo: boolean;
   isRendering: boolean;
   isReadOnly?: boolean;
   onPlayPause: () => void;
@@ -21,6 +25,8 @@ export interface EditorToolbarProps {
   onAddVideoTrack: () => void;
   onAddAudioTrack: () => void;
   onSave: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onRender: () => void;
   onBack: () => void;
 }

@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   getEditorService: vi.fn(),
   loggerError: vi.fn(),
   replace: vi.fn(),
-  searchParamsGet: vi.fn(),
+  searchParamsGetAll: vi.fn(),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -40,7 +40,7 @@ vi.mock('next/navigation', () => ({
     replace: mocks.replace,
   }),
   useSearchParams: () => ({
-    get: mocks.searchParamsGet,
+    getAll: mocks.searchParamsGetAll,
   }),
 }));
 
@@ -55,7 +55,7 @@ describe('NewEditorProjectPage', () => {
     mocks.getEditorService.mockResolvedValue({
       create: mocks.createProject,
     });
-    mocks.searchParamsGet.mockReturnValue(null);
+    mocks.searchParamsGetAll.mockReturnValue([]);
   });
 
   it('creates a project and redirects through the current org URL scope', async () => {
@@ -64,11 +64,37 @@ describe('NewEditorProjectPage', () => {
     await waitFor(() => {
       expect(mocks.createProject).toHaveBeenCalledWith({
         name: 'Untitled Project',
-        sourceVideoId: undefined,
+        sourceVideoIds: [],
       });
     });
     expect(mocks.replace).toHaveBeenCalledWith(
       '/acme/~/studio/editor/project-1',
     );
+  });
+
+  it('seeds every ?video= in URL order', async () => {
+    mocks.searchParamsGetAll.mockImplementation((key: string) =>
+      key === 'video' ? ['shot-2', 'shot-1', 'shot-3'] : [],
+    );
+
+    render(<NewEditorProjectPage />);
+
+    await waitFor(() => {
+      expect(mocks.createProject).toHaveBeenCalledWith({
+        name: 'Video Edit',
+        sourceVideoIds: ['shot-2', 'shot-1', 'shot-3'],
+      });
+    });
+  });
+
+  it('returns to the Editor list when the seeded create fails', async () => {
+    mocks.searchParamsGetAll.mockReturnValue(['gone']);
+    mocks.createProject.mockRejectedValue(new Error('Source video not found'));
+
+    render(<NewEditorProjectPage />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/studio/editor');
+    });
   });
 });

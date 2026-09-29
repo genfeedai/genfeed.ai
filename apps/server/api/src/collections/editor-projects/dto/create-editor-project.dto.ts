@@ -2,6 +2,7 @@ import { IngredientFormat } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsEnum,
   IsNumber,
@@ -11,6 +12,9 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+
+/** A storyboard run's shots fit comfortably; bounds the per-create lookups. */
+const MAX_SOURCE_VIDEOS = 50;
 
 export class EditorProjectSettingsDto {
   @IsOptional()
@@ -110,10 +114,14 @@ export class CreateEditorProjectDto {
   readonly totalDurationFrames?: number;
 
   @IsOptional()
-  @IsString()
+  @IsArray()
+  @ArrayMaxSize(MAX_SOURCE_VIDEOS)
+  @IsString({ each: true })
   @ApiProperty({
-    description: 'Source video ingredient ID',
+    description:
+      'Source video ingredient IDs, in timeline order. Each becomes one clip on a single video track.',
     required: false,
+    type: [String],
   })
-  readonly sourceVideoId?: string;
+  readonly sourceVideoIds?: string[];
 }

@@ -21,13 +21,16 @@ import {
   Music,
   Pause,
   Play,
+  Redo2,
   SkipBack,
   SkipForward,
   StepBack,
   StepForward,
+  Undo2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
+import EditorSaveIndicator from './EditorSaveIndicator';
 import { formatPlaybackFrameTime } from './editor-time-format.util';
 
 const FORMAT_OPTIONS = [
@@ -55,6 +58,9 @@ function EditorToolbar({
   fps,
   zoom,
   isDirty,
+  saveStatus,
+  canUndo,
+  canRedo,
   isRendering,
   isReadOnly = false,
   onPlayPause,
@@ -67,10 +73,13 @@ function EditorToolbar({
   onAddVideoTrack,
   onAddAudioTrack,
   onSave,
+  onUndo,
+  onRedo,
   onRender,
   onBack,
 }: EditorToolbarProps) {
   const t = useTranslations('pages.studioEditorLock');
+  const translate = useTranslations('pages.studioEditor.toolbar');
 
   return (
     <div className="flex items-center justify-between border-b border-border bg-card px-4 py-2">
@@ -93,9 +102,7 @@ function EditorToolbar({
               {t('readOnlyBadge')}
             </span>
           ) : (
-            isDirty && (
-              <span className="text-xs text-muted-foreground">(unsaved)</span>
-            )
+            <EditorSaveIndicator isDirty={isDirty} saveStatus={saveStatus} />
           )}
         </div>
       </div>
@@ -168,6 +175,29 @@ function EditorToolbar({
 
       {/* Right section - Tools & Actions */}
       <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 border-r border-border pr-3">
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            onClick={onUndo}
+            isDisabled={!canUndo}
+            ariaLabel={translate('undo')}
+            tooltip={translate('undoTooltip')}
+            icon={<Undo2 className="size-4" />}
+          />
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            onClick={onRedo}
+            isDisabled={!canRedo}
+            ariaLabel={translate('redo')}
+            tooltip={translate('redoTooltip')}
+            icon={<Redo2 className="size-4" />}
+          />
+        </div>
+
         {/* Add Track buttons */}
         <div className="flex items-center gap-1 border-r border-border pr-3">
           <Button

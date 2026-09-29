@@ -60,4 +60,34 @@ describe('GenerationActionCanvas', () => {
       'image-1',
     );
   });
+  it('opens a video in a new Editor project seeded with it', () => {
+    const { container } = render(
+      <GenerationActionCanvas
+        generationType="video"
+        currentResult={{ id: 'video-1', url: 'https://cdn.test/video.mp4' }}
+        referenceIds={[]}
+        onToggleReference={vi.fn()}
+      />,
+    );
+
+    const editorLinks = container.querySelectorAll('a[href*="/studio/editor"]');
+    expect(editorLinks).toHaveLength(1);
+    expect(editorLinks[0]).toHaveAttribute(
+      'href',
+      '/default/default/studio/editor/new?video=video-1',
+    );
+  });
+
+  it('offers no Editor link for an image the Editor cannot seed from', () => {
+    const { container } = render(
+      <GenerationActionCanvas
+        generationType="image"
+        currentResult={{ id: 'image-1', url: 'https://cdn.test/image.png' }}
+        referenceIds={[]}
+        onToggleReference={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('a[href*="/studio/"]')).toBeNull();
+  });
 });

@@ -108,7 +108,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTextProperties.tsx": 19,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTextTrackList.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTimeline.tsx": 6,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorToolbar.tsx": 13,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorToolbar.tsx": 12,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-comments-card.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-detail.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/tasks/[id]/issue-sidebar.tsx": 10,
