@@ -455,7 +455,13 @@ vi.mock('./use-conversation-scope-controls', () => ({
   useConversationScopeControls: () => ({
     contextLabel: 'Acme · Organization-wide',
     isConsequentiallyBlocked: false,
-    scopeControls: <span>Thread scope</span>,
+    scopeControls: (
+      <>
+        <span>Thread scope</span>
+        <button type="button">Switch organization</button>
+      </>
+    ),
+    scopeStatus: <span>Scope out of sync</span>,
   }),
 }));
 
@@ -1162,7 +1168,9 @@ describe('UniversalWorkspaceShell', () => {
     const { container } = render(
       <div>{composerShell.scopeControls as ReactNode}</div>,
     );
-    expect(container).toHaveTextContent(/^Thread scopeScoped controls$/);
+    expect(container).toHaveTextContent(
+      /^Thread scopeSwitch organizationScoped controls$/,
+    );
   });
 
   it('preserves an unauthorized brand action instead of widening org scope', () => {
@@ -1353,16 +1361,16 @@ describe('UniversalWorkspaceShell', () => {
       expect(screen.getByTestId('dock-conversation')).toBeInTheDocument();
     });
 
-    it('renders the conversation scope controls in the dock', async () => {
+    it('renders scope notices in the dock without the scope switchers', async () => {
       navigation.pathname = '/acme/moonrise/workspace';
       renderWithDock();
       await waitFor(() => expect(dock?.isAvailable).toBe(true));
 
       act(() => dock?.open());
 
-      expect(screen.getByTestId('agent-dock-scope')).toHaveTextContent(
-        'Thread scope',
-      );
+      const scope = screen.getByTestId('agent-dock-scope');
+      expect(scope).toHaveTextContent('Scope out of sync');
+      expect(scope).not.toHaveTextContent('Switch organization');
     });
 
     it('never hosts the dock on the conversation route and closes it there', async () => {

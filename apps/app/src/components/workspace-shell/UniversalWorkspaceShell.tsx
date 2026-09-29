@@ -1042,9 +1042,11 @@ function UniversalWorkspaceShellContent({
                 dock={agentDock}
                 isCompact={isCompactViewport}
                 onOpenFullPage={handleOpenFullConversation}
+                // Organization and brand are switched from the shell chrome;
+                // the dock only surfaces scope notices and page context.
                 scopeControls={
                   <>
-                    {conversationScope.scopeControls}
+                    {conversationScope.scopeStatus}
                     {composerScopeControls}
                     {effectiveSurfaceAdapter?.composerContext}
                   </>

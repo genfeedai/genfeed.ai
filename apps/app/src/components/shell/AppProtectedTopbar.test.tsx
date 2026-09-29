@@ -164,10 +164,15 @@ vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) =>
     (
       ({
-        'common.agentDock': { close: 'Close agent', open: 'Open agent' },
+        'common.agentDock': {
+          close: 'Close agent',
+          open: 'Open agent',
+          unavailable: 'Agent is the main view here',
+        },
         'common.contextSidebar': {
           close: 'Close details',
           collapse: 'Collapse details',
+          empty: 'Select an item to see details',
           expand: 'Expand details',
           open: 'Open details',
         },
@@ -503,19 +508,26 @@ describe('AppProtectedTopbar', () => {
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
   });
 
-  it('hides the toggle when nothing is selected', () => {
+  it('keeps the details toggles in the bar, disabled, when nothing is selected', () => {
+    const toggle = vi.fn();
     contextSidebarState.value = {
       isMobileOpen: false,
       isOpen: false,
       selection: null,
       setIsMobileOpen: vi.fn(),
-      toggle: vi.fn(),
+      toggle,
     };
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
-    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
+    const railToggle = screen.getByTestId('topbar-inspector-toggle');
+    const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(railToggle).toBeDisabled();
+    expect(railToggle).toHaveAccessibleName('Select an item to see details');
+    expect(drawerToggle).toBeDisabled();
+
+    fireEvent.click(railToggle);
+    expect(toggle).not.toHaveBeenCalled();
   });
 
   it('toggles the agent dock where the shell hosts one', () => {
@@ -539,15 +551,17 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
-  it('hides the agent dock toggle where no dock is hosted', () => {
-    agentDockState.value = {
-      isAvailable: false,
-      isOpen: false,
-      toggle: vi.fn(),
-    };
+  it('keeps the agent dock toggle in the bar, disabled, where no dock is hosted', () => {
+    const toggle = vi.fn();
+    agentDockState.value = { isAvailable: false, isOpen: false, toggle };
 
     render(<AppProtectedTopbar />);
 
-    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
+    const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
+    expect(dockToggle).toBeDisabled();
+    expect(dockToggle).toHaveAccessibleName('Agent is the main view here');
+
+    fireEvent.click(dockToggle);
+    expect(toggle).not.toHaveBeenCalled();
   });
 });
