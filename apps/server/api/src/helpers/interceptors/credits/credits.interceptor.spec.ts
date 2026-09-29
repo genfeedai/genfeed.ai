@@ -19,7 +19,6 @@ describe('CreditsInterceptor', () => {
   let loggerService: LoggerService;
 
   const mockRequest: {
-    body?: { sourceActionId?: string };
     creditsConfig?: CreditsConfig & {
       deferred?: boolean;
       reservationId?: string;
@@ -53,7 +52,6 @@ describe('CreditsInterceptor', () => {
   } as CallHandler;
 
   beforeEach(async () => {
-    delete mockRequest.body;
     mockRequest.creditsConfig = {
       amount: 10,
       description: 'Test operation',
@@ -193,96 +191,114 @@ describe('CreditsInterceptor', () => {
       });
     });
 
-    it('queues confirmed media settlement against the persisted asset identity', async () => {
-      mockRequest.body = { sourceActionId: 'action-123' };
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
+    describe('completion-settled routes', () => {
+      const asCompletion = (
+        overrides: Partial<NonNullable<typeof mockRequest.creditsConfig>> = {},
+      ) => {
+        mockRequest.creditsConfig = {
+          amount: 10,
+          description: 'Image generation',
+          reservationId: 'pool-1',
+          settlement: 'completion',
+          source: ActivitySource.IMAGE_GENERATION,
+          ...overrides,
+        };
       };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-123' } }),
-      } as CallHandler;
+      const run = (handler: CallHandler) =>
+        new Promise<unknown>((resolve, reject) => {
+          interceptor.intercept(mockContext, handler).subscribe({
+            error: reject,
+            next: resolve,
+          });
+        });
 
-      interceptor.intercept(mockContext, handler).subscribe();
+      it('queues no settlement on the response; bound outputs settle on completion', async () => {
+        asCompletion({ boundOutputCount: 1 });
 
-      await vi.waitFor(() =>
-        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            idempotencyKey: 'agent-media-action-123-asset-123',
-            referenceId: 'asset-123',
-            referenceType: 'agent-media:generation',
-            reservationId: 'reservation-1',
-            settlementAssetId: 'asset-123',
-          }),
-        ),
-      );
-    });
+        await run(mockHandler);
 
-    it('recognizes a JSON:API source action before deferring media settlement', async () => {
-      mockRequest.body = {
-        data: {
-          attributes: { sourceActionId: 'json-api-action' },
-        },
-      } as never;
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-json-api',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-json-api' } }),
-      } as CallHandler;
-
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() =>
-        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            idempotencyKey: 'agent-media-json-api-action-asset-json-api',
-            reservationId: 'reservation-json-api',
-            settlementAssetId: 'asset-json-api',
-          }),
-        ),
-      );
-    });
-
-    it('does not charge confirmed media when acceptance returned no persisted asset', async () => {
-      mockRequest.body = { sourceActionId: 'action-without-asset' };
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-
-      interceptor.intercept(mockContext, mockHandler).subscribe();
-
-      await vi.waitFor(() =>
         expect(
           creditDeductionQueueService.queueDeduction,
-        ).not.toHaveBeenCalled(),
-      );
-      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-        organizationId,
-        reservationId: 'reservation-1',
+        ).not.toHaveBeenCalled();
+      });
+
+      it('releases only what no output claimed', async () => {
+        asCompletion({ boundOutputCount: 1 });
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+      });
+
+      it('releases the whole hold and warns when no output was accepted', async () => {
+        asCompletion();
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+        expect(loggerService.warn).toHaveBeenCalledWith(
+          expect.stringContaining('bound no output'),
+          expect.objectContaining({ reservationId: 'pool-1' }),
+        );
+      });
+
+      it('leaves the hold open while the service is still binding outputs', async () => {
+        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+        expect(
+          creditDeductionQueueService.queueDeduction,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('keeps a deferred hold open when the request later fails', async () => {
+        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
+        const failing = {
+          handle: () => throwError(() => new Error('gateway timeout')),
+        } as CallHandler;
+
+        await expect(run(failing)).rejects.toThrow('gateway timeout');
+
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+      });
+
+      it('releases the request hold when the request fails before any deferral', async () => {
+        asCompletion();
+        const failing = {
+          handle: () => throwError(() => new Error('provider rejected')),
+        } as CallHandler;
+
+        await expect(run(failing)).rejects.toThrow('provider rejected');
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+      });
+
+      it('still records BYOK usage instead of holding platform credits', async () => {
+        asCompletion({ isByokBypass: true, reservationId: undefined });
+
+        await run(mockHandler);
+
+        expect(creditDeductionQueueService.queueByokUsage).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: 10 }),
+        );
+        expect(
+          creditDeductionQueueService.queueDeduction,
+        ).not.toHaveBeenCalled();
       });
     });
 
-    it('fails media acceptance when its durable settlement job cannot be persisted', async () => {
-      mockRequest.body = { sourceActionId: 'action-queue-failure' };
+    it('releases the reservation when its settlement job cannot be persisted', async () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Image generation',
@@ -357,34 +373,6 @@ describe('CreditsInterceptor', () => {
             }, 10);
           },
         });
-      });
-    });
-
-    it('should stamp the generated asset id without changing the charge identity', async () => {
-      mockRequest.creditsConfig = {
-        amount: 4,
-        description: 'Image generation',
-        pricingMetadata: { pricingType: 'per-image' },
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
-      } as CreditsConfig;
-      mockRequest.user = { id: 'user_123', organizationId, userId };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-9' } }),
-      } as CallHandler;
-
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() => {
-        const job = creditDeductionQueueService.queueDeduction.mock.calls[0][0];
-        expect(job).toMatchObject({
-          amount: 4,
-          metadata: { assetId: 'asset-9', pricingType: 'per-image' },
-          reservationId: 'reservation-1',
-        });
-        expect(job).not.toHaveProperty('idempotencyKey');
-        expect(job).not.toHaveProperty('referenceId');
-        expect(job).not.toHaveProperty('settlementAssetId');
       });
     });
 

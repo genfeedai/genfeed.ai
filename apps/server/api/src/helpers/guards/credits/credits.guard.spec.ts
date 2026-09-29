@@ -340,15 +340,17 @@ describe('CreditsGuard', () => {
 
     await guard.canActivate(ctx);
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
-      actorUserId: 'user-1',
-      amount: 10,
-      expiresAt: expect.any(Date),
-      idempotencyKey: 'generation:action-1',
-      organizationId: orgId,
-      workloadId: 'action-1',
-      workloadType: 'generation',
-    });
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        expiresAt: expect.any(Date),
+        idempotencyKey: 'generation:action-1',
+        organizationId: orgId,
+        workloadId: 'action-1',
+        workloadType: 'generation',
+      }),
+    );
     expect(ctx.switchToHttp().getRequest().creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });

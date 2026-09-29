@@ -34,6 +34,13 @@ describe('VideoGenerationExecutionService', () => {
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
     };
+    const generationBilling = {
+      bindOutput: vi.fn().mockResolvedValue(undefined),
+      hasPool: vi.fn().mockReturnValue(false),
+      releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+      releasePool: vi.fn().mockResolvedValue(undefined),
+      settleOutput: vi.fn().mockResolvedValue('no-hold'),
+    };
     const loggerService = { debug: vi.fn(), error: vi.fn(), log: vi.fn() };
     const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     const providerDispatchService = {
@@ -50,6 +57,7 @@ describe('VideoGenerationExecutionService', () => {
     const service = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
+      generationBilling as never,
       loggerService as never,
       metadataService as never,
       providerDispatchService as never,
@@ -59,7 +67,12 @@ describe('VideoGenerationExecutionService', () => {
       websocketService as never,
     );
 
-    return { providerDispatchService, replicatePollQueueService, service };
+    return {
+      generationBilling,
+      providerDispatchService,
+      replicatePollQueueService,
+      service,
+    };
   }
 
   it('maps a Replicate 402 insufficient-credit failure to a 4xx/502 HttpException, never a raw 500', async () => {

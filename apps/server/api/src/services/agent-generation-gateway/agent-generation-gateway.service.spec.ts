@@ -325,7 +325,7 @@ describe('AgentGenerationGatewayService decorator parity', () => {
     },
   );
 
-  it('leaves avatar billing to the request pipeline when it reserved a platform charge', async () => {
+  it('hands avatar generation the request whose credits guard reserved the render', async () => {
     const generateAvatarVideo = vi.fn().mockResolvedValue({
       externalId: 'heygen-1',
       ingredientId: 'ingredient-1',
@@ -359,20 +359,15 @@ describe('AgentGenerationGatewayService decorator parity', () => {
       userId: USER_ID,
     };
 
-    await descriptor.handle({
-      dto: {},
-      request: { creditsConfig: { amount: 1 } },
-      user,
-    } as never);
-    await descriptor.handle({
-      dto: {},
-      request: { creditsConfig: { amount: 1, isByokBypass: true } },
-      user,
-    } as never);
+    const request = { creditsConfig: { amount: 1, reservationId: 'pool-1' } };
 
+    await descriptor.handle({ dto: {}, request, user } as never);
+
+    expect(descriptor.creditsConfig).toMatchObject({
+      settlement: 'completion',
+    });
     expect(generateAvatarVideo.mock.calls.map(([, ctx]) => ctx)).toEqual([
-      expect.objectContaining({ settleCreditsExternally: true }),
-      expect.objectContaining({ settleCreditsExternally: false }),
+      expect.objectContaining({ request }),
     ]);
   });
 

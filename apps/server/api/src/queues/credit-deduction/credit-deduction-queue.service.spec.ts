@@ -176,32 +176,6 @@ describe('CreditDeductionQueueService', () => {
       );
     });
 
-    it('keeps media settlement retryable through the stuck-asset reconciliation window', async () => {
-      const jobData: CreditDeductionJobData = {
-        amount: 18,
-        description: 'Agent image generation',
-        idempotencyKey: 'agent-media-action-1',
-        organizationId: 'org-123',
-        settlementAssetId: 'asset-1',
-        source: ActivitySource.IMAGE_GENERATION,
-        type: 'deduct-credits',
-        userId: 'user-456',
-      };
-
-      await service.queueDeduction(jobData);
-
-      expect(queue.add).toHaveBeenCalledWith(
-        'deduct-credits',
-        jobData,
-        expect.objectContaining({
-          attempts: 20_160,
-          backoff: { delay: 30_000, type: 'fixed' },
-        }),
-      );
-    });
-  });
-
-  describe('queueByokUsage', () => {
     it('should queue BYOK usage job successfully', async () => {
       const jobData: CreditDeductionJobData = {
         amount: 50,

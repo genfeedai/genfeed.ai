@@ -273,6 +273,11 @@ describe('VideoGenerationService', () => {
     const executionService = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
+      {
+        bindOutput: vi.fn().mockResolvedValue(undefined),
+        hasPool: vi.fn().mockReturnValue(false),
+        releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+      } as never,
       loggerService,
       metadataService as never,
       providerDispatchService,

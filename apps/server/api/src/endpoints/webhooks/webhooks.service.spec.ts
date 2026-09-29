@@ -4,6 +4,7 @@ vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
 
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -47,6 +48,7 @@ describe('WebhooksService', () => {
   let _notificationsService: vi.Mocked<ActivityRecorderService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
+  let generationBilling: vi.Mocked<GenerationBillingService>;
   let metadataService: vi.Mocked<MetadataService>;
   let cacheService: vi.Mocked<CacheService>;
   let assetsService: vi.Mocked<AssetsService>;
@@ -139,6 +141,13 @@ describe('WebhooksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhooksService,
+        {
+          provide: GenerationBillingService,
+          useValue: {
+            releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+            settleOutput: vi.fn().mockResolvedValue('no-hold'),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -277,6 +286,7 @@ describe('WebhooksService', () => {
     _notificationsService = module.get(ActivityRecorderService);
     websocketService = module.get(NotificationsPublisherService);
     ingredientsService = module.get(IngredientsService);
+    generationBilling = module.get(GenerationBillingService);
     metadataService = module.get(MetadataService);
     cacheService = module.get(CacheService);
     assetsService = module.get(AssetsService);
@@ -346,6 +356,10 @@ describe('WebhooksService', () => {
           status: IngredientStatus.GENERATED,
         },
       );
+      expect(generationBilling.settleOutput).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        mockOrgId,
+      );
       expect(websocketService.publishVideoComplete).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);
       expect(
@@ -377,6 +391,7 @@ describe('WebhooksService', () => {
         mockIngredientId.toString(),
         expect.objectContaining({ status: IngredientStatus.GENERATED }),
       );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
     });
 
     it('should process video from webhook successfully', async () => {
@@ -988,6 +1003,26 @@ describe('WebhooksService', () => {
 
       expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalledWith(
         expect.objectContaining({ id: mockIngredientId }),
+      );
+    });
+    it('releases the output credit hold when the generation fails', async () => {
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        mockOrgId,
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    });
+
+    it('still marks the generation failed when the hold release errors', async () => {
+      generationBilling.releaseOutput.mockRejectedValue(new Error('db down'));
+
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.FAILED },
       );
     });
   });

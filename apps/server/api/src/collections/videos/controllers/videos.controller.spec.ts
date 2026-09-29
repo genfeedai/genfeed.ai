@@ -20,6 +20,7 @@ import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -274,6 +275,17 @@ describe('VideosController', () => {
             reserveCredits: vi.fn().mockResolvedValue({
               id: 'video-controller-reservation',
             }),
+          },
+        },
+        {
+          provide: GenerationBillingService,
+          useValue: {
+            bindOutput: vi.fn().mockResolvedValue(undefined),
+            deferPoolRelease: vi.fn(),
+            hasPool: vi.fn().mockReturnValue(false),
+            releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+            releasePool: vi.fn().mockResolvedValue(undefined),
+            settleOutput: vi.fn().mockResolvedValue('no-hold'),
           },
         },
         {

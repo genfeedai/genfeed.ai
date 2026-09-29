@@ -127,15 +127,17 @@ describe('VideoGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
-      actorUserId: 'user-1',
-      amount: 10,
-      expiresAt: expect.any(Date),
-      idempotencyKey: 'generation:video-action-1',
-      organizationId: 'org-1',
-      workloadId: 'video-action-1',
-      workloadType: 'generation',
-    });
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        expiresAt: expect.any(Date),
+        idempotencyKey: 'generation:video-action-1',
+        organizationId: 'org-1',
+        workloadId: 'video-action-1',
+        workloadType: 'generation',
+      }),
+    );
     expect(request.creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });

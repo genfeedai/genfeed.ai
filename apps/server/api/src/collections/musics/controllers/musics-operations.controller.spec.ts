@@ -130,6 +130,7 @@ describe('MusicsOperationsController', () => {
 
     expect(Reflect.getMetadata(CREDITS_KEY, handler) as CreditsConfig).toEqual({
       description: 'Music generation',
+      settlement: 'completion',
       source: ActivitySource.MUSIC_GENERATION,
     });
     expect(reflector.get(ValidateModel, handler)).toEqual({
