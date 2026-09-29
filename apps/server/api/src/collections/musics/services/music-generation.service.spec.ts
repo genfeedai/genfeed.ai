@@ -97,6 +97,7 @@ describe('MusicGenerationService', () => {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
     const metadataService = {
       patch: vi.fn().mockResolvedValue(undefined),

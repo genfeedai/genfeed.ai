@@ -45,6 +45,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
@@ -264,6 +265,17 @@ describe('ImagesOperationsController', () => {
         ImageGenerationAdmissionService,
         ImageGenerationCreditsService,
         ImageGenerationProviderDispatchService,
+        {
+          provide: GenerationBillingService,
+          useValue: {
+            bindOutput: vi.fn().mockResolvedValue(undefined),
+            deferPoolRelease: vi.fn(),
+            hasPool: vi.fn().mockReturnValue(false),
+            releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+            releasePool: vi.fn().mockResolvedValue(undefined),
+            settleOutput: vi.fn().mockResolvedValue('no-hold'),
+          },
+        },
         ImageGenerationProviderRegistryService,
         ImageGenerationService,
         {

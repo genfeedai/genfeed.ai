@@ -1,9 +1,6 @@
 import { BatchProjectQuoteService } from '@api/collections/batch-projects/services/batch-project-quote.service';
 import { ByokProvider, ModelCategory } from '@genfeedai/contracts';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConflictException } from '@nestjs/common';
 
 function ideaItem(id: string, format: string) {
@@ -19,6 +16,8 @@ function ideaItem(id: string, format: string) {
     },
   };
 }
+
+const AVATAR_PRICE = 1;
 
 describe('BatchProjectQuoteService', () => {
   const estimate = { estimate: vi.fn() };
@@ -44,7 +43,7 @@ describe('BatchProjectQuoteService', () => {
     byok.isByokActiveForProvider.mockResolvedValue(false);
     avatarGeneration.quoteCredits.mockResolvedValue({
       billingMode: 'platform',
-      credits: AVATAR_GENERATION_CREDIT_COST,
+      credits: AVATAR_PRICE,
     });
   });
 
@@ -64,7 +63,7 @@ describe('BatchProjectQuoteService', () => {
 
     expect(quote).toMatchObject({
       revision: 7,
-      total: 4 + 4 + 20 + AVATAR_GENERATION_CREDIT_COST,
+      total: 4 + 4 + 20 + AVATAR_PRICE,
     });
     expect(quote.items).toEqual([
       expect.objectContaining({
@@ -80,7 +79,7 @@ describe('BatchProjectQuoteService', () => {
         model: 'model-video',
       }),
       expect.objectContaining({
-        credits: AVATAR_GENERATION_CREDIT_COST,
+        credits: AVATAR_PRICE,
         model: MODEL_KEYS.HEYGEN_AVATAR,
       }),
     ]);
@@ -150,7 +149,7 @@ describe('BatchProjectQuoteService', () => {
       revision: 1,
       items: [{ attempt: 1, item: ideaItem('avatar-1', 'avatar') as never }],
     });
-    expect(quote.total).toBe(AVATAR_GENERATION_CREDIT_COST);
+    expect(quote.total).toBe(AVATAR_PRICE);
     expect(quote.items[0].billingMode).toBe('platform');
     expect(avatarGeneration.quoteCredits).toHaveBeenCalledWith(
       { text: 'Caption', useIdentity: true },

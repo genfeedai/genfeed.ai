@@ -441,7 +441,7 @@ describe('AvatarVideoGenerationService', () => {
         },
         context,
       ),
-    ).rejects.toThrow('Avatar video pricing is not configured');
+    ).rejects.toMatchObject({ errorCode: 'PRICING_NOT_CONFIGURED' });
 
     expect(sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();

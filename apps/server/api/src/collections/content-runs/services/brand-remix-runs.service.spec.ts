@@ -111,7 +111,10 @@ describe('BrandRemixRunsService', () => {
   };
   const imageGenerationService = { generateImage: vi.fn() };
   const videoGenerationService = { generateVideo: vi.fn() };
-  const avatarVideoGenerationService = { generateAvatarVideo: vi.fn() };
+  const avatarVideoGenerationService = {
+    generateAvatarVideo: vi.fn(),
+    quotePlatformCredits: vi.fn().mockResolvedValue(1),
+  };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
   const contentGeneratorService = { generateContent: vi.fn() };

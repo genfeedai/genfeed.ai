@@ -630,6 +630,27 @@ describe('WebhooksService', () => {
       activityUpdateService.updateFailureActivity.mockResolvedValue(undefined);
     });
 
+    it('releases the output credit hold when the generation fails', async () => {
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        mockOrgId,
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    });
+
+    it('still marks the generation failed when the hold release errors', async () => {
+      generationBilling.releaseOutput.mockRejectedValue(new Error('db down'));
+
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(ingredientsService.patch).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        { status: IngredientStatus.FAILED },
+      );
+    });
+
     it('should handle failed generation successfully', async () => {
       await service.handleFailedGeneration(externalId, errorMessage);
 
@@ -1003,26 +1024,6 @@ describe('WebhooksService', () => {
 
       expect(autoMergeService.triggerAutoMergeIfReady).toHaveBeenCalledWith(
         expect.objectContaining({ id: mockIngredientId }),
-      );
-    });
-    it('releases the output credit hold when the generation fails', async () => {
-      await service.handleFailedGeneration(externalId, errorMessage);
-
-      expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
-        mockOrgId,
-      );
-      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
-    });
-
-    it('still marks the generation failed when the hold release errors', async () => {
-      generationBilling.releaseOutput.mockRejectedValue(new Error('db down'));
-
-      await service.handleFailedGeneration(externalId, errorMessage);
-
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
-        { status: IngredientStatus.FAILED },
       );
     });
   });
