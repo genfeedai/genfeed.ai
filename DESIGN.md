@@ -796,8 +796,9 @@ no profile row. The page sits in a single **content
 panel** inset from the window by `--shell-inset` (8px, desktop): `bg-primary`,
 `rounded-lg`, `border border-border`, and it owns scrolling — the topbar is its
 first row (static) and the page scrolls beneath it, so `sticky top-0` inside a
-page sticks under the topbar. The workspace inspector floats as its own inset
-panel to the right with one `--shell-inset` gap. Every route starts at the top of
+page sticks under the topbar. The workspace inspector attaches to the panel's right
+side as one surface: the panel squares its right corners and their shared border
+is the divider, with no gap. Every route starts at the top of
 the panel scroll. Mobile has no inset: document scroll under a fixed topbar, and
 the rail + menu live in the navigation drawer.
 

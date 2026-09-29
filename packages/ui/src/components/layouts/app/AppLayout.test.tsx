@@ -247,8 +247,8 @@ describe('AppLayout', () => {
       'md:[--shell-inset:0.5rem]',
       'md:[--shell-edge:1px]',
     );
-    // One inset on the top, right and bottom; the inspector's width (plus its
-    // gap) is reserved on top of the right inset.
+    // One inset on the top, right and bottom; the inspector's width is reserved
+    // on top of the right inset.
     expect(contentShell).toHaveClass(
       'md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))]',
       'md:pt-[calc(var(--desktop-titlebar-height)+var(--shell-inset))]',
@@ -265,6 +265,8 @@ describe('AppLayout', () => {
       'md:border',
       'md:border-border',
       'md:overflow-hidden',
+      // Open inspector: the panel squares its right edge to meet it.
+      'xl:[[data-inspector-open=true]_&]:rounded-r-none',
     );
     expect(panel).toContainElement(screen.getByTestId('app-topbar-shell'));
     expect(mainContent).toHaveClass(

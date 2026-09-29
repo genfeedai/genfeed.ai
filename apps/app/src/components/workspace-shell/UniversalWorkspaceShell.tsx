@@ -867,16 +867,17 @@ function UniversalWorkspaceShellContent({
       return;
     }
 
-    // Open, the content panel also reserves the gap between the two panels.
     layoutRoot.style.setProperty(
       '--workspace-inspector-width',
-      isInspectorOpen
-        ? `calc(${inspectorRailWidth}px + var(--shell-inset, 0px))`
-        : '0px',
+      `${inspectorRailWidth}px`,
     );
+    // Open, the content panel drops its right corners and the inspector
+    // continues it: one surface, one divider.
+    layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
 
     return () => {
       layoutRoot.style.removeProperty('--workspace-inspector-width');
+      delete layoutRoot.dataset.inspectorOpen;
     };
   }, [inspectorRailWidth, isInspectorOpen]);
 
@@ -1074,10 +1075,11 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-lg bg-background xl:flex',
-                // Its own inset panel, level with the content panel and one
-                // gap to its right; collapsed it is zero-width, so no border.
-                isInspectorOpen && 'border border-border',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
+                // Attached to the content panel: its right border is the
+                // divider, so the inspector adds only the top, right and
+                // bottom edges. Collapsed it is zero-width, so no border.
+                isInspectorOpen && 'border-y border-r border-border',
               )}
               id="workspace-context-inspector"
               inert={!isInspectorOpen}
