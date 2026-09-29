@@ -273,8 +273,8 @@ describe('WorkflowExecutionQueueService', () => {
       };
       mockQueue.getJob.mockResolvedValueOnce(staleJob);
       const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
         organizationId: 'org-1',
         source: 'agent',
         userId: 'user-1',
@@ -299,8 +299,8 @@ describe('WorkflowExecutionQueueService', () => {
       };
       mockQueue.getJob.mockResolvedValueOnce(inFlightJob);
       const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
         organizationId: 'org-1',
         source: 'agent',
         userId: 'user-1',
@@ -488,8 +488,8 @@ describe('WorkflowExecutionQueueService', () => {
         id: 'system-workflow-exec-8',
       });
       const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
         organizationId: 'org-1',
         source: 'agent',
         userId: 'user-1',
@@ -509,8 +509,8 @@ describe('WorkflowExecutionQueueService', () => {
         id: 'job-123',
       });
       const input = {
-        actionType: 'agent.turn.execute',
-        canonicalId: 'agent.turn.execute',
+        actionType: 'voice.generate',
+        canonicalId: 'voice.generate',
         organizationId: 'org-1',
         source: 'agent',
         userId: 'user-1',
@@ -639,12 +639,24 @@ describe('WorkflowExecutionQueueService', () => {
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockQueue(), createMockQueue(), createMockLogger());
+      )(
+        mockQueue,
+        createMockQueue(),
+        createMockQueue(),
+        createMockQueue(),
+        createMockLogger(),
+      );
       const replicaB = new (
         WorkflowExecutionQueueService as unknown as new (
           ...args: unknown[]
         ) => WorkflowExecutionQueueService
-      )(mockQueue, createMockQueue(), createMockQueue(), createMockLogger());
+      )(
+        mockQueue,
+        createMockQueue(),
+        createMockQueue(),
+        createMockQueue(),
+        createMockLogger(),
+      );
 
       await replicaA.upsertWorkflowScheduler({
         cronExpression: '*/5 * * * *',
