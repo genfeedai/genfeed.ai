@@ -8,7 +8,9 @@ import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflow
 import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
+import { withExampleOutputs } from '@api/collections/workflows/templates/workflow-template-example-outputs';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { WorkflowTemplateExampleOutput } from '@genfeedai/contracts/interfaces';
 
 export type RoutineReviewDefaults = {
   autoApproveIfNoResponse: boolean;
@@ -62,6 +64,11 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   changeSummary?: string;
+  /**
+   * What the template produces, shown as its catalog preview (#5498). Set
+   * from `WORKFLOW_TEMPLATE_EXAMPLE_OUTPUTS`, never inline on a graph.
+   */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: Array<{
@@ -96,7 +103,7 @@ export interface WorkflowTemplate {
   version?: number;
 }
 
-export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
+const WORKFLOW_TEMPLATE_CATALOG: Record<string, WorkflowTemplate> = {
   ...GENERATION_WORKFLOW_TEMPLATES,
   ...DYNAMIC_VIDEO_WORKFLOW_TEMPLATES,
   ...Object.fromEntries(
@@ -587,3 +594,6 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
     ],
   },
 };
+
+export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> =
+  withExampleOutputs(WORKFLOW_TEMPLATE_CATALOG);

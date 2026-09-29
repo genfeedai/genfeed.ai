@@ -692,6 +692,30 @@ describe('WorkflowApiService', () => {
     expect(entries[0].edges).toEqual([edge]);
   });
 
+  it('carries a valid catalog example output and drops a malformed one', async () => {
+    const exampleOutput = {
+      mediaType: 'video',
+      posterUrl: 'https://cdn.example.com/examples/digest.jpg',
+      url: 'https://cdn.example.com/examples/digest.mp4',
+    };
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          { canonicalId: 'daily-digest', exampleOutput },
+          {
+            canonicalId: 'ad-optimization',
+            exampleOutput: { mediaType: 'video', url: 'javascript:alert(1)' },
+          },
+        ],
+      },
+    });
+
+    const entries = await service().listSystemCatalog();
+
+    expect(entries[0]?.exampleOutput).toEqual(exampleOutput);
+    expect(entries[1]).not.toHaveProperty('exampleOutput');
+  });
+
   it('creates service instances with the canonical workflows endpoint', () => {
     const instance = createWorkflowApiService('token-1');
 
@@ -872,5 +896,35 @@ describe('WorkflowApiService', () => {
       sourceType: 'featured-workflow',
       sourceWorkflowId: 'wf-pinned',
     });
+  });
+
+  it('carries a valid template example output and drops a malformed one', async () => {
+    const exampleOutput = {
+      mediaType: 'image',
+      url: 'https://cdn.example.com/examples/thread.png',
+    };
+    mocks.get.mockResolvedValueOnce({
+      data: {
+        data: [
+          { exampleOutput, featuredRank: 1, id: 'founder-x-thread' },
+          {
+            exampleOutput: { mediaType: 'image', url: '/relative.png' },
+            id: 'launch-kit',
+          },
+          { id: 'plain' },
+        ],
+      },
+    });
+
+    const templates = await service().listTemplates();
+
+    expect(templates[0]).toEqual({
+      exampleOutput,
+      featuredRank: 1,
+      id: 'founder-x-thread',
+    });
+    expect(templates[1]).toEqual({ id: 'launch-kit' });
+    expect(templates[1]).not.toHaveProperty('exampleOutput');
+    expect(templates[2]).toEqual({ id: 'plain' });
   });
 });

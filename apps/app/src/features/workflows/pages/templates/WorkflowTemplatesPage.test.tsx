@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { translateFromCatalog } from '@app-tests/next-intl.stub';
+import { MediaType } from '@genfeedai/contracts';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { type ReactNode, StrictMode } from 'react';
@@ -391,6 +392,77 @@ describe('WorkflowTemplatesPage', () => {
     ).toBeInTheDocument();
     expect(
       within(allSection()).queryByText('Founder thread'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('previews a pinned workflow by its thumbnail, else by its graph (#5498)', async () => {
+    mocks.listFeatured.mockResolvedValue([
+      {
+        ...PINNED_WORKFLOW,
+        thumbnail: 'https://cdn.example.com/examples/founder-thread.png',
+      },
+      {
+        ...PINNED_WORKFLOW,
+        featuredRank: 2,
+        id: 'wf-graph-only',
+        label: 'Graph only',
+      },
+    ]);
+    await renderLoadedPage();
+
+    await waitFor(() => {
+      expect(
+        within(featuredSection()).getAllByTestId('workflow-template-card'),
+      ).toHaveLength(2);
+    });
+    const [exampleCard, graphCard] = within(featuredSection()).getAllByTestId(
+      'workflow-template-card',
+    );
+    expect(
+      within(exampleCard as HTMLElement).getByRole('img', {
+        name: 'Example output from Founder thread',
+      }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/founder-thread.png',
+    );
+    expect(
+      within(graphCard as HTMLElement).getByRole('img', {
+        name: 'Graph only workflow diagram',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('previews a catalog template by its example output in the grid (#5498)', async () => {
+    const user = userEvent.setup();
+    mocks.listTemplates.mockResolvedValue([
+      {
+        ...POST_HARD_CUT_TEMPLATE,
+        exampleOutput: {
+          mediaType: MediaType.IMAGE,
+          url: 'https://cdn.example.com/examples/social-blast.png',
+        },
+      },
+    ]);
+    await renderLoadedPage();
+
+    await user.click(within(allSection()).getByRole('radio', { name: 'Grid' }));
+
+    const exampleCard = within(allSection())
+      .getAllByTestId('workflow-template-card')
+      .find((card) => within(card).queryByText('Social blast'));
+    expect(
+      within(exampleCard as HTMLElement).getByRole('img', {
+        name: 'Example output from Social blast',
+      }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.example.com/examples/social-blast.png',
+    );
+    expect(
+      within(exampleCard as HTMLElement).queryByRole('img', {
+        name: 'Social blast workflow diagram',
+      }),
     ).not.toBeInTheDocument();
   });
 

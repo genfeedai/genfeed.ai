@@ -5,9 +5,14 @@ import {
   ButtonVariant,
   ComponentSize,
   formatEnumLabel,
+  MediaType,
   ViewType,
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  parseWorkflowTemplateExampleOutput,
+  type WorkflowTemplateExampleOutput,
+} from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -52,8 +57,8 @@ import {
   type WorkflowApiService,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
-import WorkflowCardPreview from '../library/WorkflowCardPreview';
 import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
+import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
 /**
@@ -153,13 +158,13 @@ type CatalogItem = {
   edges?: Edge[];
   /** Set on an admin-pinned Featured workflow (#5511); "Use" copies it. */
   featuredWorkflowId?: string;
+  exampleOutput?: WorkflowTemplateExampleOutput;
   href?: string;
   id: string;
   nodes?: Node[];
   schedule?: string;
   source: Exclude<CatalogSource, 'all'>;
   systemEntry?: SystemWorkflowCatalogEntry;
-  thumbnail?: string | null;
   title: string;
 };
 
@@ -405,6 +410,7 @@ function buildCatalogItems({
     changeSummary: entry.changeSummary,
     description: entry.description,
     edges: entry.edges,
+    exampleOutput: entry.exampleOutput,
     href:
       entry.installed && entry.installedWorkflowId
         ? href(
@@ -424,6 +430,7 @@ function buildCatalogItems({
     changeSummary: template.changeSummary,
     description: template.description,
     edges: template.edges,
+    exampleOutput: template.exampleOutput,
     href: href(
       `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
     ),
@@ -439,7 +446,9 @@ function buildCatalogItems({
 
 /**
  * Featured is the admin-pinned workflows (#5511), already in pin order. With
- * nothing pinned the row is empty and the section hides itself.
+ * nothing pinned the row is empty and the section hides itself. A pinned
+ * workflow's thumbnail is its example output (#5498); without a valid one
+ * the card previews the graph.
  */
 function buildFeaturedItems(
   featured: FeaturedWorkflow[],
@@ -451,8 +460,12 @@ function buildFeaturedItems(
     featuredWorkflowId: workflow.id,
     id: `featured-${workflow.id}`,
     nodes: workflow.nodes,
+    exampleOutput: parseWorkflowTemplateExampleOutput(
+      workflow.thumbnail
+        ? { mediaType: MediaType.IMAGE, url: workflow.thumbnail }
+        : undefined,
+    ),
     source: 'available',
-    thumbnail: workflow.thumbnail,
     title: workflow.label ?? untitledLabel,
   }));
 }
@@ -1014,9 +1027,9 @@ function WorkflowTemplatesPageContent() {
         bodyClassName="h-full justify-between gap-4"
         data-testid="workflow-template-card"
       >
-        <WorkflowCardPreview
+        <WorkflowTemplateCardPreview
           name={item.title}
-          thumbnail={item.thumbnail}
+          exampleOutput={item.exampleOutput}
           nodes={item.nodes}
           edges={item.edges}
         />
@@ -1294,9 +1307,9 @@ function WorkflowTemplatesPageContent() {
           detailsItem
             ? {
                 edges: detailsItem.edges,
+                exampleOutput: detailsItem.exampleOutput,
                 name: detailsItem.title,
                 nodes: detailsItem.nodes,
-                thumbnail: detailsItem.thumbnail,
               }
             : undefined
         }

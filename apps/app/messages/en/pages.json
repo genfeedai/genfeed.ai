@@ -2406,6 +2406,10 @@
         "loadFeatured": "Featured workflows could not be loaded.",
         "loadTemplates": "Starter templates could not be loaded."
       },
+      "exampleOutput": {
+        "imageAlt": "Example output from {name}",
+        "videoLabel": "Example output video from {name}"
+      },
       "noMatches": "No workflows match these filters.",
       "retry": "Retry",
       "schedule": "Schedule",

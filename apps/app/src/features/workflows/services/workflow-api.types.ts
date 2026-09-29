@@ -7,6 +7,7 @@ import type {
   SystemWorkflowDuplicateMetadata,
   SystemWorkflowMetadata,
   WorkflowAccounting,
+  WorkflowTemplateExampleOutput,
 } from '@genfeedai/contracts/interfaces';
 import type { WorkflowLifecycle } from '@genfeedai/workflows/contracts';
 import type { NodeGroup } from '@genfeedai/workflows/ui';
@@ -275,6 +276,8 @@ export interface SystemWorkflowCatalogEntry {
   category: string;
   changeSummary: string;
   description: string;
+  /** What the workflow produces; previewed instead of its graph (#5498). */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   family: string;
   icon?: string;
   installable: boolean;
@@ -304,6 +307,8 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   changeSummary?: string;
+  /** What the template produces; previewed instead of its graph (#5498). */
+  exampleOutput?: WorkflowTemplateExampleOutput;
   icon?: string;
   isScheduleEnabled?: boolean;
   inputVariables?: WorkflowInputVariable[];
