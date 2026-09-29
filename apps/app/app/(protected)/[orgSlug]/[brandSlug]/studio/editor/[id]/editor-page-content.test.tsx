@@ -210,9 +210,11 @@ vi.mock('./EditorPreview', () => ({
     ref?: Ref<EditorPreviewRef>;
   }) => {
     useImperativeHandle(ref, () => ({
+      getCurrentFrame: () => 0,
       pause: mocks.pause,
       play: mocks.play,
       seekToFrame: mocks.seekToFrame,
+      toggle: vi.fn(),
     }));
 
     return (

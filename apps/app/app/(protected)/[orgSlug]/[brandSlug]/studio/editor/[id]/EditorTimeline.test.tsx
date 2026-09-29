@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
 import { EditorTrackType } from '@genfeedai/contracts';
+import type { IEditorTrack } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,14 +31,24 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-const tracks = [
+const tracks: IEditorTrack[] = [
   {
     clips: [
       {
         durationFrames: 90,
+        effects: [],
         id: 'video-clip',
+        ingredientId: 'video-1',
+        ingredientUrl: 'https://example.test/video.mp4',
+        sourceEndFrame: 90,
+        sourceStartFrame: 0,
         startFrame: 30,
-        textOverlay: { text: 'Intro clip' },
+        textOverlay: {
+          color: '#ffffff',
+          fontSize: 32,
+          position: { x: 50, y: 50 },
+          text: 'Intro clip',
+        },
         thumbnailUrl: 'https://example.test/thumb.jpg',
       },
     ],
@@ -46,12 +57,18 @@ const tracks = [
     isMuted: false,
     name: 'Main video',
     type: EditorTrackType.VIDEO,
+    volume: 100,
   },
   {
     clips: [
       {
         durationFrames: 45,
+        effects: [],
         id: 'audio-clip',
+        ingredientId: 'audio-1',
+        ingredientUrl: 'https://example.test/audio.mp3',
+        sourceEndFrame: 45,
+        sourceStartFrame: 0,
         startFrame: 10,
       },
     ],
@@ -60,6 +77,7 @@ const tracks = [
     isMuted: true,
     name: 'Music bed',
     type: EditorTrackType.AUDIO,
+    volume: 100,
   },
 ];
 
