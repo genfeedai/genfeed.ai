@@ -6,13 +6,13 @@
   },
   "dependencies": {
     "@inquirer/prompts": "8.7.2",
-    "chalk": "6.0.0",
+    "chalk": "6.0.1",
     "commander": "15.0.0",
     "ink": "7.1.1",
     "ofetch": "1.5.1",
     "ora": "9.4.1",
     "react": "19.3.0",
-    "socket.io-client": "4.8.3",
+    "socket.io-client": "4.8.4",
     "zod": "4.6.5"
   },
   "description": "Unified CLI for Genfeed.ai - Generate, schedule, analyze, and publish AI content from your terminal",
@@ -27,8 +27,8 @@
     "@types/node": "22.20.1",
     "@types/react": "19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
-    "@vitest/coverage-v8": "5.0.1",
-    "vitest": "5.0.1"
+    "@vitest/coverage-v8": "5.0.2",
+    "vitest": "5.0.2"
   },
   "engines": {
     "node": ">=22.12.0"
