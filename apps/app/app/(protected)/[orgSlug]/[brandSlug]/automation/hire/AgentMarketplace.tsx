@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { cdnProductStill } from '@helpers/media/cdn/cdn.helper';
 import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-team-presets';
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
@@ -12,18 +11,12 @@ import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarouse
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
-import {
-  type AgentTypeIcon,
-  getAgentTypeIcon,
-} from '../agents/agent-type-display';
+import AgentPresetAvatar from './AgentPresetAvatar';
 
 const ALL_CATEGORY = 'all';
 const FEATURED_COUNT = 4;
-const FEATURED_AVATAR_SIZE = 40;
-const LIST_AVATAR_SIZE = 36;
 
 function matchesQuery(preset: ContentTeamRolePreset, query: string): boolean {
   if (!query) {
@@ -46,33 +39,6 @@ function comparePresetName(
   right: ContentTeamRolePreset,
 ): number {
   return left.displayRole.localeCompare(right.displayRole);
-}
-
-function AgentPresetAvatar({
-  fallbackIcon: FallbackIcon,
-  presetId,
-  size,
-}: {
-  fallbackIcon: AgentTypeIcon;
-  presetId: string;
-  size: number;
-}) {
-  const [hasFailed, setHasFailed] = useState(false);
-
-  if (hasFailed) {
-    return <FallbackIcon className="size-4 text-foreground/70" />;
-  }
-
-  return (
-    <NextImage
-      alt=""
-      className="object-cover"
-      height={size}
-      onError={() => setHasFailed(true)}
-      src={cdnProductStill('agents', presetId)}
-      width={size}
-    />
-  );
 }
 
 export default function AgentMarketplace({
@@ -144,7 +110,6 @@ export default function AgentMarketplace({
       >
         <HorizontalCarousel gap="md">
           {featuredPresets.map((preset) => {
-            const Icon = getAgentTypeIcon(preset.type);
             const isActivating = submittingPresetId === preset.id;
             return (
               <Card
@@ -154,9 +119,9 @@ export default function AgentMarketplace({
                 description={preset.description}
                 icon={
                   <AgentPresetAvatar
-                    fallbackIcon={Icon}
+                    platforms={preset.platforms}
                     presetId={preset.id}
-                    size={FEATURED_AVATAR_SIZE}
+                    type={preset.type}
                   />
                 }
                 iconWrapperClassName="bg-transparent p-0"
@@ -198,7 +163,6 @@ export default function AgentMarketplace({
       >
         <CollectionList>
           {listedPresets.map((preset) => {
-            const Icon = getAgentTypeIcon(preset.type);
             const isActivating = submittingPresetId === preset.id;
             return (
               <ListRow
@@ -207,13 +171,11 @@ export default function AgentMarketplace({
                 density="compact"
                 description={preset.description}
                 leading={
-                  <span className="flex size-9 shrink-0 items-center justify-center overflow-hidden">
-                    <AgentPresetAvatar
-                      fallbackIcon={Icon}
-                      presetId={preset.id}
-                      size={LIST_AVATAR_SIZE}
-                    />
-                  </span>
+                  <AgentPresetAvatar
+                    platforms={preset.platforms}
+                    presetId={preset.id}
+                    type={preset.type}
+                  />
                 }
                 meta={`${preset.teamGroup} · ${translate('creditsPerDay', {
                   credits: preset.defaultBudget,

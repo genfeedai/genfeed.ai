@@ -83,12 +83,6 @@ vi.mock('@ui/card/Card', () => ({
     ),
 }));
 
-vi.mock('next/image', () => ({
-  default: ({ alt, src }: { alt?: string; src: string }) => (
-    <span data-alt={alt} data-src={src} />
-  ),
-}));
-
 vi.mock('@ui/lists/list-row/ListRow', () => ({
   ListRow: ({
     description,
@@ -252,11 +246,12 @@ describe('AgentMarketplace', () => {
     expect(within(list).getByText(/25 credits/)).toBeVisible();
 
     expect(
-      within(list)
-        .getByTestId('agent-preset-row-scriptwriter')
-        .querySelector('[data-src]')
-        ?.getAttribute('data-src'),
-    ).toBe('https://cdn.genfeed.ai/assets/agents/scriptwriter.webp');
+      within(
+        list.querySelector(
+          '[data-testid="agent-preset-row-scriptwriter"]',
+        ) as HTMLElement,
+      ).getByTestId('agent-avatar-scriptwriter'),
+    ).toBeInTheDocument();
   });
 
   it('activates from a featured card and from a list row with one click', () => {
