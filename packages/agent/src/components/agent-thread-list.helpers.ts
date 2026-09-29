@@ -297,3 +297,29 @@ export function isAuthError(error: unknown): boolean {
     error.message.includes('401') || error.message.includes('Unauthorized')
   );
 }
+
+/**
+ * The listed row, with the run status of the row it replaces when that one was
+ * set by a newer status push (#5636). List rows carry the sequence they were
+ * read at, so a response that is older than a push cannot regress it.
+ */
+export function keepNewerRunStatus(
+  listed: AgentThread,
+  current: AgentThread | undefined,
+): AgentThread {
+  if (
+    !current ||
+    (current.statusSequence ?? 0) <= (listed.statusSequence ?? 0)
+  ) {
+    return listed;
+  }
+
+  return {
+    ...listed,
+    attentionState: current.attentionState,
+    pendingInputCount: current.pendingInputCount,
+    runStatus: current.runStatus,
+    runtimeState: current.runtimeState,
+    statusSequence: current.statusSequence,
+  };
+}

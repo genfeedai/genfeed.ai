@@ -1,5 +1,8 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { resolveRunSummaryPatch } from '@genfeedai/agent/utils/agent-thread-run-summary.util';
+import {
+  resolveRunSummaryPatch,
+  resolveStatusPushPatch,
+} from '@genfeedai/agent/utils/agent-thread-run-summary.util';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
@@ -106,5 +109,61 @@ describe('resolveRunSummaryPatch', () => {
         createThread({ pendingInputCount: 1, runStatus: 'running' }),
       ),
     ).toMatchObject({ pendingInputCount: 0, runStatus: 'running' });
+  });
+});
+
+describe('resolveStatusPushPatch', () => {
+  const push = (
+    runStatus: AgentThread['runStatus'] & string,
+    runtimeState: AgentThread['runtimeState'] & string,
+    pendingInputCount = 0,
+  ) => ({ pendingInputCount, runStatus, runtimeState, sequence: 9 });
+
+  it('shows a running thread as Working, at the pushed sequence', () => {
+    expect(
+      resolveStatusPushPatch(push('running', 'running'), createThread()),
+    ).toEqual({
+      attentionState: 'running',
+      pendingInputCount: 0,
+      runStatus: 'running',
+      runtimeState: 'running',
+      statusSequence: 9,
+    });
+  });
+
+  it('shows a thread waiting on the user as Needs you', () => {
+    expect(
+      resolveStatusPushPatch(
+        push('waiting_input', 'awaiting_input', 2),
+        createThread({ attentionState: 'running' }),
+      ),
+    ).toMatchObject({
+      attentionState: 'needs-input',
+      pendingInputCount: 2,
+      runStatus: 'waiting_input',
+    });
+  });
+
+  it.each([
+    ['completed', 'completed'],
+    ['failed', 'failed'],
+    ['cancelled', 'cancelled'],
+    ['idle', 'ready'],
+  ] as const)('clears attention when the run is %s', (runStatus, state) => {
+    expect(
+      resolveStatusPushPatch(
+        push(runStatus, state),
+        createThread({ attentionState: 'running', runStatus: 'running' }),
+      ),
+    ).toMatchObject({ attentionState: null, runStatus });
+  });
+
+  it('keeps a client-side updated marker across a terminal status', () => {
+    expect(
+      resolveStatusPushPatch(
+        push('completed', 'completed'),
+        createThread({ attentionState: 'updated' }),
+      ),
+    ).toMatchObject({ attentionState: 'updated' });
   });
 });

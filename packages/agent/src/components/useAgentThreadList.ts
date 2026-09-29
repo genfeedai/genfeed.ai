@@ -1,3 +1,4 @@
+import { useAgentThreadStatusPush } from '@genfeedai/agent/hooks/use-agent-thread-status-push';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -9,6 +10,7 @@ import {
   getErrorMessage,
   hasRenderableThreadId,
   isAuthError,
+  keepNewerRunStatus,
   sortThreads,
 } from './agent-thread-list.helpers';
 
@@ -193,7 +195,17 @@ export function useAgentThreadList({
       const preserved = activeThread
         ? [activeThread, ...recentLocalThreads]
         : recentLocalThreads;
-      setThreads(sortThreads([...preserved, ...renderableData]));
+      // A push that landed while this request was in flight can be newer than
+      // the response; keep the row that already holds the newer status.
+      const currentById = new Map(current.map((thread) => [thread.id, thread]));
+      setThreads(
+        sortThreads([
+          ...preserved,
+          ...renderableData.map((thread) =>
+            keepNewerRunStatus(thread, currentById.get(thread.id)),
+          ),
+        ]),
+      );
       setListRevision((revision) => revision + 1);
       return true;
     } catch (error) {
@@ -217,6 +229,8 @@ export function useAgentThreadList({
       }
     }
   }, [apiService, brandId, isActive, setThreads, viewStatus]);
+
+  useAgentThreadStatusPush({ isActive, reloadThreads: loadThreads });
 
   // Brand scope changes must clear the previous list, but this must happen in
   // an effect. Writing to the Zustand store during render causes React to

@@ -8,6 +8,7 @@ import {
   getThreadStatusMeta,
   groupAgentThreads,
   groupAgentThreadsByBrand,
+  keepNewerRunStatus,
   ORGANIZATION_THREAD_GROUP_LABEL,
   resolveThreadListPreview,
 } from './agent-thread-list.helpers';
@@ -500,5 +501,42 @@ describe('sidebar thread activity across thread switches (real store)', () => {
     store.clearStaleActiveRun();
 
     expect(workingIds()).toEqual([]);
+  });
+});
+
+describe('keepNewerRunStatus', () => {
+  it('returns the listed row when it is at least as new as the held one', () => {
+    const listed = createThread('a', {
+      runStatus: 'completed',
+      statusSequence: 7,
+    });
+    const held = createThread('a', { runStatus: 'running', statusSequence: 7 });
+
+    expect(keepNewerRunStatus(listed, held)).toBe(listed);
+    expect(keepNewerRunStatus(listed, undefined)).toBe(listed);
+  });
+
+  it('keeps the run status a newer push set, and the rest of the listed row', () => {
+    const listed = createThread('a', {
+      lastAssistantPreview: 'fresh preview',
+      runStatus: 'running',
+      statusSequence: 4,
+    });
+    const held = createThread('a', {
+      attentionState: 'needs-input',
+      pendingInputCount: 1,
+      runStatus: 'waiting_input',
+      runtimeState: 'awaiting_input',
+      statusSequence: 6,
+    });
+
+    expect(keepNewerRunStatus(listed, held)).toMatchObject({
+      attentionState: 'needs-input',
+      lastAssistantPreview: 'fresh preview',
+      pendingInputCount: 1,
+      runStatus: 'waiting_input',
+      runtimeState: 'awaiting_input',
+      statusSequence: 6,
+    });
   });
 });

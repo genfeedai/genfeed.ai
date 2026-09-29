@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
+import { countAgentThreadStatus } from '@libs/websockets/agent-thread-status.metrics';
 import { Injectable } from '@nestjs/common';
 
 export interface PublishAgentThreadStatusParams {
@@ -125,8 +126,10 @@ export class AgentThreadStatusPublisherService {
         data: event,
         type: AGENT_THREAD_STATUS_EVENT_TYPE,
       });
+      countAgentThreadStatus('published', 1, { runStatus: after.runStatus });
       return true;
     } catch (error: unknown) {
+      countAgentThreadStatus('publish_failed');
       this.loggerService.warn(
         `${this.constructorName} failed to publish thread status`,
         {
