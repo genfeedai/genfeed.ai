@@ -78,19 +78,6 @@ export class CreditDeductionProcessor extends WorkerHost {
           throw new UnrecoverableError('Credit deduction job missing userId');
         }
 
-        if (
-          job.data.settlementAssetId &&
-          !(await this.isMediaSettlementBillable(job))
-        ) {
-          if (job.data.reservationId) {
-            await this.creditsUtilsService.releaseReservation({
-              organizationId,
-              reservationId: job.data.reservationId,
-            });
-          }
-          return;
-        }
-
         if (job.data.reservationId) {
           await this.creditsUtilsService.settleReservation({
             actualAmount: amount,
@@ -217,61 +204,6 @@ export class CreditDeductionProcessor extends WorkerHost {
       throw new Error(
         'Accepted generation metadata changed before persistence',
       );
-  }
-
-  private async isMediaSettlementBillable(
-    job: Job<CreditDeductionJobData>,
-  ): Promise<boolean> {
-    const { data } = job;
-    const asset = await this.prisma.ingredient.findFirst({
-      select: { cdnUrl: true, id: true, s3Key: true, status: true },
-      where: {
-        id: data.settlementAssetId,
-        isDeleted: false,
-        organizationId: data.organizationId,
-      },
-    });
-    const status = String(asset?.status ?? '').toUpperCase();
-    if (['FAILED', 'REJECTED', 'ARCHIVED'].includes(status)) {
-      this.logger.log(
-        `${this.constructorName} skipped terminal media settlement`,
-        {
-          assetId: data.settlementAssetId,
-          organizationId: data.organizationId,
-          status,
-        },
-      );
-      return false;
-    }
-    if (status !== 'GENERATED' && status !== 'VALIDATED') {
-      const attempts = Number(job.opts.attempts) || 1;
-      if (job.attemptsMade + 1 >= attempts) {
-        this.logger.error(
-          `${this.constructorName} media settlement requires operator reconciliation`,
-          {
-            assetId: data.settlementAssetId,
-            attempts,
-            organizationId: data.organizationId,
-            status: status || 'missing',
-          },
-        );
-      }
-      throw new Error(
-        `Media asset ${data.settlementAssetId} is not terminal (${status || 'missing'})`,
-      );
-    }
-    if (!asset?.cdnUrl && !asset?.s3Key) {
-      this.logger.log(
-        `${this.constructorName} skipped inaccessible media settlement`,
-        {
-          assetId: data.settlementAssetId,
-          organizationId: data.organizationId,
-          status,
-        },
-      );
-      return false;
-    }
-    return true;
   }
 
   private async checkLowCredits(organizationId: string): Promise<void> {

@@ -1,0 +1,378 @@
+import { randomUUID } from 'node:crypto';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  ActivitySource,
+  CreditReservationStatus,
+  IngredientStatus,
+} from '@genfeedai/contracts';
+import {
+  GENERATION_POOL_WORKLOAD_TYPE,
+  MEDIA_GENERATION_HOLD_TTL_MS,
+  MEDIA_GENERATION_WORKLOAD_TYPE,
+} from '@genfeedai/contracts/constants';
+import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Injectable } from '@nestjs/common';
+
+/** The request-shaped input every generation billing step reads. */
+export interface GenerationBillingRequest {
+  creditsConfig?: ReservationCreditsConfig & {
+    boundOutputCount?: number;
+    isPoolReleaseDeferred?: boolean;
+  };
+  user?: AuthenticatedUser;
+}
+
+export type GenerationSettlementOutcome =
+  | 'queued'
+  | 'already-settled'
+  | 'no-hold'
+  | 'hold-ended';
+
+export type GenerationReleaseOutcome = 'released' | 'no-hold';
+
+/** Reconcile leaves a fresh hold to the completion hook before sweeping it. */
+const RECONCILE_GRACE_MS = 2 * 60 * 1000;
+const RECONCILE_BATCH = 200;
+const TERMINAL_FAILURE_STATUSES: readonly string[] = [
+  IngredientStatus.FAILED,
+  IngredientStatus.REJECTED,
+  IngredientStatus.ARCHIVED,
+];
+const SETTLEABLE_STATUSES: readonly string[] = [
+  IngredientStatus.GENERATED,
+  IngredientStatus.VALIDATED,
+];
+
+/**
+ * The one billing contract for async media generation (#5657).
+ *
+ * 1. The credits guard reserves the request's price into a pool hold.
+ * 2. When the provider accepts an output, the service `bindOutput`s it: that
+ *    output's share moves from the pool into its own hold.
+ * 3. The completion path `settleOutput`s the hold on success or `releaseOutput`s
+ *    it on failure. A sweep (`reconcile`) settles or releases any hold whose
+ *    ingredient already ended, so a lost webhook cannot strand credits.
+ *
+ * Settlement is a queued reserved-settlement job keyed by the hold, so webhook
+ * and poll retries collapse into one CreditTransaction.
+ */
+@Injectable()
+export class GenerationBillingService {
+  constructor(
+    private readonly credits: CreditsUtilsService,
+    private readonly queue: CreditDeductionQueueService,
+    private readonly prisma: PrismaService,
+    private readonly logger: LoggerService,
+  ) {}
+
+  /**
+   * Opens a pool hold for a caller that has no request-level hold (a background
+   * task, a workflow node). Throws INSUFFICIENT_CREDITS when the wallet cannot
+   * cover it, before any provider work starts.
+   */
+  async holdForService(params: {
+    credits: number;
+    description: string;
+    organizationId: string;
+    source: ActivitySource;
+    userId: string;
+  }): Promise<GenerationBillingRequest> {
+    const reservation = await this.credits.reserveCredits({
+      actorUserId: params.userId,
+      amount: params.credits,
+      description: params.description,
+      expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
+      idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${randomUUID()}`,
+      organizationId: params.organizationId,
+      source: params.source,
+      workloadType: GENERATION_POOL_WORKLOAD_TYPE,
+    });
+    return {
+      creditsConfig: {
+        amount: params.credits,
+        description: params.description,
+        reservationId: reservation.id,
+        source: params.source,
+      },
+      user: {
+        brandId: '',
+        id: params.userId,
+        organizationId: params.organizationId,
+        userId: params.userId,
+      },
+    };
+  }
+
+  /**
+   * True when the request holds platform credits on a completion-settled route,
+   * so accepted outputs can be bound to it. A route that settles on response
+   * keeps its hold whole for the interceptor.
+   */
+  hasPool(request: GenerationBillingRequest): boolean {
+    const config = request.creditsConfig;
+    return Boolean(
+      config?.settlement === 'completion' &&
+        config.reservationId &&
+        !config.isByokBypass &&
+        (config.amount ?? 0) > 0,
+    );
+  }
+
+  /**
+   * Binds one accepted output to its own hold. Call it after the provider
+   * accepted the job and before the ingredient can complete (before the
+   * external id is persisted), so a fast webhook always finds the hold.
+   */
+  async bindOutput(
+    request: GenerationBillingRequest,
+    output: { credits: number; ingredientId: string },
+  ): Promise<void> {
+    const config = request.creditsConfig;
+    const organizationId = request.user?.organizationId;
+    if (!config?.reservationId || !organizationId || !this.hasPool(request)) {
+      return;
+    }
+    const bound = await this.credits.bindReservationOutput({
+      amount: output.credits,
+      expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
+      metadata: { assetId: output.ingredientId },
+      organizationId,
+      reservationId: config.reservationId,
+      workloadId: output.ingredientId,
+    });
+    request.creditsConfig = {
+      ...config,
+      boundOutputCount: (config.boundOutputCount ?? 0) + 1,
+    };
+    this.logger.log('Generation output bound to its credit hold', {
+      amount: bound.amount,
+      ingredientId: output.ingredientId,
+      organizationId,
+      reservationId: bound.id,
+    });
+  }
+
+  /**
+   * Called by a service that binds further outputs after the response returns
+   * (multi-output fan-out). The request hold then stays open until the service
+   * calls `releasePool`; the hold's TTL backstops a service that never does.
+   */
+  deferPoolRelease(request: GenerationBillingRequest): void {
+    if (request.creditsConfig?.reservationId) {
+      request.creditsConfig = {
+        ...request.creditsConfig,
+        isPoolReleaseDeferred: true,
+      };
+    }
+  }
+
+  /** Releases whatever no output claimed (dispatch never reached acceptance). */
+  async releasePool(request: GenerationBillingRequest): Promise<void> {
+    const reservationId = request.creditsConfig?.reservationId;
+    const organizationId = request.user?.organizationId;
+    if (!reservationId || !organizationId) {
+      return;
+    }
+    try {
+      await this.credits.releaseReservation({ organizationId, reservationId });
+    } catch (error: unknown) {
+      this.logger.error('Generation pool release failed', error, {
+        organizationId,
+        reservationId,
+      });
+    }
+  }
+
+  /** Success: queue one reserved settlement for the output's hold. */
+  async settleOutput(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<GenerationSettlementOutcome> {
+    const hold = await this.findHold(ingredientId, organizationId);
+    if (!hold) {
+      return 'no-hold';
+    }
+    if (hold.status === CreditReservationStatus.SETTLED) {
+      return 'already-settled';
+    }
+    if (hold.status !== CreditReservationStatus.RESERVED || !hold.actorUserId) {
+      this.logger.error(
+        'Generation completed after its credit hold ended; reconcile the missing charge',
+        { ingredientId, organizationId, reservationId: hold.id },
+      );
+      return 'hold-ended';
+    }
+    await this.queue.queueDeduction({
+      amount: hold.amount,
+      description: hold.description ?? 'Media generation',
+      idempotencyKey: `${MEDIA_GENERATION_WORKLOAD_TYPE}-settle:${hold.id}`,
+      metadata: hold.metadata ?? undefined,
+      organizationId,
+      reservationId: hold.id,
+      source: hold.source ?? ActivitySource.SCRIPT,
+      type: 'deduct-credits',
+      userId: hold.actorUserId,
+    });
+    this.logger.log('Generation credit settlement queued', {
+      ingredientId,
+      organizationId,
+      reservationId: hold.id,
+    });
+    return 'queued';
+  }
+
+  /** Failure or timeout: give the output's hold back without charging. */
+  async releaseOutput(
+    ingredientId: string,
+    organizationId: string,
+    reason: 'release' | 'expiry' = 'release',
+  ): Promise<GenerationReleaseOutcome> {
+    const hold = await this.findHold(ingredientId, organizationId);
+    if (!hold) {
+      return 'no-hold';
+    }
+    if (hold.status === CreditReservationStatus.RESERVED) {
+      await this.credits.releaseReservation({
+        organizationId,
+        reason,
+        reservationId: hold.id,
+      });
+      this.logger.log('Generation credit hold released', {
+        ingredientId,
+        organizationId,
+        reason,
+        reservationId: hold.id,
+      });
+    }
+    return 'released';
+  }
+
+  /**
+   * Sweep: settle a hold whose ingredient finished, release one whose
+   * ingredient failed or vanished, and fail then release one that outlived its
+   * TTL still PROCESSING. Returns how many holds it acted on.
+   */
+  async reconcile(now = new Date()): Promise<number> {
+    // tenant-scope-ignore: platform sweep; each hold carries its organizationId
+    const holds = await this.prisma.creditReservation.findMany({
+      orderBy: { createdAt: 'asc' },
+      take: RECONCILE_BATCH,
+      where: {
+        createdAt: { lte: new Date(now.getTime() - RECONCILE_GRACE_MS) },
+        isDeleted: false,
+        status: CreditReservationStatus.RESERVED,
+        workloadId: { not: null },
+        workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+      },
+    });
+    if (holds.length === 0) {
+      return 0;
+    }
+
+    // tenant-scope-ignore: ids come from the holds above, matched by org below
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: {
+        id: true,
+        isDeleted: true,
+        organizationId: true,
+        status: true,
+      },
+      where: {
+        id: {
+          in: holds.flatMap((hold) =>
+            hold.workloadId ? [hold.workloadId] : [],
+          ),
+        },
+      },
+    });
+    const byKey = new Map(
+      ingredients.map((row) => [`${row.organizationId}:${row.id}`, row]),
+    );
+
+    let acted = 0;
+    for (const hold of holds) {
+      const ingredientId = hold.workloadId;
+      if (!ingredientId) continue;
+      try {
+        const ingredient = byKey.get(`${hold.organizationId}:${ingredientId}`);
+        const status = String(ingredient?.status ?? '');
+        if (
+          ingredient &&
+          !ingredient.isDeleted &&
+          SETTLEABLE_STATUSES.includes(status)
+        ) {
+          await this.settleOutput(ingredientId, hold.organizationId);
+        } else if (
+          !ingredient ||
+          ingredient.isDeleted ||
+          TERMINAL_FAILURE_STATUSES.includes(status)
+        ) {
+          await this.releaseOutput(ingredientId, hold.organizationId);
+        } else if (hold.expiresAt <= now) {
+          await this.failStuckIngredient(ingredientId, hold.organizationId);
+          await this.releaseOutput(ingredientId, hold.organizationId, 'expiry');
+        } else {
+          continue;
+        }
+        acted += 1;
+      } catch (error: unknown) {
+        this.logger.error('Generation hold reconciliation failed', error, {
+          ingredientId,
+          organizationId: hold.organizationId,
+          reservationId: hold.id,
+        });
+      }
+    }
+
+    this.logger.log('Generation hold reconciliation completed', {
+      acted,
+      candidates: holds.length,
+    });
+    return acted;
+  }
+
+  private async failStuckIngredient(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.prisma.ingredient.updateMany({
+      data: { status: IngredientStatus.FAILED },
+      where: {
+        id: ingredientId,
+        isDeleted: false,
+        organizationId,
+        status: IngredientStatus.PROCESSING,
+      },
+    });
+    this.logger.warn('Generation still processing at hold expiry; failed', {
+      ingredientId,
+      organizationId,
+    });
+  }
+
+  private async findHold(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<ICreditReservation | null> {
+    return this.credits.findReservationForWorkload({
+      organizationId,
+      workloadId: ingredientId,
+      workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+    });
+  }
+}
+
+export function requirePositiveCredits(credits: number): number {
+  if (!Number.isFinite(credits) || !(credits > 0)) {
+    throw new BusinessLogicException(
+      'Generation credits must be a positive number',
+    );
+  }
+  return credits;
+}

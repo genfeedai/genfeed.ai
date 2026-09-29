@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CreditReservationStatus } from '@genfeedai/contracts';
+import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
+import {
+  GENERATION_POOL_WORKLOAD_TYPE,
+  MEDIA_GENERATION_HOLD_TTL_MS,
+} from '@genfeedai/contracts/constants';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 
-// Media settlement retries for seven days. Keep the hold alive for one extra
-// day so the expiry sweep cannot race the final worker retry.
-const GENERATION_RESERVATION_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 const MAX_EXTERNAL_IDEMPOTENCY_KEY_LENGTH = 160;
 
 export type ReservationCreditsConfig = CreditsConfig & {
@@ -79,11 +80,16 @@ export async function reserveGenerationRequestCredits(params: {
   const reservationInput = {
     actorUserId,
     amount: params.amount,
-    expiresAt: new Date(Date.now() + GENERATION_RESERVATION_TTL_MS),
-    idempotencyKey: `generation:${workloadId}`,
+    description: config.description,
+    expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
+    idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${workloadId}`,
+    ...(config.pricingMetadata
+      ? { metadata: { ...config.pricingMetadata } }
+      : {}),
     organizationId: params.organizationId,
+    source: config.source ?? ActivitySource.SCRIPT,
     workloadId,
-    workloadType: 'generation',
+    workloadType: GENERATION_POOL_WORKLOAD_TYPE,
   };
   let reservation =
     await params.creditsUtilsService.reserveCredits(reservationInput);

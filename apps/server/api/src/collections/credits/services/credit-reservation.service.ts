@@ -18,19 +18,25 @@ import {
   LiveSessionTerminateReason,
   parseCreditReservationStatus,
 } from '@genfeedai/contracts';
-import { LIVE_SESSION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
+import {
+  LIVE_SESSION_WORKLOAD_TYPE,
+  MEDIA_GENERATION_WORKLOAD_TYPE,
+} from '@genfeedai/contracts/constants';
 import type {
+  IBindCreditReservationOutputInput,
   ICreditReservation,
   ICreditWalletSnapshot,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
   ISettleCreditReservationInput,
 } from '@genfeedai/contracts/interfaces/billing';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_SERIALIZATION_RETRIES = 3;
+const BIND_ROUNDING_TOLERANCE = 1e-6;
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 type ReserveCreditsInput = IReserveCreditsInput & {
@@ -86,8 +92,13 @@ export class CreditReservationService {
             expiresAt:
               input.expiresAt ??
               new Date(Date.now() + DEFAULT_RESERVATION_TTL_MS),
+            description: input.description,
             idempotencyKey: input.idempotencyKey,
+            ...(input.metadata
+              ? { metadata: toPrismaJson(input.metadata) }
+              : {}),
             organizationId: input.organizationId,
+            source: input.source,
             status: CreditReservationStatus.RESERVED,
             workloadId: input.workloadId,
             workloadType: input.workloadType,
@@ -108,6 +119,110 @@ export class CreditReservationService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Moves `amount` credits out of a request-level hold into a new hold that
+   * pays for exactly one output (#5657). The wallet's held total is unchanged:
+   * the pool shrinks by what the output's hold gains, in one transaction, so a
+   * concurrent admission never sees the credits as free. The pool keeps
+   * whatever no output claimed, for the request to release.
+   */
+  async bindOutput(
+    input: IBindCreditReservationOutputInput,
+  ): Promise<ICreditReservation> {
+    if (!Number.isFinite(input.amount) || !(input.amount > 0)) {
+      throw new BusinessLogicException('Bound output amount must be positive');
+    }
+    const idempotencyKey = `${MEDIA_GENERATION_WORKLOAD_TYPE}:${input.workloadId}`;
+
+    return this.runSerializable(async (tx) => {
+      const existing = await tx.creditReservation.findFirst({
+        where: {
+          idempotencyKey,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      });
+      if (existing) {
+        return this.toReservation(existing);
+      }
+
+      const pool = await this.findReservation(input, tx);
+      if (pool.status !== CreditReservationStatus.RESERVED) {
+        throw new UnsettleableReservationException(pool.status);
+      }
+      if (input.amount > pool.amount + BIND_ROUNDING_TOLERANCE) {
+        throw new BusinessLogicException(
+          'Bound output amount exceeds the request hold',
+          { amount: input.amount, poolAmount: pool.amount },
+          'BIND_EXCEEDS_RESERVATION',
+        );
+      }
+
+      // An even split of a fractional total can overshoot the pool by float
+      // dust; the last output takes exactly what is left.
+      const amount = Math.min(input.amount, pool.amount);
+      const remaining = pool.amount - amount;
+      const shrunk = await tx.creditReservation.updateMany({
+        data: {
+          amount: remaining,
+          ...(remaining === 0
+            ? { status: CreditReservationStatus.RELEASED }
+            : {}),
+        },
+        where: {
+          amount: pool.amount,
+          id: pool.id,
+          isDeleted: false,
+          organizationId: pool.organizationId,
+          status: CreditReservationStatus.RESERVED,
+        },
+      });
+      if (shrunk.count !== 1) {
+        throw new UnsettleableReservationException(pool.status);
+      }
+
+      const created = await tx.creditReservation.create({
+        data: {
+          ...(await validatedWorkflowAccountingAttribution(
+            tx,
+            pool.organizationId,
+          )),
+          actorUserId: pool.actorUserId,
+          amount,
+          billingAccountId: pool.billingAccountId,
+          description: pool.description,
+          expiresAt: input.expiresAt,
+          idempotencyKey,
+          metadata: toPrismaJson({
+            ...this.readMetadata(pool.metadata),
+            ...(input.metadata ?? {}),
+          }),
+          organizationId: pool.organizationId,
+          source: pool.source,
+          status: CreditReservationStatus.RESERVED,
+          workloadId: input.workloadId,
+          workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+        },
+      });
+      return this.toReservation(created);
+    });
+  }
+
+  async findByWorkload(input: {
+    organizationId: string;
+    workloadId: string;
+    workloadType: string;
+  }): Promise<ICreditReservation | null> {
+    const row = await this.prisma.creditReservation.findFirst({
+      orderBy: { createdAt: 'desc' },
+      where: scopedWhere(input.organizationId, {
+        workloadId: input.workloadId,
+        workloadType: input.workloadType,
+      }),
+    });
+    return row ? this.toReservation(row) : null;
   }
 
   async settle(
@@ -471,6 +586,18 @@ export class CreditReservationService {
     throw new Error('Serializable reservation transition exhausted retries');
   }
 
+  private readSource(value: string | null): ActivitySource | null {
+    return (
+      Object.values(ActivitySource).find((source) => source === value) ?? null
+    );
+  }
+
+  private readMetadata(value: unknown): Record<string, unknown> | null {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? { ...value }
+      : null;
+  }
+
   private errorCode(error: unknown): string | undefined {
     return typeof error === 'object' && error !== null && 'code' in error
       ? String(error.code)
@@ -488,6 +615,9 @@ export class CreditReservationService {
     workloadType: string | null;
     workloadId: string | null;
     idempotencyKey: string;
+    description: string | null;
+    source: string | null;
+    metadata: unknown;
     expiresAt: Date;
     isDeleted: boolean;
     createdAt: Date;
@@ -498,12 +628,15 @@ export class CreditReservationService {
       amount: row.amount,
       billingAccountId: row.billingAccountId,
       createdAt: row.createdAt.toISOString(),
+      description: row.description,
       expiresAt: row.expiresAt.toISOString(),
       id: row.id,
       idempotencyKey: row.idempotencyKey,
       isDeleted: row.isDeleted,
+      metadata: this.readMetadata(row.metadata),
       organizationId: row.organizationId,
       settledAmount: row.settledAmount,
+      source: this.readSource(row.source),
       status: parseCreditReservationStatus(row.status),
       updatedAt: row.updatedAt.toISOString(),
       workloadId: row.workloadId,

@@ -24,6 +24,7 @@ import {
 } from '@genfeedai/contracts';
 import type {
   IAddCreditsOptions,
+  IBindCreditReservationOutputInput,
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
@@ -382,6 +383,20 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
     return this.creditReservationService.release(input);
+  }
+
+  async bindReservationOutput(
+    input: IBindCreditReservationOutputInput,
+  ): Promise<ICreditReservation> {
+    return this.creditReservationService.bindOutput(input);
+  }
+
+  async findReservationForWorkload(input: {
+    organizationId: string;
+    workloadId: string;
+    workloadType: string;
+  }): Promise<ICreditReservation | null> {
+    return this.creditReservationService.findByWorkload(input);
   }
 
   async addOrganizationCreditsWithExpiration(

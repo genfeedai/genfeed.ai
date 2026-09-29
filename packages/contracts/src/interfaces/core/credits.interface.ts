@@ -61,4 +61,20 @@ export interface CreditsConfig {
    * placing a request-level hold.
    */
   isReservationDeferred?: boolean;
+  /**
+   * `completion`: the route starts async media work, so the guard's hold is not
+   * settled on the HTTP response. The service binds each accepted output to its
+   * own hold (`GenerationBillingService.bindOutput`) and the completion path
+   * settles or releases it (#5657). Omit for synchronous work, which settles
+   * on response.
+   */
+  settlement?: 'completion';
+  /** Runtime: how many accepted outputs the service has bound to a hold. */
+  boundOutputCount?: number;
+  /**
+   * Runtime: the service binds further outputs after the response returns and
+   * releases the request hold itself when it is done, so the interceptor must
+   * leave the hold open.
+   */
+  isPoolReleaseDeferred?: boolean;
 }

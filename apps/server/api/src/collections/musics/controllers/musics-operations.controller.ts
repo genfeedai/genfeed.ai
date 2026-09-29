@@ -40,6 +40,7 @@ export class MusicsOperationsController {
   @UseInterceptors(CreditsInterceptor)
   @Credits({
     description: 'Music generation',
+    settlement: 'completion',
     source: ActivitySource.MUSIC_GENERATION,
   })
   @ValidateModel({ category: ModelCategory.MUSIC })

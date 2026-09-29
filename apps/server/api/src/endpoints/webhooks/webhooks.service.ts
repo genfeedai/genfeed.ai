@@ -1,4 +1,5 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -56,6 +57,7 @@ export class WebhooksService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
     private readonly mediaGenerationCostService: MediaGenerationCostService,
@@ -208,8 +210,12 @@ export class WebhooksService {
       return;
     }
 
-    // 3. Mark ingredient as GENERATED
+    // 3. Mark ingredient as GENERATED, then settle the credits that paid for it
     await this.markMediaGenerated(input.ingredientId, uploadMetadata);
+    await this.settleGenerationCredits(
+      input.ingredientId,
+      ingredient.organizationId,
+    );
 
     // 3.5 Vendor-cost ledger row from the realized output (fire-and-forget;
     // the service swallows every failure so it can never break finalization).
@@ -379,6 +385,10 @@ export class WebhooksService {
     await this.ingredientsService.patch(ingredient.id.toString(), {
       status: IngredientStatus.FAILED,
     });
+    await this.releaseGenerationCredits(
+      ingredient.id.toString(),
+      ingredient.organizationId,
+    );
 
     this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
       ingredient.id.toString(),
@@ -421,6 +431,42 @@ export class WebhooksService {
     await this.cacheService.invalidateByTags([
       categoryToPlural(ingredient.category),
     ]);
+  }
+
+  /**
+   * Completion settles the output's credit hold. A failure here must not undo a
+   * finished generation; the reconcile sweep settles any hold this misses.
+   */
+  private async settleGenerationCredits(
+    ingredientId: string,
+    organizationId: string | null | undefined,
+  ): Promise<void> {
+    if (!organizationId) return;
+    try {
+      await this.generationBilling.settleOutput(ingredientId, organizationId);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} generation credit settlement failed`,
+        error,
+        { ingredientId, organizationId },
+      );
+    }
+  }
+
+  private async releaseGenerationCredits(
+    ingredientId: string,
+    organizationId: string | null | undefined,
+  ): Promise<void> {
+    if (!organizationId) return;
+    try {
+      await this.generationBilling.releaseOutput(ingredientId, organizationId);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} generation credit release failed`,
+        error,
+        { ingredientId, organizationId },
+      );
+    }
   }
 
   private schedulePostUploadNotifications(

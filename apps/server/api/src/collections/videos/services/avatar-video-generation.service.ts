@@ -3,9 +3,14 @@ import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
@@ -16,6 +21,7 @@ import type {
   GenerationPlaceholderCreatedCallback,
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -34,10 +40,7 @@ import {
   MetadataExtension,
   VoiceProvider,
 } from '@genfeedai/contracts';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -51,29 +54,16 @@ interface AvatarVideoGenerationContext {
   userId: string;
   brandId?: string;
   /**
-   * The caller's request pipeline (credits guard reservation + interceptor
-   * settlement) already bills this generation, so it must not be deducted
-   * again here.
+   * The caller's own run-level billing (remix run, batch project) already pays
+   * for this generation, so the service must not hold credits for it.
    */
   settleCreditsExternally?: boolean;
-}
-
-/**
- * True when the credits guard finalized a positive platform charge for this
- * request. A BYOK bypass records usage only, and a non-positive amount means
- * request pricing did not resolve (same rule as the remix fallback), so in
- * both cases the service still applies its own charge.
- */
-export function isAvatarBilledByRequest(request: {
-  creditsConfig?: { amount?: number; isByokBypass?: boolean };
-}): boolean {
-  const amount = request.creditsConfig?.amount;
-  return (
-    typeof amount === 'number' &&
-    Number.isFinite(amount) &&
-    amount > 0 &&
-    !request.creditsConfig?.isByokBypass
-  );
+  /**
+   * The HTTP or agent request whose credits guard reserved this generation.
+   * When it holds platform credits, the accepted output is bound to that hold;
+   * otherwise the service opens its own.
+   */
+  request?: GenerationBillingRequest;
 }
 
 interface AvatarVideoGenerationParams {
@@ -137,6 +127,8 @@ export class AvatarVideoGenerationService {
     private readonly configService: ConfigService,
     private readonly byokService: ByokService,
     private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly generationBilling: GenerationBillingService,
+    private readonly modelCreditQuote: ModelCreditQuoteService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
@@ -187,10 +179,29 @@ export class AvatarVideoGenerationService {
     const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
     return {
       billingMode: isByok ? 'byok' : 'platform',
-      credits: isByok ? 0 : AVATAR_GENERATION_CREDIT_COST,
+      credits: isByok ? 0 : await this.quotePlatformCredits(),
       heygenApiKey: heygenKey?.apiKey,
       elevenLabsApiKey: elevenLabsKey?.apiKey,
     };
+  }
+
+  /**
+   * The platform price comes from the `heygen/avatar` model row, the same row
+   * the credits guard reserves from. A row that resolves to no price fails
+   * closed: with no fallback constant, zero would mean a free render.
+   */
+  async quotePlatformCredits(): Promise<number> {
+    const credits = await this.modelCreditQuote.quoteByKey(
+      MODEL_KEYS.HEYGEN_AVATAR,
+    );
+    if (!Number.isFinite(credits) || !(credits > 0)) {
+      throw new BusinessLogicException(
+        'Avatar video pricing is not configured',
+        { modelKey: MODEL_KEYS.HEYGEN_AVATAR },
+        'PRICING_NOT_CONFIGURED',
+      );
+    }
+    return credits;
   }
 
   async generateAvatarVideo(
@@ -202,6 +213,8 @@ export class AvatarVideoGenerationService {
   ): Promise<AvatarVideoGenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | null = null;
+    let billing: GenerationBillingRequest | undefined;
+    let ownsBillingPool = false;
 
     try {
       const brand = await this.findBrandForContext(context);
@@ -212,6 +225,8 @@ export class AvatarVideoGenerationService {
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       const funding = await this.resolveFunding(resolvedIdentity, context);
+      billing = await this.openBilling(funding, context, placeholderScope);
+      ownsBillingPool = billing !== undefined && billing !== context.request;
 
       const { ingredientData, metadataData } =
         await this.sharedService.createMediaDocumentsInternal({
@@ -238,7 +253,11 @@ export class AvatarVideoGenerationService {
         userId: context.userId,
       });
       await onPlaceholderCreated?.(ingredientId);
-      await this.assertPlaceholderCredits(context, placeholderScope);
+      await this.assertPlaceholderCredits(
+        context,
+        funding.credits,
+        placeholderScope,
+      );
       await onCreditsPrepared?.({
         billingMode: funding.billingMode,
         credits: funding.credits,
@@ -281,6 +300,15 @@ export class AvatarVideoGenerationService {
         params.aspectRatio ?? '9:16',
       );
 
+      // Bind the accepted render to its hold before its provider id is
+      // persisted, so a webhook that races this request always finds it.
+      if (billing) {
+        await this.generationBilling.bindOutput(billing, {
+          credits: billing.creditsConfig?.amount ?? funding.credits,
+          ingredientId,
+        });
+      }
+
       await this.metadataService.patch(
         metadataData.id,
         new MetadataEntity({
@@ -288,20 +316,6 @@ export class AvatarVideoGenerationService {
           externalId,
         }),
       );
-
-      if (
-        funding.billingMode === 'platform' &&
-        !placeholderScope?.settleCreditsExternally &&
-        !context.settleCreditsExternally
-      ) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          context.organizationId,
-          context.userId,
-          AVATAR_GENERATION_CREDIT_COST,
-          `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
-          ActivitySource.VIDEO_GENERATION,
-        );
-      }
 
       await this.lifecycleService.publishInitialStatus(
         ingredientId,
@@ -318,6 +332,7 @@ export class AvatarVideoGenerationService {
 
       if (ingredientId) {
         await this.recordGenerationFailure(ingredientId, context, error);
+        await this.releaseGenerationHold(ingredientId, context.organizationId);
       }
 
       if (error instanceof HttpException) {
@@ -333,6 +348,56 @@ export class AvatarVideoGenerationService {
           title: 'Avatar video generation failed',
         },
         HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    } finally {
+      // Credits no accepted render claimed (a failure before HeyGen took the
+      // job) go back; a fully bound hold makes this a no-op.
+      if (ownsBillingPool && billing) {
+        await this.generationBilling.releasePool(billing);
+      }
+    }
+  }
+
+  /**
+   * Chooses what pays for a platform-funded render: the request's own hold when
+   * the credits guard reserved one, otherwise a hold the service opens itself.
+   * Runs before any provider work so an unaffordable render fails first.
+   */
+  private async openBilling(
+    funding: AvatarGenerationFunding,
+    context: AvatarVideoGenerationContext,
+    placeholderScope?: GenerationPlaceholderScope,
+  ): Promise<GenerationBillingRequest | undefined> {
+    if (
+      funding.billingMode !== 'platform' ||
+      placeholderScope?.settleCreditsExternally ||
+      context.settleCreditsExternally
+    ) {
+      return undefined;
+    }
+    if (context.request && this.generationBilling.hasPool(context.request)) {
+      return context.request;
+    }
+    return this.generationBilling.holdForService({
+      credits: funding.credits,
+      description: `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
+      organizationId: context.organizationId,
+      source: ActivitySource.VIDEO_GENERATION,
+      userId: context.userId,
+    });
+  }
+
+  private async releaseGenerationHold(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    try {
+      await this.generationBilling.releaseOutput(ingredientId, organizationId);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} generation hold release failed`,
+        error,
+        { ingredientId, organizationId },
       );
     }
   }
@@ -857,6 +922,7 @@ export class AvatarVideoGenerationService {
 
   private async assertPlaceholderCredits(
     context: AvatarVideoGenerationContext,
+    credits: number,
     placeholderScope?: GenerationPlaceholderScope,
   ): Promise<void> {
     if (
@@ -867,7 +933,7 @@ export class AvatarVideoGenerationService {
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         context.organizationId,
-        AVATAR_GENERATION_CREDIT_COST,
+        credits,
       );
     if (hasCredits) return;
     throw new HttpException(

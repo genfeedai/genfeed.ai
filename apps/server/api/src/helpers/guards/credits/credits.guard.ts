@@ -23,14 +23,10 @@ import {
   type ReservationCreditsConfig,
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
-import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { quoteModelCredits } from '@api/helpers/utils/credits/model-credit-quote.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import {
-  ActivitySource,
-  type ByokProvider,
-  PricingType,
-} from '@genfeedai/contracts';
+import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
 import {
   MODEL_KEYS,
   normalizeMusicSettings,
@@ -38,7 +34,6 @@ import {
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { getDeserializer, isDeserializerRuntime } from '@genfeedai/helpers';
 import {
-  billCreditsFromProviderCost,
   buildPricingAuditStamp,
   getVideoGenerationResolutionCreditMultiplier,
   isTopazVideoUpscaleFps,
@@ -326,12 +321,11 @@ export class CreditsGuard implements CanActivate {
               );
             } else {
               // Use dynamic pricing calculation
-              requiredCredits = this.calculateDynamicCost(
-                model,
-                width,
+              requiredCredits = quoteModelCredits(model, {
+                duration: pricingDuration,
                 height,
-                pricingDuration,
-              );
+                width,
+              });
             }
           } else if (
             isFalDestination(modelKey) ||
@@ -661,105 +655,5 @@ export class CreditsGuard implements CanActivate {
       Number(this.configService.get('TRAINING_CUSTOM_MODEL_CREDITS_COST')) ||
       this.TRAINING_MODEL_FLAT_COST
     );
-  }
-
-  /**
-   * Resolve credits for a generation.
-   *
-   * Preferred: shared `billCreditsFromProviderCost` (provider USD × units ×
-   * live admin margin). Same helper projects virtual `cost`/`costPerUnit` on
-   * model reads via ModelsService.normalizeModelDocument.
-   *
-   * Fallback: legacy baked `cost` / `costPerUnit` when providerCostUsd is null.
-   */
-  private calculateDynamicCost(
-    model: {
-      cost?: number | null;
-      costPerUnit?: number | null;
-      defaultDuration?: number | null;
-      minCost?: number | null;
-      pricingType?: string | null;
-      providerCostUsd?: number | null;
-    },
-    width?: number,
-    height?: number,
-    duration?: number,
-  ): number {
-    const liveCredits = billCreditsFromProviderCost(model, {
-      duration,
-      height,
-      width,
-    });
-    if (liveCredits !== null) {
-      this.loggerService.debug(
-        'Credits guard: providerCostUsd × applyMargin (live margin)',
-        {
-          credits: liveCredits,
-          duration,
-          pricingType: model.pricingType,
-          providerCostUsd: model.providerCostUsd,
-        },
-      );
-      return liveCredits;
-    }
-
-    const pricingType = model.pricingType || PricingType.FLAT;
-    let baseCost = model.cost || 0;
-
-    switch (pricingType) {
-      case PricingType.PER_MEGAPIXEL: {
-        if (width && height && model.costPerUnit) {
-          const megapixels = (width * height) / 1_000_000;
-          baseCost = Math.ceil(megapixels * model.costPerUnit);
-          this.loggerService.debug(
-            'Credits guard: Per-megapixel cost calculated (legacy costPerUnit)',
-            {
-              calculatedCost: baseCost,
-              costPerUnit: model.costPerUnit,
-              height,
-              megapixels: megapixels.toFixed(2),
-              width,
-            },
-          );
-        }
-        break;
-      }
-
-      case PricingType.PER_SECOND: {
-        if (duration && model.costPerUnit) {
-          baseCost = Math.ceil(duration * model.costPerUnit);
-          this.loggerService.debug(
-            'Credits guard: Per-second cost calculated (legacy costPerUnit)',
-            {
-              calculatedCost: baseCost,
-              costPerUnit: model.costPerUnit,
-              duration,
-            },
-          );
-        }
-        break;
-      }
-
-      case 'per-token':
-        baseCost = getMinimumTextCredits(model);
-        break;
-
-      default:
-        // Use model.cost as-is (already set)
-        break;
-    }
-
-    // Apply minimum cost floor (legacy baked credits only)
-    const minCost = model.minCost || 0;
-    if (minCost > 0 && baseCost < minCost) {
-      this.loggerService.debug('Credits guard: Minimum cost floor applied', {
-        calculatedCost: baseCost,
-        finalCost: minCost,
-        minCost,
-      });
-      baseCost = minCost;
-    }
-
-    return baseCost;
   }
 }

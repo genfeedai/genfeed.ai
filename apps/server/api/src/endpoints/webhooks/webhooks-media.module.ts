@@ -1,5 +1,6 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
@@ -38,6 +39,7 @@ import { Module } from '@nestjs/common';
     ActivitiesModule,
     AssetsModule,
     BotCallbackModule,
+    CreditsModule,
     EvaluationsModule,
     FileQueueModule,
     FilesClientModule,

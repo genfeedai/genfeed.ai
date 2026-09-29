@@ -1,3 +1,7 @@
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type {
@@ -45,6 +49,7 @@ export class VideoGenerationExecutionService {
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly providerDispatchService: VideoGenerationProviderDispatchService,
@@ -80,6 +85,11 @@ export class VideoGenerationExecutionService {
       } else if (placement === 'sequential') {
         await this.createSequentialOutputs(context, generation, outputs);
       } else {
+        await this.bindOutputCredits(
+          context,
+          context.ingredientData.id.toString(),
+          outputs,
+        );
         await this.metadataService.patch(
           context.metadataData.id,
           new MetadataEntity({ externalId: generation.externalId }),
@@ -132,6 +142,11 @@ export class VideoGenerationExecutionService {
     outputs: number,
   ): Promise<void> {
     const generationId = generation.externalId;
+    await this.bindOutputCredits(
+      context,
+      context.ingredientData.id.toString(),
+      outputs,
+    );
     await this.metadataService.patch(
       context.metadataData.id,
       new MetadataEntity({ externalId: `${generationId}_0` }),
@@ -146,6 +161,13 @@ export class VideoGenerationExecutionService {
         ingredientData.id.toString(),
       ),
     );
+    for (const { ingredientData } of additionalDocuments) {
+      await this.bindOutputCredits(
+        context,
+        ingredientData.id.toString(),
+        outputs,
+      );
+    }
     await Promise.all(
       additionalDocuments.map(({ metadataData }, index) =>
         this.metadataService.patch(
@@ -196,6 +218,11 @@ export class VideoGenerationExecutionService {
     outputs: number,
   ): Promise<void> {
     const generationId = generation.externalId;
+    await this.bindOutputCredits(
+      context,
+      context.ingredientData.id.toString(),
+      outputs,
+    );
     await this.metadataService.patch(
       context.metadataData.id,
       new MetadataEntity({ externalId: generationId }),
@@ -210,6 +237,11 @@ export class VideoGenerationExecutionService {
       const documents = await this.createAdditionalDocuments(context);
       context.pendingIngredientIds.push(documents.ingredientData.id.toString());
       const additionalGeneration = await this.dispatch(context, index + 1);
+      await this.bindOutputCredits(
+        context,
+        documents.ingredientData.id.toString(),
+        outputs,
+      );
       await Promise.all([
         this.metadataService.patch(
           documents.metadataData.id,
@@ -378,6 +410,11 @@ export class VideoGenerationExecutionService {
     this.loggerService.error('VideoGenerationService create failed', error);
     await Promise.all(
       context.pendingIngredientIds.map((pendingId) =>
+        this.releaseOutputCredits(context, pendingId),
+      ),
+    );
+    await Promise.all(
+      context.pendingIngredientIds.map((pendingId) =>
         this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           pendingId,
@@ -398,6 +435,42 @@ export class VideoGenerationExecutionService {
         ),
       ),
     );
+  }
+
+  /**
+   * Binds one accepted output to an even share of the request's credit hold,
+   * before its provider id is persisted so a fast webhook finds the hold.
+   */
+  private async bindOutputCredits(
+    context: VideoGenerationContext,
+    ingredientId: string,
+    outputs: number,
+  ): Promise<void> {
+    const request = context.request as unknown as GenerationBillingRequest;
+    const amount = request?.creditsConfig?.amount;
+    if (!amount || !this.generationBilling.hasPool(request)) {
+      return;
+    }
+    await this.generationBilling.bindOutput(request, {
+      credits: amount / Math.max(outputs, 1),
+      ingredientId,
+    });
+  }
+
+  private async releaseOutputCredits(
+    context: VideoGenerationContext,
+    ingredientId: string,
+  ): Promise<void> {
+    try {
+      await this.generationBilling.releaseOutput(
+        ingredientId,
+        context.user.organizationId,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Video credit release failed', error, {
+        ingredientId,
+      });
+    }
   }
 
   private async createPlaceholderActivity(

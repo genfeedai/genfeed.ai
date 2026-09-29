@@ -405,6 +405,7 @@ export class VideosController {
   ])
   @Credits({
     description: 'Video generation',
+    settlement: 'completion',
     source: ActivitySource.VIDEO_GENERATION,
   })
   @DeferCreditsUntilModelResolution()

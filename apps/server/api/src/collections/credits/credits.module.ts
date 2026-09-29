@@ -9,6 +9,7 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import { VideoGenerationLineageService } from '@api/collections/credits/services/video-generation-lineage.service';
@@ -33,6 +34,7 @@ import { Module } from '@nestjs/common';
     CreditReservationService,
     CreditTransactionsService,
     CreditsUtilsService,
+    GenerationBillingService,
     VideoGenerationLineageService,
   ],
   imports: [
@@ -52,6 +54,7 @@ import { Module } from '@nestjs/common';
     CreditBalanceService,
     CreditReservationService,
     CreditTransactionsService,
+    GenerationBillingService,
     VideoGenerationLineageService,
     {
       provide: CreditsUtilsService,

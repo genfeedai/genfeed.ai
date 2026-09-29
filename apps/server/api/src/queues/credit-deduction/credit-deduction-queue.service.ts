@@ -32,7 +32,7 @@ export class CreditDeductionQueueService {
       };
     await this.queue.add('deduct-credits', data, {
       ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
-      ...(data.settlementAssetId || data.acceptedGeneration
+      ...(data.acceptedGeneration
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
         : {}),
       jobId: toBullMqJobId(

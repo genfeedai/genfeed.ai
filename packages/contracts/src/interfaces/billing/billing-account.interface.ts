@@ -86,6 +86,9 @@ export interface ICreditReservation extends IBaseEntity {
   workloadType: string | null;
   workloadId: string | null;
   idempotencyKey: string;
+  description: string | null;
+  source: ActivitySource | null;
+  metadata: Record<string, unknown> | null;
   expiresAt: string;
 }
 
@@ -96,7 +99,22 @@ export interface IReserveCreditsInput {
   idempotencyKey: string;
   workloadType?: string;
   workloadId?: string;
+  /** What the hold pays for; carried to the settlement ledger row. */
+  description?: string;
+  source?: ActivitySource;
+  metadata?: Record<string, unknown>;
   expiresAt?: Date;
+}
+
+export interface IBindCreditReservationOutputInput {
+  organizationId: string;
+  /** The request-level hold the output is paid from. */
+  reservationId: string;
+  /** The output's ingredient; the bound hold is found by it. */
+  workloadId: string;
+  amount: number;
+  expiresAt: Date;
+  metadata?: Record<string, unknown>;
 }
 
 export interface ISettleCreditReservationInput {

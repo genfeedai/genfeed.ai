@@ -1,3 +1,7 @@
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import type {
   ImageGenerationCompletionPlan,
   ImageGenerationContext,
@@ -63,6 +67,7 @@ export class ImageGenerationProviderDispatchService {
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly generationEventWebhookService: GenerationEventWebhookService,
     private readonly mediaGenerationCostService: MediaGenerationCostService,
     private readonly imagesService: ImagesService,
@@ -141,7 +146,25 @@ export class ImageGenerationProviderDispatchService {
     }
 
     const pollIds = [context.ingredientData.id.toString()];
-    const generationPromise = this.execute(context, provider, pollIds);
+    const billing = this.billingRequest(context);
+    if (context.outputs > 1) {
+      // Further outputs are bound as they are created, after this request has
+      // returned, so the request hold must outlive the response.
+      this.generationBilling.deferPoolRelease(billing);
+    }
+    let generationPromise: Promise<unknown>;
+    try {
+      await this.bindOutputCredits(context, context.ingredientData.id);
+      generationPromise = this.execute(context, provider, pollIds);
+    } catch (error: unknown) {
+      await this.generationBilling.releasePool(billing);
+      throw error;
+    }
+    if (context.outputs > 1) {
+      generationPromise = generationPromise.finally(() =>
+        this.generationBilling.releasePool(billing),
+      );
+    }
 
     return {
       generationPromise,
@@ -320,6 +343,11 @@ export class ImageGenerationProviderDispatchService {
           this.createAdditionalDocuments(context),
         ),
       );
+      await Promise.all(
+        additionalDocuments.map(({ ingredientData }) =>
+          this.bindOutputCredits(context, ingredientData.id),
+        ),
+      );
 
       await Promise.all(
         additionalDocuments.flatMap(
@@ -429,6 +457,7 @@ export class ImageGenerationProviderDispatchService {
     try {
       const documents = await this.createAdditionalDocuments(context);
       ingredientId = documents.ingredientData.id;
+      await this.bindOutputCredits(context, ingredientId);
       const result = await provider.generate();
       await Promise.all([
         this.patchExternalId(documents.metadataData.id, result, context),
@@ -634,6 +663,8 @@ export class ImageGenerationProviderDispatchService {
       errorMessage,
     );
 
+    await this.releaseOutputCredits(context, ingredientId);
+
     await this.generationEventWebhookService.emitGenerationFailed({
       brandId: context.brand.id?.toString() ?? null,
       errorMessage,
@@ -646,12 +677,68 @@ export class ImageGenerationProviderDispatchService {
     throw error;
   }
 
+  private billingRequest(
+    context: ImageGenerationContext,
+  ): GenerationBillingRequest {
+    return context.request as unknown as GenerationBillingRequest;
+  }
+
+  /** Each output pays for an even share of what the guard reserved. */
+  private async bindOutputCredits(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+  ): Promise<void> {
+    const request = this.billingRequest(context);
+    const amount = request.creditsConfig?.amount;
+    if (!amount || !this.generationBilling.hasPool(request)) {
+      return;
+    }
+    await this.generationBilling.bindOutput(request, {
+      credits: amount / Math.max(context.outputs, 1),
+      ingredientId: ingredientId.toString(),
+    });
+  }
+
+  /** A finished image settles its hold; a miss is backstopped by the sweep. */
+  private async settleOutputCredits(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+  ): Promise<void> {
+    try {
+      await this.generationBilling.settleOutput(
+        ingredientId.toString(),
+        context.user.organizationId,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Image credit settlement failed', error, {
+        ingredientId: ingredientId.toString(),
+      });
+    }
+  }
+
+  private async releaseOutputCredits(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+  ): Promise<void> {
+    try {
+      await this.generationBilling.releaseOutput(
+        ingredientId.toString(),
+        context.user.organizationId,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Image credit release failed', error, {
+        ingredientId: ingredientId.toString(),
+      });
+    }
+  }
+
   private async emitGenerationCompleted(
     context: ImageGenerationContext,
     ingredientId: ImageGenerationSavedIngredient['id'],
     output: GenerationWebhookOutput,
     dimensions: RealizedImageDimensions,
   ): Promise<void> {
+    await this.settleOutputCredits(context, ingredientId);
     await this.mediaGenerationCostService.recordGenerationCost({
       brandId: context.brand.id?.toString() ?? null,
       category: 'image',

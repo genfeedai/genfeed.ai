@@ -101,43 +101,17 @@ export class CreditsInterceptor implements NestInterceptor {
         type: 'record-byok-usage',
       });
     } else {
-      const sourceActionId = this.readSourceActionId(request.body);
-      const settlementAssetId = this.readResponseAssetId(response);
-      if (sourceActionId && !settlementAssetId) {
-        if (currentCreditsConfig.reservationId) {
-          await this.releaseReservation(
-            currentCreditsConfig.reservationId,
-            identity.organizationId,
-          );
-        }
-        this.loggerService.warn(
-          'Confirmed media returned no persisted asset; credits not queued',
-          {
-            organizationId: identity.organizationId,
-            sourceActionId,
-          },
-        );
+      if (currentCreditsConfig.settlement === 'completion') {
+        await this.releaseUnboundPool(currentCreditsConfig, identity);
         return response;
       }
       await this.creditDeductionQueueService.queueDeduction({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
-        metadata:
-          currentCreditsConfig.pricingMetadata || settlementAssetId
-            ? {
-                ...currentCreditsConfig.pricingMetadata,
-                ...(settlementAssetId ? { assetId: settlementAssetId } : {}),
-              }
-            : undefined,
-        ...(sourceActionId
-          ? {
-              idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,
-              referenceId: settlementAssetId,
-              referenceType: 'agent-media:generation',
-              settlementAssetId,
-            }
-          : {}),
+        metadata: currentCreditsConfig.pricingMetadata
+          ? { ...currentCreditsConfig.pricingMetadata }
+          : undefined,
         ...(currentCreditsConfig.reservationId
           ? { reservationId: currentCreditsConfig.reservationId }
           : {}),
@@ -172,27 +146,32 @@ export class CreditsInterceptor implements NestInterceptor {
     );
   }
 
-  private readResponseAssetId(response: unknown): string | undefined {
-    if (!response || typeof response !== 'object') {
-      return undefined;
+  /**
+   * A completion-settled route keeps nothing open on the response: each accepted
+   * output already owns its hold, so only credits no output claimed (a dispatch
+   * that never reached the provider) are given back.
+   */
+  private async releaseUnboundPool(
+    config: DeferredCreditsConfig,
+    identity: NonNullable<CreditsInterceptorRequest['user']>,
+  ): Promise<void> {
+    if (!config.reservationId || config.isPoolReleaseDeferred) {
+      return;
     }
-    const data = (response as { data?: unknown }).data;
-    if (!data || typeof data !== 'object') {
-      return undefined;
+    if (!config.boundOutputCount) {
+      this.loggerService.warn(
+        'Completion-settled request bound no output; releasing its hold',
+        {
+          amount: config.amount,
+          organizationId: identity.organizationId,
+          reservationId: config.reservationId,
+        },
+      );
     }
-    const id = (data as { id?: unknown }).id;
-    return typeof id === 'string' && id.trim() ? id.trim() : undefined;
-  }
-
-  private readSourceActionId(body: unknown): string | undefined {
-    if (!body || typeof body !== 'object') return undefined;
-    const bodyRecord = body as Record<string, unknown>;
-    const data = bodyRecord.data as Record<string, unknown> | undefined;
-    const attributes =
-      (data?.attributes as Record<string, unknown> | undefined) ??
-      (bodyRecord.attributes as Record<string, unknown> | undefined);
-    const raw = bodyRecord.sourceActionId ?? attributes?.sourceActionId;
-    return typeof raw === 'string' && raw.trim() ? raw.trim() : undefined;
+    await this.releaseReservation(
+      config.reservationId,
+      identity.organizationId,
+    );
   }
 
   private async releaseFailedReservation(
@@ -203,7 +182,7 @@ export class CreditsInterceptor implements NestInterceptor {
       amount: config?.amount,
       organizationId,
     });
-    if (config?.reservationId) {
+    if (config?.reservationId && !config.isPoolReleaseDeferred) {
       await this.releaseReservation(config.reservationId, organizationId);
     }
   }

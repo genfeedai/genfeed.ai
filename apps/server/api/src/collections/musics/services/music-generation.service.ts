@@ -1,5 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -12,7 +16,6 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
-import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -75,6 +78,7 @@ export class MusicGenerationService {
 
   constructor(
     private readonly brandsService: BrandsService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
@@ -362,7 +366,6 @@ export class MusicGenerationService {
       seed: baseSeed,
     });
     if (!firstGenerationId) {
-      this.voidRequestCharge(params.request);
       return pendingIds;
     }
     for (let index = 1; index < outputs; index++) {
@@ -372,20 +375,24 @@ export class MusicGenerationService {
   }
 
   /**
-   * The request-level credits guard/interceptor is the only billing path for
-   * this route. When the primary generation never started, zeroing the
-   * finalized amount makes the interceptor release the reservation instead of
-   * charging for a failed placeholder.
+   * Binds one accepted output to its share of the request's credit hold. The
+   * guard reserved `outputs` shares; an output that never reaches the provider
+   * is never bound, so its share goes back when the request ends.
    */
-  private voidRequestCharge(request: RequestWithSelectedModel): void {
-    const creditsRequest = request as unknown as DeferredCreditsRequest;
-    if (!creditsRequest.creditsConfig) {
+  private async bindOutputCredits(
+    params: MusicDispatchParams,
+    ingredientId: string,
+  ): Promise<void> {
+    const request = params.request as unknown as GenerationBillingRequest;
+    const amount = request.creditsConfig?.amount;
+    if (!amount || !this.generationBilling.hasPool(request)) {
       return;
     }
-    creditsRequest.creditsConfig = {
-      ...creditsRequest.creditsConfig,
-      amount: 0,
-    };
+    const requested = Math.max(Number(params.createMusicDto.outputs) || 1, 1);
+    await this.generationBilling.bindOutput(request, {
+      credits: amount / requested,
+      ingredientId,
+    });
   }
 
   private async prepareAdditionalOutput(
@@ -490,6 +497,9 @@ export class MusicGenerationService {
         );
         return null;
       }
+      // Bound before the provider id is persisted so a fast webhook finds the
+      // hold; credits settle when this output completes.
+      await this.bindOutputCredits(params, params.ingredientId);
       await this.metadataService.patch(params.metadataId, {
         externalId: generationId,
         externalProvider:
