@@ -127,6 +127,10 @@ export function useEditorPageContent(projectId: string) {
   getEditorServiceRef.current = getEditorService;
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
+  // The load reads these through refs: re-running it for a new service or
+  // notifier identity would reload the project over unsaved edits and history.
+  const notificationsServiceRef = useRef(notificationsService);
+  notificationsServiceRef.current = notificationsService;
 
   const [state, setState] = useState<EditorState>({
     currentFrame: 0,
@@ -240,7 +244,7 @@ export function useEditorPageContent(projectId: string) {
         if (editorSaveOutbox.hasUnsavedEdits(projectId)) {
           await editorSaveOutbox.settle(projectId);
         }
-        const service = await getEditorService();
+        const service = await getEditorServiceRef.current();
         const project = await service.findById(projectId);
 
         if (controller.signal.aborted) {
@@ -268,7 +272,7 @@ export function useEditorPageContent(projectId: string) {
       } catch (error) {
         if (!controller.signal.aborted) {
           logger.error('Failed to load project', error);
-          notificationsService.error('Failed to load project');
+          notificationsServiceRef.current.error('Failed to load project');
           setState((prev) => ({ ...prev, isLoading: false }));
         }
       }
@@ -277,7 +281,7 @@ export function useEditorPageContent(projectId: string) {
     loadProject();
 
     return () => controller.abort();
-  }, [projectId, isIdentityLoaded, notificationsService, getEditorService]);
+  }, [projectId, isIdentityLoaded]);
 
   useEffect(() => {
     return editorSaveOutbox.subscribe(projectId, (status) => {
