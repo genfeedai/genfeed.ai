@@ -238,7 +238,7 @@ export default function EditorProjectsPage() {
           >
             <Link
               aria-label={translate('openProject', { name: project.name })}
-              href={href(`${APP_ROUTES.STUDIO.EDIT}/${project.id}`)}
+              href={href(`${APP_ROUTES.STUDIO.EDITOR}/${project.id}`)}
             >
               {translate('open')}
             </Link>
@@ -314,7 +314,7 @@ export default function EditorProjectsPage() {
 
   const newProjectButton = (
     <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-      <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
+      <Link href={href(APP_ROUTES.STUDIO.EDITOR_NEW)}>
         <Plus className="size-4" />
         {translate('newProject')}
       </Link>
@@ -322,7 +322,7 @@ export default function EditorProjectsPage() {
   );
   const emptyProjectButton = (
     <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-      <Link href={href(APP_ROUTES.STUDIO.EDIT_NEW)}>
+      <Link href={href(APP_ROUTES.STUDIO.EDITOR_NEW)}>
         <Plus className="size-4" />
         {translate('startNewProject')}
       </Link>

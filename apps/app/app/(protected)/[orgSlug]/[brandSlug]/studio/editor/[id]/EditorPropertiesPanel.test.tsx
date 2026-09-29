@@ -20,7 +20,15 @@ describe('EditorPropertiesPanel', () => {
   });
 
   it('should render without crashing', () => {
-    const { container } = render(<EditorPropertiesPanel />);
+    const { container } = render(
+      <EditorPropertiesPanel
+        tracks={[]}
+        fps={30}
+        selectedTrackId={null}
+        selectedClipId={null}
+        onTrackUpdate={vi.fn()}
+      />,
+    );
     expect(container.firstChild).toBeInTheDocument();
   });
 

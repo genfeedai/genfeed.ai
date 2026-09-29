@@ -591,8 +591,8 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
   });
 
-  it('keeps the shell low credits banner on the studio edit surface', () => {
-    mockPathname.value = '/studio/edit/new';
+  it('keeps the shell low credits banner on the Studio Editor surface', () => {
+    mockPathname.value = '/studio/editor/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
   });
@@ -1083,7 +1083,7 @@ describe('AppProtectedLayout', () => {
   it.each([
     '/org-123/brand-123/automation/workflows/new',
     '/org-123/brand-123/automation/workflows/wf-123',
-    '/org-123/brand-123/studio/edit/new',
+    '/org-123/brand-123/studio/editor/new',
   ])('hides module sidebar on editor canvas route %s', (pathname) => {
     mockPathname.value = pathname;
 
@@ -1151,7 +1151,7 @@ describe('AppProtectedLayout', () => {
     // Canvas routes still own the left rail, while the application keeps the
     // shared topbar visible during this boot window.
     shellState.isAuthLoaded = false;
-    mockPathname.value = '/org-123/brand-123/studio/edit/new';
+    mockPathname.value = '/org-123/brand-123/studio/editor/new';
 
     render(
       <AppProtectedLayout>
@@ -1609,8 +1609,8 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('keeps the studio edit surface inside the workspace shell while skipping editor-only providers', () => {
-    mockPathname.value = '/org-123/brand-123/studio/edit/new';
+  it('keeps the Studio Editor surface inside the workspace shell while skipping editor-only providers', () => {
+    mockPathname.value = '/org-123/brand-123/studio/editor/new';
 
     render(
       <AppProtectedLayout>

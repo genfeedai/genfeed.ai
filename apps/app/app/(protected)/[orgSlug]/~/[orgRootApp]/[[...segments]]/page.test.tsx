@@ -140,7 +140,7 @@ vi.mock('../../../[brandSlug]/messages/reply-drip/page', () => ({
   default: () => <div data-testid="reply-drip-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
+vi.mock('../../../[brandSlug]/studio/editor/[id]/page', () => ({
   default: async ({
     params,
   }: {
@@ -153,11 +153,11 @@ vi.mock('../../../[brandSlug]/studio/edit/[id]/page', () => ({
   },
 }));
 
-vi.mock('../../../[brandSlug]/studio/edit/new/page', () => ({
+vi.mock('../../../[brandSlug]/studio/editor/new/page', () => ({
   default: () => <div data-testid="editor-new-page" />,
 }));
 
-vi.mock('../../../[brandSlug]/studio/edit/editor-projects-page', () => ({
+vi.mock('../../../[brandSlug]/studio/editor/editor-projects-page', () => ({
   default: () => <div data-testid="editor-projects-page" />,
 }));
 
@@ -755,12 +755,12 @@ describe('OrgRootAppPage', () => {
     },
   );
 
-  it('renders the studio edit projects surface', async () => {
+  it('renders the studio Editor projects surface', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['edit'],
+        segments: ['editor'],
       }),
     });
 
@@ -769,12 +769,12 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
   });
 
-  it('renders the studio edit projects surface for the reserved projects segment', async () => {
+  it('renders the studio Editor projects surface for the reserved projects segment', async () => {
     const element = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['edit', 'projects'],
+        segments: ['editor', 'projects'],
       }),
     });
 
@@ -783,12 +783,25 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('editor-projects-page')).toBeInTheDocument();
   });
 
-  it('renders the studio edit new and detail surfaces', async () => {
+  it('no longer serves the removed studio edit path', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'studio',
+          orgSlug: 'acme',
+          segments: ['edit', 'project-1'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(screen.queryByTestId('editor-detail-page')).not.toBeInTheDocument();
+  });
+
+  it('renders the studio Editor new and detail surfaces', async () => {
     const newElement = await OrgRootAppPage({
       params: Promise.resolve({
         orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['edit', 'new'],
+        segments: ['editor', 'new'],
       }),
     });
     const { unmount } = render(newElement);
@@ -801,7 +814,7 @@ describe('OrgRootAppPage', () => {
       params: Promise.resolve({
         orgRootApp: 'studio',
         orgSlug: 'acme',
-        segments: ['edit', 'project-1'],
+        segments: ['editor', 'project-1'],
       }),
     });
     render(detailElement);

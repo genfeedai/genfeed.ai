@@ -2263,7 +2263,7 @@
       "moreActions": "More actions",
       "openInWrite": "Open in Write",
       "openInGenerate": "Open in Generate",
-      "openInEdit": "Open in Edit",
+      "openInEditor": "Open in Editor",
       "openInAutomation": "Open in Automation",
       "openIssue": "Open Issue",
       "openTool": "Open Tool",
@@ -2852,9 +2852,9 @@
       "title": "Batch",
       "body": "Generate many variants at once from a brief. Review the batch, keep the winners, and send them to the approval queue."
     },
-    "studioEdit": {
-      "title": "Edit",
-      "body": "Long-form editing for articles and newsletters, with the agent as a co-writer."
+    "studioEditor": {
+      "title": "Editor",
+      "body": "Finish videos on a timeline: trim clips, sync dialogue and music against picture, and add text overlays and effects."
     },
     "messagesInbox": {
       "title": "Messages",

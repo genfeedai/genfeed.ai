@@ -2,7 +2,7 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
 
 /**
- * Deep interaction E2E coverage for Studio's Edit surface.
+ * Deep interaction E2E coverage for Studio's Editor surface.
  *
  * These specs drive real component logic (toolbar controls, project list
  * actions, navigation) rather than only asserting that a route renders. All
@@ -15,11 +15,11 @@ import { expectNoErrorOverlay, tryClick } from '../../utils/route-assertions';
  * suite never hangs or hard-fails on a missing control.
  */
 
-const EDITOR_LIST = '/test-org/brand-1/studio/edit';
-const EDITOR_NEW = '/test-org/brand-1/studio/edit/new';
-const EDITOR_DETAIL = '/test-org/brand-1/studio/edit/test-project-id';
+const EDITOR_LIST = '/test-org/brand-1/studio/editor';
+const EDITOR_NEW = '/test-org/brand-1/studio/editor/new';
+const EDITOR_DETAIL = '/test-org/brand-1/studio/editor/test-project-id';
 
-test.describe('Studio Edit — Interactions', () => {
+test.describe('Studio Editor — Interactions', () => {
   test.setTimeout(90_000);
 
   test('renders the projects list and surfaces the New Project entry point', async ({
@@ -30,7 +30,7 @@ test.describe('Studio Edit — Interactions', () => {
     });
 
     const newProjectLink = authenticatedPage
-      .locator('a[href*="studio/edit/new"]')
+      .locator('a[href*="studio/editor/new"]')
       .first();
     await expect(newProjectLink).toBeVisible({ timeout: 15_000 });
 
@@ -52,13 +52,13 @@ test.describe('Studio Edit — Interactions', () => {
     });
 
     const newProjectLink = authenticatedPage
-      .locator('a[href*="studio/edit/new"]')
+      .locator('a[href*="studio/editor/new"]')
       .first();
     await newProjectLink.click({ timeout: 10_000 }).catch(() => {});
     await authenticatedPage.waitForLoadState('domcontentloaded');
 
     await expect(authenticatedPage).toHaveURL(
-      /\/studio\/edit(?:\/new|\/[^/]+)?$/,
+      /\/studio\/editor(?:\/new|\/[^/]+)?$/,
     );
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -148,7 +148,7 @@ test.describe('Studio Edit — Interactions', () => {
     await expectNoErrorOverlay(authenticatedPage);
   });
 
-  test('renders the studio edit list on a mobile viewport', async ({
+  test('renders the Studio Editor list on a mobile viewport', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 667, width: 375 });
@@ -157,7 +157,7 @@ test.describe('Studio Edit — Interactions', () => {
     });
 
     await expect(
-      authenticatedPage.locator('a[href*="studio/edit/new"]').first(),
+      authenticatedPage.locator('a[href*="studio/editor/new"]').first(),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();
@@ -173,7 +173,7 @@ test.describe('Studio Edit — Interactions', () => {
     await authenticatedPage.reload({ waitUntil: 'domcontentloaded' });
 
     await expect(
-      authenticatedPage.locator('a[href*="studio/edit/new"]').first(),
+      authenticatedPage.locator('a[href*="studio/editor/new"]').first(),
     ).toBeVisible({ timeout: 15_000 });
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

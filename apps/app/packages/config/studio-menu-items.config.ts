@@ -8,8 +8,8 @@ import { Clapperboard, Film, Layers, Scissors, Wand2 } from 'lucide-react';
  *
  * Generate is the Studio home: one prompt bar for every asset type Genfeed can
  * make, brand-enriched, with the asset type as composer state rather than a
- * route segment. Edit is the Remotion timeline (route `/studio/edit` from the
- * #2309 merge of the old top-level Editor app).
+ * route segment. Editor is the Remotion timeline (route `/studio/editor`): the
+ * finishing surface every video-producing Studio surface hands off to (#5461).
  *
  * Every entry stays inside `/studio` on purpose — a Studio menu item must never
  * hand the operator off to another module app.
@@ -51,12 +51,12 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   },
 
   {
-    // Remotion timeline. Path stays `/studio/edit` (Editor → Studio Edit surface);
-    // label is "Edit" so nav matches the route segment users see in the URL.
+    // Remotion timeline — the Studio finishing surface. The label matches the
+    // `/studio/editor` route segment users see in the URL.
     group: '',
-    href: APP_ROUTES.STUDIO.EDIT,
-    label: 'Edit',
-    matchPaths: [APP_ROUTES.STUDIO.EDIT, APP_ROUTES.STUDIO.EDIT_NEW],
+    href: APP_ROUTES.STUDIO.EDITOR,
+    label: 'Editor',
+    matchPaths: [APP_ROUTES.STUDIO.EDITOR, APP_ROUTES.STUDIO.EDITOR_NEW],
     outline: Film,
     solid: Film,
   },
