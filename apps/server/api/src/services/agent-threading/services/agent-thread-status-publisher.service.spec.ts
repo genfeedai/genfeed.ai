@@ -366,7 +366,7 @@ describe('AgentThreadStatusPublisherService', () => {
     it('publishes only status changes across many concurrent threads', async () => {
       const threadIds = Array.from(
         { length: 200 },
-        (_, index) => `${String(index).padStart(2, '0')}${'e'.repeat(22)}`,
+        (_, index) => `${String(index).padStart(4, '0')}${'e'.repeat(20)}`,
       );
       vi.mocked(threadsService.findOne).mockImplementation(
         async (query: never) =>
