@@ -479,7 +479,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
       ).toBe(true);
     });
 
-    it('records nothing for an ancient execution closed silently', async () => {
+    it('records a cancelled run before silently cancelling an ancient execution', async () => {
       staleExecutionFinder.seed([
         {
           createdAt: new Date(Date.now() - 25 * 60 * 60_000),
@@ -490,10 +490,19 @@ describe('PendingWorkflowExecutionReconcileService', () => {
 
       await recoveringService.reconcile();
 
-      expect(workflowExecutions.cancelExecution).toHaveBeenCalledWith(
+      expect(recoveryEvents.recordExecutionEnded).toHaveBeenCalledWith(
         'execution-ancient',
+        { type: 'cancelled' },
       );
-      expect(recoveryEvents.recordExecutionEnded).not.toHaveBeenCalled();
+      expect(
+        calledBefore(
+          recoveryEvents.recordExecutionEnded,
+          workflowExecutions.cancelExecution,
+        ),
+      ).toBe(true);
+      // Still silent: no loud failure and no error log.
+      expect(workflowExecutions.completeExecution).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
     });
 
     it('records nothing for a turn a worker has already started', async () => {

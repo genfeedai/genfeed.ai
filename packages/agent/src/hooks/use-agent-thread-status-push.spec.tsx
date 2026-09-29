@@ -293,6 +293,42 @@ describe('useAgentThreadStatusPush', () => {
       expect(reloadThreads).not.toHaveBeenCalled();
     });
 
+    it.each(['offline', 'reconnecting', 'connecting'] as const)(
+      'refetches when the window regains focus while %s',
+      (state) => {
+        socket.connectionState = state;
+        mount();
+
+        act(() => {
+          window.dispatchEvent(new Event('focus'));
+        });
+
+        expect(reloadThreads).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('does not refetch on focus while the push channel is connected', () => {
+      mount();
+
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+
+      expect(reloadThreads).not.toHaveBeenCalled();
+    });
+
+    it('stops refetching on focus once the sidebar is inactive', () => {
+      socket.connectionState = 'offline';
+      const { rerender } = mount();
+      rerender({ active: false });
+
+      act(() => {
+        window.dispatchEvent(new Event('focus'));
+      });
+
+      expect(reloadThreads).not.toHaveBeenCalled();
+    });
+
     it('does not poll while the sidebar is hidden or the tab is in the background', () => {
       socket.connectionState = 'offline';
       const hidden = vi
