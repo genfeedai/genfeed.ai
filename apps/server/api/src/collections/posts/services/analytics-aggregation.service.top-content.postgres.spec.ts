@@ -82,13 +82,22 @@ describe.skipIf(!connectionString)(
         ],
       mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
     } as unknown as ConfigService;
-    const guardedPrisma = new PrismaService(configService);
-
+    // Built only when the database is configured: vitest still runs a
+    // skipped suite's body to collect it, and PrismaService throws without a
+    // DATABASE_URL, which would fail the file instead of skipping it.
+    const guardedPrisma = connectionString
+      ? new PrismaService(configService)
+      : null;
     // getTopPerformingContent never touches PostsService.
-    const service = new AnalyticsAggregationService(
-      guardedPrisma,
-      {} as PostsService,
-    );
+    const service = guardedPrisma
+      ? new AnalyticsAggregationService(guardedPrisma, {} as PostsService)
+      : null;
+    const aggregation = () => {
+      if (!service) {
+        throw new Error('BILLING_ACCOUNT_SCOPE_TEST_DATABASE_URL is required');
+      }
+      return service;
+    };
 
     let suffix: string;
     let userId: string;
@@ -163,7 +172,7 @@ describe.skipIf(!connectionString)(
         | AnalyticsMetric.VIEWS = AnalyticsMetric.ENGAGEMENT,
     ) =>
       runWithTenantContext({ organizationId: scopeOrganizationId }, () =>
-        service.getTopPerformingContent(
+        aggregation().getTopPerformingContent(
           scopeOrganizationId,
           scopeBrandId,
           limit,
@@ -227,7 +236,7 @@ describe.skipIf(!connectionString)(
 
     afterAll(async () => {
       await prisma?.$disconnect();
-      await guardedPrisma.$disconnect();
+      await guardedPrisma?.$disconnect();
     });
 
     it('ranks by likes + comments + shares + saves, so a save-heavy post outranks a like-heavy one', async () => {
