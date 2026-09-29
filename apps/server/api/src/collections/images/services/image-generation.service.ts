@@ -559,24 +559,24 @@ export class ImageGenerationService {
     organizationId: string,
   ): Promise<ImageGenerationBriefDispatch> {
     const urlByReferenceId = new Map<string, string>();
+    const unresolvedReferenceIds = new Set<string>();
     for (const referenceId of new Set(referenceIds)) {
       const [url] = await this.admissionService.resolveReferenceImageUrls(
         organizationId,
         [referenceId],
       );
-      if (!url) {
-        throw new HttpException(
-          {
-            detail: 'Could not resolve a source URL for a reference image',
-            title: 'Generation brief reference resolution failed',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
+      if (url) {
+        urlByReferenceId.set(referenceId, url);
+      } else {
+        unresolvedReferenceIds.add(referenceId);
       }
-      urlByReferenceId.set(referenceId, url);
     }
 
-    return replaceDispatchReferenceIds(dispatch, urlByReferenceId);
+    return replaceDispatchReferenceIds(
+      dispatch,
+      urlByReferenceId,
+      unresolvedReferenceIds,
+    );
   }
 
   private compileImageGenerationBrief(params: {

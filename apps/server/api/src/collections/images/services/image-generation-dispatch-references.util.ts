@@ -1,15 +1,17 @@
 /**
  * Brief compilers write each reference's ingredient/asset id into the provider
  * dispatch (`image_input`, `input_images`, `image`, ...). Providers need public
- * URLs, so swap every known reference id for its resolved URL. Only exact id
- * matches on top-level string or string-array fields are replaced, which keeps
- * this independent of each model's field names.
+ * URLs, so swap every resolved reference id for its URL and drop the ids that
+ * did not resolve (foreign, deleted, or missing), so an id never reaches the
+ * provider. Only exact id matches on top-level string or string-array fields
+ * are touched, which keeps this independent of each model's field names.
  */
 export function replaceDispatchReferenceIds(
   dispatch: Record<string, unknown>,
   urlByReferenceId: ReadonlyMap<string, string>,
+  unresolvedReferenceIds: ReadonlySet<string> = new Set(),
 ): Record<string, unknown> {
-  if (urlByReferenceId.size === 0) {
+  if (urlByReferenceId.size === 0 && unresolvedReferenceIds.size === 0) {
     return dispatch;
   }
 
@@ -19,6 +21,8 @@ export function replaceDispatchReferenceIds(
       const url = urlByReferenceId.get(value);
       if (url) {
         replaced[field] = url;
+      } else if (unresolvedReferenceIds.has(value)) {
+        delete replaced[field];
       }
       continue;
     }
@@ -27,11 +31,21 @@ export function replaceDispatchReferenceIds(
       Array.isArray(value) &&
       value.some((entry) => typeof entry === 'string')
     ) {
-      replaced[field] = value.map((entry) =>
-        typeof entry === 'string'
-          ? (urlByReferenceId.get(entry) ?? entry)
-          : entry,
-      );
+      const entries = value
+        .filter(
+          (entry) =>
+            typeof entry !== 'string' || !unresolvedReferenceIds.has(entry),
+        )
+        .map((entry) =>
+          typeof entry === 'string'
+            ? (urlByReferenceId.get(entry) ?? entry)
+            : entry,
+        );
+      if (entries.length > 0) {
+        replaced[field] = entries;
+      } else {
+        delete replaced[field];
+      }
     }
   }
 

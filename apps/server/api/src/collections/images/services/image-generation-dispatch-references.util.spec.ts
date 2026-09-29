@@ -56,3 +56,39 @@ describe('replaceDispatchReferenceIds', () => {
     expect(replaceDispatchReferenceIds(dispatch, new Map())).toBe(dispatch);
   });
 });
+
+describe('replaceDispatchReferenceIds with unresolved references', () => {
+  const urlById = new Map([
+    ['ref_a', 'https://cdn.example.com/ingredients/images/ref_a'],
+  ]);
+  const unresolved = new Set(['ref_foreign']);
+
+  it('drops unresolved ids from arrays and keeps resolved urls', () => {
+    const result = replaceDispatchReferenceIds(
+      { image_input: ['ref_foreign', 'ref_a'], prompt: 'a portrait' },
+      urlById,
+      unresolved,
+    );
+
+    expect(result).toEqual({
+      image_input: ['https://cdn.example.com/ingredients/images/ref_a'],
+      prompt: 'a portrait',
+    });
+  });
+
+  it('removes a field whose only references were unresolved', () => {
+    const arrayResult = replaceDispatchReferenceIds(
+      { image_input: ['ref_foreign'], prompt: 'a portrait' },
+      new Map(),
+      unresolved,
+    );
+    const stringResult = replaceDispatchReferenceIds(
+      { input_image: 'ref_foreign', prompt: 'a portrait' },
+      new Map(),
+      unresolved,
+    );
+
+    expect(arrayResult).toEqual({ prompt: 'a portrait' });
+    expect(stringResult).toEqual({ prompt: 'a portrait' });
+  });
+});
