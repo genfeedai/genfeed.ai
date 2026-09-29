@@ -11,6 +11,7 @@ import type {
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
+import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -195,6 +196,18 @@ export class ImageGenerationService {
       style,
       width,
     });
+    if (compiledBrief.dispatch) {
+      compiledBrief.dispatch = await this.resolveCompiledDispatchReferences(
+        compiledBrief.dispatch,
+        [
+          ...referenceIds,
+          ...(compiledBrief.brief?.references.map(
+            (reference) => reference.assetId,
+          ) ?? []),
+        ],
+        user.organizationId,
+      );
+    }
 
     const { promptData, metadataData, ingredientData, providerInput } =
       await this.persistImageDocuments({
@@ -540,6 +553,32 @@ export class ImageGenerationService {
    * requested model family, or record an explicit exemption for every model
    * that has not been onboarded to model-aware compilation.
    */
+  private async resolveCompiledDispatchReferences(
+    dispatch: ImageGenerationBriefDispatch,
+    referenceIds: readonly string[],
+    organizationId: string,
+  ): Promise<ImageGenerationBriefDispatch> {
+    const urlByReferenceId = new Map<string, string>();
+    for (const referenceId of new Set(referenceIds)) {
+      const [url] = await this.admissionService.resolveReferenceImageUrls(
+        organizationId,
+        [referenceId],
+      );
+      if (!url) {
+        throw new HttpException(
+          {
+            detail: 'Could not resolve a source URL for a reference image',
+            title: 'Generation brief reference resolution failed',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      urlByReferenceId.set(referenceId, url);
+    }
+
+    return replaceDispatchReferenceIds(dispatch, urlByReferenceId);
+  }
+
   private compileImageGenerationBrief(params: {
     briefBrandContext?: string;
     createImageDto: CreateImageDto;
