@@ -59,14 +59,21 @@ interface AvatarVideoGenerationContext {
 }
 
 /**
- * True when the credits guard reserved a platform charge for this request.
- * A BYOK bypass records usage only, so platform-funded speech inside a
- * BYOK-bypassed request is still charged by the service.
+ * True when the credits guard finalized a positive platform charge for this
+ * request. A BYOK bypass records usage only, and a non-positive amount means
+ * request pricing did not resolve (same rule as the remix fallback), so in
+ * both cases the service still applies its own charge.
  */
 export function isAvatarBilledByRequest(request: {
-  creditsConfig?: { isByokBypass?: boolean };
+  creditsConfig?: { amount?: number; isByokBypass?: boolean };
 }): boolean {
-  return Boolean(request.creditsConfig) && !request.creditsConfig?.isByokBypass;
+  const amount = request.creditsConfig?.amount;
+  return (
+    typeof amount === 'number' &&
+    Number.isFinite(amount) &&
+    amount > 0 &&
+    !request.creditsConfig?.isByokBypass
+  );
 }
 
 interface AvatarVideoGenerationParams {

@@ -290,8 +290,13 @@ describe('AvatarVideoGenerationService', () => {
   );
 
   it.each([
-    ['a reserved platform charge', { creditsConfig: {} }, true],
-    ['a BYOK bypass', { creditsConfig: { isByokBypass: true } }, false],
+    ['a reserved platform charge', { creditsConfig: { amount: 3 } }, true],
+    [
+      'a BYOK bypass',
+      { creditsConfig: { amount: 3, isByokBypass: true } },
+      false,
+    ],
+    ['an unresolved zero price', { creditsConfig: { amount: 0 } }, false],
     ['no credits config', {}, false],
   ])(
     'isAvatarBilledByRequest treats %s correctly',
