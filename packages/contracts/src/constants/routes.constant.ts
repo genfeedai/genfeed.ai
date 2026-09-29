@@ -121,7 +121,7 @@ export const APP_ROUTES = {
     RUNS: '/automation/runs',
     /**
      * Redirect-only alias. Templates live on the Workflows page
-     * (`WORKFLOWS_TEMPLATES`).
+     * (`WORKFLOWS?view=templates`).
      */
     TEMPLATES: '/automation/templates',
     /**
@@ -134,7 +134,10 @@ export const APP_ROUTES = {
     /** Pipeline canvas library (merged former /workflows surface). */
     WORKFLOWS: '/automation/workflows',
     WORKFLOWS_NEW: '/automation/workflows/new',
-    /** Templates tab on the Workflows page. */
+    /**
+     * Redirect-only alias. Templates is a view of the Workflows page:
+     * `WORKFLOWS?view=templates`.
+     */
     WORKFLOWS_TEMPLATES: '/automation/workflows/templates',
   },
   DISCOVERY: {

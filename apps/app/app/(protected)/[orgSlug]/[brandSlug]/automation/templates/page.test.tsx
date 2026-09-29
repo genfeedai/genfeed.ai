@@ -32,7 +32,7 @@ describe('WorkflowTemplatesRedirectPage', () => {
     });
 
     expect(mocks.redirect).toHaveBeenCalledWith(
-      `/default-organization/shipshit${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=tpl-1`,
+      `/default-organization/shipshit${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates&template=tpl-1`,
     );
   });
 });

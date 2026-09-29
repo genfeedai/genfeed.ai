@@ -8,6 +8,7 @@ import { Button } from '@ui/primitives/button';
 import { Copy, Plus, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { workflowTemplatesTabPath } from '../workflow-library-tabs';
 
 export default function EmptyWorkflowState() {
   const { href } = useOrgUrl();
@@ -20,7 +21,7 @@ export default function EmptyWorkflowState() {
       description={translate('emptyDescription')}
       actions={
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href={href(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES)}>
+          <Link href={href(workflowTemplatesTabPath())}>
             <Button
               label={translate('emptyActionTemplates')}
               variant={ButtonVariant.SECONDARY}

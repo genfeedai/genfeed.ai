@@ -30,6 +30,15 @@ const mocks = vi.hoisted(() => ({
   useTranslations: vi.fn(),
 }));
 
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    disconnect() {}
+    observe() {}
+    unobserve() {}
+  },
+);
+
 vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => mocks.useTranslations(namespace),
 }));
@@ -176,12 +185,6 @@ vi.mock('@ui/primitives/select', () => ({
     </button>
   ),
   SelectValue: () => null,
-}));
-
-vi.mock('@ui/layout/horizontal-carousel/HorizontalCarousel', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="featured-carousel">{children}</div>
-  ),
 }));
 
 vi.mock('@ui/primitives/dialog', () => ({
@@ -446,13 +449,13 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates',
+      '/demo/FUDNEWS/automation/workflows?view=templates',
     );
     expect(
       within(all).getByRole('link', { name: 'Use template' }),
     ).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
+      '/demo/FUDNEWS/automation/workflows?view=templates&template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);

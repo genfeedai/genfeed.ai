@@ -376,7 +376,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/acme/brand/automation/workflows/templates',
+      '/acme/brand/automation/workflows?view=templates',
     );
     expect(
       search.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
