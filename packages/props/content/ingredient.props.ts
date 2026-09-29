@@ -91,6 +91,8 @@ export interface IngredientsMediaGridProps {
 export interface IngredientInspectorRailProps {
   ingredient: IIngredient;
   className?: string;
+  /** Opens the full-size lightbox; the preview is not interactive without it. */
+  onOpenPreview?: () => void;
 }
 
 export interface IngredientsTypeProps {

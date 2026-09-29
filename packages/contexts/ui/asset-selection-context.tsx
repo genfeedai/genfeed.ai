@@ -20,6 +20,7 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
 
   const [generatedAssetId, setGeneratedAssetId] = useState<string | null>(null);
   const [generationQueue, setGenerationQueue] = useState<IGenerationItem[]>([]);
+  const [lightboxRequestCount, setLightboxRequestCount] = useState(0);
 
   const activeGenerations = useMemo(
     () =>
@@ -54,6 +55,10 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
     setGenerationQueue((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
+  const requestLightbox = useCallback(() => {
+    setLightboxRequestCount((count) => count + 1);
+  }, []);
+
   const clearAll = useCallback(() => {
     setSelectedAsset(null);
     setIsGenerating(false);
@@ -71,7 +76,9 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       generatedAssetId,
       generationQueue,
       isGenerating,
+      lightboxRequestCount,
       removeFromQueue,
+      requestLightbox,
       selectedCanonicalAsset,
       selectedIngredient,
       setCurrentFormat,
@@ -89,7 +96,9 @@ export function AssetSelectionProvider({ children }: LayoutProps) {
       generatedAssetId,
       generationQueue,
       isGenerating,
+      lightboxRequestCount,
       removeFromQueue,
+      requestLightbox,
       selectedCanonicalAsset,
       selectedIngredient,
       updateGenerationStatus,

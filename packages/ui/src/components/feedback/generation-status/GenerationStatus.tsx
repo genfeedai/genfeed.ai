@@ -18,6 +18,7 @@ export default function GenerationStatus({
   totalCount,
   detail,
   compact = false,
+  isStacked = false,
   isAnnounced = true,
   className,
   onCancel,
@@ -58,11 +59,17 @@ export default function GenerationStatus({
       className={cn(
         'min-w-0 space-y-1.5 text-xs text-muted-foreground',
         !compact && 'px-3 py-2',
+        isStacked && 'text-center',
         className,
       )}
       data-generation-status={status}
     >
-      <div className="flex min-w-0 items-center gap-2">
+      <div
+        className={cn(
+          'flex min-w-0 items-center gap-2',
+          isStacked && 'flex-col justify-center',
+        )}
+      >
         <span
           role={isAnnounced ? 'status' : undefined}
           aria-live={isAnnounced ? 'polite' : undefined}
@@ -88,7 +95,10 @@ export default function GenerationStatus({
         ) : null}
         {onCancel && isActive ? (
           <Button
-            className="pointer-events-auto ml-auto shrink-0"
+            className={cn(
+              'pointer-events-auto shrink-0',
+              !isStacked && 'ml-auto',
+            )}
             ariaLabel={translate('cancel')}
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}

@@ -1679,6 +1679,7 @@
       }
     },
     "inspector": {
+      "openPreview": "Open full-size preview",
       "surface": "Library",
       "type": "Type",
       "untitled": "Untitled asset"
