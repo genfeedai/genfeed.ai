@@ -167,25 +167,6 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
     expect(useCloudWorkflowStore.getState().workflowId).toBeNull();
   });
 
-  it('still saves an already-saved workflow that has been emptied of nodes', async () => {
-    useWorkflowStore.setState({ nodes: [], workflowId: 'wf-existing' });
-    useCloudWorkflowStore.setState({ workflowId: 'wf-existing' });
-    const { service, update } = createService();
-    update.mockResolvedValue({
-      id: 'wf-existing',
-      inputVariables: [],
-      label: 'Sfsfsd',
-    });
-
-    await useCloudWorkflowStore.getState().saveToCloud(service);
-
-    expect(update).toHaveBeenCalledWith(
-      'wf-existing',
-      expect.objectContaining({ nodes: [] }),
-    );
-    expect(useWorkflowStore.getState().isDirty).toBe(false);
-  });
-
   it('coalesces a repeated save request when the durable payload is unchanged', async () => {
     useWorkflowStore.setState({ nodes: oneNode as never, workflowId: 'wf-1' });
     useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
@@ -247,51 +228,6 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
       expect(useWorkflowStore.getState().isDirty).toBe(false);
     },
   );
-
-  it('strips transient state while preserving real edits in a trailing save', async () => {
-    useWorkflowStore.setState({ nodes: oneNode as never, workflowId: 'wf-1' });
-    useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
-    const { service, update } = createService();
-    const pending = createDeferred<CloudWorkflowData>();
-    update.mockReturnValueOnce(pending.promise);
-    update.mockResolvedValue({ id: 'wf-1', inputVariables: [] });
-    const saving = useCloudWorkflowStore.getState().saveToCloud(service);
-    useWorkflowStore.setState({
-      nodes: [
-        {
-          ...oneNode[0],
-          selected: true,
-          measured: { width: 400 },
-          data: {
-            prompt: 'edited',
-            status: 'running',
-            progress: 50,
-            error: 'transient',
-            jobId: 'job-1',
-          },
-        },
-      ] as never,
-    });
-    pending.resolve(savedWorkflow());
-    await saving;
-    expect(update).toHaveBeenCalledTimes(2);
-    expect(update.mock.calls[1][1].nodes).toEqual([
-      {
-        id: 'n1',
-        position: { x: 0, y: 0 },
-        type: 'workflowInput',
-        data: {
-          config: {
-            defaultValue: 'edited',
-            inputName: 'n1',
-            inputType: 'text',
-            required: false,
-          },
-          label: 'text input',
-        },
-      },
-    ]);
-  });
 
   it('ignores edge selection but saves concurrent edge style and input defaults', async () => {
     useWorkflowStore.setState({

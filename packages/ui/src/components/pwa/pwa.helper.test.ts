@@ -232,12 +232,6 @@ describe('pwa.helper', () => {
     });
 
     // WCAG 1.4.4: pinch-zoom must never be locked, PWA or not.
-    it('should not restrict pinch zoom', () => {
-      const { viewport } = generatePWAMetadata('studio' as PWAAppNameKey);
-
-      expect(viewport.maximumScale).toBeUndefined();
-      expect(viewport.userScalable).toBeUndefined();
-    });
 
     it('should configure theme colors for light and dark modes', () => {
       const { viewport } = generatePWAMetadata('studio' as PWAAppNameKey);

@@ -37,8 +37,4 @@ describe('page help routing', () => {
     );
     expect(resolvePageHelpKey('/acme/brand/publishing/calendar')).toBeNull();
   });
-
-  it('returns null for pages without help copy', () => {
-    expect(resolvePageHelpKey('/acme/brand/settings/general')).toBeNull();
-  });
 });

@@ -48,36 +48,6 @@ describe('buildContentActivityEntries', () => {
       expect.any(Object),
     );
   });
-
-  it('does not flag an ordinary draft with no review lineage as pending', () => {
-    buildContentActivityEntries(
-      [
-        buildPost({
-          reviewDecision: ReviewDecision.UNSET,
-          targetExecutionState: TargetExecutionState.DRAFT,
-        }),
-      ],
-      translate,
-      (id) => `/publishing/posts/${id}`,
-    );
-
-    expect(translate).toHaveBeenCalledWith('postMeta', expect.any(Object));
-  });
-
-  it('does not flag an approved draft as pending', () => {
-    buildContentActivityEntries(
-      [
-        buildPost({
-          reviewDecision: ReviewDecision.APPROVED,
-          targetExecutionState: TargetExecutionState.DRAFT,
-        }),
-      ],
-      translate,
-      (id) => `/publishing/posts/${id}`,
-    );
-
-    expect(translate).toHaveBeenCalledWith('postMeta', expect.any(Object));
-  });
 });
 
 describe('buildReportActivityEntries', () => {

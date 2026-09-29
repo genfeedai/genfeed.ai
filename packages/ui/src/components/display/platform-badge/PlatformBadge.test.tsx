@@ -5,11 +5,6 @@ import '@testing-library/jest-dom/vitest';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 
 describe('PlatformBadge', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<PlatformBadge />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('renders a dash for an unknown or missing platform', () => {
     const { rerender } = render(<PlatformBadge platform="not-a-platform" />);
     expect(screen.getByText('-')).toBeInTheDocument();

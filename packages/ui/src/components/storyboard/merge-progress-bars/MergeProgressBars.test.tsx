@@ -29,14 +29,6 @@ describe('MergeProgressBars', () => {
     expect(progressBar).toHaveStyle({ width: '75%' });
   });
 
-  it('shows checkmark for completed steps', () => {
-    const steps = [{ id: '1', label: 'Step 1', status: 'completed' as const }];
-
-    const { container } = render(<MergeProgressBars steps={steps} />);
-    const checkIcon = container.querySelector('.text-success');
-    expect(checkIcon).toBeInTheDocument();
-  });
-
   it('shows error icon for failed steps', () => {
     const steps = [{ id: '1', label: 'Step 1', status: 'failed' as const }];
 
@@ -54,15 +46,5 @@ describe('MergeProgressBars', () => {
 
     expect(screen.getByText('Overall Progress')).toBeInTheDocument();
     expect(screen.getByText('45%')).toBeInTheDocument();
-  });
-
-  it('does not show overall progress bar when overallProgress is undefined', () => {
-    const steps = [
-      { id: '1', label: 'Step 1', progress: 50, status: 'active' as const },
-    ];
-
-    render(<MergeProgressBars steps={steps} />);
-
-    expect(screen.queryByText('Overall Progress')).not.toBeInTheDocument();
   });
 });

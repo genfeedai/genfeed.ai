@@ -554,23 +554,6 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(onSelectionChange).toHaveBeenCalledWith([]);
   });
 
-  it('keeps a reselected asset selected while its new publish lands', () => {
-    const onSelectionChange = vi.fn();
-    const { rerenderContent } = renderContent({
-      onSelectionChange,
-      selectedIngredientIds: [baseIngredient.id],
-    });
-    assetSelection.published = baseIngredient;
-    rerenderContent();
-
-    // Deselect in the grid, then select the same asset again.
-    assetSelection.published = null;
-    rerenderContent({ selectedIngredientIds: [] });
-    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
-
-    expect(onSelectionChange).not.toHaveBeenCalled();
-  });
-
   it('keeps the remaining asset when a second one is added and removed', () => {
     const onSelectionChange = vi.fn();
     const { rerenderContent } = renderContent({

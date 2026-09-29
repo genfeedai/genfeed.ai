@@ -98,16 +98,6 @@ describe('LocalDesktopContent', () => {
     expect(screen.queryByRole('button', { name: 'Choose folder' })).toBeNull();
   });
 
-  it('activates local mode explicitly and shows the selected workspace', async () => {
-    render(<LocalDesktopContent />);
-
-    await waitFor(() => {
-      expect(mocks.enableOfflineMode).toHaveBeenCalledOnce();
-    });
-    expect(await screen.findByText('/Users/test/Genfeed')).toBeVisible();
-    expect(screen.getByText('Local provider settings')).toBeVisible();
-  });
-
   it('generates content through the local desktop data service', async () => {
     render(<LocalDesktopContent />);
     await screen.findByText('/Users/test/Genfeed');

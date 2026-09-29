@@ -54,32 +54,6 @@ describe('SkillDetailSheet', () => {
     closeModal(ModalEnum.SKILL);
   });
 
-  it('renders the selected skill detail content when open', () => {
-    render(
-      <SkillDetailSheet
-        customizing={false}
-        onClose={vi.fn()}
-        onCustomize={vi.fn()}
-        onOpenTestInChat={vi.fn()}
-        onSaveSkill={vi.fn()}
-        onSkillDraftChange={vi.fn()}
-        savingSkill={false}
-        selectedSkill={selectedSkillFixture}
-        skillDraft={{
-          defaultInstructions: 'Base instructions',
-          description: 'Sets up long-form creator scripts.',
-          name: 'YouTube Script Setup',
-          systemPromptTemplate: '',
-        }}
-      />,
-    );
-
-    expect(screen.getAllByText('YouTube Script Setup')[0]).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: /test with agent/i }),
-    ).toBeInTheDocument();
-  });
-
   it('renders nothing selected state when no skill is provided', () => {
     render(
       <SkillDetailSheet

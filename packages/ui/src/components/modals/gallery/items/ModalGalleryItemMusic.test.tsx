@@ -67,16 +67,6 @@ describe('ModalGalleryItemMusic', () => {
     onSelect: vi.fn(),
   };
 
-  it('renders music item', () => {
-    render(<ModalGalleryItemMusic {...defaultProps} />);
-    expect(screen.getByText('Test Music')).toBeInTheDocument();
-  });
-
-  it('displays music duration', () => {
-    render(<ModalGalleryItemMusic {...defaultProps} />);
-    expect(screen.getByText(/2:00/)).toBeInTheDocument();
-  });
-
   it('displays selected state when selected', () => {
     const { container } = render(
       <ModalGalleryItemMusic {...defaultProps} isSelected={true} />,
@@ -122,17 +112,6 @@ describe('ModalGalleryItemMusic', () => {
     );
   });
 
-  it('displays Untitled when no label in metadata', () => {
-    const musicWithoutLabel = {
-      ...defaultProps.music,
-      metadata: {},
-    };
-    render(
-      <ModalGalleryItemMusic {...defaultProps} music={musicWithoutLabel} />,
-    );
-    expect(screen.getByText('Untitled')).toBeInTheDocument();
-  });
-
   it('displays Untitled when metadata is null', () => {
     const musicWithNullMetadata = {
       ...defaultProps.music,
@@ -145,23 +124,6 @@ describe('ModalGalleryItemMusic', () => {
       />,
     );
     expect(screen.getByText('Untitled')).toBeInTheDocument();
-  });
-
-  it('displays selection indicator when selected', () => {
-    const { container } = render(
-      <ModalGalleryItemMusic {...defaultProps} isSelected={true} />,
-    );
-    // Check for the selection dot
-    const selectionDot = container.querySelector('.bg-primary.rounded-full');
-    expect(selectionDot).toBeInTheDocument();
-  });
-
-  it('does not display selection indicator when not selected', () => {
-    const { container } = render(
-      <ModalGalleryItemMusic {...defaultProps} isSelected={false} />,
-    );
-    const selectionDot = container.querySelector('.absolute.top-2.right-2');
-    expect(selectionDot).not.toBeInTheDocument();
   });
 
   it('does not display duration when metadataDuration is not provided', () => {

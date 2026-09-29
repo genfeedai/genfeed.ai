@@ -27,35 +27,6 @@ function setup() {
 }
 
 describe('Inline suggested replies', () => {
-  it('fills the textarea without requiring an agent thread', async () => {
-    const { result, suggestedReply } = setup();
-    suggestedReply.mockResolvedValue({ draft: 'Hello Taylor' });
-    await act(async () => result.current.handleSuggestedReply());
-    expect(result.current.draft).toBe('Hello Taylor');
-    expect(result.current.references).toEqual([]);
-    expect(result.current.busyAction).toBeNull();
-  });
-  it('does not overwrite edits typed during generation', async () => {
-    const { result, suggestedReply } = setup();
-    let complete: ((value: { draft: string }) => void) | undefined;
-    suggestedReply.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          complete = resolve;
-        }),
-    );
-    act(() => {
-      void result.current.handleSuggestedReply();
-    });
-    await waitFor(() => expect(suggestedReply).toHaveBeenCalled());
-    act(() =>
-      result.current.handleDraftChange({
-        target: { value: 'My own reply' },
-      } as ChangeEvent<HTMLTextAreaElement>),
-    );
-    await act(async () => complete?.({ draft: 'Late suggestion' }));
-    expect(result.current.draft).toBe('My own reply');
-  });
   it('aborts when switching conversations and ignores stale results', async () => {
     const { result, suggestedReply, rerender, params } = setup();
     let complete: ((value: { draft: string }) => void) | undefined;

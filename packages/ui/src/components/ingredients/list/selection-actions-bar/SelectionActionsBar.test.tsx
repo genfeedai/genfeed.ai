@@ -13,11 +13,6 @@ describe('SelectionActionsBar', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<SelectionActionsBar />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<SelectionActionsBar />);
     const rootElement = container.firstChild as HTMLElement;

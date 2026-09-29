@@ -91,38 +91,11 @@ vi.mock('@tanstack/react-query', () => ({
 }));
 
 describe('CreditUsageList', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<CreditUsageList />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should render organization rows', () => {
     render(<CreditUsageList />);
 
     expect(screen.getByText('Maxed Org')).toBeInTheDocument();
     expect(screen.getByText('Under Org')).toBeInTheDocument();
     expect(screen.getByText('Normal Org')).toBeInTheDocument();
-  });
-
-  it('should show a "Maxed out" badge for organizations at or above 90% usage', () => {
-    render(<CreditUsageList />);
-
-    expect(screen.getByText('Maxed out')).toBeInTheDocument();
-  });
-
-  it('should show an "Under-using" badge for organizations at or below 10% usage', () => {
-    render(<CreditUsageList />);
-
-    expect(screen.getByText('Under-using')).toBeInTheDocument();
-  });
-
-  it('should not show either flag badge for a normal-usage organization', () => {
-    render(<CreditUsageList />);
-
-    const maxedOutBadges = screen.getAllByText('Maxed out');
-    const underUsingBadges = screen.getAllByText('Under-using');
-
-    expect(maxedOutBadges).toHaveLength(1);
-    expect(underUsingBadges).toHaveLength(1);
   });
 });

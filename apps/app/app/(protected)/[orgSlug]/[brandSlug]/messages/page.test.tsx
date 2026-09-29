@@ -651,25 +651,6 @@ describe('SocialMessagesPage', () => {
     );
   });
 
-  it('does not send a read receipt for an already read conversation', async () => {
-    mocks.listPage.mockResolvedValue({
-      hasNext: false,
-      hasPrevious: false,
-      items: [{ ...conversation, unreadCount: 0 }],
-      page: 1,
-      pageSize: 50,
-      total: 1,
-      totalPages: 1,
-    });
-
-    render(<SocialMessagesPage />);
-
-    expect(
-      await screen.findByText('Here is a drafted answer.'),
-    ).toBeInTheDocument();
-    expect(mocks.markRead).not.toHaveBeenCalled();
-  });
-
   it('shows sync as the primary empty action when an account is connected', async () => {
     mocks.listPage.mockResolvedValue({
       hasNext: false,

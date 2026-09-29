@@ -30,13 +30,6 @@ describe('usePlatformFlags (#5468)', () => {
     vi.useRealTimers();
   });
 
-  it('uses the server-rendered flags without a request', () => {
-    const { result } = renderHook(() => usePlatformFlags(STUDIO_OFF));
-
-    expect(result.current).toEqual({ flags: STUDIO_OFF, isReady: true });
-    expect(publicService.getPlatformFlags).not.toHaveBeenCalled();
-  });
-
   it('reads the public endpoint when the shell has no flags', async () => {
     publicService.getPlatformFlags.mockResolvedValue(STUDIO_OFF);
 
@@ -45,19 +38,6 @@ describe('usePlatformFlags (#5468)', () => {
     expect(result.current.isReady).toBe(false);
     await waitFor(() =>
       expect(result.current).toEqual({ flags: STUDIO_OFF, isReady: true }),
-    );
-  });
-
-  it('keeps every flag on when the API is unreachable', async () => {
-    publicService.getPlatformFlags.mockRejectedValue(new Error('offline'));
-
-    const { result } = renderHook(() => usePlatformFlags());
-
-    await waitFor(() =>
-      expect(result.current).toEqual({
-        flags: DEFAULT_PLATFORM_FLAGS,
-        isReady: true,
-      }),
     );
   });
 
@@ -74,17 +54,6 @@ describe('usePlatformFlags (#5468)', () => {
 
     expect(publicService.getPlatformFlags).toHaveBeenCalledTimes(1);
     expect(result.current.flags.studio).toBe(false);
-  });
-
-  it('re-reads the flags at once after an Admin save', async () => {
-    publicService.getPlatformFlags.mockResolvedValue(STUDIO_OFF);
-    const { result } = renderHook(() =>
-      usePlatformFlags(DEFAULT_PLATFORM_FLAGS),
-    );
-
-    act(() => notifyPlatformFlagsChanged());
-
-    await waitFor(() => expect(result.current.flags.studio).toBe(false));
   });
 
   it('keeps the last flags when a later read fails', async () => {

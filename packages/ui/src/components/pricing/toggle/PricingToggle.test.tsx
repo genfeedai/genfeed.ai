@@ -8,11 +8,6 @@ describe('PricingToggle', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<PricingToggle />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<PricingToggle />);
     const rootElement = container.firstChild as HTMLElement;

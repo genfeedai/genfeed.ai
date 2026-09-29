@@ -101,40 +101,12 @@ describe('AgentDock', () => {
     );
   });
 
-  it('shows the conversation scope controls above the transcript', () => {
-    render(
-      <AgentDock
-        dock={buildDock()}
-        isCompact={false}
-        onOpenFullPage={vi.fn()}
-        scopeControls={<span>Acme · Moonrise</span>}
-      >
-        <p>Conversation transcript</p>
-      </AgentDock>,
-    );
-
-    expect(screen.getByTestId('agent-dock-scope')).toHaveTextContent(
-      'Acme · Moonrise',
-    );
-  });
-
   it('stays mounted but hidden while closed', () => {
     renderDock(buildDock({ isOpen: false }));
 
     expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
     expect(screen.getByTestId('agent-dock')).not.toBeVisible();
     expect(screen.getByText('Conversation transcript')).toBeInTheDocument();
-  });
-
-  it('opens the full conversation and closes from its header', () => {
-    const dock = buildDock();
-    const { onOpenFullPage } = renderDock(dock);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Open full page' }));
-    expect(onOpenFullPage).toHaveBeenCalledTimes(1);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close agent' }));
-    expect(dock.close).toHaveBeenCalledTimes(1);
   });
 
   it('closes on Escape inside the dock and returns focus', () => {

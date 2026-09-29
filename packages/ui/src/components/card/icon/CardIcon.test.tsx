@@ -11,19 +11,6 @@ describe('CardIcon', () => {
     expect(screen.getByText('Sparkles')).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<CardIcon icon={Sparkles} label="Sparkles" />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(
-      <CardIcon icon={Sparkles} label="Sparkles" className="text-primary" />,
-    );
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
-
   it('inherits wrapper color when iconClassName only changes size', () => {
     const { container } = render(
       <CardIcon

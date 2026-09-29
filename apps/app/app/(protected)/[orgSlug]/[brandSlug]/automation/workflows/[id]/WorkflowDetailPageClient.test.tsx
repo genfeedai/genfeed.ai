@@ -14,13 +14,6 @@ const relativePath =
 assertSourceHasExport(relativePath);
 
 describe(relativePath, () => {
-  it('uses the canonical execution id for the active run', () => {
-    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
-
-    expect(source).toContain('setActiveExecutionId(execution.id)');
-    expect(source).not.toContain('execution._id');
-  });
-
   it('keeps module and graph authoring chrome in one section topbar', () => {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 

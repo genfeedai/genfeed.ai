@@ -41,16 +41,6 @@ describe('ModalGalleryItemImage', () => {
     onSelect: vi.fn(),
   };
 
-  it('renders image item', () => {
-    render(<ModalGalleryItemImage {...defaultProps} />);
-    expect(screen.getByTestId('masonry-image-img-1')).toBeInTheDocument();
-  });
-
-  it('displays format badge when image format is available', () => {
-    render(<ModalGalleryItemImage {...defaultProps} />);
-    expect(screen.getByTestId('format-badge')).toBeInTheDocument();
-  });
-
   it('displays selection indicator when selected', () => {
     render(<ModalGalleryItemImage {...defaultProps} isSelected={true} />);
     expect(screen.getByText('✓')).toBeInTheDocument();

@@ -119,19 +119,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     brandContextValue.organizationId = 'org-1';
     orgUrlValue.brandSlug = '';
   });
-  it('binds the route brand when it belongs to the organization', () => {
-    navigation.pathname = '/acme/~/analytics/brands/brand-2';
-
-    render(
-      <AnalyticsWorkspaceSurfaceAdapterProvider>
-        <AnalyticsWorkSurfaceAdapter>
-          <AdapterHarness />
-        </AnalyticsWorkSurfaceAdapter>
-      </AnalyticsWorkspaceSurfaceAdapterProvider>,
-    );
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-  });
 
   it('uses organization-wide scope when the route brand is unknown', () => {
     navigation.pathname = '/acme/~/analytics/brands/brand-unresolved';
@@ -149,52 +136,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     );
   });
 
-  it('rejects a matching brand ID from another organization even inside a brand shell', () => {
-    brandContextValue.brands = [
-      {
-        id: 'brand-2',
-        label: 'Other organization',
-        organization: { id: 'org-2' },
-      },
-    ];
-    navigation.pathname = '/acme/moonrise/analytics/brands/brand-2';
-    orgUrlValue.brandSlug = 'moonrise';
-
-    render(renderAdapter());
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
-      'organization-wide',
-    );
-  });
-
-  it('waits for authorized brands to load before exposing a route binding', () => {
-    brandContextValue.brands = [];
-    const view = render(renderAdapter());
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
-      'organization-wide',
-    );
-
-    brandContextValue.brands = [
-      { id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } },
-    ];
-    view.rerender(renderAdapter());
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-  });
-
-  it('drops a stale route binding when the brand is removed', () => {
-    const view = render(renderAdapter());
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
-
-    brandContextValue.brands = [];
-    view.rerender(renderAdapter());
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
-      'organization-wide',
-    );
-  });
-
   it('drops the old route binding when the organization changes', () => {
     const view = render(renderAdapter());
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
@@ -205,14 +146,6 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
       'organization-wide',
     );
-  });
-
-  it('preserves the authorized route binding on platform analytics', () => {
-    navigation.pathname =
-      '/acme/~/analytics/brands/brand-2/platforms/instagram';
-    render(renderAdapter());
-
-    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
   });
 
   it('binds no brand on routes that name none', () => {

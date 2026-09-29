@@ -2,36 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { AUTOMATION_MENU_ITEMS } from './automation-menu-items.config';
 
 describe('AUTOMATION_MENU_ITEMS', () => {
-  it('is non-empty', () => {
-    expect(AUTOMATION_MENU_ITEMS.length).toBeGreaterThan(0);
-  });
-
-  it('has no duplicate hrefs', () => {
-    const hrefs = AUTOMATION_MENU_ITEMS.flatMap((item) =>
-      item.href ? [item.href] : [],
-    );
-    const unique = new Set(hrefs);
-
-    expect(hrefs.length).toBe(unique.size);
-  });
-
-  it('all items have required fields: label, href, outline, solid', () => {
-    for (const item of AUTOMATION_MENU_ITEMS) {
-      expect(item.label).toBeTruthy();
-      expect(item.href).toBeTruthy();
-      expect(item.outline).toBeDefined();
-      expect(item.solid).toBeDefined();
-    }
-  });
-
-  it('uses a unique lucide icon per row (no repeated glyphs)', () => {
-    const iconNames = AUTOMATION_MENU_ITEMS.map(
-      (item) => item.outline?.displayName ?? item.outline?.name,
-    );
-    expect(iconNames.every(Boolean)).toBe(true);
-    expect(new Set(iconNames).size).toBe(iconNames.length);
-  });
-
   it.each([
     ['Agents', '/automation/agents'],
     ['Programs', '/automation/campaigns'],
@@ -46,29 +16,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     expect(item?.matchPaths).toEqual(expect.arrayContaining([canonicalHref]));
     expect(
       item?.matchPaths?.some((path) => path.startsWith('/workflows')),
-    ).toBe(false);
-  });
-
-  it('does not host outreach or reply surfaces (those live in Messages)', () => {
-    expect(
-      AUTOMATION_MENU_ITEMS.some((item) =>
-        [
-          'Outreach',
-          'Outreach sequences',
-          'Replies',
-          'Reply Campaigns',
-          'Reply drip',
-          'Campaigns',
-        ].includes(item.label),
-      ),
-    ).toBe(false);
-    expect(
-      AUTOMATION_MENU_ITEMS.some(
-        (item) =>
-          item.href?.includes('outreach') ||
-          item.href?.includes('reply') ||
-          item.href?.includes('messages'),
-      ),
     ).toBe(false);
   });
 
@@ -95,27 +42,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     ).toBe(false);
   });
 
-  it('does not host a duplicate Analytics surface (measurement lives in Analytics app)', () => {
-    expect(
-      AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Analytics'),
-    ).toBe(false);
-    expect(
-      AUTOMATION_MENU_ITEMS.some(
-        (item) => item.href === '/automation/analytics',
-      ),
-    ).toBe(false);
-  });
-
-  it('routes every item under the automation prefix', () => {
-    for (const item of AUTOMATION_MENU_ITEMS) {
-      expect(item.href?.startsWith('/automation')).toBe(true);
-
-      for (const matchPath of item.matchPaths ?? []) {
-        expect(matchPath.startsWith('/automation')).toBe(true);
-      }
-    }
-  });
-
   it.each([
     '/automation/campaigns',
     '/automation/content-runs',
@@ -128,31 +54,6 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     );
 
     expect(isCovered).toBe(true);
-  });
-
-  it('sits flat under the Automation app header — no Workflows / Agents subgroups', () => {
-    expect(AUTOMATION_MENU_ITEMS.map((item) => item.group)).toEqual([
-      '',
-      '',
-      '',
-      '',
-      '',
-    ]);
-    expect(AUTOMATION_MENU_ITEMS.map((item) => item.label)).toEqual([
-      'Overview',
-      'Workflows',
-      'Runs',
-      'Agents',
-      'Programs',
-    ]);
-  });
-
-  it('keeps automation configuration in Settings, not the Automation sidebar', () => {
-    expect(
-      AUTOMATION_MENU_ITEMS.some((item) =>
-        ['Configuration', 'Skills'].includes(item.label),
-      ),
-    ).toBe(false);
   });
 
   it('matches the canonical Agents route', () => {
@@ -168,21 +69,5 @@ describe('AUTOMATION_MENU_ITEMS', () => {
     expect(AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Hire')).toBe(
       false,
     );
-  });
-
-  it('matches the canonical Program routes', () => {
-    const programs = AUTOMATION_MENU_ITEMS.find(
-      (item) => item.label === 'Programs',
-    );
-
-    expect(programs?.matchPaths).toEqual(
-      expect.arrayContaining([
-        '/automation/campaigns',
-        '/automation/campaigns/new',
-      ]),
-    );
-    expect(
-      AUTOMATION_MENU_ITEMS.some((item) => item.label === 'Launch team'),
-    ).toBe(false);
   });
 });

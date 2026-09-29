@@ -187,13 +187,6 @@ describe('TaskInspectorAdapter', () => {
     );
   });
 
-  it('stays closed on the full task page, where no ?taskId= names the selection', () => {
-    mocks.searchParams = new URLSearchParams();
-    renderTasksLayout();
-
-    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
-  });
-
   it('keeps a click as a user selection when ?taskId= re-resolves the same task', () => {
     const { result } = renderHook(() => useTaskSelection(), {
       wrapper: TaskSelectionProvider,

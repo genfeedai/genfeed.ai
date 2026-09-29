@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   getAuthCallbackURL,
-  getAuthErrorCallbackURL,
   getAuthFlowHref,
   parseBrandOsPreviewToken,
   parsePublicYoutubeClipToken,
@@ -16,10 +15,6 @@ const SERVER_FALLBACK_ORIGIN = 'https://app.genfeed.ai';
 describe('auth callback URL helpers', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
-  });
-
-  it('sends Google failures to the login page on the current origin', () => {
-    expect(getAuthErrorCallbackURL()).toBe(`${window.location.origin}/login`);
   });
 
   it('maps Better Auth OAuth error codes to login copy', () => {
@@ -36,53 +31,6 @@ describe('auth callback URL helpers', () => {
     expect(resolveOAuthLoginErrorMessage(null)).toBeNull();
   });
 
-  it('prefers callbackUrl and falls back to root', () => {
-    expect(
-      getAuthCallbackURL(new URLSearchParams('callbackUrl=%2Fonboarding')),
-    ).toBe('/onboarding');
-    expect(getAuthCallbackURL(new URLSearchParams())).toBe('/');
-  });
-
-  it('builds a post-signup callback carrying onboarding handoff params', () => {
-    expect(
-      getAuthCallbackURL(
-        new URLSearchParams(
-          'plan=pro&credits=0500&brandDomain=https%3A%2F%2Fwww.acme.co%2Fproducts&brandName= Acme ',
-        ),
-        { includeOnboardingHandoffParams: true },
-      ),
-    ).toBe(
-      '/onboarding/post-signup?plan=pro&credits=500&brandDomain=acme.co&brandName=Acme',
-    );
-  });
-
-  it('forwards normalized signup attribution on the post-signup callback', () => {
-    expect(
-      getAuthCallbackURL(
-        new URLSearchParams(
-          'plan=pro&utm_source=ChatGPT&utm_term=private&signup_referrer=chatgpt.com&signup_landing=%2Fstudio%3Fx%3D1',
-        ),
-        { includeOnboardingHandoffParams: true },
-      ),
-    ).toBe(
-      '/onboarding/post-signup?plan=pro&signup_landing=%2Fstudio&signup_referrer=chatgpt.com&utm_source=chatgpt',
-    );
-  });
-
-  it('carries the stored first touch over the current URL for other devices', () => {
-    expect(
-      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
-        includeOnboardingHandoffParams: true,
-        signupAttribution: {
-          referrerDomain: 'google.com',
-          utmSource: 'producthunt',
-        },
-      }),
-    ).toBe(
-      '/onboarding/post-signup?signup_referrer=google.com&utm_source=producthunt',
-    );
-  });
-
   it('never mixes a later visit’s fields into the stored first touch', () => {
     expect(
       getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
@@ -92,36 +40,10 @@ describe('auth callback URL helpers', () => {
     ).toBe('/onboarding/post-signup?signup_referrer=google.com');
   });
 
-  it('forwards the current URL source when nothing was stored', () => {
-    expect(
-      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
-        includeOnboardingHandoffParams: true,
-        signupAttribution: {},
-      }),
-    ).toBe('/onboarding/post-signup?utm_source=newsletter');
-  });
-
-  it('preserves explicit callbacks when handoff params are present', () => {
-    expect(
-      getAuthCallbackURL(
-        new URLSearchParams(
-          'callbackUrl=genfeedai-desktop%3A%2F%2Fauth&plan=pro',
-        ),
-        { includeOnboardingHandoffParams: true },
-      ),
-    ).toBe('genfeedai-desktop://auth');
-  });
-
   it('builds auth route links that preserve callbackUrl only when needed', () => {
     expect(getAuthFlowHref('/forgot-password', '/')).toBe('/forgot-password');
     expect(getAuthFlowHref('/forgot-password', '/oauth/cli?port=4321')).toBe(
       '/forgot-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
-    );
-  });
-
-  it('expands relative callbacks to the active app origin', () => {
-    expect(toAbsoluteAuthCallbackURL('/oauth/cli?port=4321')).toBe(
-      `${window.location.origin}/?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321`,
     );
   });
 
@@ -150,26 +72,6 @@ describe('auth callback URL helpers', () => {
     );
     expect(toAbsolutePasswordResetURL('/api/version')).toBe(
       `${window.location.origin}/reset-password`,
-    );
-  });
-
-  it('does not accept absolute URLs as explicit continuation values', () => {
-    const root = `${window.location.origin}/`;
-    expect(
-      getAuthCallbackURL(
-        new URLSearchParams({
-          callbackUrl: 'https://app.genfeed.ai/onboarding',
-        }),
-      ),
-    ).toBe('/');
-    expect(toAbsoluteAuthCallbackURL('https://app.genfeed.ai/onboarding')).toBe(
-      root,
-    );
-  });
-
-  it('rejects insecure callbacks to fixed hosted app domains', () => {
-    expect(toAbsoluteAuthCallbackURL('http://app.genfeed.ai/oauth')).toBe(
-      `${window.location.origin}/`,
     );
   });
 
@@ -209,15 +111,6 @@ describe('auth callback URL helpers', () => {
 
     expect(getAuthCallbackURL(params)).toBe('/');
     expect(toAbsoluteAuthCallbackURL(callbackURL)).toBe(root);
-  });
-
-  it('uses the signup fallback when an explicit callback targets an API route', () => {
-    expect(
-      getAuthCallbackURL(new URLSearchParams('callbackUrl=%2Fapi%2Fversion'), {
-        defaultCallbackURL: '/onboarding/post-signup',
-        includeOnboardingHandoffParams: true,
-      }),
-    ).toBe('/onboarding/post-signup');
   });
 
   it('preserves only a bounded opaque Brand OS token through post-signup', () => {

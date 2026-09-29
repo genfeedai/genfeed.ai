@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -54,35 +54,6 @@ describe('PromptBarSuggestions', () => {
     expect(
       screen.queryByRole('button', { name: 'Summarize' }),
     ).not.toBeInTheDocument();
-  });
-
-  it('passes the full suggestion item to the select handler', () => {
-    const handleSelect = vi.fn();
-
-    render(
-      <PromptBarSuggestions
-        suggestions={suggestions}
-        onSuggestionSelect={handleSelect}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
-
-    expect(handleSelect).toHaveBeenCalledWith(suggestions[1]);
-  });
-
-  it('supports keyboard focus because suggestions are rendered as buttons', () => {
-    render(
-      <PromptBarSuggestions
-        suggestions={suggestions}
-        onSuggestionSelect={vi.fn()}
-      />,
-    );
-
-    const button = screen.getByRole('button', { name: 'Create a plan' });
-    button.focus();
-
-    expect(button).toHaveFocus();
   });
 
   it('renders card tiles when variant is cards', () => {

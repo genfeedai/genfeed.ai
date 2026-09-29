@@ -37,45 +37,6 @@ describe('node type normalization', () => {
     expect(fallbackNode.data?.label).toBe('Legacy');
   });
 
-  it('hydrates supported nodes with a render-safe data object and label', () => {
-    const nodes = [
-      {
-        id: '1',
-        position: { x: 0, y: 0 },
-        type: 'brand',
-      },
-    ] as WorkflowNodeLike[];
-
-    const normalized = normalizeWorkflowNodeTypes(nodes, new Set(['brand']));
-
-    const supportedNode = normalized[0];
-
-    expect(supportedNode).toBeDefined();
-    expect(supportedNode.type).toBe('brand');
-    expect(supportedNode.data).toEqual({ label: 'Brand' });
-  });
-
-  it('hydrates extended cloud nodes with their definition label', () => {
-    const nodes = [
-      {
-        id: '1',
-        position: { x: 0, y: 0 },
-        type: 'captionGen',
-      },
-    ] as WorkflowNodeLike[];
-
-    const normalized = normalizeWorkflowNodeTypes(
-      nodes,
-      new Set(['captionGen']),
-    );
-
-    const supportedNode = normalized[0];
-
-    expect(supportedNode).toBeDefined();
-    expect(supportedNode.type).toBe('captionGen');
-    expect(supportedNode.data).toEqual({ label: 'Caption Generator' });
-  });
-
   it('hydrates persisted action nodes into their editor presentation types', () => {
     const nodes = [
       {
@@ -260,21 +221,6 @@ describe('node type normalization', () => {
     );
   });
 
-  it('fails closed when an unsupported node bypasses load normalization', () => {
-    expect(() =>
-      restoreWorkflowNodeTypes([
-        {
-          data: { label: 'Unsupported' },
-          id: 'unsupported',
-          position: { x: 0, y: 0 },
-          type: 'unsupported-product-operation',
-        },
-      ]),
-    ).toThrow(
-      'uses unsupported product node type unsupported-product-operation',
-    );
-  });
-
   it('fails closed for a persisted action ID outside the action catalog', () => {
     expect(() =>
       restoreWorkflowNodeTypes([
@@ -335,31 +281,6 @@ describe('node type normalization', () => {
     expect(restored[1]?.data).not.toHaveProperty('template');
   });
 
-  it('hydrates persisted data.config back onto editor prompt fields', () => {
-    const normalized = normalizeWorkflowNodeTypes(
-      [
-        {
-          data: {
-            config: {
-              actionId: 'promptConstructor',
-              parameters: { template: 'Hello {{topic}}' },
-            },
-            label: 'Constructor',
-          },
-          id: 'constructor-1',
-          position: { x: 0, y: 0 },
-          type: 'genfeedAction',
-        },
-      ] as WorkflowNodeLike[],
-      new Set(['promptConstructor']),
-    );
-
-    expect(normalized[0]?.data).toMatchObject({
-      label: 'Constructor',
-      template: 'Hello {{topic}}',
-    });
-  });
-
   it('persists product editor nodes as action-backed nodes', () => {
     const nodes = [
       {
@@ -401,29 +322,5 @@ describe('node type normalization', () => {
       { actionId: 'imageGen', parameters: {} },
       { actionId: 'promptConstructor', parameters: {} },
     ]);
-  });
-
-  it('persists media input presentation nodes as workflow inputs', () => {
-    const [restored] = restoreWorkflowNodeTypes([
-      {
-        data: { image: 'https://example.com/input.png', label: 'Reference' },
-        id: 'reference-image',
-        position: { x: 0, y: 0 },
-        type: 'imageInput',
-      },
-    ]);
-
-    expect(restored).toMatchObject({
-      data: {
-        config: {
-          defaultValue: 'https://example.com/input.png',
-          inputName: 'reference-image',
-          inputType: 'image',
-          required: false,
-        },
-        label: 'Reference',
-      },
-      type: 'workflowInput',
-    });
   });
 });

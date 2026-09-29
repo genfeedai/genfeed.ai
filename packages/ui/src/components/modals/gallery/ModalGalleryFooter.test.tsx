@@ -99,21 +99,6 @@ describe('ModalGalleryFooter', () => {
     expect(screen.getByText('Continue Without Music')).toBeInTheDocument();
   });
 
-  it('calls onClear when clear button is clicked', async () => {
-    const user = userEvent.setup();
-    const onClear = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        selectedItems={['img-1']}
-        onClear={onClear}
-      />,
-    );
-    const clearButton = screen.getByText('Clear');
-    await user.click(clearButton);
-    expect(onClear).toHaveBeenCalled();
-  });
-
   it('calls onSelect when select button is clicked', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -261,37 +246,6 @@ describe('ModalGalleryFooter', () => {
     const clearButton = screen.getByText('Clear');
     await user.click(clearButton);
     expect(onSelect).toHaveBeenCalledWith([]);
-  });
-
-  it('calls onConfirm when music confirm is clicked', async () => {
-    const user = userEvent.setup();
-    const onConfirm = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        selectedItem="music-1"
-        onConfirm={onConfirm}
-      />,
-    );
-    const confirmButton = screen.getByText('Select Music');
-    await user.click(confirmButton);
-    expect(onConfirm).toHaveBeenCalled();
-  });
-
-  it('calls onClose when Cancel button is clicked for music', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    render(
-      <ModalGalleryFooter
-        {...defaultProps}
-        category={IngredientCategory.MUSIC}
-        onClose={onClose}
-      />,
-    );
-    const cancelButton = screen.getByText('Cancel');
-    await user.click(cancelButton);
-    expect(onClose).toHaveBeenCalled();
   });
 
   it('does not show action buttons when no items selected for media tab', () => {

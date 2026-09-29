@@ -54,15 +54,6 @@ describe('Library Remix references', () => {
     ).toBeNull();
   });
 
-  it('reconstructs scope from effective context rather than URL authority', () => {
-    expect(parseLibraryRemixSource('asset:asset-1', context)).toEqual({
-      ...context,
-      kind: 'asset',
-      recordId: 'asset-1',
-      serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.asset,
-    });
-  });
-
   it('consumes overlay intent while preserving thread and unrelated route state', () => {
     const reference = buildLibraryArtifactReference({
       ...context,

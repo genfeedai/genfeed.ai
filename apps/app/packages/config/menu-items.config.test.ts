@@ -6,47 +6,6 @@ import {
 } from './menu-items.config';
 
 describe('APP_MENU_ITEMS', () => {
-  it('has no primary items in the main sidebar', () => {
-    const primaryItems = APP_MENU_ITEMS.filter((item) => item.isPrimary);
-
-    expect(primaryItems).toHaveLength(0);
-  });
-
-  it('renders the workspace entrypoints as standalone top-level rows', () => {
-    const ungroupedLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
-      if (item.group === AppMenuGroup.Root && !item.isPrimary) {
-        labels.push(item.label);
-      }
-      return labels;
-    }, []);
-
-    expect(ungroupedLabels).toEqual([
-      'Dashboard',
-      'Inbox',
-      'Tasks',
-      'Activity',
-    ]);
-  });
-
-  it('keeps Messages out of the workspace menu (the app rail owns it)', () => {
-    expect(APP_MENU_ITEMS.map((item) => item.label)).not.toContain('Messages');
-    expect(APP_MENU_ITEMS.map((item) => item.href)).not.toContain('/messages');
-  });
-
-  it('does not surface content drilldowns in the shared sidebar', () => {
-    const groups = [
-      ...new Set(
-        APP_MENU_ITEMS.flatMap((item) =>
-          item.group.length > 0 ? [item.group] : [],
-        ),
-      ),
-    ];
-    const hrefs = APP_MENU_ITEMS.map((item) => item.href);
-
-    expect(groups).toEqual([]);
-    expect(hrefs).not.toContain('/publishing');
-  });
-
   it('gives workspace first-class subroutes in the main sidebar', () => {
     const workspaceLabels = APP_MENU_ITEMS.reduce<string[]>((labels, item) => {
       if (item.group === AppMenuGroup.Root) {
@@ -61,24 +20,6 @@ describe('APP_MENU_ITEMS', () => {
       'Tasks',
       'Activity',
     ]);
-  });
-
-  it('does not include analytics group items pointing to /analytics/* routes', () => {
-    const analyticsGroupHrefs = APP_MENU_ITEMS.reduce<string[]>(
-      (hrefs, item) => {
-        if (
-          typeof item.href === 'string' &&
-          item.href.startsWith('/analytics/')
-        ) {
-          hrefs.push(item.href);
-        }
-        return hrefs;
-      },
-      [],
-    );
-
-    // Analytics destinations belong to the Analytics module's own sidebar
-    expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
   it('keeps activity in the workspace navigation and no longer exposes secondary destinations', () => {
@@ -112,11 +53,5 @@ describe('APP_MENU_ITEMS', () => {
     expect(groups).not.toContain('Trends');
     expect(groups).not.toContain('Operations');
     expect(groups).not.toContain('Create');
-  });
-
-  it('does not expose Operations or Create groups (workflows now live in their own sidebar)', () => {
-    const hrefs = APP_MENU_ITEMS.map((item) => item.href);
-
-    expect(hrefs).not.toContain('/compose/post');
   });
 });

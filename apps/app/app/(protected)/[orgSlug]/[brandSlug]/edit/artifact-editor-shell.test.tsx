@@ -29,22 +29,4 @@ describe('ArtifactEditorShell', () => {
       screen.queryByRole('link', { name: /back/i }),
     ).not.toBeInTheDocument();
   });
-
-  it('flags unsaved work only while the editor is dirty', () => {
-    const { rerender } = render(
-      <ArtifactEditorShell artifactLabel="Post" title="Launch post">
-        <div>Editor body</div>
-      </ArtifactEditorShell>,
-    );
-
-    expect(screen.queryByText('Unsaved changes')).not.toBeInTheDocument();
-
-    rerender(
-      <ArtifactEditorShell artifactLabel="Post" isDirty title="Launch post">
-        <div>Editor body</div>
-      </ArtifactEditorShell>,
-    );
-
-    expect(screen.getByText('Unsaved changes')).toBeVisible();
-  });
 });

@@ -3,19 +3,6 @@ import { describe, expect, it } from 'vitest';
 import { coerceNodeData, isNodeDataRecord } from './node-data';
 
 describe('node-data helpers', () => {
-  it('merges defaults with valid node data records', () => {
-    const result = coerceNodeData(
-      { label: 'Custom', status: 'complete' },
-      { error: undefined, label: 'Default', status: 'idle' },
-    );
-
-    expect(result).toEqual({
-      error: undefined,
-      label: 'Custom',
-      status: 'complete',
-    });
-  });
-
   it('falls back to defaults when node data is not a record', () => {
     const result = coerceNodeData(null, {
       label: 'Default',

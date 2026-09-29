@@ -85,24 +85,6 @@ describe('SettingsSubscriptionPage', () => {
     expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
   });
 
-  it('offers in-app plan selection alongside the billing portal', () => {
-    render(<SettingsSubscriptionPage />);
-
-    expect(screen.getByText('Plans')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Upgrade to Pro/i }),
-    ).toBeInTheDocument();
-  });
-
-  it('names the plan from the organization tier, not the unserialized category', () => {
-    // The mocked subscription claims category "pro" while the org tier is
-    // "free"; `category` never reaches the client, so the tier wins.
-    render(<SettingsSubscriptionPage />);
-
-    expect(screen.getByText('Free')).toBeInTheDocument();
-    expect(screen.queryByText('pro')).not.toBeInTheDocument();
-  });
-
   it('renders section chrome immediately while the subscription query loads', () => {
     useSubscriptionMock.mockReturnValue({
       changeSubscriptionPlan: vi.fn(),

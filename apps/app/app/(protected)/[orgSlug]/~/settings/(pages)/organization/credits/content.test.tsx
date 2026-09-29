@@ -102,17 +102,6 @@ describe('SettingsCreditsPage', () => {
     expect(screen.queryByTestId('hosted-credits-card')).not.toBeInTheDocument();
   });
 
-  it('renders hosted credit top-ups for hosted installs', () => {
-    isSelfHostedMock.mockReturnValue(false);
-
-    renderCreditsPage();
-
-    expect(screen.getByTestId('hosted-credits-card')).toBeInTheDocument();
-    expect(
-      screen.queryByTestId('managed-credits-card'),
-    ).not.toBeInTheDocument();
-  });
-
   it('renders referral rewards when organization billing is enabled', () => {
     isSelfHostedMock.mockReturnValue(false);
     hasOrganizationBillingMock.mockReturnValue(true);

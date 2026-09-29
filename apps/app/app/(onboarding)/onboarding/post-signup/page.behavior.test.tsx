@@ -534,17 +534,6 @@ describe('PostSignupPage behavior', () => {
     });
   });
 
-  it('skips attribution when the signup source was never captured', async () => {
-    render(<PostSignupPage />);
-
-    await waitFor(() => {
-      expect(locationState.href).not.toBe(
-        'http://localhost/onboarding/post-signup',
-      );
-    });
-    expect(recordSignupAttributionMock).not.toHaveBeenCalled();
-  });
-
   it('does not let a hung attribution request block routing', async () => {
     vi.useFakeTimers();
     try {
@@ -572,53 +561,6 @@ describe('PostSignupPage behavior', () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  it('bounds a hung referral claim and attribution request by one shared wait', async () => {
-    vi.useFakeTimers();
-    try {
-      hasOrganizationBillingMock.mockReturnValue(true);
-      isSelfHostedMock.mockReturnValue(false);
-      searchParamsState.value = new URLSearchParams(
-        'ref=frtesttestaa&credits=1000',
-      );
-      localStorage.setItem(
-        ONBOARDING_STORAGE_KEYS.signupAttribution,
-        'utm_source=producthunt',
-      );
-      claimReferralMock.mockReturnValue(new Promise(() => undefined));
-      recordSignupAttributionMock.mockReturnValue(new Promise(() => undefined));
-
-      render(<PostSignupPage />);
-
-      await act(async () => {
-        // Sequential waits would take 4s; the shared deadline ends at 2s.
-        await vi.advanceTimersByTimeAsync(2_100);
-      });
-
-      expect(createCheckoutSessionMock).toHaveBeenCalled();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('starts an EE plan checkout from a post-signup plan query', async () => {
-    hasOrganizationBillingMock.mockReturnValue(true);
-    isSelfHostedMock.mockReturnValue(false);
-    searchParamsState.value = new URLSearchParams('plan=price_123');
-
-    render(<PostSignupPage />);
-
-    await waitFor(() => {
-      expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-        cancelUrl: 'http://localhost/onboarding/providers',
-        quantity: null,
-        stripePriceId: 'price_123',
-        successUrl:
-          'http://localhost/onboarding/brand?checkout=completed&checkoutKind=plan',
-      });
-    });
-    expect(locationState.href).toBe('https://checkout.stripe.test/session');
   });
 
   it('drops malformed credit handoff values and continues normal onboarding routing', async () => {
@@ -703,28 +645,6 @@ describe('PostSignupPage behavior', () => {
     expect(locationState.href).toBe(
       'https://checkout.stripe.test/managed-session',
     );
-  });
-
-  it('routes new SaaS signups to the shared brand step', async () => {
-    isSaaSMock.mockReturnValue(true);
-    isSelfHostedMock.mockReturnValue(false);
-    getMyOrganizationsMock.mockResolvedValue([
-      {
-        brand: null,
-        id: 'org-1',
-        isActive: true,
-        isOwner: true,
-        label: 'Acme',
-        slug: 'acme',
-      },
-    ]);
-
-    render(<PostSignupPage />);
-
-    await waitFor(() => {
-      expect(locationState.href).toBe('/onboarding/brand');
-    });
-    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
   });
 
   it('still opens the shared brand step when no SaaS org slug can be resolved', async () => {

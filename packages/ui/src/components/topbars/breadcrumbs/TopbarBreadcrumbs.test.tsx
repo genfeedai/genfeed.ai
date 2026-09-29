@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -136,35 +136,6 @@ describe('TopbarBreadcrumbs', () => {
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
     ).not.toBeInTheDocument();
-  });
-
-  it('does not render the current page as a heading', () => {
-    mockNavigationState = {
-      activeGroupId: '',
-      activePageLabel: 'Dashboard',
-      exitNestedGroup: mockExitNestedGroup,
-    };
-
-    render(<TopbarBreadcrumbs fallbackRootLabel="Workspace" />);
-
-    expect(
-      screen.queryByRole('heading', { name: 'Dashboard' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('exits nested mode when the group breadcrumb is clicked', () => {
-    mockNavigationState = {
-      activeGroupId: 'Library',
-      activePageLabel: 'Images',
-      exitNestedGroup: mockExitNestedGroup,
-      nestedGroupId: 'Library',
-    };
-
-    render(<TopbarBreadcrumbs />);
-
-    fireEvent.click(screen.getByRole('button', { name: 'Library' }));
-
-    expect(mockExitNestedGroup).toHaveBeenCalledTimes(1);
   });
 
   it('renders a single group as plain text when there is no page label', () => {

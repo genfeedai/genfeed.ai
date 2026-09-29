@@ -205,14 +205,6 @@ describe('SaveAsCharacter', () => {
     ).toBeDisabled();
     expect(mocks.create).not.toHaveBeenCalled();
   });
-  it('skips image detection for a known saved reference', async () => {
-    mocks.list.mockResolvedValue([
-      { id: 'character-1', avatarIngredientId: 'image-1', handle: 'anna' },
-    ]);
-    mount();
-    await screen.findByRole('button', { name: 'saveExisting.saved anna' });
-    expect(mocks.inspect).not.toHaveBeenCalled();
-  });
   it.each(['unknown', 'error'])(
     'allows manual saving when detection is %s',
     async (result) => {

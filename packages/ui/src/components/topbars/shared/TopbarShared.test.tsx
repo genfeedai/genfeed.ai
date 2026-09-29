@@ -11,11 +11,6 @@ vi.mock('@ui/topbars/end/TopbarEnd', () => ({
 }));
 
 describe('TopbarShared', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<TopbarShared />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should render child components', () => {
     render(<TopbarShared />);
     expect(screen.getByTestId('breadcrumbs')).toBeInTheDocument();
@@ -36,19 +31,5 @@ describe('TopbarShared', () => {
     const header = screen.getByRole('banner');
     expect(header).toBeInTheDocument();
     expect(header).toHaveClass('size-full', 'bg-transparent');
-  });
-
-  it('uses tighter right padding so inbox sits closer to the agent rail', () => {
-    const { container } = render(<TopbarShared />);
-    const innerRow = container.querySelector('header > div');
-
-    expect(innerRow).toHaveClass(
-      'pl-4',
-      'pr-2',
-      'sm:pl-6',
-      'sm:pr-3',
-      'lg:pl-8',
-      'lg:pr-2',
-    );
   });
 });

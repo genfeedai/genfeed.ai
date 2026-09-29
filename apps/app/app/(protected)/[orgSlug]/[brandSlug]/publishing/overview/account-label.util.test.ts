@@ -28,19 +28,9 @@ describe('resolveAccountLabel', () => {
     );
   });
 
-  it('falls back to the external handle when there is no label', () => {
-    const credential = buildCredential({ externalHandle: '@brand' });
-
-    expect(resolveAccountLabel(credential, 'instagram')).toBe('@brand');
-  });
-
   it('falls back to the external name when there is no handle', () => {
     const credential = buildCredential({ externalName: 'Brand Name' });
 
     expect(resolveAccountLabel(credential, 'instagram')).toBe('Brand Name');
-  });
-
-  it('falls back to the platform label when the credential is missing', () => {
-    expect(resolveAccountLabel(undefined, 'instagram')).toBe('Instagram');
   });
 });

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import WorkflowCanvas from '@ui/workflow-builder/WorkflowCanvas';
 import type { Edge, Node } from '@xyflow/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,22 +92,6 @@ describe('WorkflowCanvas', () => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<WorkflowCanvas {...defaultProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle drag over events', () => {
-    const { container } = render(<WorkflowCanvas {...defaultProps} />);
-    const canvas = container.querySelector('.h-full');
-
-    if (canvas) {
-      const dragOverEvent = new Event('dragover', { bubbles: true });
-      fireEvent(canvas, dragOverEvent);
-      expect(canvas).toBeInTheDocument();
-    }
-  });
-
   it('should pass onDrop to ReactFlow', () => {
     const onDrop = vi.fn();
     const { container } = render(
@@ -119,26 +103,5 @@ describe('WorkflowCanvas', () => {
     expect(
       container.querySelector('[data-has-drop="true"]'),
     ).toBeInTheDocument();
-  });
-
-  it('should handle node click events', () => {
-    const onNodeSelect = vi.fn();
-    render(<WorkflowCanvas {...defaultProps} onNodeSelect={onNodeSelect} />);
-    // Node click is handled by React Flow internally
-    expect(onNodeSelect).toBeDefined();
-  });
-
-  it('should respect read-only mode', () => {
-    const { container } = render(
-      <WorkflowCanvas {...defaultProps} isReadOnly={true} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should render with empty nodes array', () => {
-    const { container } = render(
-      <WorkflowCanvas {...defaultProps} nodes={[]} edges={[]} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
   });
 });

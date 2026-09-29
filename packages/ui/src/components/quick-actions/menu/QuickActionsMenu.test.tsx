@@ -21,19 +21,6 @@ describe('QuickActionsMenu', () => {
     },
   ];
 
-  it('renders the overflow trigger', () => {
-    render(
-      <QuickActionsMenu
-        actions={actions}
-        isMenuOpen={false}
-        setIsMenuOpen={vi.fn()}
-        onActionClick={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByLabelText('More')).toBeInTheDocument();
-  });
-
   it('uses a quiet hover fill instead of a white focus ring', () => {
     render(
       <QuickActionsMenu

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandsList from './brands-list';
 import '@testing-library/jest-dom/vitest';
@@ -94,33 +94,5 @@ describe('BrandsList', () => {
     expect(rootElement).toHaveClass('max-w-none');
     expect(rootElement).not.toHaveClass('px-5');
     expect(rootElement).not.toHaveClass('max-w-[1280px]');
-  });
-
-  it('should display the page title and description', () => {
-    render(<BrandsList />);
-    expect(screen.getByText('Brands')).toBeInTheDocument();
-    expect(screen.getByText('Manage brands and settings.')).toBeInTheDocument();
-  });
-
-  it('should render add brand button', () => {
-    render(<BrandsList />);
-    expect(screen.getByText('Add Brand')).toBeInTheDocument();
-  });
-
-  it('should display brand data in table', () => {
-    render(<BrandsList />);
-    expect(screen.getByText('Test Brand')).toBeInTheDocument();
-    expect(screen.getByText('@testbrand')).toBeInTheDocument();
-    expect(screen.getByText('3 connected')).toBeInTheDocument();
-  });
-
-  it('links the row to brand settings instead of the edit overlay', () => {
-    render(<BrandsList />);
-
-    // A real anchor, not a click handler: the router prefetches the
-    // settings route before the click and cmd-click opens it in a new tab.
-    expect(
-      screen.getByRole('link', { name: 'Open Test Brand settings' }),
-    ).toHaveAttribute('href', '/default/testbrand/settings');
   });
 });

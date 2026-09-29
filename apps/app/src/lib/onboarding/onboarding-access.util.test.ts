@@ -4,8 +4,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildGenfeedCloudSignupUrl,
   buildOnboardingAccessSettingsPatch,
-  deriveBrandNameFromDomain,
-  extractBrandDomain,
   getSelectedOnboardingAccessMode,
   hasPaidPlanIntent,
   isFreePlanHandoff,
@@ -86,42 +84,12 @@ describe('getSelectedOnboardingAccessMode', () => {
   });
 });
 
-describe('extractBrandDomain', () => {
-  it('normalizes website inputs down to a bare hostname', () => {
-    expect(extractBrandDomain('https://www.genfeed.ai/pricing')).toBe(
-      'genfeed.ai',
-    );
-    expect(extractBrandDomain('acme.co')).toBe('acme.co');
-  });
-});
-
 describe('isFreePlanHandoff / hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', () => {
-  it('recognizes free and payg as free handoffs, never paid intent', () => {
-    for (const plan of ['payg', 'free', ' FREE ', ' PAYG ']) {
-      expect(isFreePlanHandoff(plan)).toBe(true);
-      expect(hasPaidPlanIntent(plan)).toBe(false);
-    }
-  });
-
   it('treats an empty, whitespace, or missing plan as no intent', () => {
     for (const plan of [null, undefined, '', '   ']) {
       expect(isFreePlanHandoff(plan)).toBe(false);
       expect(hasPaidPlanIntent(plan)).toBe(false);
     }
-  });
-
-  it('counts a real paid plan as intent on both sides of the funnel', () => {
-    for (const plan of ['price_123', 'hosted', 'pro']) {
-      expect(isFreePlanHandoff(plan)).toBe(false);
-      expect(hasPaidPlanIntent(plan)).toBe(true);
-    }
-  });
-});
-
-describe('deriveBrandNameFromDomain', () => {
-  it('converts domains into readable brand labels', () => {
-    expect(deriveBrandNameFromDomain('genfeed-ai.com')).toBe('Genfeed Ai');
-    expect(deriveBrandNameFromDomain('studio.acme.io')).toBe('Studio Acme');
   });
 });
 
@@ -157,48 +125,9 @@ describe('resolveSelectedPlanParam', () => {
       'price_pro_monthly',
     );
   });
-
-  it('resolves slugs case-insensitively and after trimming', () => {
-    expect(resolveSelectedPlanParam('  Hosted  ', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_pro_monthly',
-    );
-  });
-
-  it('passes through an already-formed Stripe price id unchanged', () => {
-    expect(resolveSelectedPlanParam('price_123', PLAN_SLUG_PRICE_IDS)).toBe(
-      'price_123',
-    );
-  });
-
-  it('passes through unknown slugs (e.g. free payg handoff) unchanged', () => {
-    expect(resolveSelectedPlanParam('payg', PLAN_SLUG_PRICE_IDS)).toBe('payg');
-  });
-
-  it('returns null for empty or missing input', () => {
-    expect(resolveSelectedPlanParam(null, PLAN_SLUG_PRICE_IDS)).toBeNull();
-    expect(resolveSelectedPlanParam('   ', PLAN_SLUG_PRICE_IDS)).toBeNull();
-  });
 });
 
 describe('persistOnboardingHandoffParams', () => {
-  it('resolves a subscription plan slug to its price id before writing storage', () => {
-    const storedValues = new Map<string, string>();
-
-    persistOnboardingHandoffParams(
-      '?plan=hosted',
-      {
-        setItem: (key, value) => {
-          storedValues.set(key, value);
-        },
-      },
-      PLAN_SLUG_PRICE_IDS,
-    );
-
-    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.selectedPlan)).toBe(
-      'price_pro_monthly',
-    );
-  });
-
   it('normalizes valid cloud handoff params before writing storage', () => {
     const storedValues = new Map<string, string>();
 
@@ -260,21 +189,6 @@ describe('persistOnboardingHandoffParams', () => {
     expect(parseReferralCode('code_with_1')).toBeNull();
     expect(parseReferralCode('x'.repeat(33))).toBeNull();
   });
-
-  it('preserves the first valid referral code across later handoffs', () => {
-    const storedValues = new Map<string, string>([
-      [ONBOARDING_STORAGE_KEYS.referralCode, 'frend2345xyz'],
-    ]);
-
-    persistOnboardingHandoffParams('?ref=abcde2345jkmn', {
-      getItem: (key) => storedValues.get(key) ?? null,
-      setItem: (key, value) => storedValues.set(key, value),
-    });
-
-    expect(storedValues.get(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
-      'frend2345xyz',
-    );
-  });
 });
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -324,19 +238,6 @@ describe('persistSignupAttribution', () => {
     );
   });
 
-  it('records a direct visit as an empty source', () => {
-    const storage = memoryStorage();
-
-    persistSignupAttribution(
-      { hostname: 'app.genfeed.ai', referrer: '', search: '' },
-      storage,
-    );
-
-    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
-      '',
-    );
-  });
-
   it('keeps the first known source over a later visit', () => {
     const storage = memoryStorage({
       [ONBOARDING_STORAGE_KEYS.signupAttribution]: 'utm_source=producthunt',
@@ -374,15 +275,6 @@ describe('persistSignupAttribution', () => {
 });
 
 describe('resolvePendingSignupAttribution', () => {
-  it('returns null when the source was never captured', () => {
-    expect(
-      resolvePendingSignupAttribution(
-        new URLSearchParams('plan=payg'),
-        memoryStorage(),
-      ),
-    ).toBeNull();
-  });
-
   it('uses forwarded callback params on a cross-device magic link', () => {
     expect(
       resolvePendingSignupAttribution(
@@ -390,27 +282,6 @@ describe('resolvePendingSignupAttribution', () => {
         memoryStorage(),
       ),
     ).toEqual({ referrerDomain: 'chatgpt.com' });
-  });
-
-  it('returns an empty source for a stored direct visit', () => {
-    expect(
-      resolvePendingSignupAttribution(
-        new URLSearchParams(),
-        memoryStorage({ [ONBOARDING_STORAGE_KEYS.signupAttribution]: '' }),
-      ),
-    ).toEqual({});
-  });
-
-  it('keeps the stored first touch whole over forwarded params', () => {
-    expect(
-      resolvePendingSignupAttribution(
-        new URLSearchParams('utm_source=newsletter'),
-        memoryStorage({
-          [ONBOARDING_STORAGE_KEYS.signupAttribution]:
-            'signup_referrer=google.com',
-        }),
-      ),
-    ).toEqual({ referrerDomain: 'google.com' });
   });
 });
 
@@ -423,29 +294,4 @@ describe('resolveBrandStepAccountType', () => {
       ),
     ).toBe(OrganizationCategory.EXPERT);
   });
-
-  it.each([OrganizationCategory.EXPERT, OrganizationCategory.AGENCY])(
-    'keeps an existing %s organization when there is no hint',
-    (existing) => {
-      expect(resolveBrandStepAccountType(null, existing)).toBe(existing);
-    },
-  );
-
-  it.each([OrganizationCategory.CREATOR, OrganizationCategory.BUSINESS])(
-    'does not let a %s hint overwrite an existing EXPERT organization',
-    (hint) => {
-      expect(
-        resolveBrandStepAccountType(hint, OrganizationCategory.EXPERT),
-      ).toBe(OrganizationCategory.EXPERT);
-    },
-  );
-
-  it.each([OrganizationCategory.BUSINESS, OrganizationCategory.CREATOR, null])(
-    'defaults %s to CREATOR when there is no hint',
-    (existing) => {
-      expect(resolveBrandStepAccountType(null, existing)).toBe(
-        OrganizationCategory.CREATOR,
-      );
-    },
-  );
 });

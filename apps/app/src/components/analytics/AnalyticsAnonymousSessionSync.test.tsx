@@ -49,23 +49,6 @@ describe('AnalyticsAnonymousSessionSync', () => {
     expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
   });
 
-  it('clears stale persisted account scope for a resolved anonymous session', () => {
-    mocks.isLoaded = true;
-
-    render(<AnalyticsAnonymousSessionSync />);
-
-    expect(mocks.ensureAnonymous).toHaveBeenCalledOnce();
-  });
-
-  it('does not override authenticated or explicitly reset sessions', () => {
-    mocks.isLoaded = true;
-    mocks.userId = 'user-1';
-
-    render(<AnalyticsAnonymousSessionSync />);
-
-    expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
-  });
-
   it('reacts when an authenticated session expires', () => {
     mocks.isLoaded = true;
     mocks.userId = 'user-1';

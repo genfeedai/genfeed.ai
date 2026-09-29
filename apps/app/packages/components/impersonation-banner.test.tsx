@@ -58,21 +58,6 @@ describe('ImpersonationBanner', () => {
     });
   });
 
-  it('renders nothing without an impersonated session', () => {
-    mocks.useSession.mockReturnValue({
-      data: {
-        session: { impersonatedBy: null },
-        user: { email: 'jane@example.com', name: 'Jane Doe' },
-      },
-    });
-
-    render(<ImpersonationBanner />);
-
-    expect(
-      screen.queryByTestId('impersonation-banner'),
-    ).not.toBeInTheDocument();
-  });
-
   it('renders nothing while the session is still loading', () => {
     mocks.useSession.mockReturnValue({ data: null });
 

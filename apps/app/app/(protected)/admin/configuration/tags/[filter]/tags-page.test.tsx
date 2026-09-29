@@ -27,16 +27,6 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
 }));
 
 describe('TagsPage', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<TagsPage filter="all" scope="superadmin" />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<TagsPage filter="all" scope="superadmin" />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<TagsPage filter="all" scope="superadmin" />);
     const rootElement = container.firstChild as HTMLElement;

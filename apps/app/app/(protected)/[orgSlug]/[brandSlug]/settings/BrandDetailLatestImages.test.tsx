@@ -15,11 +15,6 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('BrandDetailLatestImages', () => {
-  it('should render without crashing', () => {
-    const { container } = render(<BrandDetailLatestImages />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('scopes Create an image to the current brand instead of bare /agent/new', () => {
     render(<BrandDetailLatestImages />);
 

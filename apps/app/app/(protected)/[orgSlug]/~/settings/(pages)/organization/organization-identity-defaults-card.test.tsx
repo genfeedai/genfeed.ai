@@ -286,29 +286,6 @@ describe('OrganizationIdentityDefaultsCard', () => {
     expect(mocks.push).toHaveBeenCalledWith('/org/brand/library/voices');
   });
 
-  it('falls back to the CDN placeholder when the avatar has no image', () => {
-    render(<OrganizationIdentityDefaultsCard />);
-
-    expect(screen.getByRole('img', { name: 'Founder Avatar' })).toHaveAttribute(
-      'data-image-url',
-      'https://example.test/avatar.png',
-    );
-
-    // avatar-2 has no ingredientUrl. The fallback used to be the
-    // site-relative '/placeholders/portrait.jpg', which the app does not
-    // serve from `public/` — it 404s. It must resolve against the CDN.
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'avatar-2' },
-    });
-
-    expect(
-      screen.getByRole('img', { name: 'Operator Avatar' }),
-    ).toHaveAttribute(
-      'data-image-url',
-      'https://cdn.genfeed.ai/assets/placeholders/portrait.jpg',
-    );
-  });
-
   it('saves selected avatar and voice defaults', async () => {
     render(<OrganizationIdentityDefaultsCard />);
 

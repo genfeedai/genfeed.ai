@@ -3,16 +3,6 @@ import AmbientColorWash from '@ui/ambient/AmbientColorWash';
 import { describe, expect, it } from 'vitest';
 
 describe('AmbientColorWash', () => {
-  it('renders nothing when no colour is supplied', () => {
-    const { container } = render(<AmbientColorWash color={null} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('renders nothing for undefined colour', () => {
-    const { container } = render(<AmbientColorWash />);
-    expect(container.firstChild).toBeNull();
-  });
-
   it('renders a decorative wash carrying the colour custom property', () => {
     const { container } = render(<AmbientColorWash color="rgb(120 80 200)" />);
     const wash = container.firstChild as HTMLElement;

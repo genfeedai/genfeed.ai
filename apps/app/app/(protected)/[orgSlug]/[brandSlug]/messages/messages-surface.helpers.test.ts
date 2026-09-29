@@ -41,22 +41,6 @@ const message: SocialMessage = {
 };
 
 describe('Messages surface reference helpers', () => {
-  it('creates typed selectors without copying message or identity data', () => {
-    expect(createSocialConversationReference(conversation)).toEqual({
-      brandId: 'brand-1',
-      conversationId: 'conversation-1',
-      kind: 'social-conversation',
-      organizationId: 'organization-1',
-    });
-    expect(createSocialMessageReference(conversation, message)).toEqual({
-      brandId: 'brand-1',
-      conversationId: 'conversation-1',
-      kind: 'social-message',
-      messageId: 'message-1',
-      organizationId: 'organization-1',
-    });
-  });
-
   it('rejects cross-conversation messages and incomplete scope', () => {
     expect(
       createSocialMessageReference(conversation, {

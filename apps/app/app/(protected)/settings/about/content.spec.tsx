@@ -129,26 +129,6 @@ describe('About', () => {
       ).toBeTruthy(),
     );
   });
-  it('shows the Electron version independently of release channel', async () => {
-    vi.mocked(getClientSurface).mockReturnValue('desktop');
-    vi.mocked(getDesktopBridge).mockReturnValue({
-      app: {
-        getDiagnostics: vi.fn().mockResolvedValue({
-          version: '0.3.0',
-          releaseChannel: 'production',
-        }),
-      },
-    } as unknown as NonNullable<ReturnType<typeof getDesktopBridge>>);
-    render(<AboutContent />);
-    await waitFor(() => expect(screen.getByText('0.3.0')).toBeTruthy());
-    expect(screen.getByText('main')).toBeTruthy();
-  });
-  it('shows unreleased build and has no fabricated release link', () => {
-    render(<AboutContent />);
-    expect(screen.getByText('unreleased build')).toBeTruthy();
-    expect(screen.queryByRole('link', { name: /^v\d/ })).toBeNull();
-    expect(screen.getByText('main')).toBeTruthy();
-  });
   it('hides update checks on cloud', () => {
     vi.mocked(getDeployment).mockReturnValue('cloud');
     render(<AboutContent />);

@@ -45,28 +45,6 @@ describe('ExecutionHistoryPanel', () => {
     expect(screen.getByText(/Execution History/i)).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const onToggleCollapse = vi.fn();
-    render(
-      <ExecutionHistoryPanel
-        {...defaultProps}
-        onToggleCollapse={onToggleCollapse}
-      />,
-    );
-
-    // Test clicking on execution history items
-    const historyItems = screen.queryAllByRole('button');
-    if (historyItems.length > 0) {
-      fireEvent.click(historyItems[0]);
-    }
-
-    // Test refreshing execution history
-    const refreshButton = screen.queryByRole('button', { name: /refresh/i });
-    if (refreshButton) {
-      fireEvent.click(refreshButton);
-    }
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<ExecutionHistoryPanel {...defaultProps} />);
 

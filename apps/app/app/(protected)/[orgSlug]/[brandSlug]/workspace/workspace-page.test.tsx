@@ -697,17 +697,6 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByLabelText('Workflows')).toBeVisible();
   });
 
-  it('wraps the overview inbox preview in the canonical dashboard card', async () => {
-    render(<WorkspacePageContent section="overview" />);
-
-    const inbox = await screen.findByTestId('workspace-inbox');
-
-    expect(within(inbox).getByText('Inbox')).toBeInTheDocument();
-    expect(
-      within(inbox).getByText('Latest items waiting on your review.'),
-    ).toBeInTheDocument();
-  });
-
   it('surfaces a visible warning and Sentry breadcrumb when overview task loading stalls', async () => {
     vi.useFakeTimers();
     mocks.list.mockReturnValueOnce(new Promise(() => undefined));

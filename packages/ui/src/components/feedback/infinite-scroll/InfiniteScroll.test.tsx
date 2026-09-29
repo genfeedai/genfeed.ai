@@ -8,11 +8,6 @@ describe('InfiniteScroll', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<InfiniteScroll />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<InfiniteScroll />);
     const rootElement = container.firstChild as HTMLElement;

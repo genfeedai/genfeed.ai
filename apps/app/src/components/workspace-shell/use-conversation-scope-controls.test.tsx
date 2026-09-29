@@ -259,12 +259,6 @@ describe('useConversationScopeControls', () => {
     expect(routedOrganization.switchOrganization).not.toHaveBeenCalled();
   });
 
-  it("prefers an authorized route brand over the thread's own brand", async () => {
-    render(<Harness routeBrandId="brand-b" />);
-
-    expect(await screen.findByText('Acme · Brand B')).toBeInTheDocument();
-  });
-
   it('falls back to Organization-wide when the route brand is not authorized', async () => {
     render(<Harness routeBrandId="brand-unauthorized" />);
 

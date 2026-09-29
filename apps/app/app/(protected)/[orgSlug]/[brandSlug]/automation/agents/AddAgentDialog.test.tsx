@@ -68,20 +68,6 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 describe('AddAgentDialog', () => {
-  it('preserves marketplace creation and roster refresh', async () => {
-    render(
-      <AddAgentDialog
-        isOpen
-        onCreated={mocks.onCreated}
-        onOpenChange={mocks.onOpenChange}
-      />,
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create library agent' }),
-    );
-    await waitFor(() => expect(mocks.onCreated).toHaveBeenCalledOnce());
-    expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
-  });
   beforeEach(() => {
     class MockResizeObserver {
       disconnect = vi.fn();

@@ -177,16 +177,6 @@ describe('KnowledgeSourcesList', () => {
     });
   });
 
-  it('scopes the load to the active brand and shows the empty state', () => {
-    renderList();
-
-    expect(mocks.useKnowledgeLibrary).toHaveBeenCalledWith({
-      brandId: 'brand-1',
-      page: 1,
-    });
-    expect(screen.getByText('No knowledge sources yet')).toBeInTheDocument();
-  });
-
   it('renders processing state with the failure reason and retries a failed source', async () => {
     mocks.useKnowledgeLibrary.mockReturnValue({
       error: null,

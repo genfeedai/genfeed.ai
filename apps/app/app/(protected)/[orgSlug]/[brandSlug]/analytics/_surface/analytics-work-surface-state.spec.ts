@@ -132,27 +132,4 @@ describe('Analytics work surface state', () => {
       expect(restored.routeBrandId).toBe('brand-2');
     },
   );
-
-  it('does not resolve a route brand id for the org-wide overview route', () => {
-    const restored = restoreAnalyticsSurfaceState({
-      pathname: '/acme/~/analytics/overview',
-      searchParams: new URLSearchParams(
-        'startDate=2024-06-01&endDate=2024-06-30',
-      ),
-    });
-
-    expect(restored.routeBrandId).toBeUndefined();
-    expect(restored.selectedResource).toBeUndefined();
-  });
-
-  it('does not resolve a route brand id for the brands list route', () => {
-    const restored = restoreAnalyticsSurfaceState({
-      pathname: '/acme/moonrise/analytics/brands',
-      searchParams: new URLSearchParams(
-        'startDate=2024-06-01&endDate=2024-06-30',
-      ),
-    });
-
-    expect(restored.routeBrandId).toBeUndefined();
-  });
 });

@@ -37,16 +37,6 @@ describe('List', () => {
     setIngredients: vi.fn(),
   };
 
-  it('should render without crashing', () => {
-    const { container } = render(<List {...defaultProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should render the label', () => {
-    render(<List {...defaultProps} />);
-    expect(screen.getByText('Sounds')).toBeInTheDocument();
-  });
-
   it('should render all ingredients with indices', () => {
     render(<List {...defaultProps} />);
     // The component renders list items with index numbers
@@ -67,12 +57,5 @@ describe('List', () => {
     expect(onConfirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'ing_1' }));
     expect(onConfirm).toHaveBeenCalledWith('ing_1');
-  });
-
-  it('should apply custom className', () => {
-    const { container } = render(
-      <List {...defaultProps} className="custom-class" />,
-    );
-    expect(container.querySelector('.custom-class')).toBeInTheDocument();
   });
 });

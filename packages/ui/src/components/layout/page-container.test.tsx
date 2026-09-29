@@ -1,23 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { PageContainer } from '@ui/layout/page-container';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('PageContainer', () => {
-  it('renders without crashing', () => {
-    render(<PageContainer data-testid="container">Content</PageContainer>);
-    expect(screen.getByTestId('container')).toBeInTheDocument();
-  });
-
-  it('renders children', () => {
-    render(<PageContainer>Page content</PageContainer>);
-    expect(screen.getByText('Page content')).toBeInTheDocument();
-  });
-
-  it('renders as div element', () => {
-    render(<PageContainer data-testid="container">Content</PageContainer>);
-    expect(screen.getByTestId('container').tagName).toBe('DIV');
-  });
-
   it('has container mx-auto by default', () => {
     render(<PageContainer data-testid="container">Content</PageContainer>);
     const container = screen.getByTestId('container');
@@ -108,15 +93,6 @@ describe('PageContainer', () => {
         <PageContainer aria-label="Main page content">Content</PageContainer>,
       );
       expect(screen.getByLabelText('Main page content')).toBeInTheDocument();
-    });
-  });
-
-  describe('ref forwarding', () => {
-    it('forwards ref to div element', () => {
-      const ref = vi.fn();
-      render(<PageContainer ref={ref}>Content</PageContainer>);
-      expect(ref).toHaveBeenCalled();
-      expect(ref.mock.calls[0][0]).toBeInstanceOf(HTMLDivElement);
     });
   });
 

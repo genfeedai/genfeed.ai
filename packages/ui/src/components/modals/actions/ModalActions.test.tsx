@@ -8,11 +8,6 @@ describe('ModalActions', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<ModalActions />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<ModalActions />);
     const rootElement = container.firstChild as HTMLElement;

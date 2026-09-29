@@ -131,20 +131,6 @@ describe('AgentWorkspacePageShell', () => {
     } as unknown as ReturnType<typeof TasksService.getInstance>);
   });
 
-  it('renders the shared shell container', () => {
-    const { container } = render(<AgentWorkspacePageShell />);
-
-    expect(container.firstChild).toHaveClass(
-      'flex',
-      'h-full',
-      'min-h-0',
-      'w-full',
-      'flex-1',
-      'flex-col',
-      'overflow-hidden',
-    );
-  });
-
   it('finishes onboarding before opening the workspace without a social connection', async () => {
     render(<AgentWorkspacePageShell />);
     fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
@@ -168,22 +154,6 @@ describe('AgentWorkspacePageShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
     await waitFor(() =>
       expect(pushMock).toHaveBeenCalledWith('/test-org/~/workspace'),
-    );
-  });
-
-  it('passes workspace wiring through to AgentFullPage', () => {
-    render(<AgentWorkspacePageShell threadId="thread-123" />);
-
-    expect(agentFullPageSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiService: { kind: 'service' },
-        authReady: true,
-        onboardingMode: true,
-        onOAuthConnect: handleOAuthConnectMock,
-        onOnboardingCompleted: completeOnboardingFlowMock,
-        showThreadSidebar: false,
-        threadId: 'thread-123',
-      }),
     );
   });
 
@@ -241,17 +211,6 @@ describe('AgentWorkspacePageShell', () => {
     };
     expect(props.knowledgeSection.props.brandId).toBe('brand-composer');
     expect(props.knowledgeSelection).toEqual({});
-  });
-
-  it("falls back to the open thread's brand for the Knowledge section", () => {
-    agentChatState.activeThreadId = 'thread-1';
-    agentChatState.threads = [{ brandId: 'brand-thread', id: 'thread-1' }];
-    render(<AgentWorkspacePageShell threadId="thread-1" />);
-
-    const props = agentFullPageSpy.mock.lastCall?.[0] as {
-      knowledgeSection: ReactElement<{ brandId?: string }>;
-    };
-    expect(props.knowledgeSection.props.brandId).toBe('brand-thread');
   });
 
   it('sends the picked Knowledge and drops it when the brand changes', () => {

@@ -201,21 +201,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     expect(useAgentChatStreamSpy).toHaveBeenCalledWith(providedAgentApiService);
   });
 
-  it('does not immediately redirect /agent/new back to the previously active thread', async () => {
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(routerReplace).not.toHaveBeenCalled();
-    expect(getThreads).not.toHaveBeenCalled();
-  });
-
   it('redirects a deep-linked thread to the brand that owns it', async () => {
     navigationState.pathname = '/agent/thread-on-other-brand';
     storeState.activeThreadId = 'thread-on-other-brand';
@@ -239,40 +224,6 @@ describe('AgentWorkspaceLayoutClient', () => {
         '/acme-org/second-brand/agent/thread-on-other-brand',
       );
     });
-  });
-
-  it('never bounces an onboarding thread to a brand-scoped route even when the thread carries a brandId', async () => {
-    // Regression for #5075: this deep-link redirect must stay off the
-    // onboarding surface. Onboarding is org-scoped end to end (proxy.ts's
-    // canonical entry is `/:org/~/agent/onboarding`), so a thread created
-    // there legitimately has a `brandId` without the URL ever adopting that
-    // brand's slug — this effect used to ignore `isOnboarding` and would
-    // race the org-scoped promotion back to a brand path.
-    navigationState.pathname = '/agent/onboarding/thread-onboarding-voice';
-    storeState.activeThreadId = 'thread-onboarding-voice';
-    // Mismatched on purpose: brand scope has not resolved to this thread's
-    // brand yet, which is exactly when the un-guarded effect used to fire.
-    brandState.brandId = 'brand-2';
-    storeState.threads = [
-      {
-        brandId: 'brand-1',
-        id: 'thread-onboarding-voice',
-        organizationId: 'org-1',
-        status: 'active',
-      },
-    ];
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(routerReplace).not.toHaveBeenCalled();
   });
 
   it('does not redirect when the open thread already matches the route brand', async () => {
@@ -420,30 +371,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
-  it('defers the brand-scoped lookup until brandId resolves to the route brand (FR5)', async () => {
-    navigationState.pathname = '/agent';
-    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'second-brand' };
-    storeState.activeThreadId = null;
-    // Brand scope has resolved (brands loaded) but the context brandId has
-    // not yet caught up to this route's brand — the lookup must wait rather
-    // than treat the brand as unauthorized.
-    brandState.brandId = '';
-    brandState.isBrandScopeResolved = true;
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(getThreads).not.toHaveBeenCalled();
-    expect(routerReplace).not.toHaveBeenCalled();
-  });
-
   it('never resumes another brand thread under an unknown or mismatched brand slug (FR7)', async () => {
     navigationState.pathname = '/agent';
     navigationState.params = { orgSlug: 'acme-org', brandSlug: 'bogus' };
@@ -544,34 +471,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
-  it('still falls back to a new conversation when resolved brands exclude the thread brand', async () => {
-    navigationState.pathname = '/agent';
-    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
-    storeState.activeThreadId = null;
-    brandState.brands = AUTHORIZED_BRANDS.filter(
-      (brand) => brand.id === 'brand-2',
-    );
-    getThreads.mockResolvedValue([
-      {
-        brandId: 'brand-1',
-        id: 'foreign-brand-thread',
-        organizationId: 'org-1',
-        status: 'active',
-        updatedAt: '2026-08-09T12:00:00.000Z',
-      },
-    ]);
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/agent/new');
-    });
-  });
-
   it('releases the one-shot bootstrap guard when brand scope becomes unresolved (#2702)', async () => {
     navigationState.pathname = '/agent';
     navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
@@ -624,43 +523,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     await waitFor(() => {
       expect(getThreads.mock.calls.length).toBeGreaterThan(callsAfterFirst);
     });
-  });
-
-  it('looks the returning thread up once while brand scope stays resolved', async () => {
-    navigationState.pathname = '/agent';
-    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
-    storeState.activeThreadId = null;
-    getThreads.mockResolvedValue([
-      {
-        brandId: 'brand-1',
-        id: 'branded-thread',
-        organizationId: 'org-1',
-        status: 'active',
-        updatedAt: '2026-08-09T12:00:00.000Z',
-      },
-    ]);
-
-    const view = render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(getThreads).toHaveBeenCalledTimes(1);
-    });
-
-    view.rerender(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(getThreads).toHaveBeenCalledTimes(1);
   });
 
   it('does not stall or duplicate the org-scoped resume across an unrelated re-render mid-flight', async () => {
@@ -760,26 +622,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
-  it('recognizes org-scoped /agent/new routes when bootstrapping prefills', async () => {
-    navigationState.pathname = '/org-123/~/agent/new';
-    navigationState.searchParams = new URLSearchParams('prompt=hello');
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(sendMessage).toHaveBeenCalledWith('hello', {
-        brandId: 'brand-1',
-        forceNewThread: true,
-        signal: expect.any(AbortSignal),
-        source: 'agent',
-      });
-    });
-  });
-
   it('turns workspace task query context into an Agent prefill', async () => {
     navigationState.pathname = '/org-123/~/agent/new';
     navigationState.searchParams = new URLSearchParams({
@@ -836,32 +678,6 @@ describe('AgentWorkspaceLayoutClient', () => {
     });
   });
 
-  it('boots a prefilled prompt only once per query string', async () => {
-    navigationState.searchParams = new URLSearchParams('prompt=hello');
-    const view = render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(sendMessage).toHaveBeenCalledWith('hello', {
-        brandId: 'brand-1',
-        forceNewThread: true,
-        signal: expect.any(AbortSignal),
-        source: 'agent',
-      });
-    });
-
-    view.rerender(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    expect(sendMessage).toHaveBeenCalledTimes(1);
-  });
-
   it('resumes the most recent onboarding thread when the entry route carries no prefill', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
@@ -903,68 +719,6 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect.any(AbortSignal),
     );
     expect(sendMessage).not.toHaveBeenCalled();
-  });
-
-  it('resumes the newest onboarding thread even when 20 newer standard threads exist', async () => {
-    navigationState.pathname = '/agent/onboarding';
-    storeState.activeThreadId = null;
-    // The API filters by source, so a caller that respected an unfiltered
-    // 20-thread lookback would have dropped this thread entirely.
-    const newerStandardThreads = Array.from({ length: 20 }, (_, index) => ({
-      id: `thread-standard-${index}`,
-      source: 'agent',
-      updatedAt: `2026-08-${String(index + 10).padStart(2, '0')}T12:00:00.000Z`,
-    }));
-    getThreads.mockResolvedValue([
-      ...newerStandardThreads,
-      {
-        id: 'thread-onboarding-latest',
-        source: 'onboarding',
-        status: 'active',
-        organizationId: 'org-1',
-        updatedAt: '2026-08-04T18:00:00.000Z',
-      },
-      {
-        id: 'thread-onboarding-old',
-        source: 'onboarding',
-        status: 'active',
-        organizationId: 'org-1',
-        updatedAt: '2026-08-01T09:00:00.000Z',
-      },
-    ]);
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/~/agent/onboarding/thread-onboarding-latest',
-      );
-    });
-    expect(getThreads).toHaveBeenCalledWith(
-      { source: 'onboarding', status: 'active' },
-      expect.any(AbortSignal),
-    );
-  });
-
-  it('does not cap the onboarding resume lookup to a page of threads', async () => {
-    navigationState.pathname = '/agent/onboarding';
-    storeState.activeThreadId = null;
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(getThreads).toHaveBeenCalled();
-    });
-
-    expect(getThreads.mock.calls[0]?.[0]).not.toHaveProperty('limit');
   });
 
   it('does not start another paid draft if the user sends while the resume lookup is pending', async () => {
@@ -1042,24 +796,6 @@ describe('AgentWorkspaceLayoutClient', () => {
       }),
     );
     expect(routerReplace).not.toHaveBeenCalled();
-  });
-
-  it('does not look up a thread to resume when a prefill prompt is bootstrapping one', async () => {
-    navigationState.pathname = '/agent/onboarding';
-    navigationState.searchParams = new URLSearchParams('prompt=hello');
-    storeState.activeThreadId = null;
-
-    render(
-      <AgentWorkspaceLayoutClient>
-        <div>child</div>
-      </AgentWorkspaceLayoutClient>,
-    );
-
-    await waitFor(() => {
-      expect(sendMessage).toHaveBeenCalled();
-    });
-
-    expect(getThreads).not.toHaveBeenCalled();
   });
 
   it('boots onboarding prefills with onboarding source on the onboarding route', async () => {

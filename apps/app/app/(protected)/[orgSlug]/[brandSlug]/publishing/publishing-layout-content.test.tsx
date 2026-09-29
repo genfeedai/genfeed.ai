@@ -93,21 +93,6 @@ describe('PublishingLayoutContent', () => {
     );
   });
 
-  it('lets Campaigns own their chrome instead of the Posts New post menu', () => {
-    usePathnameMock.mockReturnValue('/acme/moonrise/publishing/campaigns');
-
-    render(
-      <PublishingLayoutContent>
-        <div>campaign desk</div>
-      </PublishingLayoutContent>,
-    );
-
-    expect(screen.getByText('campaign desk')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /new post/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it.each([
     '/acme/moonrise/publishing/campaigns/campaign-1/calendar',
     '/acme/~/publishing/campaigns/campaign-1/calendar',

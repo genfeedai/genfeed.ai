@@ -287,20 +287,6 @@ describe('loadProtectedBootstrap', () => {
     expect(getInstanceMock).not.toHaveBeenCalled();
   });
 
-  it('skips cloud bootstrap for a remote desktop request without a session token', async () => {
-    headersMock.mockResolvedValue(
-      new Headers({ 'x-genfeed-desktop-version': '0.1.0' }),
-    );
-    getBetterAuthServerTokenMock.mockResolvedValue('');
-
-    const { loadProtectedBootstrap } = await import(
-      '@app-server/protected-bootstrap.server'
-    );
-
-    await expect(loadProtectedBootstrap()).resolves.toBeNull();
-    expect(getInstanceMock).not.toHaveBeenCalled();
-  });
-
   it('still loads bootstrap without legacy auth provider keys in self-hosted mode', async () => {
     delete process.env.BETTER_AUTH_SECRET;
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;

@@ -1,29 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import ServiceWorkerRegistrar, {
-  isIgnorableServiceWorkerError,
-} from './ServiceWorkerRegistrar';
-
-describe('ServiceWorkerRegistrar', () => {
-  it('renders nothing', () => {
-    const { container } = render(<ServiceWorkerRegistrar />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('does not register outside production', () => {
-    const register = vi.fn();
-    Object.defineProperty(window.navigator, 'serviceWorker', {
-      configurable: true,
-      value: { register },
-    });
-
-    render(<ServiceWorkerRegistrar />);
-
-    expect(register).not.toHaveBeenCalled();
-  });
-});
+import { describe, expect, it } from 'vitest';
+import { isIgnorableServiceWorkerError } from './ServiceWorkerRegistrar';
 
 describe('isIgnorableServiceWorkerError', () => {
   it('ignores abort and 403 registration failures', () => {

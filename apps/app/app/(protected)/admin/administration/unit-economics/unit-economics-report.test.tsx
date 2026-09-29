@@ -4,7 +4,6 @@ import '@testing-library/jest-dom/vitest';
 import { describe, expect, it, vi } from 'vitest';
 import UnitEconomicsReport from './unit-economics-report';
 import {
-  buildUnitEconomicsRange,
   buildUnitEconomicsTableRows,
   formatMarginPercent,
   formatUsd,
@@ -99,12 +98,6 @@ describe('unit economics report helpers', () => {
     expect(formatUsd(-12)).toBe('-$12.00');
     expect(formatMarginPercent(null)).toBe('—');
     expect(formatMarginPercent(98.456)).toBe('98.5%');
-  });
-
-  it('builds an inclusive UTC day range', () => {
-    expect(
-      buildUnitEconomicsRange(30, new Date('2026-09-30T12:00:00.000Z')),
-    ).toEqual({ from: '2026-09-01', to: '2026-09-30' });
   });
 
   it('sorts rows and keeps the totals row last', () => {

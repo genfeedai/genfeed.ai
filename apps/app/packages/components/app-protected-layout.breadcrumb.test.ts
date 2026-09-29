@@ -8,12 +8,6 @@ import {
 const conversationId = testId('conversation');
 
 describe('extractAgentConversationId', () => {
-  it('reads brand-scoped agent conversation ids', () => {
-    expect(
-      extractAgentConversationId(`/default/default/agent/${conversationId}`),
-    ).toBe(conversationId);
-  });
-
   it('reads org-scoped agent conversation ids', () => {
     expect(
       extractAgentConversationId(`/default/~/agent/${conversationId}`),

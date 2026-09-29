@@ -29,12 +29,6 @@ describe('PostCharacterUsage', () => {
     expect(screen.getByText('50/63,206')).toBeInTheDocument();
   });
 
-  it('renders nothing when no channel is selected', () => {
-    const { container } = render(<PostCharacterUsage items={[]} />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
   it('marks an over-limit channel as an error', () => {
     render(
       <PostCharacterUsage

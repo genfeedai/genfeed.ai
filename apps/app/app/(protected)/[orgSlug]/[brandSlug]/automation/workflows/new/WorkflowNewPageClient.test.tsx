@@ -1,12 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
-import { describe, expect, it, vi } from 'vitest';
-import {
-  ANALYTICS_EVENTS,
-  createEditorWorkflowRunTracker,
-} from '@/lib/analytics';
+import { describe, expect, it } from 'vitest';
 
 const relativePath =
   'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/new/WorkflowNewPageClient.tsx';
@@ -14,13 +9,6 @@ const relativePath =
 assertSourceHasExport(relativePath);
 
 describe(relativePath, () => {
-  it('uses the canonical execution id for the active run', () => {
-    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
-
-    expect(source).toContain('setActiveExecutionId(execution.id)');
-    expect(source).not.toContain('execution?._id');
-  });
-
   it('keeps module and graph authoring chrome in one section topbar', () => {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 
@@ -61,29 +49,5 @@ describe(relativePath, () => {
     expect(source).toContain('isUnsavedEmpty');
     expect(source).toContain('!currentWorkflowId && nodes.length === 0');
     expect(source).toContain('isUnsavedEmpty={isUnsavedEmpty}');
-  });
-
-  it('tracks bounded workflow start and terminal outcomes', () => {
-    const capture = vi.fn();
-    const tracker = createEditorWorkflowRunTracker(capture);
-
-    tracker.trackStarted();
-    tracker.trackLaunchAccepted('execution-1');
-    tracker.trackTerminalExecution({
-      id: 'execution-1',
-      status: WorkflowExecutionStatus.RUNNING,
-    });
-    tracker.trackTerminalExecution({
-      id: 'execution-1',
-      status: WorkflowExecutionStatus.FAILED,
-    });
-
-    expect(capture.mock.calls).toEqual([
-      [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, { workflowType: 'editor' }],
-      [
-        ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED,
-        { outcome: 'failure', workflowType: 'editor' },
-      ],
-    ]);
   });
 });

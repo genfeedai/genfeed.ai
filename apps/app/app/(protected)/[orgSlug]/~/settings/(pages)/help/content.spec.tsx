@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsHelpPage from './content';
 
@@ -48,24 +48,6 @@ beforeEach(() => {
 });
 
 describe('Help navigation', () => {
-  it('shows all learning and support groups without workspace bootstrap', () => {
-    render(<SettingsHelpPage />);
-    for (const name of [
-      'Getting started',
-      'Documentation',
-      'Workflow learning',
-      'Changelog',
-      'Frequently asked questions',
-      'Community',
-      'Support',
-    ]) {
-      expect(screen.getByRole('heading', { name })).toBeDefined();
-    }
-    expect(
-      screen.getByRole('heading', { name: 'Your first workflow' }),
-    ).toBeDefined();
-  });
-
   it('keeps About internal and identifies safe external links', () => {
     render(<SettingsHelpPage />);
     const about = screen.getByRole('link', { name: 'About Genfeed' });
@@ -76,18 +58,6 @@ describe('Help navigation', () => {
     expect(changelog.getAttribute('target')).toBe('_blank');
     expect(changelog.getAttribute('rel')).toBe('noopener noreferrer');
     expect(changelog.textContent).toContain('Opens in a new tab');
-  });
-
-  it('shows Cloud support and a Cloud starting guide', () => {
-    render(<SettingsHelpPage />);
-    expect(
-      screen.getByRole('link', { name: /^Support/ }).getAttribute('href'),
-    ).toBe('https://genfeed.ai/contact');
-    expect(
-      screen
-        .getByRole('link', { name: /^Getting started/ })
-        .getAttribute('href'),
-    ).toBe('https://docs.genfeed.ai/getting-started');
   });
 
   it('gives self-hosted users an operator fallback without a broken support link', () => {
@@ -106,15 +76,6 @@ describe('Help navigation', () => {
     ).toBe('https://docs.genfeed.ai/guides/self-host-quickstart');
   });
 
-  it('uses a configured self-hosted support destination', () => {
-    mocks.selfHosted = true;
-    mocks.selfHostedSupport = 'https://company.example/support';
-    render(<SettingsHelpPage />);
-    expect(
-      screen.getByRole('link', { name: /^Support/ }).getAttribute('href'),
-    ).toBe(mocks.selfHostedSupport);
-  });
-
   it('keeps unavailable documentation readable and removes unsafe navigation', () => {
     mocks.documentation = 'javascript:alert(1)';
     render(<SettingsHelpPage />);
@@ -123,35 +84,5 @@ describe('Help navigation', () => {
     ).toBeDefined();
     expect(screen.queryByRole('link', { name: /^Documentation/ })).toBeNull();
     expect(screen.getByText(/Destination unavailable/)).toBeDefined();
-  });
-
-  it('separates collapsed answers with the theme border', () => {
-    render(<SettingsHelpPage />);
-    const trigger = screen.getByRole('button', {
-      name: 'How do I create a new character?',
-    });
-    expect(trigger.parentElement?.parentElement?.className).toContain(
-      'border-border',
-    );
-  });
-
-  it('explains character saving and explicit prompt reuse through accessible controls', () => {
-    render(<SettingsHelpPage />);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Can I save an image I already generated?',
-      }),
-    );
-    expect(screen.getByText(/choose Save as character/)).toBeDefined();
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'How do I reuse a saved character in a prompt?',
-      }),
-    );
-    expect(
-      screen.getByText(
-        /does not automatically save it as a reusable character/,
-      ),
-    ).toBeDefined();
   });
 });

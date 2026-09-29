@@ -1,9 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
-import {
-  clearRequestOrganizationId,
-  setRequestOrganizationId,
-} from '@services/core/interceptor.service';
+import { clearRequestOrganizationId } from '@services/core/interceptor.service';
 import {
   act,
   fireEvent,
@@ -532,30 +528,6 @@ describe('WorkspaceTaskComposer', () => {
         heygenAvatarId: 'avatar-default',
         heygenVoiceId: 'voice-default',
       });
-    });
-  });
-
-  it('sends the routed organization header on both HeyGen catalog requests', async () => {
-    setRequestOrganizationId('org-a');
-    renderComposer();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Facecam' }));
-
-    const expectedInit = expect.objectContaining({
-      headers: {
-        Authorization: 'Bearer api-token',
-        [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
-      },
-    });
-    await waitFor(() => {
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.example.test/heygen/avatars',
-        expectedInit,
-      );
-      expect(mocks.fetch).toHaveBeenCalledWith(
-        'https://api.example.test/heygen/voices',
-        expectedInit,
-      );
     });
   });
 

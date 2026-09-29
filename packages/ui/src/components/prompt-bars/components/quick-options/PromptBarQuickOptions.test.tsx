@@ -73,12 +73,6 @@ describe('PromptBarQuickOptions', () => {
     expect(screen.queryByText('Mute original audio')).not.toBeInTheDocument();
   });
 
-  it('still renders the audio toggle, unaffected by the music removal', () => {
-    render(<PromptBarQuickOptions {...makeProps()} />);
-
-    expect(screen.getByTestId('audio-toggle')).toBeInTheDocument();
-  });
-
   it('toggles isAudioEnabled without touching any music field', () => {
     const form = makeForm();
     render(<PromptBarQuickOptions {...makeProps({ form })} />);

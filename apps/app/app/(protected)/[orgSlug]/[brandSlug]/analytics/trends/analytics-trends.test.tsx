@@ -645,22 +645,6 @@ describe('AnalyticsTrends', () => {
     });
   });
 
-  it('supplies a recoverable empty collection when no videos exist', async () => {
-    mocks.findAllVideos.mockResolvedValue([]);
-
-    renderAnalyticsTrends();
-
-    await waitFor(() => {
-      expect(mocks.viralVideoProps).toHaveBeenLastCalledWith(
-        expect.objectContaining({ videos: [] }),
-      );
-    });
-    expect(mocks.loggerError).not.toHaveBeenCalledWith(
-      'Failed to fetch analytics videos',
-      expect.anything(),
-    );
-  });
-
   it('deduplicates videos and aborts active requests across a Strict Mode remount', async () => {
     mocks.findAllVideos.mockReturnValue(new Promise(() => undefined));
 

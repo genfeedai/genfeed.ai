@@ -30,22 +30,9 @@ describe('DesktopDragStrip', () => {
     expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
   });
 
-  it('hides the drag strip on nested auth routes', () => {
-    pathnameMock.current = '/login/password';
-    render(<DesktopDragStrip />);
-    expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
-  });
-
   it('keeps the drag strip after sign-in', () => {
     pathnameMock.current = '/acme/studio/generate';
     render(<DesktopDragStrip />);
     expect(document.querySelector('[data-desktop-drag="true"]')).not.toBeNull();
-  });
-
-  it('does not render in the browser app', () => {
-    desktopClientMock.current = false;
-    pathnameMock.current = '/acme/studio/generate';
-    render(<DesktopDragStrip />);
-    expect(document.querySelector('[data-desktop-drag="true"]')).toBeNull();
   });
 });

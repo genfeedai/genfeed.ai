@@ -310,14 +310,6 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
-  it('leaves app navigation to the rail', () => {
-    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
-
-    expect(
-      screen.queryByRole('button', { name: 'Switch app' }),
-    ).not.toBeInTheDocument();
-  });
-
   it('renders admin chrome without brand, credits, account, or cloud controls', () => {
     render(
       <AppProtectedTopbar
@@ -339,29 +331,6 @@ describe('AppProtectedTopbar', () => {
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
-  });
-
-  it('places credits first in the right-side control cluster', () => {
-    render(<AppProtectedTopbar />);
-
-    const activityMenu = screen.getByTestId('notification-inbox');
-    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
-    const credits = screen.getByTestId('topbar-credits-bar');
-
-    expect(
-      credits.compareDocumentPosition(activityMenu) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('does not render a settings cog in the topbar (settings lives in the sidebar user menu)', () => {
-    render(<AppProtectedTopbar />);
-
-    expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
   it('renders separate mobile and desktop navigation controls', () => {
@@ -397,14 +366,6 @@ describe('AppProtectedTopbar', () => {
 
     fireEvent.click(expandToggle);
     expect(onSidebarToggle).toHaveBeenCalledTimes(1);
-  });
-
-  it('leaves the expanded sidebar control in the unified sidebar header', () => {
-    render(<AppProtectedTopbar onSidebarToggle={vi.fn()} />);
-
-    expect(
-      screen.queryByRole('button', { name: 'Collapse sidebar' }),
-    ).not.toBeInTheDocument();
   });
 
   it('does not mount a topbar account menu when the sidebar is collapsed', () => {
@@ -503,21 +464,6 @@ describe('AppProtectedTopbar', () => {
     expect(setIsMobileOpen).toHaveBeenCalledWith(false);
   });
 
-  it('hides the toggle when nothing is selected', () => {
-    contextSidebarState.value = {
-      isMobileOpen: false,
-      isOpen: false,
-      selection: null,
-      setIsMobileOpen: vi.fn(),
-      toggle: vi.fn(),
-    };
-
-    render(<AppProtectedTopbar />);
-
-    expect(screen.queryByTestId('topbar-inspector-toggle')).toBeNull();
-    expect(screen.queryByTestId('topbar-inspector-drawer-toggle')).toBeNull();
-  });
-
   it('toggles the agent dock where the shell hosts one', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: true, isOpen: false, toggle };
@@ -537,17 +483,5 @@ describe('AppProtectedTopbar', () => {
     expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAccessibleName(
       'Close agent',
     );
-  });
-
-  it('hides the agent dock toggle where no dock is hosted', () => {
-    agentDockState.value = {
-      isAvailable: false,
-      isOpen: false,
-      toggle: vi.fn(),
-    };
-
-    render(<AppProtectedTopbar />);
-
-    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
   });
 });

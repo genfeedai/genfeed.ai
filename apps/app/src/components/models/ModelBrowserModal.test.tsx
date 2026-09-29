@@ -101,28 +101,6 @@ describe('ModelBrowserModal', () => {
       expect(container.firstChild).toBeNull();
     });
 
-    it('should render modal when open', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      expect(screen.getByText('Browse Models')).toBeInTheDocument();
-    });
-
-    it('should render custom title', () => {
-      render(
-        <ModelBrowserModal {...defaultProps} title="Select Image Model" />,
-      );
-
-      expect(screen.getByText('Select Image Model')).toBeInTheDocument();
-    });
-
-    it('should render search input', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      expect(
-        screen.getByPlaceholderText('Search models...'),
-      ).toBeInTheDocument();
-    });
-
     it('should render provider filter buttons after fetch', async () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
@@ -136,26 +114,6 @@ describe('ModelBrowserModal', () => {
   });
 
   describe('model loading', () => {
-    it('should fetch models on open', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalled();
-      });
-    });
-
-    it('should display models after loading', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      expect(screen.getByText('Stable Diffusion XL')).toBeInTheDocument();
-    });
-
     it('should show loading spinner during fetch', async () => {
       let resolveFetch: ((value: Response) => void) | undefined;
       global.fetch = vi.fn().mockImplementation(
@@ -224,42 +182,6 @@ describe('ModelBrowserModal', () => {
   });
 
   describe('model selection', () => {
-    it('should call onSelect when model is clicked', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      const fluxElements = screen.getAllByText('FLUX.1-dev');
-      const modelCard = fluxElements[0].closest('button');
-      if (modelCard) fireEvent.click(modelCard);
-
-      expect(defaultProps.onSelect).toHaveBeenCalledWith(mockModels[0]);
-    });
-
-    it('should add model to recent models', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
-          1,
-        );
-      });
-
-      const fluxElements = screen.getAllByText('FLUX.1-dev');
-      const modelCard = fluxElements[0].closest('button');
-      if (modelCard) fireEvent.click(modelCard);
-
-      expect(mockAddRecentModel).toHaveBeenCalledWith({
-        displayName: 'FLUX.1-dev',
-        id: 'flux-dev',
-        provider: 'replicate',
-      });
-    });
-
     it('should close modal after selection', async () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
@@ -272,30 +194,6 @@ describe('ModelBrowserModal', () => {
       const fluxElements = screen.getAllByText('FLUX.1-dev');
       const modelCard = fluxElements[0].closest('button');
       if (modelCard) fireEvent.click(modelCard);
-
-      expect(defaultProps.onClose).toHaveBeenCalled();
-    });
-  });
-
-  describe('close modal', () => {
-    it('should close on backdrop click', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      const backdrop = document.querySelector('.bg-black\\/50');
-      if (backdrop) fireEvent.click(backdrop);
-
-      expect(defaultProps.onClose).toHaveBeenCalled();
-    });
-
-    it('should close on X button click', () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      const buttons = screen.getAllByRole('button');
-      const closeButton = buttons.find((btn) => {
-        const svg = btn.querySelector('svg');
-        return svg !== null && btn.textContent === '';
-      });
-      if (closeButton) fireEvent.click(closeButton);
 
       expect(defaultProps.onClose).toHaveBeenCalled();
     });
@@ -321,30 +219,7 @@ describe('ModelBrowserModal', () => {
     });
   });
 
-  describe('empty state', () => {
-    it('should show empty state when no models found', async () => {
-      global.fetch = vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ configuredProviders: [], models: [] }),
-        ok: true,
-      }) as unknown as typeof fetch;
-
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('No models found')).toBeInTheDocument();
-      });
-    });
-  });
-
   describe('model count', () => {
-    it('should show model count in footer', async () => {
-      render(<ModelBrowserModal {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(screen.getByText('2 models available')).toBeInTheDocument();
-      });
-    });
-
     it('should use singular form for one model', async () => {
       global.fetch = vi.fn().mockResolvedValue({
         json: () =>

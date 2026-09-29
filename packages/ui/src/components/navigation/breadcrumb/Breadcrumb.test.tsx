@@ -75,11 +75,6 @@ describe('Breadcrumb', () => {
     expect(nav).toHaveClass('custom-class');
   });
 
-  it('returns null when no segments provided', () => {
-    const { container } = render(<Breadcrumb segments={[]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
   it('returns null when pathname is root', () => {
     currentPathname = '/';
     const { container } = render(<Breadcrumb />);

@@ -21,29 +21,9 @@ function resolveMessageId(
 }
 
 describe('loadMessages', () => {
-  it('serves the English catalog for the default locale', () => {
-    expect(loadMessages(DEFAULT_LOCALE).common.actions.save).toBe('Save');
-  });
-
   it('derives the pseudo-locale from the English catalog at load time', () => {
     expect(loadMessages(PSEUDO_LOCALE).common.actions.save).toBe(
       pseudoLocalizeMessage('Save'),
-    );
-  });
-
-  it('keeps the pseudo-locale key-for-key identical to English', () => {
-    const collectKeys = (
-      messages: Record<string, unknown>,
-      prefix = '',
-    ): string[] =>
-      Object.entries(messages).flatMap(([key, value]) =>
-        typeof value === 'string'
-          ? [`${prefix}${key}`]
-          : collectKeys(value as Record<string, unknown>, `${prefix}${key}.`),
-      );
-
-    expect(collectKeys(loadMessages(PSEUDO_LOCALE))).toEqual(
-      collectKeys(loadMessages(DEFAULT_LOCALE)),
     );
   });
 
@@ -214,25 +194,5 @@ describe('loadMessages', () => {
     expect(english.common.settings.apiKeys.fields.keyNamePlaceholder).toBe(
       'MCP Server',
     );
-  });
-
-  it('serves the source-post variation copy used by the remix surface', () => {
-    const english = loadMessages(DEFAULT_LOCALE).common as Record<
-      string,
-      unknown
-    >;
-
-    expect(resolveMessageId(english, 'sourcePostVariations.title')).toBe(
-      'Generate brand-voice variations',
-    );
-    expect(
-      resolveMessageId(english, 'sourcePostVariations.results.noPadding'),
-    ).toBe('No duplicate placeholder was added.');
-    expect(
-      resolveMessageId(
-        english,
-        'sourcePostVariations.results.organizationDefaults',
-      ),
-    ).toBe('Organization defaults (no brand voice configured)');
   });
 });

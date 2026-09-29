@@ -66,12 +66,6 @@ describe('ButtonCredits', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', async () => {
-    const { container } = render(<ButtonCredits />);
-    await waitFor(() => expect(findOneMock).toHaveBeenCalled());
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', async () => {
     const { container } = render(<ButtonCredits />);
     await waitFor(() => expect(findOneMock).toHaveBeenCalled());

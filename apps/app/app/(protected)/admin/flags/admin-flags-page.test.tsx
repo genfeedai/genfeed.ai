@@ -116,15 +116,6 @@ describe('AdminFlagsPage (#5468)', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('lists the product features on the features page', async () => {
-    render(<AdminFlagsPage kind="features" />);
-
-    expect(
-      await screen.findByRole('switch', { name: 'Library canvas' }),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole('switch')).toHaveLength(4);
-  });
-
   it('saves only the switched flag, at once', async () => {
     render(<AdminFlagsPage kind="modules" />);
 

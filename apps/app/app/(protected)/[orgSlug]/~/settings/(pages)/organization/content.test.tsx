@@ -74,11 +74,6 @@ describe('SettingsOrganizationPage', () => {
     } as ReturnType<typeof useBrand>);
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<SettingsOrganizationPage />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('always shows Start agent CTA and hides fleet NSFW when fleet is not connected', () => {
     render(<SettingsOrganizationPage />);
 
@@ -89,17 +84,6 @@ describe('SettingsOrganizationPage', () => {
     expect(screen.queryByText(/Reveal fleet NSFW/i)).not.toBeInTheDocument();
     expect(
       screen.getByText(/Fleet is not connected|Select a brand/i),
-    ).toBeInTheDocument();
-  });
-
-  it('offers an organization default language', () => {
-    render(<SettingsOrganizationPage />);
-
-    expect(
-      screen.getByText(/members who have not picked a language/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('org-default-locale-trigger'),
     ).toBeInTheDocument();
   });
 

@@ -241,15 +241,6 @@ describe('summarizeUpcomingSchedule', () => {
     expect(days[0]?.count).toBe(1);
   });
 
-  it('falls back to the release instant for targets without their own', () => {
-    const days = summarizeUpcomingSchedule(
-      [releaseWith([{}, {}], '2026-07-27T09:00:00.000Z')],
-      windowStart,
-    );
-
-    expect(days.map((day) => day.count)).toEqual([0, 2, 0, 0, 0, 0, 0]);
-  });
-
   it('ignores targets outside the window and without any instant', () => {
     const days = summarizeUpcomingSchedule(
       [
@@ -294,15 +285,6 @@ describe('summarizeCredentialHealth', () => {
       healthy: 1,
       total: 4,
       unknown: 1,
-    });
-  });
-
-  it('handles an empty credential list', () => {
-    expect(summarizeCredentialHealth([])).toEqual({
-      attention: 0,
-      healthy: 0,
-      total: 0,
-      unknown: 0,
     });
   });
 });

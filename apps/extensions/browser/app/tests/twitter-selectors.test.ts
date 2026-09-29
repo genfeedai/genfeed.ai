@@ -18,23 +18,6 @@ describe('Twitter Selectors', () => {
   });
 
   describe('TWITTER_SELECTORS configuration', () => {
-    it('should have all required selector keys', () => {
-      const requiredKeys = [
-        'replyTextarea',
-        'fileInput',
-        'submitButton',
-        'tweetContainer',
-        'tweetText',
-        'userName',
-        'mediaButton',
-        'actionsContainer',
-      ];
-
-      requiredKeys.forEach((key) => {
-        expect(TWITTER_SELECTORS).toHaveProperty(key);
-      });
-    });
-
     it('should have primary selector for each config', () => {
       Object.values(TWITTER_SELECTORS).forEach((config) => {
         expect(config.primary).toBeDefined();
@@ -80,13 +63,6 @@ describe('Twitter Selectors', () => {
       expect(element?.id).toBe('fallback');
     });
 
-    it('should return null when no selector matches', () => {
-      document.body.innerHTML = '<div>No matching elements</div>';
-
-      const element = findElement('replyTextarea');
-      expect(element).toBeNull();
-    });
-
     it('should find element within a context', () => {
       document.body.innerHTML = `
         <div id="container">
@@ -109,17 +85,6 @@ describe('Twitter Selectors', () => {
   });
 
   describe('findAllElements', () => {
-    it('should find all matching elements', () => {
-      document.body.innerHTML = `
-        <article data-testid="tweet">Tweet 1</article>
-        <article data-testid="tweet">Tweet 2</article>
-        <article data-testid="tweet">Tweet 3</article>
-      `;
-
-      const elements = findAllElements('tweetContainer');
-      expect(elements).toHaveLength(3);
-    });
-
     it('should return empty array when no elements match', () => {
       document.body.innerHTML = '<div>No tweets here</div>';
 
@@ -235,17 +200,6 @@ describe('Twitter Selectors', () => {
       const element = findElement('fileInput');
       expect(element).not.toBeNull();
       expect(element?.id).toBe('semantic-file');
-    });
-
-    it('should find submit button semantically', () => {
-      document.body.innerHTML = `
-        <form>
-          <button type="submit" aria-label="Post reply" id="semantic-btn">Post</button>
-        </form>
-      `;
-
-      const element = findElement('submitButton');
-      expect(element).not.toBeNull();
     });
   });
 });

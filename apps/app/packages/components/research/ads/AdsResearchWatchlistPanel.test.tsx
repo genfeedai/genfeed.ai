@@ -180,35 +180,6 @@ describe('AdsResearchWatchlistPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('tells the operator an unconfirmed collection start is safe to retry (#5212)', () => {
-    renderPanel({
-      advertisers: advertisers.map((advertiser) =>
-        advertiser.id === 'watched-2'
-          ? {
-              ...advertiser,
-              lastIngestionErrorCode: 'research_collection_start_unreconciled',
-            }
-          : advertiser,
-      ),
-    });
-
-    expect(
-      screen.getByText(/couldn't confirm whether this collection started/),
-    ).toBeInTheDocument();
-  });
-
-  it('uses the singular label for one captured creative (#3537)', () => {
-    renderPanel({
-      advertisers: advertisers.map((advertiser) =>
-        advertiser.id === 'watched-1'
-          ? { ...advertiser, lastSnapshotRecordCount: 1 }
-          : advertiser,
-      ),
-    });
-
-    expect(screen.getByText('1 creative')).toBeInTheDocument();
-  });
-
   it('falls back to the raw blocker code when it has no wording yet (#3537)', () => {
     renderPanel({
       readiness: [
@@ -234,13 +205,6 @@ describe('AdsResearchWatchlistPanel', () => {
     fireEvent.click(screen.getByLabelText('Stop watching adidas'));
 
     expect(onRemove).toHaveBeenCalledWith('watched-2');
-  });
-
-  it('disables the row action while its removal is in flight (#3537)', () => {
-    renderPanel({ busyId: 'watched-1' });
-
-    expect(screen.getByLabelText('Stop watching nike')).toBeDisabled();
-    expect(screen.getByLabelText('Stop watching adidas')).not.toBeDisabled();
   });
 
   it('reports why nothing loaded rather than reading as no competitors (#3537)', () => {

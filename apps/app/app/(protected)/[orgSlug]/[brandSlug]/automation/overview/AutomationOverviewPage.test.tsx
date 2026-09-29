@@ -167,13 +167,6 @@ describe('AutomationOverviewPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('does not include a standalone activities route card', () => {
-    render(<AutomationOverviewPage />);
-    expect(
-      screen.queryByRole('link', { name: /view activities/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it('does not duplicate Settings configuration inside Automation', () => {
     render(<AutomationOverviewPage />);
 

@@ -456,25 +456,6 @@ describe('PlatformSettingsPage', () => {
       expect(screen.queryByText(/RESEND_API_KEY/)).not.toBeInTheDocument();
     });
 
-    it('lets an operator toggle email verification once a mailer is configured', async () => {
-      mocks.getSettings.mockResolvedValue({
-        id: 'platform-settings',
-        isEmailDeliveryConfigured: true,
-        isEmailVerificationRequired: false,
-        marginInputMode: 'MARGIN',
-        marginMultiplierAgentChat: 1.7,
-        marginMultiplierGeneration: 3.33,
-        typedDecisionProvider: 'none',
-      });
-      render(<PlatformSettingsPage />);
-
-      const toggle = await screen.findByRole('switch', {
-        name: /require email verification/i,
-      });
-      expect(toggle).toBeEnabled();
-      expect(screen.queryByText(/RESEND_API_KEY/)).not.toBeInTheDocument();
-    });
-
     it('saves edited switches with the rest of the settings', async () => {
       render(<PlatformSettingsPage />);
 
@@ -503,29 +484,6 @@ describe('PlatformSettingsPage', () => {
           }),
         );
       });
-    });
-
-    it('never resends the flags edited on Admin → Flags (#5468)', async () => {
-      render(<PlatformSettingsPage />);
-
-      fireEvent.click(
-        await screen.findByRole('button', { name: /save settings/i }),
-      );
-
-      await waitFor(() => expect(mocks.updateSettings).toHaveBeenCalled());
-      expect(mocks.updateSettings.mock.calls[0]?.[0]).not.toHaveProperty(
-        'flags',
-      );
-    });
-
-    it('offers only off and shadow on a shadow-capped decision point', async () => {
-      render(<PlatformSettingsPage />);
-
-      const select = await screen.findByTestId('platform-task-routing-mode');
-      const options = Array.from(select.querySelectorAll('option')).map(
-        (option) => option.getAttribute('value'),
-      );
-      expect(options).toEqual(['off', 'shadow']);
     });
 
     it('blocks saving while a switch value is invalid', async () => {

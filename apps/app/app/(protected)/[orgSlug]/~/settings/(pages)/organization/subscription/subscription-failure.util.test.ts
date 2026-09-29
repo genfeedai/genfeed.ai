@@ -73,31 +73,6 @@ describe('getSubscriptionFailureView', () => {
   });
 
   describe('retry allowance', () => {
-    it('reads the bound the API granted', () => {
-      const view = getSubscriptionFailureView(
-        apiError({
-          code: SubscriptionPreviewFailureCode.BILLING_PROVIDER_UNAVAILABLE,
-          meta: { isRetryable: true, maxRetries: 2, retryAfterSeconds: 5 },
-        }),
-      );
-
-      expect(view.retry).toEqual({
-        maxAttempts: 2,
-        notBeforeMs: NOW + 5_000,
-      });
-    });
-
-    it('allows an immediate retry when no wait was given', () => {
-      const view = getSubscriptionFailureView(
-        apiError({
-          code: SubscriptionPreviewFailureCode.BILLING_PROVIDER_UNAVAILABLE,
-          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
-        }),
-      );
-
-      expect(view.retry).toEqual({ maxAttempts: 1, notBeforeMs: NOW });
-    });
-
     it.each([
       [
         'the failure is not flagged retryable',

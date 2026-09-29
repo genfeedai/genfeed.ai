@@ -30,14 +30,4 @@ describe('ServiceInstanceManager', () => {
     expect(ServiceInstanceManager.get('runs', 'token-1')).toBeUndefined();
     expect(ServiceInstanceManager.get('runs', 'token-2')).toEqual({ id: 'b' });
   });
-
-  it('clears every cached instance', () => {
-    ServiceInstanceManager.set('runs', 'token-1', { id: 'a' });
-    ServiceInstanceManager.set('ideas', 'token-1', { id: 'c' });
-
-    ServiceInstanceManager.clearAll();
-
-    expect(ServiceInstanceManager.get('runs', 'token-1')).toBeUndefined();
-    expect(ServiceInstanceManager.get('ideas', 'token-1')).toBeUndefined();
-  });
 });

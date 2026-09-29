@@ -32,27 +32,6 @@ function buildAccountHealth(
 }
 
 describe('buildAccountHealthRows', () => {
-  it('projects health fields and prefers the handle as the account label', () => {
-    const rows = buildAccountHealthRows([buildAccountHealth()]);
-
-    expect(rows).toEqual([
-      {
-        accountLabel: '@studio',
-        connectedDays: 30,
-        credentialId: 'credential-1',
-        holdPublishing: false,
-        holdReason: undefined,
-        needsReconnect: false,
-        platform: 'instagram',
-        publishedPosts: 10,
-        recentFailures: 0,
-        riskLevel: 'low',
-        score: 90,
-        state: 'healthy',
-      },
-    ]);
-  });
-
   it('orders reconnect, hold, and high-risk accounts ahead of healthy ones', () => {
     const rows = buildAccountHealthRows([
       buildAccountHealth({

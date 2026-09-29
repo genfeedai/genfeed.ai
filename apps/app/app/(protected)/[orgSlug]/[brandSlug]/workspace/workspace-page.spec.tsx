@@ -360,18 +360,6 @@ describe('WorkspacePageContent', () => {
     expect(screen.queryByTestId('workspace-nav')).not.toBeInTheDocument();
   });
 
-  it('does not expose a direct header task composer action on the dashboard', async () => {
-    render(<WorkspacePageContent section="overview" />);
-
-    await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({});
-    });
-
-    expect(
-      screen.queryByRole('button', { name: /^new task$/i }),
-    ).not.toBeInTheDocument();
-  });
-
   it('keeps the inbox content mounted while the first task list loads', async () => {
     let resolveTasks: (tasks: ReturnType<typeof buildTask>[]) => void;
     listMock.mockReturnValueOnce(
@@ -416,46 +404,6 @@ describe('WorkspacePageContent', () => {
     expect(
       await screen.findByText('New Task', {}, { timeout: 5000 }),
     ).toBeInTheDocument();
-  });
-
-  it('opens the task composer modal when the sidebar requests a new task', async () => {
-    render(<WorkspacePageContent section="overview" />);
-
-    await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({});
-    });
-
-    await openTaskComposerFromSidebar();
-  });
-
-  it('creates a task from the modal composer', async () => {
-    render(<WorkspacePageContent section="overview" />);
-
-    await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({});
-    });
-
-    await openTaskComposerFromSidebar();
-
-    fireEvent.change(
-      screen.getByPlaceholderText(
-        /create three thumbnail directions for our next launch/i,
-      ),
-      {
-        target: { value: 'Create a product launch brief' },
-      },
-    );
-    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
-
-    await waitFor(() => {
-      expect(createTaskMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brandId: 'brand-1',
-          outputType: 'ingredient',
-          request: 'Create a product launch brief',
-        }),
-      );
-    });
   });
 
   it('includes heygenAvatarId/heygenVoiceId when the Facecam preset is selected', async () => {

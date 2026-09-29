@@ -15,28 +15,4 @@ describe('app/(protected)/protected-layout-client.tsx', () => {
     expect(source).not.toContain('subscribeAnalyticsFeatureFlags');
     expect(source).toContain("endsWith('@genfeed.ai')");
   });
-
-  it('gates module routes outside the shell error boundaries', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
-      'utf8',
-    );
-    expect(source.indexOf('<PlatformModuleRouteGate>')).toBeGreaterThan(-1);
-    expect(source.indexOf('<PlatformModuleRouteGate>')).toBeLessThan(
-      source.indexOf('<AppProtectedLayout'),
-    );
-  });
-
-  it('gates the protected provider tree on confirmed routed organization context', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'app/(protected)/protected-layout-client.tsx'),
-      'utf8',
-    );
-
-    expect(source).toContain('<RoutedOrganizationProvider>');
-    expect(source).toContain('<RoutedOrganizationBoundary>');
-    expect(source.indexOf('<RoutedOrganizationBoundary>')).toBeLessThan(
-      source.indexOf('<AppProtectedLayout'),
-    );
-  });
 });

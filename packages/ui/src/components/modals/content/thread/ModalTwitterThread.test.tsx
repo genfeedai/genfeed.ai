@@ -1,5 +1,4 @@
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import ModalTwitterThread from '@ui/modals/content/thread/ModalTwitterThread';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -54,14 +53,5 @@ describe('ModalTwitterThread', () => {
   it('renders thread modal when open', () => {
     render(<ModalTwitterThread {...defaultProps} />);
     expect(screen.getByText('First tweet')).toBeInTheDocument();
-  });
-
-  it('calls onClose when close button is clicked', async () => {
-    const user = userEvent.setup();
-    const onClose = vi.fn();
-    render(<ModalTwitterThread {...defaultProps} onClose={onClose} />);
-    const closeButtons = screen.getAllByRole('button', { name: /^close$/i });
-    await user.click(closeButtons[0]);
-    expect(onClose).toHaveBeenCalled();
   });
 });

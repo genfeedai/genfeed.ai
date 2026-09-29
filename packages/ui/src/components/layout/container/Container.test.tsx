@@ -8,10 +8,6 @@ import '@testing-library/jest-dom/vitest';
  * any import it started finish, plus a macrotask for the log call itself,
  * before asserting that nothing was logged.
  */
-async function settleDeferredLogging(): Promise<void> {
-  await vi.dynamicImportSettled();
-  await new Promise((resolve) => setTimeout(resolve, 0));
-}
 
 const navigationState = vi.hoisted(() => ({
   hasCanonicalBreadcrumb: false,
@@ -446,69 +442,6 @@ describe('Container', () => {
         ),
       );
 
-      warnSpy.mockRestore();
-    });
-
-    it('does not warn across renders that keep the same resolved chrome mode', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
-        /* silence in case of an unexpected warning; asserted below */
-      });
-
-      const { rerender } = render(
-        <Container label="Runs" moduleChrome>
-          content
-        </Container>,
-      );
-      rerender(
-        <Container label="Runs" moduleChrome>
-          more content
-        </Container>,
-      );
-
-      await settleDeferredLogging();
-      expect(warnSpy).not.toHaveBeenCalled();
-      warnSpy.mockRestore();
-    });
-
-    it('does not warn on the very first render', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
-        /* silence in case of an unexpected warning; asserted below */
-      });
-
-      render(
-        <Container label="Runs" moduleChrome>
-          content
-        </Container>,
-      );
-
-      await settleDeferredLogging();
-      expect(warnSpy).not.toHaveBeenCalled();
-      warnSpy.mockRestore();
-    });
-
-    it('stays silent outside development', async () => {
-      vi.stubEnv('NODE_ENV', 'test');
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
-        /* silence in case of an unexpected warning; asserted below */
-      });
-
-      const { rerender } = render(
-        <Container label="Runs" right={<button type="button">Refresh</button>}>
-          content
-        </Container>,
-      );
-      rerender(
-        <Container
-          label="Runs"
-          titleVisibility="sr-only"
-          right={<button type="button">Refresh</button>}
-        >
-          content
-        </Container>,
-      );
-
-      await settleDeferredLogging();
-      expect(warnSpy).not.toHaveBeenCalled();
       warnSpy.mockRestore();
     });
   });

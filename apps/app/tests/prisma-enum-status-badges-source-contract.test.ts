@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { BotStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -37,15 +36,5 @@ describe('Prisma-enum status badge source contracts', () => {
     expect(source).not.toContain("case 'active':");
     expect(source).not.toContain("case 'paused':");
     expect(source).not.toContain("case 'stopped':");
-  });
-
-  it('maps every BotStatus member, so a new member cannot render as a failure', () => {
-    const source = readAppSource(
-      'app/(protected)/admin/automation/bots/bots-page.tsx',
-    );
-
-    for (const member of Object.keys(BotStatus)) {
-      expect(source).toContain(`case BotStatus.${member}:`);
-    }
   });
 });

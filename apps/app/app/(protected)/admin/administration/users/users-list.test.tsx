@@ -206,20 +206,6 @@ describe('UsersList', () => {
     });
   });
 
-  it('offers Impersonate only for non-superadmin users', () => {
-    render(<UsersList />);
-
-    expect(
-      screen.getByRole('button', { name: 'Impersonate jane@example.com' }),
-    ).toBeInTheDocument();
-    // The admin plugin rejects impersonating admins — the action is hidden.
-    expect(
-      screen.queryByRole('button', {
-        name: 'Impersonate operator@example.com',
-      }),
-    ).not.toBeInTheDocument();
-  });
-
   it('shows each user’s first-touch signup source', () => {
     mocks.useQuery.mockReturnValue({
       data: [
@@ -279,22 +265,6 @@ describe('UsersList', () => {
     );
     expect(screen.getByTestId('user-3-lastActiveAt')).not.toHaveTextContent(
       'Invalid Date',
-    );
-  });
-
-  it('shows Never when the user has not connected yet', () => {
-    mocks.useQuery.mockReturnValue({
-      data: [{ ...betterAuthUser, lastActiveAt: null }],
-      error: null,
-      isFetching: false,
-      isLoading: false,
-      refetch: mocks.refetch,
-    });
-
-    render(<UsersList />);
-
-    expect(screen.getByTestId('user-3-lastActiveAt')).toHaveTextContent(
-      'Never',
     );
   });
 

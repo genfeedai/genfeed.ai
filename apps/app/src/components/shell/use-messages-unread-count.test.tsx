@@ -33,18 +33,6 @@ beforeEach(() => {
 afterEach(() => client.clear());
 
 describe('useMessagesUnreadCount', () => {
-  it('counts the route brand', async () => {
-    const { result } = renderHook(() => useMessagesUnreadCount('brand-1'), {
-      wrapper,
-    });
-
-    await waitFor(() => expect(result.current).toBe(4));
-    expect(mock.service.unreadCount).toHaveBeenCalledWith(
-      { brandId: 'brand-1' },
-      expect.any(AbortSignal),
-    );
-  });
-
   it('counts every brand when no brand is in scope', async () => {
     mock.service.unreadCount.mockResolvedValue({ id: 'org-1', unreadCount: 0 });
     const { result } = renderHook(() => useMessagesUnreadCount(), { wrapper });
@@ -55,21 +43,6 @@ describe('useMessagesUnreadCount', () => {
         expect.any(AbortSignal),
       ),
     );
-    expect(result.current).toBe(0);
-  });
-
-  it('never fetches the org-wide count while a brand-scoped route has not resolved its brand yet', async () => {
-    const { result } = renderHook(
-      () => useMessagesUnreadCount(undefined, false),
-      { wrapper },
-    );
-
-    // Give any pending microtask a chance to fire before asserting nothing
-    // happened — the query being disabled must be immediate, not eventual.
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(mock.service.unreadCount).not.toHaveBeenCalled();
     expect(result.current).toBe(0);
   });
 

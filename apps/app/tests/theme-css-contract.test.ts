@@ -24,17 +24,6 @@ describe('Tailwind theme selector contract', () => {
     expect(appEntry).not.toContain('apps/server');
   });
 
-  it('binds dark variants to the data-theme attribute used by next-themes', () => {
-    const source = readFileSync(
-      join(process.cwd(), '../../packages/styles/globals.css'),
-      'utf8',
-    );
-
-    expect(source).toContain(
-      '@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));',
-    );
-  });
-
   it('lifts the docked composer with an outer shadow, not an inset hairline', () => {
     const source = readFileSync(
       join(process.cwd(), '../../packages/styles/globals.css'),

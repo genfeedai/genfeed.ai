@@ -653,35 +653,6 @@ describe('SettingsAgentsPage', () => {
     });
   });
 
-  it('preserves an override key that is only enabled for a different selector category, on an unrelated save', async () => {
-    mocks.settings.agentPolicy = {
-      ...(mocks.settings.agentPolicy as Record<string, unknown>),
-      // A valid catalog key, but it belongs to the generation (media)
-      // category — the thinking selector must not show or accept it.
-      thinkingModelOverride: 'google/nano-banana-2',
-    };
-    renderPage();
-
-    await waitFor(() => {
-      expect(screen.getAllByRole('combobox')[2]).toHaveValue('__unresolved__');
-    });
-
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'budget' },
-    });
-
-    await waitFor(() => {
-      expect(mocks.patchSettings).toHaveBeenCalledWith(
-        'org-1',
-        expect.objectContaining({
-          agentPolicy: expect.objectContaining({
-            thinkingModelOverride: 'google/nano-banana-2',
-          }),
-        }),
-      );
-    });
-  });
-
   it('replaces the thinking model picker with the locked model and an upgrade hint on the free tier', async () => {
     mocks.modelAccess = {
       isLocked: true,

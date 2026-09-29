@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CharactersTable from './characters-table';
 
@@ -28,16 +28,6 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('CharactersTable', () => {
-  it('renders the empty state with a CTA when there are no characters', () => {
-    const onCreate = vi.fn();
-    render(
-      <CharactersTable characters={[]} isLoading={false} onCreate={onCreate} />,
-    );
-
-    fireEvent.click(screen.getByText('New character'));
-    expect(onCreate).toHaveBeenCalledTimes(1);
-  });
-
   it('renders a row per character with avatar and handle', () => {
     render(
       <CharactersTable

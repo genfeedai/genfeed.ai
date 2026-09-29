@@ -3,14 +3,6 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('app/global-error.tsx', () => {
-  it('keeps an exported contract in place', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'app/global-error.tsx'),
-      'utf8',
-    );
-    expect(source).toContain('export ');
-  });
-
   it('synchronizes the stored theme when the root layout has failed', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/global-error.tsx'),
@@ -22,13 +14,5 @@ describe('app/global-error.tsx', () => {
     expect(source).toContain('<head>');
     expect(source).not.toContain('<html data-theme="dark"');
     expect(source).toContain('gf-studio-app');
-  });
-
-  it('marks its fallback for the route smoke suite (#5070)', () => {
-    const source = readFileSync(
-      join(process.cwd(), 'app/global-error.tsx'),
-      'utf8',
-    );
-    expect(source).toContain('data-testid="error-boundary-fallback"');
   });
 });

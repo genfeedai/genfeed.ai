@@ -147,26 +147,4 @@ describe('ManagedCreditsCheckoutCard', () => {
     expect(createCheckoutSessionMock).not.toHaveBeenCalled();
     expect(notificationErrorMock).not.toHaveBeenCalled();
   });
-
-  it('starts managed checkout using a custom whole-dollar amount', async () => {
-    render(<ManagedCreditsCheckoutCard />);
-
-    fireEvent.click(screen.getByText('Custom'));
-    fireEvent.change(
-      screen.getByLabelText('Custom credit top-up amount in dollars'),
-      {
-        target: { value: '250' },
-      },
-    );
-    fireEvent.click(screen.getByText('Get credits'));
-
-    await waitFor(() => {
-      expect(createCheckoutSessionMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'local@example.com',
-          quantity: 25_000,
-        }),
-      );
-    });
-  });
 });

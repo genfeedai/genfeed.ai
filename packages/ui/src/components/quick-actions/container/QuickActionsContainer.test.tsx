@@ -8,11 +8,6 @@ describe('QuickActionsContainer', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<QuickActionsContainer />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<QuickActionsContainer />);
     const rootElement = container.firstChild as HTMLElement;

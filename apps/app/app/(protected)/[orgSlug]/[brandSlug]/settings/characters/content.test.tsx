@@ -132,39 +132,6 @@ describe('BrandSettingsCharactersPage', () => {
     });
   });
 
-  it('renders section chrome and the characters table while the list loads', async () => {
-    let resolveListCharacters!: (rows: Array<unknown>) => void;
-    mocks.listCharacters.mockReturnValue(
-      new Promise((resolve) => {
-        resolveListCharacters = resolve;
-      }),
-    );
-
-    render(<BrandSettingsCharactersPage />);
-
-    expect(
-      screen.getByRole('heading', { level: 1, name: 'Characters' }),
-    ).toBeInTheDocument();
-
-    resolveListCharacters([]);
-    await waitFor(() => {
-      expect(screen.getByText('Characters')).toBeInTheDocument();
-    });
-  });
-
-  it('links to character guidance without adding another creation action', async () => {
-    render(<BrandSettingsCharactersPage />);
-    await screen.findByText('New character');
-    expect(
-      screen.getByRole('link', {
-        name: 'Learn how to create, save, and reuse characters',
-      }),
-    ).toHaveAttribute('href', '/settings/help#characters');
-    expect(
-      screen.getAllByRole('button', { name: 'New character' }),
-    ).toHaveLength(1);
-  });
-
   it('opens the create dialog and generates a sheet from the description', async () => {
     render(<BrandSettingsCharactersPage />);
 

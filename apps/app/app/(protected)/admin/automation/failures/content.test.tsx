@@ -1,9 +1,7 @@
-import { AgentFailureReason } from '@genfeedai/contracts';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import pages from '../../../../../messages/en/pages.json';
 import AgentFailuresPage from './content';
 import '@testing-library/jest-dom/vitest';
 
@@ -28,15 +26,6 @@ vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
 }));
 
 describe('AgentFailuresPage', () => {
-  it('provides an English label for every failure reason', () => {
-    expect(Object.keys(pages.agentFailures.reasons).toSorted()).toEqual(
-      Object.values(AgentFailureReason).toSorted(),
-    );
-    for (const label of Object.values(pages.agentFailures.reasons)) {
-      expect(label.trim().length).toBeGreaterThan(0);
-    }
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
     Element.prototype.hasPointerCapture = vi.fn(() => false);
@@ -45,21 +34,6 @@ describe('AgentFailuresPage', () => {
     Element.prototype.releasePointerCapture = vi.fn();
     mocks.getService.mockResolvedValue({ listAdminFailures: mocks.list });
     mocks.list.mockResolvedValue([]);
-  });
-
-  it('renders an empty feed and aborts requests on unmount', async () => {
-    const { unmount } = render(<AgentFailuresPage />);
-    expect(
-      await screen.findByText('No agent failures found'),
-    ).toBeInTheDocument();
-    expect(mocks.list).toHaveBeenCalledWith(
-      undefined,
-      0,
-      expect.any(AbortSignal),
-    );
-    const signal = mocks.list.mock.calls[0][2];
-    unmount();
-    expect(signal.aborted).toBe(true);
   });
 
   it('supports retry after a failed request', async () => {

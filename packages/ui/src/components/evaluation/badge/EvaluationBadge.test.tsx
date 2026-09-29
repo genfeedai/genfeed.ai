@@ -8,8 +8,4 @@ describe('EvaluationBadge', () => {
     const { container } = render(<EvaluationBadge />);
     expect(container.firstChild).toBeInTheDocument();
   });
-
-  it('should handle user interactions correctly', () => {});
-
-  it('should apply correct styles and classes', () => {});
 });

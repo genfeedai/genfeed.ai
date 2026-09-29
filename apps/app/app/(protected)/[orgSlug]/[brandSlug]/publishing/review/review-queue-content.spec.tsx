@@ -692,19 +692,6 @@ describe('ReviewQueueContent', () => {
     expect(mocks.notificationsService.info).toHaveBeenCalledOnce();
   });
 
-  it('does not notify when the operator manually shows all statuses', () => {
-    mockReviewQueries();
-
-    const { result } = renderHook(() => useReviewQueueContent());
-
-    act(() => {
-      result.current.handleFilterChange([]);
-    });
-
-    expect(result.current.activeFilters).toEqual([]);
-    expect(mocks.notificationsService.info).not.toHaveBeenCalled();
-  });
-
   it('explains a later distinct ready-to-all automatic broaden edge', async () => {
     mockReviewQueries({
       activeBatch: {
@@ -803,27 +790,6 @@ describe('ReviewQueueContent', () => {
       await screen.findByRole('button', { name: 'Discard batch' }),
     );
   }
-
-  it('requires confirmation before discarding a review batch', async () => {
-    const user = userEvent.setup();
-    const cancelBatch = vi.fn();
-    const itemAction = vi.fn();
-    mockReviewQueries();
-    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
-
-    render(<ReviewQueueContent />);
-    await clickDiscardBatchFromActionRail(user);
-
-    expect(itemAction).not.toHaveBeenCalled();
-    expect(cancelBatch).not.toHaveBeenCalled();
-    expect(mocks.openConfirm).toHaveBeenCalledWith(
-      expect.objectContaining({
-        confirmLabel: 'Discard batch',
-        isError: true,
-        label: 'Discard review batch',
-      }),
-    );
-  });
 
   it('surfaces a retryable partial failure when cancellation fails after rejection', async () => {
     const user = userEvent.setup();

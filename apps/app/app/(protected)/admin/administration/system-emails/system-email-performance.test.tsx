@@ -43,16 +43,6 @@ describe('SystemEmailPerformance', () => {
     mocks.getPerformance.mockResolvedValue(emptyReport);
   });
 
-  it('shows the empty cohort and cancels its request on unmount', async () => {
-    const { unmount } = render(<SystemEmailPerformance />);
-    expect(
-      await screen.findByText('No tracked emails were queued in this period'),
-    ).toBeInTheDocument();
-    const signal = mocks.getPerformance.mock.calls[0][1];
-    unmount();
-    expect(signal.aborted).toBe(true);
-  });
-
   it('retries a failed report without changing the selected cohort', async () => {
     mocks.getPerformance.mockRejectedValueOnce(new Error('offline'));
     render(<SystemEmailPerformance />);

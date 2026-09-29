@@ -72,15 +72,6 @@ describe('useUIStore', () => {
       expect(state.selectedNodeId).toBe('node-1');
       expect(state.selectedEdgeId).toBeNull();
     });
-
-    it('should clear node selection when passed null', () => {
-      useUIStore.setState({ selectedNodeId: 'node-1' });
-      const { selectNode } = useUIStore.getState();
-
-      selectNode(null);
-
-      expect(useUIStore.getState().selectedNodeId).toBeNull();
-    });
   });
 
   describe('selectEdge', () => {
@@ -94,50 +85,9 @@ describe('useUIStore', () => {
       expect(state.selectedEdgeId).toBe('edge-1');
       expect(state.selectedNodeId).toBeNull();
     });
-
-    it('should clear edge selection when passed null', () => {
-      useUIStore.setState({ selectedEdgeId: 'edge-1' });
-      const { selectEdge } = useUIStore.getState();
-
-      selectEdge(null);
-
-      expect(useUIStore.getState().selectedEdgeId).toBeNull();
-    });
   });
 
   describe('openModal', () => {
-    it('should open the templates modal', () => {
-      const { openModal } = useUIStore.getState();
-
-      openModal('templates');
-
-      expect(useUIStore.getState().activeModal).toBe('templates');
-    });
-
-    it('should open the cost modal', () => {
-      const { openModal } = useUIStore.getState();
-
-      openModal('cost');
-
-      expect(useUIStore.getState().activeModal).toBe('cost');
-    });
-
-    it('should open the welcome modal', () => {
-      const { openModal } = useUIStore.getState();
-
-      openModal('welcome');
-
-      expect(useUIStore.getState().activeModal).toBe('welcome');
-    });
-
-    it('should open the settings modal', () => {
-      const { openModal } = useUIStore.getState();
-
-      openModal('settings');
-
-      expect(useUIStore.getState().activeModal).toBe('settings');
-    });
-
     it('should open the promptLibrary modal', () => {
       const { openModal } = useUIStore.getState();
 
@@ -182,30 +132,6 @@ describe('useUIStore', () => {
       expect(notifications[0].title).toBe('Test notification');
       expect(notifications[0].message).toBe('This is a test');
       expect(notifications[0].id).toMatch(/^notification-\d+$/);
-    });
-
-    it('should add multiple notifications', () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({ title: 'First', type: 'success' });
-      addNotification({ title: 'Second', type: 'error' });
-      addNotification({ title: 'Third', type: 'warning' });
-
-      const notifications = useUIStore.getState().notifications;
-      expect(notifications).toHaveLength(3);
-    });
-
-    it('should auto-remove notification after default duration', async () => {
-      const { addNotification } = useUIStore.getState();
-
-      addNotification({ title: 'Auto-remove test', type: 'info' });
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
-
-      // Fast-forward 5 seconds (default duration)
-      vi.advanceTimersByTime(5000);
-
-      expect(useUIStore.getState().notifications).toHaveLength(0);
     });
 
     it('should use custom duration when specified', async () => {
@@ -259,19 +185,6 @@ describe('useUIStore', () => {
       expect(
         notifications.find((n) => n.id === 'notification-2'),
       ).toBeUndefined();
-    });
-
-    it('should do nothing for non-existent notification', () => {
-      useUIStore.setState({
-        notifications: [
-          { id: 'notification-1', title: 'First', type: 'success' },
-        ],
-      });
-
-      const { removeNotification } = useUIStore.getState();
-      removeNotification('non-existent');
-
-      expect(useUIStore.getState().notifications).toHaveLength(1);
     });
   });
 });

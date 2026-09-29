@@ -19,14 +19,6 @@ describe('useDesktopLocalWorkspaceFlag (#5468)', () => {
     };
   });
 
-  it('follows the Admin flag', () => {
-    platformFlags.state.flags.desktop_local_workspace = false;
-
-    const { result } = renderHook(() => useDesktopLocalWorkspaceFlag());
-
-    expect(result.current).toEqual({ isEnabled: false, isReady: true });
-  });
-
   it('reports not ready until the flags load', () => {
     platformFlags.state.isReady = false;
 

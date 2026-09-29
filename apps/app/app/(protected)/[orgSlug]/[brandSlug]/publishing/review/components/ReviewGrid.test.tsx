@@ -100,22 +100,6 @@ describe('ReviewGrid', () => {
     expect(screen.queryByText('No items in this view')).not.toBeInTheDocument();
   });
 
-  it('should show bulk actions when items are selected', () => {
-    render(
-      <ReviewGrid
-        activeItem={mockItems[0]}
-        isActioning={false}
-        items={mockItems}
-        selectedIds={new Set(['item-1'])}
-        {...baseHandlers}
-      />,
-    );
-
-    expect(
-      screen.getByText((_, element) => element?.textContent === '1 selected'),
-    ).toBeInTheDocument();
-  });
-
   it('routes item, selection, and bulk actions', () => {
     const onSelectItem = vi.fn();
     const onToggleSelect = vi.fn();

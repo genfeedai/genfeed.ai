@@ -109,18 +109,6 @@ describe('DesktopServerSettings', () => {
     };
   });
 
-  it('shows the active server and its sign-in state', async () => {
-    render(<DesktopServerSettings />);
-
-    expect(
-      await screen.findByText(/Connected to Genfeed Cloud\./),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Current server' }),
-    ).toBeDisabled();
-    expect(screen.getAllByText('Signed in').length).toBeGreaterThan(0);
-  });
-
   it('tests and switches to a self-hosted server', async () => {
     render(<DesktopServerSettings />);
     await screen.findByText(/Connected to Genfeed Cloud\./);

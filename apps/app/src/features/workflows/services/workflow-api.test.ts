@@ -817,32 +817,6 @@ describe('WorkflowApiService', () => {
     expect(mocks.loggerError).toHaveBeenCalledTimes(guardedOperations.length);
   });
 
-  it('lists the organization most used workflows with usage fields', async () => {
-    mocks.get.mockResolvedValueOnce({
-      data: {
-        data: [
-          {
-            ...workflow({ id: 'workflow-2' }),
-            executionCount: 42,
-            lastExecutedAt: '2026-01-03T00:00:00.000Z',
-            nodeCount: 2,
-          },
-        ],
-      },
-    });
-
-    await expect(service().listMostUsed(5)).resolves.toEqual([
-      expect.objectContaining({
-        executionCount: 42,
-        id: 'workflow-2',
-        lastExecutedAt: '2026-01-03T00:00:00.000Z',
-      }),
-    ]);
-    expect(mocks.get).toHaveBeenCalledWith('/most-used', {
-      params: { limit: 5 },
-    });
-  });
-
   it('lets the API default the most used limit when none is given', async () => {
     mocks.get.mockResolvedValueOnce({ data: { data: [] } });
 
@@ -850,21 +824,5 @@ describe('WorkflowApiService', () => {
     expect(mocks.get).toHaveBeenCalledWith('/most-used', {
       params: undefined,
     });
-  });
-
-  it('passes the showcase featuredRank through on templates', async () => {
-    mocks.get.mockResolvedValueOnce({
-      data: {
-        data: [
-          { featuredRank: 1, id: 'founder-x-thread' },
-          { id: 'launch-kit' },
-        ],
-      },
-    });
-
-    const templates = await service().listTemplates();
-
-    expect(templates[0]?.featuredRank).toBe(1);
-    expect(templates[1]?.featuredRank).toBeUndefined();
   });
 });

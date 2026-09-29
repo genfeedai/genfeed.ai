@@ -15,11 +15,6 @@ describe('DropdownMultiSelect', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<DropdownMultiSelect {...baseProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(<DropdownMultiSelect {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;

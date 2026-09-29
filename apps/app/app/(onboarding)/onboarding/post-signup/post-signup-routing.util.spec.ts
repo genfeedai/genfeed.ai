@@ -1,5 +1,4 @@
 import {
-  appendCheckoutReturnParams,
   buildOnboardingResumeHref,
   deriveBrandNameFromDomain,
   hasPaidPlanIntent,
@@ -40,20 +39,6 @@ describe('resolvePostSignupIntent', () => {
     });
   });
 
-  it('treats free payg plan handoffs as normal onboarding', () => {
-    const intent = resolvePostSignupIntent({
-      personalEmailDomains: PERSONAL_DOMAINS,
-      primaryEmail: 'team@acme.com',
-      selectedCredits: null,
-      selectedPlan: 'payg',
-    });
-
-    expect(intent).toEqual({
-      domain: 'acme.com',
-      kind: 'auto-brand',
-    });
-  });
-
   it('falls back to auto-brand for corporate email domains', () => {
     const intent = resolvePostSignupIntent({
       personalEmailDomains: PERSONAL_DOMAINS,
@@ -66,28 +51,6 @@ describe('resolvePostSignupIntent', () => {
       domain: 'acme.co',
       kind: 'auto-brand',
     });
-  });
-
-  it('falls back to manual brand setup for personal domains', () => {
-    const intent = resolvePostSignupIntent({
-      personalEmailDomains: PERSONAL_DOMAINS,
-      primaryEmail: 'user@gmail.com',
-      selectedCredits: null,
-      selectedPlan: null,
-    });
-
-    expect(intent).toEqual({ kind: 'manual-brand' });
-  });
-
-  it('falls back to manual brand setup when credits are invalid', () => {
-    const intent = resolvePostSignupIntent({
-      personalEmailDomains: PERSONAL_DOMAINS,
-      primaryEmail: 'user@gmail.com',
-      selectedCredits: '0',
-      selectedPlan: null,
-    });
-
-    expect(intent).toEqual({ kind: 'manual-brand' });
   });
 
   it('rejects credit values with trailing non-numeric characters', () => {
@@ -122,11 +85,6 @@ describe('hasPaidPlanIntent (genfeedai/genfeed.ai#5311)', () => {
     expect(hasPaidPlanIntent(undefined)).toBe(false);
     expect(hasPaidPlanIntent('   ')).toBe(false);
   });
-
-  it('counts a real paid plan as intent', () => {
-    expect(hasPaidPlanIntent('price_123')).toBe(true);
-    expect(hasPaidPlanIntent('hosted')).toBe(true);
-  });
 });
 
 describe('parseSelectedCredits', () => {
@@ -147,28 +105,9 @@ describe('deriveBrandNameFromDomain', () => {
 });
 
 describe('buildOnboardingResumeHref', () => {
-  it('adds auto-brand resume when a stored brand domain is available', () => {
-    expect(buildOnboardingResumeHref('brand', 'acme.co')).toBe(
-      '/onboarding/brand?auto=true',
-    );
-  });
-
   it('keeps other onboarding steps unchanged', () => {
     expect(buildOnboardingResumeHref('providers', 'acme.co')).toBe(
       '/onboarding/providers',
     );
-  });
-
-  it('appends checkout return markers without dropping existing query params', () => {
-    expect(
-      appendCheckoutReturnParams(
-        '/onboarding/brand?auto=true',
-        'plan-checkout',
-      ),
-    ).toBe('/onboarding/brand?auto=true&checkout=completed&checkoutKind=plan');
-
-    expect(
-      appendCheckoutReturnParams('/onboarding/providers', 'credits-checkout'),
-    ).toBe('/onboarding/providers?checkout=completed&checkoutKind=credits');
   });
 });

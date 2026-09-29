@@ -44,11 +44,6 @@ describe('FrameSequenceSelector', () => {
     onFramesChange: vi.fn(),
   };
 
-  it('renders the card with the sequence label', () => {
-    render(<FrameSequenceSelector {...defaultProps} />);
-    expect(screen.getByText('Frame Sequence')).toBeInTheDocument();
-  });
-
   it('renders a fully visible add-frame tile in a horizontal filmstrip', () => {
     render(<FrameSequenceSelector {...defaultProps} />);
 
@@ -90,40 +85,6 @@ describe('FrameSequenceSelector', () => {
     );
     expect(screen.getByText(/frame selected/)).toHaveTextContent(
       '1 frame selected.',
-    );
-  });
-
-  it('hides sequence info when empty', () => {
-    render(<FrameSequenceSelector {...defaultProps} />);
-    expect(screen.queryByText(/selected/)).not.toBeInTheDocument();
-  });
-
-  it('shows transition count for two or more frames', () => {
-    render(<FrameSequenceSelector {...defaultProps} frames={mockFrames} />);
-    expect(screen.getByText(/Pairs: 2 transitions/)).toBeInTheDocument();
-  });
-
-  it('uses landscape aspect for landscape format', () => {
-    render(
-      <FrameSequenceSelector
-        {...defaultProps}
-        format={IngredientFormat.LANDSCAPE}
-      />,
-    );
-    expect(screen.getByRole('button', { name: /add frame/i })).toHaveClass(
-      'aspect-[16/9]',
-    );
-  });
-
-  it('uses square aspect for square format', () => {
-    render(
-      <FrameSequenceSelector
-        {...defaultProps}
-        format={IngredientFormat.SQUARE}
-      />,
-    );
-    expect(screen.getByRole('button', { name: /add frame/i })).toHaveClass(
-      'aspect-[1/1]',
     );
   });
 

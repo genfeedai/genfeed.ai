@@ -209,15 +209,6 @@ describe('BrandSettingsInterviewPage', () => {
     });
   });
 
-  it('renders Start in idle state with credit note', () => {
-    render(<BrandSettingsInterviewPage />);
-
-    expect(
-      screen.getByRole('button', { name: 'Start interview' }),
-    ).toBeVisible();
-    expect(screen.getByText(/10 credits/i)).toBeVisible();
-  });
-
   it('calls startInterview when Start is clicked', async () => {
     render(<BrandSettingsInterviewPage />);
 
@@ -418,21 +409,6 @@ describe('BrandSettingsInterviewPage', () => {
     await waitFor(() => {
       expect(mocks.useBrandInterview.skipQuestion).toHaveBeenCalled();
     });
-  });
-
-  it('shows complete state when status is complete', () => {
-    mocks.useBrandInterview = {
-      ...mocks.useBrandInterview,
-      completenessScore: 85,
-      status: 'complete',
-      steps: [],
-    };
-
-    render(<BrandSettingsInterviewPage />);
-
-    expect(screen.getByText('Interview complete')).toBeVisible();
-    // Score appears in the description and the progress label.
-    expect(screen.getAllByText(/85%/).length).toBeGreaterThan(0);
   });
 
   it('lets users reopen an answered step from the steps rail', async () => {

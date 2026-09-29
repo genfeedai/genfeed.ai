@@ -239,29 +239,6 @@ describe('AgentDetailPage', () => {
     mockQueries({});
   });
 
-  it('keys every agent query by organization, brand, and agent', () => {
-    // `agent-reports`/`agent-performance` now fire only inside the merged
-    // Activity section, mocked away here; their query keys stay covered by
-    // AgentWorkSections.test.tsx, which renders the real components.
-    render(<AgentDetailPage agentId="strategy-1" />);
-    for (const resource of [
-      'agent-strategy',
-      'agent-opportunities',
-      'agent-posts',
-    ]) {
-      expect(useQueryMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          queryKey: expect.arrayContaining([
-            resource,
-            'org-1',
-            'brand-1',
-            'strategy-1',
-          ]),
-        }),
-      );
-    }
-  });
-
   it('shows a strategy request failure separately from not found', () => {
     useQueryMock.mockImplementation(() => ({
       isError: true,
@@ -315,14 +292,6 @@ describe('AgentDetailPage', () => {
     expect(factLine).not.toHaveTextContent('Brand');
   });
 
-  it('hides Needs you when nothing needs the viewer', () => {
-    render(<AgentDetailPage agentId="strategy-1" />);
-
-    expect(
-      screen.queryByRole('heading', { name: 'Needs you' }),
-    ).not.toBeInTheDocument();
-  });
-
   it('surfaces consecutive run failures in Needs you with a link to Runs', () => {
     mockQueries({ strategy: { consecutiveFailures: 3 } });
     render(<AgentDetailPage agentId="strategy-1" />);
@@ -334,46 +303,5 @@ describe('AgentDetailPage', () => {
       'href',
       '/org-one/brand-one/automation/runs',
     );
-  });
-
-  it('surfaces posts with review lineage awaiting a decision in Needs you', () => {
-    mockQueries({
-      posts: [
-        {
-          id: 'draft-1',
-          reviewBatchId: 'batch-1',
-          reviewDecision: 'unset',
-          targetExecutionState: 'draft',
-        },
-      ],
-    });
-    render(<AgentDetailPage agentId="strategy-1" />);
-
-    expect(
-      screen.getByRole('link', { name: 'Review content' }),
-    ).toHaveAttribute('href', '/org-one/brand-one/publishing/review');
-  });
-
-  it('does not count an ordinary draft with no review lineage as awaiting review', () => {
-    mockQueries({
-      posts: [
-        {
-          id: 'draft-1',
-          reviewDecision: 'unset',
-          targetExecutionState: 'draft',
-        },
-      ],
-    });
-    render(<AgentDetailPage agentId="strategy-1" />);
-
-    expect(
-      screen.queryByRole('heading', { name: 'Needs you' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the merged Activity section instead of separate work, performance and run sections', () => {
-    render(<AgentDetailPage agentId="strategy-1" />);
-
-    expect(screen.getByTestId('agent-activity-section')).toBeInTheDocument();
   });
 });

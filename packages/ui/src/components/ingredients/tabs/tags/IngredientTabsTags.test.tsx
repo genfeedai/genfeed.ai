@@ -25,22 +25,6 @@ describe('IngredientTabsTags', () => {
     tags: [],
   } as IIngredient;
 
-  it('should render without crashing', () => {
-    const { container } = renderWithQueryClient(
-      <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    renderWithQueryClient(
-      <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,
-    );
-    expect(
-      document.querySelector('[data-testid="tags-manager"]'),
-    ).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = renderWithQueryClient(
       <IngredientTabsTags ingredient={ingredient} onTagsUpdate={vi.fn()} />,

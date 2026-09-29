@@ -8,8 +8,4 @@ describe('TextareaLabelActions', () => {
     const { container } = render(<TextareaLabelActions />);
     expect(container.firstChild).toBeInTheDocument();
   });
-
-  it('should handle user interactions correctly', () => {});
-
-  it('should apply correct styles and classes', () => {});
 });

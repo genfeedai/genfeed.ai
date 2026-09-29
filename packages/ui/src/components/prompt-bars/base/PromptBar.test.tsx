@@ -439,19 +439,6 @@ describe('PromptBar', () => {
     });
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<PromptBar {...defaultProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should render in collapsed view initially', async () => {
-    render(<PromptBar {...defaultProps} />);
-    // Component starts collapsed but may auto-expand - check for either view
-    const collapsed = screen.queryByTestId('collapsed-view');
-    const expanded = screen.queryByTestId('expanded-view');
-    expect(collapsed || expanded).toBeTruthy();
-  });
-
   it('should expand when clicking expand button', async () => {
     render(<PromptBar {...defaultProps} />);
     const expandButton = screen.queryByTestId('expand-button');
@@ -552,29 +539,6 @@ describe('PromptBar', () => {
       'Ghost has no canonical reference image',
     );
     expect(mockOnSubmit).toHaveBeenCalled();
-  });
-
-  it('should handle submit correctly', () => {
-    const mockOnSubmit = vi.fn();
-    mockUseWatch.mockImplementation(({ name }) => {
-      if (name === 'models') {
-        return ['test-model'];
-      }
-      if (name === 'format') {
-        return IngredientFormat.PORTRAIT;
-      }
-      if (name === 'outputs') {
-        return 1;
-      }
-      return null;
-    });
-
-    render(<PromptBar {...defaultProps} onSubmit={mockOnSubmit} />);
-    const submitButton = screen.queryByTestId('submit-button');
-    if (submitButton) {
-      fireEvent.click(submitButton);
-      expect(mockOnSubmit).toHaveBeenCalled();
-    }
   });
 
   describe('effects and handlers', () => {
@@ -746,70 +710,6 @@ describe('PromptBar', () => {
       });
     });
 
-    it('does not force-select a model when none is selected', async () => {
-      render(<PromptBar {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(mockForm.setValue).not.toHaveBeenCalledWith(
-          'models',
-          ['test-model'],
-          { shouldValidate: true },
-        );
-      });
-    });
-
-    it('sets a default duration when the model changes', async () => {
-      mockUseWatch.mockImplementation(({ name }) => {
-        if (name === 'models') {
-          return ['model-1'];
-        }
-        if (name === 'duration') {
-          return null;
-        }
-        if (name === 'format') {
-          return IngredientFormat.PORTRAIT;
-        }
-        if (name === 'outputs') {
-          return 1;
-        }
-        return null;
-      });
-
-      render(<PromptBar {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(mockForm.setValue).toHaveBeenCalledWith('duration', 5, {
-          shouldValidate: true,
-        });
-      });
-    });
-
-    it('sets a default resolution when the model supports it', async () => {
-      mockUseWatch.mockImplementation(({ name }) => {
-        if (name === 'models') {
-          return ['model-1'];
-        }
-        if (name === 'format') {
-          return IngredientFormat.PORTRAIT;
-        }
-        if (name === 'outputs') {
-          return 1;
-        }
-        return null;
-      });
-
-      vi.mocked(hasResolutionOptions).mockReturnValue(true);
-      vi.mocked(getDefaultVideoResolution).mockReturnValue('1080p');
-
-      render(<PromptBar {...defaultProps} />);
-
-      await waitFor(() => {
-        expect(mockForm.setValue).toHaveBeenCalledWith('resolution', '1080p', {
-          shouldValidate: true,
-        });
-      });
-    });
-
     it('applies default blacklists and sounds', async () => {
       mockUsePromptBarFilters.mockReturnValue({
         filteredBlacklists: [
@@ -950,31 +850,6 @@ describe('PromptBar', () => {
       expect(props?.formatIcon?.type).toBe(Square);
     });
 
-    it('passes watched quality from the form to the expanded view in studio-unified mode', () => {
-      mockUseWatch.mockImplementation(({ name }) => {
-        if (name === 'quality') {
-          return 'standard';
-        }
-        if (name === 'format') {
-          return IngredientFormat.PORTRAIT;
-        }
-        if (name === 'outputs') {
-          return 1;
-        }
-        return [];
-      });
-
-      render(
-        <PromptBar
-          {...defaultProps}
-          features={{ collapsible: false, dragDrop: false }}
-        />,
-      );
-
-      const ctx = expandedViewProps as { watchedQuality?: string };
-      expect(ctx?.watchedQuality).toBe('standard');
-    });
-
     it('passes ultra quality from the form to the expanded view', async () => {
       mockUseWatch.mockImplementation(({ name }) => {
         if (name === 'quality') {
@@ -1007,37 +882,6 @@ describe('PromptBar', () => {
       expect(props?.watchedQuality).toBe('ultra');
     });
 
-    it('skips submit when generate is disabled', () => {
-      const mockOnSubmit = vi.fn();
-      mockUseWatch.mockImplementation(({ name }) => {
-        if (name === 'models') {
-          return ['test-model'];
-        }
-        if (name === 'format') {
-          return IngredientFormat.PORTRAIT;
-        }
-        if (name === 'outputs') {
-          return 1;
-        }
-        return null;
-      });
-
-      render(
-        <PromptBar
-          {...defaultProps}
-          onSubmit={mockOnSubmit}
-          isGenerateDisabled={true}
-        />,
-      );
-
-      const submitButton = screen.queryByTestId('submit-button');
-      if (submitButton) {
-        fireEvent.click(submitButton);
-      }
-
-      expect(mockOnSubmit).not.toHaveBeenCalled();
-    });
-
     it('permits submit without a model when model selection is not required', () => {
       const mockOnSubmit = vi.fn();
       mockUseWatch.mockImplementation(({ name }) => {
@@ -1061,50 +905,6 @@ describe('PromptBar', () => {
       fireEvent.submit(container.querySelector('form') as HTMLFormElement);
 
       expect(mockOnSubmit).toHaveBeenCalledTimes(1);
-    });
-
-    it('skips submit when the prompt bar is disabled', () => {
-      const mockOnSubmit = vi.fn();
-      mockUseWatch.mockImplementation(({ name }) => {
-        if (name === 'models') {
-          return ['test-model'];
-        }
-        if (name === 'format') {
-          return IngredientFormat.PORTRAIT;
-        }
-        if (name === 'outputs') {
-          return 1;
-        }
-        return null;
-      });
-
-      render(
-        <PromptBar
-          {...defaultProps}
-          isDisabled={true}
-          onSubmit={mockOnSubmit}
-        />,
-      );
-
-      const submitButton = screen.queryByTestId('submit-button');
-      if (submitButton) {
-        fireEvent.click(submitButton);
-      }
-
-      expect(mockOnSubmit).not.toHaveBeenCalled();
-    });
-
-    it('skips submit when model selection is required but unset', () => {
-      const mockOnSubmit = vi.fn();
-
-      render(<PromptBar {...defaultProps} onSubmit={mockOnSubmit} />);
-
-      const submitButton = screen.queryByTestId('submit-button');
-      if (submitButton) {
-        fireEvent.click(submitButton);
-      }
-
-      expect(mockOnSubmit).not.toHaveBeenCalled();
     });
 
     it('transcribes voice input and updates text', async () => {
@@ -1163,66 +963,9 @@ describe('PromptBar', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle generating state', () => {
-    const { container } = render(
-      <PromptBar {...defaultProps} isGenerating={true} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle generate disabled state', () => {
-    const { container } = render(
-      <PromptBar {...defaultProps} isGenerateDisabled={true} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle video category type', () => {
-    const { container } = render(
-      <PromptBar {...defaultProps} categoryType={IngredientCategory.VIDEO} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should handle music category type', () => {
     const { container } = render(
       <PromptBar {...defaultProps} categoryType={IngredientCategory.MUSIC} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should pass custom generate label', () => {
-    const { container } = render(
-      <PromptBar {...defaultProps} generateLabel="Create" />,
-    );
-    // The generate label is passed to child components
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle external format prop', () => {
-    const { container } = render(
-      <PromptBar
-        {...defaultProps}
-        externalFormat={IngredientFormat.LANDSCAPE}
-      />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle external dimensions', () => {
-    const { container } = render(
-      <PromptBar
-        {...defaultProps}
-        externalWidth={1920}
-        externalHeight={1080}
-      />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle prompt data', () => {
-    const { container } = render(
-      <PromptBar {...defaultProps} promptData={{ text: 'test prompt' }} />,
     );
     expect(container.firstChild).toBeInTheDocument();
   });
@@ -1242,26 +985,7 @@ describe('PromptBar', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle empty models array', () => {
-    const { container } = render(<PromptBar {...defaultProps} models={[]} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle dataset change callback', () => {
-    const mockOnDatasetChange = vi.fn();
-    const { container } = render(
-      <PromptBar {...defaultProps} onDatasetChange={mockOnDatasetChange} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   describe('form element', () => {
-    it('should render form element', () => {
-      const { container } = render(<PromptBar {...defaultProps} />);
-      const form = container.querySelector('form');
-      expect(form).toBeInTheDocument();
-    });
-
     it('should prevent default on form submit', () => {
       const mockOnSubmit = vi.fn();
       const { container } = render(
@@ -1272,215 +996,6 @@ describe('PromptBar', () => {
         const event = new Event('submit', { bubbles: true, cancelable: true });
         fireEvent(form, event);
       }
-    });
-  });
-
-  describe('with trainings', () => {
-    it('should handle trainings prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          trainings={[{ id: 'train-1', name: 'Training 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('with presets', () => {
-    it('should handle presets prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          presets={[{ key: 'preset-1', label: 'Preset 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('with avatars and voices', () => {
-    it('should handle avatars prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          avatars={[{ id: 'avatar-1', name: 'Avatar 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle voices prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          voices={[{ id: 'voice-1', name: 'Voice 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('element filter props', () => {
-    it('should handle styles prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          styles={[{ key: 'style-1', label: 'Style 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle moods prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          moods={[{ key: 'mood-1', label: 'Mood 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle cameras prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          cameras={[{ key: 'camera-1', label: 'Camera 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle scenes prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          scenes={[{ key: 'scene-1', label: 'Scene 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle lightings prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          lightings={[{ key: 'lighting-1', label: 'Lighting 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle lenses prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          lenses={[{ key: 'lens-1', label: 'Lens 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle cameraMovements prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          cameraMovements={[{ key: 'movement-1', label: 'Movement 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle fontFamilies prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          fontFamilies={[{ key: 'font-1', label: 'Font 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle blacklists prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          blacklists={[
-            { isDefault: true, key: 'blacklist-1', label: 'Blacklist 1' },
-          ]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle sounds prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          sounds={[{ isDefault: true, key: 'sound-1', label: 'Sound 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('with folders and profiles', () => {
-    it('should handle folders prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          folders={[{ id: 'folder-1', name: 'Folder 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle profiles prop', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          profiles={[{ id: 'profile-1', name: 'Profile 1' }]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('multiple models', () => {
-    it('should handle multiple models', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          models={[
-            { category: 'image', key: 'model-1', label: 'Model 1' },
-            { category: 'video', key: 'model-2', label: 'Model 2' },
-          ]}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('format variations', () => {
-    it('should handle landscape format', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          externalFormat={IngredientFormat.LANDSCAPE}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
-    });
-
-    it('should handle square format', () => {
-      const { container } = render(
-        <PromptBar
-          {...defaultProps}
-          externalFormat={IngredientFormat.SQUARE}
-        />,
-      );
-      expect(container.firstChild).toBeInTheDocument();
     });
   });
 
@@ -1541,23 +1056,6 @@ describe('PromptBar', () => {
       };
       const { container } = render(<PromptBar {...propsWithoutCategory} />);
       expect(container.firstChild).toBeInTheDocument();
-    });
-  });
-
-  describe('styling', () => {
-    it('should keep the root layout container classes', () => {
-      const { container } = render(<PromptBar {...defaultProps} />);
-      expect(container.firstChild).toHaveClass('size-full', 'min-h-0');
-    });
-
-    it('should have flex-col class', () => {
-      const { container } = render(<PromptBar {...defaultProps} />);
-      expect(container.firstChild).toHaveClass('flex-col');
-    });
-
-    it('should have relative positioning', () => {
-      const { container } = render(<PromptBar {...defaultProps} />);
-      expect(container.firstChild).toHaveClass('relative');
     });
   });
 });

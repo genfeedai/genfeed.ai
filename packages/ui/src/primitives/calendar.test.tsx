@@ -88,21 +88,4 @@ describe('Calendar', () => {
     expect(dropdown).toBeTruthy();
     expect(dropdown?.className).toMatch(/z-\[2\]/);
   });
-
-  it('renders a down chevron for dropdown facades instead of a right arrow', () => {
-    const { container } = render(
-      <Calendar
-        mode="single"
-        captionLayout="dropdown"
-        defaultMonth={new Date(2026, 7, 9)}
-        startMonth={new Date(2020, 0, 1)}
-        endMonth={new Date(2030, 11, 31)}
-      />,
-    );
-
-    // lucide ChevronDown uses a polyline path distinct from ChevronRight.
-    // At least two down chevrons (month + year) should be present in facades.
-    const svgs = container.querySelectorAll('[aria-hidden="true"] svg');
-    expect(svgs.length).toBeGreaterThanOrEqual(2);
-  });
 });

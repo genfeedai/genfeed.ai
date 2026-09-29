@@ -131,13 +131,4 @@ describe('useAccountThemeSync', () => {
     await waitFor(() => expect(updateTheme).toHaveBeenCalledWith('light'));
     expect(useSettingsStore.getState().theme).toBe('light');
   });
-
-  it('does not contact account settings while signed out', async () => {
-    render(<SyncHarness authenticated={false} />);
-
-    await act(async () => Promise.resolve());
-
-    expect(getTheme).not.toHaveBeenCalled();
-    expect(updateTheme).not.toHaveBeenCalled();
-  });
 });

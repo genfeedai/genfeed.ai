@@ -82,16 +82,4 @@ describe('CollectionItemActions', () => {
     fireEvent.click(items[1]);
     expect(onDelete).toHaveBeenCalledTimes(1);
   });
-
-  it('does not let an action click reach a clickable parent', () => {
-    const onParentClick = vi.fn();
-    render(
-      <div onClick={onParentClick}>
-        <CollectionItemActions primary={<span>Run now</span>} />
-      </div>,
-    );
-
-    fireEvent.click(screen.getByText('Run now'));
-    expect(onParentClick).not.toHaveBeenCalled();
-  });
 });

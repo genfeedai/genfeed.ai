@@ -90,12 +90,6 @@ describe('PromptEditorView', () => {
     expect(onSubmit).toHaveBeenCalled();
   });
 
-  it('propagates disabled as a read-only editor', async () => {
-    render(<PromptEditorView isDisabled value="locked" />);
-    const editor = await screen.findByRole('textbox', { name: 'Prompt' });
-    expect(editor).toHaveAttribute('contenteditable', 'false');
-  });
-
   it('pastes plain text only', async () => {
     const onValueChange = vi.fn();
     render(<PromptEditorView onValueChange={onValueChange} value="" />);

@@ -3,15 +3,6 @@ import MediaCanvasShell from '@ui/shell/media-canvas/MediaCanvasShell';
 import { describe, expect, it } from 'vitest';
 
 describe('MediaCanvasShell', () => {
-  it('renders the canvas children', () => {
-    render(
-      <MediaCanvasShell>
-        <div data-testid="canvas-content">content</div>
-      </MediaCanvasShell>,
-    );
-    expect(screen.getByTestId('canvas-content')).toBeInTheDocument();
-  });
-
   it('renders the title and meta inside the floating pill', () => {
     render(
       <MediaCanvasShell title="Mood board" meta="showing first 60">

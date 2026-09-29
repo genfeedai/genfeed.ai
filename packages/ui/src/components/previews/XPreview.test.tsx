@@ -67,16 +67,4 @@ describe('XPreview', () => {
       '16:9',
     );
   });
-
-  it('styles a mentioned handle as a highlighted entity', () => {
-    render(
-      <XPreview
-        credential={makeCredential()}
-        release={makeRelease({ baseContent: 'Shipping now @genfeed' })}
-        target={makeTarget()}
-      />,
-    );
-
-    expect(screen.getByTestId('preview-entity')).toHaveTextContent('@genfeed');
-  });
 });

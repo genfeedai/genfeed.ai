@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPlatformHomeDestinations,
   createPlatformHomeRoute,
-  filterConnectionsForPlatform,
   getPlatformConnectionHealth,
   getPlatformLiveHref,
   getPlatformRepliesHref,
@@ -21,17 +20,6 @@ describe('platform-home helpers', () => {
     expect(isSamePlatform('INSTAGRAM', Platform.INSTAGRAM)).toBe(true);
     expect(isSamePlatform('x', Platform.TWITTER)).toBe(true);
     expect(isSamePlatform('youtube', Platform.INSTAGRAM)).toBe(false);
-  });
-
-  it('filters brand connections to the requested platform', () => {
-    const connections = [
-      { credentialId: 'ig', platform: Platform.INSTAGRAM },
-      { credentialId: 'yt', platform: Platform.YOUTUBE },
-    ];
-
-    expect(
-      filterConnectionsForPlatform(connections, Platform.INSTAGRAM),
-    ).toEqual([connections[0]]);
   });
 
   it('maps a genuinely connected account onto connected / healthy / attention', () => {

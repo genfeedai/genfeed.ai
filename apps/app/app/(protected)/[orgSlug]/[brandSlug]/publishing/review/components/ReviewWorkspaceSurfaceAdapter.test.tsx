@@ -154,24 +154,6 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
     );
   });
 
-  it('renders the active review item in the context sidebar', () => {
-    renderAdapter({});
-
-    expect(screen.getByTestId('context-sidebar-outlet')).toHaveTextContent(
-      'Ship the review rail',
-    );
-    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
-  });
-
-  it('releases the right column on close so the workspace panes return', () => {
-    renderAdapter({});
-
-    fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
-
-    expect(screen.getByTestId('sidebar-selection')).toHaveTextContent('none');
-    expect(screen.queryByTestId('review-detail-panel')).toBeNull();
-  });
-
   it('brings the details back on a row tap, including the active row', () => {
     const { rerenderAdapter } = renderAdapter({});
     fireEvent.click(screen.getByRole('button', { name: 'Close sidebar' }));
@@ -201,16 +183,5 @@ describe('ReviewWorkspaceSurfaceAdapter', () => {
       'registered',
     );
     expect(screen.getByTestId('sidebar-state')).toHaveTextContent('open');
-  });
-
-  it('keeps the review item in the agent page context', () => {
-    renderAdapter({});
-
-    expect(setPageContext).toHaveBeenCalledWith(
-      expect.objectContaining({
-        draftType: 'review-item',
-        postContent: 'Ship the review rail',
-      }),
-    );
   });
 });

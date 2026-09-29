@@ -40,15 +40,4 @@ describe('ModalImageToVideo', () => {
       container.querySelector('[data-layout-mode="inflow"]'),
     ).toBeInTheDocument();
   });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(<ModalImageToVideo {...baseProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should apply correct styles and classes', () => {
-    const { container } = render(<ModalImageToVideo {...baseProps} />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
-  });
 });

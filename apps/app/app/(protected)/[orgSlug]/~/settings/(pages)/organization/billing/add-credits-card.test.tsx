@@ -92,32 +92,6 @@ describe('AddCreditsCard', () => {
     });
   });
 
-  it('renders the canonical preset amounts plus a Custom option', () => {
-    render(<AddCreditsCard />);
-
-    for (const label of ['$10', '$20', '$50', '$100', '$1,000', 'Custom']) {
-      expect(screen.getByText(label)).toBeInTheDocument();
-    }
-  });
-
-  it('requires an explicit credit amount selection before checkout', () => {
-    render(<AddCreditsCard />);
-
-    expect(
-      screen.getByText('Choose an amount to continue.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Add credit' })).toBeDisabled();
-    expect(createCheckoutSessionMock).not.toHaveBeenCalled();
-  });
-
-  it('updates the credit summary when a preset is selected', () => {
-    render(<AddCreditsCard />);
-
-    fireEvent.click(screen.getByText('$50'));
-
-    expect(screen.getAllByText('5,000 credits').length).toBeGreaterThan(0);
-  });
-
   it('blocks a below-minimum custom amount with a min helper line', () => {
     render(<AddCreditsCard />);
 

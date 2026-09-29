@@ -116,16 +116,4 @@ describe('publishing account sections', () => {
       screen.getByRole('link', { name: /cadenceReconnectAction/ }),
     ).toHaveAttribute('href', '/acme/studio/settings/integrations');
   });
-
-  it('keeps a long account name available through its title', () => {
-    const name = 'Studio account with a very long name across multiple teams';
-    render(
-      <AccountHealthSection
-        connections={[{ ...connections[1], name }]}
-        onRetry={vi.fn()}
-        state={{ status: 'success', data: [row] }}
-      />,
-    );
-    expect(screen.getByText(name)).toHaveAttribute('title', name);
-  });
 });

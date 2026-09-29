@@ -54,20 +54,6 @@ describe('NodeConfigPanel', () => {
     expect(screen.getByText('Resize')).toBeInTheDocument();
   });
 
-  it('should call onClose when close button is clicked', () => {
-    const onClose = vi.fn();
-    render(<NodeConfigPanel {...defaultProps} onClose={onClose} />);
-
-    // Button has icon only, no accessible name - use getAllByRole
-    const buttons = screen.getAllByRole('button');
-    // Find the close button (typically first button with X icon)
-    const closeButton = buttons[0];
-    if (closeButton) {
-      fireEvent.click(closeButton);
-      expect(onClose).toHaveBeenCalled();
-    }
-  });
-
   it('should not render when selectedNode is null', () => {
     render(<NodeConfigPanel {...defaultProps} selectedNode={null} />);
     // Panel should not render when no node is selected

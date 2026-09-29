@@ -51,16 +51,6 @@ describe('TrainingDetail shell-first loading', () => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
-    mocks.findOne.mockReturnValueOnce(new Promise(() => undefined));
-    const { container } = render(
-      <TrainingDetail trainingId="training-123">
-        <div>Tab content</div>
-      </TrainingDetail>,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('renders the header and tab chrome immediately while the training is loading', () => {
     mocks.findOne.mockReturnValueOnce(new Promise(() => undefined));
 

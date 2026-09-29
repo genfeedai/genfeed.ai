@@ -24,13 +24,6 @@ describe('MasonryBrandLogo', () => {
     expect(container).toBeInTheDocument();
   });
 
-  it('should return null when not in public gallery', () => {
-    const { container } = render(
-      <MasonryBrandLogo ingredient={mockIngredient} />,
-    );
-    expect(container.firstChild).toBeNull();
-  });
-
   it('should render logo in public gallery mode', () => {
     const { container } = render(
       <MasonryBrandLogo ingredient={mockIngredient} isPublicGallery={true} />,

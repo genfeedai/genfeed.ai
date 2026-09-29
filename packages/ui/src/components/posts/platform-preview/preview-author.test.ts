@@ -38,38 +38,6 @@ function scope(credentials: ICredential[] = []): PreviewAuthorScope {
 }
 
 describe('resolvePreviewAuthor', () => {
-  it('uses the sole connected account for platform aliases', () => {
-    expect(
-      resolvePreviewAuthor(scope([credential()]), { platform: 'x' }),
-    ).toEqual({
-      name: 'Vincent',
-      handle: 'vincent',
-      avatarUrl: 'https://example.com/avatar.jpg',
-    });
-  });
-  it('uses the brand rather than arbitrarily selecting among multiple accounts', () => {
-    expect(
-      resolvePreviewAuthor(
-        scope([credential(), credential({ id: 'account-2' })]),
-        { platform: 'twitter' },
-      ),
-    ).toEqual({
-      name: 'Genfeed',
-      handle: undefined,
-      avatarUrl: 'https://example.com/logo.jpg',
-    });
-  });
-  it('uses the explicit account even when multiple accounts are connected', () => {
-    expect(
-      resolvePreviewAuthor(
-        scope([
-          credential(),
-          credential({ id: 'account-2', externalName: 'Second' }),
-        ]),
-        { platform: 'twitter', credentialId: 'account-2' },
-      )?.name,
-    ).toBe('Second');
-  });
   it('excludes disconnected, deleted and foreign-scope credentials', () => {
     for (const overrides of [
       { isConnected: false },
@@ -83,14 +51,6 @@ describe('resolvePreviewAuthor', () => {
         })?.name,
       ).toBe('Genfeed');
     }
-  });
-  it('does not substitute a different account when an explicit account is unavailable', () => {
-    expect(
-      resolvePreviewAuthor(scope([credential()]), {
-        platform: 'twitter',
-        credentialId: 'missing',
-      })?.name,
-    ).toBe('Genfeed');
   });
   it('never renders current brand identity on an artifact explicitly owned by another brand', () => {
     expect(

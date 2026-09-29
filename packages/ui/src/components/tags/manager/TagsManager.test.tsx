@@ -41,13 +41,6 @@ describe('TagsManager', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <TagsManager ingredient={mockIngredient} onTagsChange={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <TagsManager ingredient={mockIngredient} onTagsChange={vi.fn()} />,

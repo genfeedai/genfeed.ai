@@ -28,12 +28,4 @@ describe('MasonryConfirmBridge', () => {
     // MasonryConfirmBridge renders null
     expect(container).toBeInTheDocument();
   });
-
-  it('should handle user interactions correctly', () => {
-    // This component is a side-effect bridge (opens modals via useEffect), no direct DOM interactions
-  });
-
-  it('should apply correct styles and classes', () => {
-    // This component renders null, no styles to test
-  });
 });

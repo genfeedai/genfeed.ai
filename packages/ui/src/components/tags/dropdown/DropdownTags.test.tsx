@@ -32,13 +32,6 @@ describe('DropdownTags', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <DropdownTags selectedTags={[]} onChange={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <DropdownTags selectedTags={[]} onChange={vi.fn()} />,

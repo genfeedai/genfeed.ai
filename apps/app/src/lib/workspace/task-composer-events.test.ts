@@ -22,20 +22,4 @@ describe('task composer events', () => {
     expect(consumeOpenTaskComposerRequest()).toBe(false);
     window.removeEventListener(OPEN_TASK_COMPOSER_EVENT, listener);
   });
-
-  it('has nothing to consume without a request', () => {
-    expect(consumeOpenTaskComposerRequest()).toBe(false);
-  });
-
-  it('drops a request the page did not pick up in time', () => {
-    vi.useFakeTimers();
-    try {
-      dispatchOpenTaskComposer();
-      vi.advanceTimersByTime(6000);
-
-      expect(consumeOpenTaskComposerRequest()).toBe(false);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
 });

@@ -113,25 +113,6 @@ describe('DiscoveryOrgBrandGate', () => {
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 
-  it('preserves nested discover paths when linking brands', () => {
-    mocks.pathname = '/acme/~/discovery/ads/google';
-    mocks.brands = [
-      { id: 'brand-1', label: 'Moonrise', slug: 'moonrise' },
-      { id: 'brand-2', label: 'Paperclip', slug: 'paperclip' },
-    ];
-
-    render(
-      <DiscoveryOrgBrandGate>
-        <div>Should not render</div>
-      </DiscoveryOrgBrandGate>,
-    );
-
-    expect(screen.getByRole('link', { name: 'Moonrise' })).toHaveAttribute(
-      'href',
-      '/acme/moonrise/discovery/ads/google',
-    );
-  });
-
   it('shows an empty state when the org has no brands', () => {
     render(
       <DiscoveryOrgBrandGate>

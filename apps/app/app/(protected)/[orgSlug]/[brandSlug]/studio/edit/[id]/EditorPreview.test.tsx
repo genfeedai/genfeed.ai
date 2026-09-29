@@ -115,30 +115,6 @@ describe('EditorPreview', () => {
     );
   });
 
-  it('renders the empty editor preview and wires player props', () => {
-    render(
-      <EditorPreview
-        tracks={[]}
-        width={1920}
-        height={1080}
-        fps={30}
-        totalFrames={0}
-      />,
-    );
-
-    expect(
-      screen.getByText('Add a video track to start editing'),
-    ).toBeVisible();
-    expect(screen.getByTestId('mock-player')).toHaveAttribute(
-      'data-props',
-      expect.stringContaining('"durationInFrames":1'),
-    );
-    expect(screen.getByTestId('mock-player')).toHaveAttribute(
-      'data-props',
-      expect.stringContaining('"compositionWidth":1920'),
-    );
-  });
-
   it('renders video, text, and audio tracks with filters and volumes', () => {
     render(
       <EditorPreview

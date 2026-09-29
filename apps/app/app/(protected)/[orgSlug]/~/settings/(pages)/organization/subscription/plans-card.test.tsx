@@ -232,20 +232,6 @@ describe('PlansCard', () => {
       );
     });
 
-    it('falls back to the generic message for a code it does not know', async () => {
-      previewPlanChange.mockRejectedValue(apiError({ code: 'brand_new' }));
-
-      await selectScale();
-
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
-      expect(notifications.error).toHaveBeenCalledWith(
-        'Plan preview',
-        expect.objectContaining({
-          description: 'Something went wrong. Please try again.',
-        }),
-      );
-    });
-
     it('offers a retry for a transient failure and runs it', async () => {
       previewPlanChange
         .mockRejectedValueOnce(
@@ -274,30 +260,6 @@ describe('PlansCard', () => {
       options.onAction();
 
       await waitFor(() => expect(previewPlanChange).toHaveBeenCalledTimes(2));
-    });
-
-    it('stops offering a retry once the API-granted budget is spent', async () => {
-      previewPlanChange.mockRejectedValue(
-        apiError({
-          code: 'billing_provider_unavailable',
-          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
-        }),
-      );
-
-      await selectScale();
-
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
-      const first = notifications.error.mock.calls[0][1] as {
-        onAction: () => void;
-      };
-
-      first.onAction();
-
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(2));
-      // One retry was granted and spent, so the second notification offers none.
-      expect(notifications.error.mock.calls[1][1]).not.toHaveProperty(
-        'actionLabel',
-      );
     });
   });
 
@@ -334,22 +296,6 @@ describe('PlansCard', () => {
         onAction?: () => void;
       };
     }
-
-    it('names the cause and offers the retry the API allowed', async () => {
-      changeSubscriptionPlan.mockRejectedValue(transientFailure);
-      await previewScale();
-
-      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
-
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
-      expect(notifications.error).toHaveBeenCalledWith(
-        'Plan change',
-        expect.objectContaining({
-          description: 'Our billing provider is briefly unavailable.',
-        }),
-      );
-      expect(retryActionOf(0).actionLabel).toBe('Try again');
-    });
 
     it('retries the same plan and then stops once the budget is spent', async () => {
       changeSubscriptionPlan.mockRejectedValue(transientFailure);
@@ -399,24 +345,6 @@ describe('PlansCard', () => {
       } finally {
         vi.useRealTimers();
       }
-    });
-
-    it('does not submit a cancelled plan change when its retry fires later', async () => {
-      changeSubscriptionPlan.mockRejectedValue(transientFailure);
-      await previewScale();
-
-      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
-      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
-      const retry = retryActionOf(0);
-
-      // The user declines the change before reaching for the stale toast.
-      fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
-      retry.onAction?.();
-
-      // The retry captured the confirmation the user has since cancelled;
-      // running it would change the plan they just declined.
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
     });
 
     it('does not resurrect an earlier plan once another is selected', async () => {

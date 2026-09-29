@@ -6,7 +6,6 @@ import {
   formatReviewItemStatus,
   getReviewItemBadgeStatus,
   getReviewItemTitle,
-  isReviewItemSelectable,
 } from './review-item.helpers';
 
 const baseItem = {
@@ -65,16 +64,6 @@ describe('review-item.helpers', () => {
         prompt: '',
       }),
     ).toBe('Draft post');
-  });
-
-  it('only marks completed ready items as selectable', () => {
-    expect(isReviewItemSelectable(baseItem)).toBe(true);
-    expect(
-      isReviewItemSelectable({
-        ...baseItem,
-        status: BatchItemStatus.PENDING,
-      }),
-    ).toBe(false);
   });
 
   it('builds a target preview from the stored platform and media', () => {

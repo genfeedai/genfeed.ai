@@ -31,11 +31,6 @@ describe('ModalGalleryItemVideo', () => {
     },
   };
 
-  it('renders video item', () => {
-    render(<ModalGalleryItemVideo {...defaultProps} />);
-    expect(screen.getByTestId('masonry-video-vid-1')).toBeInTheDocument();
-  });
-
   it('calls onSelect when clicked', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();

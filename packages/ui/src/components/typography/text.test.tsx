@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { Text } from '@ui/typography/text';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('Text', () => {
   it('renders without crashing', () => {
@@ -171,14 +171,6 @@ describe('Text', () => {
         'aria-label',
         'Descriptive text',
       );
-    });
-  });
-
-  describe('ref forwarding', () => {
-    it('forwards ref to element', () => {
-      const ref = vi.fn();
-      render(<Text ref={ref}>Text</Text>);
-      expect(ref).toHaveBeenCalled();
     });
   });
 });

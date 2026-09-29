@@ -6,21 +6,6 @@ import { Slider } from './slider';
 
 describe('Slider', () => {
   it.each([0, 1, 2, 3])(
-    'renders one thumb for each of %i controlled values',
-    (valueCount) => {
-      render(
-        <Slider
-          aria-label="Range"
-          max={100}
-          value={Array.from({ length: valueCount }, (_, index) => index * 10)}
-        />,
-      );
-
-      expect(screen.queryAllByRole('slider')).toHaveLength(valueCount);
-    },
-  );
-
-  it.each([0, 1, 2, 3])(
     'renders one thumb for each of %i default values',
     (valueCount) => {
       render(

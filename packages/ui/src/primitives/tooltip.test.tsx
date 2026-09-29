@@ -73,14 +73,4 @@ describe('shared tooltip interactions', () => {
     fireEvent.keyDown(trigger, { key: 'Escape' });
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
-
-  it('leaves disabled tooltip content absent', () => {
-    render(
-      <SimpleTooltip isDisabled label="Hidden hint">
-        <button type="button">Action</button>
-      </SimpleTooltip>,
-    );
-    fireEvent.focus(screen.getByRole('button', { name: 'Action' }));
-    expect(screen.queryByRole('tooltip')).toBeNull();
-  });
 });

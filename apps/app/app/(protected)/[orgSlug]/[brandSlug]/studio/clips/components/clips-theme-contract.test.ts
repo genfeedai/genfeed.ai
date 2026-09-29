@@ -12,18 +12,6 @@ const CLIPS_CHROME_SOURCES = [
 ] as const;
 
 describe('Clips theme contract', () => {
-  it.each(CLIPS_CHROME_SOURCES)(
-    'uses semantic theme colors for ordinary chrome in %s',
-    (relativePath) => {
-      const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
-
-      expect(source).not.toMatch(/(?:bg|border|text)-zinc-\d+/);
-      expect(source).not.toMatch(
-        /(?:bg|border|text)-(?:black|white)(?:\s|["'`/])/,
-      );
-    },
-  );
-
   it('owns page chrome through a single Container topbar', () => {
     const source = readFileSync(
       join(process.cwd(), CLIPS_CHROME_SOURCES[0]),
@@ -34,18 +22,5 @@ describe('Clips theme contract', () => {
     expect(source).not.toContain('SectionTopbar');
     expect(source).not.toContain('max-w-6xl');
     expect(source).not.toContain('max-w-4xl');
-  });
-
-  it('aligns source choice icons with their labels at canvas width', () => {
-    const source = readFileSync(
-      join(
-        process.cwd(),
-        'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
-      ),
-      'utf8',
-    );
-
-    expect(source).toContain('flex w-full items-center justify-center gap-2.5');
-    expect(source).not.toContain('max-w-3xl');
   });
 });

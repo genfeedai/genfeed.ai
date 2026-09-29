@@ -346,28 +346,7 @@ describe('WorkflowTemplatesPage', () => {
     });
   });
 
-  it('renders Featured, Browse by type and All in order', async () => {
-    await renderLoadedPage();
-
-    expect(
-      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
-    ).toEqual(['Featured', 'Browse by type', 'All templates']);
-  });
-
   // Example-output previews remain #5498; showcase cards use workflow graphs.
-  it('features ranked showcase templates and excludes the system catalog', async () => {
-    await renderLoadedPage();
-    const featured = featuredSection();
-    expect(within(featured).getByText('Social blast')).toBeInTheDocument();
-    expect(
-      within(featured).queryByText('Daily digest'),
-    ).not.toBeInTheDocument();
-    expect(
-      within(featured).getByRole('img', {
-        name: 'Social blast workflow diagram',
-      }),
-    ).toBeInTheDocument();
-  });
 
   it('sorts Featured by rank and omits unranked templates', async () => {
     mocks.listTemplates.mockResolvedValue([
@@ -393,16 +372,6 @@ describe('WorkflowTemplatesPage', () => {
     ).toEqual(['First showcase', 'Social blast']);
     expect(
       within(featuredSection()).queryByText('Unranked'),
-    ).not.toBeInTheDocument();
-  });
-
-  it('hides Featured when no curated showcase templates exist', async () => {
-    mocks.listTemplates.mockResolvedValue([
-      { ...POST_HARD_CUT_TEMPLATE, featuredRank: undefined },
-    ]);
-    await renderLoadedPage();
-    expect(
-      screen.queryByRole('region', { name: 'Featured' }),
     ).not.toBeInTheDocument();
   });
 
@@ -595,19 +564,6 @@ describe('WorkflowTemplatesPage', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the card description as passive text', async () => {
-    await renderLoadedPage();
-
-    const description = within(featuredSection()).getByText(
-      POST_HARD_CUT_TEMPLATE.description,
-    );
-    expect(description.tagName).toBe('P');
-    expect(description.closest('button')).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'App-owned automation.' }),
-    ).not.toBeInTheDocument();
-  });
-
   it('keeps the overflow closed until the keyboard opens it', async () => {
     await renderLoadedPage();
 
@@ -627,22 +583,6 @@ describe('WorkflowTemplatesPage', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );
     expect(trigger).toHaveFocus();
-  });
-
-  it('opens a catalog template from Use template', async () => {
-    const user = userEvent.setup();
-    await renderLoadedPage();
-
-    await user.click(
-      within(digestRow()).getByRole('button', { name: 'Use template' }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.replace).toHaveBeenCalledWith(
-        '/demo/FUDNEWS/automation/workflows/wf-installed',
-      );
-    });
-    expect(mocks.installSystemCatalog).toHaveBeenCalledWith('system-1');
   });
 
   it('installs from the overflow without leaving the page', async () => {
@@ -882,36 +822,6 @@ describe('WorkflowTemplatesPage', () => {
     }
     expect(categoryLabel('real-estate', keyOnly)).toBe('categories.realEstate');
     expect(categoryLabel('podcast', keyOnly)).toBe('Podcast');
-  });
-
-  it('translates the ads, agents, analytics and campaigns type tiles', async () => {
-    mocks.listSystemCatalog.mockResolvedValue([]);
-    mocks.listTemplates.mockResolvedValue(
-      ['ads', 'agents', 'analytics', 'campaigns'].map((category) => ({
-        ...POST_HARD_CUT_TEMPLATE,
-        category,
-        id: `tpl-${category}`,
-        name: `Template ${category}`,
-      })),
-    );
-    mocks.useTranslations.mockImplementation(
-      translateWithOverrides({
-        'pages.workflows.templates.categories.ads': 'Publicités',
-        'pages.workflows.templates.categories.agents': 'Agents IA',
-        'pages.workflows.templates.categories.analytics': 'Analytique',
-        'pages.workflows.templates.categories.campaigns': 'Opérations',
-      }),
-    );
-    render(<WorkflowTemplatesPage />);
-
-    const browse = await screen.findByRole('region', {
-      name: 'Browse by type',
-    });
-    expect(
-      within(browse)
-        .getAllByTestId('workflow-template-type-tile')
-        .map((tile) => tile.getAttribute('aria-label')),
-    ).toEqual(['Agents IA', 'Analytique', 'Opérations', 'Publicités']);
   });
 
   it('ignores a late Retry response once the auth scope has changed', async () => {

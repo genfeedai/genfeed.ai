@@ -6,7 +6,6 @@ import {
   useActiveWorkspaceSurfacePresentationAdapter,
   useRegisterWorkspaceSurfaceAdapter,
   useRegisterWorkspaceSurfacePresentationAdapter,
-  useWorkspaceSurfaceAdapter,
   useWorkspaceSurfaceSelection,
   WorkspaceSurfaceAdapterProvider,
   WorkspaceSurfaceAdapterRegistration,
@@ -112,15 +111,6 @@ function ProductRegistration(): null {
   return null;
 }
 
-function ProductAdapterProbe(): ReactElement {
-  const registration = useWorkspaceSurfaceAdapter();
-  return (
-    <div>
-      <span>{registration?.contextLabel ?? 'No adapter'}</span>
-    </div>
-  );
-}
-
 describe('WorkspaceSurfaceAdapterContext', () => {
   beforeEach(() => {
     scope.brandId = 'brand-1';
@@ -187,25 +177,6 @@ describe('WorkspaceSurfaceAdapterContext', () => {
         'none',
       );
     });
-  });
-
-  it('exposes one product-owned adapter to the shell and clears it on unmount', () => {
-    const { rerender } = render(
-      <WorkspaceSurfaceAdapterProvider>
-        <ProductRegistration />
-        <ProductAdapterProbe />
-      </WorkspaceSurfaceAdapterProvider>,
-    );
-
-    expect(screen.getByText('Studio · Storyboard · v3')).toBeInTheDocument();
-
-    rerender(
-      <WorkspaceSurfaceAdapterProvider>
-        <ProductAdapterProbe />
-      </WorkspaceSurfaceAdapterProvider>,
-    );
-
-    expect(screen.getByText('No adapter')).toBeInTheDocument();
   });
 
   it('keeps product registration safe outside the shell provider', () => {

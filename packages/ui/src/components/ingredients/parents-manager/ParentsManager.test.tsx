@@ -11,20 +11,6 @@ describe('ParentsManager', () => {
     parent: null,
   } as IIngredient;
 
-  it('should render without crashing', () => {
-    const { container } = render(
-      <ParentsManager ingredient={ingredient} onParentsChange={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
-  it('should handle user interactions correctly', () => {
-    const { container } = render(
-      <ParentsManager ingredient={ingredient} onParentsChange={vi.fn()} />,
-    );
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <ParentsManager ingredient={ingredient} onParentsChange={vi.fn()} />,

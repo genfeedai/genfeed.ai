@@ -55,11 +55,6 @@ describe('MasonryGrid', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should show empty state when no ingredients', () => {
-    const { container } = render(<MasonryGrid {...defaultProps} />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('should show skeleton when loading', () => {
     const { getByTestId } = render(
       <MasonryGrid {...defaultProps} isLoading={true} />,

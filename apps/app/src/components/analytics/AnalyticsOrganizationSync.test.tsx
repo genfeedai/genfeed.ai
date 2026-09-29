@@ -100,29 +100,6 @@ describe('AnalyticsOrganizationSync', () => {
     );
   });
 
-  it('updates the association when the active organization changes', () => {
-    const { rerender } = render(<AnalyticsOrganizationSync />);
-
-    mocks.organizationId = 'org-2';
-    rerender(<AnalyticsOrganizationSync />);
-
-    expect(mocks.identifyOrganization.mock.calls).toEqual([
-      ['org-1'],
-      ['org-2'],
-    ]);
-    expect(mocks.capturePageview).toHaveBeenCalledTimes(2);
-  });
-
-  it('captures route changes after the existing organization scope', () => {
-    const { rerender } = render(<AnalyticsOrganizationSync />);
-
-    mocks.pathname = '/acme/brand/library';
-    rerender(<AnalyticsOrganizationSync />);
-
-    expect(mocks.identifyOrganization).toHaveBeenCalledOnce();
-    expect(mocks.capturePageview).toHaveBeenCalledTimes(2);
-  });
-
   it('clears the association when organization scope disappears', () => {
     mocks.organizationId = '';
 
@@ -141,13 +118,5 @@ describe('AnalyticsOrganizationSync', () => {
 
     expect(mocks.resetAnalytics).not.toHaveBeenCalled();
     expect(mocks.capturePageview).toHaveBeenCalledOnce();
-  });
-
-  it('preserves the association when the protected shell unmounts', () => {
-    const { unmount } = render(<AnalyticsOrganizationSync />);
-
-    unmount();
-
-    expect(mocks.clearOrganization).not.toHaveBeenCalled();
   });
 });

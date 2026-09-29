@@ -311,11 +311,6 @@ describe('BrandPerformanceChart', () => {
   });
 
   describe('Data Sorting and Limiting', () => {
-    it('renders chart with provided data', () => {
-      render(<BrandPerformanceChart data={mockData} />);
-      expect(screen.getByTestId('bar-chart')).toBeInTheDocument();
-    });
-
     it('handles data with more than 10 brands', () => {
       render(<BrandPerformanceChart data={mockDataLarge} />);
       expect(screen.getByTestId('bar-chart')).toBeInTheDocument();

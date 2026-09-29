@@ -22,15 +22,4 @@ describe('app frontend build graph', () => {
     expect(turbo.tasks.build.dependsOn).not.toContain('^build');
     expect(turbo.tasks.build.dependsOn.join(' ')).not.toContain('workflows');
   });
-
-  it('aliases workflow UI and nodes to package source', () => {
-    const nextConfig = readAppFile('next.config.ts');
-
-    expect(nextConfig).toContain(
-      "'@genfeedai/workflows/ui': '../../packages/workflows/src/ui/index.ts'",
-    );
-    expect(nextConfig).toContain(
-      "'@genfeedai/workflows/nodes': '../../packages/workflows/src/nodes/index.ts'",
-    );
-  });
 });

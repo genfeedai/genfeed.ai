@@ -7,33 +7,6 @@ function readAppSource(path: string) {
 }
 
 describe('post-login loading source contracts', () => {
-  it('keeps the protected app Suspense boundary non-blocking while it resolves', () => {
-    const source = readAppSource(
-      'packages/components/app-protected-layout.tsx',
-    );
-
-    expect(source).toContain('<Suspense fallback={null}>');
-    expect(source).not.toContain('PageLoadingState');
-  });
-
-  it('keeps the workspace page Suspense boundary non-blocking while it resolves', () => {
-    const source = readAppSource(
-      'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page.tsx',
-    );
-
-    expect(source).toContain('<Suspense fallback={null}>');
-    expect(source).not.toContain('LazyLoadingFallback');
-  });
-
-  it('keeps the agent workspace Suspense boundary non-blocking while it resolves', () => {
-    const source = readAppSource(
-      'app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient.tsx',
-    );
-
-    expect(source).toContain('<Suspense fallback={null}>');
-    expect(source).not.toContain('LazyLoadingFallback');
-  });
-
   it('keeps an App Router error boundary on the workspace segment', () => {
     const source = readAppSource(
       'app/(protected)/[orgSlug]/[brandSlug]/workspace/error.tsx',

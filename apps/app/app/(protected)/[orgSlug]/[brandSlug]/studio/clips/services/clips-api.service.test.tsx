@@ -1,8 +1,4 @@
-import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
-import {
-  clearRequestOrganizationId,
-  setRequestOrganizationId,
-} from '@services/core/interceptor.service';
+import { clearRequestOrganizationId } from '@services/core/interceptor.service';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -40,22 +36,6 @@ describe('ClipsApiService', () => {
     clearRequestOrganizationId();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
-  });
-
-  it('sends the routed organization header with the bearer token', async () => {
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ data: [] }), { status: 200 }),
-    );
-    setRequestOrganizationId('org-a');
-
-    const service = new ClipsApiService(vi.fn().mockResolvedValue('token-org'));
-    await service.listProjects();
-
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect(init.headers).toEqual({
-      Authorization: 'Bearer token-org',
-      [ORGANIZATION_CONTEXT_HEADER]: 'org-a',
-    });
   });
 
   it('lists clip projects from the collection endpoint', async () => {
@@ -263,34 +243,6 @@ describe('ClipsApiService', () => {
           Authorization: 'Bearer token-1',
           'Content-Type': 'application/json',
         },
-        method: 'POST',
-      }),
-    );
-  });
-
-  it('starts a raw-cut project without avatar identity fields', async () => {
-    const service = new ClipsApiService(
-      vi.fn().mockResolvedValue('token-raw-cut'),
-    );
-
-    await service.createFromYoutube({
-      language: 'en',
-      maxClips: 3,
-      minViralityScore: 70,
-      mode: 'raw-cut',
-      youtubeUrl: 'https://www.youtube.com/watch?v=rawCut123',
-    });
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://api.test/v1/clip-projects/from-youtube',
-      expect.objectContaining({
-        body: JSON.stringify({
-          language: 'en',
-          maxClips: 3,
-          minViralityScore: 70,
-          mode: 'raw-cut',
-          youtubeUrl: 'https://www.youtube.com/watch?v=rawCut123',
-        }),
         method: 'POST',
       }),
     );

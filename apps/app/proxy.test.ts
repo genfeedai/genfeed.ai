@@ -282,19 +282,6 @@ describe('proxy', () => {
     },
   );
 
-  it('repairs an API namespace poisoned workspace URL from canonical access data', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/api/werwer/workspace/inbox/unread'),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/inbox/unread',
-    );
-  });
-
   // The service worker precaches /~offline at install time. If the proxy
   // redirected it to /login, that redirect would be stored as the offline
   // fallback and a signed-in user with no network would see a login page.
@@ -330,32 +317,6 @@ describe('proxy', () => {
       );
     },
   );
-
-  it('redirects a signed-in user on /login without callbackUrl to workspace overview', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/login'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
-
-  it('ignores an API callbackUrl when redirecting a signed-in user', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/login', {
-        search: '?callbackUrl=%2Fapi%2Fversion',
-      }),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
 
   it.each([
     '/api#fragment',
@@ -493,15 +454,6 @@ describe('proxy', () => {
     );
   });
 
-  it('keeps logout reachable for a signed-in user', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/logout'));
-
-    expect(response.status).not.toBe(307);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
   it('redirects a signed-out user on a protected route to /login preserving the destination', async () => {
     // No session cookie → getBetterAuthSessionCookie returns null → the auth
     // gate sends any non-public protected route to /login. Finding #25: the
@@ -540,45 +492,6 @@ describe('proxy', () => {
     );
   });
 
-  it('lets signed-out users render the agent-auth claim step', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedOutRequest(
-        '/agent-auth/claim',
-        `?claim_attempt_token=${'a'.repeat(32)}`,
-      ),
-    );
-
-    expect(response.status).not.toBe(307);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('does not expose similarly prefixed agent-auth routes without a session', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedOutRequest('/agent-auth/claim-preview'),
-    );
-
-    expect(response.status).toBe(307);
-    expect(new URL(response.headers.get('location') ?? '').pathname).toBe(
-      '/login',
-    );
-  });
-
-  it.each(['/forgot-password', '/reset-password'])(
-    'lets signed-out users render public reset route %s',
-    async (pathname) => {
-      const { default: proxy } = await import('./proxy');
-
-      const response = await proxy(makeSignedOutRequest(pathname));
-
-      expect(response.status).not.toBe(307);
-      expect(response.headers.get('location')).toBeNull();
-    },
-  );
-
   it.each([
     ['/acme/~/automation/workflows', '/acme/~/automation/workflows'],
     [
@@ -598,17 +511,6 @@ describe('proxy', () => {
 
     const response = await proxy(
       makeSignedInRequest(pathname, { search: '?view=runs' }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('does not interpret the platform Admin workflow page as tenant scope', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest(APP_ROUTES.ADMIN.AUTOMATION.WORKFLOWS),
     );
 
     expect(response.status).toBe(200);
@@ -640,77 +542,6 @@ describe('proxy', () => {
     );
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
       'http://localhost:3010/v1/auth/bootstrap',
-    );
-  });
-
-  it('redirects signed-in root to the active workspace overview', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
-
-  it('preserves root task context for workspace overview', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/', {
-        search: '?taskSource=workspace&taskId=task-42',
-      }),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview?taskSource=workspace&taskId=task-42',
-    );
-  });
-
-  it('redirects signed-in root to the shared brand step when a seeded brand exists but onboarding is incomplete', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            access: { brandId: 'brand_1', isOnboardingCompleted: false },
-            brands: [{ id: 'brand_1', slug: 'default' }],
-            currentUser: {
-              id: 'user_1',
-              isOnboardingCompleted: false,
-              onboardingStepsCompleted: [],
-            },
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
     );
   });
 
@@ -818,23 +649,6 @@ describe('proxy', () => {
         expect(fetchMock).not.toHaveBeenCalled();
       },
     );
-
-    it('keeps the bypass cookie inert outside a Playwright test build', async () => {
-      vi.stubEnv('PLAYWRIGHT_TEST', undefined);
-      vi.stubEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST', undefined);
-      const { default: proxy } = await import('./proxy');
-
-      const response = await proxy(
-        makePlaywrightBypassRequest('/publishing/posts', {
-          workspace: '/test-org/brand-1',
-        }),
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/login?callbackUrl=%2Fpublishing%2Fposts',
-      );
-    });
   });
 
   describe('agent-first onboarding', () => {
@@ -875,48 +689,6 @@ describe('proxy', () => {
         return new Response('not found', { status: 404 });
       });
 
-    it('redirects an incomplete SaaS user on a protected route to the shared brand step', async () => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
-    });
-
-    it('pulls an incomplete SaaS user off agent onboarding until brand is confirmed', async () => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/~/agent/onboarding'),
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
-    });
-
-    it('lets a SaaS user stay on agent onboarding after the shared brand step', async () => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser([{ isActive: true, slug: 'acme' }], ['brand']);
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/~/agent/onboarding'),
-      );
-
-      expect(response.headers.get('location')).toBeNull();
-    });
-
     it('moves an incomplete user off a leftover org onboarding URL onto their membership org', async () => {
       vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
       mockIncompleteUser([{ isActive: true, slug: 'acme' }], ['brand']);
@@ -932,20 +704,6 @@ describe('proxy', () => {
       );
     });
 
-    it('redirects an incomplete Community user on a protected route to the shared brand step', async () => {
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
-    });
-
     it('lets a Community user stay on agent onboarding after the shared brand step', async () => {
       mockIncompleteUser([{ isActive: true, slug: 'acme' }], ['brand']);
 
@@ -956,18 +714,6 @@ describe('proxy', () => {
 
       expect(response.headers.get('location')).toBeNull();
     });
-
-    it.each(['/onboarding', '/onboarding/brand'])(
-      'keeps the shared brand entry %s reachable for a signed-in Community user',
-      async (pathname) => {
-        mockIncompleteUser();
-
-        const { default: proxy } = await import('./proxy');
-        const response = await proxy(makeSignedInRequest(pathname));
-
-        expect(response.headers.get('location')).toBeNull();
-      },
-    );
 
     it.each(['/onboarding/providers', '/onboarding/summary'])(
       'does not bounce a signed-in user to brand setup when bootstrap cannot be read from %s',
@@ -1019,87 +765,11 @@ describe('proxy', () => {
       },
     );
 
-    it('leaves signed-out visitors on the classic wizard route untouched', async () => {
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(makeSignedOutRequest('/onboarding/brand'));
-
-      expect(response.headers.get('location')).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
-    });
-
-    it('renders the classic wizard for the desktop client on a self-hosted install', async () => {
-      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(makeSignedInRequest('/onboarding/brand'));
-
-      expect(response.headers.get('location')).toBeNull();
-    });
-
-    it('does not route self-hosted desktop users into web agent onboarding', async () => {
-      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
-
-      expect(response.headers.get('location')).toBeNull();
-    });
-
     it('renders the classic wizard when the Community workspace slug cannot be resolved', async () => {
       mockIncompleteUser([]);
 
       const { default: proxy } = await import('./proxy');
       const response = await proxy(makeSignedInRequest('/onboarding/brand'));
-
-      expect(response.headers.get('location')).toBeNull();
-    });
-
-    it('does not consult a runtime flag before opening SaaS agent onboarding', async () => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
-
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
-      expect(fetchMock).not.toHaveBeenCalledWith(
-        expect.stringContaining('/feature-flags/'),
-        expect.anything(),
-      );
-    });
-
-    it('sends incomplete SaaS users to brand setup while organization provisioning is pending', async () => {
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser([]);
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(makeSignedInRequest('/settings'));
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/onboarding/brand',
-      );
-    });
-
-    it('does not route cloud-connected desktop users into web agent onboarding', async () => {
-      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
-      vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
-      mockIncompleteUser();
-
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeSignedInRequest('/acme/default/workspace'),
-      );
 
       expect(response.headers.get('location')).toBeNull();
     });
@@ -1147,46 +817,6 @@ describe('proxy', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/acme/default/workspace/overview',
-    );
-  });
-
-  it('redirects signed-in root using the available brand when none is selected', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            access: {},
-            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
     );
   });
 
@@ -1245,101 +875,6 @@ describe('proxy', () => {
 
   // No brand yet: send signed-in root to the shared brand step instead of
   // holding them on `/` or bouncing them into the providers wizard.
-  it('sends signed-in root to brand setup when no workspace slug resolves yet', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            brands: [],
-            currentUser: { id: 'user_1' },
-          }),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
-    );
-  });
-
-  it('redirects signed-in root using the active brand when multiple brands exist', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            access: { brandId: 'brand_1' },
-            brands: [
-              { id: 'brand_1', slug: 'moonrise-studio' },
-              { id: 'brand_2', slug: 'second-brand' },
-            ],
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
-
-  it('falls through on root when slug resolution fails', async () => {
-    // Token exchange succeeds but bootstrap (slug resolution) returns an error.
-    // Both resolveCanonicalProtectedPath and shouldRedirectSignedInUserToOnboarding
-    // return null/false → falls through to NextResponse.next() (200).
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-      return new Response('error', { status: 500 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/'));
-
-    expect(response.status).toBe(200);
-  });
 
   it('falls through on root when slug resolution fetch rejects', async () => {
     // Token exchange succeeds; bootstrap fetch throws (network error).
@@ -1392,17 +927,6 @@ describe('proxy', () => {
     }
   });
 
-  it('redirects signed-in flat protected routes to the canonical org and brand path', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/workspace'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
-
   it.each([
     [
       '/acme/moonrise-studio/workspace/tasks',
@@ -1421,19 +945,6 @@ describe('proxy', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('scopes the canonical flat tasks route', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/workspace/tasks', { search: '?view=kanban' }),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/tasks?view=kanban',
-    );
   });
 
   it('redirects signed-in flat protected routes to org views when no brand is selected', async () => {
@@ -1532,48 +1043,6 @@ describe('proxy', () => {
     );
   });
 
-  it('keeps flat discovery routes on their org surface when no brand is selected', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            access: {},
-            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    // `/~/discovery` mirrors the brand tree in full, so a brandless org keeps the
-    // requested surface instead of collapsing onto the org overview.
-    const adsResponse = await proxy(makeSignedInRequest('/discovery/ads'));
-
-    expect(adsResponse.status).toBe(307);
-    expect(adsResponse.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/discovery/ads',
-    );
-  });
-
   it('keeps personal settings canonical when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
@@ -1615,46 +1084,6 @@ describe('proxy', () => {
     expect(personalHome.headers.get('location')).toBeNull();
     expect(notifications.status).toBe(200);
     expect(notifications.headers.get('location')).toBeNull();
-  });
-
-  it('redirects signed-in bare protected routes to agent onboarding when no projects exist', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            brands: [],
-            currentUser: { id: 'user_1' },
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/workspace'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/onboarding/brand',
-    );
   });
 
   it('redirects scoped app routes to agent onboarding when no projects exist', async () => {
@@ -1798,32 +1227,6 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in flat agent to the canonical brand-scoped agent path', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/agent'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/agent',
-    );
-  });
-
-  it('resolves signed-in root from authenticated access instead of a stale scoped referrer', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/', {
-        referer: 'http://localhost:3000/default/default/agent',
-      }),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-  });
-
   it('recovers signed-in root from a stale workspace cache and signed cookie', async () => {
     vi.stubEnv('COOKIE_SECRET', 'test-secret-at-least-32-chars-long!!');
     vi.resetModules();
@@ -1926,24 +1329,6 @@ describe('proxy', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('rejects an absolute next-url as proof of a mounted app shell', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    await proxy(
-      makeSignedInRequest('/acme/moonrise-studio/agent/next-thread', {
-        nextUrl: 'https://attacker.example/acme/moonrise-studio/agent/thread-1',
-        rsc: true,
-      }),
-    );
-
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/token',
-    );
-    expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
-      'http://localhost:3010/v1/auth/bootstrap',
-    );
-  });
-
   it('keeps strict auth bootstrap for a scoped RSC request without a mounted scoped shell', async () => {
     const { default: proxy } = await import('./proxy');
 
@@ -1980,57 +1365,6 @@ describe('proxy', () => {
     );
     expect(fetchMock.mock.calls.map(([input]) => String(input))).toContain(
       'http://localhost:3010/v1/auth/bootstrap',
-    );
-  });
-
-  it('redirects signed-in flat agent to org scope when no brand exists', async () => {
-    fetchMock.mockImplementation(async (input: string | URL) => {
-      const url = String(input);
-
-      if (url.endsWith('/auth/token')) {
-        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
-          status: 200,
-        });
-      }
-
-      if (url.endsWith('/auth/bootstrap')) {
-        return new Response(
-          JSON.stringify({
-            access: {},
-            brands: [],
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith('/organizations?mine=true')) {
-        return new Response(
-          JSON.stringify([{ isActive: true, slug: 'acme' }]),
-          { status: 200 },
-        );
-      }
-
-      return new Response('not found', { status: 404 });
-    });
-
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/agent'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/agent',
-    );
-  });
-
-  it('keeps signed-in personal settings on the canonical personal route', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/settings'));
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/settings/personal',
     );
   });
 
@@ -2114,35 +1448,6 @@ describe('proxy', () => {
       expect(setCookieHeader).toContain('gf_ws');
       expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
     });
-
-    it('routes root using the session as authority', async () => {
-      const { default: proxy } = await import('./proxy');
-      const response = await proxy(
-        makeDesktopRequest('/', { desktopToken, hasSession }),
-      );
-
-      expect(response.status).toBe(307);
-      expect(response.headers.get('location')).toBe(
-        hasSession
-          ? 'http://localhost:3000/acme/moonrise-studio/workspace/overview'
-          : 'http://localhost:3000/login',
-      );
-    });
-  });
-
-  it('recognizes a remote desktop request without a desktop build flag', async () => {
-    const { default: proxy } = await import('./proxy');
-    const response = await proxy(
-      makeDesktopRequest('/workspace', {
-        desktopToken: 'gf_valid_desktop_token',
-        hasSession: true,
-      }),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
   });
 
   it('requires remote desktop clients to satisfy the configured minimum version', async () => {
@@ -2183,19 +1488,6 @@ describe('proxy', () => {
     expect(response.status).toBe(426);
   });
 
-  it('keeps the shared desktop brand step reachable without a cloud session', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/onboarding/brand', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
   it('redirects signed-out desktop summary onboarding to the desktop login surface', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     vi.resetModules();
@@ -2211,32 +1503,6 @@ describe('proxy', () => {
     expect(location.searchParams.get('callbackUrl')).toBe(
       '/onboarding/summary',
     );
-  });
-
-  it('lets unsigned desktop local onboarding reach provider CLI checks', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/onboarding/providers', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('keeps the explicit desktop local surface reachable without a cloud session', async () => {
-    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeDesktopRequest('/desktop/local', { hasSession: false }),
-    );
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get('location')).toBeNull();
   });
 
   it('does not expose similarly prefixed desktop routes without a cloud session', async () => {
@@ -2344,19 +1610,6 @@ describe('proxy', () => {
         String(input).endsWith('/auth/token'),
       ),
     ).toBe(true);
-  });
-
-  it('does not preserve legacy org settings detail routes as a compatibility layer', async () => {
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      makeSignedInRequest('/settings/organization/members'),
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/~/settings/organization/members',
-    );
   });
 
   it('does not preserve legacy brand settings detail routes as a compatibility layer', async () => {
@@ -2520,33 +1773,5 @@ describe('proxy', () => {
     expect(fetchMock).toHaveBeenCalled();
 
     delete process.env.COOKIE_SECRET;
-  });
-
-  it('reads the bootstrap once per protected request', async () => {
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedInRequest('/workspace'));
-
-    expect(response.status).toBe(307);
-    // The onboarding gate and workspace-slug resolution both need the same
-    // payload. A visitor with no slug cookie waits on that round trip before
-    // the redirect is issued, so it happens once, not once per consumer.
-    expect(
-      fetchMock.mock.calls.filter(([input]) =>
-        String(input).endsWith('/auth/bootstrap'),
-      ),
-    ).toHaveLength(1);
-  });
-
-  it('deletes slug cookie on logout', async () => {
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(makeSignedOutRequest('/logout'));
-
-    const setCookieHeader = response.headers.get('set-cookie') ?? '';
-    expect(setCookieHeader).toContain('gf_ws');
-    expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
   });
 });

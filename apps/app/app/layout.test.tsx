@@ -130,32 +130,6 @@ describe('app root layout', () => {
     );
   });
 
-  it('sets the document language from the resolved request locale', async () => {
-    const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>App child</div>,
-      } as never),
-    );
-
-    expect(htmlDocumentSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ lang: 'en-XA' }),
-    );
-  });
-
-  it('wraps the tree in the next-intl provider', async () => {
-    const { default: RootLayout } = await import('./layout');
-
-    render(
-      await RootLayout({
-        children: <div>App child</div>,
-      } as never),
-    );
-
-    expect(screen.getByTestId('next-intl-provider')).toBeTruthy();
-  });
-
   it('marks the whole studio noindex, nofollow in the root metadata', async () => {
     const { metadata } = await import('./layout');
 

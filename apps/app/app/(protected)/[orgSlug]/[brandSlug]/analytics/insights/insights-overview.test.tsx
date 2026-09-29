@@ -60,11 +60,6 @@ describe('InsightsOverview', () => {
     vi.clearAllMocks();
   });
 
-  it('should render without crashing', () => {
-    const { container } = render(<InsightsOverview />);
-    expect(container.firstChild).toBeInTheDocument();
-  });
-
   it('mounts the social intelligence inbox inside the analytics scope', () => {
     render(<InsightsOverview brandId="brand-123" />);
 

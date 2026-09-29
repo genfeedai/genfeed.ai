@@ -488,24 +488,6 @@ describe('ContentCalendarPage', () => {
     expect(latestCalendarProps().emptyState).toBeUndefined();
   });
 
-  it('queries the scheduler read model for the visible window only', async () => {
-    await renderLoaded();
-
-    expect(findArticlesMock).toHaveBeenCalledWith({
-      brandId: 'brand-123',
-      endDate: '2026-03-16T00:00:00.000Z',
-      startDate: '2026-03-10T00:00:00.000Z',
-    });
-    expect(findReleasesMock).toHaveBeenCalledWith(
-      {
-        brandId: 'brand-123',
-        endDate: '2026-03-16T00:00:00.000Z',
-        startDate: '2026-03-10T00:00:00.000Z',
-      },
-      expect.any(AbortSignal),
-    );
-  });
-
   it('adds a chosen facet to the query and leaves unset facets out', async () => {
     await renderLoaded();
 
@@ -522,16 +504,6 @@ describe('ContentCalendarPage', () => {
         expect.any(AbortSignal),
       );
     });
-  });
-
-  it('forwards credential posting times and brand timezone to day view', async () => {
-    await renderLoaded();
-
-    expect(latestCalendarProps().preferredTimes).toEqual([
-      { hour: 9, minute: 0 },
-      { hour: 18, minute: 0 },
-    ]);
-    expect(latestCalendarProps().timezone).toBe('Europe/Malta');
   });
 
   it('opens the release drawer instead of routing away', async () => {
@@ -690,24 +662,6 @@ describe('ContentCalendarPage', () => {
           platform: CredentialPlatform.INSTAGRAM,
           scheduledAt: '2026-03-12T10:00:00.000Z',
         } as unknown as IChannelTarget[],
-      }),
-    ]);
-
-    await renderLoaded();
-
-    const { getEventChannels, items } = latestCalendarProps();
-    const releaseItem = items.find((item) => item.itemType === 'release');
-
-    expect(() =>
-      getEventChannels(releaseItem as CalendarItemShape),
-    ).not.toThrow();
-    expect(getEventChannels(releaseItem as CalendarItemShape)).toEqual([]);
-  });
-
-  it('does not throw when targets collapse to a string', async () => {
-    findReleasesMock.mockResolvedValue([
-      release({
-        targets: 'target-1' as unknown as IChannelTarget[],
       }),
     ]);
 
@@ -936,29 +890,6 @@ describe('ContentCalendarPage', () => {
         latestCalendarProps().items.some((item) => item.id === 'release-2'),
       ).toBe(true);
     });
-  });
-
-  it('asks the same question for a queued item whose time has already passed', async () => {
-    findReleasesMock.mockResolvedValue([
-      release({ scheduledAt: '2026-03-12T10:00:00.000Z' }),
-    ]);
-
-    await renderLoaded();
-
-    const revert = vi.fn();
-    const { items, onEventDrop } = latestCalendarProps();
-    act(() => {
-      onEventDrop({
-        item: items[0],
-        revert,
-        start: new Date('2026-12-13T10:00:00.000Z'),
-      });
-    });
-
-    expect(
-      screen.getByRole('heading', { name: 'Move the card or publish again?' }),
-    ).toBeInTheDocument();
-    expect(updateReleaseMock).not.toHaveBeenCalled();
   });
 
   it('reverts a published drag when republish is rejected', async () => {

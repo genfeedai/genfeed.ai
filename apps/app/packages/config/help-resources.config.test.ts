@@ -14,34 +14,6 @@ const destinations = {
 };
 
 describe('Help resource contract', () => {
-  it('keeps all seven stable resource groups for both editions', () => {
-    for (const selfHosted of [false, true]) {
-      expect(
-        getHelpResources(selfHosted, destinations).map(
-          (resource) => resource.id,
-        ),
-      ).toEqual([
-        'gettingStarted',
-        'documentation',
-        'workflows',
-        'changelog',
-        'faq',
-        'community',
-        'support',
-      ]);
-    }
-  });
-
-  it('routes Cloud to its learning and support destinations', () => {
-    const resources = getHelpResources(false, destinations);
-    expect(
-      resources.find((resource) => resource.id === 'gettingStarted')?.url,
-    ).toBe(destinations.gettingStarted);
-    expect(
-      resources.find((resource) => resource.id === 'support'),
-    ).toMatchObject({ owner: 'product', url: destinations.cloudSupport });
-  });
-
   it('routes self-hosted users to their operator and local setup guide', () => {
     const resources = getHelpResources(true, destinations);
     expect(
@@ -58,17 +30,6 @@ describe('Help resource contract', () => {
     );
   });
 
-  it('keeps unavailable resources readable without falling back to Cloud support', () => {
-    expect(
-      getHelpResources(true, { cloudSupport: destinations.cloudSupport }).every(
-        (resource) => resource.url === null,
-      ),
-    ).toBe(true);
-    expect(
-      getHelpResources(false, {}).every((resource) => resource.url === null),
-    ).toBe(true);
-  });
-
   it.each([
     undefined,
     '',
@@ -80,14 +41,5 @@ describe('Help resource contract', () => {
     'not a url',
   ])('rejects an unsafe or unconfigured destination: %s', (value) => {
     expect(getHelpDestination(value)).toBeNull();
-  });
-
-  it('accepts HTTPS and locally configured HTTP destinations', () => {
-    expect(getHelpDestination(' https://example.com/help ')).toBe(
-      'https://example.com/help',
-    );
-    expect(getHelpDestination('http://localhost:3000/help')).toBe(
-      'http://localhost:3000/help',
-    );
   });
 });

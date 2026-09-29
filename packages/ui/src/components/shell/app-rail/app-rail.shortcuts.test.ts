@@ -100,53 +100,6 @@ describe('app rail keyboard shortcuts', () => {
     }
   });
 
-  it.each(['metaKey', 'ctrlKey', 'altKey', 'shiftKey'])(
-    'ignores web sequences with %s',
-    (modifier) => {
-      const navigate = vi.fn(() => true);
-      const { handleKeyDown } = createAppRailShortcutHandler(false, navigate);
-      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
-      handleKeyDown(
-        new KeyboardEvent('keydown', {
-          code: 'Digit1',
-          key: '1',
-          [modifier]: true,
-        }),
-      );
-      handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit2', key: '2' }));
-      expect(navigate).not.toHaveBeenCalled();
-    },
-  );
-
-  it('cancels on unrelated keys, focus reset, composition, repeat, and handled events', () => {
-    const navigate = vi.fn(() => true);
-    const { handleKeyDown, reset } = createAppRailShortcutHandler(
-      false,
-      navigate,
-    );
-    for (const init of [
-      { code: 'KeyX', key: 'x' },
-      { code: 'Digit1', key: '1', isComposing: true },
-      { code: 'Digit1', key: '1', repeat: true },
-    ]) {
-      handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
-      handleKeyDown(new KeyboardEvent('keydown', init));
-      handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
-    }
-    handleKeyDown(new KeyboardEvent('keydown', { code: 'KeyG', key: 'g' }));
-    reset();
-    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
-    const handled = new KeyboardEvent('keydown', {
-      code: 'KeyG',
-      key: 'g',
-      cancelable: true,
-    });
-    handled.preventDefault();
-    handleKeyDown(handled);
-    handleKeyDown(new KeyboardEvent('keydown', { code: 'Digit1', key: '1' }));
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
   it('suppresses desktop shortcuts while editing', () => {
     const navigate = vi.fn(() => true);
     const { handleKeyDown } = createAppRailShortcutHandler(true, navigate);

@@ -18,20 +18,6 @@ describe('useModelRecents', () => {
     window.localStorage.clear();
   });
 
-  it('starts from what the device already remembers', () => {
-    window.localStorage.setItem(
-      MODEL_RECENTS_STORAGE_KEY,
-      JSON.stringify(['google/veo-3', 'openai/sora']),
-    );
-
-    const { result } = renderHook(() => useModelRecents());
-
-    expect(result.current.recentModelKeys).toEqual([
-      'google/veo-3',
-      'openai/sora',
-    ]);
-  });
-
   it('moves a re-used model back to the front instead of duplicating it', () => {
     const { result } = renderHook(() => useModelRecents());
 

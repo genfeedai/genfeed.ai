@@ -114,17 +114,6 @@ describe('useCharactersPage', () => {
     });
   });
 
-  it('loads characters on mount', async () => {
-    mocks.listCharacters.mockResolvedValue([
-      { avatarIngredientId: null, handle: 'anna', id: 'p1', label: 'Anna' },
-    ]);
-
-    const { result } = renderHook(() => useCharactersPage());
-
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.characters).toHaveLength(1);
-  });
-
   it('generates a sheet and moves to the candidate step', async () => {
     const { result } = renderHook(() => useCharactersPage());
 

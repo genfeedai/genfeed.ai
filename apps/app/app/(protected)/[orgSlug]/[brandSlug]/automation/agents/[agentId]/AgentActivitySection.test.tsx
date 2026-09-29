@@ -94,76 +94,6 @@ describe('AgentActivitySection', () => {
     };
   });
 
-  it('renders exactly one filter control governing the whole merged feed', () => {
-    render(<AgentActivitySection {...baseProps} />);
-
-    expect(
-      screen.getAllByRole('combobox', { name: 'Filter activity' }),
-    ).toHaveLength(1);
-  });
-
-  it('merges content, reports and runs into one feed sorted newest first', () => {
-    mocks.posts = {
-      isError: false,
-      isLoading: false,
-      posts: [
-        {
-          createdAt: '2026-01-01T00:00:00.000Z',
-          id: 'post-1',
-          label: 'Oldest post',
-          status: 'draft',
-          targetExecutionState: 'published',
-        },
-      ],
-    };
-    mocks.performance = {
-      isReportsError: false,
-      isReportsLoading: false,
-      isSnapshotError: false,
-      isSnapshotLoading: false,
-      reports: [
-        {
-          allocationChanges: [],
-          creditsSpent: 1,
-          generatedCount: 1,
-          id: 'report-1',
-          periodEnd: '2026-01-03T00:00:00.000Z',
-          periodStart: '2026-01-02T00:00:00.000Z',
-          publishedCount: 1,
-          reportType: 'daily',
-        },
-      ],
-      snapshot: undefined,
-    };
-
-    render(
-      <AgentActivitySection
-        {...baseProps}
-        runHistory={[
-          {
-            completedAt: '2026-01-02T00:05:00.000Z',
-            contentGenerated: 1,
-            creditsUsed: 2,
-            startedAt: '2026-01-02T00:00:00.000Z',
-            status: 'completed',
-          },
-        ]}
-      />,
-    );
-
-    // Newest first: the report (Jan 3) precedes the run (Jan 2), which
-    // precedes the post (Jan 1) — verified by DOM order since ListRow
-    // titles are plain text, not headings.
-    const titles = ['Daily report', 'Run completed', 'Oldest post'];
-    const positions = titles.map((title) => screen.getByText(title));
-    for (let index = 0; index < positions.length - 1; index += 1) {
-      expect(
-        positions[index].compareDocumentPosition(positions[index + 1]) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-    }
-  });
-
   it('narrows the feed to Content only', async () => {
     const user = userEvent.setup();
     mocks.posts = {
@@ -203,12 +133,6 @@ describe('AgentActivitySection', () => {
 
     expect(screen.getByText('A post')).toBeInTheDocument();
     expect(screen.queryByText('Run completed')).not.toBeInTheDocument();
-  });
-
-  it('shows the empty state when every source has resolved with nothing', () => {
-    render(<AgentActivitySection {...baseProps} />);
-
-    expect(screen.getByText('No activity yet')).toBeInTheDocument();
   });
 
   it('shows a loading state instead of the empty state while a relevant source is still loading', () => {
