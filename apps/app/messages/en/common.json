@@ -673,12 +673,14 @@
     "open": "Open agent",
     "openFullPage": "Open full page",
     "resize": "Resize agent",
-    "title": "Agent"
+    "title": "Agent",
+    "unavailable": "Agent is the main view here"
   },
   "contextSidebar": {
     "close": "Close details",
     "collapse": "Collapse details",
     "drawerDescription": "Details for the selected item.",
+    "empty": "Select an item to see details",
     "expand": "Expand details",
     "label": "Selection details",
     "open": "Open details",

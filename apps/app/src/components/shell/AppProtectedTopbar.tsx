@@ -65,15 +65,18 @@ function AppProtectedTopbarContent({
   const translateContextSidebar = useTranslations('common.contextSidebar');
   const agentDock = useAgentDock();
   const translateAgentDock = useTranslations('common.agentDock');
-  // The toggle drives the context sidebar and is hidden while nothing is
-  // selected.
-  const rightPanel = contextSidebar?.selection
+  // The toggle drives the context sidebar. It stays in the bar while nothing
+  // is selected (disabled) so the controls never appear and disappear as the
+  // route changes.
+  const rightPanel = contextSidebar
     ? {
+        isDisabled: !contextSidebar.selection,
         isMobileOpen: contextSidebar.isMobileOpen,
         isOpen: contextSidebar.isOpen,
         labels: {
           close: translateContextSidebar('close'),
           collapse: translateContextSidebar('collapse'),
+          empty: translateContextSidebar('empty'),
           expand: translateContextSidebar('expand'),
           open: translateContextSidebar('open'),
         },
@@ -140,30 +143,37 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome ? <CloudSyncIndicator /> : null}
 
-          {/* Last control in the bar, always: the inspector's only opener
-              lives here — and pinning it to the extreme right means it never
-              shifts between states. At `xl` and up it collapses/expands the
-              rail; below `xl` the rail is display:none, so the same slot
-              swaps to a variant that opens the inspector drawer instead. */}
-          {agentDock?.isAvailable ? (
+          {/* The panel toggles are the last controls in the bar, always
+              rendered: the dock's and the inspector's only openers live here,
+              and keeping them in place (disabled when the route has nothing
+              to show) means they never shift or vanish between routes. At
+              `xl` and up the inspector toggle collapses/expands the rail;
+              below `xl` the rail is display:none, so the same slot swaps to a
+              variant that opens the inspector drawer instead. */}
+          {agentDock ? (
             <Button
               aria-controls="workspace-agent-dock"
-              aria-expanded={agentDock.isOpen}
+              aria-expanded={agentDock.isAvailable && agentDock.isOpen}
               aria-keyshortcuts="Meta+J Control+J"
               type="button"
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               className="size-8"
-              data-active={agentDock.isOpen ? 'true' : 'false'}
+              data-active={
+                agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
+              }
               data-testid="topbar-agent-dock-toggle"
+              isDisabled={!agentDock.isAvailable}
               ariaLabel={
-                agentDock.isOpen
-                  ? translateAgentDock('close')
-                  : translateAgentDock('open')
+                !agentDock.isAvailable
+                  ? translateAgentDock('unavailable')
+                  : agentDock.isOpen
+                    ? translateAgentDock('close')
+                    : translateAgentDock('open')
               }
               onClick={agentDock.toggle}
             >
-              {agentDock.isOpen ? (
+              {agentDock.isAvailable && agentDock.isOpen ? (
                 <PanelBottomClose className="size-4" />
               ) : (
                 <PanelBottomOpen className="size-4" />
@@ -174,17 +184,22 @@ function AppProtectedTopbarContent({
             <>
               <Button
                 aria-controls="workspace-context-inspector"
-                aria-expanded={rightPanel.isOpen}
+                aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
                 type="button"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 className="hidden size-8 xl:inline-flex"
-                data-active={rightPanel.isOpen ? 'true' : 'false'}
+                data-active={
+                  !rightPanel.isDisabled && rightPanel.isOpen ? 'true' : 'false'
+                }
                 data-testid="topbar-inspector-toggle"
+                isDisabled={rightPanel.isDisabled}
                 ariaLabel={
-                  rightPanel.isOpen
-                    ? rightPanel.labels.collapse
-                    : rightPanel.labels.expand
+                  rightPanel.isDisabled
+                    ? rightPanel.labels.empty
+                    : rightPanel.isOpen
+                      ? rightPanel.labels.collapse
+                      : rightPanel.labels.expand
                 }
                 onClick={rightPanel.toggle}
               >
@@ -196,16 +211,21 @@ function AppProtectedTopbarContent({
               </Button>
               <Button
                 aria-controls="workspace-context-inspector-drawer"
-                aria-expanded={rightPanel.isMobileOpen}
+                aria-expanded={
+                  !rightPanel.isDisabled && rightPanel.isMobileOpen
+                }
                 type="button"
                 variant={ButtonVariant.GHOST}
                 size={ButtonSize.ICON}
                 className="inline-flex size-8 xl:hidden"
                 data-testid="topbar-inspector-drawer-toggle"
+                isDisabled={rightPanel.isDisabled}
                 ariaLabel={
-                  rightPanel.isMobileOpen
-                    ? rightPanel.labels.close
-                    : rightPanel.labels.open
+                  rightPanel.isDisabled
+                    ? rightPanel.labels.empty
+                    : rightPanel.isMobileOpen
+                      ? rightPanel.labels.close
+                      : rightPanel.labels.open
                 }
                 onClick={() =>
                   rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
