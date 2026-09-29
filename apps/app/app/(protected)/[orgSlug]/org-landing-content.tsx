@@ -28,6 +28,7 @@ import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Building2, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -228,10 +229,7 @@ export default function OrgLandingContent() {
         data-testid="org-landing-redirecting"
         role="status"
       >
-        <div
-          aria-hidden="true"
-          className="size-6 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground"
-        />
+        <Spinner aria-hidden="true" className="size-6 text-foreground" />
         <span className="sr-only">{translate('redirecting')}</span>
       </div>
     );

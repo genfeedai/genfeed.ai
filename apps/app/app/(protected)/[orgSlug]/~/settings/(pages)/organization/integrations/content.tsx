@@ -17,6 +17,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -239,7 +240,7 @@ export default function SettingsIntegrationsPage() {
 
       {!desktop && (!isReady || isLoading) ? (
         <div className="flex min-h-40 items-center justify-center">
-          <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <Spinner className="size-6 text-primary" />
         </div>
       ) : null}
 

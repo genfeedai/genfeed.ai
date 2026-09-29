@@ -54,9 +54,12 @@ function libraryHref(type: 'image' | 'video', id: string): string {
   );
 }
 
-function studioEditorHref(type: 'image' | 'video', id: string): string {
-  // The Studio Editor owns production polish; deep-link to the asset in studio context.
-  return `${APP_ROUTES.STUDIO.EDITOR}?${type}Id=${encodeURIComponent(id)}`;
+/**
+ * The Studio Editor owns production polish. It seeds a new project from
+ * `?video=`; no Editor route consumes an image, so images get no Editor link.
+ */
+function editorHref(id: string): string {
+  return `${APP_ROUTES.STUDIO.EDITOR_NEW}?video=${encodeURIComponent(id)}`;
 }
 
 export function GenerationActionCanvas({
@@ -208,14 +211,16 @@ export function GenerationActionCanvas({
                   <ImageIcon className="size-3" />
                   {translate('library')}
                 </Link>
-                <Link
-                  href={href(studioEditorHref(asset.type, asset.id))}
-                  className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                  title={translate('openStudioTitle')}
-                >
-                  <ExternalLink className="size-3" />
-                  {translate('studio')}
-                </Link>
+                {asset.type === 'video' ? (
+                  <Link
+                    href={href(editorHref(asset.id))}
+                    className="flex flex-1 items-center justify-center gap-0.5 border-l border-border px-1 py-1 text-2xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                    title={translate('openEditorTitle')}
+                  >
+                    <ExternalLink className="size-3" />
+                    {translate('editor')}
+                  </Link>
+                ) : null}
               </div>
             </div>
           );

@@ -19,11 +19,11 @@ import type { ModalOrganizationProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Alert from '@ui/feedback/alert/Alert';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import { type ChangeEvent, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 

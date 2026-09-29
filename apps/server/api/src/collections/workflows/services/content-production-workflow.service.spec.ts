@@ -1,6 +1,71 @@
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
+import { getActionDefinition } from '@genfeedai/actions';
 import { PersonaContentFormat } from '@genfeedai/contracts';
+import { compileActionContract } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
+
+describe('ContentProductionWorkflowService.discoverContentPipelinePersonas', () => {
+  it('emits discovery output the closed contract accepts, with and without the lock', async () => {
+    const prisma = {
+      persona: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            _count: { credentials: 1 },
+            brandId: null,
+            config: {},
+            id: 'persona-1',
+            label: 'Founder',
+            organizationId: 'org-1',
+            userId: 'user-1',
+          },
+        ]),
+      },
+    };
+    const service = new ContentProductionWorkflowService(
+      {} as never,
+      {} as never,
+      {} as never,
+      prisma as never,
+      {} as never,
+      {} as never,
+    );
+    const action = getActionDefinition(
+      'content.production.autopilot.discover-personas',
+    );
+    const contract = compileActionContract(
+      'content.production.autopilot.discover-personas',
+      {
+        inputSchema: (action?.inputSchema ?? {}) as Readonly<
+          Record<string, unknown>
+        >,
+        outputSchema: (action?.outputSchema ?? {}) as Readonly<
+          Record<string, unknown>
+        >,
+      },
+    );
+    const provenance = {
+      nodeId: 'discover-personas',
+      runId: 'run',
+      workflowId: 'workflow',
+      workflowVersionId: 'v1',
+    };
+
+    const acquired = await service.discoverContentPipelinePersonas('org-1', {
+      state: { acquired: true },
+    });
+    const unacquired = await service.discoverContentPipelinePersonas('org-1', {
+      state: { acquired: false },
+    });
+
+    expect(acquired.items).toHaveLength(1);
+    expect(unacquired).toEqual({
+      baseInput: { organizationId: 'org-1' },
+      items: [],
+    });
+    expect(() => contract.validateOutput(acquired, provenance)).not.toThrow();
+    expect(() => contract.validateOutput(unacquired, provenance)).not.toThrow();
+  });
+});
 
 describe('ContentProductionWorkflowService atomic actions', () => {
   function buildService() {

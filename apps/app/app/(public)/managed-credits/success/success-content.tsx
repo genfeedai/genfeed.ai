@@ -10,9 +10,9 @@ import {
   isManagedCreditsTransientError,
   ManagedCreditsService,
 } from '@services/billing/managed-credits.service';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   CircleCheck,
   Clipboard,

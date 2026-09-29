@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  ButtonSize,
-  ButtonVariant,
-  type RouterPriority,
-} from '@genfeedai/contracts';
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   hasEndFrame,
   hasVideoReferences,
@@ -22,15 +18,12 @@ import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolu
 import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
-import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
 import { useStudioGenerationSetupLookOptions } from '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions';
 import {
   presetToGenerationSetupValues,
   useStudioLooks,
 } from '@pages/studio/generate/hooks/useStudioLooks';
-import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
-import { getDefaultStudioResolution } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
@@ -49,19 +42,16 @@ import {
   setGenerationSetupField,
   useGenerationSetupStore,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
-import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
-import {
-  AUTO_MODEL_OPTION_VALUE,
-  AUTO_PRIORITY_LABELS,
-} from '@ui/dropdowns/model-selector/model-selector.constants';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarComposer';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, Loader2, WandSparkles } from 'lucide-react';
+import { ArrowUp, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect } from 'react';
@@ -187,19 +177,6 @@ export default function StudioGenerateComposer({
         })
       : null;
 
-  const handleModelChange = (_name: string, values: string[]) => {
-    const modelKey = values[0] ?? AUTO_MODEL_OPTION_VALUE;
-    onSettingsChange({
-      modelKey,
-      ...(modelKey !== AUTO_MODEL_OPTION_VALUE
-        ? {
-            resolution: getDefaultStudioResolution(type, modelKey),
-          }
-        : {}),
-    });
-  };
-
-  const isRemixActive = useStudioRemixRunScope();
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);
   const setupFromStore = useGenerationSetupStore(
@@ -343,77 +320,34 @@ export default function StudioGenerateComposer({
 
       <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
         <div className="flex min-w-0 shrink items-center gap-0.5">
-          {isRemixActive ? (
-            <>
-              <ModelSelectorPopover
-                autoLabel={
-                  capabilities.hasModelSelection
-                    ? isLoadingModels
-                      ? translate('loadingModels')
-                      : AUTO_PRIORITY_LABELS[settings.prioritize]
-                    : undefined
-                }
-                className="max-w-[16rem] min-w-0"
-                favoriteModelKeys={favoriteModelKeys}
-                isDisabled={isGenerating}
-                models={capabilities.hasModelSelection ? models : []}
-                name="studioGenerateModel"
-                onChange={handleModelChange}
-                onFavoriteToggle={onFavoriteToggle}
-                onPrioritizeChange={(prioritize: RouterPriority) =>
-                  onSettingsChange({ prioritize })
-                }
-                prioritize={settings.prioritize}
-                selectionMode="single"
-                values={
-                  capabilities.hasModelSelection
-                    ? isAutoMode
-                      ? [AUTO_MODEL_OPTION_VALUE]
-                      : settings.modelKey
-                        ? [settings.modelKey]
-                        : []
-                    : []
-                }
-              />
-
-              <StudioGenerateSettingsPopover
-                isDisabled={isGenerating}
-                onChange={onSettingsChange}
-                onReset={onResetSettings}
-                settings={settings}
-                type={type}
-              />
-            </>
-          ) : (
-            <GenerationSetupPopover
-              capabilities={capabilities}
-              favoriteModelKeys={favoriteModelKeys}
-              isDisabled={isGenerating}
-              isPresetsLoading={isPresetsLoading}
-              lookOptions={lookOptions}
-              models={capabilities.hasModelSelection ? models : []}
-              onApplyPreset={handleApplyPreset}
-              onClearPreset={handleClearPreset}
-              onDeletePreset={handleDeletePreset}
-              onFavoriteToggle={onFavoriteToggle}
-              onResetAll={onResetSettings}
-              onResetField={handleResetField}
-              onSavePreset={handleSavePreset}
-              onSetField={handleSetField}
-              onTypeChange={(nextType) => {
-                // The shared popover speaks GenerationSetupType; Studio only
-                // offers its own registry, so anything else is not a Studio pick.
-                if (isStudioGenerateType(nextType)) {
-                  onTypeChange(nextType);
-                }
-              }}
-              presets={presets}
-              reasons={reasons}
-              scopeKey={scope}
-              setup={setupForComposer}
-              typeOptions={typeOptions}
-            />
-          )}
+          <GenerationSetupPopover
+            capabilities={capabilities}
+            favoriteModelKeys={favoriteModelKeys}
+            isDisabled={isGenerating}
+            isPresetsLoading={isPresetsLoading}
+            lookOptions={lookOptions}
+            models={capabilities.hasModelSelection ? models : []}
+            onApplyPreset={handleApplyPreset}
+            onClearPreset={handleClearPreset}
+            onDeletePreset={handleDeletePreset}
+            onFavoriteToggle={onFavoriteToggle}
+            onResetAll={onResetSettings}
+            onResetField={handleResetField}
+            onSavePreset={handleSavePreset}
+            onSetField={handleSetField}
+            onTypeChange={(nextType) => {
+              // The shared popover speaks GenerationSetupType; Studio only
+              // offers its own registry, so anything else is not a Studio pick.
+              if (isStudioGenerateType(nextType)) {
+                onTypeChange(nextType);
+              }
+            }}
+            presets={presets}
+            reasons={reasons}
+            scopeKey={scope}
+            setup={setupForComposer}
+            typeOptions={typeOptions}
+          />
 
           {type === 'image' || type === 'video' ? (
             <GenerationHarnessSettingsPopover isDisabled={isGenerating} />
@@ -527,7 +461,7 @@ export default function StudioGenerateComposer({
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
               icon={
                 isEnhancingPrompt ? (
-                  <Loader2 className="size-4 animate-spin" />
+                  <Spinner className="size-4" />
                 ) : (
                   <WandSparkles className="size-4" />
                 )

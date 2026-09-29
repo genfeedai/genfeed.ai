@@ -8,8 +8,8 @@ import {
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

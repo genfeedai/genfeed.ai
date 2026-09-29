@@ -10,7 +10,7 @@ import { Undo2 } from 'lucide-react';
  * One customize-tab row: label + provenance dot on the left, the field
  * control fixed-width on the right, with a reset affordance that only shows
  * once the field has left agent ownership. Structural port of
- * `StudioGenerateSettingsPopover.tsx`'s `SettingRow` widened with provenance.
+ * `StudioSettingControls.tsx`'s `SettingRow` widened with provenance.
  */
 export default function GenerationSetupFieldRow({
   children,

@@ -1,9 +1,9 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useReducer, useRef } from 'react';
-import { LoadingSpinner } from '~components/ui';
 import { AgentToolsService } from '~services/agent-tools.service';
 import { authService } from '~services/auth.service';
 import type { ReplyTone } from '~types/extension';
@@ -195,7 +195,7 @@ export function ReplyPage({
   if (step === 'loading') {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <LoadingSpinner size="md" className="text-primary" />
+        <Spinner className="size-8 text-primary" />
         <p className="text-sm text-muted-foreground">Generating replies…</p>
       </div>
     );

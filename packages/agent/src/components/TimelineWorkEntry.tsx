@@ -9,6 +9,7 @@ import { formatAgentErrorDetail } from '@genfeedai/agent/utils/format-agent-erro
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { memo, type ReactElement, useState } from 'react';
 
 interface TimelineWorkEntryProps {
@@ -66,9 +67,7 @@ function StatusIcon({
     );
   }
 
-  return (
-    <div className="size-3 shrink-0 animate-spin rounded-full border-[1.5px] border-primary/60 border-t-transparent" />
-  );
+  return <Spinner className="size-3 shrink-0 text-primary/60" />;
 }
 
 function getEventLabel(event: EnrichedWorkEvent): string {

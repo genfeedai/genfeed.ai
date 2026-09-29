@@ -7,8 +7,9 @@ import type {
 } from '@genfeedai/props/workflow/nodes.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import { Textarea } from '@ui/primitives/textarea';
-import { Link, LoaderCircle, Type } from 'lucide-react';
+import { Link, Type } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 
 export type { TweetInputNodeData, TweetInputNodeProps };
@@ -124,7 +125,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
           >
             {isFetching ? (
               <>
-                <LoaderCircle className="size-3 animate-spin" />
+                <Spinner className="size-3" />
                 Fetching…
               </>
             ) : (

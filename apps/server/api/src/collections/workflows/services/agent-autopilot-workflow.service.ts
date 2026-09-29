@@ -264,10 +264,12 @@ export class AgentAutopilotWorkflowService {
       typeof input.organizationId === 'string' &&
       input.organizationId !== strategy.organizationId
     ) {
-      return { executionId: null, status: 'skipped' };
+      return { status: 'skipped' };
     }
     const executionId = await this.executeStrategy(strategy, workflowHandoff);
-    return { executionId, status: executionId ? 'enqueued' : 'skipped' };
+    return executionId
+      ? { executionId, status: 'enqueued' }
+      : { status: 'skipped' };
   }
 
   async finalizeProactiveStrategies(

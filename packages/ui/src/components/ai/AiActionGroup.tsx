@@ -8,8 +8,8 @@ import {
   ComponentSize,
 } from '@genfeedai/contracts';
 import type { AiActionGroupProps } from '@genfeedai/props/ai/ai-action.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
 

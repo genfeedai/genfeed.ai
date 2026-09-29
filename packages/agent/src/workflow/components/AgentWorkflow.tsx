@@ -1,11 +1,11 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   BookOpen,
   ChevronRight,
   CodeXml,
-  LoaderCircle,
   MessageCircle,
   Sparkles,
 } from 'lucide-react';
@@ -24,7 +24,7 @@ function ExploringView() {
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
         <BookOpen className="size-8 text-primary" />
-        <LoaderCircle className="size-4 text-primary animate-spin absolute -top-1 -right-1" />
+        <Spinner className="size-4 text-primary absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-foreground/60 text-center max-w-xs">
         Agent is exploring context and reading relevant files…
@@ -112,7 +112,7 @@ function ImplementingView() {
     <div className="flex flex-col items-center justify-center py-8 gap-3">
       <div className="relative">
         <CodeXml className="size-8 text-info" />
-        <LoaderCircle className="size-4 text-info animate-spin absolute -top-1 -right-1" />
+        <Spinner className="size-4 text-info absolute -top-1 -right-1" />
       </div>
       <p className="text-sm text-foreground/60 text-center max-w-xs">
         Agent is implementing the approved approach…

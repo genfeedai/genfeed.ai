@@ -30,9 +30,10 @@ interface UseAgentThreadStatusPushParams {
  * - On connect and reconnect the list reloads; events are not replayed. A list
  *   response carries each row's sequence, so a push that raced ahead of it is
  *   kept and an older one is superseded.
- * - While the channel is down, the list refetches on an interval as long as the
- *   sidebar is visible (focus refetch is already wired in the list hook). No
- *   error is shown.
+ * - While the channel is not connected, the list refetches when the window
+ *   regains focus and, while down, on an interval as long as the sidebar is
+ *   visible. With the channel connected neither runs: the push makes them
+ *   redundant. No error is shown.
  */
 export function useAgentThreadStatusPush({
   isActive,
@@ -100,6 +101,20 @@ export function useAgentThreadStatusPush({
 
     countAgentThreadStatusClient('reconnect_reload');
     void reloadThreadsRef.current().catch(() => false);
+  }, [connectionState, isActive]);
+
+  useEffect(() => {
+    if (!isActive || connectionState === 'connected') {
+      return;
+    }
+
+    const handleFocus = () => {
+      countAgentThreadStatusClient('fallback_refetch');
+      void reloadThreadsRef.current().catch(() => false);
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [connectionState, isActive]);
 
   useEffect(() => {

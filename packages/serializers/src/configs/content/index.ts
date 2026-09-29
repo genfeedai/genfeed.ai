@@ -4,6 +4,7 @@ export * from '@serializers/configs/content/batch.config';
 export * from '@serializers/configs/content/batch-interpolation.config';
 export * from '@serializers/configs/content/batch-project.config';
 export * from '@serializers/configs/content/bookmark.config';
+export * from '@serializers/configs/content/brand-remix-run-summary.config';
 export * from '@serializers/configs/content/calendar-slot.config';
 export * from '@serializers/configs/content/calendar-slot-bulk-generate.config';
 export * from '@serializers/configs/content/campaign.config';

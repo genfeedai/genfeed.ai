@@ -14,6 +14,9 @@ export default function EditorLayout({
   currentFrame,
   zoom,
   isDirty,
+  saveStatus,
+  canUndo,
+  canRedo,
   isRendering,
   isReadOnly,
   hasSaveConflict,
@@ -31,6 +34,8 @@ export default function EditorLayout({
   onAddVideoTrack,
   onAddAudioTrack,
   onSave,
+  onUndo,
+  onRedo,
   onRender,
   onBack,
   onDuplicate,
@@ -54,6 +59,9 @@ export default function EditorLayout({
         fps={project.settings.fps}
         zoom={zoom}
         isDirty={isDirty}
+        saveStatus={saveStatus}
+        canUndo={canUndo}
+        canRedo={canRedo}
         isRendering={isRendering}
         isReadOnly={isReadOnly}
         onPlayPause={onPlayPause}
@@ -66,6 +74,8 @@ export default function EditorLayout({
         onAddVideoTrack={onAddVideoTrack}
         onAddAudioTrack={onAddAudioTrack}
         onSave={onSave}
+        onUndo={onUndo}
+        onRedo={onRedo}
         onRender={onRender}
         onBack={onBack}
       />

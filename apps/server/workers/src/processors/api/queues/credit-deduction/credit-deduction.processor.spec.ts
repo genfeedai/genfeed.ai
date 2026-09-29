@@ -392,6 +392,23 @@ describe('CreditDeductionProcessor', () => {
     } as Job<CreditDeductionJobData>;
   }
 
+  it('forwards the job metadata when settling a reservation', async () => {
+    await processor.process(
+      buildJob({
+        metadata: { assetId: 'asset-1', pricingType: 'per-image' },
+        reservationId: 'reservation-1',
+      }),
+    );
+
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actualAmount: 10,
+        metadata: { assetId: 'asset-1', pricingType: 'per-image' },
+        reservationId: 'reservation-1',
+      }),
+    );
+  });
+
   it('throws an UnrecoverableError when a deduction job has no userId', async () => {
     await expect(
       processor.process(buildJob({ userId: undefined })),

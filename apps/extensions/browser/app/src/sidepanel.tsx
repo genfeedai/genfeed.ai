@@ -10,7 +10,6 @@ import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
 import { RemixPage } from '~components/pages/RemixPage';
 import { ReplyPage } from '~components/pages/ReplyPage';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
-import { LoadingSpinner } from '~components/ui';
 import { useAccountThemeSync } from '~hooks/use-account-theme-sync';
 import { useExtensionTheme } from '~hooks/use-extension-theme';
 import type { CaptureMode } from '~models/knowledge-capture.model';
@@ -21,6 +20,7 @@ import { extensionIdeaTab } from '~utils/extension-idea-tab.util';
 import { logger } from '~utils/logger.util';
 
 import '~style.css';
+import Spinner from '@ui/primitives/spinner';
 
 initializeErrorTracking('sidepanel');
 
@@ -226,7 +226,7 @@ function SidePanelContent() {
   if (!isLoaded || authState.status === 'syncing') {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
-        <LoadingSpinner size="md" className="text-primary" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

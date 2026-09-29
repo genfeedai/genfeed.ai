@@ -4,8 +4,8 @@ import { AlertCategory, ComponentSize } from '@genfeedai/contracts';
 import { formatMinutesSeconds } from '@genfeedai/helpers/formatting/duration/duration.helper';
 import type { VideoTrimTimelineProps } from '@genfeedai/props/ui/media/video-trim-timeline.props';
 import Alert from '@ui/feedback/alert/Alert';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Slider } from '@ui/primitives/slider';
+import Spinner from '@ui/primitives/spinner';
 import { useMemo } from 'react';
 
 export default function VideoTrimTimeline({

@@ -10,13 +10,13 @@ import { usePromptBarSubmission } from '@genfeedai/hooks/prompt-bar/use-prompt-b
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';
 import HashtagGeneratorButton from '@ui/ai/hashtag-generator/HashtagGeneratorButton';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import type {
   PostEnhancementBarProps,
   TweetTone,
 } from '@ui/posts/enhancement-bar/PostEnhancementBar.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Spinner from '@ui/primitives/spinner';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import {
   ArrowUp,

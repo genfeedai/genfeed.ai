@@ -5,11 +5,12 @@ import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Slider } from '@ui/primitives/slider';
+import Spinner from '@ui/primitives/spinner';
 import type {
   MixMode,
   SoundOverlayNodeData,
 } from '@ui/workflow-builder/types/workflow-saas.types';
-import { LoaderCircle, Music, Video, Volume2 } from 'lucide-react';
+import { Music, Video, Volume2 } from 'lucide-react';
 import { memo, useCallback, useId } from 'react';
 
 export type { MixMode, SoundOverlayNodeData };
@@ -204,7 +205,7 @@ function SoundOverlayNodeComponent({
       >
         {isProcessing ? (
           <>
-            <LoaderCircle className="size-4 animate-spin" />
+            <Spinner className="size-4" />
             Processing…
             {data.processingProgress !== null && (
               <span>({data.processingProgress}%)</span>

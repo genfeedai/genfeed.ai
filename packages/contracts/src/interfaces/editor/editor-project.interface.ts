@@ -108,11 +108,22 @@ export interface IEditorProject extends IBaseEntity {
   thumbnailUrl?: string;
 }
 
+/** What a create seeded from existing videos starts with. */
+export interface IEditorProjectSeed {
+  settings: IEditorProjectSettings;
+  totalDurationFrames: number;
+  track: IEditorTrack;
+}
+
 // DTO interfaces for API operations
 export interface ICreateEditorProjectDto {
   name: string;
   settings?: Partial<IEditorProjectSettings>;
-  sourceVideoId?: string; // Optional: start with existing video
+  /**
+   * Existing videos to start from, in timeline order: one clip each, back to
+   * back on a single video track.
+   */
+  sourceVideoIds?: string[];
 }
 
 export interface IUpdateEditorProjectDto {

@@ -3,6 +3,7 @@ import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-st
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import {
   type ReactElement,
   useCallback,
@@ -195,7 +196,7 @@ export function AgentStrategyConfig({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner className="size-5 text-primary" />
       </div>
     );
   }

@@ -98,8 +98,8 @@ export class EditorProjectsService extends HTTPBaseService {
       totalDurationFrames: DEFAULT_FPS * 10,
     };
     // Never send explicit undefined/null — class-validator treats null as set.
-    if (dto?.sourceVideoId) {
-      body.sourceVideoId = dto.sourceVideoId;
+    if (dto?.sourceVideoIds?.length) {
+      body.sourceVideoIds = dto.sourceVideoIds;
     }
 
     try {
@@ -163,14 +163,22 @@ export class EditorProjectsService extends HTTPBaseService {
   }
 
   /**
-   * Update a project
+   * Update a project. `isKeepalive` sends the write through `fetch` with
+   * `keepalive`, so a save started while the page unloads still lands.
    */
   async update(
     id: string,
     dto: IUpdateEditorProjectDto,
+    options: { isKeepalive?: boolean } = {},
   ): Promise<IEditorProject> {
     const response = await this.instance
-      .patch<JsonApiResponseDocument>(`/${id}`, dto)
+      .patch<JsonApiResponseDocument>(
+        `/${id}`,
+        dto,
+        options.isKeepalive
+          ? { adapter: 'fetch', fetchOptions: { keepalive: true } }
+          : undefined,
+      )
       .then((res) => res.data);
 
     const project = this.mapOne(response);

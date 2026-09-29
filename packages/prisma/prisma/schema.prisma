@@ -1767,6 +1767,10 @@ model PlatformSetting {
   // Module and feature flags (#5468), e.g. {"studio":false}. Only an explicit
   // false turns one off; missing keys are on.
   flags                            Json      @default("{}")
+  // Workflows pinned to every organization's templates Featured row (#5511),
+  // in display order. Written only by the superadmin pin endpoints; only the
+  // pinned workflows' graphs are exposed across organizations.
+  featuredWorkflowIds              String[]  @default([])
 
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())

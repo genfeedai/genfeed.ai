@@ -1,6 +1,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
+import BrandMark from '@ui/primitives/brand-mark';
 import type {
   ButtonHTMLAttributes,
   MouseEvent,
@@ -48,8 +49,10 @@ function Spinner({
     <output
       aria-hidden={ariaHidden}
       aria-label={ariaHidden ? undefined : 'Loading'}
-      className="inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent motion-reduce:animate-[spin_1.5s_linear_infinite]"
-    />
+      className="genfeed-loader-root inline-flex size-4 shrink-0 items-center justify-center"
+    >
+      <BrandMark />
+    </output>
   );
 }
 

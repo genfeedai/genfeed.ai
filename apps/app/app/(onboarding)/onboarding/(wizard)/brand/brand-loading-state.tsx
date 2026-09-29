@@ -2,6 +2,7 @@ import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { BrandLoadingStateProps } from '@props/onboarding/brand-loading-state.props';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -30,10 +31,9 @@ export default function BrandLoadingState({
         {translate('loading.description')}
       </p>
 
-      <div
-        className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin"
-        role="status"
+      <Spinner
         aria-label={translate('loading.title')}
+        className="size-6 text-foreground"
       />
 
       <div className="mt-8 w-full" hidden={!errorMessage}>

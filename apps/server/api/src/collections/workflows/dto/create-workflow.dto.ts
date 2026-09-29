@@ -287,14 +287,17 @@ export class CreateWorkflowDto {
   readonly sourceWorkflowId?: string;
 
   @IsOptional()
-  @IsIn(['system-catalog', 'seeded-template'])
+  @IsIn(['system-catalog', 'seeded-template', 'featured-workflow'])
   @ApiProperty({
     description:
-      'When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent).',
-    enum: ['system-catalog', 'seeded-template'],
+      'When `system-catalog`, `templateId` is a system catalog canonical id and create installs that catalog entry (idempotent). When `featured-workflow`, `sourceWorkflowId` is an admin-pinned Featured workflow and create copies its graph into the caller organization.',
+    enum: ['system-catalog', 'seeded-template', 'featured-workflow'],
     required: false,
   })
-  readonly sourceType?: 'system-catalog' | 'seeded-template';
+  readonly sourceType?:
+    | 'system-catalog'
+    | 'seeded-template'
+    | 'featured-workflow';
 
   @IsEnum(WorkflowTrigger)
   @IsOptional()

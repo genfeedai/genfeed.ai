@@ -17,7 +17,10 @@ import { MusicGenerationService } from '@api/collections/musics/services/music-g
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import {
+  AvatarVideoGenerationService,
+  isAvatarBilledByRequest,
+} from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
@@ -279,6 +282,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
               {
                 brandId: user.brandId,
                 organizationId: user.organizationId,
+                settleCreditsExternally: isAvatarBilledByRequest(request),
                 userId: user.userId ?? user.id,
               },
             );

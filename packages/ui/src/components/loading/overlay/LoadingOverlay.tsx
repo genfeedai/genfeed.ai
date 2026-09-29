@@ -1,7 +1,7 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { LoadingOverlayProps } from '@genfeedai/props/ui/feedback/loading.props';
-import Spinner from '@ui/feedback/spinner/Spinner';
+import Spinner from '@ui/primitives/spinner';
 
 export default function LoadingOverlay({
   message = 'Loading…',

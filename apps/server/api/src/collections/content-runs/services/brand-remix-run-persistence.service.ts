@@ -14,10 +14,12 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/contracts';
 import {
+  BRAND_REMIX_RUN_CONTRACT,
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
   brandRemixRunConfigSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { BrandRemixRunListQuery } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -48,6 +50,23 @@ export class BrandRemixRunPersistenceService {
     if (!run) throw new NotFoundException('Brand remix run', runId);
     this.parseConfig(run.config, runId);
     return run;
+  }
+
+  listRuns(
+    organizationId: string,
+    brandId: string,
+    query: BrandRemixRunListQuery,
+  ): Promise<BrandRemixRunRecord[]> {
+    return this.prisma.contentRun.findMany({
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      select: RUN_SELECT,
+      skip: (query.page - 1) * query.limit,
+      take: query.limit,
+      where: scopedWhere(organizationId, {
+        brandId,
+        config: { equals: BRAND_REMIX_RUN_CONTRACT, path: ['contract'] },
+      }),
+    });
   }
 
   async compareAndSwapExactConfig(params: {

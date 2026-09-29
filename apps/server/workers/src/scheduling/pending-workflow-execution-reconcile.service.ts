@@ -314,14 +314,12 @@ export class PendingWorkflowExecutionReconcileService {
         return;
       }
 
-      // A drained turn was recent and its thread is on screen; an ancient one
-      // is closed silently and left out of the thread's status.
-      if (candidate.cancelRequestedAt) {
-        await this.agentExecutionRecoveryEvents?.recordExecutionEnded(
-          candidate.id,
-          { type: 'cancelled' },
-        );
-      }
+      // The thread ends its run too, or it would stay "Running" in a sidebar
+      // that reads only the thread summary (#5636), however old the turn.
+      await this.agentExecutionRecoveryEvents?.recordExecutionEnded(
+        candidate.id,
+        { type: 'cancelled' },
+      );
       await this.workflowExecutions.cancelExecution(candidate.id);
       this.logger.log(
         candidate.cancelRequestedAt

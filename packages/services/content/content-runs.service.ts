@@ -1,9 +1,3 @@
-import type {
-  AttachBrandRemixAnalysisSource,
-  QuoteBrandRemixScenes,
-  ExecuteBrandRemixScenes,
-  ControlBrandRemixScenes,
-} from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixRunView,
@@ -14,6 +8,17 @@ import {
   type StartBrandRemixRun,
   type SubmitBrandRemixRunForReview,
 } from '@genfeedai/contracts/api-types/contracts';
+import {
+  type BrandRemixRunListQuery,
+  type BrandRemixRunSummary,
+  brandRemixRunSummarySchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
+import type {
+  AttachBrandRemixAnalysisSource,
+  ControlBrandRemixScenes,
+  ExecuteBrandRemixScenes,
+  QuoteBrandRemixScenes,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
@@ -130,6 +135,21 @@ export class ContentRunsService extends HTTPBaseService {
 
     return brandRemixRunViewSchema.parse(
       deserializeResource<BrandRemixRunView>(response.data),
+    );
+  }
+
+  async listBrandRemixRuns(
+    brandId: string,
+    query: BrandRemixRunListQuery,
+    signal?: AbortSignal,
+  ): Promise<BrandRemixRunSummary[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/brands/${brandId}/content-runs/remixes`,
+      { params: { limit: query.limit, page: query.page }, signal },
+    );
+
+    return deserializeCollection<BrandRemixRunSummary>(response.data).map(
+      (summary) => brandRemixRunSummarySchema.parse(summary),
     );
   }
 

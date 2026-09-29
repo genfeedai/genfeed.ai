@@ -6,7 +6,7 @@ import StudioGenerateCard from '@pages/studio/generate/components/StudioGenerate
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { groupStudioGenerateJobsByRun } from '@pages/studio/generate/utils/studio-generate-recipe';
 import Masonry from '@ui/display/masonry/Masonry';
-import { Loader2 } from 'lucide-react';
+import Spinner from '@ui/primitives/spinner';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, type ReactNode, useMemo } from 'react';
 
@@ -89,7 +89,7 @@ export default function StudioGenerateResults({
       {jobs.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-16 text-center">
           {isLoading ? (
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+            <Spinner className="size-5 text-muted-foreground" />
           ) : (
             <>
               <p className="text-sm text-foreground">

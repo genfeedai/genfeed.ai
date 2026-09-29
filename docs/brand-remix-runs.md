@@ -7,8 +7,8 @@ surfaces.
 The operator flow is:
 
 ```text
-Discover or Ads -> Remix -> inspect the prefilled brief -> Studio ->
-Library output -> Review -> downstream draft
+Discover or Ads -> Remix -> inspect the prefilled brief -> Studio → Storyboard
+run -> Library output -> Review -> downstream draft
 ```
 
 ## Eligible sources
@@ -35,8 +35,10 @@ treatment.
 Opening Remix creates or reuses a server-authorized draft `ContentRun`. The
 server combines the resolved source pattern with the active brand's voice,
 harness, output recommendation, review policy, and available Library defaults.
-Navigation carries only the run ID; refreshing or reopening Studio restores the
-same editable run.
+Navigation carries only the run ID (`/studio/storyboard/<runId>`); refreshing
+or reopening the run restores the same editable state. Studio → Storyboard lists
+every run for the active brand (`GET /brands/:brandId/content-runs/remixes`)
+with its title, source kind, state, shot count, runtime and last-edited time.
 
 Before starting generation, the operator can change:
 
@@ -130,7 +132,7 @@ the stable credential, ad-account, and ad IDs from a connected source.
 
 ## Scene-by-scene original ads
 
-For a video Remix, Studio can analyze an explicitly selected brand Library video
+For a video Remix, the Storyboard run can analyze an explicitly selected brand Library video
 and save an editable storyboard. The imported post's URL and author remain
 provenance; attachment does not change its access permission. Embed-only sources
 remain previews. Use an available same-brand Library video (up to 60 seconds and

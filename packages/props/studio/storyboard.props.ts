@@ -4,7 +4,16 @@ import type {
   VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/contracts';
-import type { IImage } from '@genfeedai/contracts/interfaces';
+import type {
+  BrandRemixDraftEdits,
+  BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type {
+  IImage,
+  StoryboardRunRecipe,
+  StoryboardRunSelectOption,
+} from '@genfeedai/contracts/interfaces';
 import type { IStoryboardMergeSettings } from '@genfeedai/contracts/interfaces/components/storyboard.interface';
 import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
 import type { MergeProgressStep } from './merge.props';
@@ -63,4 +72,51 @@ export interface StoryboardPanelProps {
   onCustomCameraPromptChange: (prompt: string) => void;
   onFramesChange: (frames: IImage[]) => void;
   onGenerate: () => void;
+}
+
+/** Scene-pipeline commands a storyboard run exposes to its shot editor. */
+export interface StoryboardRunSceneActions {
+  readonly attachSceneSource: (assetId: string | null) => Promise<void>;
+  readonly cancelScenes: () => Promise<void>;
+  readonly executeScenes: () => Promise<void>;
+  readonly quoteScenes: (
+    input: Omit<QuoteBrandRemixScenes, 'expectedRevision'>,
+  ) => Promise<void>;
+  readonly resumeScenes: () => Promise<void>;
+  readonly saveScenes: (edits: BrandRemixDraftEdits) => Promise<void>;
+}
+
+export interface StoryboardRunScenesProps {
+  readonly actions: StoryboardRunSceneActions;
+  readonly isWorking: boolean;
+  readonly run: BrandRemixRunView;
+}
+
+export interface StoryboardRunPanelProps {
+  readonly error: string | null;
+  readonly isWorking: boolean;
+  readonly onPreparePaidDraft?: () => void;
+  readonly onReview: (variantIds: string[]) => void;
+  readonly onVary: () => void;
+  readonly run: BrandRemixRunView;
+  readonly sceneActions?: StoryboardRunSceneActions;
+}
+
+export interface StoryboardRunRecipeProps {
+  readonly isWorking: boolean;
+  readonly onGenerate: (recipe: StoryboardRunRecipe) => void;
+  readonly run: BrandRemixRunView;
+}
+
+export interface StoryboardSelectProps {
+  readonly ariaLabel: string;
+  readonly isDisabled?: boolean;
+  readonly onChange: (value: string | undefined) => void;
+  readonly options: ReadonlyArray<StoryboardRunSelectOption>;
+  readonly placeholder: string;
+  readonly value: string | undefined;
+}
+
+export interface StoryboardRunPageProps {
+  readonly runId: string;
 }

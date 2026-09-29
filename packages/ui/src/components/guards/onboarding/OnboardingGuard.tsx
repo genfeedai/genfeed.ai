@@ -3,6 +3,7 @@
 import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
 import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';
+import Spinner from '@ui/primitives/spinner';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -20,7 +21,7 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   if (!canRender) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-        <div className="size-6 border-2 border-border border-t-foreground rounded-full animate-spin" />
+        <Spinner className="size-6 text-foreground" />
       </div>
     );
   }

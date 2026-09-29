@@ -876,20 +876,56 @@ describe('WorkflowApiService', () => {
     });
   });
 
-  it('passes the showcase featuredRank through on templates', async () => {
+  it('lists the pinned Featured workflows in pin order (#5511)', async () => {
+    const featured = [
+      { featuredRank: 1, id: 'wf-b', label: 'B' },
+      { featuredRank: 2, id: 'wf-a', label: 'A' },
+    ];
+    mocks.get.mockResolvedValueOnce({ data: { data: featured } });
+
+    await expect(service().listFeatured()).resolves.toEqual(featured);
+    expect(mocks.get).toHaveBeenCalledWith('/featured');
+  });
+
+  it('copies a Featured workflow into the active organization (#5511)', async () => {
+    mocks.post.mockResolvedValueOnce({ data: { data: workflow() } });
+
+    await service().copyFeatured('wf-pinned');
+
+    expect(mocks.post).toHaveBeenCalledWith('', {
+      sourceType: 'featured-workflow',
+      sourceWorkflowId: 'wf-pinned',
+    });
+  });
+
+  it('carries a valid template example output and drops a malformed one', async () => {
+    const exampleOutput = {
+      mediaType: 'image',
+      url: 'https://cdn.example.com/examples/thread.png',
+    };
     mocks.get.mockResolvedValueOnce({
       data: {
         data: [
-          { featuredRank: 1, id: 'founder-x-thread' },
-          { id: 'launch-kit' },
+          { exampleOutput, featuredRank: 1, id: 'founder-x-thread' },
+          {
+            exampleOutput: { mediaType: 'image', url: '/relative.png' },
+            id: 'launch-kit',
+          },
+          { id: 'plain' },
         ],
       },
     });
 
     const templates = await service().listTemplates();
 
-    expect(templates[0]?.featuredRank).toBe(1);
-    expect(templates[1]?.featuredRank).toBeUndefined();
+    expect(templates[0]).toEqual({
+      exampleOutput,
+      featuredRank: 1,
+      id: 'founder-x-thread',
+    });
+    expect(templates[1]).toEqual({ id: 'launch-kit' });
+    expect(templates[1]).not.toHaveProperty('exampleOutput');
+    expect(templates[2]).toEqual({ id: 'plain' });
   });
 
   it('carries a valid template example output and drops a malformed one', async () => {

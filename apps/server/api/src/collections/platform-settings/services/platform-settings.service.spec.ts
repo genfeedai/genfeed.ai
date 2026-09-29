@@ -3,6 +3,7 @@ import { PlatformSettingsService } from '@api/collections/platform-settings/serv
 import {
   DEFAULT_PLATFORM_FEATURE_SETTINGS,
   DEFAULT_PLATFORM_FLAGS,
+  FEATURED_WORKFLOW_LIMIT,
   PLATFORM_SETTING_KEY,
   UNRESOLVED_PLATFORM_FEATURE_SETTINGS,
 } from '@genfeedai/contracts/constants';
@@ -17,10 +18,14 @@ import {
 import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PlatformSettingsService', () => {
-  const prisma = { $executeRaw: vi.fn(), platformSetting: {} };
+  const prisma = {
+    $executeRaw: vi.fn(),
+    platformSetting: { updateMany: vi.fn() },
+  };
   const logger: Partial<LoggerService> = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -569,6 +574,87 @@ describe('PlatformSettingsService', () => {
       expect(patch).toHaveBeenCalledWith('ps-1', {
         moderationProvider: 'none',
       });
+    });
+  });
+
+  describe('updateFeaturedWorkflowIds (#5511)', () => {
+    const pinnedRow = {
+      featuredWorkflowIds: ['wf-a', 'wf-b'],
+      id: 'ps-1',
+      key: PLATFORM_SETTING_KEY,
+    };
+
+    it('writes the resolved pins only while the column still holds what was read', async () => {
+      vi.spyOn(service, 'getSingleton')
+        .mockResolvedValueOnce(pinnedRow as never)
+        .mockResolvedValueOnce({
+          ...pinnedRow,
+          featuredWorkflowIds: ['wf-b', 'wf-a', 'wf-c'],
+        } as never);
+      prisma.platformSetting.updateMany.mockResolvedValue({ count: 1 });
+      const resolveNext = vi.fn(async (current: readonly string[]) => [
+        ...[...current].reverse(),
+        'wf-c',
+      ]);
+
+      await expect(
+        service.updateFeaturedWorkflowIds(resolveNext),
+      ).resolves.toEqual(['wf-b', 'wf-a', 'wf-c']);
+
+      expect(resolveNext).toHaveBeenCalledWith(['wf-a', 'wf-b']);
+      expect(prisma.platformSetting.updateMany).toHaveBeenCalledWith({
+        data: { featuredWorkflowIds: ['wf-b', 'wf-a', 'wf-c'] },
+        where: {
+          featuredWorkflowIds: { equals: ['wf-a', 'wf-b'] },
+          id: 'ps-1',
+          isDeleted: false,
+        },
+      });
+      await expect(service.getFeatureSettings()).resolves.toMatchObject({
+        featuredWorkflowIds: ['wf-b', 'wf-a', 'wf-c'],
+      });
+    });
+
+    it('refuses with a conflict when another operator changed the pins meanwhile', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(pinnedRow as never);
+      prisma.platformSetting.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.updateFeaturedWorkflowIds(async () => ['wf-a']),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('never writes when the resolver refuses the change', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(pinnedRow as never);
+
+      await expect(
+        service.updateFeaturedWorkflowIds(async () => {
+          throw new BadRequestException('not eligible');
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.platformSetting.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('stores a normalized list: trimmed, unique and capped', async () => {
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(pinnedRow as never);
+      prisma.platformSetting.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.updateFeaturedWorkflowIds(async () => [
+        ' wf-a ',
+        'wf-a',
+        '',
+        ...Array.from(
+          { length: FEATURED_WORKFLOW_LIMIT + 2 },
+          (_, index) => `wf-${index}`,
+        ),
+      ]);
+
+      const [call] = prisma.platformSetting.updateMany.mock.calls[0] ?? [];
+      const stored = (call as { data: { featuredWorkflowIds: string[] } }).data
+        .featuredWorkflowIds;
+      expect(stored[0]).toBe('wf-a');
+      expect(new Set(stored).size).toBe(stored.length);
+      expect(stored).toHaveLength(FEATURED_WORKFLOW_LIMIT);
     });
   });
 

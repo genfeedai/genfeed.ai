@@ -1,5 +1,8 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import {
+  AvatarVideoGenerationService,
+  isAvatarBilledByRequest,
+} from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
@@ -256,6 +259,49 @@ describe('AvatarVideoGenerationService', () => {
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
       ).toHaveBeenCalledTimes(billable ? 1 : 0);
+    },
+  );
+
+  it.each([
+    ['unguarded caller', undefined, 1],
+    ['request pipeline already billing', true, 0],
+  ])(
+    'charges a platform avatar once for a %s',
+    async (_label, settleCreditsExternally, expectedDeductions) => {
+      const { service, brandsService, creditsUtilsService } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+
+      await service.generateAvatarVideo(
+        {
+          heygenVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Speech',
+        },
+        { ...context, settleCreditsExternally },
+      );
+
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledTimes(expectedDeductions);
+    },
+  );
+
+  it.each([
+    ['a reserved platform charge', { creditsConfig: { amount: 3 } }, true],
+    [
+      'a BYOK bypass',
+      { creditsConfig: { amount: 3, isByokBypass: true } },
+      false,
+    ],
+    ['an unresolved zero price', { creditsConfig: { amount: 0 } }, false],
+    ['no credits config', {}, false],
+  ])(
+    'isAvatarBilledByRequest treats %s correctly',
+    (_label, request, expected) => {
+      expect(isAvatarBilledByRequest(request)).toBe(expected);
     },
   );
 

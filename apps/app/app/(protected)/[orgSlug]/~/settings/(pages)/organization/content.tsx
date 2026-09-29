@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Spinner from '@ui/primitives/spinner';
 import { Switch } from '@ui/primitives/switch';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -77,7 +78,7 @@ export default function SettingsOrganizationPage() {
   if (!isReady) {
     return (
       <div className="flex items-center justify-center min-h-form">
-        <span className="animate-spin size-8 border-2 border-primary border-t-transparent rounded-full" />
+        <Spinner className="size-8 text-primary" />
       </div>
     );
   }

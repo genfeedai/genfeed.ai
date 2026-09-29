@@ -2,8 +2,11 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
+import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import type { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
+  applyWorkflowTemplateDefaults,
+  buildFeaturedWorkflowCopyPayload,
   buildWorkflowCreatePayload,
   getDefaultInputValuesFromWorkflowData,
   getMissingRequiredInputKeys,
@@ -102,6 +105,10 @@ export class WorkflowsService extends BaseService<
 
   private get marketplaceApiClient(): MarketplaceApiClient | undefined {
     return resolveOptionalProvider(this.moduleRef, MarketplaceApiClient);
+  }
+
+  private get featuredWorkflowsService(): FeaturedWorkflowsService | undefined {
+    return resolveOptionalProvider(this.moduleRef, FeaturedWorkflowsService);
   }
 
   private get systemWorkflowCatalogService():
@@ -339,6 +346,16 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
+    // Featured "Use" (#5511) copies only the sanitized cross-org projection.
+    if (workflowData.sourceType === 'featured-workflow') {
+      return this.copyFeaturedWorkflow(
+        workflowData,
+        userId,
+        organizationId,
+        defaultBrandId,
+      );
+    }
+
     // Clone via create body (`sourceWorkflowId`). An explicit body brandId
     // wins; otherwise the clone stays on the SOURCE workflow's brand, which
     // `cloneWorkflow`'s own fallback resolves. `defaultBrandId` (the
@@ -400,7 +417,10 @@ export class WorkflowsService extends BaseService<
           sourceType: 'seeded-template',
         }
       : undefined;
-    workflowData = this.applyTemplateDefaults(workflowData, templateMetadata);
+    workflowData = applyWorkflowTemplateDefaults(
+      workflowData,
+      templateMetadata,
+    );
 
     const metadata =
       workflowData.metadata || templateMetadata
@@ -462,51 +482,6 @@ export class WorkflowsService extends BaseService<
     }
 
     return EntityFactory.fromDocument(WorkflowEntity, workflow);
-  }
-
-  /**
-   * When creating from a known template, fills graph/input-schema/schedule
-   * fields the caller left empty. Non-template creates pass through unchanged.
-   */
-  private applyTemplateDefaults(
-    workflowData: CreateWorkflowDto,
-    templateMetadata: Record<string, unknown> | undefined,
-  ): CreateWorkflowDto {
-    if (
-      !workflowData.templateId ||
-      !WORKFLOW_TEMPLATES[workflowData.templateId]
-    ) {
-      return workflowData;
-    }
-
-    const template = WORKFLOW_TEMPLATES[workflowData.templateId];
-    const routineMetadata = template.routine
-      ? { productizedRoutine: template.routine }
-      : {};
-    const shouldUseTemplateEdges =
-      !workflowData.edges || workflowData.edges.length === 0;
-    const shouldUseTemplateInputVariables =
-      !workflowData.inputVariables || workflowData.inputVariables.length === 0;
-    const shouldUseTemplateNodes =
-      !workflowData.nodes || workflowData.nodes.length === 0;
-
-    return {
-      ...workflowData,
-      edges: shouldUseTemplateEdges ? template.edges : workflowData.edges,
-      inputVariables: shouldUseTemplateInputVariables
-        ? template.inputVariables
-        : workflowData.inputVariables,
-      isScheduleEnabled:
-        workflowData.isScheduleEnabled ?? template.isScheduleEnabled,
-      metadata: {
-        ...templateMetadata,
-        ...routineMetadata,
-        ...(workflowData.metadata ?? {}),
-      },
-      nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
-      schedule: workflowData.schedule ?? template.schedule,
-      timezone: workflowData.timezone ?? template.timezone,
-    };
   }
 
   /**
@@ -642,6 +617,41 @@ export class WorkflowsService extends BaseService<
     );
 
     return EntityFactory.fromDocument(WorkflowEntity, clonedWorkflow);
+  }
+
+  /** Featured "Use" (#5511): a draft copy on the caller's org and brand. */
+  private async copyFeaturedWorkflow(
+    workflowData: CreateWorkflowDto,
+    userId: string,
+    organizationId: string,
+    defaultBrandId?: string,
+  ): Promise<WorkflowEntity> {
+    if (!workflowData.sourceWorkflowId) {
+      throw new BadRequestException(
+        'sourceWorkflowId is required when sourceType is featured-workflow',
+      );
+    }
+    if (!this.featuredWorkflowsService) {
+      throw new BadRequestException('Featured workflows are not available');
+    }
+    const featured = await this.featuredWorkflowsService.findFeatured(
+      workflowData.sourceWorkflowId,
+    );
+    const brandId = resolveWorkflowBrandId(
+      (workflowData as WorkflowCreateExtras).brandId,
+      defaultBrandId,
+    );
+    await this.assertWorkflowBrandAccess(brandId, organizationId);
+
+    const workflow = await this.create(
+      buildFeaturedWorkflowCopyPayload({
+        brandId,
+        featured,
+        organizationId,
+        userId,
+      }) as unknown as CreateWorkflowDto,
+    );
+    return EntityFactory.fromDocument(WorkflowEntity, workflow);
   }
 
   @HandleErrors('set workflow thumbnail', 'workflows')

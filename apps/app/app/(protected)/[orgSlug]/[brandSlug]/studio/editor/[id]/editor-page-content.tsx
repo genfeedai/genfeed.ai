@@ -12,6 +12,10 @@ export default function EditorPageContent({
   const {
     state,
     isReadOnly,
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
     previewRef,
     handlePlayPause,
     handleSeek,
@@ -52,6 +56,9 @@ export default function EditorPageContent({
       currentFrame={state.currentFrame}
       zoom={state.zoom}
       isDirty={state.isDirty}
+      saveStatus={state.saveStatus}
+      canUndo={canUndo}
+      canRedo={canRedo}
       isRendering={state.isRendering}
       isReadOnly={isReadOnly}
       hasSaveConflict={state.hasSaveConflict}
@@ -69,6 +76,8 @@ export default function EditorPageContent({
       onAddVideoTrack={handleAddVideoTrack}
       onAddAudioTrack={handleAddAudioTrack}
       onSave={handleSave}
+      onUndo={handleUndo}
+      onRedo={handleRedo}
       onRender={handleRender}
       onBack={handleBack}
       onDuplicate={handleDuplicate}

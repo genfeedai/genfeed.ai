@@ -5,6 +5,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
+import Spinner from '@ui/primitives/spinner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef } from 'react';
 
@@ -12,7 +13,8 @@ function NewEditorProjectPageContent() {
   const { replace } = useRouter();
   const { href } = useOrgUrl();
   const searchParams = useSearchParams();
-  const videoId = searchParams.get('video') || searchParams.get('videoId');
+  // `?video=` repeats in timeline order: one clip per video, back to back.
+  const videoIdsKey = searchParams.getAll('video').filter(Boolean).join(',');
   const creating = useRef(false);
 
   const getEditorService = useAuthedService((token: string) =>
@@ -38,9 +40,10 @@ function NewEditorProjectPageContent() {
           return;
         }
 
+        const sourceVideoIds = videoIdsKey ? videoIdsKey.split(',') : [];
         const project = await service.create({
-          name: videoId ? 'Video Edit' : 'Untitled Project',
-          sourceVideoId: videoId ?? undefined,
+          name: sourceVideoIds.length > 0 ? 'Video Edit' : 'Untitled Project',
+          sourceVideoIds,
         });
         if (controller.signal.aborted) {
           return;
@@ -61,11 +64,11 @@ function NewEditorProjectPageContent() {
       controller.abort();
       creating.current = false;
     };
-  }, [videoId, getEditorService, href, replace]);
+  }, [videoIdsKey, getEditorService, href, replace]);
 
   return (
     <div className="flex h-screen items-center justify-center">
-      <div className="size-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+      <Spinner className="size-12 text-primary" />
     </div>
   );
 }

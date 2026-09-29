@@ -12,8 +12,8 @@ import type { PostQuickActionsProps } from '@genfeedai/props/posts/post-quick-ac
 import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import Spinner from '@ui/primitives/spinner';
 import { Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
 

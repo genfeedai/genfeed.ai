@@ -4,12 +4,12 @@ import {
   executeAwaitedForEach,
   parseForEachOptions,
 } from '@api/collections/workflows/system-workflow-for-each.util';
+import { ENGINE_VERIFIED_TEMPLATE_IDS } from '@api/collections/workflows/templates/__fixtures__/engine-verified-template-ids';
 import {
   DAILY_PUBLISHING_ACCOUNT_WORKFLOW_ID,
   dailyPublishingAccountDefinition,
 } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import {
-  SHOWCASE_WORKFLOW_TEMPLATE_IDS,
   WORKFLOW_TEMPLATES,
   type WorkflowTemplate,
 } from '@api/collections/workflows/templates/workflow-templates';
@@ -473,7 +473,7 @@ function withEdgeSourceHandle(
 }
 
 describe('showcase workflow templates on the real engine', () => {
-  it.each([...SHOWCASE_WORKFLOW_TEMPLATE_IDS])(
+  it.each([...ENGINE_VERIFIED_TEMPLATE_IDS])(
     '%s completes and every edge delivers its handle',
     async (templateId) => {
       const runs = await runTemplate(requireTemplate(templateId));

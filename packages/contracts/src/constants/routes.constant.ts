@@ -353,6 +353,7 @@ export const APP_ROUTES = {
     GENERATE: '/studio/generate',
     ROOT: '/studio',
     STORYBOARD: '/studio/storyboard',
+    STORYBOARD_NEW: '/studio/storyboard/new',
   },
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
