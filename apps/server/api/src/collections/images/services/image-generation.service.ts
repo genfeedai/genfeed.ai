@@ -11,7 +11,6 @@ import type {
   ImageGenerationSavedMetadata,
 } from '@api/collections/images/services/image-generation.types';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
-import { replaceDispatchReferenceIds } from '@api/collections/images/services/image-generation-dispatch-references.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -185,29 +184,18 @@ export class ImageGenerationService {
       promptBuilderBrand,
     });
 
-    const compiledBrief = this.compileImageGenerationBrief({
+    const compiledBrief = await this.compileImageGenerationBrief({
       briefBrandContext,
       createImageDto,
       height,
       model,
       generationHarness,
+      organizationId: user.organizationId,
       referenceIds,
       runReferences,
       style,
       width,
     });
-    if (compiledBrief.dispatch) {
-      compiledBrief.dispatch = await this.resolveCompiledDispatchReferences(
-        compiledBrief.dispatch,
-        [
-          ...referenceIds,
-          ...(compiledBrief.brief?.references.map(
-            (reference) => reference.assetId,
-          ) ?? []),
-        ],
-        user.organizationId,
-      );
-    }
 
     const { promptData, metadataData, ingredientData, providerInput } =
       await this.persistImageDocuments({
@@ -553,48 +541,23 @@ export class ImageGenerationService {
    * requested model family, or record an explicit exemption for every model
    * that has not been onboarded to model-aware compilation.
    */
-  private async resolveCompiledDispatchReferences(
-    dispatch: ImageGenerationBriefDispatch,
-    referenceIds: readonly string[],
-    organizationId: string,
-  ): Promise<ImageGenerationBriefDispatch> {
-    const urlByReferenceId = new Map<string, string>();
-    const unresolvedReferenceIds = new Set<string>();
-    for (const referenceId of new Set(referenceIds)) {
-      const [url] = await this.admissionService.resolveReferenceImageUrls(
-        organizationId,
-        [referenceId],
-      );
-      if (url) {
-        urlByReferenceId.set(referenceId, url);
-      } else {
-        unresolvedReferenceIds.add(referenceId);
-      }
-    }
-
-    return replaceDispatchReferenceIds(
-      dispatch,
-      urlByReferenceId,
-      unresolvedReferenceIds,
-    );
-  }
-
-  private compileImageGenerationBrief(params: {
+  private async compileImageGenerationBrief(params: {
     briefBrandContext?: string;
     createImageDto: CreateImageDto;
     height: number;
     model: string;
     generationHarness: GenerationHarnessReceipt;
+    organizationId: string;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
     style?: string;
     width: number;
-  }): {
+  }): Promise<{
     brief?: ImageGenerationBrief;
     dispatch?: ImageGenerationBriefDispatch;
     evidence: GenerationBriefPersistedEvidence;
     generationSource: string;
-  } {
+  }> {
     const composition = [
       params.createImageDto.camera,
       params.createImageDto.lens,
@@ -640,6 +603,11 @@ export class ImageGenerationService {
           'raw_prompt_requested',
         );
       }
+
+      compiled.dispatch = await this.admissionService.resolveDispatchReferences(
+        compiled,
+        params.organizationId,
+      );
 
       return compiled;
     } catch (error: unknown) {
