@@ -138,6 +138,17 @@ const ACTION_STUBS: Record<string, StubExecutor> = {
       sourceType: 'library',
     };
   },
+  // workflow-media-generation-executor-registrar: registerReframeExecutor
+  reframe: (node) => {
+    const id = nextId('reframedmedia');
+    return {
+      format: 'video',
+      id,
+      mediaUrl: `${MEDIA_BASE_URL}/videos/${id}`,
+      status: 'processing',
+      targetAspectRatio: String(node.config.targetAspectRatio),
+    };
+  },
   // workflow-content-executor-registrar: registerNewsletterExecutor
   newsletterGen: () => {
     const id = nextId('newsletter');
@@ -180,6 +191,19 @@ const ACTION_STUBS: Record<string, StubExecutor> = {
     posts: [{ id: nextId('sourcepost') }],
     text: 'Collected source posts',
   }),
+  // workflow-media-generation-executor-registrar: registerVideoGenExecutor
+  videoGen: () => {
+    const id = nextId('video');
+    return {
+      generationBriefEvidence: {},
+      generationSource: 'workflow',
+      id,
+      model: 'test-video-model',
+      provider: 'replicate',
+      status: 'processing',
+      videoUrl: `${MEDIA_BASE_URL}/videos/${id}`,
+    };
+  },
   // workflow-content-executor-registrar: registerWorkflowOutputCollector
   'workflow.collect-output': (node, inputs) =>
     buildActionExecutionInput(node.config, inputs),
@@ -252,6 +276,8 @@ function sampleInputValue(
       return `${MEDIA_BASE_URL}/images/${nextId('inputimage')}`;
     case 'audio':
       return `${MEDIA_BASE_URL}/audios/${nextId('inputaudio')}`;
+    case 'video':
+      return `${MEDIA_BASE_URL}/videos/${nextId('inputvideo')}`;
     case 'json':
       return [];
     case 'boolean':
@@ -498,6 +524,59 @@ describe('showcase workflow templates on the real engine', () => {
     expect(landscape?.inputsByNode.get('sound-overlay')?.get('videoUrl')).toBe(
       captionedVideoUrl,
     );
+  });
+
+  describe('templates made runnable in #5533', () => {
+    it.each(['multi-platform-resize', 'social-media-video-series'])(
+      '%s completes and every edge delivers its handle',
+      async (templateId) => {
+        const runs = await runTemplate(requireTemplate(templateId));
+
+        for (const run of runs) {
+          expect(run.result.status, describeFailure(run)).toBe('completed');
+          expect(findUnresolvedEdges(run), run.graphId).toEqual([]);
+          expect(findStarvedTerminalNodes(run), run.graphId).toEqual([]);
+        }
+      },
+    );
+
+    it('generates the video from the declared prompt and captions it', async () => {
+      const template = requireTemplate('social-media-video-series');
+      const [run] = await runTemplate(template);
+
+      expect(
+        run?.inputsByNode.get('generate-video-content')?.get('prompt'),
+      ).toBe('Sample Video Prompt');
+      const generatedVideoUrl = readRecord(
+        run?.result.nodeResults.get('generate-video-content')?.output,
+      ).videoUrl;
+      expect(run?.inputsByNode.get('add-captions')?.get('video')).toBe(
+        generatedVideoUrl,
+      );
+      expect(JSON.stringify(template.nodes)).not.toMatch(/\$\{[^}]+\}/);
+    });
+
+    it('reframes the source media once per platform aspect ratio', async () => {
+      const [run] = await runTemplate(requireTemplate('multi-platform-resize'));
+      const reframes = [
+        'reframe-square',
+        'reframe-portrait',
+        'reframe-landscape',
+      ];
+
+      expect(
+        reframes.map(
+          (nodeId) =>
+            readRecord(run?.result.nodeResults.get(nodeId)?.output)
+              .targetAspectRatio,
+        ),
+      ).toEqual(['1:1', '9:16', '16:9']);
+      for (const nodeId of reframes) {
+        expect(run?.inputsByNode.get(nodeId)?.get('media')).toEqual(
+          expect.stringMatching(`^${MEDIA_BASE_URL}/videos/`),
+        );
+      }
+    });
   });
 
   describe('negative controls: a handle the source output does not carry', () => {
