@@ -6,6 +6,7 @@ import type { CollectionCarouselSectionProps } from '@genfeedai/props/ui/collect
 import CollectionSection from '@ui/collection/CollectionSection';
 import { Button } from '@ui/primitives/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 const GAP_CLASSES = {
@@ -41,6 +42,7 @@ export default function CollectionCarouselSection({
   children,
   ...sectionProps
 }: CollectionCarouselSectionProps) {
+  const translate = useTranslations('ui.collection');
   // Held in state, not a ref: the rail is absent while the section is loading
   // or errored, and the bounds effect must re-bind whenever it (re)mounts.
   const [rail, setRail] = useState<HTMLDivElement | null>(null);
@@ -99,7 +101,7 @@ export default function CollectionCarouselSection({
             {hasOverflow ? (
               <div className="flex items-center gap-1">
                 <Button
-                  ariaLabel="Scroll left"
+                  ariaLabel={translate('scrollLeft')}
                   isDisabled={!canScrollBack}
                   onClick={() => scrollByCard(-1)}
                   size={ButtonSize.ICON}
@@ -109,7 +111,7 @@ export default function CollectionCarouselSection({
                   <ChevronLeft className="size-4" />
                 </Button>
                 <Button
-                  ariaLabel="Scroll right"
+                  ariaLabel={translate('scrollRight')}
                   isDisabled={!canScrollForward}
                   onClick={() => scrollByCard(1)}
                   size={ButtonSize.ICON}

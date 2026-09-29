@@ -591,7 +591,6 @@
     "packages/ui/src/components/ingredients/tabs/tags/IngredientTabsTags.tsx": 13,
     "packages/ui/src/components/ingredients/text-overlay-panel/TextOverlayPanel.tsx": 23,
     "packages/ui/src/components/layout/container-title/ContainerTitle.tsx": 1,
-    "packages/ui/src/components/layout/horizontal-carousel/HorizontalCarousel.tsx": 2,
     "packages/ui/src/components/layouts/app/AppLayout.tsx": 2,
     "packages/ui/src/components/layouts/app/CollapsedSidebarToggle.tsx": 1,
     "packages/ui/src/components/layouts/app/DesktopSidebar.tsx": 1,

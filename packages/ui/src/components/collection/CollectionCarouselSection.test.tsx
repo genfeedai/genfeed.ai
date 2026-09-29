@@ -2,6 +2,11 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) =>
+    ({ scrollLeft: 'Scroll left', scrollRight: 'Scroll right' })[key] ?? key,
+}));
+
 function setRailGeometry(
   rail: HTMLElement,
   geometry: { clientWidth: number; scrollLeft: number; scrollWidth: number },
