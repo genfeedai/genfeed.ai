@@ -12,6 +12,7 @@ import type {
   AppRailProps,
 } from '@genfeedai/props/ui/app-rail.props';
 import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
+import { Kbd } from '@ui/primitives/kbd';
 import { Separator } from '@ui/primitives/separator';
 import {
   Tooltip,
@@ -34,6 +35,12 @@ import {
 } from './app-rail.registry';
 import { useAppRailNavigation } from './use-app-rail-navigation';
 
+// Only the desktop chord is shown: the browser owns ⌘1–9 for tab switching,
+// so the web "G then N" sequence stays a palette-only shortcut.
+function formatRailShortcut(shortcut: string[] | undefined) {
+  return shortcut?.[0] === '⌘' ? shortcut.join(' ') : undefined;
+}
+
 function AppRailItem({
   app,
   label,
@@ -48,6 +55,7 @@ function AppRailItem({
   const t = useTranslations('common.appRail');
   const Icon = app.icon;
   const intent = useNavigationIntentPrefetch(href);
+  const shortcutLabel = formatRailShortcut(shortcut);
   const hasBadge = !isLocked && badge !== undefined && badge.count > 0;
   const accessibleLabel = isLocked
     ? t('locked', { app: label })
@@ -106,12 +114,17 @@ function AppRailItem({
         collisionPadding={12}
         className="max-w-60 py-2"
       >
-        <span className="block font-semibold">{label}</span>
-        {shortcut ? (
-          <kbd className="text-xs text-muted-foreground">
-            {shortcut.join(' ')}
-          </kbd>
-        ) : null}
+        <span className="flex items-center justify-between gap-3">
+          <span className="font-semibold">{label}</span>
+          {shortcutLabel ? (
+            <Kbd
+              variant="ghost"
+              className="rounded-md border border-foreground/[0.08] bg-foreground/[0.03] text-xs tracking-[0.2em] text-foreground/70"
+            >
+              {shortcutLabel}
+            </Kbd>
+          ) : null}
+        </span>
         <span className="mt-0.5 block font-normal text-muted-foreground">
           {description}
         </span>
