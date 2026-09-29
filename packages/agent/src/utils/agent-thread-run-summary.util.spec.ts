@@ -3,7 +3,7 @@ import {
   resolveRunSummaryPatch,
   resolveStatusPushPatch,
 } from '@genfeedai/agent/utils/agent-thread-run-summary.util';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 function createThread(overrides: Partial<AgentThread> = {}): AgentThread {
@@ -115,13 +115,16 @@ describe('resolveRunSummaryPatch', () => {
 describe('resolveStatusPushPatch', () => {
   const push = (
     runStatus: AgentThread['runStatus'] & string,
-    runtimeState: AgentThread['runtimeState'] & string,
+    runtimeState: AgentRuntimeState,
     pendingInputCount = 0,
   ) => ({ pendingInputCount, runStatus, runtimeState, sequence: 9 });
 
   it('shows a running thread as Working, at the pushed sequence', () => {
     expect(
-      resolveStatusPushPatch(push('running', 'running'), createThread()),
+      resolveStatusPushPatch(
+        push('running', AgentRuntimeState.RUNNING),
+        createThread(),
+      ),
     ).toEqual({
       attentionState: 'running',
       pendingInputCount: 0,
@@ -134,7 +137,7 @@ describe('resolveStatusPushPatch', () => {
   it('shows a thread waiting on the user as Needs you', () => {
     expect(
       resolveStatusPushPatch(
-        push('waiting_input', 'awaiting_input', 2),
+        push('waiting_input', AgentRuntimeState.AWAITING_INPUT, 2),
         createThread({ attentionState: 'running' }),
       ),
     ).toMatchObject({
@@ -145,10 +148,10 @@ describe('resolveStatusPushPatch', () => {
   });
 
   it.each([
-    ['completed', 'completed'],
-    ['failed', 'failed'],
-    ['cancelled', 'cancelled'],
-    ['idle', 'ready'],
+    ['completed', AgentRuntimeState.COMPLETED],
+    ['failed', AgentRuntimeState.FAILED],
+    ['cancelled', AgentRuntimeState.CANCELLED],
+    ['idle', AgentRuntimeState.READY],
   ] as const)('clears attention when the run is %s', (runStatus, state) => {
     expect(
       resolveStatusPushPatch(
@@ -161,7 +164,7 @@ describe('resolveStatusPushPatch', () => {
   it('keeps a client-side updated marker across a terminal status', () => {
     expect(
       resolveStatusPushPatch(
-        push('completed', 'completed'),
+        push('completed', AgentRuntimeState.COMPLETED),
         createThread({ attentionState: 'updated' }),
       ),
     ).toMatchObject({ attentionState: 'updated' });

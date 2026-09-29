@@ -369,11 +369,8 @@ describe('AgentThreadStatusPublisherService', () => {
         (_, index) => `t${String(index).padStart(4, '0')}${'e'.repeat(19)}`,
       );
       vi.mocked(threadsService.findOne).mockImplementation(
-        async (query: never) =>
-          ({
-            ...thread,
-            id: (query as { id: string }).id,
-          }) as never,
+        async (query) =>
+          ({ ...thread, id: (query as { id: string }).id }) as never,
       );
 
       const startedAt = performance.now();

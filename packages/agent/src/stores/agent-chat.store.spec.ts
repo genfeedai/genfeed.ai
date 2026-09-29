@@ -7,7 +7,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -656,7 +656,7 @@ describe('agent-chat.store applyThreadStatusPush (#5636)', () => {
     organizationId: 'org-1',
     pendingInputCount: 0,
     runStatus: 'running',
-    runtimeState: 'running' as AgentThreadStatusEvent['runtimeState'],
+    runtimeState: AgentRuntimeState.RUNNING,
     sequence: 5,
     threadId: 'a',
     timestamp: '2026-07-28T08:01:00.000Z',
@@ -703,7 +703,7 @@ describe('agent-chat.store applyThreadStatusPush (#5636)', () => {
       store.applyThreadStatusPush(
         event({
           runStatus: 'completed',
-          runtimeState: 'completed' as AgentThreadStatusEvent['runtimeState'],
+          runtimeState: AgentRuntimeState.COMPLETED,
           sequence: 8,
         }),
       ),
@@ -755,8 +755,7 @@ describe('agent-chat.store applyThreadStatusPush (#5636)', () => {
       event({
         pendingInputCount: 1,
         runStatus: 'waiting_input',
-        runtimeState:
-          'awaiting_input' as AgentThreadStatusEvent['runtimeState'],
+        runtimeState: AgentRuntimeState.AWAITING_INPUT,
       }),
     );
 

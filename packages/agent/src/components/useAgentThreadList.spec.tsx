@@ -1,7 +1,7 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -746,7 +746,7 @@ describe('useAgentThreadList status pushes (#5636)', () => {
         organizationId: 'org-1',
         pendingInputCount: 0,
         runStatus: 'running',
-        runtimeState: 'running',
+        runtimeState: AgentRuntimeState.RUNNING,
         sequence: 6,
         threadId: 't-1',
         timestamp: '2026-09-29T08:00:00.000Z',

@@ -1,10 +1,18 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
 import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 import {
   AGENT_THREAD_STATUS_FALLBACK_INTERVAL_MS,
   useAgentThreadStatusPush,
@@ -53,7 +61,7 @@ const statusEvent = (
   organizationId: 'org-1',
   pendingInputCount: 0,
   runStatus: 'running',
-  runtimeState: 'running' as AgentThreadStatusEvent['runtimeState'],
+  runtimeState: AgentRuntimeState.RUNNING,
   sequence: 5,
   threadId: 'a',
   timestamp: '2026-09-29T08:01:00.000Z',
@@ -69,7 +77,7 @@ const row = (id: string) =>
   useAgentChatStore.getState().threads.find((item) => item.id === id);
 
 describe('useAgentThreadStatusPush', () => {
-  let reloadThreads: ReturnType<typeof vi.fn>;
+  let reloadThreads: Mock<() => Promise<boolean>>;
 
   const mount = (isActive = true) =>
     renderHook(
@@ -92,7 +100,7 @@ describe('useAgentThreadStatusPush', () => {
       );
     runtime.findAgentStreamEntry.mockReset().mockReturnValue(undefined);
     metrics.count.mockReset();
-    reloadThreads = vi.fn().mockResolvedValue(true);
+    reloadThreads = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
     useAgentChatStore
       .getState()
@@ -136,7 +144,7 @@ describe('useAgentThreadStatusPush', () => {
     push(
       statusEvent({
         runStatus: 'completed',
-        runtimeState: 'completed' as AgentThreadStatusEvent['runtimeState'],
+        runtimeState: AgentRuntimeState.COMPLETED,
         sequence: 8,
       }),
     );
@@ -154,7 +162,7 @@ describe('useAgentThreadStatusPush', () => {
     push(
       statusEvent({
         runStatus: 'failed',
-        runtimeState: 'failed' as AgentThreadStatusEvent['runtimeState'],
+        runtimeState: AgentRuntimeState.FAILED,
         sequence: 5,
       }),
     );

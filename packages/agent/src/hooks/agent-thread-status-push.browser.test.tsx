@@ -2,7 +2,7 @@ import { AgentThreadListRow } from '@genfeedai/agent/components/AgentThreadListR
 import { resetAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentThreadStatusPush } from '@genfeedai/agent/hooks/use-agent-thread-status-push';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentRuntimeState, AgentThreadStatus } from '@genfeedai/contracts';
 import { AGENT_THREAD_STATUS_EVENT_TYPE } from '@genfeedai/contracts/constants';
 import type { AgentThreadStatusEvent } from '@genfeedai/contracts/interfaces';
 import { NextIntlClientProvider } from 'next-intl';
@@ -90,7 +90,7 @@ function pushStatus(overrides: Partial<AgentThreadStatusEvent>) {
     organizationId: 'org-1',
     pendingInputCount: 0,
     runStatus: 'running',
-    runtimeState: 'running',
+    runtimeState: AgentRuntimeState.RUNNING,
     sequence: 1,
     threadId: 'a',
     timestamp: new Date().toISOString(),
@@ -139,13 +139,17 @@ it('shows a run started by a second client under Working and clears it, within 2
     .not.toBeInTheDocument();
 
   // A late duplicate of an older event changes nothing.
-  pushStatus({ runStatus: 'idle', runtimeState: 'ready', sequence: 3 });
+  pushStatus({
+    runStatus: 'idle',
+    runtimeState: AgentRuntimeState.READY,
+    sequence: 3,
+  });
   await expect.element(running()).toBeVisible();
 
   const finishedAt = performance.now();
   pushStatus({
     runStatus: 'completed',
-    runtimeState: 'completed',
+    runtimeState: AgentRuntimeState.COMPLETED,
     sequence: 7,
   });
   await expect.element(running()).not.toBeInTheDocument();
