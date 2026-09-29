@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { AGENT_CONVERSATION_WORKFLOW_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import type {
   DelayResumeJobData,
   TriggerEvent,
@@ -18,6 +19,7 @@ import {
 } from '@genfeedai/contracts';
 import type { WorkflowTriggerQueueOptions } from '@genfeedai/contracts/interfaces';
 import {
+  AGENT_TURN_QUEUE,
   PLATFORM_SYSTEM_WORKFLOW_QUEUE,
   SystemWorkflowDispatchClass,
   WORKFLOW_BACKGROUND_QUEUE,
@@ -68,7 +70,8 @@ export interface QueueSystemWorkflowOptions {
   attempts?: number;
   /**
    * Whether this dispatch is a direct user/agent-initiated turn
-   * (`INTERACTIVE`, stays on `WORKFLOW_EXECUTION_QUEUE`) or everything else
+   * (`INTERACTIVE`, stays on `WORKFLOW_EXECUTION_QUEUE` — except the agent
+   * conversation workflows, which get `AGENT_TURN_QUEUE`, #5622) or everything else
    * — worker crons, batch/background fan-out, polling reconciliation
    * (`BACKGROUND`, routes to `WORKFLOW_BACKGROUND_QUEUE`) — see #5271.
    * Required so a new producer cannot land without an explicit choice;
@@ -222,6 +225,9 @@ export class WorkflowExecutionQueueService {
     // — see #5271.
     @InjectQueue(WORKFLOW_BACKGROUND_QUEUE)
     private readonly backgroundQueue: Queue<WorkflowExecutionJobData>,
+    // Live agent-conversation turns only — see `AGENT_TURN_QUEUE` (#5622).
+    @InjectQueue(AGENT_TURN_QUEUE)
+    private readonly agentTurnQueue: Queue<WorkflowExecutionJobData>,
     private readonly logger: LoggerService,
   ) {}
 
@@ -281,12 +287,12 @@ export class WorkflowExecutionQueueService {
     // `PLATFORM_SYSTEM_WORKFLOW_QUEUE` instead of `dispatchClass`'s queue —
     // see #5162 and `QueueSystemWorkflowOptions`. Everything else routes by
     // `dispatchClass`: `BACKGROUND` to `WORKFLOW_BACKGROUND_QUEUE`,
-    // `INTERACTIVE` to the shared `WORKFLOW_EXECUTION_QUEUE` (#5271).
-    const targetQueue = options.usePlatformQueue
-      ? this.platformSystemWorkflowQueue
-      : options.dispatchClass === SystemWorkflowDispatchClass.BACKGROUND
-        ? this.backgroundQueue
-        : this.executionQueue;
+    // `INTERACTIVE` to `WORKFLOW_EXECUTION_QUEUE` (#5271), except live agent
+    // conversation turns, which get `AGENT_TURN_QUEUE` (#5622).
+    const targetQueue = this.resolveSystemWorkflowQueue(
+      input.canonicalId,
+      options,
+    );
     const reservation = await reserveIdempotentJob(targetQueue, jobId);
     if (reservation.alreadyQueued) {
       this.logger.log(`${this.logContext} system workflow already queued`, {
@@ -374,12 +380,7 @@ export class WorkflowExecutionQueueService {
       .update(`${data.executionId}:${data.delayNodeId}`)
       .digest('hex')
       .slice(0, 32);
-    const queue =
-      queueName === PLATFORM_SYSTEM_WORKFLOW_QUEUE
-        ? this.platformSystemWorkflowQueue
-        : queueName === WORKFLOW_BACKGROUND_QUEUE
-          ? this.backgroundQueue
-          : this.executionQueue;
+    const queue = this.queueByName(queueName);
     const job = await queue.add(
       'delay-resume',
       {
@@ -526,18 +527,14 @@ export class WorkflowExecutionQueueService {
   /**
    * Whether `jobId` (the deterministic `system-workflow-${executionId}` id a
    * `system-run` job is queued under) is still claimable by a worker on
-   * any of the three queues a system workflow may have been routed to. Used by
+   * any of the four queues a system workflow may have been routed to. Used by
    * `PendingWorkflowExecutionReconcileService` (#5162) to tell a merely slow
    * run from one that was queued but will never be picked up — no job at
    * all, or one sitting in a terminal `completed`/`failed` state while its
    * `WorkflowExecution` row is still `PENDING`.
    */
   async hasClaimableSystemWorkflowJob(jobId: string): Promise<boolean> {
-    for (const queue of [
-      this.executionQueue,
-      this.platformSystemWorkflowQueue,
-      this.backgroundQueue,
-    ]) {
+    for (const queue of this.systemWorkflowQueues()) {
       const job = await queue.getJob(jobId);
       if (!job) continue;
       const state = await job.getState();
@@ -546,5 +543,73 @@ export class WorkflowExecutionQueueService {
       }
     }
     return false;
+  }
+
+  /**
+   * Withdraws `jobId` if no worker has started it, so a run the caller is about
+   * to be told has failed (#5622) cannot still execute later — an agent turn can
+   * carry side effects, and the user's next step is to resend it.
+   *
+   * - `started`: a worker owns the job (`active`, or it took the lock between
+   *   the state read and `remove()`). Left alone: it is about to run or running.
+   * - `removed`: it was waiting/delayed/prioritized and is now gone.
+   * - `absent`: no job in any claimable state (never queued, or terminal).
+   */
+  async withdrawUnstartedSystemWorkflowJob(
+    jobId: string,
+  ): Promise<'absent' | 'removed' | 'started'> {
+    for (const queue of this.systemWorkflowQueues()) {
+      const job = await queue.getJob(jobId);
+      if (!job) continue;
+      const state = await job.getState();
+      if (state === 'active') return 'started';
+      if (!CLAIMABLE_JOB_STATES.has(state)) continue;
+      try {
+        await job.remove();
+        return 'removed';
+      } catch (error: unknown) {
+        this.logger.warn(
+          `${this.logContext} could not withdraw an unstarted system workflow job`,
+          { error, jobId, state },
+        );
+        return 'started';
+      }
+    }
+    return 'absent';
+  }
+
+  private systemWorkflowQueues(): Array<Queue<WorkflowExecutionJobData>> {
+    return [
+      this.executionQueue,
+      this.agentTurnQueue,
+      this.platformSystemWorkflowQueue,
+      this.backgroundQueue,
+    ];
+  }
+
+  private queueByName(queueName: string): Queue<WorkflowExecutionJobData> {
+    switch (queueName) {
+      case PLATFORM_SYSTEM_WORKFLOW_QUEUE:
+        return this.platformSystemWorkflowQueue;
+      case WORKFLOW_BACKGROUND_QUEUE:
+        return this.backgroundQueue;
+      case AGENT_TURN_QUEUE:
+        return this.agentTurnQueue;
+      default:
+        return this.executionQueue;
+    }
+  }
+
+  private resolveSystemWorkflowQueue(
+    canonicalId: string,
+    options: QueueSystemWorkflowOptions,
+  ): Queue<WorkflowExecutionJobData> {
+    if (options.usePlatformQueue) return this.platformSystemWorkflowQueue;
+    if (options.dispatchClass === SystemWorkflowDispatchClass.BACKGROUND) {
+      return this.backgroundQueue;
+    }
+    return AGENT_CONVERSATION_WORKFLOW_IDS.includes(canonicalId)
+      ? this.agentTurnQueue
+      : this.executionQueue;
   }
 }

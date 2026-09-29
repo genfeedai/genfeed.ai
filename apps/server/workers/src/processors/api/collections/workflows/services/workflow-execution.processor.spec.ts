@@ -7,6 +7,7 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
+import { UnrecoverableError } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -386,6 +387,92 @@ describe('WorkflowExecutionProcessor', () => {
         organizationId: 'org-1',
         source: 'workflow-failure:clip.continuity',
         userId: 'user-1',
+      });
+    });
+
+    describe('deterministic contract failures are terminal (#5622)', () => {
+      const CONTRACT_ERROR =
+        'Nodes failed: finalize: Action contract input validation failed [action=agent.autopilot.finalize workflow=wf version=v run=r node=finalize] /batch: must be array';
+      const input = {
+        actionType: 'agent.autopilot.proactive',
+        canonicalId: 'agent.autopilot.proactive',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      };
+
+      function mockFailedRun(error: string) {
+        mockSystemWorkflowRunner.startWorkflow.mockResolvedValueOnce({
+          execution: {
+            error,
+            executionId: 'exec-failed',
+            nodeResults: [],
+            startedAt: new Date(),
+            status: WorkflowExecutionStatus.FAILED,
+            totalCreditsUsed: 0,
+            workflowId: 'wf-1',
+          },
+          provenance: {
+            executionId: 'exec-failed',
+            workflowId: 'wf-1',
+            workflowLabel: 'Proactive',
+          },
+          userId: 'user-1',
+        });
+      }
+
+      it('throws UnrecoverableError on the first attempt so BullMQ never retries it', async () => {
+        mockFailedRun(CONTRACT_ERROR);
+
+        const failure = await processor
+          .process(
+            createMockJob(
+              { systemRun: { input }, type: 'system-run' },
+              { attemptsMade: 0, opts: { attempts: 3 } },
+            ) as never,
+          )
+          .catch((error: unknown) => error);
+
+        expect(failure).toBeInstanceOf(UnrecoverableError);
+        expect((failure as Error).message).toBe(CONTRACT_ERROR);
+      });
+
+      it('still runs failure compensation, since an unrecoverable job gets no later attempt', async () => {
+        mockFailedRun(CONTRACT_ERROR);
+
+        await expect(
+          processor.process(
+            createMockJob(
+              {
+                systemRun: {
+                  failureWorkflow: { canonicalId: 'agent.autopilot.fail' },
+                  input,
+                },
+                type: 'system-run',
+              },
+              { attemptsMade: 0, opts: { attempts: 3 } },
+            ) as never,
+          ),
+        ).rejects.toBeInstanceOf(UnrecoverableError);
+        expect(mockSystemWorkflowRunner.runWorkflow).toHaveBeenCalledWith(
+          expect.objectContaining({ canonicalId: 'agent.autopilot.fail' }),
+        );
+      });
+
+      it('keeps a transient node failure retryable', async () => {
+        mockFailedRun('Nodes failed: infer: upstream 503');
+
+        const failure = await processor
+          .process(
+            createMockJob(
+              { systemRun: { input }, type: 'system-run' },
+              { attemptsMade: 0, opts: { attempts: 3 } },
+            ) as never,
+          )
+          .catch((error: unknown) => error);
+
+        expect(failure).toBeInstanceOf(Error);
+        expect(failure).not.toBeInstanceOf(UnrecoverableError);
       });
     });
   });
