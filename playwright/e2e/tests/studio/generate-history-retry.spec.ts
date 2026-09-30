@@ -1,22 +1,45 @@
 import path from 'node:path';
 import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { Route } from '@playwright/test';
+import type { Page, Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { test as base, expect } from '../../fixtures/auth.fixture';
-import { expectNoErrorOverlay } from '../../utils/route-assertions';
+import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 const test = base.extend<{ browserErrors: string[] }>({
   browserErrors: [
     async ({ page }, use) => {
       const errors: string[] = [];
       page.on('pageerror', (error) => errors.push(error.message));
+      page.on('response', (response) => {
+        if (response.status() >= 400) {
+          console.info(
+            `History browser HTTP ${response.status()}: ${response.url()}`,
+          );
+        }
+      });
       await use(errors);
       expect(errors).toEqual([]);
     },
     { auto: true },
   ],
 });
+
+function visibleFrameworkDialogs(page: Page) {
+  return page.locator(
+    '[data-nextjs-dialog]:visible, ' +
+      '[data-nextjs-dialog-root]:visible, ' +
+      '[data-nextjs-dialog-overlay]:visible',
+  );
+}
+
+async function expectHistoryHasNoBlockingErrors(page: Page): Promise<void> {
+  await assertNoErrorBoundaryFallback(page, new URL(page.url()).pathname);
+  await expect(
+    visibleFrameworkDialogs(page),
+    'Generate history rendered a visible Next error overlay',
+  ).toHaveCount(0, { timeout: 1_000 });
+}
 
 for (const colorScheme of ['light', 'dark'] as const) {
   for (const viewport of [
@@ -120,7 +143,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
-      await expectNoErrorOverlay(page);
+      await expectHistoryHasNoBlockingErrors(page);
       await page.screenshot({
         path: testInfo.outputPath('before-retry.png'),
         fullPage: true,
@@ -135,12 +158,15 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('status').filter({ hasText: 'Retrying history…' }),
       ).toBeVisible();
+      await expect.poll(() => galleryRequests).toBe(2);
       await page.keyboard.press('Enter');
       expect(galleryRequests).toBe(2);
       await expect(alert).toBeVisible();
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
+      await expectHistoryHasNoBlockingErrors(page);
+      expect(galleryRequests).toBe(2);
       await page.screenshot({
         path: testInfo.outputPath('retry-pending.png'),
         fullPage: true,
@@ -153,7 +179,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
       ).toHaveCount(0);
-      await expectNoErrorOverlay(page);
+      await expectHistoryHasNoBlockingErrors(page);
       expect(galleryRequests).toBe(2);
       await expect(composer).toBeEnabled();
       await composer.fill('Composer remains usable after history recovery');
@@ -164,6 +190,16 @@ for (const colorScheme of ['light', 'dark'] as const) {
         path: testInfo.outputPath('after-retry.png'),
         fullPage: true,
       });
+      if (colorScheme === 'light' && viewport.width === 1440) {
+        await page
+          .getByRole('button', { name: 'Open issues overlay', exact: true })
+          .click();
+        await expect(visibleFrameworkDialogs(page)).not.toHaveCount(0);
+        await page.screenshot({
+          path: testInfo.outputPath('visible-next-overlay-control.png'),
+          fullPage: true,
+        });
+      }
     });
   }
 }
