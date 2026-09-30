@@ -25,14 +25,14 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP"
-          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
-          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc.sha512
-          sha512sum -c runsc.sha512
-          sudo install -m 0755 runsc /usr/local/bin/runsc
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg zstd
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/gvisor.tar.zstd.sha512
+          sha512sum -c gvisor.tar.zstd.sha512
+          sudo tar --zstd -xf gvisor.tar.zstd -C /usr/local/bin
           sudo runsc install
           sudo systemctl restart docker
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
           runsc --version
           docker info --format '{{json .Runtimes}}'
       - name: Build fixed renderer image
