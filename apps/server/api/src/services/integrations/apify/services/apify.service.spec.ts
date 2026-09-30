@@ -19,11 +19,13 @@ describe('ApifyService', () => {
   let tiktokService: {
     getTikTokTrends: ReturnType<typeof vi.fn>;
     getTikTokVideoComments: ReturnType<typeof vi.fn>;
+    getTikTokVideoByUrl: ReturnType<typeof vi.fn>;
     getTikTokUserVideos: ReturnType<typeof vi.fn>;
     searchTikTokByHashtag: ReturnType<typeof vi.fn>;
   };
   let instagramService: {
     getInstagramPostComments: ReturnType<typeof vi.fn>;
+    getInstagramPostByUrl: ReturnType<typeof vi.fn>;
     getInstagramUserPosts: ReturnType<typeof vi.fn>;
     searchInstagramByHashtag: ReturnType<typeof vi.fn>;
   };
@@ -31,6 +33,7 @@ describe('ApifyService', () => {
     getTwitterMentions: ReturnType<typeof vi.fn>;
     getTwitterTrends: ReturnType<typeof vi.fn>;
     getTwitterTweetReplies: ReturnType<typeof vi.fn>;
+    getTweetByUrl: ReturnType<typeof vi.fn>;
     getTwitterUserTimeline: ReturnType<typeof vi.fn>;
     searchTwitterTweets: ReturnType<typeof vi.fn>;
   };
@@ -76,6 +79,7 @@ describe('ApifyService', () => {
           useValue: {
             getTikTokSounds: vi.fn(),
             getTikTokTrends: vi.fn(),
+            getTikTokVideoByUrl: vi.fn(),
             getTikTokUserVideos: vi.fn(),
             getTikTokVideoComments: vi.fn(),
             getTikTokVideos: vi.fn(),
@@ -87,6 +91,7 @@ describe('ApifyService', () => {
           useValue: {
             getInstagramPostComments: vi.fn(),
             getInstagramTrends: vi.fn(),
+            getInstagramPostByUrl: vi.fn(),
             getInstagramUserPosts: vi.fn(),
             getInstagramVideos: vi.fn(),
             searchInstagramByHashtag: vi.fn(),
@@ -98,6 +103,7 @@ describe('ApifyService', () => {
             getTwitterMentions: vi.fn(),
             getTwitterTrends: vi.fn(),
             getTwitterTweetReplies: vi.fn(),
+            getTweetByUrl: vi.fn(),
             getTwitterUserTimeline: vi.fn(),
             searchTwitterTweets: vi.fn(),
           },
@@ -230,6 +236,7 @@ describe('ApifyService', () => {
       expect(tiktokService.getTikTokUserVideos).toHaveBeenCalledWith(
         'username',
         undefined,
+        undefined,
       );
     });
 
@@ -303,6 +310,7 @@ describe('ApifyService', () => {
       expect(twitterService.getTwitterUserTimeline).toHaveBeenCalledWith(
         'user',
         undefined,
+        undefined,
       );
     });
 
@@ -371,6 +379,7 @@ describe('ApifyService', () => {
       expect(youtubeService.getYouTubeChannelUploads).toHaveBeenCalledWith(
         'channel-url',
         { limit: 20 },
+        undefined,
       );
     });
   });
@@ -384,6 +393,7 @@ describe('ApifyService', () => {
       expect(linkedinService.getLinkedInProfilePosts).toHaveBeenCalledWith(
         'profile-url',
         { limit: 20 },
+        undefined,
       );
     });
   });
@@ -615,5 +625,40 @@ describe('ApifyService', () => {
       expect(result.contentUrl).toBe('https://youtube.com/watch?v=vid-yt-1');
       expect(result.authorUsername).toBe('a4');
     });
+  });
+  it('forwards governed context through all five timelines and three posts', async () => {
+    const context = {
+      organizationId: 'org-1',
+      origin: 'social-source' as const,
+    };
+    await service.getTwitterUserTimeline('creator', {}, context);
+    await service.getInstagramUserPosts('creator', {}, context);
+    await service.getTikTokUserVideos('creator', {}, context);
+    await service.getYouTubeChannelUploads('channel', {}, context);
+    await service.getLinkedInProfilePosts('profile', {}, context);
+    for (const mock of [
+      twitterService.getTwitterUserTimeline,
+      instagramService.getInstagramUserPosts,
+      tiktokService.getTikTokUserVideos,
+      youtubeService.getYouTubeChannelUploads,
+      linkedinService.getLinkedInProfilePosts,
+    ])
+      expect(mock.mock.calls[0].at(-1)).toEqual(context);
+    await service.getTweetByUrl('url', '123', context);
+    await service.getInstagramPostByUrl('url', context);
+    await service.getTikTokVideoByUrl('url', context);
+    expect(twitterService.getTweetByUrl).toHaveBeenCalledWith(
+      'url',
+      '123',
+      context,
+    );
+    expect(instagramService.getInstagramPostByUrl).toHaveBeenCalledWith(
+      'url',
+      context,
+    );
+    expect(tiktokService.getTikTokVideoByUrl).toHaveBeenCalledWith(
+      'url',
+      context,
+    );
   });
 });

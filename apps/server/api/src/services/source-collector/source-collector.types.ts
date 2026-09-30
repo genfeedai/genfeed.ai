@@ -71,3 +71,8 @@ export type SourceProviderName =
   | 'app-api-key'
   | 'apify'
   | 'social-monitor';
+
+export interface SocialSourceResearchContext {
+  organizationId: string | undefined;
+  origin: 'social-source';
+}

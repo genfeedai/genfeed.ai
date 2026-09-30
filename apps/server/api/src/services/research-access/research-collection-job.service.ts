@@ -45,6 +45,7 @@ export function buildResearchCollectionRequestKey(input: {
   actorId: string;
   input: object;
   organizationId: string;
+  requestScope?: string;
 }): string {
   return createHash('sha256')
     .update(
@@ -52,6 +53,9 @@ export function buildResearchCollectionRequestKey(input: {
         actorId: input.actorId,
         input: input.input,
         organizationId: input.organizationId,
+        ...(input.requestScope === undefined
+          ? {}
+          : { requestScope: input.requestScope }),
       }),
     )
     .digest('hex');
@@ -161,7 +165,7 @@ export class ResearchCollectionJobService {
           input.startAttemptedAt.getTime() + RESEARCH_COLLECTION_LEASE_MS,
         ),
         scope: input.scope,
-        startAttemptedAt: input.startAttemptedAt,
+        startAttemptedAt: null,
         status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
       },
       where: {
@@ -171,6 +175,55 @@ export class ResearchCollectionJobService {
         leaseToken: job.leaseToken,
         organizationId: job.organizationId,
         status: RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+      },
+    });
+    return updated.count === 1;
+  }
+
+  /** The timestamp describes the confirmed POST boundary, after admission latency. */
+  async confirmSubmission(
+    job: ResearchCollectionJobRecord,
+    now: Date,
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
+      data: { startAttemptedAt: now },
+      where: {
+        id: job.id,
+        organizationId: job.organizationId,
+        isDeleted: false,
+        inflightRequestKey: job.requestKey,
+        leaseToken: job.leaseToken,
+        leaseExpiresAt: { gt: now },
+        status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+        upstreamRunId: null,
+        terminalReason: null,
+      },
+    });
+    return updated.count === 1;
+  }
+
+  /** Retain an unsubmitted attempt until its zero-cost settlement is acknowledged. */
+  async markNoStart(
+    job: ResearchCollectionJobRecord,
+    reason: string,
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
+      data: { terminalReason: `no_start:${reason}` },
+      where: {
+        id: job.id,
+        organizationId: job.organizationId,
+        isDeleted: false,
+        inflightRequestKey: job.requestKey,
+        leaseToken: job.leaseToken,
+        upstreamRunId: null,
+        status: {
+          in: [
+            RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+            RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+          ],
+        },
       },
     });
     return updated.count === 1;
@@ -355,7 +408,7 @@ export class ResearchCollectionJobService {
     return updated.count === 1;
   }
 
-  private async findInflight(
+  async findInflight(
     organizationId: string,
     requestKey: string,
   ): Promise<ResearchCollectionJobRecord | null> {
