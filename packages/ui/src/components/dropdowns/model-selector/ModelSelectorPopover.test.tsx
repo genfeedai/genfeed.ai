@@ -109,10 +109,13 @@ vi.mock('@ui/primitives/popover', async () => {
       <div data-open={open}>
         {React.Children.map(children, (child) =>
           React.isValidElement(child)
-            ? React.cloneElement(child as React.ReactElement<any>, {
-                __popoverOpen: open,
-                __setPopoverOpen: onOpenChange,
-              })
+            ? React.cloneElement(
+                child as React.ReactElement<Record<string, unknown>>,
+                {
+                  __popoverOpen: open,
+                  __setPopoverOpen: onOpenChange,
+                },
+              )
             : child,
         )}
       </div>
@@ -160,10 +163,13 @@ vi.mock('@ui/primitives/select', async () => {
       <div data-value={value}>
         {React.Children.map(children, (child) =>
           React.isValidElement(child)
-            ? React.cloneElement(child as React.ReactElement<any>, {
-                __onValueChange: onValueChange,
-                __selectValue: value,
-              })
+            ? React.cloneElement(
+                child as React.ReactElement<Record<string, unknown>>,
+                {
+                  __onValueChange: onValueChange,
+                  __selectValue: value,
+                },
+              )
             : child,
         )}
       </div>
@@ -178,9 +184,12 @@ vi.mock('@ui/primitives/select', async () => {
       <div>
         {React.Children.map(children, (child) =>
           React.isValidElement(child)
-            ? React.cloneElement(child as React.ReactElement<any>, {
-                __onValueChange,
-              })
+            ? React.cloneElement(
+                child as React.ReactElement<Record<string, unknown>>,
+                {
+                  __onValueChange,
+                },
+              )
             : child,
         )}
       </div>

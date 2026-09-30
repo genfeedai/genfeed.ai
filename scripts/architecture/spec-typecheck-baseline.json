@@ -9201,14 +9201,6 @@
       "workspace": "ui"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
-      "fingerprint": "f8da2612190f77d57208",
-      "message": "Argument of type 'this' is not assignable to parameter of type 'IntersectionObserver'.   Type 'MockIntersectionObserver' is missing the following properties from type 'IntersectionObserver': root, rootMargin, scrollMargin, thresholds, takeRecords",
-      "workspace": "ui"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "packages/ui/src/components/lazy/masonry/LazyMasonry.test.tsx",
@@ -9902,46 +9894,6 @@
       "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
       "fingerprint": "3317d81706cf55d20c71",
       "message": "Type '{ children: string | undefined; \"aria-label\": string; \"data-testid\": string | undefined; placeholder: string | undefined; role: \"textbox\"; tabIndex: number; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.   Property 'placeholder' does not exist on type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 2,
-      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
-      "fingerprint": "459c6c9b3e56b0e47206",
-      "message": "Property 'isGenerateBlocked' is missing in type '{ extraExtensions: never; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; ... 22 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
-      "fingerprint": "76d53bf159f823b85e24",
-      "message": "Property 'isGenerateBlocked' is missing in type '{ activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 21 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
-      "fingerprint": "9efef227bd205f71e530",
-      "message": "Property 'isGenerateBlocked' is missing in type '{ isDisabled: true; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 20 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
-      "fingerprint": "ae5f8e5e7e96a8e2e5c7",
-      "message": "Property 'isGenerateBlocked' is missing in type '{ isGenerating: true; activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 20 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
-      "workspace": "ui"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "packages/ui/src/components/prompt-bars/components/collapsed-view/PromptBarCollapsedView.test.tsx",
-      "fingerprint": "bdbae5f049eddeae567b",
-      "message": "Property 'isGenerateBlocked' is missing in type '{ activeGenerationsCount: number; categoryType: \"image\"; collapsedInputRef: { current: null; }; currentModelCategory: string; form: any; formatIcon: Element; generateLabel: string; ... 21 more ...; watchedFormat: string; }' but required in type 'PromptBarCollapsedViewProps'.",
       "workspace": "ui"
     },
     {

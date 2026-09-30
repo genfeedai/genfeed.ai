@@ -1,3 +1,4 @@
+import type { WorkflowEdge, WorkflowNode } from '@genfeedai/contracts/types';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -20,11 +21,17 @@ function makeNode(
   type: string,
   data: Record<string, unknown> = {},
 ) {
-  return { data, id, position: { x: 0, y: 0 }, type } as any;
+  return { data, id, position: { x: 0, y: 0 }, type } as WorkflowNode;
 }
 
 function makeEdge(id: string, source: string, target: string) {
-  return { id, source, sourceHandle: null, target, targetHandle: null } as any;
+  return {
+    id,
+    source,
+    sourceHandle: null,
+    target,
+    targetHandle: null,
+  } as WorkflowEdge;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -426,7 +433,7 @@ describe('computeDownstreamUpdates', () => {
 
   it('returns empty map when source has no downstream edges', () => {
     const nodes = [makeNode('A', 'prompt', { outputText: 'hello' })];
-    const edges: any[] = [];
+    const edges: WorkflowEdge[] = [];
 
     const updates = computeDownstreamUpdates('A', 'hello', nodes, edges);
     expect(updates.size).toBe(0);

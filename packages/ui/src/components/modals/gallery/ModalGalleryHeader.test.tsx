@@ -22,11 +22,22 @@ vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
 }));
 
 vi.mock('@ui/navigation/tabs/Tabs', () => ({
-  default: ({ tabs, activeTab, onTabChange }: any) => (
+  default: ({
+    tabs,
+    activeTab,
+    onTabChange,
+  }: import('react').ComponentProps<
+    typeof import('@ui/navigation/tabs/Tabs').default
+  >) => (
     <div data-testid="tabs">
-      {tabs.map((tab: any) => (
-        <button key={tab.id} onClick={() => onTabChange(tab.id)}>
-          {tab.label}
+      {(tabs ?? []).map((tab) => (
+        <button
+          key={typeof tab === 'string' ? tab : (tab.id ?? tab.label)}
+          onClick={() =>
+            onTabChange?.(typeof tab === 'string' ? tab : (tab.id ?? tab.label))
+          }
+        >
+          {typeof tab === 'string' ? tab : tab.label}
         </button>
       ))}
     </div>
@@ -34,21 +45,34 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
 }));
 
 vi.mock('@ui/feedback/alert/Alert', () => ({
-  default: ({ children }: any) => <div data-testid="alert">{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/feedback/alert/Alert').default
+  >) => <div data-testid="alert">{children}</div>,
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ children }: any) => <span data-testid="badge">{children}</span>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/display/badge/Badge').default
+  >) => <span data-testid="badge">{children}</span>,
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick }: any) => (
-    <button onClick={onClick}>{label}</button>
-  ),
+  default: ({
+    label,
+    onClick,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => <button onClick={onClick}>{label}</button>,
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
 }));
 
 describe('ModalGalleryHeader', () => {

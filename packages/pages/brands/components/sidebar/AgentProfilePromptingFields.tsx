@@ -6,6 +6,7 @@ import type {
   IBrandConversationStarter,
   IBrandPromptSeed,
 } from '@genfeedai/contracts/interfaces';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import type { AgentProfilePromptingFieldsProps } from '@props/pages/brand-detail.props';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
@@ -117,62 +118,63 @@ export default function AgentProfilePromptingFields({
             variant={ButtonVariant.SECONDARY}
           />
         </div>
-        {seeds.map((seed, index) => (
-          <div
-            className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-[repeat(4,minmax(0,1fr))_auto] md:items-start"
-            // Seeds carry no id; their position is their identity.
-            key={index}
-          >
-            <Field label={translate('topic')}>
-              <EditableText
-                ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('topic')}`}
-                displayClassName="text-sm"
-                isDisabled={isDisabled}
-                maxLength={TEXT_FIELD_MAX}
-                onSave={(value) => updateSeed(index, { topic: value.trim() })}
-                value={seed.topic}
-              />
-            </Field>
-            <Field label={translate('angle')}>
-              <EditableText
-                ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('angle')}`}
-                displayClassName="text-sm"
-                isDisabled={isDisabled}
-                maxLength={TEXT_FIELD_MAX}
-                onSave={(value) => updateSeed(index, { angle: value.trim() })}
-                value={seed.angle}
-              />
-            </Field>
-            <Field label={translate('audience')}>
-              <EditableText
-                ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('audience')}`}
-                displayClassName="text-sm"
-                isDisabled={isDisabled}
-                maxLength={TEXT_FIELD_MAX}
-                onSave={(value) =>
-                  updateSeed(index, { audience: value.trim() })
-                }
-                value={seed.audience}
-              />
-            </Field>
-            <Field label={translate('formats')}>
-              <EditableText
-                ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('formats')}`}
-                displayClassName="text-sm"
-                isDisabled={isDisabled}
-                onSave={(value) =>
-                  updateSeed(index, { preferredFormats: parseList(value) })
-                }
-                value={seed.preferredFormats.join(', ')}
-              />
-            </Field>
-            {removeButton(() => {
-              void saveSeeds(
-                seeds.filter((_, seedIndex) => seedIndex !== index),
-              ).catch(() => undefined);
-            })}
-          </div>
-        ))}
+        {keyListItems(seeds, (seed) => JSON.stringify(seed)).map(
+          ({ item: seed, key }, index) => (
+            <div
+              className="grid gap-3 rounded-md border border-border p-3 md:grid-cols-[repeat(4,minmax(0,1fr))_auto] md:items-start"
+              key={key}
+            >
+              <Field label={translate('topic')}>
+                <EditableText
+                  ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('topic')}`}
+                  displayClassName="text-sm"
+                  isDisabled={isDisabled}
+                  maxLength={TEXT_FIELD_MAX}
+                  onSave={(value) => updateSeed(index, { topic: value.trim() })}
+                  value={seed.topic}
+                />
+              </Field>
+              <Field label={translate('angle')}>
+                <EditableText
+                  ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('angle')}`}
+                  displayClassName="text-sm"
+                  isDisabled={isDisabled}
+                  maxLength={TEXT_FIELD_MAX}
+                  onSave={(value) => updateSeed(index, { angle: value.trim() })}
+                  value={seed.angle}
+                />
+              </Field>
+              <Field label={translate('audience')}>
+                <EditableText
+                  ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('audience')}`}
+                  displayClassName="text-sm"
+                  isDisabled={isDisabled}
+                  maxLength={TEXT_FIELD_MAX}
+                  onSave={(value) =>
+                    updateSeed(index, { audience: value.trim() })
+                  }
+                  value={seed.audience}
+                />
+              </Field>
+              <Field label={translate('formats')}>
+                <EditableText
+                  ariaLabel={`${translate('seedsTitle')} ${index + 1} ${translate('formats')}`}
+                  displayClassName="text-sm"
+                  isDisabled={isDisabled}
+                  onSave={(value) =>
+                    updateSeed(index, { preferredFormats: parseList(value) })
+                  }
+                  value={seed.preferredFormats.join(', ')}
+                />
+              </Field>
+              {removeButton(() => {
+                void saveSeeds(
+                  seeds.filter((_, seedIndex) => seedIndex !== index),
+                ).catch(() => undefined);
+              })}
+            </div>
+          ),
+        )}
       </div>
 
       <div className="flex flex-col gap-2">

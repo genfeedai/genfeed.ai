@@ -4,6 +4,7 @@ import type {
   TableBlock,
   TableColumnConfig,
 } from '@genfeedai/contracts/interfaces';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import {
   Table,
   TableBody,
@@ -130,14 +131,12 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
           {isLoading ? (
             Array.from({ length: 4 }).map((_, rowIndex) => (
               <TableRow
+                // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
                 key={`table-loading-${rowIndex}`}
                 className="border-b border-border"
               >
                 {columns.map((col) => (
-                  <TableCell
-                    key={`${col.key}-${rowIndex}`}
-                    className="px-4 py-3"
-                  >
+                  <TableCell key={col.key} className="px-4 py-3">
                     <div
                       className="h-4 animate-pulse rounded bg-muted/70"
                       style={{
@@ -159,21 +158,23 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
               </TableCell>
             </TableRow>
           ) : (
-            sortedRows.map((row, rowIndex) => (
-              <TableRow
-                key={rowIndex}
-                className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/30"
-              >
-                {columns.map((col) => (
-                  <TableCell
-                    key={col.key}
-                    className={`px-4 py-2.5 text-foreground ${getAlignClass(col.align)}`}
-                  >
-                    {row[col.key] != null ? String(row[col.key]) : '\u2014'}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            keyListItems(sortedRows, (row) => JSON.stringify(row)).map(
+              ({ item: row, key }) => (
+                <TableRow
+                  key={key}
+                  className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/30"
+                >
+                  {columns.map((col) => (
+                    <TableCell
+                      key={col.key}
+                      className={`px-4 py-2.5 text-foreground ${getAlignClass(col.align)}`}
+                    >
+                      {row[col.key] != null ? String(row[col.key]) : '\u2014'}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ),
+            )
           )}
         </TableBody>
       </Table>

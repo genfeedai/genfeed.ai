@@ -197,13 +197,13 @@ export default function GenerationSetupSearch({
       <CommandList className="max-h-[min(360px,var(--radix-popover-content-available-height,70vh))] min-h-0 overflow-y-auto px-1 py-1">
         {groups.map(([group, groupOptions]) => (
           <CommandGroup heading={group} key={group}>
-            {groupOptions.map((option, index) => {
+            {groupOptions.map((option) => {
               const isSelected = setup.values[option.fieldKey] === option.value;
 
               return (
                 <CommandItem
                   className="flex min-h-7 cursor-pointer items-center justify-between gap-2 rounded-sm px-1.5 py-0.5 text-xs text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground"
-                  key={`${option.fieldKey}-${String(option.value)}-${index}`}
+                  key={`${option.fieldKey}-${String(option.value)}`}
                   keywords={option.keywords}
                   onSelect={() => handleSelect(option)}
                   value={`${option.group} ${option.label}`}
