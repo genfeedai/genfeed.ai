@@ -3,6 +3,38 @@ import type { ReactElement } from 'react';
 export function AgentChatInputStyles(): ReactElement {
   return (
     <style>{`
+        .gen-agent-prompt-highlight {
+          position: absolute;
+          inset: -1px;
+          width: calc(100% + 2px);
+          height: calc(100% + 2px);
+          overflow: visible;
+          pointer-events: none;
+        }
+        .gen-agent-prompt-highlight rect {
+          x: 0.5px;
+          y: 0.5px;
+          width: calc(100% - 1px);
+          height: calc(100% - 1px);
+          rx: var(--radius-workspace-composer);
+          fill: none;
+          stroke: hsl(var(--foreground) / 0.65);
+          stroke-width: 1px;
+          stroke-linecap: round;
+          stroke-dasharray: 8 92;
+          animation: gen-agent-prompt-highlight 5s linear infinite;
+        }
+        @keyframes gen-agent-prompt-highlight {
+          to {
+            stroke-dashoffset: -100;
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .gen-agent-prompt-highlight rect {
+            animation: none;
+            stroke-dasharray: none;
+          }
+        }
         .ProseMirror {
           /* One line at rest, grows to five lines (text-sm = 20px/line +
              12px padding), then scrolls — Cursor-style composer. */
