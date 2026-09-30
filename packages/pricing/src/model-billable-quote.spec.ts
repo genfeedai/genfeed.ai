@@ -327,6 +327,139 @@ describe('authoritative bill-time quote snapshots', () => {
       ).status,
     ).toBe('unresolved');
   });
+  it('preserves admission selector applicability when only an unconditional rate matches', () => {
+    const profile: ModelBillablePricingProfile = {
+      ...model,
+      rateVersion: 'v1',
+      requiredSelectorKeys: ['mode'],
+      reviewedPricing: {
+        version: 'v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        invariantSelectors: ['resolution'],
+        rates: [
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.1,
+            when: {},
+          },
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.2,
+            when: { mode: 'pro' },
+          },
+        ],
+      },
+    };
+    expect(quoteModelBillablePricing(profile, input, 1, date).status).toBe(
+      'unresolved',
+    );
+    const quote = quoteModelBillablePricing(
+      profile,
+      {
+        ...input,
+        outputs: 2,
+        selectors: { mode: 'standard', resolution: '720p' },
+      },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    expect(quote.snapshot.pricingProfile.reviewedPricing?.rates).toHaveLength(
+      1,
+    );
+    expect(
+      quote.snapshot.pricingProfile.reviewedPricing?.invariantSelectors,
+    ).toEqual(['resolution', 'mode']);
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 2,
+        successfulRequests: 1,
+      }),
+    ).toEqual({ status: 'priced', credits: 20, billableProviderCostUsd: 0.2 });
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+      }),
+    ).toEqual({ status: 'priced', credits: 10, billableProviderCostUsd: 0.1 });
+    const changedSelectors: NonNullable<
+      ModelBillableQuoteRequest['selectors']
+    >[] = [
+      { mode: 'pro', resolution: '720p' },
+      { mode: 'standard' },
+      { mode: 'standard', resolution: '720p', quality: 'high' },
+      {},
+    ];
+    for (const selectors of changedSelectors) {
+      expect(
+        quoteModelBillableCompletion(quote.snapshot, {
+          completedOutputs: 2,
+          successfulRequests: 1,
+          selectors,
+        }),
+      ).toEqual({
+        status: 'unresolved',
+        reason: 'Completion selectors differ from the admitted variant',
+      });
+    }
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 2,
+        successfulRequests: 1,
+        selectors: { resolution: '720p', mode: 'standard' },
+      }),
+    ).toEqual({ status: 'priced', credits: 20, billableProviderCostUsd: 0.2 });
+  });
+  it('rejects zero aggregate paid usage at admission and completed usage without changing empty completion', () => {
+    const profile: ModelBillablePricingProfile = {
+      ...model,
+      rateVersion: 'v1',
+      reviewedPricing: {
+        version: 'v1',
+        currency: 'USD',
+        reviewStatus: 'approved',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        rates: [
+          {
+            component: 'input',
+            unit: 'input-token' as const,
+            unitPriceUsd: 0.001,
+            when: {},
+          },
+        ],
+      },
+    };
+    expect(
+      quoteModelBillablePricing(profile, { ...input, inputTokens: 0 }, 1, date)
+        .status,
+    ).toBe('unresolved');
+    const quote = quoteModelBillablePricing(
+      profile,
+      { ...input, inputTokens: 100 },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        inputTokens: 0,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 0,
+      }),
+    ).toEqual({ status: 'priced', credits: 0, billableProviderCostUsd: 0 });
+  });
   it('allocates integer remainders deterministically without multiplying rounded quotes', () => {
     expect(allocateBillableCredits(10, 3)).toEqual([4, 3, 3]);
     expect(allocateBillableCredits(0, 3)).toEqual([0, 0, 0]);

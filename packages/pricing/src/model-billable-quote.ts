@@ -252,7 +252,12 @@ export function quoteModelBillablePricing(
           ? {
               ...model.reviewedPricing,
               invariantSelectors: [
-                ...(model.reviewedPricing.invariantSelectors ?? []),
+                ...new Set([
+                  ...(model.reviewedPricing.invariantSelectors ?? []),
+                  ...model.reviewedPricing.rates.flatMap((rate) =>
+                    Object.keys(rate.when),
+                  ),
+                ]),
               ],
               rates: model.reviewedPricing.rates
                 .filter((rate) =>
@@ -285,6 +290,16 @@ export function quoteModelBillableCompletion(
     reason,
   });
   const { completedOutputs, successfulRequests } = completion;
+  const admittedSelectors = snapshot.quantities.selectors ?? {};
+  if (
+    completion.selectors !== undefined &&
+    (Object.keys(completion.selectors).length !==
+      Object.keys(admittedSelectors).length ||
+      Object.entries(completion.selectors).some(
+        ([key, value]) => admittedSelectors[key] !== value,
+      ))
+  )
+    return unresolved('Completion selectors differ from the admitted variant');
   const reservedOutputs = snapshot.quantities.outputs ?? 1;
   const reservedRequests = snapshot.quantities.requests ?? 1;
   if (
