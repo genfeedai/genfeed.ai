@@ -7503,6 +7503,7 @@ model AgentUntrustedContentAudit {
   agentStrategyId     String?
   toolName            String
   source              String
+  origin              String             @default("agent")
   outcome             String
   confidence          Float
   minConfidence       Float
