@@ -231,7 +231,7 @@ export type StoryboardDraftPageProps = Pick<
 export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;
 
 export interface StoryboardDraftValue {
-  plan: StoryboardPlan;
+  plan: NonNullable<StoryboardRun['config']['plan']>;
   source: StoryboardSourceSelector;
 }
 export interface StoryboardDraftScope {

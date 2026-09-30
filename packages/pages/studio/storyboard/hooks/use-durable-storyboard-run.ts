@@ -209,6 +209,15 @@ export function useDurableStoryboardRun(runId: string) {
                       },
                     ],
                   };
+                if (!current.config.plan)
+                  throw {
+                    errors: [
+                      {
+                        status: '422',
+                        detail: 'Storyboard has no plan.',
+                      },
+                    ],
+                  };
                 const timing = requiresStoryboardTimingCapabilities(
                   current.config.plan,
                   value.plan,
@@ -317,6 +326,7 @@ export function useDurableStoryboardRun(runId: string) {
         persisted?.config.revision !== revision
       )
         throw new Error('Storyboard changed. Reload before saving.');
+      if (!persisted.config.plan) throw new Error('Storyboard has no plan.');
       const timingChanged = requiresStoryboardTimingCapabilities(
         persisted.config.plan,
         plan,

@@ -1,10 +1,12 @@
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardVideoModelCapability } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+
+type StoryboardRunPlan = NonNullable<StoryboardRun['config']['plan']>;
 
 /** Match the API's deletion exception: unavailable models must not trap draft shots. */
 export function requiresStoryboardTimingCapabilities(
-  previous: StoryboardPlan,
-  next: StoryboardPlan,
+  previous: StoryboardRunPlan,
+  next: StoryboardRunPlan,
 ): boolean {
   const sameSettings =
     previous.format === next.format &&
