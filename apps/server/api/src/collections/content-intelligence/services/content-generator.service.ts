@@ -434,11 +434,9 @@ export class ContentGeneratorService implements OnModuleInit {
       userId,
     });
 
-    const baseSystemPrompt = brandContext
-      ? this.contextAssemblyService.buildSystemPrompt('', brandContext, {
-          maxBrandContextLength: Number.POSITIVE_INFINITY,
-        })
-      : undefined;
+    const brandContributions = brandContext
+      ? this.contextAssemblyService.buildBrandContextContributions(brandContext)
+      : [];
     const harness = await this.buildHarnessSystemPrompt(organizationId, dto);
     const harnessSystemPrompt = harness.prompt;
     const topPerformerSystemPrompt = await this.buildTopPerformerSystemPrompt(
@@ -447,7 +445,7 @@ export class ContentGeneratorService implements OnModuleInit {
     );
     const systemPrompt =
       fitBrandContextToBudget(
-        [baseSystemPrompt, topPerformerSystemPrompt, harnessSystemPrompt],
+        [...brandContributions, topPerformerSystemPrompt, harnessSystemPrompt],
         BRAND_CONTEXT_CHARACTER_BUDGET,
       ) || undefined;
     let playbookInsights: PlaybookInsightsView | undefined;

@@ -12,6 +12,7 @@ import { TypedDecisionService } from '@api/services/typed-decisions/typed-decisi
 import type {
   AgentUntrustedContentGateOutcome,
   AgentUntrustedContentGateResult,
+  AgentUntrustedContentOrigin,
   AgentUntrustedContentSource,
   TypedDecisionMode,
 } from '@genfeedai/contracts/interfaces';
@@ -136,7 +137,8 @@ export class AgentUntrustedContentGateService {
     brandId?: string | null;
     content: string;
     context: AgentChatContext;
-    threadId: string;
+    threadId?: string | null;
+    origin: AgentUntrustedContentOrigin;
     toolCallId: string;
     toolName: string;
   }): Promise<AgentUntrustedContentGateResult> {
@@ -205,7 +207,7 @@ export class AgentUntrustedContentGateService {
               mode,
               organizationId: params.context.organizationId,
               runId: params.context.executionId,
-              threadId: params.threadId,
+              threadId: params.threadId ?? undefined,
               userId: params.context.userId,
             },
           ),
@@ -235,6 +237,7 @@ export class AgentUntrustedContentGateService {
         context: params.context,
         minConfidence,
         mode,
+        origin: params.origin,
         outcome,
         source,
         threadId: params.threadId,
@@ -249,12 +252,13 @@ export class AgentUntrustedContentGateService {
         };
       }
 
-      await this.publishWithheldWorkEvent({
-        context: params.context,
-        threadId: params.threadId,
-        toolCallId: params.toolCallId,
-        toolName: params.toolName,
-      });
+      if (params.threadId)
+        await this.publishWithheldWorkEvent({
+          context: params.context,
+          threadId: params.threadId,
+          toolCallId: params.toolCallId,
+          toolName: params.toolName,
+        });
 
       return {
         confidence: answer.confidence,
@@ -291,9 +295,10 @@ export class AgentUntrustedContentGateService {
     context: AgentChatContext;
     minConfidence: number;
     mode: TypedDecisionMode;
+    origin: AgentUntrustedContentOrigin;
     outcome: AgentUntrustedContentGateOutcome;
     source: AgentUntrustedContentSource;
-    threadId: string;
+    threadId?: string | null;
     toolName: string;
   }): Promise<void> {
     if (!this.untrustedContentAuditsService) {
@@ -319,20 +324,22 @@ export class AgentUntrustedContentGateService {
     context: AgentChatContext;
     minConfidence: number;
     mode: TypedDecisionMode;
+    origin: AgentUntrustedContentOrigin;
     outcome: AgentUntrustedContentGateOutcome;
     source: AgentUntrustedContentSource;
-    threadId: string;
+    threadId?: string | null;
     toolName: string;
   }): Promise<void> {
     await this.untrustedContentAuditsService?.createAudit({
       agentStrategyId: params.context.strategyId ?? null,
-      agentThreadId: params.threadId,
+      agentThreadId: params.threadId ?? null,
       brandId: params.brandId,
       confidence: params.confidence,
       contentLength: params.content.length,
       minConfidence: params.minConfidence,
       mode: params.mode,
       organizationId: params.context.organizationId,
+      origin: params.origin,
       outcome: params.outcome,
       source: params.source,
       toolName: params.toolName,

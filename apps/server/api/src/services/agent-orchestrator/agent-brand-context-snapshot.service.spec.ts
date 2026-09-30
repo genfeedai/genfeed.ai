@@ -1,6 +1,6 @@
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { fitBrandContextToBudgetWithReport } from '@api/services/agent-context-assembly/brand-context-budget.util';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import type { AssembledBrandContext } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -63,7 +63,7 @@ const BRAND_CONTEXT: AssembledBrandContext = {
 
 // Exactly the four higher-priority sections (identity, guidelines, voice,
 // custom instructions) fit; the lowest-priority performance section drops.
-const TEST_BUDGET = 156;
+const TEST_BUDGET = 700;
 
 /**
  * Renders the brand-context block the way the real assembler shapes it and
@@ -75,28 +75,14 @@ function renderBrandContext(
   context: AssembledBrandContext,
   options: { maxBrandContextLength?: number } = {},
 ) {
-  const sections = [
-    `\n\n## Brand: ${context.brandName}\n${context.brandDescription ?? ''}`,
-    context.promptGuidelines
-      ? `\n## Brand Guidelines\n${context.promptGuidelines}`
-      : '',
-    context.voice ? `\n## Brand Voice\n- Tone: ${context.voice.tone}` : '',
-    context.persona ? `\n## Custom Instructions\n${context.persona}` : '',
-    context.memoryInsights?.length
-      ? `\n## Performance Insights\n${context.memoryInsights
-          .map((insight) => `- [${insight.category}] ${insight.insight}`)
-          .join('\n')}`
-      : '',
-  ];
-  const brandContext = fitBrandContextToBudgetWithReport(
-    sections,
-    options.maxBrandContextLength ?? TEST_BUDGET,
-  );
-  return {
+  return AgentContextAssemblyService.prototype.renderSystemPrompt(
     basePrompt,
-    brandContext,
-    prompt: [basePrompt, brandContext.text].filter(Boolean).join('\n\n'),
-  };
+    context,
+    {
+      ...options,
+      maxBrandContextLength: options.maxBrandContextLength ?? TEST_BUDGET,
+    },
+  );
 }
 
 function createHarness(options?: {
@@ -289,7 +275,7 @@ describe('AgentBrandContextSnapshotService', () => {
     expect(snapshot.systemPrompt).toBe(
       contextService.renderSystemPrompt(chatTurn.systemPrompt),
     );
-    expect(snapshot.systemPrompt).toContain('## Brand: Acme');
+    expect(snapshot.systemPrompt).toContain('## Brand: Identity');
     expect(snapshot.systemPrompt).not.toContain('{{date}}');
     expect(snapshot.model).toEqual({
       creditsPerRound: 3,
