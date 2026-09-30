@@ -21,6 +21,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
   assetSelection: {
     lightboxRequestCount: 0,
+    requestedLightboxIngredient: null as IIngredient | null,
     published: null as { id: string } | null,
   },
   setSelectedAsset: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('next-intl', async () => {
 vi.mock('@genfeedai/contexts/ui/asset-selection.context', () => ({
   useAssetSelection: () => ({
     lightboxRequestCount: assetSelection.lightboxRequestCount,
+    requestedLightboxIngredient: assetSelection.requestedLightboxIngredient,
     selectedIngredient: assetSelection.published,
     setSelectedAsset,
   }),
@@ -538,6 +540,7 @@ describe('IngredientsListContent inspector handoff', () => {
   afterEach(() => {
     setSelectedAsset.mockClear();
     assetSelection.lightboxRequestCount = 0;
+    assetSelection.requestedLightboxIngredient = null;
     assetSelection.published = null;
   });
 
@@ -570,9 +573,29 @@ describe('IngredientsListContent inspector handoff', () => {
     expect(onOpenLightbox).not.toHaveBeenCalled();
 
     assetSelection.lightboxRequestCount = 1;
+    assetSelection.requestedLightboxIngredient = videoIngredient;
     rerenderContent();
 
     expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+  });
+
+  it('opens the clicked ingredient through a multi-selection transition and never replays it for a later selection', () => {
+    const { onOpenLightbox, rerenderContent } = renderContent({
+      filteredIngredients: [videoIngredient, baseIngredient],
+      scope: PageScope.BRAND,
+      selectedIngredientIds: [videoIngredient.id],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'grid',
+    });
+    assetSelection.lightboxRequestCount = 1;
+    assetSelection.requestedLightboxIngredient = videoIngredient;
+    rerenderContent({
+      selectedIngredientIds: [videoIngredient.id, baseIngredient.id],
+    });
+    expect(onOpenLightbox).toHaveBeenCalledWith(videoIngredient);
+    rerenderContent({ selectedIngredientIds: [baseIngredient.id] });
+    expect(onOpenLightbox).toHaveBeenCalledTimes(1);
   });
 
   it('clears its own selection when the sidebar close clears the shared one', () => {

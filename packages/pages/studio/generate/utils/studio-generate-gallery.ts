@@ -1,9 +1,12 @@
 import { IngredientCategory } from '@genfeedai/contracts';
+import { MAX_PAGE_SIZE } from '@genfeedai/contracts/constants';
+import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { StudioGenerateFilter } from '@genfeedai/props/studio/studio-generate.props';
 import {
   getStudioGenerateTypeConfig,
   STUDIO_GENERATE_TYPES,
 } from '@pages/studio/generate/utils/studio-generate-types';
+import type { IngredientsService } from '@services/content/ingredients.service';
 
 /** Recent-result capacity retained per output category. */
 export const STUDIO_GALLERY_PAGE_SIZE = 24;
@@ -52,9 +55,7 @@ export function buildStudioGalleryQuery(
   const categories = resolveStudioGalleryCategories(filter);
   const query: Record<string, unknown> = {
     categories,
-    // The previous category requests each returned `limit` rows. Preserve that
-    // total history capacity while loading one hydrated collection response.
-    limit: limit * categories.length,
+    limit: Math.min(MAX_PAGE_SIZE, limit * categories.length),
     sort: 'createdAt: -1',
   };
 
@@ -63,4 +64,29 @@ export function buildStudioGalleryQuery(
   }
 
   return query;
+}
+
+/** Keep the recent-result capacity while respecting the API page boundary. */
+export async function loadStudioGalleryIngredients(
+  service: Pick<IngredientsService, 'findAllPage'>,
+  brandId: string,
+  filter: StudioGenerateFilter,
+  signal: AbortSignal,
+): Promise<Ingredient[]> {
+  if (!brandId) return [];
+  const capacity =
+    STUDIO_GALLERY_PAGE_SIZE * resolveStudioGalleryCategories(filter).length;
+  const query = buildStudioGalleryQuery(brandId, filter);
+  const collected = new Map<string, Ingredient>();
+  let page = 1;
+  let totalPages = 1;
+  do {
+    signal.throwIfAborted();
+    const result = await service.findAllPage({ ...query, page }, signal);
+    for (const ingredient of result.items)
+      collected.set(ingredient.id, ingredient);
+    totalPages = result.totalPages;
+    page += 1;
+  } while (collected.size < capacity && page <= totalPages);
+  return [...collected.values()].slice(0, capacity);
 }

@@ -14,7 +14,7 @@ import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export interface PostDetailNeedsYouProps {
   post: IPost;
@@ -48,6 +48,33 @@ export default function PostDetailNeedsYou({
   className,
 }: PostDetailNeedsYouProps) {
   const translate = useTranslations('pages.posts.detail.needsYou');
+  const scheduledAt = post.scheduledDate
+    ? new Date(post.scheduledDate).getTime()
+    : Number.NaN;
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (
+      isPublished ||
+      post.targetExecutionState !== TargetExecutionState.SCHEDULED ||
+      !Number.isFinite(scheduledAt)
+    ) {
+      return;
+    }
+    let timer: ReturnType<typeof setTimeout>;
+    const refresh = () => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      if (scheduledAt >= currentTime) {
+        timer = setTimeout(
+          refresh,
+          Math.min(scheduledAt - currentTime + 1, 2_147_483_647),
+        );
+      }
+    };
+    refresh();
+    return () => clearTimeout(timer);
+  }, [isPublished, post.targetExecutionState, scheduledAt]);
 
   const items = useMemo<NeedsYouItem[]>(() => {
     const results: NeedsYouItem[] = [];
@@ -72,7 +99,7 @@ export default function PostDetailNeedsYou({
       !isPublished &&
       post.targetExecutionState === TargetExecutionState.SCHEDULED &&
       Boolean(post.scheduledDate) &&
-      new Date(post.scheduledDate as string).getTime() < Date.now();
+      scheduledAt < now;
     if (isOverdue && onPublishNow) {
       results.push({
         action: { label: translate('overdueAction'), onClick: onPublishNow },
@@ -82,7 +109,15 @@ export default function PostDetailNeedsYou({
     }
 
     return results;
-  }, [isPublished, onPublishNow, onReviewHref, post, translate]);
+  }, [
+    isPublished,
+    now,
+    onPublishNow,
+    onReviewHref,
+    post,
+    scheduledAt,
+    translate,
+  ]);
 
   return (
     <CollectionSection

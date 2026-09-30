@@ -77,6 +77,15 @@ const baseProps = {
 };
 
 describe('AgentActivitySection', () => {
+  it('shows a failed visible source without claiming the activity is empty', () => {
+    mocks.posts.isError = true;
+    render(<AgentActivitySection {...baseProps} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Could not load agent content.',
+    );
+    expect(screen.queryByText('No activity yet')).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     Element.prototype.hasPointerCapture = vi.fn(() => false);
     Element.prototype.scrollIntoView = vi.fn();

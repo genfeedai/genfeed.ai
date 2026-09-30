@@ -8,7 +8,7 @@ import { VideoStitchService } from '@api/services/video-stitch/video-stitch.serv
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { IngredientFormat } from '@genfeedai/contracts';
 import { VIDEO_FORMAT_DIMENSIONS } from '@genfeedai/contracts/constants';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /** Maps a hand-picked or Storyboard merge request onto the stitch service. */
 export function toManualStitchRequest(
@@ -16,6 +16,11 @@ export function toManualStitchRequest(
   dto: CreateMergedVideoDto,
   idempotencyKey: string,
 ): VideoStitchRequest {
+  if (dto.zoomEaseCurve != null || dto.zoomConfigs != null) {
+    throw new BadRequestException(
+      'Zoom effects are not supported when merging videos',
+    );
+  }
   const portrait = VIDEO_FORMAT_DIMENSIONS[IngredientFormat.PORTRAIT];
   return {
     brandId: user.brandId,

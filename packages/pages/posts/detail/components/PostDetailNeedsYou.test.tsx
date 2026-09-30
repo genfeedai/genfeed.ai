@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostDetailNeedsYou from '@pages/posts/detail/components/PostDetailNeedsYou';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -55,6 +55,37 @@ describe('PostDetailNeedsYou', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('surfaces Publish now when the scheduled time passes without another render', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-30T10:00:00Z'));
+    const view = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onPublishNow={vi.fn()}
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          scheduledDate: '2026-09-30T10:00:05Z',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        })}
+      />,
+    );
+    try {
+      expect(
+        screen.queryByRole('button', { name: 'Publish now' }),
+      ).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(5_001);
+      });
+      expect(
+        screen.getByRole('button', { name: 'Publish now' }),
+      ).toBeInTheDocument();
+    } finally {
+      view.unmount();
+      vi.useRealTimers();
+    }
   });
 
   it('surfaces a failed post with a retry action', () => {
