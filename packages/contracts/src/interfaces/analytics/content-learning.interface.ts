@@ -39,7 +39,14 @@ export interface LearningMetric {
   availability: LearningAvailability;
   source: string;
 }
+export interface LearningCollectionReceiptV1 {
+  version: 1;
+  outcome: 'observed' | 'retryable_failure' | 'terminal_unavailable';
+  reasonCode: string | null;
+}
 export interface LearningMetrics {
+  /** Server-derived provider collection status, never customer authority. */
+  collection?: LearningCollectionReceiptV1;
   metrics: Partial<Record<LearningMetricName, LearningMetric>>;
   isPaid?: boolean;
   isPinned?: boolean;
@@ -197,6 +204,7 @@ export function captureLearningMetrics(
         : { availability: 'unavailable', source };
   }
   return {
+    collection: { version: 1, outcome: 'observed', reasonCode: null },
     metrics,
     ...(typeof raw.isPaid === 'boolean' ? { isPaid: raw.isPaid } : {}),
     ...(typeof raw.isPinned === 'boolean' ? { isPinned: raw.isPinned } : {}),

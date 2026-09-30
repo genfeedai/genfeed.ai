@@ -1,3 +1,4 @@
+import type { LearningCheckpointService } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import type { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
@@ -19,6 +20,7 @@ function fixture() {
       findFirst: vi.fn().mockResolvedValue({
         id: 'post',
         credentialId: 'credential',
+        platform: 'twitter',
         publishedAt: new Date(Date.now() - 48 * 3600000),
       }),
     },
@@ -37,12 +39,14 @@ function fixture() {
   };
   const queue = { queueSystemWorkflow: vi.fn().mockResolvedValue('job') },
     runner = { registerWorkflow: vi.fn(), runWorkflow: vi.fn() },
-    runs = { execute: vi.fn().mockResolvedValue({}) };
+    runs = { execute: vi.fn().mockResolvedValue({}) },
+    checkpoints = { fulfilledWindow: vi.fn().mockResolvedValue(null) };
   return {
     prisma,
     queue,
     runner,
     runs,
+    checkpoints,
     service: new ContentLearningWorkflowService(
       prisma as unknown as PrismaService,
       queue as unknown as WorkflowExecutionQueueService,
@@ -50,6 +54,7 @@ function fixture() {
       {} as LearningPolicyService,
       runs as unknown as LearningRunService,
       {} as LearningDependencyService,
+      checkpoints as unknown as LearningCheckpointService,
     ),
   };
 }
@@ -80,6 +85,24 @@ describe('durable scoped content learning workflow dispatch', () => {
     });
     expect(await f.service.queueCheckpoint('org', 'post')).toBeNull();
     expect(f.queue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+  it('suppresses queue replacement for an already fulfilled publication window', async () => {
+    const f = fixture();
+    f.checkpoints.fulfilledWindow.mockResolvedValue({ id: 'checkpoint' });
+    expect(await f.service.queueCheckpoint('org', 'post')).toBeNull();
+    expect(f.queue.queueSystemWorkflow).not.toHaveBeenCalled();
+  });
+  it('never reports a Bull success as an observed checkpoint without a persisted receipt', async () => {
+    const f = fixture();
+    f.runner.runWorkflow.mockResolvedValue({ provenance: 'bull-success' });
+    expect(
+      await f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+        postId: 'post',
+      }),
+    ).toMatchObject({
+      status: 'pending',
+      reason: 'observation_receipt_missing',
+    });
   });
   it('loads the authorized operation in the executing organization rather than trusting run payload', async () => {
     const f = fixture();

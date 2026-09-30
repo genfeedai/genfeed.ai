@@ -1,4 +1,8 @@
 import {
+  LearningCheckpointService,
+  learningCheckpointCollection,
+} from '@api/collections/content-learning/services/learning-checkpoint.service';
+import {
   LearningDependencyService,
   learningFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
@@ -36,6 +40,7 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     private readonly policies: LearningPolicyService,
     private readonly runs: LearningRunService,
     private readonly dependencies: LearningDependencyService,
+    private readonly checkpoints: LearningCheckpointService,
   ) {}
   onModuleInit(): void {
     for (const template of CONTENT_LEARNING_WORKFLOW_TEMPLATES)
@@ -80,6 +85,15 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       },
     });
     if (account?.mode === 'disabled') return null;
+    if (
+      await this.checkpoints.fulfilledWindow(
+        organizationId,
+        post.id,
+        post.credentialId,
+        post.publishedAt,
+      )
+    )
+      return null;
     const due = post.publishedAt.getTime() + 48 * 3600000;
     if (Date.now() > due + 3600000) return null;
     return this.queue.queueSystemWorkflow(
@@ -129,13 +143,31 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       });
       if (account?.mode === 'disabled')
         return { status: 'unavailable', reason: 'disabled' };
+      const fulfilled = await this.checkpoints.fulfilledWindow(
+        organizationId,
+        post.id,
+        post.credentialId,
+        post.publishedAt,
+      );
+      if (fulfilled) {
+        const collection = learningCheckpointCollection(fulfilled);
+        return {
+          status:
+            collection?.outcome === 'observed' ? 'completed' : 'unavailable',
+          checkpointId: fulfilled.id,
+          reason:
+            collection?.outcome === 'observed'
+              ? 'already_observed'
+              : collection?.reasonCode,
+        };
+      }
       const age = Date.now() - post.publishedAt.getTime();
       if (age < 48 * 3600000 || age > 49 * 3600000)
         return { status: 'unavailable', reason: 'missed_window' };
       const platform = fromPrismaCredentialPlatform(post.platform);
       if (!platform || !Object.values(CredentialPlatform).includes(platform))
         return { status: 'unavailable', reason: 'unsupported_metric' };
-      const result = await this.runner.runWorkflow({
+      await this.runner.runWorkflow({
         canonicalId: analyticsPostRefreshWorkflowId(platform),
         actionType: analyticsPostRefreshWorkflowId(platform),
         organizationId,
@@ -143,7 +175,25 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         postIds: [postId],
         source: 'content-learning-checkpoint',
       });
-      return { status: 'completed', provenance: result.provenance };
+      const receipt = await this.checkpoints.fulfilledWindow(
+        organizationId,
+        post.id,
+        post.credentialId,
+        post.publishedAt,
+      );
+      const collection = receipt ? learningCheckpointCollection(receipt) : null;
+      return {
+        status:
+          collection?.outcome === 'observed'
+            ? 'completed'
+            : collection?.outcome === 'terminal_unavailable'
+              ? 'unavailable'
+              : 'pending',
+        checkpointId: receipt?.id ?? null,
+        reason:
+          collection?.reasonCode ??
+          (receipt ? null : 'observation_receipt_missing'),
+      };
     }
     if (action === CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD) {
       const credentialId = this.id(input.credentialId, 'credentialId'),

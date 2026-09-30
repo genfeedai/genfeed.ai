@@ -1,11 +1,15 @@
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
-import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   learningHash,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
+  LearningCollectionReceiptV1,
   LearningMetrics,
   LearningScope,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
@@ -16,7 +20,11 @@ import {
   median,
   weightedMeasurement,
 } from '@genfeedai/harness';
-import { toPrismaJson } from '@genfeedai/prisma';
+import {
+  type ContentLearningCheckpoint,
+  type Prisma,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 export function parseLearningMeasurement(
   value: unknown,
@@ -42,6 +50,67 @@ export function parseLearningMeasurement(
     ...(typeof watch === 'number' ? { averageWatchTimeSeconds: watch } : {}),
   };
 }
+export function learningCheckpointCollection(
+  row: ContentLearningCheckpoint,
+): LearningCollectionReceiptV1 | null {
+  if (
+    !row.sourceAttemptId ||
+    [
+      row.publishedAt,
+      row.requestStartedAt,
+      row.receivedAt,
+      ...(row.providerAsOf ? [row.providerAsOf] : []),
+    ].some((date) => !Number.isFinite(date.getTime()))
+  )
+    return null;
+  const raw = row.measurement;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const collection = raw.collection;
+  if (
+    collection &&
+    typeof collection === 'object' &&
+    !Array.isArray(collection) &&
+    collection.version === 1 &&
+    ['observed', 'retryable_failure', 'terminal_unavailable'].includes(
+      String(collection.outcome),
+    ) &&
+    (collection.reasonCode === null ||
+      typeof collection.reasonCode === 'string')
+  ) {
+    const receipt = collection as unknown as LearningCollectionReceiptV1;
+    if (receipt.outcome === 'observed' && checkpointValidity(row) !== null)
+      return null;
+    return receipt;
+  }
+  if (collection !== undefined) return null;
+  if (
+    ![
+      'valid',
+      'unknown_organic',
+      'ineligible_paid_or_pinned',
+      'unsupported_metric',
+      'superseded',
+    ].includes(row.validity) ||
+    checkpointValidity(row) !== null
+  )
+    return null;
+  const metrics = raw.metricAvailability;
+  if (!metrics || typeof metrics !== 'object' || Array.isArray(metrics))
+    return null;
+  const observed = Object.values(metrics).some(
+    (metric) =>
+      metric &&
+      typeof metric === 'object' &&
+      !Array.isArray(metric) &&
+      metric.availability === 'observed' &&
+      typeof metric.value === 'number' &&
+      Number.isFinite(metric.value) &&
+      metric.value >= 0,
+  );
+  return observed
+    ? { version: 1, outcome: 'observed', reasonCode: null }
+    : null;
+}
 @Injectable()
 export class LearningCheckpointService {
   constructor(
@@ -49,6 +118,32 @@ export class LearningCheckpointService {
     private readonly accounts: LearningAccountService,
     private readonly dependencies: LearningDependencyService,
   ) {}
+  async fulfilledWindow(
+    organizationId: string,
+    postId: string,
+    credentialId: string,
+    publishedAt: Date,
+    windowId = '48h-v1',
+    tx: Prisma.TransactionClient = this.prisma,
+  ) {
+    const receipts = await tx.contentLearningCheckpoint.findMany({
+      where: {
+        organizationId,
+        postId,
+        credentialId,
+        publishedAt,
+        windowId,
+        isDeleted: false,
+      },
+      orderBy: [{ revision: 'asc' }, { id: 'asc' }],
+    });
+    return (
+      receipts.find((receipt) => {
+        const collection = learningCheckpointCollection(receipt);
+        return collection && collection.outcome !== 'retryable_failure';
+      }) ?? null
+    );
+  }
   async capture(input: {
     organizationId: string;
     postId: string;
@@ -81,7 +176,10 @@ export class LearningCheckpointService {
         isDeleted: false,
       },
     });
-    if (!post)
+    if (
+      !post?.publishedAt ||
+      post.publishedAt.getTime() !== input.publishedAt.getTime()
+    )
       throw new BadRequestException('Post/account provenance conflict');
     const observed = Object.entries(input.learningMetrics.metrics)
       .filter(
@@ -114,8 +212,30 @@ export class LearningCheckpointService {
     const providerAsOf = input.learningMetrics.providerAsOf
       ? new Date(input.learningMetrics.providerAsOf)
       : null;
+    if (
+      input.requestStartedAt.getTime() <
+      input.publishedAt.getTime() + 48 * 3600000
+    )
+      return null;
     const invalid = checkpointValidity({ ...input, providerAsOf });
+    const collection: LearningCollectionReceiptV1 =
+      input.receivedAt.getTime() > input.publishedAt.getTime() + 49 * 3600000
+        ? {
+            version: 1,
+            outcome: 'terminal_unavailable',
+            reasonCode: 'missed_window',
+          }
+        : invalid
+          ? { version: 1, outcome: 'retryable_failure', reasonCode: invalid }
+          : (input.learningMetrics.collection ?? {
+              version: 1,
+              outcome: 'retryable_failure',
+              reasonCode: 'collection_receipt_missing',
+            });
     const validity =
+      (collection.outcome !== 'observed'
+        ? (collection.reasonCode ?? 'collection_failed')
+        : null) ??
       invalid ??
       (!capability
         ? 'unsupported_metric'
@@ -134,6 +254,19 @@ export class LearningCheckpointService {
       input.learningMetrics,
     ]);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
+      await tx.$queryRaw`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`;
+      if (!input.supersedesId) {
+        const fulfilled = await this.fulfilledWindow(
+          input.organizationId,
+          input.postId,
+          input.credentialId,
+          input.publishedAt,
+          input.windowId ?? '48h-v1',
+          tx,
+        );
+        if (fulfilled) return fulfilled;
+      }
       const existing = await tx.contentLearningCheckpoint.findFirst({
         where: {
           organizationId: input.organizationId,
@@ -187,7 +320,8 @@ export class LearningCheckpointService {
           receivedAt: input.receivedAt,
           providerAsOf,
           measurement: toPrismaJson({
-            measurement,
+            collection,
+            measurement: collection.outcome === 'observed' ? measurement : null,
             metricAvailability: input.learningMetrics.metrics,
             profile: input.objective,
             mask: capability?.mask,

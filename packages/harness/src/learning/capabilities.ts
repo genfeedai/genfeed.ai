@@ -188,6 +188,15 @@ export function checkpointValidity(input: {
   receivedAt: Date;
   providerAsOf?: Date | null;
 }): string | null {
+  if (
+    [
+      input.publishedAt,
+      input.requestStartedAt,
+      input.receivedAt,
+      ...(input.providerAsOf ? [input.providerAsOf] : []),
+    ].some((value) => !Number.isFinite(value.getTime()))
+  )
+    return 'delayed';
   const age = input.requestStartedAt.getTime() - input.publishedAt.getTime();
   if (
     age < 48 * 3600000 ||

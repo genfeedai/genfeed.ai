@@ -801,6 +801,11 @@ export class FacebookService {
       this.loggerService.error(`${url} failed`, error);
       return {
         learningMetrics: {
+          collection: {
+            version: 1,
+            outcome: 'retryable_failure',
+            reasonCode: 'provider_fetch_failed',
+          },
           metrics: {
             impressions: { availability: 'failed', source: 'post_impressions' },
             likes: { availability: 'failed', source: 'reactions.summary' },
