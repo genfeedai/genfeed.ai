@@ -12,6 +12,7 @@ import type {
   AssembledBrandContext,
   AssembledContextLayerName,
   BrandContextContribution,
+  BrandContextContributionOptions,
   ContextLayers,
   RenderedBrandSystemPrompt,
   SystemPromptOptions,
@@ -462,6 +463,20 @@ export class AgentContextAssemblyService {
   ): RenderedBrandSystemPrompt {
     const maxLength =
       options.maxBrandContextLength ?? BRAND_CONTEXT_CHARACTER_BUDGET;
+    const sections = this.buildBrandContextContributions(context, options);
+    const brandContext = fitBrandContextToBudgetWithReport(sections, maxLength);
+    return {
+      basePrompt,
+      brandContext,
+      prompt: [basePrompt, brandContext.text].filter(Boolean).join('\n\n'),
+    };
+  }
+
+  /** Preserve typed trust boundaries until the consumer applies its final budget. */
+  buildBrandContextContributions(
+    context: AssembledBrandContext,
+    options: BrandContextContributionOptions = {},
+  ): BrandContextContribution[] {
     const sections: BrandContextContribution[] = [];
     const add = (
       header: string,
@@ -568,12 +583,7 @@ export class AgentContextAssemblyService {
       );
     }
 
-    const brandContext = fitBrandContextToBudgetWithReport(sections, maxLength);
-    return {
-      basePrompt,
-      brandContext,
-      prompt: [basePrompt, brandContext.text].filter(Boolean).join('\n\n'),
-    };
+    return sections;
   }
 
   /**

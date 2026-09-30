@@ -204,3 +204,8 @@ export interface BrandContextContribution {
   instructions?: string;
   untrusted: boolean;
 }
+
+export type BrandContextContributionOptions = Omit<
+  SystemPromptOptions,
+  'maxBrandContextLength'
+>;
