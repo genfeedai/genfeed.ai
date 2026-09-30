@@ -62,11 +62,11 @@ export * from '@serializers/configs/content/release-group.config';
 export * from '@serializers/configs/content/rss-source.config';
 export * from '@serializers/configs/content/schedule.config';
 export * from '@serializers/configs/content/speech-transcription.config';
+export * from '@serializers/configs/content/storyboard-run.config';
+export * from '@serializers/configs/content/storyboard-run-summary.config';
 export * from '@serializers/configs/content/studio-generate-draft.config';
 export * from '@serializers/configs/content/studio-look.config';
 export * from '@serializers/configs/content/template.config';
 export * from '@serializers/configs/content/video.config';
-
 export * from './remotion-composition.config';
-
 export * from './remotion-render.config';
