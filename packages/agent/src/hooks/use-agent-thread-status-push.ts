@@ -92,8 +92,12 @@ export function useAgentThreadStatusPush({
           void reloadThreads()
             .catch(() => false)
             .then((isLoaded) => {
-              if (!isLoaded) {
-                for (const id of pendingIds) unknownThreadIds.delete(id);
+              const visibleIds = new Set(
+                useAgentChatStore.getState().threads.map((thread) => thread.id),
+              );
+              for (const id of pendingIds) {
+                if (!isLoaded || visibleIds.has(id))
+                  unknownThreadIds.delete(id);
               }
             });
         }, UNKNOWN_THREAD_RELOAD_DEBOUNCE_MS);

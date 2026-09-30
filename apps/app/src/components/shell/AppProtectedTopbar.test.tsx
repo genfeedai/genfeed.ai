@@ -560,6 +560,23 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
+  it('exposes the disabled dock reason as a visible tooltip on keyboard focus', async () => {
+    agentDockState.value = {
+      isAvailable: false,
+      isOpen: false,
+      toggle: vi.fn(),
+    };
+    render(<AppProtectedTopbar />);
+    const wrapper = screen
+      .getByTestId('topbar-agent-dock-toggle')
+      .closest('[tabindex="0"]');
+    expect(wrapper).not.toBeNull();
+    fireEvent.focus(wrapper as HTMLElement);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Agent is the main view here',
+    );
+  });
+
   it('keeps the agent dock toggle in the bar, disabled, where no dock is hosted', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: false, isOpen: false, toggle };

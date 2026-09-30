@@ -240,6 +240,41 @@ describe('useAgentThreadStatusPush', () => {
     expect(reloadThreads).toHaveBeenCalledTimes(2);
   });
 
+  it('clears unknown suppression when the list scope changes', async () => {
+    const view = mount();
+    push(statusEvent({ threadId: 'outside-page' }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    const previousReload = reloadThreads;
+    reloadThreads = vi.fn<() => Promise<boolean>>().mockResolvedValue(true);
+    view.rerender({ active: true });
+    push(statusEvent({ threadId: 'outside-page', sequence: 6 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(previousReload).toHaveBeenCalledTimes(1);
+    expect(reloadThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('forgets suppression for an ID introduced by the successful reload', async () => {
+    reloadThreads.mockImplementation(async () => {
+      useAgentChatStore.getState().setThreads([thread('outside-page')]);
+      return true;
+    });
+    mount();
+    push(statusEvent({ threadId: 'outside-page' }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    useAgentChatStore.getState().setThreads([]);
+    push(statusEvent({ threadId: 'outside-page', sequence: 6 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(reloadThreads).toHaveBeenCalledTimes(2);
+  });
+
   describe('reconnect', () => {
     it('reloads the list when the channel connects, and again on every reconnect', () => {
       socket.connectionState = 'connecting';
