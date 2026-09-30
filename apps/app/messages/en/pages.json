@@ -778,6 +778,14 @@
     },
     "generate": "Generate",
     "generationFailed": "Generation failed",
+    "history": {
+      "loadFailedTitle": "Generation history couldn’t load",
+      "loadFailedDescription": "Try again to see your saved generations.",
+      "refreshFailedTitle": "Generation history couldn’t refresh",
+      "refreshFailedDescription": "The latest history is unavailable. Your last loaded results are still shown.",
+      "retry": "Retry history",
+      "retrying": "Retrying history…"
+    },
     "inspectPrompt": "View prompt",
     "inspector": {
       "actions": "Asset actions",

@@ -79,7 +79,7 @@ export function resolveStudioGenerationCost({
       MODEL_KEYS.HIGGSFIELD_SOUL,
       MODEL_KEYS.LEONARDOAI,
       MODEL_KEYS.SDXL,
-    ].includes(model.key)
+    ].some((key) => key === model.key)
   )
     return UNAVAILABLE;
 
