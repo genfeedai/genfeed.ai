@@ -163,7 +163,7 @@ export default function AnalyticsPlatformDetail({
     >
       <KPISection
         title={`${platformLabel} Metrics`}
-        gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
+        gridCols={{ desktop: 3, mobile: 1 }}
         className="bg-background"
         isLoading={isLoading}
         items={[

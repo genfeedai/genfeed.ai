@@ -30,7 +30,7 @@ export default function RunStatsStrip({
     : undefined;
   return (
     <KPISection
-      gridCols={{ desktop: 5, mobile: 2, tablet: 3 }}
+      gridCols={{ desktop: 5, mobile: 2 }}
       isLoading={isLoading}
       items={[
         {

@@ -305,7 +305,7 @@ export default function OverviewPage() {
       <div className="flex w-full flex-col gap-5">
         <KPISection
           items={kpiItems}
-          gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
+          gridCols={{ desktop: 4, mobile: 1 }}
           className="mb-0"
           isLoading={isLoading}
         />
