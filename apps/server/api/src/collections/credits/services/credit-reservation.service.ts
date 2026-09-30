@@ -136,78 +136,92 @@ export class CreditReservationService {
     }
     const idempotencyKey = `${MEDIA_GENERATION_WORKLOAD_TYPE}:${input.workloadId}`;
 
-    return this.runSerializable(async (tx) => {
-      const existing = await tx.creditReservation.findFirst({
-        where: {
-          idempotencyKey,
-          isDeleted: false,
-          organizationId: input.organizationId,
-        },
-      });
-      if (existing) {
-        return this.toReservation(existing);
-      }
+    try {
+      return await this.runSerializable(async (tx) => {
+        const existing = await tx.creditReservation.findFirst({
+          where: {
+            idempotencyKey,
+            isDeleted: false,
+            organizationId: input.organizationId,
+          },
+        });
+        if (existing) {
+          return this.toReservation(existing);
+        }
 
-      const pool = await this.findReservation(input, tx);
-      if (pool.status !== CreditReservationStatus.RESERVED) {
-        throw new UnsettleableReservationException(pool.status);
-      }
-      if (input.amount > pool.amount + BIND_ROUNDING_TOLERANCE) {
-        throw new BusinessLogicException(
-          'Bound output amount exceeds the request hold',
-          { amount: input.amount, poolAmount: pool.amount },
-          'BIND_EXCEEDS_RESERVATION',
-        );
-      }
+        const pool = await this.findReservation(input, tx);
+        if (pool.status !== CreditReservationStatus.RESERVED) {
+          throw new UnsettleableReservationException(pool.status);
+        }
+        if (input.amount > pool.amount + BIND_ROUNDING_TOLERANCE) {
+          throw new BusinessLogicException(
+            'Bound output amount exceeds the request hold',
+            { amount: input.amount, poolAmount: pool.amount },
+            'BIND_EXCEEDS_RESERVATION',
+          );
+        }
 
-      // An even split of a fractional total can overshoot the pool by float
-      // dust; the last output takes exactly what is left.
-      const amount = Math.min(input.amount, pool.amount);
-      const remaining = pool.amount - amount;
-      const shrunk = await tx.creditReservation.updateMany({
-        data: {
-          amount: remaining,
-          ...(remaining === 0
-            ? { status: CreditReservationStatus.RELEASED }
-            : {}),
-        },
-        where: {
-          amount: pool.amount,
-          id: pool.id,
-          isDeleted: false,
-          organizationId: pool.organizationId,
-          status: CreditReservationStatus.RESERVED,
-        },
-      });
-      if (shrunk.count !== 1) {
-        throw new UnsettleableReservationException(pool.status);
-      }
+        // An even split of a fractional total can overshoot the pool by float
+        // dust; the last output takes exactly what is left.
+        const amount = Math.min(input.amount, pool.amount);
+        const remaining = pool.amount - amount;
+        const shrunk = await tx.creditReservation.updateMany({
+          data: {
+            amount: remaining,
+            ...(remaining === 0
+              ? { status: CreditReservationStatus.RELEASED }
+              : {}),
+          },
+          where: {
+            amount: pool.amount,
+            id: pool.id,
+            isDeleted: false,
+            organizationId: pool.organizationId,
+            status: CreditReservationStatus.RESERVED,
+          },
+        });
+        if (shrunk.count !== 1) {
+          throw new UnsettleableReservationException(pool.status);
+        }
 
-      const created = await tx.creditReservation.create({
-        data: {
-          ...(await validatedWorkflowAccountingAttribution(
-            tx,
-            pool.organizationId,
-          )),
-          actorUserId: pool.actorUserId,
-          amount,
-          billingAccountId: pool.billingAccountId,
-          description: pool.description,
-          expiresAt: input.expiresAt,
-          idempotencyKey,
-          metadata: toPrismaJson({
-            ...this.readMetadata(pool.metadata),
-            ...(input.metadata ?? {}),
-          }),
-          organizationId: pool.organizationId,
-          source: pool.source,
-          status: CreditReservationStatus.RESERVED,
-          workloadId: input.workloadId,
-          workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
-        },
+        const created = await tx.creditReservation.create({
+          data: {
+            ...(await validatedWorkflowAccountingAttribution(
+              tx,
+              pool.organizationId,
+            )),
+            actorUserId: pool.actorUserId,
+            amount,
+            billingAccountId: pool.billingAccountId,
+            description: pool.description,
+            expiresAt: input.expiresAt,
+            idempotencyKey,
+            metadata: toPrismaJson({
+              ...this.readMetadata(pool.metadata),
+              ...(input.metadata ?? {}),
+            }),
+            organizationId: pool.organizationId,
+            source: pool.source,
+            status: CreditReservationStatus.RESERVED,
+            workloadId: input.workloadId,
+            workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+          },
+        });
+        return this.toReservation(created);
       });
-      return this.toReservation(created);
-    });
+    } catch (error: unknown) {
+      if (this.errorCode(error) === PRISMA_UNIQUE_CONSTRAINT_VIOLATION) {
+        const existing = await this.prisma.creditReservation.findFirst({
+          where: {
+            idempotencyKey,
+            isDeleted: false,
+            organizationId: input.organizationId,
+          },
+        });
+        if (existing) return this.toReservation(existing);
+      }
+      throw error;
+    }
   }
 
   async findByWorkload(input: {
@@ -389,6 +403,10 @@ export class CreditReservationService {
     const due = await this.prisma.creditReservation.findMany({
       where: {
         expiresAt: { lte: now },
+        OR: [
+          { workloadType: null },
+          { workloadType: { not: MEDIA_GENERATION_WORKLOAD_TYPE } },
+        ],
         isDeleted: false,
         status: CreditReservationStatus.RESERVED,
       },
@@ -398,6 +416,9 @@ export class CreditReservationService {
     let expired = 0;
     for (const reservation of due) {
       try {
+        // Media reconciliation must inspect the output before releasing funds.
+        if (reservation.workloadType === MEDIA_GENERATION_WORKLOAD_TYPE)
+          continue;
         if (reservation.workloadType === 'interpolation') {
           if (!(await this.reconcileInterpolation(reservation, now))) continue;
         } else if (reservation.workloadType === LIVE_SESSION_WORKLOAD_TYPE) {

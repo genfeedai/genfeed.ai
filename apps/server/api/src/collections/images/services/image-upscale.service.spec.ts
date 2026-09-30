@@ -140,6 +140,7 @@ describe('ImageUpscaleService', () => {
       routerService as unknown as RouterService,
       sharedService as unknown as SharedService,
       websocketService as unknown as NotificationsPublisherService,
+      { bindOutput: vi.fn(), releaseOutput: vi.fn() } as never,
     );
   });
 

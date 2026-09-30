@@ -1,19 +1,17 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
-import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { ActivitySource, ByokProvider } from '@genfeedai/contracts';
 import {
-  ActivitySource,
-  ByokProvider,
-  CreditTransactionCategory,
-} from '@genfeedai/contracts';
+  MEDIA_GENERATION_HOLD_TTL_MS,
+  MEDIA_GENERATION_WORKLOAD_TYPE,
+} from '@genfeedai/contracts/constants';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
-import type { CreditDeductionJobData } from '@genfeedai/contracts/queue';
 import {
   billCreditsFromProviderCost,
   calculateVideoGenerationCredits,
@@ -37,8 +35,7 @@ type InterpolationDispatch = {
 export class BatchInterpolationBillingService {
   constructor(
     private readonly credits: CreditsUtilsService,
-    private readonly transactions: CreditTransactionsService,
-    private readonly queue: CreditDeductionQueueService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly byok: ByokService,
     private readonly replicate: ReplicateService,
     private readonly metadata: MetadataService,
@@ -133,15 +130,33 @@ export class BatchInterpolationBillingService {
     const reservation =
       !input.apiKey && input.amount > 0
         ? await this.credits.reserveCredits({
-            actorUserId: input.user.id,
+            actorUserId: input.user.userId ?? input.user.id,
             amount: input.amount,
-            expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
+            expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
+            description: input.description,
+            source: ActivitySource.VIDEO_GENERATION,
+            metadata: { assetId: input.ingredientId },
             idempotencyKey: `interpolation:${input.ingredientId}`,
             organizationId: input.user.organizationId,
             workloadId: input.ingredientId,
-            workloadType: 'interpolation',
+            workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
           })
         : undefined;
+    if (input.apiKey) {
+      await this.generationBilling.bindOutput(
+        {
+          user: input.user,
+          creditsConfig: {
+            amount: input.amount,
+            description: input.description,
+            source: ActivitySource.VIDEO_GENERATION,
+            settlement: 'completion',
+            isByokBypass: true,
+          },
+        },
+        { credits: input.amount, ingredientId: input.ingredientId },
+      );
+    }
     let externalId: string | undefined;
     try {
       externalId = await this.replicate.generateTextToVideo(
@@ -172,100 +187,54 @@ export class BatchInterpolationBillingService {
         );
       }
     }
-    if (!externalId) return undefined;
-    await this.recordAccepted(input, externalId, reservation?.id);
+    if (!externalId) {
+      if (input.apiKey)
+        await this.generationBilling.releaseOutput(
+          input.ingredientId,
+          input.user.organizationId,
+        );
+      return undefined;
+    }
+    await this.recordAccepted(input, externalId);
     return externalId;
   }
 
   private async recordAccepted(
     input: InterpolationDispatch,
     externalId: string,
-    reservationId?: string,
   ): Promise<void> {
-    const data: CreditDeductionJobData = {
-      acceptedGeneration: { ingredientId: input.ingredientId, externalId },
-      amount: input.amount,
-      description: input.description,
-      idempotencyKey: `interpolation-${input.ingredientId}`,
-      organizationId: input.user.organizationId,
-      reservationId,
-      source: ActivitySource.VIDEO_GENERATION,
-      type: input.apiKey ? 'record-byok-usage' : 'deduct-credits',
-      userId: input.user.id,
-    };
-    let queued = false;
-    try {
-      if (input.apiKey) await this.queue.queueByokUsage(data);
-      else await this.queue.queueDeduction(data);
-      queued = true;
-    } catch (error: unknown) {
-      this.logger.error(
-        'Accepted interpolation enqueue failed; attempting durable fallback',
-        error,
-        data.acceptedGeneration,
-      );
-    }
-    let attached = false;
     try {
       await this.metadata.patch(
         input.metadataId,
         new MetadataEntity({ externalId }),
       );
-      attached = true;
     } catch (error: unknown) {
       this.logger.error(
         'Accepted interpolation metadata requires recovery',
         error,
-        data.acceptedGeneration,
-      );
-    }
-    if (queued) return;
-    if (!attached) {
-      this.logger.error(
-        'Accepted interpolation evidence requires operator reconciliation',
-        { ...data, isByokBypass: Boolean(input.apiKey) },
-      );
-      return;
-    }
-    try {
-      await this.settleFallback(data);
-    } catch (error: unknown) {
-      this.logger.error(
-        'Accepted interpolation billing requires operator reconciliation',
-        error,
-        data,
-      );
-    }
-  }
-
-  private async settleFallback(data: CreditDeductionJobData): Promise<void> {
-    if (data.type === 'record-byok-usage') {
-      const balance = await this.credits.getOrganizationCreditsBalance(
-        data.organizationId,
-      );
-      await this.transactions.createTransactionEntry(
-        data.organizationId,
-        CreditTransactionCategory.BYOK_USAGE,
-        data.amount,
-        balance,
-        balance,
-        data.source,
-        `[BYOK] ${data.description}`,
-        undefined,
-        undefined,
         {
-          idempotencyKey: `byok:${data.organizationId}:${data.idempotencyKey}`,
+          ingredientId: input.ingredientId,
+          organizationId: input.user.organizationId,
         },
       );
-    } else if (data.reservationId && data.userId) {
-      await this.credits.settleReservation({
-        actorUserId: data.userId,
-        actualAmount: data.amount,
-        description: data.description,
-        organizationId: data.organizationId,
-        reservationId: data.reservationId,
-        source: data.source,
-      });
+      try {
+        await this.generationBilling.rememberAcceptedOutput({
+          ingredientId: input.ingredientId,
+          externalId,
+          organizationId: input.user.organizationId,
+          userId: input.user.userId ?? input.user.id,
+        });
+      } catch (recoveryError: unknown) {
+        this.logger.error(
+          'Accepted interpolation evidence requires operator reconciliation',
+          recoveryError,
+          {
+            ingredientId: input.ingredientId,
+            externalId,
+            organizationId: input.user.organizationId,
+          },
+        );
+      }
     }
   }
 }

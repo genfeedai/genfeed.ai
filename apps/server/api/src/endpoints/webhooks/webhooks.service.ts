@@ -36,18 +36,25 @@ export class WebhooksService {
 
   private async markMediaGenerated(
     ingredientId: string,
+    organizationId: string | null | undefined,
     uploadMetadata: IFileMetadata,
-  ): Promise<void> {
+  ): Promise<boolean> {
     // The object key is the stored identity; the URL is derived on read.
     const s3Key =
       typeof uploadMetadata.s3Key === 'string'
         ? uploadMetadata.s3Key
         : undefined;
 
-    await this.ingredientsService.patch(ingredientId, {
-      ...(s3Key ? { s3Key } : {}),
-      status: IngredientStatus.GENERATED,
-    });
+    const claimed = await this.ingredientsService.patchAll(
+      {
+        id: ingredientId,
+        ...(organizationId ? { organizationId } : {}),
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      { ...(s3Key ? { s3Key } : {}), status: IngredientStatus.GENERATED },
+    );
+    return claimed.modifiedCount === 1;
   }
 
   constructor(
@@ -211,7 +218,12 @@ export class WebhooksService {
     }
 
     // 3. Mark ingredient as GENERATED, then settle the credits that paid for it
-    await this.markMediaGenerated(input.ingredientId, uploadMetadata);
+    const completed = await this.markMediaGenerated(
+      input.ingredientId,
+      ingredient.organizationId,
+      uploadMetadata,
+    );
+    if (!completed) return;
     await this.settleGenerationCredits(
       input.ingredientId,
       ingredient.organizationId,
@@ -373,6 +385,20 @@ export class WebhooksService {
       return;
     }
 
+    if (ingredient.status !== IngredientStatus.PROCESSING) return;
+    const claimed = await this.ingredientsService.patchAll(
+      {
+        id: ingredient.id.toString(),
+        ...(ingredient.organizationId
+          ? { organizationId: ingredient.organizationId }
+          : {}),
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      { status: IngredientStatus.FAILED },
+    );
+    if (claimed.modifiedCount !== 1) return;
+
     if (errorMessage) {
       const metadataId = ingredient.metadataId;
       if (metadataId) {
@@ -382,9 +408,6 @@ export class WebhooksService {
       }
     }
 
-    await this.ingredientsService.patch(ingredient.id.toString(), {
-      status: IngredientStatus.FAILED,
-    });
     await this.releaseGenerationCredits(
       ingredient.id.toString(),
       ingredient.organizationId,

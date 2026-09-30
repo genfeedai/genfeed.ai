@@ -625,6 +625,29 @@ describe('CreditReservationService', () => {
     );
   });
 
+  it('leaves media holds to generation reconciliation even when settlement is queued at expiry', async () => {
+    prisma.creditReservation.findMany.mockResolvedValue([
+      {
+        id: 'media-hold',
+        organizationId: 'org_1',
+        workloadType: 'media-generation',
+      },
+    ]);
+    const release = vi.spyOn(service, 'release');
+    await service.expireDue();
+    expect(release).not.toHaveBeenCalled();
+    expect(prisma.creditReservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { workloadType: null },
+            { workloadType: { not: 'media-generation' } },
+          ],
+        }),
+      }),
+    );
+  });
+
   describe('bindOutput', () => {
     const pool = (overrides: Record<string, unknown> = {}) => ({
       actorUserId: 'user_1',
@@ -713,6 +736,18 @@ describe('CreditReservationService', () => {
       expect(hold.id).toBe('hold_1');
       expect(prisma.creditReservation.updateMany).not.toHaveBeenCalled();
       expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('replays a simultaneous bind after a unique-key conflict without moving funds twice', async () => {
+      transactionUtil.runInTransaction.mockRejectedValueOnce({ code: 'P2002' });
+      prisma.creditReservation.findFirst.mockResolvedValue(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+      await expect(service.bindOutput(bindInput)).resolves.toMatchObject({
+        id: 'hold_1',
+        amount: 3,
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
     });
 
     it('rejects a share larger than what the pool has left', async () => {

@@ -215,6 +215,7 @@ export class AvatarVideoGenerationService {
     let ingredientId: string | null = null;
     let billing: GenerationBillingRequest | undefined;
     let ownsBillingPool = false;
+    let providerAccepted = false;
 
     try {
       const brand = await this.findBrandForContext(context);
@@ -225,7 +226,10 @@ export class AvatarVideoGenerationService {
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       const funding = await this.resolveFunding(resolvedIdentity, context);
-      billing = await this.openBilling(funding, context, placeholderScope);
+      billing =
+        funding.billingMode === 'byok'
+          ? context.request
+          : await this.openBilling(funding, context, placeholderScope);
       ownsBillingPool = billing !== undefined && billing !== context.request;
 
       const { ingredientData, metadataData } =
@@ -286,6 +290,15 @@ export class AvatarVideoGenerationService {
           funding,
         );
 
+      // Bind the render to its hold before its provider id is
+      // persisted, so a webhook that races this request always finds it.
+      if (billing) {
+        await this.generationBilling.bindOutput(billing, {
+          credits: billing.creditsConfig?.amount ?? funding.credits,
+          ingredientId,
+        });
+      }
+
       const externalId = await this.heygenService.generatePhotoAvatarVideo(
         ingredientId,
         photoUrl,
@@ -300,27 +313,41 @@ export class AvatarVideoGenerationService {
         params.aspectRatio ?? '9:16',
       );
 
-      // Bind the accepted render to its hold before its provider id is
-      // persisted, so a webhook that races this request always finds it.
-      if (billing) {
-        await this.generationBilling.bindOutput(billing, {
-          credits: billing.creditsConfig?.amount ?? funding.credits,
+      providerAccepted = true;
+
+      try {
+        await this.metadataService.patch(
+          metadataData.id,
+          new MetadataEntity({
+            duration: audioDuration > 0 ? audioDuration : undefined,
+            externalId,
+          }),
+        );
+      } catch (error: unknown) {
+        await this.generationBilling.rememberAcceptedOutput({
           ingredientId,
-        });
-      }
-
-      await this.metadataService.patch(
-        metadataData.id,
-        new MetadataEntity({
-          duration: audioDuration > 0 ? audioDuration : undefined,
           externalId,
-        }),
-      );
-
-      await this.lifecycleService.publishInitialStatus(
-        ingredientId,
-        context.userId,
-      );
+          organizationId: context.organizationId,
+          userId: context.userId,
+        });
+        this.loggerService.error(
+          'Accepted avatar provider identity queued for recovery',
+          error,
+          { ingredientId },
+        );
+      }
+      try {
+        await this.lifecycleService.publishInitialStatus(
+          ingredientId,
+          context.userId,
+        );
+      } catch (error: unknown) {
+        this.loggerService.error(
+          'Accepted avatar initial notification failed',
+          error,
+          { ingredientId },
+        );
+      }
 
       return {
         externalId,
@@ -330,7 +357,7 @@ export class AvatarVideoGenerationService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
 
-      if (ingredientId) {
+      if (ingredientId && !providerAccepted) {
         await this.recordGenerationFailure(ingredientId, context, error);
         await this.releaseGenerationHold(ingredientId, context.organizationId);
       }

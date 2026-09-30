@@ -1,4 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -77,6 +81,7 @@ export class VideosUpscaleController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly generationBilling: GenerationBillingService,
   ) {}
 
   @Post(':videoId/upscale')
@@ -85,6 +90,7 @@ export class VideosUpscaleController {
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video upscaling',
+    settlement: 'completion',
     // #5294 no allowByokBypass: dispatchUpscale() calls
     // replicateService.runModel with no key override, so credits charge
     // normally by default.
@@ -250,6 +256,13 @@ export class VideosUpscaleController {
         return serializeSingle(request, IngredientSerializer, ingredientData);
       }
 
+      const billingRequest = request as unknown as GenerationBillingRequest;
+      const credits = billingRequest.creditsConfig?.amount;
+      if (credits !== undefined)
+        await this.generationBilling.bindOutput(billingRequest, {
+          credits,
+          ingredientId,
+        });
       failureHandled = await this.dispatchUpscale({
         ingredientId,
         metadataId: metadataData.id,
@@ -261,8 +274,18 @@ export class VideosUpscaleController {
         videoUrl,
       });
 
+      if (failureHandled)
+        await this.generationBilling.releaseOutput(
+          ingredientId,
+          user.organizationId,
+        );
       return serializeSingle(request, IngredientSerializer, ingredientData);
     } catch (error: unknown) {
+      if (outputIngredientId)
+        await this.generationBilling.releaseOutput(
+          outputIngredientId,
+          user.organizationId,
+        );
       if (outputIngredientId && !failureHandled) {
         try {
           await this.failedGenerationService.handleFailedVideoGeneration(

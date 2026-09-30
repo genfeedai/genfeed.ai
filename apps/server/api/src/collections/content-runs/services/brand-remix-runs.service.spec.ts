@@ -2713,7 +2713,7 @@ describe('BrandRemixRunsService', () => {
         return Promise.resolve({ count: 1 });
       });
       vi.spyOn(remixGraph.dispatch, 'resolveVariantCredits').mockImplementation(
-        ({ variant }) => ({
+        async ({ variant }) => ({
           amount: 4,
           isByokBypass: variant.id === 'variant-1',
           variantId: variant.id,

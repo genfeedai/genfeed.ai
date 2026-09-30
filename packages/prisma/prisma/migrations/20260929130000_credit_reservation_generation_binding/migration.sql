@@ -8,3 +8,6 @@ ALTER TABLE "credit_reservations"
 
 CREATE INDEX "credit_reservations_workloadType_workloadId_organizationId_idx"
   ON "credit_reservations" ("workloadType", "workloadId", "organizationId");
+
+-- No wallet hold for BYOK; persist completion usage linkage separately.
+ALTER TABLE "ingredients" ADD COLUMN "generationBilling" JSONB;

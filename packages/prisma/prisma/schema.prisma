@@ -2182,6 +2182,8 @@ model Ingredient {
   generationHarness     Json?
   generationPrompt      String?
   negativePrompt        String?
+  /// Server-owned BYOK completion receipt, excluded from public serializers.
+  generationBilling     Json?
   generationSeed        Int?
   cfgScale              Float?
   generationSteps       Int?

@@ -385,7 +385,7 @@ export class MusicGenerationService {
   ): Promise<void> {
     const request = params.request as unknown as GenerationBillingRequest;
     const amount = request.creditsConfig?.amount;
-    if (!amount || !this.generationBilling.hasPool(request)) {
+    if (amount === undefined) {
       return;
     }
     const requested = Math.max(Number(params.createMusicDto.outputs) || 1, 1);

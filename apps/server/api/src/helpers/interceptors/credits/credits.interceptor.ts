@@ -93,6 +93,7 @@ export class CreditsInterceptor implements NestInterceptor {
     }
 
     if (currentCreditsConfig.isByokBypass) {
+      if (currentCreditsConfig.settlement === 'completion') return response;
       await this.creditDeductionQueueService.queueByokUsage({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
@@ -105,13 +106,18 @@ export class CreditsInterceptor implements NestInterceptor {
         await this.releaseUnboundPool(currentCreditsConfig, identity);
         return response;
       }
+      const assetId = this.readResponseAssetId(response);
       await this.creditDeductionQueueService.queueDeduction({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
-        metadata: currentCreditsConfig.pricingMetadata
-          ? { ...currentCreditsConfig.pricingMetadata }
-          : undefined,
+        metadata:
+          currentCreditsConfig.pricingMetadata || assetId
+            ? {
+                ...currentCreditsConfig.pricingMetadata,
+                ...(assetId ? { assetId } : {}),
+              }
+            : undefined,
         ...(currentCreditsConfig.reservationId
           ? { reservationId: currentCreditsConfig.reservationId }
           : {}),
@@ -151,6 +157,18 @@ export class CreditsInterceptor implements NestInterceptor {
    * output already owns its hold, so only credits no output claimed (a dispatch
    * that never reached the provider) are given back.
    */
+  private readResponseAssetId(response: unknown): string | undefined {
+    if (!response || typeof response !== 'object' || !('data' in response))
+      return undefined;
+    const data = response.data;
+    return data &&
+      typeof data === 'object' &&
+      'id' in data &&
+      typeof data.id === 'string'
+      ? data.id
+      : undefined;
+  }
+
   private async releaseUnboundPool(
     config: DeferredCreditsConfig,
     identity: NonNullable<CreditsInterceptorRequest['user']>,

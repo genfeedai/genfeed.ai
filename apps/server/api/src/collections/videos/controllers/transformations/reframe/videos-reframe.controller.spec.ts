@@ -1,3 +1,5 @@
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -147,6 +149,10 @@ describe('VideosReframeController', () => {
       controllers: [VideosReframeController],
       providers: [
         {
+          provide: GenerationBillingService,
+          useValue: { bindOutput: vi.fn(), releaseOutput: vi.fn() },
+        },
+        {
           provide: CreditDeductionQueueService,
           useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
         },
@@ -237,6 +243,8 @@ describe('VideosReframeController', () => {
       ),
     ).toEqual({
       description: 'Video reframe',
+      settlement: 'completion',
+      isBodyModelIgnored: true,
       modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
       source: ActivitySource.VIDEO_REFRAME,
     });

@@ -1,3 +1,5 @@
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -155,6 +157,10 @@ describe('VideosUpscaleController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosUpscaleController],
       providers: [
+        {
+          provide: GenerationBillingService,
+          useValue: { bindOutput: vi.fn(), releaseOutput: vi.fn() },
+        },
         {
           provide: ActivityRecorderService,
           useValue: mockServices.activitiesService,
@@ -367,6 +373,7 @@ describe('VideosUpscaleController', () => {
       ),
     ).toEqual({
       description: 'Video upscaling',
+      settlement: 'completion',
       modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       source: ActivitySource.VIDEO_UPSCALE,
     });

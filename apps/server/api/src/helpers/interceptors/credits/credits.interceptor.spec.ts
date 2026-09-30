@@ -284,14 +284,14 @@ describe('CreditsInterceptor', () => {
         });
       });
 
-      it('still records BYOK usage instead of holding platform credits', async () => {
+      it('leaves BYOK completion usage to the linked output receipt', async () => {
         asCompletion({ isByokBypass: true, reservationId: undefined });
 
         await run(mockHandler);
 
-        expect(creditDeductionQueueService.queueByokUsage).toHaveBeenCalledWith(
-          expect.objectContaining({ amount: 10 }),
-        );
+        expect(
+          creditDeductionQueueService.queueByokUsage,
+        ).not.toHaveBeenCalled();
         expect(
           creditDeductionQueueService.queueDeduction,
         ).not.toHaveBeenCalled();

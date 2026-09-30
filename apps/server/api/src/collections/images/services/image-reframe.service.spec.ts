@@ -155,6 +155,7 @@ describe('ImageReframeService', () => {
       replicateService as unknown as ReplicateService,
       sharedService as unknown as SharedService,
       websocketService as unknown as NotificationsPublisherService,
+      { bindOutput: vi.fn(), releaseOutput: vi.fn() } as never,
     );
   });
 

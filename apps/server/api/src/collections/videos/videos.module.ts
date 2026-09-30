@@ -40,6 +40,7 @@ import { VideoMergeOrchestrationService } from '@api/collections/videos/services
 import { VideoProvenanceService } from '@api/collections/videos/services/video-provenance.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
+import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -118,6 +119,7 @@ import { Module } from '@nestjs/common';
     VideoStitchModule,
     VotesModule,
     WebhookClientModule,
+    WebhooksMediaModule,
     WhisperModule,
   ],
   providers: [

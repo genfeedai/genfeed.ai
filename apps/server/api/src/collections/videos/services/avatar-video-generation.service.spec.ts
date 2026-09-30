@@ -410,7 +410,7 @@ describe('AvatarVideoGenerationService', () => {
       ),
     ).rejects.toThrow();
 
-    expect(creditsUtilsService.bindReservationOutput).not.toHaveBeenCalled();
+    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalled();
     expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
       organizationId: 'test-object-id',
       reservationId: 'service-pool-1',

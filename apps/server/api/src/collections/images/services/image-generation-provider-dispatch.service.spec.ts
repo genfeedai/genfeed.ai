@@ -38,6 +38,7 @@ describe('ImageGenerationProviderDispatchService', () => {
   const imagesService = {
     findOne: vi.fn().mockResolvedValue({ status: IngredientStatus.PROCESSING }),
     patch: vi.fn(),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
   const klingAIService = {
     queueGenerateImage: vi.fn(),
@@ -216,8 +217,13 @@ describe('ImageGenerationProviderDispatchService', () => {
         width: 1920,
       },
     );
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
@@ -495,8 +501,13 @@ describe('ImageGenerationProviderDispatchService', () => {
       'higgsfield-req-1',
       { organizationId: 'organization-1' },
     );
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
@@ -558,8 +569,13 @@ describe('ImageGenerationProviderDispatchService', () => {
       'ingredient-3',
     ]);
     expect(filesClientService.uploadToS3).toHaveBeenCalledTimes(3);
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.GENERATED }),
     );
   });

@@ -194,6 +194,7 @@ describe('WebhooksService', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
           },
         },
         {
@@ -349,8 +350,13 @@ describe('WebhooksService', () => {
         mockMetadataId.toString(),
         externalId,
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         {
           s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
@@ -371,6 +377,18 @@ describe('WebhooksService', () => {
           ingredientId: mockIngredientId.toString(),
         }),
       );
+    });
+
+    it('does not settle or publish success when expiry wins the completion transition', async () => {
+      ingredientsService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+      await service.processMediaFromWebhook(
+        integration,
+        IngredientCategory.IMAGE,
+        externalId,
+        url,
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
     });
 
     it('skips finalize when the ingredient is no longer processing', async () => {
@@ -442,8 +460,13 @@ describe('WebhooksService', () => {
         mockMetadataId.toString(),
         'provider-video-1',
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         {
           s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
@@ -630,6 +653,30 @@ describe('WebhooksService', () => {
       activityUpdateService.updateFailureActivity.mockResolvedValue(undefined);
     });
 
+    it('ignores a late failure after completion without releasing the hold', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        status: IngredientStatus.GENERATED,
+      });
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        errorMessage,
+      );
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+    });
+
+    it('does not release when completion wins the failure transition', async () => {
+      ingredientsService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        errorMessage,
+      );
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+    });
+
     it('releases the output credit hold when the generation fails', async () => {
       await service.handleFailedGeneration(externalId, errorMessage);
 
@@ -645,8 +692,13 @@ describe('WebhooksService', () => {
 
       await service.handleFailedGeneration(externalId, errorMessage);
 
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         { status: IngredientStatus.FAILED },
       );
     });
@@ -660,8 +712,13 @@ describe('WebhooksService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
         error: errorMessage,
       });
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         { status: IngredientStatus.FAILED },
       );
       expect(

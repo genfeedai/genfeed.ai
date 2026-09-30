@@ -277,6 +277,13 @@ const createImageGenerationService = () => {
     activityRecorder as never,
     failedGenerationService as never,
     filesClientService as never,
+    {
+      bindOutput: vi.fn(),
+      hasPool: vi.fn().mockReturnValue(false),
+      releaseOutput: vi.fn(),
+      releasePool: vi.fn(),
+      settleOutput: vi.fn(),
+    } as never,
     generationEventWebhookService as never,
     mediaGenerationCostService as never,
     imagesService as never,

@@ -285,6 +285,9 @@ describe('VideoGenerationService', () => {
       sharedService as never,
       videosService as never,
       websocketService as never,
+      {
+        processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
+      } as never,
     );
     const completionService = new VideoGenerationCompletionService(
       bookmarksService as never,

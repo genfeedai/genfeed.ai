@@ -44,6 +44,8 @@ export class ImagesUpscaleController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @Credits({
     description: 'Image upscaling',
+    settlement: 'completion',
+    isBodyModelIgnored: true,
     // #5294 no allowByokBypass: ImageUpscaleService dispatches to Replicate
     // with no key override, so credits charge normally by default.
     modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,

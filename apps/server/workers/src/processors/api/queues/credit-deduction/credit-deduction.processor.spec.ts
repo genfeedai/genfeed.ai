@@ -179,6 +179,8 @@ describe('CreditDeductionProcessor', () => {
       creditTransactionsService.createTransactionEntry.mock.calls[1].at(-1),
     ).toEqual({
       idempotencyKey: `byok:${job.data.organizationId}:interpolation-asset`,
+      actorUserId: job.data.userId,
+      metadata: job.data.metadata,
     });
     expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(
@@ -401,6 +403,67 @@ describe('CreditDeductionProcessor', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('preserves the completion gate on legacy jobs already in Redis', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'legacy-asset',
+      status: 'PROCESSING',
+    } as never);
+    await expect(
+      processor.process(buildJob({ settlementAssetId: 'legacy-asset' })),
+    ).rejects.toThrow('not terminal');
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('skips failed legacy media jobs without charging', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'legacy-asset',
+      status: 'FAILED',
+    } as never);
+    await processor.process(
+      buildJob({
+        settlementAssetId: 'legacy-asset',
+        reservationId: 'legacy-hold',
+      }),
+    );
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'legacy-hold',
+    });
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+  });
+
+  it('retains canonical actor and output attribution in BYOK usage evidence', async () => {
+    await processor.process(
+      buildJob({
+        type: 'record-byok-usage',
+        userId: 'canonical-user',
+        metadata: { assetId: 'asset-1' },
+      }),
+    );
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      CreditTransactionCategory.BYOK_USAGE,
+      expect.any(Number),
+      5000,
+      5000,
+      expect.anything(),
+      expect.anything(),
+      undefined,
+      undefined,
+      expect.objectContaining({
+        actorUserId: 'canonical-user',
+        metadata: { assetId: 'asset-1' },
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
   it('records BYOK usage as a zero-balance-change ledger entry', async () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(1234);
 
@@ -424,7 +487,11 @@ describe('CreditDeductionProcessor', () => {
       '[BYOK] BYOK image call',
       undefined,
       undefined,
-      { idempotencyKey: 'byok:org-1:job-1' },
+      {
+        idempotencyKey: 'byok:org-1:job-1',
+        actorUserId: 'user-1',
+        metadata: undefined,
+      },
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,

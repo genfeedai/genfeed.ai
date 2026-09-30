@@ -50,6 +50,9 @@ describe('VideoGenerationExecutionService', () => {
     const replicatePollQueueService = { schedule: vi.fn() };
     const sharedService = { createMediaDocuments: vi.fn() };
     const videosService = { patch: vi.fn() };
+    const webhooksService = {
+      processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
+    };
     const websocketService = {
       publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
     };
@@ -65,15 +68,109 @@ describe('VideoGenerationExecutionService', () => {
       sharedService as never,
       videosService as never,
       websocketService as never,
+      webhooksService as never,
     );
 
     return {
       generationBilling,
+      webhooksService,
       providerDispatchService,
       replicatePollQueueService,
+      sharedService,
+      failedGenerationService,
       service,
     };
   }
+
+  it('keeps an earlier accepted output funded when a later sequential dispatch fails', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      sharedService,
+      failedGenerationService,
+    } = createHarness();
+    const failure = new Error('second dispatch rejected');
+    providerDispatchService.dispatch
+      .mockResolvedValueOnce({
+        completion: 'polling',
+        externalId: 'ext-first',
+        provider: 'replicate',
+      })
+      .mockRejectedValueOnce(failure);
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    await expect(
+      service.execute(
+        buildContext({
+          createVideoDto: { outputs: 2 } as never,
+          pendingIngredientIds: ['ingredient-1'],
+          request: {
+            creditsConfig: {
+              amount: 6,
+              settlement: 'completion',
+              reservationId: 'pool-1',
+            },
+          } as never,
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+      'ingredient-2',
+      'org-1',
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalledWith(
+      'ingredient-1',
+      'org-1',
+    );
+    expect(
+      failedGenerationService.handleFailedVideoGeneration,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['fal', 'higgsfield'])(
+    'finalizes a completed %s video after binding its hold',
+    async (provider) => {
+      const {
+        service,
+        generationBilling,
+        providerDispatchService,
+        webhooksService,
+      } = createHarness();
+      const url = 'https://provider.example/output.mp4';
+      providerDispatchService.dispatch.mockResolvedValue({
+        completion: 'remote-output',
+        externalId: url,
+        provider,
+      });
+      generationBilling.hasPool.mockReturnValue(true);
+      const context = buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: {
+          creditsConfig: {
+            amount: 6,
+            settlement: 'completion',
+            reservationId: 'pool-1',
+          },
+        } as never,
+      });
+      await service.execute(context);
+      expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        IngredientCategory.VIDEO,
+        url,
+        url,
+      );
+      expect(
+        generationBilling.bindOutput.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        webhooksService.processMediaForIngredient.mock.invocationCallOrder[0],
+      );
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    },
+  );
 
   it('maps a Replicate 402 insufficient-credit failure to a 4xx/502 HttpException, never a raw 500', async () => {
     const { providerDispatchService, service } = createHarness();

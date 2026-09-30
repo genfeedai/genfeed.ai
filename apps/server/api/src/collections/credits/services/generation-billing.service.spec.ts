@@ -45,10 +45,11 @@ describe('GenerationBillingService', () => {
     releaseReservation: vi.fn(),
     reserveCredits: vi.fn(),
   };
-  const queue = { queueDeduction: vi.fn() };
+  const queue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
   const prisma = {
     creditReservation: { findMany: vi.fn() },
-    ingredient: { findMany: vi.fn(), updateMany: vi.fn() },
+    ingredient: { findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
+    creditTransaction: { findFirst: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const service = new GenerationBillingService(
@@ -83,6 +84,30 @@ describe('GenerationBillingService', () => {
     credits.bindReservationOutput.mockResolvedValue(hold());
     credits.releaseReservation.mockResolvedValue(undefined);
     queue.queueDeduction.mockResolvedValue(undefined);
+    queue.queueByokUsage.mockResolvedValue(undefined);
+    prisma.ingredient.updateMany.mockResolvedValue({ count: 1 });
+    prisma.ingredient.findMany.mockResolvedValue([]);
+    prisma.ingredient.findFirst.mockResolvedValue(null);
+    prisma.creditTransaction.findFirst.mockResolvedValue(null);
+  });
+
+  it('recovers accepted identity without queuing an acceptance charge', async () => {
+    await service.rememberAcceptedOutput({
+      ingredientId: 'asset',
+      externalId: 'provider-job',
+      organizationId: 'org_1',
+      userId: 'user_1',
+    });
+    expect(queue.queueDeduction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 0,
+        acceptedGeneration: {
+          ingredientId: 'asset',
+          externalId: 'provider-job',
+        },
+        idempotencyKey: 'media-generation-attach:asset',
+      }),
+    );
   });
 
   describe('hasPool', () => {
@@ -115,13 +140,29 @@ describe('GenerationBillingService', () => {
       expect(billing.creditsConfig?.boundOutputCount).toBe(1);
     });
 
-    it('does nothing when the request holds no platform credits', async () => {
+    it('links BYOK usage without reserving platform credits', async () => {
       await service.bindOutput(request({ isByokBypass: true }), {
         credits: 4,
         ingredientId: 'ing_1',
       });
 
       expect(credits.bindReservationOutput).not.toHaveBeenCalled();
+      expect(prisma.ingredient.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            generationBilling: expect.objectContaining({
+              kind: 'byok',
+              amount: 4,
+              state: 'pending',
+            }),
+          }),
+          where: expect.objectContaining({
+            id: 'ing_1',
+            organizationId: 'org_1',
+            isDeleted: false,
+          }),
+        }),
+      );
     });
   });
 
@@ -212,6 +253,67 @@ describe('GenerationBillingService', () => {
 
       expect(await service.settleOutput('ing_1', 'org_1')).toBe('no-hold');
       expect(queue.queueDeduction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('BYOK completion receipts', () => {
+    const receipt = {
+      kind: 'byok',
+      amount: 4,
+      description: 'Image generation',
+      source: ActivitySource.IMAGE_GENERATION,
+      state: 'pending',
+      userId: 'user_1',
+      expiresAt: '2026-09-29T12:00:00.000Z',
+    };
+    it('records completed usage with the same output key on duplicate delivery', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(null);
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'ing_1',
+        status: IngredientStatus.GENERATED,
+        generationBilling: receipt,
+      });
+      await service.settleOutput('ing_1', 'org_1');
+      await service.settleOutput('ing_1', 'org_1');
+      expect(queue.queueByokUsage).toHaveBeenCalledTimes(2);
+      expect(queue.queueByokUsage.mock.calls[0][0]).toMatchObject({
+        amount: 4,
+        idempotencyKey: 'media-generation-usage:ing_1',
+        organizationId: 'org_1',
+        type: 'record-byok-usage',
+      });
+      expect(queue.queueDeduction).not.toHaveBeenCalled();
+      expect(credits.reserveCredits).not.toHaveBeenCalled();
+    });
+    it('retains failed-generation evidence without recording usage', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(null);
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'ing_1',
+        status: IngredientStatus.FAILED,
+        generationBilling: receipt,
+      });
+      await service.releaseOutput('ing_1', 'org_1');
+      expect(queue.queueByokUsage).not.toHaveBeenCalled();
+      expect(prisma.ingredient.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            generationBilling: expect.objectContaining({ state: 'failed' }),
+          }),
+        }),
+      );
+    });
+    it('keeps a completion receipt retryable if enqueue fails', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(null);
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'ing_1',
+        status: IngredientStatus.GENERATED,
+        generationBilling: receipt,
+      });
+      queue.queueByokUsage.mockRejectedValue(new Error('redis down'));
+      await expect(service.settleOutput('ing_1', 'org_1')).rejects.toThrow(
+        'redis down',
+      );
+      expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
     });
   });
 
@@ -315,6 +417,46 @@ describe('GenerationBillingService', () => {
           status: IngredientStatus.PROCESSING,
         },
       });
+    });
+
+    it('settles a completion that wins the expiry status race rather than releasing its hold', async () => {
+      prisma.creditReservation.findMany.mockResolvedValue([
+        row('done', new Date(NOW.getTime() - 1)),
+      ]);
+      prisma.ingredient.findMany.mockResolvedValue([
+        ingredient('done', IngredientStatus.PROCESSING),
+      ]);
+      prisma.ingredient.updateMany.mockResolvedValue({ count: 0 });
+      prisma.ingredient.findFirst.mockResolvedValue(
+        ingredient('done', IngredientStatus.GENERATED),
+      );
+      await service.reconcile(NOW);
+      expect(queue.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({ reservationId: 'hold_done' }),
+      );
+      expect(credits.releaseReservation).not.toHaveBeenCalled();
+    });
+
+    it('scans past a full page of processing holds to reach a completed output', async () => {
+      prisma.creditReservation.findMany
+        .mockResolvedValueOnce(
+          Array.from({ length: 200 }, (_, i) => row(`waiting-${i}`)),
+        )
+        .mockResolvedValueOnce([row('done')]);
+      prisma.ingredient.findMany
+        .mockResolvedValueOnce(
+          Array.from({ length: 200 }, (_, i) =>
+            ingredient(`waiting-${i}`, IngredientStatus.PROCESSING),
+          ),
+        )
+        .mockResolvedValueOnce([
+          ingredient('done', IngredientStatus.GENERATED),
+        ]);
+      expect(await service.reconcile(NOW)).toBe(1);
+      expect(queue.queueDeduction).toHaveBeenCalledWith(
+        expect.objectContaining({ reservationId: 'hold_done' }),
+      );
+      expect(prisma.creditReservation.findMany).toHaveBeenCalledTimes(2);
     });
 
     it('keeps sweeping after one hold fails', async () => {

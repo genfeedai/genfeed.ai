@@ -256,33 +256,41 @@ export class ImageGenerationProviderDispatchService {
         },
       );
 
-      await Promise.all([
-        this.metadataService.patch(
-          context.metadataData.id,
-          new MetadataEntity({
-            height: uploadMeta.height,
-            promptId: context.promptData.id,
-            size: uploadMeta.size,
-            width: uploadMeta.width,
-          }),
-        ),
-        this.imagesService.patch(context.ingredientData.id, {
+      await this.metadataService.patch(
+        context.metadataData.id,
+        new MetadataEntity({
+          height: uploadMeta.height,
+          promptId: context.promptData.id,
+          size: uploadMeta.size,
+          width: uploadMeta.width,
+        }),
+      );
+      const claimed = await this.imagesService.patchAll(
+        {
+          id: context.ingredientData.id,
+          organizationId: context.user.organizationId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+        {
           promptId: context.promptData.id,
           s3Key:
             typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
           status: IngredientStatus.GENERATED,
-        }),
-        this.websocketService.publishVideoComplete(
-          context.websocketUrl,
-          {
-            id: context.ingredientData.id.toString(),
-            ingredientId: context.ingredientData.id.toString(),
-            status: 'completed',
-          },
-          context.user.id,
-          getUserRoomName(context.user.id),
-        ),
-      ]);
+        },
+      );
+      if (claimed.modifiedCount !== 1)
+        return context.ingredientData.id.toString();
+      await this.websocketService.publishVideoComplete(
+        context.websocketUrl,
+        {
+          id: context.ingredientData.id.toString(),
+          ingredientId: context.ingredientData.id.toString(),
+          status: 'completed',
+        },
+        context.user.id,
+        getUserRoomName(context.user.id),
+      );
 
       await this.emitGenerationCompleted(
         context,
@@ -598,28 +606,35 @@ export class ImageGenerationProviderDispatchService {
       url: outputUrl,
     });
 
-    await Promise.all([
-      this.metadataService.patch(
-        metadataId,
-        new MetadataEntity({
-          height: uploadMeta.height,
-          result: outputUrl,
-          size: uploadMeta.size,
-          width: uploadMeta.width,
-        }),
-      ),
-      this.imagesService.patch(ingredientId, {
+    await this.metadataService.patch(
+      metadataId,
+      new MetadataEntity({
+        height: uploadMeta.height,
+        result: outputUrl,
+        size: uploadMeta.size,
+        width: uploadMeta.width,
+      }),
+    );
+    const claimed = await this.imagesService.patchAll(
+      {
+        id: ingredientId,
+        organizationId: context.user.organizationId,
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      {
         promptId: context.promptData.id,
         s3Key: optionalUploadString(uploadMeta.s3Key),
         status: IngredientStatus.GENERATED,
-      }),
-      this.websocketService.publishVideoComplete(
-        WebSocketPaths.image(ingredientId),
-        { id, ingredientId: id, status: 'completed' },
-        context.user.id,
-        getUserRoomName(context.user.id),
-      ),
-    ]);
+      },
+    );
+    if (claimed.modifiedCount !== 1) return;
+    await this.websocketService.publishVideoComplete(
+      WebSocketPaths.image(ingredientId),
+      { id, ingredientId: id, status: 'completed' },
+      context.user.id,
+      getUserRoomName(context.user.id),
+    );
 
     await this.emitGenerationCompleted(
       context,
@@ -651,6 +666,12 @@ export class ImageGenerationProviderDispatchService {
       throw error;
     }
 
+    const latest = await this.imagesService.findOne({
+      id: ingredientId,
+      organizationId: context.user.organizationId,
+      isDeleted: false,
+    });
+    if (!isProcessingIngredient(latest)) throw error;
     this.loggerService.error(`${label} failed`, error);
     const errorMessage = getErrorMessage(error);
 
@@ -690,7 +711,7 @@ export class ImageGenerationProviderDispatchService {
   ): Promise<void> {
     const request = this.billingRequest(context);
     const amount = request.creditsConfig?.amount;
-    if (!amount || !this.generationBilling.hasPool(request)) {
+    if (amount === undefined) {
       return;
     }
     await this.generationBilling.bindOutput(request, {

@@ -15,6 +15,7 @@ describe('CreditDeductionQueueService', () => {
 
     queue = {
       add: vi.fn(),
+      getJob: vi.fn().mockResolvedValue(undefined),
     } as unknown as Queue;
 
     logger = {
@@ -57,6 +58,27 @@ describe('CreditDeductionQueueService', () => {
       );
     },
   );
+
+  it('revives a failed idempotent settlement when completion is reconciled again', async () => {
+    const failed = {
+      getState: vi.fn().mockResolvedValue('failed'),
+      retry: vi.fn().mockResolvedValue(undefined),
+    };
+    vi.mocked(queue.getJob).mockResolvedValue(failed as never);
+    await service.queueDeduction({
+      amount: 4,
+      description: 'Completed generation',
+      organizationId: 'org',
+      source: ActivitySource.VIDEO_GENERATION,
+      type: 'deduct-credits',
+      reservationId: 'hold',
+      idempotencyKey: 'media-generation-settle:hold',
+    });
+    expect(failed.retry).toHaveBeenCalledWith('failed', {
+      resetAttemptsMade: true,
+    });
+    expect(queue.add).not.toHaveBeenCalled();
+  });
 
   describe('instantiation', () => {
     it('should be defined', () => {

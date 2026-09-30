@@ -1,4 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -75,6 +79,7 @@ export class VideosReframeController {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly generationBilling: GenerationBillingService,
   ) {}
 
   @Post(':videoId/reframe')
@@ -83,6 +88,8 @@ export class VideosReframeController {
   // Manual deduct was removed to match lip-sync and avoid double-charging.
   @Credits({
     description: 'Video reframe',
+    settlement: 'completion',
+    isBodyModelIgnored: true,
     // #5294 no allowByokBypass: dispatch calls
     // replicateService.generateTextToVideo with no key override, so credits
     // charge normally by default.
@@ -288,6 +295,13 @@ export class VideosReframeController {
             width: targetWidth,
           },
         );
+      const billingRequest = request as unknown as GenerationBillingRequest;
+      const credits = billingRequest.creditsConfig?.amount;
+      if (credits !== undefined)
+        await this.generationBilling.bindOutput(billingRequest, {
+          credits,
+          ingredientId: String(ingredientData.id),
+        });
       const generationId = await this.replicateService.generateTextToVideo(
         MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         promptParams,
@@ -305,6 +319,10 @@ export class VideosReframeController {
       await this.markReframeFailed(ingredientData.id, websocketUrl, user);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+      await this.generationBilling.releaseOutput(
+        String(ingredientData.id),
+        user.organizationId,
+      );
       await this.markReframeFailed(ingredientData.id, websocketUrl, user);
     }
   }

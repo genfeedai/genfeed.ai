@@ -17,6 +17,7 @@ import {
 } from '@api/collections/videos/services/video-generation-output.util';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -57,9 +58,11 @@ export class VideoGenerationExecutionService {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   async execute(context: VideoGenerationContext): Promise<void> {
+    const accepted = new Set<string>();
     await this.createPlaceholderActivity({
       brandId: context.brand.id,
       ingredientId: context.ingredientData.id,
@@ -81,9 +84,14 @@ export class VideoGenerationExecutionService {
         MODEL_OUTPUT_CAPABILITIES[context.model]?.isBatchSupported ?? false;
       const placement = resolveVideoOutputPlacement(isBatchSupported, outputs);
       if (placement === 'batch') {
-        await this.createBatchOutputs(context, generation, outputs);
+        await this.createBatchOutputs(context, generation, outputs, accepted);
       } else if (placement === 'sequential') {
-        await this.createSequentialOutputs(context, generation, outputs);
+        await this.createSequentialOutputs(
+          context,
+          generation,
+          outputs,
+          accepted,
+        );
       } else {
         await this.bindOutputCredits(
           context,
@@ -94,14 +102,15 @@ export class VideoGenerationExecutionService {
           context.metadataData.id,
           new MetadataEntity({ externalId: generation.externalId }),
         );
-        await this.scheduleReplicatePoll(
+        accepted.add(context.ingredientData.id.toString());
+        await this.completeOrScheduleOutput(
           context,
           context.ingredientData.id.toString(),
           generation,
         );
       }
     } catch (error: unknown) {
-      await this.failPendingOutputs(context, error);
+      await this.failPendingOutputs(context, error, accepted);
       throw this.toDispatchException(error);
     }
   }
@@ -140,6 +149,7 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
     generation: StartedVideoGeneration,
     outputs: number,
+    accepted: Set<string>,
   ): Promise<void> {
     const generationId = generation.externalId;
     await this.bindOutputCredits(
@@ -151,6 +161,7 @@ export class VideoGenerationExecutionService {
       context.metadataData.id,
       new MetadataEntity({ externalId: `${generationId}_0` }),
     );
+    accepted.add(context.ingredientData.id.toString());
     const additionalDocuments = await Promise.all(
       Array.from({ length: outputs - 1 }, () =>
         this.createAdditionalDocuments(context),
@@ -169,14 +180,17 @@ export class VideoGenerationExecutionService {
       );
     }
     await Promise.all(
-      additionalDocuments.map(({ metadataData }, index) =>
-        this.metadataService.patch(
-          metadataData.id,
-          new MetadataEntity({
-            externalId: `${generationId}_${index + 1}`,
-            externalProvider: generation.provider,
-          }),
-        ),
+      additionalDocuments.map(
+        async ({ metadataData, ingredientData }, index) => {
+          await this.metadataService.patch(
+            metadataData.id,
+            new MetadataEntity({
+              externalId: `${generationId}_${index + 1}`,
+              externalProvider: generation.provider,
+            }),
+          );
+          accepted.add(ingredientData.id.toString());
+        },
       ),
     );
     await Promise.all(
@@ -192,7 +206,7 @@ export class VideoGenerationExecutionService {
     );
     await Promise.all(
       context.pendingIngredientIds.map((ingredientId, outputIndex) =>
-        this.scheduleReplicatePoll(
+        this.completeOrScheduleOutput(
           context,
           ingredientId,
           generation,
@@ -216,6 +230,7 @@ export class VideoGenerationExecutionService {
     context: VideoGenerationContext,
     generation: StartedVideoGeneration,
     outputs: number,
+    accepted: Set<string>,
   ): Promise<void> {
     const generationId = generation.externalId;
     await this.bindOutputCredits(
@@ -227,7 +242,8 @@ export class VideoGenerationExecutionService {
       context.metadataData.id,
       new MetadataEntity({ externalId: generationId }),
     );
-    await this.scheduleReplicatePoll(
+    accepted.add(context.ingredientData.id.toString());
+    await this.completeOrScheduleOutput(
       context,
       context.ingredientData.id.toString(),
       generation,
@@ -243,13 +259,17 @@ export class VideoGenerationExecutionService {
         outputs,
       );
       await Promise.all([
-        this.metadataService.patch(
-          documents.metadataData.id,
-          new MetadataEntity({
-            externalId: additionalGeneration.externalId,
-            externalProvider: additionalGeneration.provider,
+        this.metadataService
+          .patch(
+            documents.metadataData.id,
+            new MetadataEntity({
+              externalId: additionalGeneration.externalId,
+              externalProvider: additionalGeneration.provider,
+            }),
+          )
+          .then(() => {
+            accepted.add(documents.ingredientData.id.toString());
           }),
-        ),
         this.videosService.patch(documents.ingredientData.id, {
           promptId: context.promptData.id,
         }),
@@ -261,7 +281,7 @@ export class VideoGenerationExecutionService {
         organizationId: context.user.organizationId,
         userId: context.user.userId ?? context.user.id,
       });
-      await this.scheduleReplicatePoll(
+      await this.completeOrScheduleOutput(
         context,
         documents.ingredientData.id.toString(),
         additionalGeneration,
@@ -364,12 +384,21 @@ export class VideoGenerationExecutionService {
     return { ...result, externalId: result.externalId };
   }
 
-  private async scheduleReplicatePoll(
+  private async completeOrScheduleOutput(
     context: VideoGenerationContext,
     ingredientId: string,
     generation: StartedVideoGeneration,
     outputIndex?: number,
   ): Promise<void> {
+    if (generation.completion === 'remote-output') {
+      await this.webhooksService.processMediaForIngredient(
+        ingredientId,
+        IngredientCategory.VIDEO,
+        generation.externalId,
+        generation.externalId,
+      );
+      return;
+    }
     if (
       generation.completion !== 'polling' ||
       generation.provider !== 'replicate'
@@ -406,15 +435,19 @@ export class VideoGenerationExecutionService {
   private async failPendingOutputs(
     context: VideoGenerationContext,
     error: unknown,
+    accepted = new Set<string>(),
   ): Promise<void> {
     this.loggerService.error('VideoGenerationService create failed', error);
+    const failedIds = context.pendingIngredientIds.filter(
+      (id) => !accepted.has(id),
+    );
     await Promise.all(
-      context.pendingIngredientIds.map((pendingId) =>
+      failedIds.map((pendingId) =>
         this.releaseOutputCredits(context, pendingId),
       ),
     );
     await Promise.all(
-      context.pendingIngredientIds.map((pendingId) =>
+      failedIds.map((pendingId) =>
         this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           pendingId,
@@ -448,7 +481,7 @@ export class VideoGenerationExecutionService {
   ): Promise<void> {
     const request = context.request as unknown as GenerationBillingRequest;
     const amount = request?.creditsConfig?.amount;
-    if (!amount || !this.generationBilling.hasPool(request)) {
+    if (amount === undefined) {
       return;
     }
     await this.generationBilling.bindOutput(request, {
