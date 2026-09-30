@@ -119,6 +119,7 @@ function toContentReference(
 
   return {
     item: {
+      brandId: asset.brandId ?? null,
       contentTitle:
         asset.metadataLabel || asset.promptText || 'Generated reference',
       contentType: String(asset.category),
@@ -362,6 +363,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
               ...current,
               {
                 item: {
+                  brandId: ingredient.brandId ?? null,
                   contentTitle:
                     ingredient.metadataLabel ||
                     ingredient.promptText ||
