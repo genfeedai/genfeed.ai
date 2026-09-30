@@ -269,7 +269,7 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
     expect(executionBefore.workflowVersionId).toBe(
       executionBefore.workflowVersion.id,
     );
-    expect(executionBefore.workflowVersion.definition).toMatchObject({
+    expect(executionBefore.workflowVersion.graph).toMatchObject({
       nodes: [
         expect.objectContaining({
           type: 'genfeedAction',
