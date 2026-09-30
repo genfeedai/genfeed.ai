@@ -157,6 +157,17 @@ describe('WorkerDiagnosticsService', () => {
       expect.any(Number),
       expect.stringContaining('"event":"stalled"'),
     );
+    expect(transaction.zadd).toHaveBeenCalledWith(
+      `${WORKER_DIAGNOSTIC_PREFIX}:onboarding-starter-assets:incidents`,
+      expect.any(Number),
+      expect.stringContaining('"event":"stalled"'),
+    );
+    worker.emit('completed', { ...job, stalledCounter: 1 });
+    expect(transaction.zadd).toHaveBeenCalledWith(
+      `${WORKER_DIAGNOSTIC_PREFIX}:onboarding-starter-assets:incidents`,
+      expect.any(Number),
+      expect.stringContaining('"event":"completed"'),
+    );
     expect(transaction.zremrangebyrank).toHaveBeenCalledWith(
       expect.any(String),
       0,
@@ -204,9 +215,16 @@ describe('WorkerDiagnosticsService', () => {
     for (let index = 0; index < 150; index++) {
       worker.emit('active', { ...job, id: `job-${index}` });
     }
-    expect(transaction.exec).toHaveBeenCalledTimes(100);
+    expect(transaction.exec).toHaveBeenCalledTimes(90);
     expect(logger.log).toHaveBeenCalledTimes(150);
     expect(logger.warn).toHaveBeenCalledTimes(1);
+    worker.emit('stalled', 'job-incident');
+    expect(transaction.exec).toHaveBeenCalledTimes(91);
+    expect(transaction.zadd).toHaveBeenCalledWith(
+      `${WORKER_DIAGNOSTIC_PREFIX}:onboarding-starter-assets:incidents`,
+      expect.any(Number),
+      expect.stringContaining('job-incident'),
+    );
   });
 
   it('detects command-level archive errors and unavailable Redis', async () => {

@@ -15,6 +15,7 @@ export const WORKER_DIAGNOSTIC_PREFIX = 'genfeed:monitoring:worker-evidence';
 export const WORKER_DIAGNOSTIC_TTL_SECONDS = 30 * 24 * 60 * 60;
 export const MAX_WORKER_DIAGNOSTIC_RECORDS = 5_000;
 const MAX_PENDING_WRITES = 100;
+const RESERVED_INCIDENT_WRITES = 10;
 
 type DiagnosticEvent =
   | 'active'
@@ -135,6 +136,19 @@ export class WorkerDiagnosticsService
     error?: Error,
   ): void {
     const now = Date.now();
+    const failureKind = error
+      ? error.message.includes('job stalled more than allowable limit')
+        ? 'stall-limit'
+        : error.message.includes('Missing lock')
+          ? 'missing-lock'
+          : 'processor-error'
+      : undefined;
+    const incident =
+      event === 'stalled' ||
+      event === 'lock-renewal-failed' ||
+      (job?.stalledCounter ?? 0) > 0 ||
+      failureKind === 'stall-limit' ||
+      failureKind === 'missing-lock';
     // Never serialize a Job, result, raw error, connection options or token.
     // A stalled event names its detector, not the prior lock owner. Correlate
     // with the same job's active event to identify its processing worker.
@@ -149,13 +163,7 @@ export class WorkerDiagnosticsService
       eventLoopWindowStartedAt: new Date(
         this.delayWindowStartedAt,
       ).toISOString(),
-      failureKind: error
-        ? error.message.includes('job stalled more than allowable limit')
-          ? 'stall-limit'
-          : error.message.includes('Missing lock')
-            ? 'missing-lock'
-            : 'processor-error'
-        : undefined,
+      failureKind,
       finishedOn: job?.finishedOn,
       jobId: job?.id ?? jobId,
       lockDurationMs: worker.opts.lockDuration,
@@ -171,16 +179,24 @@ export class WorkerDiagnosticsService
     });
     // One physical log line: nestLike's metadata output is split by awslogs.
     this.logger.log(`BullMQ worker evidence ${record}`);
-    if (this.pending.size >= MAX_PENDING_WRITES) {
+    const pendingLimit = incident
+      ? MAX_PENDING_WRITES
+      : MAX_PENDING_WRITES - RESERVED_INCIDENT_WRITES;
+    if (this.pending.size >= pendingLimit) {
       this.warnArchiveUnavailable();
       return;
     }
-    const write = this.archive(worker.name, now, record);
+    const write = this.archive(worker.name, now, record, incident);
     this.pending.add(write);
     void write.finally(() => this.pending.delete(write));
   }
 
-  private async archive(queueName: string, now: number, record: string) {
+  private async archive(
+    queueName: string,
+    now: number,
+    record: string,
+    incident: boolean,
+  ) {
     const redis = this.redis.getPublisher();
     if (!redis) {
       this.warnArchiveUnavailable();
@@ -188,17 +204,21 @@ export class WorkerDiagnosticsService
     }
     try {
       const key = `${WORKER_DIAGNOSTIC_PREFIX}:${queueName}`;
-      const results = await redis
-        .multi()
-        .zadd(key, now, record)
-        .zremrangebyscore(
-          key,
-          '-inf',
-          now - WORKER_DIAGNOSTIC_TTL_SECONDS * 1_000,
-        )
-        .zremrangebyrank(key, 0, -MAX_WORKER_DIAGNOSTIC_RECORDS - 1)
-        .expire(key, WORKER_DIAGNOSTIC_TTL_SECONDS)
-        .exec();
+      const transaction = redis.multi();
+      // Ordinary traffic must not evict a recovered stall's evidence. Retain
+      // anomalies and post-stall job attempts/outcomes in a separate bucket.
+      for (const evidenceKey of incident ? [key, `${key}:incidents`] : [key]) {
+        transaction
+          .zadd(evidenceKey, now, record)
+          .zremrangebyscore(
+            evidenceKey,
+            '-inf',
+            now - WORKER_DIAGNOSTIC_TTL_SECONDS * 1_000,
+          )
+          .zremrangebyrank(evidenceKey, 0, -MAX_WORKER_DIAGNOSTIC_RECORDS - 1)
+          .expire(evidenceKey, WORKER_DIAGNOSTIC_TTL_SECONDS);
+      }
+      const results = await transaction.exec();
       if (!results || results.some(([error]) => error !== null)) {
         this.warnArchiveUnavailable();
       }

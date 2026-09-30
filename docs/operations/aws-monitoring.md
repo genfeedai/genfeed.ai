@@ -98,14 +98,18 @@ new evidence identifies the failure mode.
 
    ```sh
    redis-cli ZRANGEBYSCORE \
-     genfeed:monitoring:worker-evidence:<queue> \
+     genfeed:monitoring:worker-evidence:<queue>:incidents \
      <start-epoch-ms> <end-epoch-ms>
    ```
 
-   Use the deployment's approved read-only Redis access. The archive retains up to
-   30 days and at most 5,000 records per queue; busy queues can trim earlier. Redis
-   availability/persistence/eviction affects retention. At most 100 archive writes
-   are pending per process; excess writes fall back to the single-line log. The
+   Use the deployment's approved read-only Redis access. The incidents bucket
+   retains stalls, renewal loss, exhausted-stall/missing-lock failures and subsequent
+   attempts/outcomes whose BullMQ stalled counter is positive. Ordinary job traffic
+   cannot displace those records. Each bucket retains up to 30 days and 5,000 records
+   per queue. Read the same key without `:incidents` for the broader lifecycle trace;
+   busy queues can trim that trace earlier. Redis availability/persistence/eviction
+   affects retention. At most 100 archive writes are pending per process, with ten
+   slots reserved for incident evidence; excess writes fall back to the log. The
    warning `BullMQ worker evidence archive unavailable; use logs` signals that the
    archive may be incomplete. Archive failure does not change processing, and final
    diagnostic flush adds at most 500 ms after worker drain. Export incident records
