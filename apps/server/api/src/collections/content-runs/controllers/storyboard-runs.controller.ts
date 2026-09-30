@@ -7,6 +7,7 @@ import {
   UpdateStoryboardPlanDto,
   UpdateStoryboardSourceDto,
 } from '@api/collections/content-runs/dto/storyboard-run.dto';
+import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -33,7 +34,10 @@ import {
 
 @Controller('brands/:brandId/storyboard-runs')
 export class StoryboardRunsController {
-  constructor(private readonly runs: StoryboardRunsService) {}
+  constructor(
+    private readonly runs: StoryboardRunsService,
+    private readonly capabilities: StoryboardRunCapabilitiesService,
+  ) {}
 
   @Post()
   async create(
@@ -73,6 +77,15 @@ export class StoryboardRunsController {
       StoryboardRunSerializer,
       await this.runs.get(user.organizationId, brandId, runId),
     );
+  }
+
+  @Get(':runId/capabilities')
+  async getCapabilities(
+    @Param('brandId') brandId: string,
+    @Param('runId') runId: string,
+    @CurrentUser() user: User,
+  ) {
+    return this.capabilities.get(user.organizationId, brandId, runId);
   }
 
   @Patch(':runId/plan')

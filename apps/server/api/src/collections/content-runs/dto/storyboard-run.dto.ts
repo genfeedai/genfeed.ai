@@ -5,7 +5,15 @@ import type {
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsObject, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class CreateStoryboardRunDto {
   @ApiProperty({ format: 'uuid' })
@@ -29,6 +37,10 @@ export class ControlStoryboardRunDto {
   expectedRevision!: number;
 }
 export class UpdateStoryboardPlanDto extends ControlStoryboardRunDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  capabilityVersion?: string;
   @ApiProperty({ type: Object })
   @IsObject()
   plan!: StoryboardPlan;

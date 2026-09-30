@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { storyboardModelKeySchema } from './storyboard-run-capabilities.contract';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
 export const storyboardCastMemberSchema = z
@@ -34,6 +35,10 @@ export const storyboardShotSchema = z
   .strict();
 export const storyboardPlanSettingsSchema = z
   .object({
+    videoModelKey: storyboardModelKeySchema
+      .nullable()
+      .optional()
+      .transform((value) => value ?? null),
     format: z.enum(['9:16', '16:9', '1:1']),
     runtimeBudgetSeconds: z.number().finite().positive().max(60).nullable(),
     styleLabel: z.string().trim().max(60).optional(),
@@ -41,14 +46,15 @@ export const storyboardPlanSettingsSchema = z
     cast: z.array(storyboardCastMemberSchema).max(6),
   })
   .strict();
-export const storyboardPlanSchema = storyboardPlanSettingsSchema
+export const storyboardPlanDraftSchema = storyboardPlanSettingsSchema
   .extend({
     title: z.string().trim().max(120),
     logline: z.string().trim().max(300),
     shots: z.array(storyboardShotSchema).max(12),
   })
-  .strict()
-  .superRefine((plan, ctx) => {
+  .strict();
+export const storyboardPlanSchema = storyboardPlanDraftSchema.superRefine(
+  (plan, ctx) => {
     if (
       plan.runtimeBudgetSeconds !== null &&
       plan.shots.reduce((sum, shot) => sum + (shot.durationSeconds ?? 0), 0) >
@@ -107,11 +113,16 @@ export const storyboardPlanSchema = storyboardPlanSettingsSchema
           message: 'The final shot cannot interpolate.',
         });
     });
-  });
+  },
+);
 export const updateStoryboardPlanSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
-    plan: storyboardPlanSchema,
+    plan: storyboardPlanDraftSchema,
+    capabilityVersion: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .strict();
 export type StoryboardPlanSettings = z.infer<

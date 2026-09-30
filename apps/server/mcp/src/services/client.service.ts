@@ -1,3 +1,4 @@
+import { storyboardRunCapabilitiesSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type {
   AgentToolResult,
   IPublishingProviderReadiness,
@@ -105,6 +106,10 @@ import type {
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
 import type { RemixToolInput } from '@mcp/tools/remix.schemas';
+import {
+  type StoryboardToolInput,
+  storyboardToolSchemas,
+} from '@mcp/tools/storyboard.schemas';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
@@ -355,6 +360,23 @@ export class ClientService {
   createRemixConcept(input: RemixToolInput<'create_remix_concept'>) {
     return this.remix.createRemixConcept(input);
   }
+  getStoryboardRunCapabilities(
+    input: StoryboardToolInput<'storyboard_run_capabilities'>,
+  ) {
+    const { brandId, runId } =
+      storyboardToolSchemas.storyboard_run_capabilities.parse(input);
+    return this.base.request(
+      'reading storyboard model capabilities',
+      async (http) => {
+        const response = await http.get(
+          `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/capabilities`,
+        );
+        return storyboardRunCapabilitiesSchema.parse(response.data);
+      },
+      this.base.failWithDetail('Failed to read storyboard model capabilities'),
+    );
+  }
+
   getRemixRun(input: RemixToolInput<'get_remix_run'>) {
     return this.remix.getRemixRun(input);
   }
