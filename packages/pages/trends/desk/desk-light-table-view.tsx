@@ -127,7 +127,10 @@ function DeskLightCard({
             </div>
 
             <span className="line-clamp-2 text-sm font-medium text-foreground">
-              {item.title || item.text || item.trendTopic || 'Untitled'}
+              {item.title ||
+                item.text ||
+                item.trendTopic ||
+                translateCard('untitled')}
             </span>
 
             <div className="mt-auto flex flex-wrap items-center gap-2 text-xs text-foreground/60">
@@ -148,7 +151,9 @@ function DeskLightCard({
 
         <div className="absolute left-2 top-2">
           <Checkbox
-            aria-label={`Select ${item.title || item.text || item.key}`}
+            aria-label={translateCard('select', {
+              title: item.title || item.text || item.key,
+            })}
             isChecked={isSelected}
             name={`select-${item.key}`}
             onChange={() => onToggleSelect(item.key)}
