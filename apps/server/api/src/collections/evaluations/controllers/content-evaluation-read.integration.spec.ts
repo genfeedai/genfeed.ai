@@ -25,7 +25,11 @@ import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { CacheTagsService } from '@api/services/cache/cache-tags.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { Status } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  Status,
+} from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
 import { getDeserializer } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
@@ -181,19 +185,20 @@ describe.skipIf(!databaseUrl || !redisUrl)(
         ownCacheKeys.add(key);
         return setTags(key, names);
       });
-      const ingredients = new BaseService(
+      class FixtureReadService extends BaseService<object> {}
+      const ingredients = new FixtureReadService(
         prisma,
         'ingredient',
         logger as unknown as LoggerService,
         config,
       );
-      const articles = new BaseService(
+      const articles = new FixtureReadService(
         prisma,
         'article',
         logger as unknown as LoggerService,
         config,
       );
-      const posts = new BaseService(
+      const posts = new FixtureReadService(
         prisma,
         'post',
         logger as unknown as LoggerService,
@@ -326,7 +331,7 @@ describe.skipIf(!databaseUrl || !redisUrl)(
             metadataId:
               category === 'VIDEO' ? ids.videoMetadata : ids.imageMetadata,
             category,
-            status: 'COMPLETED',
+            status: IngredientStatus.GENERATED,
             organizationId: ids.org,
             brandId: ids.brand,
             userId: ids.user,
@@ -401,11 +406,11 @@ describe.skipIf(!databaseUrl || !redisUrl)(
         fixtures[`initial:${route}`] = (await get(route).expect(200)).body;
       }
       for (const [route, type, id] of [
-        ['images', 'image', ids.image],
-        ['videos', 'video', ids.video],
+        ['images', IngredientCategory.IMAGE, ids.image],
+        ['videos', IngredientCategory.VIDEO, ids.video],
         ['articles', 'article', ids.article],
         ['posts', 'post', ids.post],
-      ]) {
+      ] as const) {
         const created = await request(app.getHttpServer())
           .post(`/evaluations/${route}/${id}`)
           .send({})
@@ -563,7 +568,7 @@ describe.skipIf(!databaseUrl || !redisUrl)(
             brandId: ids.brand,
             userId: ids.user,
             category: 'VIDEO',
-            status: 'COMPLETED',
+            status: IngredientStatus.GENERATED,
             s3Key: `fixtures/${id}`,
           },
         });

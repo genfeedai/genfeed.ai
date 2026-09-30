@@ -86,7 +86,13 @@ describe('ContentEvaluationProjectionService batching and copies', () => {
     const result = await service.attachToPage(page, { brandId: 'brand' });
     expect(query).toHaveBeenCalledTimes(1);
     const sql: Prisma.Sql = query.mock.calls[0][0];
-    expect(sql.values).toEqual(['org', 'video', 'same-id', 'brand', 'brand']);
+    expect(sql.values).toEqual([
+      'org',
+      IngredientCategory.VIDEO,
+      'same-id',
+      'brand',
+      'brand',
+    ]);
     expect(sql.sql).toContain('ROW_NUMBER()');
     expect(sql.sql).not.toContain('same-id');
     expect(sql.sql).not.toMatch(/LIMIT|userId.*=/);
@@ -153,6 +159,7 @@ describe.skipIf(!connectionString)(
       ? new PrismaService({
           get: (key: string) =>
             key === 'DATABASE_URL' ? connectionString : undefined,
+          mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
         } as unknown as ConfigService)
       : null;
     const db = () => {
@@ -185,7 +192,7 @@ describe.skipIf(!connectionString)(
           id: `${userId}-${id}`,
           organizationId: orgA,
           userId,
-          contentType: 'video',
+          contentType: IngredientCategory.VIDEO,
           contentId: 'same-id',
           data,
           createdAt: time,
@@ -231,7 +238,9 @@ describe.skipIf(!connectionString)(
       await save('wrong-brand', completed(brandB), {
         updatedAt: new Date(time.getTime() + 1000),
       });
-      await save('a-image', completed(brandA), { contentType: 'image' });
+      await save('a-image', completed(brandA), {
+        contentType: IngredientCategory.IMAGE,
+      });
       await save('a-post', completed(brandA), { contentType: 'post' });
       await save('deleted', completed(brandA), {
         isDeleted: true,
@@ -271,7 +280,7 @@ describe.skipIf(!connectionString)(
         organizationId: orgA,
         userId,
         contentId: 'same-id',
-        contentType: 'video',
+        contentType: IngredientCategory.VIDEO,
         data: { overallScore: 0, scores: { persuasion: { overall: 50 } } },
       });
       expect(

@@ -56,6 +56,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Optional,
   Param,
   Post,
   Query,
@@ -83,7 +84,8 @@ export class PostsController extends BaseCRUDController<
     private readonly postAnalyticsService: PostAnalyticsService,
     public readonly postsService: PostsService,
     public readonly loggerService: LoggerService,
-    private readonly evaluationProjection: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {
     super(loggerService, postsService, PostSerializer, 'Post', [
       'ingredients',
@@ -295,10 +297,10 @@ export class PostsController extends BaseCRUDController<
     return serializeCollection(
       request,
       PostListSerializer,
-      await this.evaluationProjection.attachToPage(data, {
+      (await this.evaluationProjection?.attachToPage(data, {
         brandId: user.brandId,
         contentType: 'post',
-      }),
+      })) ?? data,
     );
   }
 
@@ -388,10 +390,10 @@ export class PostsController extends BaseCRUDController<
     return serializeSingle(
       request,
       this.serializer,
-      await this.evaluationProjection.attachToItem(postWithChildren, {
+      (await this.evaluationProjection?.attachToItem(postWithChildren, {
         brandId: user.brandId,
         contentType: 'post',
-      }),
+      })) ?? postWithChildren,
     );
   }
 }

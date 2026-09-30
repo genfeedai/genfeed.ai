@@ -7,8 +7,26 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IEvaluation } from '@genfeedai/contracts/interfaces';
-import { normalizePersuasionScores } from '@genfeedai/harness';
+import { normalizePersuasionScores } from '@genfeedai/harness/contracts';
 import { Injectable } from '@nestjs/common';
+
+function persistedContentType(
+  value: string | null | undefined,
+): EvaluationReadTarget['contentType'] | null {
+  if (!value) return null;
+  switch (value.toLowerCase()) {
+    case 'image':
+      return IngredientCategory.IMAGE;
+    case 'video':
+      return IngredientCategory.VIDEO;
+    case 'article':
+      return 'article';
+    case 'post':
+      return 'post';
+    default:
+      return null;
+  }
+}
 
 function targetKey(
   target: Pick<
@@ -43,14 +61,10 @@ export class ContentEvaluationProjectionService {
       return null;
     const category =
       'category' in item && typeof item.category === 'string'
-        ? item.category.toLowerCase()
+        ? item.category
         : null;
     const contentType =
-      scope.contentType ??
-      (category === IngredientCategory.IMAGE ||
-      category === IngredientCategory.VIDEO
-        ? category
-        : null);
+      persistedContentType(scope.contentType) ?? persistedContentType(category);
     if (!contentType) return null;
     return {
       organizationId: item.organizationId,
@@ -88,14 +102,15 @@ export class ContentEvaluationProjectionService {
         if (persuasion) scores.persuasion = persuasion;
         data.scores = scores;
       }
-      if (row.contentType && row.contentId)
+      const contentType = persistedContentType(row.contentType);
+      if (contentType && row.contentId)
         evaluations.set(
           targetKey({
             ...row,
-            contentType: row.contentType,
+            contentType,
             contentId: row.contentId,
           }),
-          { ...row, data },
+          { ...row, data, contentType },
         );
     }
     return items.map((item) => {

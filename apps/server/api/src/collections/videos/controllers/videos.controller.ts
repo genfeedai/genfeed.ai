@@ -60,6 +60,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Optional,
   Param,
   Post,
   Query,
@@ -96,7 +97,8 @@ export class VideosController {
     private readonly filesClientService: FilesClientService,
     private readonly metadataService: MetadataService,
     private readonly videoGenerationService: VideoGenerationService,
-    private readonly evaluationProjection: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {}
 
   @Get()
@@ -148,10 +150,10 @@ export class VideosController {
       return serializeCollection(
         request,
         VideoSerializer,
-        await this.evaluationProjection.attachToPage(latestData, {
+        (await this.evaluationProjection?.attachToPage(latestData, {
           brandId: user.brandId,
           contentType: 'video',
-        }),
+        })) ?? latestData,
       );
     }
 
@@ -224,10 +226,10 @@ export class VideosController {
     return serializeCollection(
       request,
       VideoSerializer,
-      await this.evaluationProjection.attachToPage(data, {
+      (await this.evaluationProjection?.attachToPage(data, {
         brandId: user.brandId,
         contentType: 'video',
-      }),
+      })) ?? data,
     );
   }
 
@@ -308,10 +310,10 @@ export class VideosController {
     return serializeSingle(
       request,
       VideoSerializer,
-      await this.evaluationProjection.attachToItem(mergedData, {
+      (await this.evaluationProjection?.attachToItem(mergedData, {
         brandId: user.brandId,
         contentType: 'video',
-      }),
+      })) ?? mergedData,
     );
   }
 

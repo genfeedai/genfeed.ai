@@ -42,6 +42,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Optional,
   Param,
   Patch,
   Post,
@@ -64,7 +65,8 @@ export class IngredientsController {
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly configService: ConfigService,
     private readonly mediaUrlService: MediaUrlService,
-    private readonly evaluationProjection: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {}
 
   /**
@@ -145,9 +147,9 @@ export class IngredientsController {
     return serializeCollection(
       request,
       IngredientSerializer,
-      await this.evaluationProjection.attachToPage(data, {
+      (await this.evaluationProjection?.attachToPage(data, {
         brandId: user.brandId,
-      }),
+      })) ?? data,
     );
   }
 

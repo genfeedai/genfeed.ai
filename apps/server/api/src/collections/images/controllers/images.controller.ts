@@ -35,6 +35,7 @@ import {
   Controller,
   Delete,
   Get,
+  Optional,
   Param,
   Query,
   Req,
@@ -52,7 +53,8 @@ export class ImagesController {
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly votesService: VotesService,
-    private readonly evaluationProjection: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {}
 
   @Get()
@@ -187,10 +189,10 @@ export class ImagesController {
     return serializeCollection(
       request,
       IngredientSerializer,
-      await this.evaluationProjection.attachToPage(data, {
+      (await this.evaluationProjection?.attachToPage(data, {
         brandId: user.brandId,
         contentType: 'image',
-      }),
+      })) ?? data,
     );
   }
 
@@ -246,10 +248,10 @@ export class ImagesController {
     return serializeCollection(
       request,
       IngredientSerializer,
-      await this.evaluationProjection.attachToPage(data, {
+      (await this.evaluationProjection?.attachToPage(data, {
         brandId: user.brandId,
         contentType: 'image',
-      }),
+      })) ?? data,
     );
   }
 
@@ -309,10 +311,10 @@ export class ImagesController {
     return serializeSingle(
       request,
       IngredientSerializer,
-      await this.evaluationProjection.attachToItem(mergedData, {
+      (await this.evaluationProjection?.attachToItem(mergedData, {
         brandId: user.brandId,
         contentType: 'image',
-      }),
+      })) ?? mergedData,
     );
   }
 

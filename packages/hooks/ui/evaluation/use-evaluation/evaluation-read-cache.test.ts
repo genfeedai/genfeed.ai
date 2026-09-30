@@ -40,6 +40,9 @@ const scope = (server = 'a', org = 'org') =>
 describe('Persisted evaluation scoped video cache', () => {
   beforeEach(() => {
     localStorage.clear();
+    evaluationVideoCache.remove(scope());
+    evaluationVideoCache.remove(scope('b'));
+    evaluationVideoCache.remove(scope('storage-failure'));
     runtime.desktop = false;
     runtime.organizationId = 'org';
     runtime.brandId = 'brand';

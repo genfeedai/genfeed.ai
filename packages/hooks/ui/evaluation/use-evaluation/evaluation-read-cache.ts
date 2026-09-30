@@ -10,29 +10,39 @@ import type { QueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 
 const revisions = new Map<string, number>();
+const memoryVideos = new Map<
+  string,
+  { revision: number; videos: ITrendVideo[] }
+>();
 const persistedVideos = createLocalStorageCache<{
   revision: number;
   videos: ITrendVideo[];
 }>({
   prefix: 'trends:evaluation-videos:',
 });
+function persistKey(scopeKey: string): string {
+  return encodeURIComponent(scopeKey);
+}
 export const evaluationVideoCache = {
   get(scopeKey: string): ITrendVideo[] | null {
-    const cached = persistedVideos.get(scopeKey);
+    const cached =
+      memoryVideos.get(scopeKey) ?? persistedVideos.get(persistKey(scopeKey));
     return cached?.revision === evaluationReadRevision(scopeKey)
       ? cached.videos
       : null;
   },
   set(scopeKey: string, videos: ITrendVideo[], ttlMs?: number): void {
-    persistedVideos.set(
-      scopeKey,
-      { revision: evaluationReadRevision(scopeKey), videos },
-      ttlMs,
-    );
+    const entry = {
+      revision: evaluationReadRevision(scopeKey),
+      videos,
+    };
+    memoryVideos.set(scopeKey, entry);
+    persistedVideos.set(persistKey(scopeKey), entry, ttlMs);
   },
   remove(scopeKey: string): void {
+    memoryVideos.delete(scopeKey);
     try {
-      persistedVideos.remove(scopeKey);
+      persistedVideos.remove(persistKey(scopeKey));
     } catch (error: unknown) {
       logger.error('Failed to remove stale evaluation fallback', error);
     }

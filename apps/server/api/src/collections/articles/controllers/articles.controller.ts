@@ -29,6 +29,7 @@ import {
   Body,
   Controller,
   Get,
+  Optional,
   Param,
   Patch,
   Req,
@@ -51,7 +52,8 @@ export class ArticlesController extends BaseCRUDController<
     public readonly articlesService: ArticlesService,
     private readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
-    private readonly evaluationProjection: ContentEvaluationProjectionService,
+    @Optional()
+    private readonly evaluationProjection?: ContentEvaluationProjectionService,
   ) {
     // ArticleSerializer would need to be created, using null for now
     super(loggerService, articlesService, ArticleSerializer, 'Article', [
@@ -142,10 +144,10 @@ export class ArticlesController extends BaseCRUDController<
     return serializeSingle(
       request,
       this.serializer,
-      await this.evaluationProjection.attachToItem(article, {
+      (await this.evaluationProjection?.attachToItem(article, {
         brandId: user.brandId,
         contentType: 'article',
-      }),
+      })) ?? article,
     );
   }
 
