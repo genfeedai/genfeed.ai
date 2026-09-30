@@ -397,6 +397,7 @@ export function analyzeSmokeTests(
       ts.isImportDeclaration(node) &&
       ts.isStringLiteral(node.moduleSpecifier)
     ) {
+      const moduleName = node.moduleSpecifier.text;
       if (node.importClause?.name && globals.has(node.importClause.name.text))
         hasCustomBindings = true;
       const bindings = node.importClause?.namedBindings;
@@ -412,7 +413,7 @@ export function analyzeSmokeTests(
         bindings.elements.some(
           (element) =>
             globals.has(element.name.text) &&
-            (node.moduleSpecifier.text !== 'vitest' ||
+            (moduleName !== 'vitest' ||
               (element.propertyName?.text ?? element.name.text) !==
                 element.name.text),
         )
