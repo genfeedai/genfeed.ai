@@ -122,13 +122,11 @@ describe('zero-generation timed animatic', () => {
     expect(
       screen.getByRole('button', {
         name: translate('playStoryboard'),
-        exact: true,
       }),
     ).toBeDisabled();
     fireEvent.click(
       screen.getByRole('button', {
         name: translate('playShot', { ordinal: 2 }),
-        exact: true,
       }),
     );
     await act(async () => {
@@ -144,14 +142,12 @@ describe('zero-generation timed animatic', () => {
     expect(
       screen.getByRole('button', {
         name: translate('playShot', { ordinal: 2 }),
-        exact: true,
       }),
     ).toBeDisabled();
     expect(screen.getByText('First line')).toBeVisible();
     fireEvent.click(
       screen.getByRole('button', {
         name: translate('retryShotStill', { ordinal: 2 }),
-        exact: true,
       }),
     );
     expect(images.at(-1)?.src).toBe(shots[1].stillUrl);
@@ -159,12 +155,11 @@ describe('zero-generation timed animatic', () => {
     expect(
       screen.getByRole('button', {
         name: translate('playStoryboard'),
-        exact: true,
       }),
     ).toBeEnabled();
     expect(screen.getByText('First line')).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: translate('pause'), exact: true }),
+      screen.queryByRole('button', { name: translate('pause') }),
     ).not.toBeInTheDocument();
   });
   it('pauses the clock when an active preview fails and retries the exact URL', async () => {
