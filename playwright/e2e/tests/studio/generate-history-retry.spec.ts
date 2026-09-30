@@ -172,9 +172,13 @@ for (const colorScheme of ['light', 'dark'] as const) {
         fullPage: true,
       });
       release();
+      const restoredCard = page.getByTestId(
+        'studio-asset-history-restored-video',
+      );
+      await expect(restoredCard).toBeVisible();
       await expect(
-        page.getByTestId('studio-asset-history-restored-video'),
-      ).toBeVisible();
+        restoredCard.getByRole('button', { name: 'More', exact: true }),
+      ).toBeAttached();
       await expect(alert).toHaveCount(0);
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),
@@ -195,9 +199,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
           .getByRole('button', { name: 'Open issues overlay', exact: true })
           .click();
         await expect(visibleFrameworkDialogs(page)).not.toHaveCount(0);
-        await page.screenshot({
+        await page.locator('[data-nextjs-dialog-root]:visible').screenshot({
           path: testInfo.outputPath('visible-next-overlay-control.png'),
-          fullPage: true,
+          animations: 'disabled',
         });
       }
     });
