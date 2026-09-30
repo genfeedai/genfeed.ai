@@ -100,6 +100,13 @@ describe.skipIf(!isolatedUrl)('isolated scope-guard constraints', () => {
       });
       const base = `INSERT INTO content_learning_decisions (id,"updatedAt","organizationId","brandId","credentialId","requestKey","destinationKey","candidateIndex","payloadHash","scopeKey",epoch,"accountRevision",mode,"contextVector","contextSnapshot","eligibleArmIds",probabilities,"selectedArmId","selectedProbability",assignment,"assignmentProbability","executionProbability","configVersion","executionProbabilities") VALUES ('negative-marginal',now(),'no-org','no-brand','no-credential','request','destination',0,'hash','scope',0,0,'shadow',ARRAY[0,0,0,0,0,0,0,0,0]::double precision[],'{}',ARRAY['baseline-v1'],'{"baseline-v1":1,"question-example-v1":0,"proof-steps-v1":0}','baseline-v1',1,'control',1,1,'config',$1::jsonb)`;
       for (const probabilities of [
+        ['baseline-v1', 'question-example-v1', 'proof-steps-v1'],
+        {
+          'baseline-v1': 1,
+          'question-example-v1': 0,
+          'proof-steps-v1': 0,
+          extra: 0.5,
+        },
         {
           'baseline-v1': null,
           'question-example-v1': null,

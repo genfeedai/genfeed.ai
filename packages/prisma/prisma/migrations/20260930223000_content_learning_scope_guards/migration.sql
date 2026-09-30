@@ -78,5 +78,19 @@ ALTER TABLE "content_learning_scope_states" ADD CONSTRAINT "learning_scope_state
 ALTER TABLE "content_learning_decisions" ADD CONSTRAINT "content_learning_decisions_descriptor_check" CHECK (("cellDescriptor" IS NULL AND "descriptorHash" IS NULL) OR ("cellDescriptor" IS NOT NULL AND "descriptorHash" IS NOT NULL AND jsonb_typeof("cellDescriptor") = 'object' AND "descriptorHash" ~ '^[0-9a-f]{64}$'));
 ALTER TABLE "content_learning_baselines" ADD CONSTRAINT "content_learning_baselines_descriptor_check" CHECK (("cellDescriptor" IS NULL AND "descriptorHash" IS NULL) OR ("cellDescriptor" IS NOT NULL AND "descriptorHash" IS NOT NULL AND jsonb_typeof("cellDescriptor") = 'object' AND "descriptorHash" ~ '^[0-9a-f]{64}$'));
 ALTER TABLE "content_learning_policy_versions" ADD CONSTRAINT "content_learning_policy_versions_descriptor_check" CHECK (("cellDescriptor" IS NULL AND "descriptorHash" IS NULL) OR ("cellDescriptor" IS NOT NULL AND "descriptorHash" IS NOT NULL AND jsonb_typeof("cellDescriptor") = 'object' AND "descriptorHash" ~ '^[0-9a-f]{64}$'));
-ALTER TABLE "content_learning_decisions" ADD CONSTRAINT "learning_decision_execution_distribution_check" CHECK ("executionProbabilities" IS NULL OR (jsonb_typeof("executionProbabilities"->'baseline-v1') = 'number' AND jsonb_typeof("executionProbabilities"->'question-example-v1') = 'number' AND jsonb_typeof("executionProbabilities"->'proof-steps-v1') = 'number' AND "selectedArmId" IN ('baseline-v1','question-example-v1','proof-steps-v1') AND "executionProbability" = ("executionProbabilities"->>"selectedArmId")::double precision AND "executionProbabilities" ?& ARRAY['baseline-v1','question-example-v1','proof-steps-v1'] AND ("executionProbabilities"->>'baseline-v1')::numeric BETWEEN 0 AND 1 AND ("executionProbabilities"->>'question-example-v1')::numeric BETWEEN 0 AND 1 AND ("executionProbabilities"->>'proof-steps-v1')::numeric BETWEEN 0 AND 1 AND abs(("executionProbabilities"->>'baseline-v1')::numeric + ("executionProbabilities"->>'question-example-v1')::numeric + ("executionProbabilities"->>'proof-steps-v1')::numeric - 1) < 0.000000001));
+ALTER TABLE "content_learning_decisions" ADD CONSTRAINT "learning_decision_execution_distribution_check" CHECK (
+ "executionProbabilities" IS NULL OR CASE
+ WHEN jsonb_typeof("executionProbabilities") = 'object'
+ AND "executionProbabilities" - ARRAY['baseline-v1','question-example-v1','proof-steps-v1'] = '{}'::jsonb
+ AND jsonb_typeof("executionProbabilities"->'baseline-v1') = 'number'
+ AND jsonb_typeof("executionProbabilities"->'question-example-v1') = 'number'
+ AND jsonb_typeof("executionProbabilities"->'proof-steps-v1') = 'number'
+ THEN COALESCE("selectedArmId" IN ('baseline-v1','question-example-v1','proof-steps-v1')
+ AND "executionProbability" = ("executionProbabilities"->>"selectedArmId")::double precision
+ AND ("executionProbabilities"->>'baseline-v1')::numeric BETWEEN 0 AND 1
+ AND ("executionProbabilities"->>'question-example-v1')::numeric BETWEEN 0 AND 1
+ AND ("executionProbabilities"->>'proof-steps-v1')::numeric BETWEEN 0 AND 1
+ AND abs(("executionProbabilities"->>'baseline-v1')::numeric + ("executionProbabilities"->>'question-example-v1')::numeric + ("executionProbabilities"->>'proof-steps-v1')::numeric - 1) < 0.000000001, false)
+ ELSE false END
+);
 ALTER TABLE "content_learning_decisions" ADD CONSTRAINT "learning_decision_scope_revision_check" CHECK ("scopeRevision" IS NULL OR "scopeRevision" >= 0);
