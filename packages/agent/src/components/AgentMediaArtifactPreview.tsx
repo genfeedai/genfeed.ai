@@ -1,5 +1,7 @@
 'use client';
 
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
+
 import { Metadata } from '@genfeedai/models/content/metadata.model';
 import { Image as IngredientImage } from '@genfeedai/models/ingredients/image.model';
 import { Video } from '@genfeedai/models/ingredients/video.model';
@@ -78,12 +80,15 @@ export function AgentMediaArtifactPreview({
             : 'grid-cols-2 sm:grid-cols-3',
         )}
       >
-        {visibleAssets.map((asset, index) => {
+        {keyListItems(
+          visibleAssets,
+          (asset) => `${asset.kind}-${asset.url}`,
+        ).map(({ item: asset, key }, index) => {
           const label = asset.title?.trim() || `${title} ${index + 1}`;
           if (asset.kind === 'audio') {
             return (
               <AudioPreviewPlayer
-                key={`${asset.kind}-${asset.url}-${index}`}
+                key={key}
                 audioUrl={asset.url}
                 label={label}
               />
@@ -101,7 +106,7 @@ export function AgentMediaArtifactPreview({
           };
           return (
             <div
-              key={`${asset.kind}-${asset.url}-${index}`}
+              key={key}
               className="group relative min-w-0"
               onLoadedMetadataCapture={(event) => {
                 const video = event.target;

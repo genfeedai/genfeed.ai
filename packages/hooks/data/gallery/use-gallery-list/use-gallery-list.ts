@@ -37,6 +37,8 @@ export interface UseGalleryListReturn<T> {
   refetch: () => void;
 }
 
+const EMPTY_QUERY_PARAMS: Partial<IQueryParams> = {};
+
 const SERVICE_METHOD_MAP: Record<
   GalleryItemType,
   keyof Pick<
@@ -82,7 +84,7 @@ const SERVICE_METHOD_MAP: Record<
  */
 export function useGalleryList<T>({
   type,
-  queryParams = {},
+  queryParams = EMPTY_QUERY_PARAMS,
   includeStatusFilter = true,
 }: UseGalleryListOptions): UseGalleryListReturn<T> {
   const searchParams = useSearchParams();
@@ -132,6 +134,7 @@ export function useGalleryList<T>({
     [page, type, queryParams, includeStatusFilter, publicService],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Explicit retry must restart the effect even with identical request inputs.
   useAbortEffect(fetchItems, [fetchItems, refetchTrigger]);
 
   const refetch = useCallback(() => {

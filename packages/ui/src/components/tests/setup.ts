@@ -12,7 +12,7 @@ if (typeof global.document === 'undefined') {
     url: 'http://localhost',
   });
   global.document = dom.window.document;
-  global.window = dom.window as any;
+  global.window = dom.window as unknown as Window & typeof globalThis;
   global.navigator = dom.window.navigator;
 }
 
@@ -91,7 +91,7 @@ const originalConsoleError = console.error;
 const originalConsoleWarn = console.warn;
 const originalStderrWrite = process.stderr.write.bind(process.stderr);
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const message = args[0];
     if (typeof message === 'string' && shouldSuppressTestNoise(message)) {
       return;
@@ -99,7 +99,7 @@ beforeAll(() => {
     originalConsoleError(...args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const message = args[0];
     if (typeof message === 'string' && shouldSuppressTestNoise(message)) {
       return;
@@ -107,7 +107,11 @@ beforeAll(() => {
     originalConsoleWarn(...args);
   };
 
-  process.stderr.write = ((chunk: any, encoding?: any, callback?: any) => {
+  process.stderr.write = ((
+    chunk: string | Uint8Array,
+    encoding?: BufferEncoding,
+    callback?: (error?: Error | null) => void,
+  ) => {
     const text =
       typeof chunk === 'string'
         ? chunk

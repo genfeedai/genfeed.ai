@@ -26,6 +26,7 @@ describe('useAbortEffect', () => {
   it('re-runs the effect when deps change', () => {
     const effect = vi.fn();
     const { rerender } = renderHook(
+      // biome-ignore lint/correctness/useExhaustiveDependencies: Verify explicit caller-owned restart triggers.
       ({ dep }) => useAbortEffect(effect, [dep]),
       { initialProps: { dep: 'a' } },
     );
@@ -40,6 +41,7 @@ describe('useAbortEffect', () => {
       signals.push(signal);
     });
     const { rerender } = renderHook(
+      // biome-ignore lint/correctness/useExhaustiveDependencies: Verify explicit caller-owned restart triggers.
       ({ dep }) => useAbortEffect(effect, [dep]),
       { initialProps: { dep: 'a' } },
     );

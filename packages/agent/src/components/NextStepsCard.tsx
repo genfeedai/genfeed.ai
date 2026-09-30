@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { ArrowUpRight } from 'lucide-react';
@@ -120,14 +121,16 @@ export function NextStepsCard({
               ) : null}
             </div>
             <div className="flex shrink-0 flex-wrap gap-1.5">
-              {step.ctas.map((cta, index) => (
-                <NextStepCtaButton
-                  key={`${step.id}-cta-${cta.label}-${index}`}
-                  cta={cta}
-                  isPrimary={index === 0}
-                  onUiAction={onUiAction}
-                />
-              ))}
+              {keyListItems(step.ctas, (cta) => JSON.stringify(cta)).map(
+                ({ item: cta, key }, index) => (
+                  <NextStepCtaButton
+                    key={key}
+                    cta={cta}
+                    isPrimary={index === 0}
+                    onUiAction={onUiAction}
+                  />
+                ),
+              )}
             </div>
           </li>
         ))}

@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock IntersectionObserver
 class MockIntersectionObserver {
+  root = null;
+  rootMargin = '';
+  scrollMargin = '';
+  thresholds = [];
+  takeRecords = () => [];
   observe = vi.fn();
   unobserve = vi.fn();
   disconnect = vi.fn();
@@ -15,7 +20,7 @@ class MockIntersectionObserver {
     }, 0);
   }
 }
-global.IntersectionObserver = MockIntersectionObserver as any;
+global.IntersectionObserver = MockIntersectionObserver;
 
 // Mock next/dynamic
 vi.mock('next/dynamic', () => ({

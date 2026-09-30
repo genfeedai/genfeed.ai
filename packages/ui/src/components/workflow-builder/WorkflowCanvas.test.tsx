@@ -43,9 +43,15 @@ vi.mock('@xyflow/react', () => ({
   Controls: () => <div data-testid="controls" />,
   MarkerType: { ArrowClosed: 'arrowclosed' },
   MiniMap: () => <div data-testid="minimap" />,
-  Panel: ({ children }: any) => <div>{children}</div>,
+  Panel: ({ children }: import('react').PropsWithChildren) => (
+    <div>{children}</div>
+  ),
   Position: { Bottom: 'bottom', Left: 'left', Right: 'right', Top: 'top' },
-  ReactFlow: ({ children, nodes, edges }: any) => (
+  ReactFlow: ({
+    children,
+    nodes,
+    edges,
+  }: import('@xyflow/react').ReactFlowProps) => (
     <div data-testid="react-flow" className="h-full">
       <div data-testid="nodes">{nodes?.length} nodes</div>
       <div data-testid="edges">{edges?.length} edges</div>
@@ -55,8 +61,16 @@ vi.mock('@xyflow/react', () => ({
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  useEdgesState: (initial: any) => [initial, vi.fn(), vi.fn()],
-  useNodesState: (initial: any) => [initial, vi.fn(), vi.fn()],
+  useEdgesState: (initial: import('@xyflow/react').Edge[]) => [
+    initial,
+    vi.fn(),
+    vi.fn(),
+  ],
+  useNodesState: (initial: import('@xyflow/react').Node[]) => [
+    initial,
+    vi.fn(),
+    vi.fn(),
+  ],
   useReactFlow: () => ({
     screenToFlowPosition: (pos: { x: number; y: number }) => ({
       x: pos.x,

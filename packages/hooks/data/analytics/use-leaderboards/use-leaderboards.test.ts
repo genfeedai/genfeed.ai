@@ -171,4 +171,33 @@ describe('useLeaderboards', () => {
     expect(result.current.isLeaderboardUsingCache).toBe(false);
     expect(result.current.leaderboardCachedAt).toBeNull();
   });
+  it('fetches changed dates and refresh events after hydration', async () => {
+    const { rerender } = renderHook(
+      ({ dateRange, refreshTrigger }) =>
+        useLeaderboards({
+          dateRange,
+          refreshTrigger,
+          scope: PageScope.ORGANIZATION,
+          initialBrandsLeaderboard: [],
+          initialOrgsLeaderboard: [],
+          revalidateOnMount: false,
+        }),
+      { initialProps: { dateRange: DATE_RANGE, refreshTrigger: 0 } },
+    );
+    expect(mockGetBrandsLeaderboard).not.toHaveBeenCalled();
+    const changedDates = {
+      ...DATE_RANGE,
+      startDate: new Date('2025-01-03T00:00:00.000Z'),
+    };
+    rerender({ dateRange: changedDates, refreshTrigger: 0 });
+    await waitFor(() =>
+      expect(mockGetBrandsLeaderboard).toHaveBeenCalledWith(
+        expect.objectContaining({ startDate: '2025-01-03' }),
+      ),
+    );
+    rerender({ dateRange: changedDates, refreshTrigger: 1 });
+    await waitFor(() =>
+      expect(mockGetBrandsLeaderboard).toHaveBeenCalledTimes(2),
+    );
+  });
 });

@@ -24,6 +24,7 @@ export default function LazyLoadingFallback({
       <div className="container min-h-[calc(100vh-334px)] h-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             <SkeletonCard key={index} />
           ))}
         </div>

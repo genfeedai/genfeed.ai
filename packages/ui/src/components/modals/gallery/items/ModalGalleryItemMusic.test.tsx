@@ -141,7 +141,11 @@ describe('ModalGalleryItemMusic', () => {
     render(
       <ModalGalleryItemMusic
         {...defaultProps}
-        music={musicWithNullMetadata as any}
+        music={
+          musicWithNullMetadata as unknown as import('react').ComponentProps<
+            typeof ModalGalleryItemMusic
+          >['music']
+        }
       />,
     );
     expect(screen.getByText('Untitled')).toBeInTheDocument();

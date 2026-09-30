@@ -6,9 +6,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/navigation/pagination/Pagination', () => ({
-  default: ({ currentPage, totalPages, onPageChange }: any) => (
+  default: ({
+    currentPage,
+    totalPages,
+    onPageChange,
+  }: import('react').ComponentProps<
+    typeof import('@ui/navigation/pagination/Pagination').default
+  >) => (
     <div data-testid="pagination">
-      <button onClick={() => onPageChange(currentPage + 1)}>Next</button>
+      <button onClick={() => onPageChange?.(currentPage + 1)}>Next</button>
       <span>
         Page {currentPage} of {totalPages}
       </span>
@@ -17,7 +23,13 @@ vi.mock('@ui/navigation/pagination/Pagination', () => ({
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick, isDisabled }: any) => (
+  default: ({
+    label,
+    onClick,
+    isDisabled,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => (
     <button onClick={onClick} disabled={isDisabled}>
       {label}
     </button>
@@ -69,7 +81,11 @@ describe('ModalGalleryFooter', () => {
       <ModalGalleryFooter
         {...defaultProps}
         selectedItems={['img-1', 'img-2']}
-        selectedItemsData={[{ id: 'img-1' }, { id: 'img-2' }] as any}
+        selectedItemsData={
+          [{ id: 'img-1' }, { id: 'img-2' }] as import('react').ComponentProps<
+            typeof ModalGalleryFooter
+          >['selectedItemsData']
+        }
       />,
     );
     expect(screen.getByText('Clear')).toBeInTheDocument();
@@ -121,7 +137,11 @@ describe('ModalGalleryFooter', () => {
       <ModalGalleryFooter
         {...defaultProps}
         selectedItems={['img-1']}
-        selectedItemsData={[{ id: 'img-1' }] as any}
+        selectedItemsData={
+          [{ id: 'img-1' }] as import('react').ComponentProps<
+            typeof ModalGalleryFooter
+          >['selectedItemsData']
+        }
         onSelect={onSelect}
       />,
     );
@@ -159,7 +179,11 @@ describe('ModalGalleryFooter', () => {
         {...defaultProps}
         activeTab="uploads"
         selectedItems={['img-1']}
-        selectedItemsData={[{ id: 'img-1' }] as any}
+        selectedItemsData={
+          [{ id: 'img-1' }] as import('react').ComponentProps<
+            typeof ModalGalleryFooter
+          >['selectedItemsData']
+        }
       />,
     );
     expect(screen.getByText('Clear')).toBeInTheDocument();
@@ -175,7 +199,11 @@ describe('ModalGalleryFooter', () => {
         {...defaultProps}
         activeTab="uploads"
         selectedItems={['img-1']}
-        selectedItemsData={[{ id: 'img-1' }] as any}
+        selectedItemsData={
+          [{ id: 'img-1' }] as import('react').ComponentProps<
+            typeof ModalGalleryFooter
+          >['selectedItemsData']
+        }
         onSelect={onSelect}
         onClose={onClose}
       />,
@@ -195,7 +223,11 @@ describe('ModalGalleryFooter', () => {
         {...defaultProps}
         activeTab="uploads"
         selectedItems={['img-1', 'img-2']}
-        selectedItemsData={[{ id: 'img-1' }, { id: 'img-2' }] as any}
+        selectedItemsData={
+          [{ id: 'img-1' }, { id: 'img-2' }] as import('react').ComponentProps<
+            typeof ModalGalleryFooter
+          >['selectedItemsData']
+        }
         onSelect={onSelect}
         onClose={onClose}
       />,

@@ -5,16 +5,21 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/masonry/image/MasonryImage', () => ({
-  default: ({ image, onClickIngredient }: any) => (
+  default: ({
+    image,
+    onClickIngredient,
+  }: import('react').ComponentProps<
+    typeof import('@ui/masonry/image/MasonryImage').default
+  >) => (
     <div
       data-testid={`masonry-image-${image.id}`}
       role="button"
       tabIndex={0}
-      onClick={onClickIngredient}
+      onClick={() => onClickIngredient?.(image)}
       onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClickIngredient?.();
+          onClickIngredient?.(image);
         }
       }}
     >
@@ -24,7 +29,11 @@ vi.mock('@ui/masonry/image/MasonryImage', () => ({
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ value }: any) => <span data-testid="format-badge">{value}</span>,
+  default: ({
+    value,
+  }: import('react').ComponentProps<
+    typeof import('@ui/display/badge/Badge').default
+  >) => <span data-testid="format-badge">{value}</span>,
 }));
 
 describe('ModalGalleryItemImage', () => {
