@@ -3,6 +3,8 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { DesktopGenerationProviderKind } from '@genfeedai/contracts/desktop';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -150,6 +152,8 @@ export default function DesktopLocalProviderSettings({
   variant = 'compact',
 }: DesktopLocalProviderSettingsProps) {
   const translate = useTranslations('common.desktop.provider');
+  const runtime = useDesktopRuntimeContext();
+  const costTranslate = useTranslations('common.desktop.generationCost');
   const [state, dispatch] = useReducer(providerReducer, initialState);
   const [isLocalMode, setIsLocalMode] = useState<boolean | null>(null);
   const {
@@ -411,6 +415,13 @@ export default function DesktopLocalProviderSettings({
           {isTesting ? translate('actions.testing') : translate('actions.test')}
         </Button>
       </div>
+      <p
+        role="status"
+        data-testid="desktop-provider-generation-cost"
+        className="mt-2 text-xs text-muted-foreground"
+      >
+        {costTranslate(getDesktopLocalCostState(runtime))}
+      </p>
       {status && (
         <p className="mt-2 break-words text-2xs text-foreground/48">{status}</p>
       )}

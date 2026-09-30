@@ -776,7 +776,10 @@
       "balanceUnavailable": "Balance unavailable",
       "estimateAfterSelection": "Estimate available after model selection",
       "estimateLoading": "Loading estimate…",
-      "estimateUnavailable": "Estimate unavailable"
+      "estimateUnavailable": "Estimate unavailable",
+      "serverRequired": "This Studio generator requires a server connection",
+      "costContextLoading": "Loading cost context…",
+      "costContextUnavailable": "Cost context unavailable"
     },
     "generate": "Generate",
     "generationFailed": "Generation failed",

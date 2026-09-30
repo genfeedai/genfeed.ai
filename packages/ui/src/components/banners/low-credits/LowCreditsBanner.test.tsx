@@ -1,3 +1,10 @@
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({
+    useDesktopRuntimeContext: () => ({ status: 'web', context: null }),
+  }),
+);
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';

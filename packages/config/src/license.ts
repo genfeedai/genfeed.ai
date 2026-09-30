@@ -3,6 +3,7 @@ import { getLicenseVerificationVerdict } from './license-state';
 
 export interface CreditsVisibilityContext {
   clientSurface?: 'web' | 'desktop';
+  runtimeMode?: 'cloud' | 'local' | 'unknown';
   selectedServerKind?: 'cloud' | 'self-hosted' | null;
   generationExecution?: 'remote' | 'local-byok' | 'unknown';
 }
@@ -70,7 +71,9 @@ export function shouldShowCreditsNav(
     (context?.clientSurface ?? (isDesktopClient() ? 'desktop' : 'web')) ===
     'desktop'
   ) {
-    return context?.selectedServerKind === 'cloud';
+    return (
+      context?.runtimeMode === 'cloud' && context.selectedServerKind === 'cloud'
+    );
   }
   if (hasOrganizationBilling()) {
     return true;

@@ -1,3 +1,22 @@
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+
+const runtimeMocks = vi.hoisted(() => ({
+  snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
+}));
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
+);
+vi.mock(
+  '@genfeedai/services/core/desktop-runtime.service',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@genfeedai/services/core/desktop-runtime.service')
+    >()),
+    desktopRuntimeService: { getCurrentSnapshot: () => runtimeMocks.snapshot },
+  }),
+);
+
 import {
   ModelCategory,
   ModelLifecycle,
@@ -128,19 +147,23 @@ vi.mock('@ui/dropdowns/generation-setup/generation-setup.recommend', () => ({
   recommendGenerationSetup: recommendMocks.recommend,
 }));
 
-const promptEditorProps: { extraExtensions?: unknown } = {};
+const promptEditorProps: { extraExtensions?: unknown; onSubmit?: () => void } =
+  {};
 
 vi.mock('@ui/prompt-editor/PromptEditor', () => ({
   default: ({
     extraExtensions,
+    onSubmit,
     testId,
     value,
   }: {
     extraExtensions?: unknown;
+    onSubmit?: () => void;
     testId?: string;
     value?: string;
   }) => {
     promptEditorProps.extraExtensions = extraExtensions;
+    promptEditorProps.onSubmit = onSubmit;
     return (
       <div aria-label="Prompt" data-testid={testId} role="textbox" tabIndex={0}>
         {value}
@@ -184,6 +207,7 @@ const baseProps = {
 
 describe('StudioGenerateComposer', () => {
   beforeEach(() => {
+    runtimeMocks.snapshot = { status: 'web', context: null };
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
     Object.assign(walletMocks, {
@@ -193,6 +217,38 @@ describe('StudioGenerateComposer', () => {
       showCredits: true,
     });
     vi.clearAllMocks();
+  });
+
+  it.each(['loading', 'switching', 'unavailable'] as const)(
+    'guards button and keyboard while desktop runtime is %s',
+    (status) => {
+      runtimeMocks.snapshot = { status, context: null };
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          prompt="A photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+      expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+      promptEditorProps.onSubmit?.();
+      expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects a keyboard callback captured before the runtime starts switching', () => {
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        prompt="A photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+    const submit = promptEditorProps.onSubmit;
+    runtimeMocks.snapshot = { status: 'switching', context: null };
+    submit?.();
+    expect(baseProps.onSubmit).not.toHaveBeenCalled();
   });
 
   it('applies studio extraExtensions to the prompt editor', () => {
