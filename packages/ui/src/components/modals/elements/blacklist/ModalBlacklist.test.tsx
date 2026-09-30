@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid="modal">{children}</div>,
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
@@ -52,7 +56,11 @@ vi.mock(
 );
 
 vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@genfeedai/auth-client/react').default
+  >) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/input', () => ({
@@ -77,7 +85,11 @@ vi.mock('@ui/primitives/checkbox', () => ({
 }));
 
 vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/primitives/field').default
+  >) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({

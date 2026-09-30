@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/masonry/image/MasonryImage', () => ({
-  default: ({ image, onClickIngredient }: any) => (
+  default: ({
+    image,
+    onClickIngredient,
+  }: import('react').ComponentProps<
+    typeof import('@ui/masonry/image/MasonryImage').default
+  >) => (
     <div
       data-testid={`masonry-image-${image.id}`}
       role="button"
@@ -24,7 +29,11 @@ vi.mock('@ui/masonry/image/MasonryImage', () => ({
 }));
 
 vi.mock('@ui/display/badge/Badge', () => ({
-  default: ({ value }: any) => <span data-testid="format-badge">{value}</span>,
+  default: ({
+    value,
+  }: import('react').ComponentProps<
+    typeof import('@ui/display/badge/Badge').default
+  >) => <span data-testid="format-badge">{value}</span>,
 }));
 
 describe('ModalGalleryItemImage', () => {

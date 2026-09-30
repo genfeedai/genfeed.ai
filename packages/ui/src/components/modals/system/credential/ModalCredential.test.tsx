@@ -4,17 +4,28 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid="modal">{children}</div>,
 }));
 
 vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/actions/ModalActions').default
+  >) => <div>{children}</div>,
 }));
 
 vi.mock('@ui/primitives/button', () => ({
-  Button: ({ label, onClick }: any) => (
-    <button onClick={onClick}>{label}</button>
-  ),
+  Button: ({
+    label,
+    onClick,
+  }: import('react').ComponentProps<
+    typeof import('@ui/primitives/button').Button
+  >) => <button onClick={onClick}>{label}</button>,
   buttonVariants: () => '',
 }));
 
@@ -43,17 +54,37 @@ vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
 }));
 
 vi.mock('@ui/primitives/input', () => ({
-  Input: (props: any) => <input data-testid={`input-${props.name}`} />,
-  default: (props: any) => <input data-testid={`input-${props.name}`} />,
+  Input: (
+    props: import('react').ComponentProps<
+      typeof import('@ui/primitives/input').Input
+    >,
+  ) => <input data-testid={`input-${props.name}`} />,
+  default: (
+    props: import('react').ComponentProps<
+      typeof import('@ui/primitives/input').default
+    >,
+  ) => <input data-testid={`input-${props.name}`} />,
 }));
 
 vi.mock('@ui/primitives/textarea', () => ({
-  Textarea: (props: any) => <textarea data-testid={`textarea-${props.name}`} />,
-  default: (props: any) => <textarea data-testid={`textarea-${props.name}`} />,
+  Textarea: (
+    props: import('react').ComponentProps<
+      typeof import('@ui/primitives/textarea').Textarea
+    >,
+  ) => <textarea data-testid={`textarea-${props.name}`} />,
+  default: (
+    props: import('react').ComponentProps<
+      typeof import('@ui/primitives/textarea').default
+    >,
+  ) => <textarea data-testid={`textarea-${props.name}`} />,
 }));
 
 vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/primitives/field').default
+  >) => <div>{children}</div>,
 }));
 
 vi.mock('@genfeedai/helpers/ui/form-error/form-error.helper', () => ({
@@ -80,7 +111,14 @@ describe('ModalCredential', () => {
       username: 'testuser',
     };
     render(
-      <ModalCredential {...defaultProps} credential={credential as any} />,
+      <ModalCredential
+        {...defaultProps}
+        credential={
+          credential as import('react').ComponentProps<
+            typeof ModalCredential
+          >['credential']
+        }
+      />,
     );
     expect(screen.getByTestId('modal')).toBeInTheDocument();
   });

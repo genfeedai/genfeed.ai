@@ -81,6 +81,7 @@ function DynamicChartView({ block }: DynamicChartProps): ReactElement {
         <div className="flex h-full items-end gap-3 px-6 py-5">
           {Array.from({ length: 6 }).map((_, index) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
               key={`chart-skeleton-${index}`}
               className="animate-pulse rounded-t-md bg-muted/70"
               style={{

@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/masonry/video/MasonryVideo', () => ({
-  default: ({ video, onClickIngredient }: any) => (
+  default: ({
+    video,
+    onClickIngredient,
+  }: import('react').ComponentProps<
+    typeof import('@ui/masonry/video/MasonryVideo').default
+  >) => (
     <div
       data-testid={`masonry-video-${video.id}`}
       role="button"

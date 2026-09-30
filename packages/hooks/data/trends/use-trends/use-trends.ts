@@ -46,7 +46,10 @@ export function useTrends(initialPlatform: string = 'all'): UseTrendsReturn {
     setSelectedPlatform(initialPlatform);
   }, [initialPlatform]);
 
-  const queryKey = ['trends-discovery', platformParam, brandId];
+  const queryKey = useMemo(
+    () => ['trends-discovery', platformParam, brandId],
+    [platformParam, brandId],
+  );
 
   const {
     data: response,

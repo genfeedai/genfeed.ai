@@ -1,3 +1,8 @@
+import type {
+  NodeGroup,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 
 import { temporalStateEquals } from './equality';
@@ -15,7 +20,7 @@ function makeNode(id: string, overrides: Record<string, unknown> = {}) {
     type: 'imageGen',
     width: 200,
     ...overrides,
-  } as any;
+  } as WorkflowNode;
 }
 
 function makeEdge(
@@ -31,7 +36,7 @@ function makeEdge(
     target,
     targetHandle: 'input',
     ...overrides,
-  } as any;
+  } as WorkflowEdge;
 }
 
 function makeGroup(id: string, overrides: Record<string, unknown> = {}) {
@@ -42,10 +47,14 @@ function makeGroup(id: string, overrides: Record<string, unknown> = {}) {
     name: 'Group',
     nodeIds: ['n1'],
     ...overrides,
-  } as any;
+  } as NodeGroup;
 }
 
-function makeState(nodes: any[] = [], edges: any[] = [], groups: any[] = []) {
+function makeState(
+  nodes: WorkflowNode[] = [],
+  edges: WorkflowEdge[] = [],
+  groups: NodeGroup[] = [],
+) {
   return { edges, groups, nodes };
 }
 

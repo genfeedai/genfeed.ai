@@ -4,7 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/card/Card', () => ({
-  default: ({ children, className }: any) => (
+  default: ({
+    children,
+    className,
+  }: import('react').ComponentProps<
+    typeof import('@ui/card/Card').default
+  >) => (
     <div data-testid="card" className={className}>
       {children}
     </div>

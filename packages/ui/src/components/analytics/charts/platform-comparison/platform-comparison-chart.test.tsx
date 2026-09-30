@@ -120,7 +120,15 @@ describe('PlatformComparisonChart', () => {
     });
 
     it('shows empty message when data is undefined', () => {
-      render(<PlatformComparisonChart data={undefined as any} />);
+      render(
+        <PlatformComparisonChart
+          data={
+            undefined as unknown as import('react').ComponentProps<
+              typeof PlatformComparisonChart
+            >['data']
+          }
+        />,
+      );
       expect(
         screen.getByText('No platform data available'),
       ).toBeInTheDocument();

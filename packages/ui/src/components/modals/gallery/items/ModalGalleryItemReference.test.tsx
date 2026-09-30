@@ -5,7 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
+  default: ({
+    src,
+    alt,
+  }: import('react').ComponentProps<typeof import('next/image').default>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({

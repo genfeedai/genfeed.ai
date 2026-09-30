@@ -16,7 +16,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const ANALYTICS_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -57,11 +57,31 @@ export function useAnalytics({
     }
   }, [providedScopeId, scope, organizationId, brandId]);
 
-  const [selectedScope, setSelectedScope] = useState<ContentScope>(scope);
-
-  const [selectedScopeId, setSelectedScopeId] = useState<string | undefined>(
-    actualScopeId,
-  );
+  const [selection, setSelection] = useState({
+    sourceScope: scope,
+    sourceScopeId: actualScopeId,
+    scope,
+    scopeId: actualScopeId,
+  });
+  const isCurrentSource =
+    selection.sourceScope === scope &&
+    selection.sourceScopeId === actualScopeId;
+  const selectedScope = isCurrentSource ? selection.scope : scope;
+  const selectedScopeId = isCurrentSource ? selection.scopeId : actualScopeId;
+  if (!isCurrentSource) {
+    setSelection({
+      sourceScope: scope,
+      sourceScopeId: actualScopeId,
+      scope,
+      scopeId: actualScopeId,
+    });
+  }
+  const setSelectedScope = useCallback((nextScope: ContentScope) => {
+    setSelection((previous) => ({ ...previous, scope: nextScope }));
+  }, []);
+  const setSelectedScopeId = useCallback((nextScopeId: string | undefined) => {
+    setSelection((previous) => ({ ...previous, scopeId: nextScopeId }));
+  }, []);
 
   const [cachedAt, setCachedAt] = useState<string | null>(initialCachedAt);
   const [isUsingCache, setIsUsingCache] = useState(false);
@@ -125,8 +145,10 @@ export function useAnalytics({
     });
   }, []);
 
+  const [hydration] = useState(() => ({ key: cacheKey, data: initialData }));
+  const hydratedData = hydration.key === cacheKey ? hydration.data : undefined;
   const skipInitialFetch =
-    (revalidateOnMount ?? initialData == null) === false && !!initialData;
+    (revalidateOnMount ?? hydratedData == null) === false && !!hydratedData;
 
   const {
     data: analyticsData,
@@ -231,7 +253,7 @@ export function useAnalytics({
       return data;
     },
     enabled: autoLoad,
-    initialData,
+    initialData: hydratedData,
     staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
   });
 
@@ -240,6 +262,10 @@ export function useAnalytics({
     [analyticsData, defaultAnalytics],
   );
 
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
   return {
     analytics,
     cachedAt,
@@ -247,9 +273,7 @@ export function useAnalytics({
     isLoading,
     isRefreshing: isFetching && !isLoading,
     isUsingCache,
-    refresh: async () => {
-      await refetch();
-    },
+    refresh,
     scope,
     scopeId: actualScopeId,
     selectedScope,

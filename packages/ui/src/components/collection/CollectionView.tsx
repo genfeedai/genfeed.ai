@@ -43,6 +43,7 @@ export default function CollectionView<TItem>({
       >
         {Array.from({ length: skeletonCount }, (_, index) => (
           <SkeletonCard
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             key={`collection-skeleton-${index}`}
             label={translate('loadingItem')}
             showImage={false}

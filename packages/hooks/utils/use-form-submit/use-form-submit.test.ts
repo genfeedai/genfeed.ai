@@ -110,4 +110,55 @@ describe('useFormSubmitWithState', () => {
     expect(() => result.current.setNavigating(true)).not.toThrow();
     expect(() => result.current.setNavigating(false)).not.toThrow();
   });
+  it('clears submitting after navigation despite a render before the frame', async () => {
+    const { usePathname } = await import('next/navigation');
+    vi.mocked(usePathname).mockReturnValue('/old');
+    const frames = new Map<number, FrameRequestCallback>();
+    let frameId = 0;
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      vi.fn((callback: FrameRequestCallback) => {
+        frames.set(++frameId, callback);
+        return frameId;
+      }),
+    );
+    vi.stubGlobal(
+      'cancelAnimationFrame',
+      vi.fn((id: number) => frames.delete(id)),
+    );
+    let finish!: () => void;
+    const handler = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result, rerender, unmount } = renderHook(() =>
+      useFormSubmitWithState(handler),
+    );
+    let pendingSubmit!: Promise<void>;
+    try {
+      act(() => {
+        pendingSubmit = result.current.onSubmit({ preventDefault: vi.fn() });
+      });
+      expect(result.current.isSubmitting).toBe(true);
+      vi.mocked(usePathname).mockReturnValue('/new');
+      rerender();
+      expect(frames.size).toBe(1);
+      rerender();
+      act(() => {
+        for (const callback of frames.values()) callback(0);
+        frames.clear();
+      });
+      expect(result.current.isSubmitting).toBe(false);
+    } finally {
+      await act(async () => {
+        finish();
+        await pendingSubmit;
+      });
+      unmount();
+      vi.unstubAllGlobals();
+      vi.mocked(usePathname).mockReturnValue('/test');
+    }
+  });
 });

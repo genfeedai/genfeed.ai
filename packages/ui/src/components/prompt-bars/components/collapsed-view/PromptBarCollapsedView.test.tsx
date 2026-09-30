@@ -8,9 +8,12 @@ vi.mock('react-hook-form', () => ({
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ children, onClick }: any) => (
-    <button onClick={onClick}>{children}</button>
-  ),
+  default: ({
+    children,
+    onClick,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => <button onClick={onClick}>{children}</button>,
 }));
 
 const promptEditorProps: { extraExtensions?: unknown } = {};
@@ -47,7 +50,12 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
+  default: ({
+    src,
+    alt,
+  }: import('react').ComponentProps<typeof import('next/image').default>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -68,7 +76,9 @@ describe('PromptBarCollapsedView', () => {
     categoryType: 'image' as const,
     collapsedInputRef: { current: null },
     currentModelCategory: 'image',
-    form: mockForm as any,
+    form: mockForm as unknown as import('react').ComponentProps<
+      typeof PromptBarCollapsedView
+    >['form'],
     formatIcon: <span>icon</span>,
     generateLabel: 'Generate',
     isDisabled: false,
