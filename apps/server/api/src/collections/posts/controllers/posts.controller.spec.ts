@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
@@ -12,6 +13,14 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
+
+const evaluationProjection = {
+  attachToItem: vi.fn(async (item: object) => ({ ...item, evaluation: null })),
+  attachToPage: vi.fn(async (page: { docs: object[] }) => ({
+    ...page,
+    docs: page.docs.map((item) => ({ ...item, evaluation: null })),
+  })),
+} as unknown as ContentEvaluationProjectionService;
 
 const makeUser = (overrides: Partial<User> = {}): User =>
   ({
@@ -183,6 +192,7 @@ describe('PostsController.create account-health warmup gate', () => {
       {} as never,
       postsService as never,
       { error: vi.fn(), log: vi.fn() } as never,
+      evaluationProjection,
     );
 
     await controller.create(request, makeUser(), {
@@ -226,6 +236,7 @@ describe('PostsController.create account-health warmup gate', () => {
       {} as never,
       {} as never,
       { error: vi.fn(), log: vi.fn() } as never,
+      evaluationProjection,
     );
 
     await expect(
@@ -265,6 +276,7 @@ describe('PostsController.create account-health warmup gate', () => {
       {} as never,
       {} as never,
       { error: vi.fn(), log: vi.fn() } as never,
+      evaluationProjection,
     );
 
     await expect(
@@ -328,6 +340,7 @@ describe('PostsController.patch publishing scopes', () => {
         {} as never,
         postsService as never,
         { error: vi.fn(), log: vi.fn() } as never,
+        evaluationProjection,
       ),
       postsService,
     };
@@ -397,6 +410,7 @@ describe('PostsController.findAll (#1223)', () => {
       {} as never,
       { findAll } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn() } as never,
+      evaluationProjection,
     );
 
   const paginated = (docs: Array<Record<string, unknown>>) => ({

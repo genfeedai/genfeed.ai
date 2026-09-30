@@ -9,6 +9,7 @@ import { BookmarksModule } from '@api/collections/bookmarks/bookmarks.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -85,6 +86,7 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    EvaluationReadModule,
     MediaPromptEnhancementModule,
     VideosCoreModule,
     ActivitiesModule,

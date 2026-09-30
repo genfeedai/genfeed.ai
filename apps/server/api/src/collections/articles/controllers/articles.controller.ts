@@ -4,6 +4,7 @@ import type { CreateArticleDto } from '@api/collections/articles/dto/create-arti
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -50,6 +51,7 @@ export class ArticlesController extends BaseCRUDController<
     public readonly articlesService: ArticlesService,
     private readonly configService: ConfigService,
     public readonly loggerService: LoggerService,
+    private readonly evaluationProjection: ContentEvaluationProjectionService,
   ) {
     // ArticleSerializer would need to be created, using null for now
     super(loggerService, articlesService, ArticleSerializer, 'Article', [
@@ -137,7 +139,14 @@ export class ArticlesController extends BaseCRUDController<
       ErrorResponse.notFound(this.entityName, articleId);
     }
 
-    return serializeSingle(request, this.serializer, article);
+    return serializeSingle(
+      request,
+      this.serializer,
+      await this.evaluationProjection.attachToItem(article, {
+        brandId: user.brandId,
+        contentType: 'article',
+      }),
+    );
   }
 
   /**

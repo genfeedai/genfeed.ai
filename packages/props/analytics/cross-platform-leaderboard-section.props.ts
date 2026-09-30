@@ -8,6 +8,9 @@ export type PlatformConfigEntry = {
 };
 
 export type Props = {
+  isUsingCachedVideos?: boolean;
+  hasVideoReadError?: boolean;
+  onRetryEvaluationRead?: () => void;
   viralLeaderboard: ITrendVideo[];
   creatorLeaderboard: ICreatorWatchlist[];
   platformConfigLookup: Record<string, PlatformConfigEntry>;

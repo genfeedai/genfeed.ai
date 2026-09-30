@@ -9,6 +9,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
@@ -82,6 +83,7 @@ export class PostsController extends BaseCRUDController<
     private readonly postAnalyticsService: PostAnalyticsService,
     public readonly postsService: PostsService,
     public readonly loggerService: LoggerService,
+    private readonly evaluationProjection: ContentEvaluationProjectionService,
   ) {
     super(loggerService, postsService, PostSerializer, 'Post', [
       'ingredients',
@@ -290,7 +292,14 @@ export class PostsController extends BaseCRUDController<
     };
     const aggregate = this.buildFindAllQuery(user, query);
     const data = await this.postsService.findAll(aggregate, options);
-    return serializeCollection(request, PostListSerializer, data);
+    return serializeCollection(
+      request,
+      PostListSerializer,
+      await this.evaluationProjection.attachToPage(data, {
+        brandId: user.brandId,
+        contentType: 'post',
+      }),
+    );
   }
 
   @Get(':postId')
@@ -376,6 +385,13 @@ export class PostsController extends BaseCRUDController<
         : {}),
     };
 
-    return serializeSingle(request, this.serializer, postWithChildren);
+    return serializeSingle(
+      request,
+      this.serializer,
+      await this.evaluationProjection.attachToItem(postWithChildren, {
+        brandId: user.brandId,
+        contentType: 'post',
+      }),
+    );
   }
 }
