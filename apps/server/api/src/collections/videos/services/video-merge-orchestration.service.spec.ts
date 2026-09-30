@@ -9,6 +9,7 @@ import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixt
 import {
   IngredientCategory,
   IngredientStatus,
+  JobState,
   VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/contracts';
@@ -173,20 +174,44 @@ describe('VideoMergeOrchestrationService', () => {
     );
   });
 
+  it('retains an unresolved queue error and completes the actual late worker output', async () => {
+    const tracking = vi.spyOn(fixture.service, 'waitForCompletion');
+    const jobId = 'stitch-output-1';
+    fixture.failWaitFor.set(jobId, new Error('queue unavailable'));
+    const output = await service.mergeVideos(user, makeDto());
+    await expect(tracking.mock.results[0].value).rejects.toThrow(
+      'queue unavailable',
+    );
+    expect(fixture.row(output.id).status).toBe(IngredientStatus.PROCESSING);
+    expect(fixture.eventsNamed('media.failed')).toEqual([]);
+    fixture.failWaitFor.delete(jobId);
+    fixture.completeJob(jobId, `ingredients/videos/${output.id}`);
+    await expect(
+      fixture.service.settle({
+        jobId,
+        outputId: output.id,
+        organizationId: 'org-1',
+        roomUserId: 'auth-user-1',
+      }),
+    ).resolves.toMatchObject({ state: 'generated' });
+    expect(fixture.row(output.id).status).toBe(IngredientStatus.GENERATED);
+  });
+
   it('settles a failed worker job as a failed output', async () => {
     fixture.failWaitFor.set('stitch-output-1', new Error('queue unavailable'));
+    fixture.jobStates.set('stitch-output-1', JobState.FAILED);
 
     const output = await service.mergeVideos(user, makeDto());
 
     await vi.waitFor(() => {
       expect(fixture.row(output.id)).toMatchObject({
-        generationError: 'queue unavailable',
+        generationError: 'ffmpeg exited',
         status: IngredientStatus.FAILED,
       });
     });
     expect(fixture.eventsNamed('media.failed')[0]).toEqual([
       `/videos/${output.id}`,
-      'Failed to merge videos: queue unavailable',
+      'Failed to merge videos: ffmpeg exited',
       'auth-user-1',
       getUserRoomName('auth-user-1'),
     ]);
