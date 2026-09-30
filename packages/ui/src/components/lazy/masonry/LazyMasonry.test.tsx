@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 class MockIntersectionObserver {
   root = null;
   rootMargin = '';
+  scrollMargin = '';
   thresholds = [];
   takeRecords = () => [];
   observe = vi.fn();

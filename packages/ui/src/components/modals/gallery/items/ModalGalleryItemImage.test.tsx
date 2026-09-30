@@ -15,11 +15,11 @@ vi.mock('@ui/masonry/image/MasonryImage', () => ({
       data-testid={`masonry-image-${image.id}`}
       role="button"
       tabIndex={0}
-      onClick={onClickIngredient}
+      onClick={() => onClickIngredient?.(image)}
       onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClickIngredient?.();
+          onClickIngredient?.(image);
         }
       }}
     >

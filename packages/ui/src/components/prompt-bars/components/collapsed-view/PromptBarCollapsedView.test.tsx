@@ -50,10 +50,7 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({
-    src,
-    alt,
-  }: import('react').ComponentProps<typeof import('next/image').default>) => (
+  default: ({ src, alt }: import('react').ComponentProps<'img'>) => (
     <input type="image" src={src} alt={alt} />
   ),
 }));
@@ -84,6 +81,7 @@ describe('PromptBarCollapsedView', () => {
     isDisabled: false,
     isFormValid: true,
     isGenerateDisabled: false,
+    isGenerateBlocked: false,
     isGenerating: false,
     isInternalUpdateRef: { current: false },
     isProcessing: false,

@@ -61,7 +61,7 @@ vi.mock('@ui/primitives/input', () => ({
   ) => <input data-testid={`input-${props.name}`} />,
   default: (
     props: import('react').ComponentProps<
-      typeof import('@ui/primitives/input').default
+      typeof import('@ui/primitives/input').Input
     >,
   ) => <input data-testid={`input-${props.name}`} />,
 }));
@@ -74,7 +74,7 @@ vi.mock('@ui/primitives/textarea', () => ({
   ) => <textarea data-testid={`textarea-${props.name}`} />,
   default: (
     props: import('react').ComponentProps<
-      typeof import('@ui/primitives/textarea').default
+      typeof import('@ui/primitives/textarea').Textarea
     >,
   ) => <textarea data-testid={`textarea-${props.name}`} />,
 }));
@@ -107,14 +107,14 @@ describe('ModalCredential', () => {
     const credential = {
       id: 'cred-1',
       label: 'Test Credential',
-      platform: 'instagram',
+      platform: 'instagram' as const,
       username: 'testuser',
     };
     render(
       <ModalCredential
         {...defaultProps}
         credential={
-          credential as import('react').ComponentProps<
+          credential as unknown as import('react').ComponentProps<
             typeof ModalCredential
           >['credential']
         }

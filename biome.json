@@ -132,8 +132,8 @@
             "noNonNullAssertion": "off"
           },
           "suspicious": {
-            "noArrayIndexKey": "off",
-            "noExplicitAny": "off"
+            "noArrayIndexKey": "error",
+            "noExplicitAny": "error"
           }
         }
       }

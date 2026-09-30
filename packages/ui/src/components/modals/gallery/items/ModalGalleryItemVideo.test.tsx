@@ -15,11 +15,11 @@ vi.mock('@ui/masonry/video/MasonryVideo', () => ({
       data-testid={`masonry-video-${video.id}`}
       role="button"
       tabIndex={0}
-      onClick={onClickIngredient}
+      onClick={() => onClickIngredient?.(video)}
       onKeyDown={(e: React.KeyboardEvent) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onClickIngredient?.();
+          onClickIngredient?.(video);
         }
       }}
     >

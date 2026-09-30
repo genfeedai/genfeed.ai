@@ -59,7 +59,7 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({
     children,
   }: import('react').ComponentProps<
-    typeof import('@genfeedai/auth-client/react').default
+    typeof import('@ui/modals/actions/ModalActions').default
   >) => <div>{children}</div>,
 }));
 

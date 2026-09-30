@@ -14,7 +14,7 @@ vi.mock('@ui/navigation/pagination/Pagination', () => ({
     typeof import('@ui/navigation/pagination/Pagination').default
   >) => (
     <div data-testid="pagination">
-      <button onClick={() => onPageChange(currentPage + 1)}>Next</button>
+      <button onClick={() => onPageChange?.(currentPage + 1)}>Next</button>
       <span>
         Page {currentPage} of {totalPages}
       </span>

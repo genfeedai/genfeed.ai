@@ -89,7 +89,7 @@ describe('usePromptBarModels', () => {
       const { result } = renderHook(() =>
         usePromptBarModels({
           ...baseOptions,
-          trainings: trainings as Parameters<
+          trainings: trainings as unknown as Parameters<
             typeof usePromptBarModels
           >[0]['trainings'],
         }),

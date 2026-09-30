@@ -1,3 +1,4 @@
+import { PageScope } from '@genfeedai/contracts';
 import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 import { useAnalyticsOverview } from '@pages/analytics/overview/use-analytics-overview';
 import { act, renderHook } from '@testing-library/react';
@@ -77,7 +78,7 @@ it('does not refresh again on an unrelated render after one refresh event', asyn
       useAnalyticsOverview({
         analytics: { totalPosts: 1 },
         cachedAt: '',
-        scope: 'organization',
+        scope: PageScope.ORGANIZATION,
       }),
     { wrapper: createQueryWrapper() },
   );

@@ -5,10 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('next/image', () => ({
-  default: ({
-    src,
-    alt,
-  }: import('react').ComponentProps<typeof import('next/image').default>) => (
+  default: ({ src, alt }: import('react').ComponentProps<'img'>) => (
     <input type="image" src={src} alt={alt} />
   ),
 }));

@@ -39,15 +39,15 @@ function makeEdge(
   } as WorkflowEdge;
 }
 
-function makeGroup(id: string, overrides: Record<string, unknown> = {}) {
+function makeGroup(id: string, overrides: Partial<NodeGroup> = {}): NodeGroup {
   return {
-    color: '#ff0000',
+    color: 'red',
     id,
     isLocked: false,
     name: 'Group',
     nodeIds: ['n1'],
     ...overrides,
-  } as NodeGroup;
+  };
 }
 
 function makeState(
@@ -211,8 +211,8 @@ describe('temporalStateEquals', () => {
   });
 
   it('returns false when group color changes', () => {
-    const a = makeState([], [], [makeGroup('g1', { color: '#ff0000' })]);
-    const b = makeState([], [], [makeGroup('g1', { color: '#00ff00' })]);
+    const a = makeState([], [], [makeGroup('g1', { color: 'red' })]);
+    const b = makeState([], [], [makeGroup('g1', { color: 'green' })]);
     expect(temporalStateEquals(a, b)).toBe(false);
   });
 
