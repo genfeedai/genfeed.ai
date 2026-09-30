@@ -41,10 +41,6 @@ describe('DevController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('throws FORBIDDEN when in production mode', async () => {
     configService.isProduction = true;
     controller = new DevController(

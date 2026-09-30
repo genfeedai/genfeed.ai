@@ -315,10 +315,6 @@ describe('ContentPlannerService', () => {
 
   // ─── instantiation ────────────────────────────────────────────────────────
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   // ─── generatePlan – happy path ────────────────────────────────────────────
 
   it('should throw BadRequestException when brand is not found', async () => {

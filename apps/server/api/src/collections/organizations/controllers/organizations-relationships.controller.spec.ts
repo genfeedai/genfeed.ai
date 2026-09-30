@@ -176,10 +176,6 @@ describe('OrganizationsRelationshipsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('findAnalytics', () => {
     it('should return organization analytics', async () => {
       const result = await controller.findAnalytics(

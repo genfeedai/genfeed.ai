@@ -129,10 +129,6 @@ describe('AdsResearchController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   describe('listAds', () => {
     it('should list ads with organization scope', async () => {
       await controller.listAds(mockUser, brandId, 'Nike', 'fashion');

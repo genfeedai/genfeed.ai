@@ -107,10 +107,6 @@ describe('HttpExceptionFilter', () => {
     filter = new HttpExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
-  it('should be defined', () => {
-    expect(filter).toBeDefined();
-  });
-
   it('should handle HttpException with string message', () => {
     const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 

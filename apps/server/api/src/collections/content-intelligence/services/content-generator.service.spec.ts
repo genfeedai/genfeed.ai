@@ -206,10 +206,6 @@ describe('ContentGeneratorService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('registered generation workflows', () => {
     type GraphNode = {
       data?: {
