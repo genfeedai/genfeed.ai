@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid="modal">{children}</div>,
 }));
 
 describe('ModalCamera', () => {

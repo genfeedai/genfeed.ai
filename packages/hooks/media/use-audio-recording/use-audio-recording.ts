@@ -21,6 +21,8 @@ export function useAudioRecording({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const generationRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   const [error, setError] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -29,7 +31,9 @@ export function useAudioRecording({
 
   const cleanup = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
       streamRef.current = null;
     }
 
@@ -46,7 +50,14 @@ export function useAudioRecording({
     setIsSupported(supported);
   }, []);
 
-  useEffect(() => cleanup, [cleanup]);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      generationRef.current += 1;
+      cleanup();
+    };
+  }, [cleanup]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
@@ -56,6 +67,12 @@ export function useAudioRecording({
   }, [isRecording]);
 
   const startRecording = useCallback(async (): Promise<boolean> => {
+    if (!isMountedRef.current) return false;
+    const generation = ++generationRef.current;
+    const ownsRecording = () =>
+      isMountedRef.current && generationRef.current === generation;
+    cleanup();
+    setIsRecording(false);
     try {
       setError(null);
       setRecordedFile(null);
@@ -68,6 +85,12 @@ export function useAudioRecording({
         },
       });
 
+      if (!ownsRecording()) {
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
+        return false;
+      }
       streamRef.current = stream;
 
       const mimeType =
@@ -83,12 +106,13 @@ export function useAudioRecording({
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (ownsRecording() && event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = () => {
+        if (!ownsRecording()) return;
         const blob = new Blob(chunksRef.current, {
           type: mediaRecorder.mimeType || 'audio/webm',
         });
@@ -113,6 +137,8 @@ export function useAudioRecording({
       setIsRecording(true);
       return true;
     } catch (err: unknown) {
+      if (!ownsRecording()) return false;
+      setIsRecording(false);
       logger.error('useAudioRecording startRecording failed', err);
 
       let message = 'Failed to start recording.';

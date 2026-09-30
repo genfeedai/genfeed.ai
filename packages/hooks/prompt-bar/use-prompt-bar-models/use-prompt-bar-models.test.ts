@@ -87,7 +87,12 @@ describe('usePromptBarModels', () => {
       ];
 
       const { result } = renderHook(() =>
-        usePromptBarModels({ ...baseOptions, trainings: trainings as any }),
+        usePromptBarModels({
+          ...baseOptions,
+          trainings: trainings as unknown as Parameters<
+            typeof usePromptBarModels
+          >[0]['trainings'],
+        }),
       );
 
       expect(result.current.trainingIds.size).toBe(1);

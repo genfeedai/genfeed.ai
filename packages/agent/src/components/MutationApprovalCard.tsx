@@ -4,6 +4,7 @@ import type {
   AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { Button } from '@ui/primitives/button';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useRef, useState } from 'react';
@@ -130,14 +131,16 @@ export function MutationApprovalCard({
       </p>
       {approval.items.length > 0 && (
         <dl className="mt-3 space-y-2">
-          {approval.items.map((item, index) => (
-            <div key={`${index}-${item.label}`}>
-              <dt className="text-xs text-muted-foreground">{item.label}</dt>
-              <dd className="whitespace-pre-wrap break-words text-sm text-foreground">
-                {item.value}
-              </dd>
-            </div>
-          ))}
+          {keyListItems(approval.items, (item) => JSON.stringify(item)).map(
+            ({ item, key }) => (
+              <div key={key}>
+                <dt className="text-xs text-muted-foreground">{item.label}</dt>
+                <dd className="whitespace-pre-wrap break-words text-sm text-foreground">
+                  {item.value}
+                </dd>
+              </div>
+            ),
+          )}
         </dl>
       )}
       {status === 'pending' ? (

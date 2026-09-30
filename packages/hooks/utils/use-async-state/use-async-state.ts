@@ -8,17 +8,23 @@ export function useAsyncState<T = unknown>(
   initialData: T | null = null,
   options: UseAsyncStateOptions = {},
 ): AsyncState<T> {
+  const { onError } = options;
   const [data, setData] = useState<T | null>(initialData);
   const [isLoading, setIsLoading] = useState(options.initialLoading ?? false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const isMountedRef = useRef(true);
+
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);
@@ -32,6 +38,7 @@ export function useAsyncState<T = unknown>(
         onError?: (error: Error) => void;
       },
     ): Promise<R | undefined> => {
+      if (!isMountedRef.current) return undefined;
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -41,17 +48,17 @@ export function useAsyncState<T = unknown>(
       const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
-      if (executeOptions?.isRefresh) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
+      const ownsRequest = () =>
+        abortControllerRef.current === abortController &&
+        !abortController.signal.aborted;
+      setIsRefreshing(Boolean(executeOptions?.isRefresh));
+      setIsLoading(!executeOptions?.isRefresh);
       setError(null);
 
       try {
         const result = await asyncFunction(abortController.signal);
 
-        if (abortController.signal.aborted) {
+        if (!ownsRequest()) {
           return undefined;
         }
 
@@ -63,7 +70,10 @@ export function useAsyncState<T = unknown>(
 
         return result;
       } catch (err) {
-        if (err instanceof Error && err.name === 'AbortError') {
+        if (
+          !ownsRequest() ||
+          (err instanceof Error && err.name === 'AbortError')
+        ) {
           return undefined;
         }
 
@@ -71,21 +81,18 @@ export function useAsyncState<T = unknown>(
         setError(error);
 
         executeOptions?.onError?.(error);
-        options.onError?.(error);
+        if (ownsRequest()) onError?.(error);
 
         return undefined;
       } finally {
-        // Clear loading states
-        setIsLoading(false);
-        setIsRefreshing(false);
-
-        // Clear abort controller reference if this was the current request
-        if (abortControllerRef.current === abortController) {
+        if (ownsRequest()) {
+          setIsLoading(false);
+          setIsRefreshing(false);
           abortControllerRef.current = null;
         }
       }
     },
-    [options],
+    [onError],
   );
 
   const reset = useCallback(() => {

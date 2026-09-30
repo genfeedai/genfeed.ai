@@ -618,6 +618,7 @@ export default function IngredientsListContent({
       />
     );
   }, [
+    activeTypeLabel,
     columns,
     filteredIngredients,
     formatFilter,

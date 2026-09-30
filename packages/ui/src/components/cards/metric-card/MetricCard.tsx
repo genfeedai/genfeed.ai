@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type {
   MetricCardAppearance,
@@ -217,8 +218,8 @@ export function MetricSummary({
       className={cn('text-xs tabular-nums text-foreground/55', className)}
       data-testid={dataTestId}
     >
-      {items.map((item, index) => (
-        <span key={`${item.label}-${index}`}>
+      {keyListItems(items, (item) => item.label).map(({ item, key }, index) => (
+        <span key={key}>
           {index > 0 ? (
             <span className="mx-1.5 text-foreground/25" aria-hidden>
               ·

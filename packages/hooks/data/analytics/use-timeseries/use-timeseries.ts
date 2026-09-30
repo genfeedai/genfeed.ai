@@ -18,7 +18,7 @@ import {
 } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const TIMESERIES_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -92,8 +92,28 @@ export function useTimeseries(
     [brandId, organizationId, scope, startDateKey, endDateKey],
   );
 
+  const hydrationKey = JSON.stringify([
+    timeseriesCacheKey,
+    options.refreshTrigger,
+  ]);
+  const [hydration] = useState(() => ({
+    key: hydrationKey,
+    hasData: options.initialData != null,
+  }));
+  const skipInitialFetch =
+    hydration.hasData &&
+    hydration.key === hydrationKey &&
+    (options.revalidateOnMount ?? false) === false;
+  const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
+
   const fetchTimeseries = useCallback(
     async (signal?: AbortSignal) => {
+      requestRef.current?.abort();
+      const controller = new AbortController();
+      requestRef.current = controller;
+      const isCancelled = () =>
+        controller.signal.aborted || Boolean(signal?.aborted);
       try {
         setIsTimeseriesLoading(true);
         const service = await getAnalyticsService();
@@ -124,7 +144,7 @@ export function useTimeseries(
           youtube: item.youtube?.views ?? 0,
         }));
 
-        if (signal?.aborted) {
+        if (isCancelled()) {
           return;
         }
 
@@ -146,7 +166,7 @@ export function useTimeseries(
         setIsTimeseriesUsingCache(false);
         setTimeseriesCachedAt(null);
       } catch (error) {
-        if (signal?.aborted) {
+        if (isCancelled()) {
           return;
         }
         logger.error('Failed to fetch timeseries', error);
@@ -164,7 +184,7 @@ export function useTimeseries(
           setTimeseriesCachedAt(null);
         }
       } finally {
-        if (!signal?.aborted) {
+        if (!isCancelled()) {
           setIsTimeseriesLoading(false);
         }
       }
@@ -172,15 +192,16 @@ export function useTimeseries(
     [brandId, dateRange, getAnalyticsService, scope, timeseriesCacheKey],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The key includes explicit refresh events that restart the request.
   useEffect(() => {
-    if (options.initialData && options.revalidateOnMount === false) {
+    if (skipInitialFetch) {
       return;
     }
 
     const controller = new AbortController();
     void fetchTimeseries(controller.signal);
     return () => controller.abort();
-  }, [fetchTimeseries, options.initialData, options.revalidateOnMount]);
+  }, [fetchTimeseries, skipInitialFetch, hydrationKey]);
 
   return {
     fetchTimeseries,

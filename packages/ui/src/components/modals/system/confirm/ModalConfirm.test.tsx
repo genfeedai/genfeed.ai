@@ -5,21 +5,29 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children, id }: any) => (
-    <div data-testid={`modal-${id}`}>{children}</div>
-  ),
+  default: ({
+    children,
+    id,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid={`modal-${id}`}>{children}</div>,
 }));
 
 vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => (
-    <div data-testid="modal-actions">{children}</div>
-  ),
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/actions/ModalActions').default
+  >) => <div data-testid="modal-actions">{children}</div>,
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick }: any) => (
-    <button onClick={onClick}>{label}</button>
-  ),
+  default: ({
+    label,
+    onClick,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => <button onClick={onClick}>{label}</button>,
 }));
 
 vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({

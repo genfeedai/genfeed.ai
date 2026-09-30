@@ -30,7 +30,7 @@ import type {
 } from '@services/analytics/analytics.service';
 import { UsersService } from '@services/organization/users.service';
 import { format } from 'date-fns';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 type DashboardState = 'empty' | 'warming_up' | 'active';
 
@@ -121,7 +121,6 @@ export function useAnalyticsOverview({
     initialBrandsLeaderboard,
     initialCachedAt: initialCachedAt || null,
     initialOrgsLeaderboard,
-    refreshTrigger,
     revalidateOnMount: false,
     scope,
   });
@@ -136,7 +135,6 @@ export function useAnalyticsOverview({
     dateRange,
     initialCachedAt: initialCachedAt || null,
     initialData: initialTimeseriesData,
-    refreshTrigger,
     revalidateOnMount: false,
     scope,
   });
@@ -163,8 +161,10 @@ export function useAnalyticsOverview({
     [fetchLeaderboards, fetchTimeseries, refreshAnalytics],
   );
 
+  const handledRefreshRef = useRef(refreshTrigger);
   useEffect(() => {
-    if (refreshTrigger > 0) {
+    if (refreshTrigger !== handledRefreshRef.current) {
+      handledRefreshRef.current = refreshTrigger;
       retryAllData();
     }
   }, [refreshTrigger, retryAllData]);

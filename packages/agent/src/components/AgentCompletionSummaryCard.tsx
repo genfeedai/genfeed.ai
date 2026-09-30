@@ -12,6 +12,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -258,9 +259,11 @@ export function AgentCompletionSummaryCard({
 
         {action.secondaryCtas?.length ? (
           <div className="flex flex-wrap gap-1.5">
-            {action.secondaryCtas.slice(0, 3).map((cta, index) => (
+            {keyListItems(action.secondaryCtas.slice(0, 3), (cta) =>
+              JSON.stringify(cta),
+            ).map(({ item: cta, key }) => (
               <CompletionActionButton
-                key={`${action.id}-secondary-${cta.label}-${index}`}
+                key={key}
                 cta={cta}
                 size="compact"
                 onUiAction={onUiAction}

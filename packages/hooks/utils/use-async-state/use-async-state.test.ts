@@ -120,4 +120,69 @@ describe('useAsyncState', () => {
     expect(result.current.isLoading).toBe(false);
     expect(result.current.isRefreshing).toBe(false);
   });
+  it('keeps loading true when an older cancelled request settles', async () => {
+    let finishFirst!: (value: string) => void;
+    let finishSecond!: (value: string) => void;
+    const first = new Promise<string>((resolve) => {
+      finishFirst = resolve;
+    });
+    const second = new Promise<string>((resolve) => {
+      finishSecond = resolve;
+    });
+    const { result } = renderHook(() => useAsyncState('seed'));
+    let firstExecution!: Promise<string | undefined>;
+    let secondExecution!: Promise<string | undefined>;
+    act(() => {
+      firstExecution = result.current.execute(() => first);
+    });
+    act(() => {
+      secondExecution = result.current.execute(() => second);
+    });
+    await act(async () => {
+      finishFirst('old');
+      await firstExecution;
+    });
+    try {
+      expect(result.current.isLoading).toBe(true);
+      expect(result.current.data).toBe('seed');
+    } finally {
+      await act(async () => {
+        finishSecond('new');
+        await secondExecution;
+      });
+    }
+  });
+
+  it('ignores stale rejection callbacks and reset completions', async () => {
+    const onError = vi.fn();
+    const onSuccess = vi.fn();
+    const { result } = renderHook(() => useAsyncState('seed', { onError }));
+    const first = Promise.withResolvers<string>();
+    const second = Promise.withResolvers<string>();
+    let pendingFirst: Promise<string | undefined>;
+    let pendingSecond: Promise<string | undefined>;
+    act(() => {
+      pendingFirst = result.current.execute(() => first.promise, { onError });
+    });
+    act(() => {
+      pendingSecond = result.current.execute(() => second.promise, {
+        onSuccess,
+        isRefresh: true,
+      });
+    });
+    await act(async () => {
+      first.reject(new Error('old'));
+      await pendingFirst;
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+    expect(result.current.isRefreshing).toBe(true);
+    act(() => result.current.reset());
+    await act(async () => {
+      second.resolve('late');
+      await pendingSecond;
+    });
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(result.current.data).toBe('seed');
+  });
 });

@@ -21,6 +21,7 @@ export function useAbortController(dependencies: DependencyList = []) {
         abortControllerRef.current.abort();
       }
     };
+    // biome-ignore lint/correctness/useExhaustiveDependencies: Caller-provided values are explicit controller restart triggers, not closure captures.
   }, dependencies);
 
   return currentController;

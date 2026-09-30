@@ -51,7 +51,12 @@ vi.mock('./ModalGalleryFooter', () => ({
 }));
 
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children, title }: any) => (
+  default: ({
+    children,
+    title,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => (
     <div data-testid="modal">
       <div>{title}</div>
       {children}

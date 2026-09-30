@@ -1,3 +1,4 @@
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import type { IngredientWorkObjectContentProps } from '@genfeedai/props/ui/ingredients/ingredient-work-object-content.props';
 import {
   Table,
@@ -25,8 +26,10 @@ export default function IngredientWorkObjectContent({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {material.rows?.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
+              {keyListItems(material.rows ?? [], (row) =>
+                JSON.stringify(row),
+              ).map(({ item: row, key }) => (
+                <TableRow key={key}>
                   {material.columns?.map((column) => (
                     <TableCell key={column.key} className="whitespace-pre-wrap">
                       {row[column.key] ?? ''}
