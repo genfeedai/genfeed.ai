@@ -12,9 +12,8 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import {
-  type StoryboardPlan,
   type StoryboardShot,
-  storyboardPlanSchema,
+  storyboardImportedPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type {
@@ -77,10 +76,23 @@ export default function StoryboardPlanEditor({
   const [selectedShotId, setSelectedShotId] = useState<string>();
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
+  const persistedPlan = run.config.plan;
   const autosave = useStoryboardAutosave<StoryboardEditablePlan>({
     binding: draft,
     scope: `${run.brandId}:${run.id}`,
-    initial: { revision: run.config.revision, value: run.config.plan! },
+    initial: {
+      revision: run.config.revision,
+      value: persistedPlan ?? {
+        title: '',
+        logline: '',
+        format: '9:16',
+        videoModelKey: null,
+        runtimeBudgetSeconds: null,
+        styleReferenceAssetIds: [],
+        cast: [],
+        shots: [],
+      },
+    },
     save: async (snapshot, signal) => {
       try {
         if (
@@ -158,15 +170,15 @@ export default function StoryboardPlanEditor({
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
 
-  function edit(next: StoryboardPlan) {
+  function edit(next: unknown) {
     if (isDisabled) return;
-    const parsed = storyboardPlanSchema.safeParse(next);
+    const parsed = storyboardImportedPlanSchema.safeParse(next);
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
       return;
     }
     setError(undefined);
-    autosave.edit(next);
+    autosave.edit(parsed.data);
   }
   function patchShot(shot: StoryboardShot, patch: Partial<StoryboardShot>) {
     edit(editStoryboardShot(plan, shot.id, patch));
@@ -195,7 +207,10 @@ export default function StoryboardPlanEditor({
     patchShot(shot, { durationSeconds: snapped });
   }
   async function perform(
-    action: (revision: number, saved: StoryboardPlan) => Promise<unknown>,
+    action: (
+      revision: number,
+      saved: StoryboardEditablePlan,
+    ) => Promise<unknown>,
   ) {
     setWorking(true);
     setError(undefined);

@@ -1,5 +1,7 @@
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type {
+  StoryboardNativeRunConfig,
+  StoryboardRun,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardDraftTransport } from '@genfeedai/props/studio/storyboard.props';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -9,7 +11,7 @@ import {
 } from './storyboard-draft-outbox';
 import { reconcileStoryboardDraft } from './storyboard-draft-reconcile';
 
-const plan: StoryboardPlan = {
+const plan: StoryboardNativeRunConfig['plan'] = {
   title: 'Base',
   logline: 'Story',
   format: '9:16',
@@ -31,13 +33,14 @@ const plan: StoryboardPlan = {
   ],
 };
 function fixture() {
-  let run: StoryboardRun = {
+  let run: StoryboardRun & { config: StoryboardNativeRunConfig } = {
     id: 'run',
     organizationId: 'org',
     brandId: 'brand',
     createdAt: '2026-09-30T00:00:00Z',
     updatedAt: '2026-09-30T00:00:00Z',
     config: {
+      origin: 'native',
       contract: 'storyboard-run',
       version: 1,
       revision: 1,
@@ -71,7 +74,7 @@ function fixture() {
           ...run.config,
           revision: revision + 1,
           ...(channel === 'plan'
-            ? { plan: value.plan }
+            ? { plan: value.plan as StoryboardNativeRunConfig['plan'] }
             : {
                 sourceSnapshot: {
                   selector: value.source,
@@ -94,7 +97,7 @@ function fixture() {
     transport,
     queue: new StoryboardDraftOutbox(transport, run),
     getRun: () => run,
-    remote: (patch: Partial<StoryboardPlan>) => {
+    remote: (patch: Partial<StoryboardNativeRunConfig['plan']>) => {
       run = {
         ...run,
         config: {

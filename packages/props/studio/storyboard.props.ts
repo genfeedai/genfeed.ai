@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
@@ -235,7 +234,7 @@ export type StoryboardDraftPageProps = Pick<
 export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;
 
 export interface StoryboardDraftValue {
-  plan: NonNullable<StoryboardRun['config']['plan']>;
+  plan: StoryboardEditablePlan;
   source: StoryboardSourceSelector;
 }
 export interface StoryboardDraftScope {

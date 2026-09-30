@@ -87,5 +87,5 @@ export function normalizeStoryboardModel(
     throw new Error(
       'This model exceeds the runtime budget. Shorten shots or increase the budget first.',
     );
-  return { ...plan, shots };
+  return { ...plan, shots } as StoryboardRunPlan;
 }

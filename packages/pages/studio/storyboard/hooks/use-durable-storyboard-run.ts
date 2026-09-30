@@ -3,7 +3,7 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getSession } from '@genfeedai/auth-client';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import { storyboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { storyboardImportedPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
@@ -149,7 +149,7 @@ export function useDurableStoryboardRun(runId: string) {
                 const parsed =
                   channel === 'source'
                     ? storyboardSourceSelectorSchema.safeParse(value.source)
-                    : storyboardPlanSchema.safeParse(value.plan);
+                    : storyboardImportedPlanSchema.safeParse(value.plan);
                 if (!parsed.success)
                   throw {
                     errors: [
