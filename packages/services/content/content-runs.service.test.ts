@@ -454,3 +454,156 @@ describe('ContentRunsService', () => {
     );
   });
 });
+
+describe('ContentRunsService canonical storyboard drafts', () => {
+  const run = {
+    id: 'run-1',
+    organizationId: 'org-1',
+    brandId: 'brand-1',
+    createdAt: '2026-09-30T12:00:00.000Z',
+    updatedAt: '2026-09-30T12:00:00.000Z',
+    config: {
+      contract: 'storyboard-run',
+      version: 1,
+      revision: 1,
+      clientRequestId: 'd160833e-d602-4617-a21b-721eb9aa7da8',
+      createdByUserId: 'user-1',
+      submittedInputHash: 'a'.repeat(64),
+      state: 'storyboard',
+      sourceSnapshot: {
+        selector: { kind: 'brief', brief: '', seedImageAssetId: 'image-1' },
+        capturedAt: '2026-09-30T12:00:00.000Z',
+      },
+      plan: {
+        title: '',
+        logline: '',
+        videoModelKey: null,
+        format: '9:16',
+        runtimeBudgetSeconds: null,
+        cast: [],
+        styleReferenceAssetIds: [],
+        shots: [],
+      },
+    },
+  };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const response = {
+      data: {
+        data: {
+          id: run.id,
+          type: 'storyboard-run',
+          attributes: { config: run.config },
+        },
+      },
+    };
+    mockPost.mockResolvedValue(response);
+    mockPatch.mockResolvedValue(response);
+    mockGet.mockResolvedValue(response);
+    mockDeserializeResource.mockReturnValue(run);
+  });
+  it('reads exact capabilities without JSON:API deserialization and rejects malformed timing data', async () => {
+    const response = {
+      version: 1,
+      runId: 'run-1',
+      runRevision: 1,
+      capabilityVersion: 'a'.repeat(64),
+      status: 'available',
+      requestedModelKey: 'custom/video',
+      reasonCode: null,
+      eligibleModels: [],
+      effectiveModel: {
+        key: 'custom/video',
+        label: 'Custom',
+        provider: 'replicate',
+        supportedDurationsSeconds: [4, 6],
+        defaultDurationSeconds: 4,
+        hasInterpolation: false,
+        supportedFormats: ['9:16'],
+        capabilitySource: 'catalog',
+      },
+    };
+    mockGet.mockResolvedValue({ data: response });
+    const service = new ContentRunsService('token');
+    const signal = new AbortController().signal;
+    expect(
+      await service.getStoryboardRunCapabilities('brand-1', 'run-1', signal),
+    ).toEqual(response);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/capabilities',
+      { signal },
+    );
+    expect(mockDeserializeResource).not.toHaveBeenCalled();
+    mockGet.mockResolvedValue({
+      data: {
+        ...response,
+        effectiveModel: {
+          ...response.effectiveModel,
+          supportedDurationsSeconds: [6, 4],
+        },
+      },
+    });
+    await expect(
+      service.getStoryboardRunCapabilities('brand-1', 'run-1'),
+    ).rejects.toThrow();
+  });
+  it('creates one explicit intent without adding settings or rewriting its UUID', async () => {
+    const service = new ContentRunsService('token');
+    const input = {
+      clientRequestId: run.config.clientRequestId,
+      source: {
+        kind: 'brief' as const,
+        brief: '',
+        seedImageAssetId: 'image-1',
+      },
+    };
+    expect(await service.createStoryboardRun('brand-1', input)).toMatchObject(
+      run,
+    );
+    expect(mockPost).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs',
+      input,
+    );
+  });
+  it('uses brand-scoped CAS update and approval routes', async () => {
+    const service = new ContentRunsService('token');
+    await service.updateStoryboardPlan('brand-1', 'run-1', {
+      expectedRevision: 1,
+      plan: { ...run.config.plan, format: '9:16' },
+    });
+    expect(mockPatch).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/plan',
+      expect.objectContaining({ expectedRevision: 1 }),
+    );
+    await service.approveStoryboardPlan('brand-1', 'run-1', {
+      expectedRevision: 1,
+    });
+    expect(mockPost).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/plan/approve',
+      { expectedRevision: 1 },
+    );
+  });
+  it('passes cancellation signal through a scoped read and rejects malformed server config', async () => {
+    const service = new ContentRunsService('token');
+    const signal = new AbortController().signal;
+    await service.getStoryboardRun('brand-1', 'run-1', signal);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1',
+      { signal },
+    );
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          id: run.id,
+          type: 'storyboard-run',
+          attributes: {
+            config: { ...run.config, contract: 'brand-remix-run' },
+          },
+        },
+      },
+    });
+    await expect(
+      service.getStoryboardRun('brand-1', 'run-1'),
+    ).rejects.toThrow();
+  });
+});

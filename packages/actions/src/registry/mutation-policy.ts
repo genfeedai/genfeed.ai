@@ -42,6 +42,7 @@ const READ_ONLY_PREFIXES = [
 const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 
 const READ_ONLY_NAMES = new Set<string>([
+  'storyboard_run_capabilities',
   'quote_visual_code_generation',
   'analyze_performance',
   'export_skill',

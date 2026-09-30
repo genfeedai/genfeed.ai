@@ -4,6 +4,7 @@ import type {
   IHttpError,
   IServiceSerializer,
 } from '@genfeedai/contracts/interfaces/utils/error.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -22,6 +23,7 @@ import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
+import type { AxiosRequestConfig } from 'axios';
 import type { ZodType } from 'zod';
 
 export type { JsonApiResponseDocument } from '@services/core/json-api';
@@ -375,11 +377,19 @@ export abstract class BaseService<
   public findAllPage(
     query: Record<string, unknown> = {},
     signal?: AbortSignal,
+    options?: IHttpRequestOptions,
   ): Promise<IPaginatedResponse<T>> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      params: query,
+      signal,
+      ...(options?.handledErrorStatuses !== undefined
+        ? { handledErrorStatuses: options.handledErrorStatuses }
+        : {}),
+    };
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}`,
       this.instance
-        .get<JsonApiResponseDocument>('', { params: query, signal })
+        .get<JsonApiResponseDocument>('', config)
         .then((response) => this.mapPage(response.data)),
     );
   }

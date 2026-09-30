@@ -35,6 +35,16 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('exposes Storyboard capabilities as a free read-only MCP tool', () => {
+    expect(getToolByName('storyboard_run_capabilities')).toMatchObject({
+      creditCost: 0,
+    });
+    expect(isReadOnlyToolName('storyboard_run_capabilities')).toBe(true);
+    expect(toolRequiresMutationPolicy('storyboard_run_capabilities')).toBe(
+      false,
+    );
+  });
+
   it('classifies durable work-object presentation as a write without changing payment presentation', () => {
     expect(toolRequiresMutationPolicy('present_work_object')).toBe(true);
     expect(getToolByName('present_work_object')?.mutationPolicy).toBe('direct');

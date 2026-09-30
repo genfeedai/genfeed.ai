@@ -7,7 +7,7 @@ import type { StudioGenerateFilter } from '@pages/studio/generate/utils/studio-g
 import { loadStudioGalleryIngredients } from '@pages/studio/generate/utils/studio-generate-gallery';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseStudioGenerateGalleryParams {
   brandId: string;
@@ -15,90 +15,101 @@ export interface UseStudioGenerateGalleryParams {
 }
 
 export interface UseStudioGenerateGalleryReturn {
+  galleryError: 'load' | 'refresh' | null;
   isLoadingGallery: boolean;
   refresh: () => void;
   storedJobs: readonly StudioGenerateJob[];
 }
 
-/**
- * Stored generation history behind the results grid. The unified ingredients
- * endpoint hydrates metadata and prompts before rows are projected onto the
- * same job shape the live socket queue produces.
- */
 export function useStudioGenerateGallery({
   brandId,
   filter,
 }: UseStudioGenerateGalleryParams): UseStudioGenerateGalleryReturn {
-  const [storedJobs, setStoredJobs] = useState<readonly StudioGenerateJob[]>(
-    [],
-  );
-  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
+  const [snapshot, setSnapshot] = useState({
+    brandId,
+    filter,
+    jobs: [] as readonly StudioGenerateJob[],
+    hasLoaded: false,
+    error: null as UseStudioGenerateGalleryReturn['galleryError'],
+    loading: Boolean(brandId),
+  });
+  // Discard scope state during render, before children can observe old rows.
+  // Keeping only one scope also prevents A -> B -> A resurrecting discarded A.
+  const isCurrentScope =
+    snapshot.brandId === brandId && snapshot.filter === filter;
+  if (!isCurrentScope) {
+    setSnapshot({
+      brandId,
+      filter,
+      jobs: [],
+      hasLoaded: false,
+      error: null,
+      loading: Boolean(brandId),
+    });
+  }
   const [reloadToken, setReloadToken] = useState(0);
-  const [loadedBrandId, setLoadedBrandId] = useState<string | null>(null);
-
+  const controllerRef = useRef<AbortController | null>(null);
   const getIngredientsService = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
   );
 
   const refresh = useCallback(() => {
+    controllerRef.current?.abort();
     setReloadToken((previous) => previous + 1);
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the refresh trigger — refresh() bumps it so this effect re-runs after a generation completes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken is the explicit refresh trigger.
   useEffect(() => {
-    if (!brandId) {
-      setStoredJobs([]);
-      setIsLoadingGallery(false);
-      return;
-    }
-
+    if (!brandId) return;
     const controller = new AbortController();
-    let isCancelled = false;
-
-    setIsLoadingGallery(true);
-
+    controllerRef.current = controller;
+    const canApply = () =>
+      !controller.signal.aborted && controllerRef.current === controller;
+    setSnapshot((current) => ({ ...current, loading: true }));
     void (async () => {
       try {
         const service = await getIngredientsService();
+        if (!canApply()) return;
         const ingredients = await loadStudioGalleryIngredients(
           service,
           brandId,
           filter,
           controller.signal,
         );
-
-        if (isCancelled || controller.signal.aborted) {
-          return;
-        }
-
+        if (!canApply()) return;
         const jobs = ingredients
-          .map((ingredient) => toStudioGenerateJob(ingredient))
+          .map(toStudioGenerateJob)
           .filter((job): job is StudioGenerateJob => job !== null)
           .toSorted((left, right) => right.createdAt - left.createdAt);
-
-        setStoredJobs(jobs);
-        setLoadedBrandId(brandId);
+        setSnapshot({
+          brandId,
+          filter,
+          jobs,
+          hasLoaded: true,
+          error: null,
+          loading: false,
+        });
       } catch (error) {
-        if (!isCancelled) {
-          logger.error('Failed to load Studio generation history', error);
-          setStoredJobs([]);
-        }
+        if (!canApply()) return;
+        logger.error('Failed to load Studio generation history', error);
+        setSnapshot((current) => ({
+          ...current,
+          error: current.hasLoaded ? 'refresh' : 'load',
+        }));
       } finally {
-        if (!isCancelled) {
-          setIsLoadingGallery(false);
-        }
+        if (canApply())
+          setSnapshot((current) => ({ ...current, loading: false }));
       }
     })();
-
     return () => {
-      isCancelled = true;
       controller.abort();
     };
   }, [brandId, filter, getIngredientsService, reloadToken]);
 
   return {
-    isLoadingGallery,
+    galleryError: isCurrentScope && brandId ? snapshot.error : null,
+    isLoadingGallery: Boolean(brandId) && (!isCurrentScope || snapshot.loading),
     refresh,
-    storedJobs: loadedBrandId === brandId ? storedJobs : [],
+    storedJobs: isCurrentScope && brandId ? snapshot.jobs : [],
   };
 }

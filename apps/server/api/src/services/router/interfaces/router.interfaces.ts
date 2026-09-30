@@ -40,6 +40,8 @@ export type ModelResolutionSource =
   | 'registry-default';
 
 export interface ModelResolutionRequest {
+  /** Optional read-only admission boundary; preserves registry default/rank within this eligible set. */
+  eligibleModelKeys?: readonly string[];
   category: ModelCategory;
   /**
    * Preferred keys in precedence order — typically the explicit request, then

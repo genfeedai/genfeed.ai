@@ -1,3 +1,4 @@
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   clearAllServiceInstances,
@@ -6,7 +7,11 @@ import {
   HTTPBaseService,
   setRequestOrganizationId,
 } from '@services/core/interceptor.service';
-import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  type AxiosError,
+  type AxiosRequestConfig,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
@@ -27,7 +32,11 @@ vi.mock('@services/core/error-debug-store', () => ({
 }));
 
 // Create a concrete test class since HTTPBaseService is abstract
-class TestHTTPService extends HTTPBaseService {}
+class TestHTTPService extends HTTPBaseService {
+  requestForTest(config: AxiosRequestConfig & IHttpRequestOptions) {
+    return this.instance.get('/test', config);
+  }
+}
 class OtherTestHTTPService extends HTTPBaseService {}
 class MultiArgHTTPService extends HTTPBaseService {
   public readonly organizationId: string;
@@ -639,6 +648,150 @@ describe('HTTPBaseService (InterceptorService)', () => {
         } else {
           (globalThis as { window?: unknown }).window = previousWindow;
         }
+      }
+    });
+  });
+
+  describe('request-local handled HTTP statuses in the browser', () => {
+    let productionDescriptor: PropertyDescriptor | undefined;
+    beforeEach(() => {
+      productionDescriptor = Object.getOwnPropertyDescriptor(
+        EnvironmentService,
+        'isProduction',
+      );
+      Object.defineProperty(EnvironmentService, 'isProduction', {
+        configurable: true,
+        value: false,
+      });
+      vi.stubGlobal('window', {});
+    });
+    afterEach(() => {
+      if (productionDescriptor)
+        Object.defineProperty(
+          EnvironmentService,
+          'isProduction',
+          productionDescriptor,
+        );
+      vi.unstubAllGlobals();
+    });
+
+    it.each([
+      { status: 503, handledErrorStatuses: [503], opens: false },
+      ...[401, 403, 404, 422].map((status) => ({
+        status,
+        handledErrorStatuses: undefined,
+        opens: false,
+      })),
+      {
+        status: 505,
+        handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+        opens: true,
+      },
+      { status: 500, handledErrorStatuses: undefined, opens: true },
+      { status: 503, handledErrorStatuses: undefined, opens: true },
+      { status: 503, handledErrorStatuses: [], opens: true },
+      {
+        status: 409,
+        handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+        opens: true,
+      },
+      {
+        status: 501,
+        handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+        opens: true,
+      },
+    ])(
+      'status $status allowlist $handledErrorStatuses keeps rejection/debug and modal=$opens',
+      async ({ status, handledErrorStatuses, opens }) => {
+        const { openModal } = await import(
+          '@genfeedai/helpers/ui/modal/modal.helper'
+        );
+        const { ModalEnum } = await import('@genfeedai/contracts');
+        const { setErrorDebugInfo } = await import(
+          '@services/core/error-debug-store'
+        );
+        const config = {
+          headers: {},
+          url: '/test',
+          handledErrorStatuses,
+        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        const data = {
+          errors: [{ status: String(status), detail: 'Unavailable' }],
+        };
+        const error = {
+          config,
+          message: 'Request failed',
+          response: {
+            config,
+            data,
+            headers: {},
+            status,
+            statusText: 'Unavailable',
+          },
+        } as AxiosError;
+        if (status === 401)
+          await expect(service.handleError(error)).rejects.toMatchObject({
+            isAuthError: true,
+          });
+        else await expect(service.handleError(error)).rejects.toBe(data);
+        expect(setErrorDebugInfo).toHaveBeenCalledWith(
+          expect.objectContaining({ status, url: '/test', response: { data } }),
+        );
+        if (opens)
+          expect(openModal).toHaveBeenCalledWith(ModalEnum.ERROR_DEBUG);
+        else expect(openModal).not.toHaveBeenCalled();
+      },
+    );
+
+    it('preserves custom config through real Axios merging without leaking it between requests', async () => {
+      const realAxios = await vi.importActual<typeof import('axios')>('axios');
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { setErrorDebugInfo } = await import(
+        '@services/core/error-debug-store'
+      );
+      const mockedFactory = vi.mocked(axios.create).getMockImplementation();
+      const configs: Array<InternalAxiosRequestConfig & IHttpRequestOptions> =
+        [];
+      const data = { errors: [{ status: '503', detail: 'Unavailable' }] };
+      vi.mocked(axios.create).mockImplementation((config) =>
+        realAxios.default.create({
+          ...config,
+          adapter: async (request) => {
+            configs.push(request);
+            throw new realAxios.AxiosError(
+              'Request failed',
+              'ERR_BAD_RESPONSE',
+              request,
+              undefined,
+              {
+                config: request,
+                data,
+                headers: {},
+                status: 503,
+                statusText: 'Unavailable',
+              },
+            );
+          },
+        }),
+      );
+      try {
+        const realService = new TestHTTPService(mockBaseURL, mockToken);
+        await expect(
+          realService.requestForTest({ handledErrorStatuses: [503] }),
+        ).rejects.toBe(data);
+        expect(openModal).not.toHaveBeenCalled();
+        await expect(realService.requestForTest({})).rejects.toBe(data);
+        expect(openModal).toHaveBeenCalledTimes(1);
+        expect(setErrorDebugInfo).toHaveBeenCalledTimes(2);
+        expect(configs[0].handledErrorStatuses).toEqual([503]);
+        expect(configs[1].handledErrorStatuses).toBeUndefined();
+        expect(configs[0].params).toBeUndefined();
+        expect(configs[0].headers).not.toHaveProperty('handledErrorStatuses');
+      } finally {
+        if (mockedFactory)
+          vi.mocked(axios.create).mockImplementation(mockedFactory);
       }
     });
   });
