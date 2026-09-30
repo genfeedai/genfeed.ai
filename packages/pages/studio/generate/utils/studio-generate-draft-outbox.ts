@@ -35,6 +35,8 @@ export type StudioGenerateDraftStorage = Pick<
 export interface StudioGenerateDraftOutboxOptions {
   /** Resolved on every use, so server rendering never touches `window`. */
   getStorage?: () => StudioGenerateDraftStorage | null;
+  /** Maximum wait for acknowledgement; timing out keeps the queue recoverable. */
+  idleTimeoutMs?: number;
   retryBaseMs?: number;
   retryMaxMs?: number;
 }
@@ -75,6 +77,8 @@ export interface StudioGenerateDraftOutbox {
   /**
    * Resolves once the brand has nothing in flight, queued, or waiting on a
    * retry — the server then holds the latest composer written for it.
+   * Rejects after the idle deadline so restoration can retry without reading
+   * an older server draft over unsent content. The write/retry queue is kept.
    */
   whenIdle: (brandId: string) => Promise<void>;
 }
@@ -99,6 +103,8 @@ interface StoredUnsentDraft {
   ownerId: string;
   payload: StudioGenerateDraftPayload;
 }
+
+export const STUDIO_GENERATE_DRAFT_IDLE_TIMEOUT_MS = 5000;
 
 const DEFAULT_RETRY_BASE_MS = 2000;
 const DEFAULT_RETRY_MAX_MS = 30_000;
@@ -155,6 +161,7 @@ export function serializeStudioGenerateDraftPayload(
  */
 export function createStudioGenerateDraftOutbox({
   getStorage = defaultStorage,
+  idleTimeoutMs = STUDIO_GENERATE_DRAFT_IDLE_TIMEOUT_MS,
   retryBaseMs = DEFAULT_RETRY_BASE_MS,
   retryMaxMs = DEFAULT_RETRY_MAX_MS,
 }: StudioGenerateDraftOutboxOptions = {}): StudioGenerateDraftOutbox {
@@ -375,8 +382,22 @@ export function createStudioGenerateDraftOutbox({
       if (isIdle(queue)) {
         return Promise.resolve();
       }
-      return new Promise((resolve) => {
-        queue.idleWaiters.push(resolve);
+      return new Promise((resolve, reject) => {
+        const settled = () => {
+          clearTimeout(timer);
+          resolve();
+        };
+        const timer = setTimeout(() => {
+          queue.idleWaiters = queue.idleWaiters.filter(
+            (waiter) => waiter !== settled,
+          );
+          reject(
+            new Error(
+              'Studio draft acknowledgement timed out; unsent content is retained',
+            ),
+          );
+        }, idleTimeoutMs);
+        queue.idleWaiters.push(settled);
       });
     },
   };

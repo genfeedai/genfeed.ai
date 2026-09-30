@@ -20,14 +20,17 @@ import type {
   ClipIdentityResolutionService,
   ResolveClipIdentityParams,
 } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipProjectClientSourceService } from '@api/collections/clip-projects/services/clip-project-client-source.service';
 import type { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import type { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AgentClipRunIdentity,
   AgentClipRunIdentityField,
 } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
@@ -173,6 +176,7 @@ describe('ClipProjectsController', () => {
     userId: userId,
   };
 
+  const sourceIngredient = { findFirst: vi.fn() };
   let controller: ClipProjectGenerationController;
   let crudController: ClipProjectsController;
   let handoffsController: ClipProjectHandoffsController;
@@ -204,6 +208,7 @@ describe('ClipProjectsController', () => {
   };
 
   beforeEach(() => {
+    sourceIngredient.findFirst.mockReset().mockResolvedValue(null);
     clipProjectsService = createMockClipProjectsService();
     clipGenerationService = createMockClipGenerationService();
     clipIdentityResolutionService = createMockClipIdentityResolutionService();
@@ -256,6 +261,10 @@ describe('ClipProjectsController', () => {
       clipProjectsService as ClipProjectsService,
       clipIdentityResolutionService as ClipIdentityResolutionService,
       hookClipApprovalService as unknown as HookClipApprovalService,
+      new ClipProjectClientSourceService(
+        { ingredient: sourceIngredient } as unknown as PrismaService,
+        { cdnUrl: 'https://cdn.example.com' } as ConfigService,
+      ),
     );
     handoffsController = new ClipProjectHandoffsController(
       createMockLogger(),
@@ -287,6 +296,81 @@ describe('ClipProjectsController', () => {
       organizationId,
     });
     expect(clipProjectsService.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      sourceVideoS3Key: 'ingredients/videos/foreign',
+      sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/foreign',
+    },
+    { sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/foreign' },
+    { sourceVideoUrl: 'https://provider.example.com/foreign.mp4' },
+  ])('refuses a foreign source before generic create: %j', async (source) => {
+    await expect(
+      crudController.create(
+        {} as never,
+        currentUser as never,
+        source as CreateClipProjectDto,
+      ),
+    ).rejects.toThrow(/owned Library video/);
+    expect(clipProjectsService.create).not.toHaveBeenCalled();
+    expect(sourceIngredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isDeleted: false,
+          organizationId,
+          category: 'VIDEO',
+        }),
+      }),
+    );
+  });
+
+  it.each([
+    { sourceVideoS3Key: 'ingredients/videos/foreign' },
+    { sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/foreign' },
+    { sourceVideoS3Key: null },
+    { sourceVideoUrl: null },
+  ])(
+    'refuses a foreign or cleared source before generic patch: %j',
+    async (source) => {
+      vi.mocked(clipProjectsService.findOne).mockResolvedValue(
+        createProject(projectId, organizationId),
+      );
+      await expect(
+        crudController.update(
+          {} as never,
+          currentUser as never,
+          projectId,
+          source as never,
+        ),
+      ).rejects.toThrow();
+      expect(clipProjectsService.patch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('writes the owned canonical media pair instead of retaining a mismatched URL', async () => {
+    sourceIngredient.findFirst.mockResolvedValue({
+      s3Key: 'ingredients/videos/owned',
+      metadata: null,
+    });
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue(
+      createProject(projectId, organizationId),
+    );
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(
+      createProject(projectId, organizationId),
+    );
+    await crudController.update({} as never, currentUser as never, projectId, {
+      sourceVideoS3Key: 'ingredients/videos/owned',
+    });
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      projectId,
+      {
+        sourceVideoS3Key: 'ingredients/videos/owned',
+        sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/owned',
+      },
+      [],
+      organizationId,
+    );
   });
 
   describe('selectReferenceFrame', () => {

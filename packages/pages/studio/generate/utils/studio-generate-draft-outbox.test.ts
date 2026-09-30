@@ -164,6 +164,71 @@ describe('createStudioGenerateDraftOutbox', () => {
     expect(isIdle).toHaveBeenCalledTimes(1);
   });
 
+  it('bounds an idle wait during endless failures without dropping the recoverable draft', async () => {
+    vi.useFakeTimers();
+    const store = new Map<string, string>();
+    const outbox = createStudioGenerateDraftOutbox({
+      getStorage: () => ({
+        getItem: (key) => store.get(key) ?? null,
+        removeItem: (key) => {
+          store.delete(key);
+        },
+        setItem: (key, value) => {
+          store.set(key, value);
+        },
+      }),
+      idleTimeoutMs: 2500,
+      retryBaseMs: 1000,
+    });
+    write.mockRejectedValue(new Error('offline'));
+    outbox.enqueue('brand-1', payload('recover me'), {
+      ownerId: 'user-1',
+      write,
+    });
+    const result = outbox.whenIdle('brand-1').then(
+      () => 'idle',
+      () => 'timed out',
+    );
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(await result).toBe('timed out');
+    expect(outbox.readUnsent('brand-1', 'user-1')).toEqual(
+      payload('recover me'),
+    );
+    expect(outbox.readUnsent('brand-1', 'user-2')).toBeNull();
+
+    // The restore caller may retry, but must not treat this timeout as a
+    // server acknowledgement and read an older draft over the pending one.
+    write.mockResolvedValue(undefined);
+    const recovered = outbox.whenIdle('brand-1');
+    await vi.advanceTimersByTimeAsync(500);
+    await recovered;
+    expect(writtenPrompts()).toEqual([
+      'recover me',
+      'recover me',
+      'recover me',
+    ]);
+    expect(outbox.readUnsent('brand-1', 'user-1')).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('bounds an idle wait when the in-flight request never returns', async () => {
+    vi.useFakeTimers();
+    const outbox = createStudioGenerateDraftOutbox({ idleTimeoutMs: 1000 });
+    const request = deferred();
+    write.mockReturnValueOnce(request.promise);
+    outbox.enqueue('brand-1', payload('A'), { write });
+    const result = outbox.whenIdle('brand-1').then(
+      () => 'idle',
+      () => 'timed out',
+    );
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(await result).toBe('timed out');
+    request.resolve();
+    await outbox.whenIdle('brand-1');
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('keeps an unsent payload in storage until the server acknowledges it', async () => {
     const store = new Map<string, string>();
     const storage = {
