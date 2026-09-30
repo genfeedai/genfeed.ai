@@ -284,7 +284,7 @@ export abstract class HTTPBaseService {
     return config;
   };
 
-  private handleError = async (error: AxiosError) => {
+  handleError = async (error: AxiosError) => {
     // Silently ignore cancelled/aborted requests - check FIRST before any logging
     if (
       error.code === 'ERR_CANCELED' ||
