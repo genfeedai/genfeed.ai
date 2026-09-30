@@ -373,3 +373,25 @@ export const ARTICLE_OG_CARDS = {
   'grok-bot-social-media-automation': 'card-0039',
   'schedule-social-media-posts-claude-code-mcp': 'card-0041',
 } as const;
+
+export function getEditorialArticleCard(slug: string, source?: string) {
+  if (
+    !source ||
+    !Object.hasOwn(ARTICLE_OG_CARDS, slug) ||
+    !URL.canParse(source)
+  )
+    return null;
+  const id = ARTICLE_OG_CARDS[slug as keyof typeof ARTICLE_OG_CARDS];
+  const url = new URL(source);
+  return url.origin === 'https://cdn.genfeed.ai' &&
+    url.pathname === `/assets/cards/articles/${id}.webp`
+    ? id
+    : null;
+}
+
+export function getEditorialArticleCoverUrl(slug: string, source?: string) {
+  if (!source || !getEditorialArticleCard(slug, source)) return source;
+  const url = new URL(source);
+  url.searchParams.set('v', 'founder-20260930');
+  return url.toString();
+}

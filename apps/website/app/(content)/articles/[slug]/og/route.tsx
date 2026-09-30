@@ -1,4 +1,4 @@
-import { ARTICLE_OG_CARDS } from '@data/editorial-og.data';
+import { getEditorialArticleCard } from '@data/editorial-og.data';
 import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
 import { renderMarketingOg } from '@web-components/og/marketing-og';
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
@@ -33,15 +33,8 @@ export async function GET(
   const { slug } = await params;
   const article = await getPublicArticleBySlugCached(slug).catch(() => null);
 
-  const card = Object.hasOwn(ARTICLE_OG_CARDS, slug)
-    ? ARTICLE_OG_CARDS[slug as keyof typeof ARTICLE_OG_CARDS]
-    : undefined;
-  if (
-    card &&
-    article?.coverImageUrl
-      ?.split('?')[0]
-      ?.endsWith(`/assets/cards/articles/${card}.webp`)
-  ) {
+  const card = getEditorialArticleCard(slug, article?.coverImageUrl);
+  if (card) {
     return renderMarketingOg(card);
   }
 

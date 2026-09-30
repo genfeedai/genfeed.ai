@@ -2,7 +2,11 @@
 import { AGENT_CLIENT_CHANNEL_SLUGS } from '@data/agent-client-channels.data';
 import { AGENT_CLIENT_SLUGS } from '@data/agent-clients.data';
 import { competitors } from '@data/competitors.data';
-import { ARTICLE_OG_CARDS } from '@data/editorial-og.data';
+import {
+  ARTICLE_OG_CARDS,
+  getEditorialArticleCard,
+  getEditorialArticleCoverUrl,
+} from '@data/editorial-og.data';
 import { integrations } from '@data/integrations.data';
 import {
   getMarketingOgImage,
@@ -22,6 +26,27 @@ function expectDedicated(path: string) {
 }
 
 describe('dedicated editorial OG coverage', () => {
+  it('versions replaced article images while preserving custom covers and URL parameters', () => {
+    const slug = 'ai-image-prompt-templates';
+    const owned =
+      'https://cdn.genfeed.ai/assets/cards/articles/card-0003.webp?width=1280';
+    expect(getEditorialArticleCard(slug, owned)).toBe('card-0003');
+    const versioned = new URL(
+      getEditorialArticleCoverUrl(slug, owned) as string,
+    );
+    expect(versioned.searchParams.get('v')).toBe('founder-20260930');
+    expect(versioned.searchParams.get('width')).toBe('1280');
+    for (const custom of [
+      'https://example.com/assets/cards/articles/card-0003.webp',
+      'https://cdn.genfeed.ai/custom-cover.webp',
+      '/custom-cover.webp',
+    ]) {
+      expect(getEditorialArticleCard(slug, custom)).toBeNull();
+      expect(getEditorialArticleCoverUrl(slug, custom)).toBe(custom);
+    }
+    expect(getEditorialArticleCoverUrl('unmapped-article', owned)).toBe(owned);
+    expect(getEditorialArticleCoverUrl(slug)).toBeUndefined();
+  });
   it('covers every catalog product, integration and audience', () => {
     for (const product of products) expectDedicated(`/${product.slug}`);
     for (const integration of integrations)
