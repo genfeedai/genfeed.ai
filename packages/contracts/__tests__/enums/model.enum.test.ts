@@ -284,8 +284,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
@@ -294,6 +294,7 @@ describe('model.enum', () => {
       expect(ModelProvider.OPENROUTER).toBe('openrouter');
       expect(ModelProvider.GENFEED_AI).toBe('genfeed-ai');
       expect(ModelProvider.MUREKA).toBe('mureka');
+      expect(ModelProvider.HEYGEN).toBe('heygen');
     });
   });
 

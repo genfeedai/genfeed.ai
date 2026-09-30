@@ -2,7 +2,9 @@ import {
   GENERATION_CREDIT_PARITY_CASES,
   type GenerationCreditParityCase,
 } from '@api/helpers/utils/credits/generation-credit-parity.fixture';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -16,12 +18,18 @@ describe('AgentGenerationEstimateService parity with charging', () => {
     { selectModel } as never,
     { validateModelForOrg } as never,
     { warn: vi.fn() } as never,
+    testModelCreditQuote({
+      findOne: async () => validateModelForOrg(),
+    } as never),
   );
 
   function modelRow(parityCase: GenerationCreditParityCase) {
     return {
       category: parityCase.category,
       cost: parityCase.model.cost,
+      isFree: parityCase.model.isFree,
+      reviewedPricing: parityCase.model.reviewedPricing,
+      rateVersion: parityCase.model.rateVersion,
       costPerUnit: parityCase.model.costPerUnit ?? null,
       isActive: true,
       isDeleted: false,
@@ -35,6 +43,7 @@ describe('AgentGenerationEstimateService parity with charging', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setRuntimeMarginMultiplier(1);
   });
 
   it.each(GENERATION_CREDIT_PARITY_CASES)(

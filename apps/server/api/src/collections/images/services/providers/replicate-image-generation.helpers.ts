@@ -20,7 +20,10 @@ export function extractReplicateOutputUrls(output: unknown): string[] {
     return [];
   }
 
-  return output.filter((value): value is string => typeof value === 'string');
+  if (output.some((value) => typeof value !== 'string')) {
+    return [];
+  }
+  return output;
 }
 
 export type ReplicatePredictionStatus =

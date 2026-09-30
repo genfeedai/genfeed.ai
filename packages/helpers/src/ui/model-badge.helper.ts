@@ -29,6 +29,8 @@ const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
     '[background-color:color-mix(in_srgb,#06B6D4_15%,transparent)] text-[#06B6D4] [border-color:color-mix(in_srgb,#06B6D4_30%,transparent)]',
   [ModelProvider.GENFEED_AI]:
     '[background-color:color-mix(in_srgb,#3B82F6_15%,transparent)] text-[#3B82F6] [border-color:color-mix(in_srgb,#3B82F6_30%,transparent)]',
+  [ModelProvider.HEYGEN]:
+    '[background-color:color-mix(in_srgb,#EC4899_15%,transparent)] text-[#F472B6] [border-color:color-mix(in_srgb,#EC4899_30%,transparent)]',
   [ModelProvider.MUREKA]:
     '[background-color:color-mix(in_srgb,#6B7280_15%,transparent)] text-[#9CA3AF] [border-color:color-mix(in_srgb,#6B7280_30%,transparent)]',
   [ModelProvider.OPENROUTER]:
@@ -40,6 +42,7 @@ const MODEL_PROVIDER_BADGE_CLASSES: Record<ModelProvider, string> = {
 const MODEL_PROVIDER_LABELS: Record<ModelProvider, string> = {
   [ModelProvider.FAL]: 'fal.ai',
   [ModelProvider.GENFEED_AI]: 'Genfeed',
+  [ModelProvider.HEYGEN]: 'HeyGen',
   [ModelProvider.MUREKA]: 'Mureka',
   [ModelProvider.OPENROUTER]: 'OpenRouter',
   [ModelProvider.REPLICATE]: 'Replicate',

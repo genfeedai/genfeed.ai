@@ -1,4 +1,5 @@
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { scopedWhere } from '@api/index';
 import {
   BATCH_LEASE_STALE_MS,
@@ -55,6 +56,7 @@ export class BatchGenerationReconcileService {
     private readonly logger: LoggerService,
     private readonly creditsService: BatchGenerationCreditsService,
     private readonly reservationService: CreditReservationService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly reviewService: BatchGenerationReviewService,
   ) {}
 
@@ -263,6 +265,9 @@ export class BatchGenerationReconcileService {
       });
     }
 
+    // Settle or release output holds whose generation already ended before the
+    // generic expiry sweep sees them.
+    await this.generationBilling.reconcile();
     await this.reservationService.expireDue();
   }
 

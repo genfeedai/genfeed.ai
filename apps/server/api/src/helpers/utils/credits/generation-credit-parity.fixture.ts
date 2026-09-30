@@ -1,5 +1,6 @@
 import { ModelCategory, PricingType } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { ReviewedProviderPricing } from '@genfeedai/contracts/interfaces';
 
 /**
  * #4813 Estimate-versus-charge parity matrix. Every case is priced twice in
@@ -11,6 +12,9 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
  */
 export interface GenerationCreditParityModel {
   readonly cost: number;
+  readonly isFree?: boolean;
+  readonly reviewedPricing?: ReviewedProviderPricing;
+  readonly rateVersion?: string;
   readonly costPerUnit?: number | null;
   readonly key: string;
   readonly minCost?: number | null;
@@ -28,6 +32,29 @@ export interface GenerationCreditParityCase {
   readonly outputs?: number;
   readonly quality?: string;
   readonly resolution?: string;
+}
+
+function reviewedRate(
+  unit: 'second' | 'output',
+  price: number,
+  when: Record<string, string>,
+): ReviewedProviderPricing {
+  return {
+    version: 'parity-fixture-v1',
+    currency: 'USD',
+    sourceUrl: 'https://example.test/fictional-test-tariff',
+    verifiedAt: '2026-09-30T00:00:00.000Z',
+    reviewStatus: 'approved',
+    rates: [
+      {
+        component: 'generation',
+        unit,
+        unitPriceUsd: price,
+        when,
+        isPerOutput: unit === 'second',
+      },
+    ],
+  };
 }
 
 const REPLICATE = 'replicate';
@@ -51,21 +78,21 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
     {
       aspectRatio: '1:1',
       category: ModelCategory.IMAGE,
-      // Native batch renders every output in one call: 6, not 24.
-      expectedCredits: 6,
+      // One request renders four billable outputs under this configured output tariff.
+      expectedCredits: 24,
       model: {
         cost: 6,
         key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
         provider: REPLICATE,
       },
-      name: 'fixed image cost is billed once on a native-batch model',
+      name: 'native batch bills the four outputs under its frozen output tariff',
       outputs: 4,
     },
     {
       aspectRatio: '3:4',
       category: ModelCategory.IMAGE,
-      // 1024×1365 = 1.39776 MP × 4 → 6 per output, Fal fans out × 3.
-      expectedCredits: 18,
+      // 1024×1365 × 0.000001 × 4 × 3 = 16.77312, rounded once to 17.
+      expectedCredits: 17,
       model: {
         cost: 1,
         costPerUnit: 4,
@@ -94,27 +121,30 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
     {
       aspectRatio: '1:1',
       category: ModelCategory.IMAGE,
-      // 50 × 0.112 (low) → 6 per output, Replicate non-batch × 2.
-      expectedCredits: 12,
+      // ceil($0.018 × 2 outputs / $0.01 per credit) = 4.
+      expectedCredits: 4,
       model: {
         cost: 50,
         key: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
         provider: REPLICATE,
+        reviewedPricing: reviewedRate('output', 0.018, { quality: 'low' }),
+        rateVersion: 'parity-fixture-v1',
       },
-      name: 'image quality multiplier applies before fan-out',
+      name: 'reviewed output tariff selects low quality before aggregate rounding',
       outputs: 2,
       quality: 'low',
     },
     {
       aspectRatio: '1:1',
       category: ModelCategory.IMAGE,
-      expectedCredits: 1,
+      expectedCredits: 0,
       model: {
         cost: 0,
+        isFree: true,
         key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
         provider: REPLICATE,
       },
-      name: 'zero image base cost keeps the one-credit minimum',
+      name: 'explicitly free image tariff requires zero platform credits',
     },
     {
       aspectRatio: '1:1',
@@ -166,8 +196,8 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
       aspectRatio: '16:9',
       category: ModelCategory.VIDEO,
       duration: 5,
-      // 50 × (0.224 / 0.168) = 66.67 → 67.
-      expectedCredits: 67,
+      // $0.04 × 5 seconds / $0.01 per credit = 20.
+      expectedCredits: 20,
       model: {
         cost: 40,
         costPerUnit: 10,
@@ -175,16 +205,18 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
         minCost: 50,
         pricingType: PricingType.PER_SECOND,
         provider: REPLICATE,
+        reviewedPricing: reviewedRate('second', 0.04, { resolution: 'pro' }),
+        rateVersion: 'parity-fixture-v1',
       },
-      name: 'video pro resolution multiplier applies to the floored base',
+      name: 'reviewed video pro tariff prices actual seconds',
       resolution: 'pro',
     },
     {
       aspectRatio: '9:16',
       category: ModelCategory.VIDEO,
       duration: 5,
-      // 50 × 2.5 (Kling 4K) = 125.
-      expectedCredits: 125,
+      // ceil($0.075 × 5 seconds / $0.01 per credit) = 38.
+      expectedCredits: 38,
       model: {
         cost: 40,
         costPerUnit: 10,
@@ -192,23 +224,27 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
         minCost: 50,
         pricingType: PricingType.PER_SECOND,
         provider: REPLICATE,
+        reviewedPricing: reviewedRate('second', 0.075, { resolution: '4k' }),
+        rateVersion: 'parity-fixture-v1',
       },
-      name: 'video 4K resolution multiplier applies to the floored base',
+      name: 'reviewed video 4K tariff prices actual seconds',
       resolution: '4k',
     },
     {
       aspectRatio: '16:9',
       category: ModelCategory.VIDEO,
       duration: 8,
-      // Flat 30 × 2 (1080p).
-      expectedCredits: 60,
+      // $0.18 per output / $0.01 per credit = 18.
+      expectedCredits: 18,
       model: {
         cost: 30,
         key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
         pricingType: PricingType.FLAT,
         provider: REPLICATE,
+        reviewedPricing: reviewedRate('output', 0.18, { resolution: '1080p' }),
+        rateVersion: 'parity-fixture-v1',
       },
-      name: 'flat video cost doubles at 1080p',
+      name: 'reviewed output tariff prices the 1080p variant',
       resolution: '1080p',
     },
     {

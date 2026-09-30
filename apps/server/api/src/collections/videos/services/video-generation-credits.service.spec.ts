@@ -1,4 +1,9 @@
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
+import {
+  billableProfile,
+  testModelCreditQuote,
+} from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   ActivitySource,
   ByokProvider,
@@ -40,6 +45,7 @@ describe('VideoGenerationCreditsService', () => {
       (input: IReserveCreditsInput) =>
         Promise.resolve({
           amount: input.amount,
+          metadata: input.metadata,
           id: 'reservation-1',
           status: 'RESERVED',
         }),
@@ -48,6 +54,7 @@ describe('VideoGenerationCreditsService', () => {
       creditsUtilsService as never,
       modelsService as never,
       byokService as never,
+      testModelCreditQuote(modelsService as never, 'replicate'),
     );
   });
 
@@ -62,7 +69,7 @@ describe('VideoGenerationCreditsService', () => {
     expect(modelsService.findOne).not.toHaveBeenCalled();
   });
 
-  it('authorizes high-resolution non-batch fan-out and throws 402 when short', async () => {
+  it('authorizes configured non-batch output units and throws 402 when short', async () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       false,
     );
@@ -71,7 +78,7 @@ describe('VideoGenerationCreditsService', () => {
 
     const error = await service
       .ensureDeferredCredits(
-        { outputs: 2, resolution: 'high' } as never,
+        { outputs: 2 } as never,
         'kling/model',
         'org-1',
         request as never,
@@ -81,7 +88,7 @@ describe('VideoGenerationCreditsService', () => {
     expect(error).toBeInstanceOf(HttpException);
     expect(error.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
     expect(error.getResponse()).toEqual({
-      detail: 'Insufficient credits: 40 required, 5 available',
+      detail: 'Insufficient credits: 20 required, 5 available',
       title: 'Insufficient credits',
     });
   });
@@ -101,8 +108,8 @@ describe('VideoGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(request.creditsConfig).toEqual({
-      amount: 10,
+    expect(request.creditsConfig).toMatchObject({
+      amount: 400,
       deferred: false,
       modelKey: 'kling/model',
       pricingMetadata: {
@@ -127,15 +134,17 @@ describe('VideoGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
-      actorUserId: 'user-1',
-      amount: 10,
-      expiresAt: expect.any(Date),
-      idempotencyKey: 'generation:video-action-1',
-      organizationId: 'org-1',
-      workloadId: 'video-action-1',
-      workloadType: 'generation',
-    });
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        expiresAt: expect.any(Date),
+        idempotencyKey: 'generation:video-action-1',
+        organizationId: 'org-1',
+        workloadId: 'video-action-1',
+        workloadType: 'generation',
+      }),
+    );
     expect(request.creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
@@ -531,5 +540,52 @@ describe('VideoGenerationCreditsService', () => {
         provider: ByokProvider.REPLICATE,
       });
     });
+  });
+  it('admits an audio-only reviewed tariff from the actual prepared video values', async () => {
+    const profile = billableProfile({
+      key: 'reviewed/video',
+      rateVersion: 'v1',
+      requiresReviewedRates: true,
+      requiredSelectorKeys: ['audio'],
+      reviewedPricing: {
+        version: 'v1',
+        currency: 'USD',
+        sourceUrl: 'https://example.test/tariff',
+        verifiedAt: '2026-09-30T00:00:00.000Z',
+        reviewStatus: 'approved',
+        rates: [
+          {
+            component: 'video',
+            unit: 'second',
+            unitPriceUsd: 0.2,
+            when: { audio: true },
+            isPerOutput: true,
+          },
+        ],
+      },
+    });
+    const strictQuote = new ModelCreditQuoteService({
+      findBillablePricingProfile: vi.fn().mockResolvedValue(profile),
+    } as never);
+    const credits = new VideoGenerationCreditsService(
+      creditsUtilsService as never,
+      modelsService as never,
+      byokService as never,
+      strictQuote,
+    );
+    const request = { creditsConfig: { deferred: true } };
+    await credits.ensureDeferredCredits(
+      { duration: 5, isAudioEnabled: false },
+      profile.key,
+      'org-1',
+      request as never,
+      { duration: 8, generate_audio: true },
+    );
+    expect(request.creditsConfig).toMatchObject({
+      modelQuote: { quantities: { duration: 8, selectors: { audio: true } } },
+    });
+    expect(request.creditsConfig).not.toHaveProperty(
+      'modelQuote.quantities.selectors.generate_audio',
+    );
   });
 });

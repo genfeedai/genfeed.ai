@@ -1,4 +1,7 @@
-import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
+import {
+  FalVideoGenerationProviderAdapter,
+  prepareFalVideoDispatch,
+} from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import type { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { FalSchemaFamily } from '@api/services/integrations/fal/services/fal-contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -45,6 +48,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         resolution: '1080p',
       },
       undefined,
+      undefined,
     );
   });
 
@@ -74,6 +78,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       'fal-ai/modern-video/image-to-video',
       expect.anything(),
       'org-fal-key',
+      undefined,
     );
   });
 
@@ -145,6 +150,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       expect(falService.generateVideo).toHaveBeenCalledWith(
         endpoint,
         expectedInput,
+        undefined,
         undefined,
       );
     },
@@ -231,6 +237,7 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         endpoint,
         expectedInput,
         undefined,
+        undefined,
       );
     },
   );
@@ -263,7 +270,91 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
           resolution: '768P',
         }),
         undefined,
+        undefined,
       );
     },
   );
+  it.each(['2K', '4k', '1080p', undefined])(
+    'prepares final normalized resolution %s and retains exactly that dispatch after admission',
+    async (resolution) => {
+      const params = {
+        model: 'minimax/h3-max/text-to-video',
+        prompt: 'a video',
+        promptParams: { duration: 8, resolution },
+        duration: 5,
+        width: 1920,
+        height: 1080,
+      };
+      const preparedFalDispatch = prepareFalVideoDispatch(params);
+      expect(preparedFalDispatch).toMatchObject({
+        endpoint: 'minimax/h3-max/text-to-video',
+        input: {
+          duration: 8,
+          resolution: '768P',
+          prompt_expansion_mode: 'balanced',
+        },
+      });
+      const falService = {
+        generateVideo: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://cdn.test/video.mp4' }),
+      };
+      const adapter = new FalVideoGenerationProviderAdapter(
+        falService as never,
+      );
+      params.promptParams.resolution = '1080P';
+      params.promptParams.duration = 10;
+      await adapter.generate({ ...params, preparedFalDispatch });
+      expect(falService.generateVideo).toHaveBeenCalledExactlyOnceWith(
+        preparedFalDispatch.endpoint,
+        preparedFalDispatch.input,
+        undefined,
+        undefined,
+      );
+      expect(preparedFalDispatch.input).toMatchObject({
+        duration: 8,
+        resolution: '768P',
+      });
+    },
+  );
+
+  it('prepares the schema-adapted actual duration before pricing instead of the original prompt parameter', () => {
+    const plan = prepareFalVideoDispatch({
+      model: 'fal/fal-ai/modern-video',
+      modelEndpoint: 'fal-ai/modern-video',
+      modelSchemaFamily: FalSchemaFamily.VIDEO_TEXT,
+      modelInputSchema: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string' },
+          duration: { type: 'string', enum: ['5', '10'] },
+        },
+        required: ['prompt'],
+      },
+      duration: 5,
+      promptParams: { duration: 10 },
+      prompt: 'a video',
+      width: 1920,
+      height: 1080,
+    });
+    expect(plan.input.duration).toBe('5');
+  });
+
+  it('freezes reference-to-video destination before pricing', () => {
+    const plan = prepareFalVideoDispatch({
+      model: 'google/gemini-omni-flash',
+      prompt: 'a video',
+      promptParams: {
+        image_urls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+        duration: 8,
+      },
+      width: 1920,
+      height: 1080,
+    });
+    expect(plan.endpoint).toBe('google/gemini-omni-flash/reference-to-video');
+    expect(plan.input).toMatchObject({
+      duration: 8,
+      image_urls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+    });
+  });
 });

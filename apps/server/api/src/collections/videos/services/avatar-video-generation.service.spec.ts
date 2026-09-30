@@ -1,12 +1,11 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import {
-  AvatarVideoGenerationService,
-  isAvatarBilledByRequest,
-} from '@api/collections/videos/services/avatar-video-generation.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
-import { AVATAR_GENERATION_CREDIT_COST } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -36,6 +35,8 @@ interface ResolveIdentityInputsHarness {
   ) => Promise<ResolvedIdentityInputs>;
 }
 
+const AVATAR_PRICE = 3;
+
 describe('AvatarVideoGenerationService', () => {
   const createService = () => {
     const brandsService = {
@@ -48,8 +49,20 @@ describe('AvatarVideoGenerationService', () => {
       resolveApiKey: vi.fn().mockResolvedValue(null),
     };
     const creditsUtilsService = {
+      bindReservationOutput: vi
+        .fn()
+        .mockResolvedValue({ id: 'avatar-output-hold', amount: AVATAR_PRICE }),
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+      findReservationForWorkload: vi.fn().mockResolvedValue(null),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi.fn().mockResolvedValue({ id: 'service-pool-1' }),
+    };
+    const creditDeductionQueueService = {
+      queueDeduction: vi.fn().mockResolvedValue(undefined),
+    };
+    const modelCreditQuote = {
+      quoteByKey: vi.fn().mockResolvedValue(AVATAR_PRICE),
     };
     const elevenlabsService = {
       generateAndUploadAudio: vi.fn().mockResolvedValue({
@@ -110,11 +123,38 @@ describe('AvatarVideoGenerationService', () => {
       websocketService as never,
     );
 
+    const billingTransaction = {
+      $queryRaw: vi.fn(),
+      creditReservation: { findFirst: vi.fn().mockResolvedValue(null) },
+      ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const billingPrisma = {
+      $transaction: async (
+        operation: (tx: typeof billingTransaction) => Promise<void>,
+      ) => operation(billingTransaction),
+    };
+    const generationBilling = new GenerationBillingService(
+      creditsUtilsService as never,
+      creditDeductionQueueService as never,
+      billingPrisma as never,
+      loggerService,
+      {
+        reconcileOutput: vi.fn().mockResolvedValue(false),
+        reconcile: vi.fn().mockResolvedValue(0),
+        closeDispatch: vi.fn(),
+        bindOutput: vi.fn(),
+      } as never,
+    );
     const service = new AvatarVideoGenerationService(
       brandsService as never,
       configService as never,
       byokService as never,
-      creditsUtilsService as never,
+      new AvatarVideoBillingService(
+        creditsUtilsService as never,
+        generationBilling,
+        modelCreditQuote as never,
+        loggerService,
+      ),
       elevenlabsService as never,
       failedGenerationService as never,
       managedInferenceRuntimeService as never,
@@ -132,7 +172,9 @@ describe('AvatarVideoGenerationService', () => {
     return {
       brandsService,
       byokService,
+      creditDeductionQueueService,
       creditsUtilsService,
+      modelCreditQuote,
       elevenlabsService,
       failedGenerationService,
       managedInferenceRuntimeService,
@@ -173,14 +215,14 @@ describe('AvatarVideoGenerationService', () => {
       'platform ElevenLabs speech',
       { elevenlabsVoiceId: 'voice-1' },
       false,
-      AVATAR_GENERATION_CREDIT_COST,
+      AVATAR_PRICE,
     ],
     ['BYOK ElevenLabs speech', { elevenlabsVoiceId: 'voice-1' }, true, 0],
     [
       'Genfeed saved voice',
       { clonedVoiceId: 'saved-voice-1' },
       false,
-      AVATAR_GENERATION_CREDIT_COST,
+      AVATAR_PRICE,
     ],
   ])(
     'quotes actual funding for %s with HeyGen BYOK',
@@ -256,54 +298,307 @@ describe('AvatarVideoGenerationService', () => {
         },
         context,
       );
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledTimes(billable ? 1 : 0);
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(
+        billable ? 1 : 0,
+      );
     },
   );
 
-  it.each([
-    ['unguarded caller', undefined, 1],
-    ['request pipeline already billing', true, 0],
-  ])(
-    'charges a platform avatar once for a %s',
-    async (_label, settleCreditsExternally, expectedDeductions) => {
-      const { service, brandsService, creditsUtilsService } = createService();
+  it('holds, binds and never deducts for an unguarded platform caller', async () => {
+    const { service, brandsService, creditsUtilsService, sharedService } =
+      createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+
+    await service.generateAvatarVideo(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      context,
+    );
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledOnce();
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: AVATAR_PRICE }),
+    );
+    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: AVATAR_PRICE,
+        reservationId: 'service-pool-1',
+        workloadId: 'avatar-ingredient-1',
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(sharedService.createMediaDocumentsInternal).toHaveBeenCalledOnce();
+  });
+
+  it('binds the accepted render to the request hold instead of opening a second one', async () => {
+    const { service, brandsService, creditsUtilsService } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    const request = {
+      creditsConfig: {
+        amount: AVATAR_PRICE,
+        reservationId: 'pool-request',
+        settlement: 'completion',
+      },
+      user: { id: 'u', organizationId: 'test-object-id', userId: 'u' },
+    };
+
+    await service.generateAvatarVideo(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      { ...context, request: request as never },
+    );
+
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reservationId: 'pool-request',
+        workloadId: 'avatar-ingredient-1',
+      }),
+    );
+    expect(request.creditsConfig).toMatchObject({ boundOutputCount: 1 });
+  });
+
+  it('leaves billing to a caller that bills the run itself', async () => {
+    const { service, brandsService, creditsUtilsService } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+
+    await service.generateAvatarVideo(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      { ...context, settleCreditsExternally: true },
+    );
+
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    expect(creditsUtilsService.bindReservationOutput).not.toHaveBeenCalled();
+  });
+
+  it('binds the hold before HeyGen sees the render id', async () => {
+    const { service, brandsService, creditsUtilsService, metadataService } =
+      createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+
+    await service.generateAvatarVideo(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      context,
+    );
+
+    const externalIdPatch = metadataService.patch.mock.calls.findIndex(
+      ([, patch]) => patch?.externalId === 'heygen-job-1',
+    );
+    expect(
+      creditsUtilsService.bindReservationOutput.mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      metadataService.patch.mock.invocationCallOrder[externalIdPatch],
+    );
+  });
+
+  it.each(['metadata', 'notification'])(
+    'preserves an accepted avatar after a %s outage',
+    async (outage) => {
+      const {
+        service,
+        brandsService,
+        metadataService,
+        websocketService,
+        creditsUtilsService,
+        creditDeductionQueueService,
+        failedGenerationService,
+      } = createService();
       brandsService.findOne.mockResolvedValue({
         agentConfig: {},
         id: 'brand-1',
       });
+      if (outage === 'metadata')
+        metadataService.patch.mockImplementation(async (_id, metadata) => {
+          if (metadata.externalId) throw new Error('metadata unavailable');
+        });
+      else
+        websocketService.publishVideoProgress.mockRejectedValue(
+          new Error('notification unavailable'),
+        );
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoUrl: 'https://cdn.example/avatar.png',
+            text: 'Speech',
+          },
+          context,
+        ),
+      ).resolves.toEqual({
+        externalId: 'heygen-job-1',
+        ingredientId: 'avatar-ingredient-1',
+        status: 'processing',
+      });
+      expect(
+        creditsUtilsService.releaseReservation,
+      ).toHaveBeenCalledExactlyOnceWith({
+        organizationId: 'test-object-id',
+        reservationId: 'service-pool-1',
+      });
+      expect(
+        creditsUtilsService.findReservationForWorkload,
+      ).not.toHaveBeenCalled();
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+      if (outage === 'metadata')
+        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: 0,
+            acceptedGeneration: {
+              ingredientId: 'avatar-ingredient-1',
+              externalId: 'heygen-job-1',
+            },
+          }),
+        );
+    },
+  );
 
-      await service.generateAvatarVideo(
+  it('releases the hold and charges nothing when HeyGen rejects the job', async () => {
+    const {
+      service,
+      brandsService,
+      creditsUtilsService,
+      creditDeductionQueueService,
+      heygenService,
+    } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+      new HeyGenSubmissionRejectedError(),
+    );
+
+    await expect(
+      service.generateAvatarVideo(
         {
           heygenVoiceId: 'voice-1',
           photoUrl: 'https://cdn.example.com/avatar.png',
           text: 'Speech',
         },
-        { ...context, settleCreditsExternally },
-      );
+        context,
+      ),
+    ).rejects.toThrow();
 
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledTimes(expectedDeductions);
-    },
-  );
+    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalled();
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'test-object-id',
+      reservationId: 'service-pool-1',
+    });
+    expect(creditDeductionQueueService.queueDeduction).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
 
   it.each([
-    ['a reserved platform charge', { creditsConfig: { amount: 3 } }, true],
-    [
-      'a BYOK bypass',
-      { creditsConfig: { amount: 3, isByokBypass: true } },
-      false,
-    ],
-    ['an unresolved zero price', { creditsConfig: { amount: 0 } }, false],
-    ['no credits config', {}, false],
+    'response lost after acceptance',
+    'submission returned no operation identity',
   ])(
-    'isAvatarBilledByRequest treats %s correctly',
-    (_label, request, expected) => {
-      expect(isAvatarBilledByRequest(request)).toBe(expected);
+    'retains the actual service output and bound funding when %s',
+    async (message) => {
+      const {
+        service,
+        brandsService,
+        heygenService,
+        failedGenerationService,
+        creditsUtilsService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+        new Error(message),
+      );
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoUrl: 'https://cdn.example/avatar.png',
+            text: 'Speech',
+          },
+          context,
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ detail: message }),
+      });
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            assetId: 'avatar-ingredient-1',
+            submissionIntent: { version: 1, provider: ByokProvider.HEYGEN },
+          },
+        }),
+      );
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.findReservationForWorkload,
+      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalledWith(
+        expect.objectContaining({ reservationId: 'avatar-output-hold' }),
+      );
     },
   );
+
+  it('fails closed instead of rendering free when the model row has no price', async () => {
+    const {
+      service,
+      brandsService,
+      modelCreditQuote,
+      sharedService,
+      heygenService,
+    } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+    modelCreditQuote.quoteByKey.mockResolvedValue(0);
+
+    await expect(
+      service.generateAvatarVideo(
+        {
+          heygenVoiceId: 'voice-1',
+          photoUrl: 'https://cdn.example.com/avatar.png',
+          text: 'Speech',
+        },
+        context,
+      ),
+    ).rejects.toMatchObject({ errorCode: 'PRICING_NOT_CONFIGURED' });
+
+    expect(sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
+    expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
+  });
+
+  it('prices the platform charge from the heygen/avatar model row', async () => {
+    const { service, brandsService, modelCreditQuote } = createService();
+    brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
+
+    const price = await service.quoteCredits(
+      {
+        heygenVoiceId: 'voice-1',
+        photoUrl: 'https://cdn.example.com/avatar.png',
+        text: 'Speech',
+      },
+      context,
+    );
+
+    expect(price).toEqual({ billingMode: 'platform', credits: AVATAR_PRICE });
+    expect(modelCreditQuote.quoteByKey).toHaveBeenCalledWith('heygen/avatar');
+  });
 
   it('pins both provider keys before reservation, even when org keys change during admission', async () => {
     const {
@@ -378,7 +673,7 @@ describe('AvatarVideoGenerationService', () => {
     ).rejects.toThrow('Funding changed');
     expect(reserve).toHaveBeenCalledWith({
       billingMode: 'platform',
-      credits: AVATAR_GENERATION_CREDIT_COST,
+      credits: AVATAR_PRICE,
     });
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
@@ -418,9 +713,9 @@ describe('AvatarVideoGenerationService', () => {
         isByok ? 'byok-test-key' : undefined,
         '9:16',
       );
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledTimes(isByok ? 0 : 1);
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(
+        isByok ? 0 : 1,
+      );
     },
   );
 
@@ -450,9 +745,9 @@ describe('AvatarVideoGenerationService', () => {
         },
         context,
       );
-      expect(
-        creditsUtilsService.deductCreditsFromOrganization,
-      ).toHaveBeenCalledTimes(expectedDeductions);
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(
+        expectedDeductions,
+      );
     },
   );
 
@@ -499,9 +794,7 @@ describe('AvatarVideoGenerationService', () => {
       context,
     );
 
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).toHaveBeenCalledTimes(1);
+    expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledTimes(1);
   });
 
   it('publishes initial progress on the ingredient video path for its user', async () => {
@@ -529,7 +822,7 @@ describe('AvatarVideoGenerationService', () => {
       createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
     heygenService.generatePhotoAvatarVideo.mockRejectedValue(
-      new Error('HeyGen rejected the job'),
+      new HeyGenSubmissionRejectedError(),
     );
 
     await expect(
@@ -548,7 +841,7 @@ describe('AvatarVideoGenerationService', () => {
     const [, , , , , activityMetadata] =
       failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
     expect(JSON.parse((activityMetadata as { value: string }).value)).toEqual({
-      error: 'HeyGen rejected the job',
+      error: 'HeyGen rejected the submission due to insufficient credit.',
       ingredientId: 'avatar-ingredient-1',
     });
   });
@@ -958,9 +1251,7 @@ describe('AvatarVideoGenerationService', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(elevenlabsService.generateAndUploadAudio).not.toHaveBeenCalled();
     expect(managedInferenceRuntimeService.generateVoice).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
@@ -1011,9 +1302,7 @@ describe('AvatarVideoGenerationService', () => {
       organizationId: context.organizationId,
     });
     expect(sharedService.createMediaDocumentsInternal).not.toHaveBeenCalled();
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     expect(heygenService.generatePhotoAvatarVideo).not.toHaveBeenCalled();
   });
 

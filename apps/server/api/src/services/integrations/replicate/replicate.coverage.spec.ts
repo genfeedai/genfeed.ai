@@ -410,6 +410,8 @@ describe('ReplicateService (coverage)', () => {
         'owner/model:v',
         { prompt: 'fly' },
         undefined,
+        undefined,
+        undefined,
       );
     });
 

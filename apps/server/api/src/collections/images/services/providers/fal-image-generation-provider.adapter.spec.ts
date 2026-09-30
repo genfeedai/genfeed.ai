@@ -46,6 +46,7 @@ describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
         seed: 7,
       },
       undefined,
+      undefined,
     );
   });
 
@@ -76,6 +77,7 @@ describe('FalImageGenerationProviderAdapter reviewed contracts', () => {
       'fal-ai/modern-image/edit',
       expect.anything(),
       'org-fal-key',
+      undefined,
     );
   });
 });

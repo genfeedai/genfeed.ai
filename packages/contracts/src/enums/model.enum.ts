@@ -5,6 +5,8 @@ export enum ModelProvider {
   GENFEED_AI = 'genfeed-ai',
   /** Direct integration (no fal/Replicate intermediary) — e.g. Mureka V9. */
   MUREKA = 'mureka',
+  /** Direct integration — HeyGen photo-avatar video (`heygen/avatar`). */
+  HEYGEN = 'heygen',
 }
 
 /**

@@ -1,7 +1,9 @@
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { AgentFailureReason, IngredientCategory } from '@genfeedai/contracts';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 function buildContext(
@@ -33,6 +35,15 @@ describe('VideoGenerationExecutionService', () => {
     };
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
+      notifyFailedGeneration: vi.fn().mockResolvedValue(undefined),
+    };
+    const generationBilling = {
+      bindOutput: vi.fn().mockResolvedValue(undefined),
+      hasPool: vi.fn().mockReturnValue(false),
+      releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+      releasePool: vi.fn().mockResolvedValue(undefined),
+      rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
+      settleOutput: vi.fn().mockResolvedValue('no-hold'),
     };
     const loggerService = { debug: vi.fn(), error: vi.fn(), log: vi.fn() };
     const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
@@ -42,7 +53,13 @@ describe('VideoGenerationExecutionService', () => {
     };
     const replicatePollQueueService = { schedule: vi.fn() };
     const sharedService = { createMediaDocuments: vi.fn() };
-    const videosService = { patch: vi.fn() };
+    const videosService = {
+      patch: vi.fn(),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    };
+    const webhooksService = {
+      processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
+    };
     const websocketService = {
       publishBackgroundTaskUpdate: vi.fn().mockResolvedValue(undefined),
     };
@@ -50,6 +67,7 @@ describe('VideoGenerationExecutionService', () => {
     const service = new VideoGenerationExecutionService(
       activitiesService as never,
       failedGenerationService as never,
+      generationBilling as never,
       loggerService as never,
       metadataService as never,
       providerDispatchService as never,
@@ -57,10 +75,295 @@ describe('VideoGenerationExecutionService', () => {
       sharedService as never,
       videosService as never,
       websocketService as never,
+      webhooksService as never,
     );
 
-    return { providerDispatchService, replicatePollQueueService, service };
+    return {
+      generationBilling,
+      metadataService,
+      videosService,
+      webhooksService,
+      providerDispatchService,
+      replicatePollQueueService,
+      sharedService,
+      failedGenerationService,
+      service,
+    };
   }
+
+  it.each([
+    'pre-dispatch',
+    'metadata-write',
+    'adapter-preflight',
+    'credit-rejection',
+    'ambiguous-submission',
+  ])(
+    'closes only proven non-submission, preserving a group after %s failure',
+    async (path) => {
+      const state = createHarness();
+      const quote = quoteModelBillablePricing(
+        billableProfile(),
+        {
+          modelKey: 'test/model',
+          provider: 'replicate',
+          outputs: 1,
+          requests: 1,
+        },
+        1,
+        '2026-09-30T00:00:00.000Z',
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      const context = buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: {
+          creditsConfig: {
+            modelQuote: quote.snapshot,
+            amount: quote.snapshot.credits,
+            settlement: 'completion',
+            reservationId: 'hold-1',
+          },
+        } as never,
+      });
+      const error =
+        path === 'credit-rejection'
+          ? new ReplicateProviderError(
+              AgentFailureReason.INSUFFICIENT_CREDITS,
+              'rejected',
+              { statusCode: 402, isRetryable: false },
+            )
+          : new Error('failure');
+      if (path === 'pre-dispatch')
+        await expect(
+          state.service.failPlaceholderBeforeDispatch(context, error),
+        ).rejects.toBe(error);
+      else {
+        if (path === 'metadata-write')
+          state.metadataService.patch.mockRejectedValueOnce(error);
+        else
+          state.providerDispatchService.dispatch.mockImplementation(
+            async (params) => {
+              if (path !== 'adapter-preflight')
+                params.onProviderSubmissionStarted();
+              throw error;
+            },
+          );
+        if (path === 'credit-rejection')
+          await expect(state.service.execute(context)).rejects.toBeInstanceOf(
+            HttpException,
+          );
+        else await expect(state.service.execute(context)).rejects.toBe(error);
+      }
+      if (path !== 'ambiguous-submission') {
+        if (path === 'metadata-write')
+          expect(state.providerDispatchService.dispatch).not.toHaveBeenCalled();
+        expect(state.videosService.patchAll).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'PROCESSING' }),
+          expect.objectContaining({
+            status: 'FAILED',
+            isGenerationFailureConfirmed: true,
+          }),
+        );
+        expect(
+          state.generationBilling.releaseOutput,
+        ).toHaveBeenCalledExactlyOnceWith('ingredient-1', 'org-1');
+        expect(
+          state.videosService.patchAll.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          state.generationBilling.releaseOutput.mock.invocationCallOrder[0],
+        );
+      } else {
+        expect(state.videosService.patchAll).not.toHaveBeenCalled();
+        expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+      }
+      expect(
+        state.failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps an earlier accepted output funded when a later sequential dispatch fails', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      sharedService,
+      failedGenerationService,
+    } = createHarness();
+    const failure = new Error('second dispatch rejected');
+    providerDispatchService.dispatch
+      .mockResolvedValueOnce({
+        completion: 'polling',
+        externalId: 'ext-first',
+        provider: 'replicate',
+      })
+      .mockRejectedValueOnce(failure);
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    await expect(
+      service.execute(
+        buildContext({
+          createVideoDto: { outputs: 2 } as never,
+          pendingIngredientIds: ['ingredient-1'],
+          request: {
+            creditsConfig: {
+              amount: 6,
+              settlement: 'completion',
+              reservationId: 'pool-1',
+            },
+          } as never,
+        }),
+      ),
+    ).rejects.toBe(failure);
+    expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+      'ingredient-2',
+      'org-1',
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalledWith(
+      'ingredient-1',
+      'org-1',
+    );
+    expect(
+      failedGenerationService.handleFailedVideoGeneration,
+    ).toHaveBeenCalledTimes(1);
+  });
+
+  it('funds every sequential dispatch before the provider accepts it', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      sharedService,
+    } = createHarness();
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    providerDispatchService.dispatch.mockImplementation(async () => {
+      expect(generationBilling.bindOutput).toHaveBeenCalledTimes(
+        providerDispatchService.dispatch.mock.calls.length,
+      );
+      return {
+        completion: 'polling',
+        externalId: 'accepted',
+        provider: 'replicate',
+      };
+    });
+    await service.execute(
+      buildContext({
+        createVideoDto: { outputs: 2 } as never,
+        pendingIngredientIds: ['ingredient-1'],
+        request: { creditsConfig: { amount: 6 } } as never,
+      }),
+    );
+    expect(
+      generationBilling.bindOutput.mock.calls.map(([, output]) => output),
+    ).toEqual([
+      { credits: 3, ingredientId: 'ingredient-1' },
+      { credits: 3, ingredientId: 'ingredient-2' },
+    ]);
+  });
+
+  it('recovers accepted identity after a metadata outage without failing or releasing the output', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      metadataService,
+      failedGenerationService,
+    } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'accepted-id',
+      provider: 'replicate',
+    });
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    await service.execute(
+      buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: { creditsConfig: { amount: 6 } } as never,
+      }),
+    );
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+      ingredientId: 'ingredient-1',
+      externalId: 'accepted-id',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.handleFailedVideoGeneration,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('retains accepted funding even when metadata and attachment recovery are both unavailable', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      metadataService,
+    } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'accepted-id',
+      provider: 'replicate',
+    });
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    generationBilling.rememberAcceptedOutput.mockRejectedValue(
+      new Error('queue unavailable'),
+    );
+    await service.execute(
+      buildContext({ pendingIngredientIds: ['ingredient-1'] }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
+
+  it.each(['fal', 'higgsfield'])(
+    'finalizes a completed %s video after binding its hold',
+    async (provider) => {
+      const {
+        service,
+        generationBilling,
+        providerDispatchService,
+        webhooksService,
+      } = createHarness();
+      const url = 'https://provider.example/output.mp4';
+      providerDispatchService.dispatch.mockResolvedValue({
+        completion: 'remote-output',
+        externalId: url,
+        provider,
+      });
+      generationBilling.hasPool.mockReturnValue(true);
+      const context = buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: {
+          creditsConfig: {
+            amount: 6,
+            settlement: 'completion',
+            reservationId: 'pool-1',
+          },
+        } as never,
+      });
+      await service.execute(context);
+      expect(webhooksService.processMediaForIngredient).toHaveBeenCalledWith(
+        'ingredient-1',
+        IngredientCategory.VIDEO,
+        url,
+        url,
+      );
+      expect(
+        generationBilling.bindOutput.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        webhooksService.processMediaForIngredient.mock.invocationCallOrder[0],
+      );
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    },
+  );
 
   it('maps a Replicate 402 insufficient-credit failure to a 4xx/502 HttpException, never a raw 500', async () => {
     const { providerDispatchService, service } = createHarness();

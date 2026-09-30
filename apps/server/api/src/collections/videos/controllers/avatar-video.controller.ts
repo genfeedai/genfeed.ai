@@ -1,9 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
-import {
-  AvatarVideoGenerationService,
-  isAvatarBilledByRequest,
-} from '@api/collections/videos/services/avatar-video-generation.service';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -49,6 +46,8 @@ export class AvatarVideoController {
     allowByokBypass: true,
     description: 'Avatar video generation',
     modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+    // Charged when the render completes, not when HeyGen accepts it (#5657).
+    settlement: 'completion',
     source: ActivitySource.VIDEO_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -75,9 +74,7 @@ export class AvatarVideoController {
           {
             brandId: user.brandId,
             organizationId: user.organizationId,
-            settleCreditsExternally: isAvatarBilledByRequest(
-              request as CreditsGuardRequest,
-            ),
+            request: request as CreditsGuardRequest,
             userId: user.userId ?? user.id,
           },
         );

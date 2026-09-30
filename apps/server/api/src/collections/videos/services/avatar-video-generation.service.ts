@@ -1,13 +1,26 @@
+import type {
+  AvatarGenerationFunding,
+  AvatarGenerationPrice,
+  AvatarVideoGenerationContext,
+  AvatarVideoGenerationParams,
+  AvatarVideoGenerationResult,
+  ResolvableVoiceDocument,
+  ResolvedAudioSource,
+  ResolvedIdentity,
+} from '@api/collections/videos/services/avatar-video-generation.types';
+
+export type { AvatarGenerationPrice } from '@api/collections/videos/services/avatar-video-generation.types';
+
 import { randomUUID } from 'node:crypto';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { type GenerationBillingRequest } from '@api/collections/credits/services/generation-billing.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { isMaterializableSavedVoice } from '@api/collections/videos/services/saved-voice-materialization';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
@@ -20,6 +33,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
@@ -34,10 +48,7 @@ import {
   MetadataExtension,
   VoiceProvider,
 } from '@genfeedai/contracts';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
@@ -45,88 +56,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { AvatarVideoLifecycleService } from './avatar-video-lifecycle.service';
-
-interface AvatarVideoGenerationContext {
-  organizationId: string;
-  userId: string;
-  brandId?: string;
-  /**
-   * The caller's request pipeline (credits guard reservation + interceptor
-   * settlement) already bills this generation, so it must not be deducted
-   * again here.
-   */
-  settleCreditsExternally?: boolean;
-}
-
-/**
- * True when the credits guard finalized a positive platform charge for this
- * request. A BYOK bypass records usage only, and a non-positive amount means
- * request pricing did not resolve (same rule as the remix fallback), so in
- * both cases the service still applies its own charge.
- */
-export function isAvatarBilledByRequest(request: {
-  creditsConfig?: { amount?: number; isByokBypass?: boolean };
-}): boolean {
-  const amount = request.creditsConfig?.amount;
-  return (
-    typeof amount === 'number' &&
-    Number.isFinite(amount) &&
-    amount > 0 &&
-    !request.creditsConfig?.isByokBypass
-  );
-}
-
-interface AvatarVideoGenerationParams {
-  text: string;
-  useIdentity?: boolean;
-  photoUrl?: string;
-  photoIngredientId?: string;
-  audioUrl?: string;
-  clonedVoiceId?: string;
-  elevenlabsVoiceId?: string;
-  heygenVoiceId?: string;
-  avatarId?: string;
-  voiceProvider?: string;
-  aspectRatio?: AvatarVideoAspectRatio;
-}
-
-interface AvatarVideoGenerationResult {
-  ingredientId: string;
-  externalId: string;
-  status: 'processing';
-}
-
-export interface AvatarGenerationPrice {
-  billingMode: 'byok' | 'platform';
-  credits: number;
-}
-
-interface AvatarGenerationFunding extends AvatarGenerationPrice {
-  heygenApiKey?: string;
-  elevenLabsApiKey?: string;
-}
-
-interface ResolvedIdentity {
-  audioUrl?: string;
-  elevenlabsVoiceId?: string;
-  heygenVoiceId?: string;
-  photoIngredientId?: string;
-  photoUrl?: string;
-  savedVoice?: ResolvableVoiceDocument;
-}
-
-type ResolvableVoiceDocument = Pick<
-  VoiceDocument,
-  'externalVoiceId' | 'sampleAudioUrl'
-> & {
-  provider?: VoiceProvider | string | null;
-};
-
-interface ResolvedAudioSource {
-  audioDuration: number;
-  audioUrl?: string;
-  heygenVoiceId?: string;
-}
 
 @Injectable()
 export class AvatarVideoGenerationService {
@@ -136,7 +65,7 @@ export class AvatarVideoGenerationService {
     private readonly brandsService: BrandsService,
     private readonly configService: ConfigService,
     private readonly byokService: ByokService,
-    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly avatarBilling: AvatarVideoBillingService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly managedInferenceRuntimeService: ManagedInferenceRuntimeService,
@@ -187,10 +116,19 @@ export class AvatarVideoGenerationService {
     const isByok = Boolean(heygenKey) && !usesPlatformSpeech;
     return {
       billingMode: isByok ? 'byok' : 'platform',
-      credits: isByok ? 0 : AVATAR_GENERATION_CREDIT_COST,
+      credits: isByok ? 0 : await this.quotePlatformCredits(),
       heygenApiKey: heygenKey?.apiKey,
       elevenLabsApiKey: elevenLabsKey?.apiKey,
     };
+  }
+
+  /**
+   * The platform price comes from the `heygen/avatar` model row, the same row
+   * the credits guard reserves from. A row that resolves to no price fails
+   * closed: with no fallback constant, zero would mean a free render.
+   */
+  async quotePlatformCredits(): Promise<number> {
+    return this.avatarBilling.quotePlatformCredits();
   }
 
   async generateAvatarVideo(
@@ -202,6 +140,10 @@ export class AvatarVideoGenerationService {
   ): Promise<AvatarVideoGenerationResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     let ingredientId: string | null = null;
+    let billing: GenerationBillingRequest | undefined;
+    let ownsBillingPool = false;
+    let providerAccepted = false;
+    let providerSubmissionStarted = false;
 
     try {
       const brand = await this.findBrandForContext(context);
@@ -212,23 +154,22 @@ export class AvatarVideoGenerationService {
       );
       this.assertUsableVoiceSource(params, resolvedIdentity);
       const funding = await this.resolveFunding(resolvedIdentity, context);
+      billing =
+        funding.billingMode === 'byok'
+          ? context.request
+          : await this.avatarBilling.openBilling(
+              funding,
+              context,
+              placeholderScope,
+            );
+      ownsBillingPool = billing !== undefined && billing !== context.request;
 
-      const { ingredientData, metadataData } =
-        await this.sharedService.createMediaDocumentsInternal({
-          brandId: brand.id,
-          category: IngredientCategory.AVATAR,
-          extension: MetadataExtension.MP4,
-          groupId: placeholderScope?.groupId,
-          groupIndex: placeholderScope?.groupIndex,
-          model: MODEL_KEYS.HEYGEN_AVATAR,
-          organizationId: context.organizationId,
-          parentId:
-            resolvedIdentity.photoIngredientId != null
-              ? resolvedIdentity.photoIngredientId
-              : undefined,
-          status: IngredientStatus.PROCESSING,
-          userId: context.userId,
-        });
+      const { ingredientData, metadataData } = await this.createAvatarDocuments(
+        brand.id,
+        resolvedIdentity,
+        context,
+        placeholderScope,
+      );
 
       ingredientId = String(ingredientData.id);
       await this.lifecycleService.announceProcessing({
@@ -238,7 +179,11 @@ export class AvatarVideoGenerationService {
         userId: context.userId,
       });
       await onPlaceholderCreated?.(ingredientId);
-      await this.assertPlaceholderCredits(context, placeholderScope);
+      await this.avatarBilling.assertPlaceholderCredits(
+        context,
+        funding.credits,
+        placeholderScope,
+      );
       await onCreditsPrepared?.({
         billingMode: funding.billingMode,
         credits: funding.credits,
@@ -267,6 +212,17 @@ export class AvatarVideoGenerationService {
           funding,
         );
 
+      // Bind the render to its hold before its provider id is
+      // persisted, so a webhook that races this request always finds it.
+      if (billing) {
+        await this.avatarBilling.bindOutput(billing, {
+          credits: billing.creditsConfig?.amount ?? funding.credits,
+          ingredientId,
+          submissionIntentProvider: ByokProvider.HEYGEN,
+        });
+      }
+
+      providerSubmissionStarted = true;
       const externalId = await this.heygenService.generatePhotoAvatarVideo(
         ingredientId,
         photoUrl,
@@ -281,31 +237,14 @@ export class AvatarVideoGenerationService {
         params.aspectRatio ?? '9:16',
       );
 
-      await this.metadataService.patch(
+      providerAccepted = true;
+
+      await this.persistAcceptedAvatar(
+        context,
         metadataData.id,
-        new MetadataEntity({
-          duration: audioDuration > 0 ? audioDuration : undefined,
-          externalId,
-        }),
-      );
-
-      if (
-        funding.billingMode === 'platform' &&
-        !placeholderScope?.settleCreditsExternally &&
-        !context.settleCreditsExternally
-      ) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          context.organizationId,
-          context.userId,
-          AVATAR_GENERATION_CREDIT_COST,
-          `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
-          ActivitySource.VIDEO_GENERATION,
-        );
-      }
-
-      await this.lifecycleService.publishInitialStatus(
         ingredientId,
-        context.userId,
+        externalId,
+        audioDuration,
       );
 
       return {
@@ -316,23 +255,134 @@ export class AvatarVideoGenerationService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
 
-      if (ingredientId) {
-        await this.recordGenerationFailure(ingredientId, context, error);
-      }
+      await this.failUnsubmittedOrRejectedAvatar(
+        ingredientId,
+        context,
+        error,
+        providerSubmissionStarted,
+        providerAccepted,
+      );
 
-      if (error instanceof HttpException) {
-        throw error;
+      throw this.generationFailure(error);
+    } finally {
+      // Credits no accepted render claimed (a failure before HeyGen took the
+      // job) go back; a fully bound hold makes this a no-op.
+      if (ownsBillingPool && billing) {
+        await this.avatarBilling.releasePool(billing);
       }
+    }
+  }
 
-      throw new HttpException(
-        {
-          detail:
-            error instanceof Error
-              ? error.message
-              : 'An error occurred while generating avatar video',
-          title: 'Avatar video generation failed',
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
+  private async failUnsubmittedOrRejectedAvatar(
+    ingredientId: string | null,
+    context: AvatarVideoGenerationContext,
+    error: unknown,
+    providerSubmissionStarted: boolean,
+    providerAccepted: boolean,
+  ): Promise<void> {
+    if (
+      !ingredientId ||
+      providerAccepted ||
+      (providerSubmissionStarted &&
+        !(error instanceof HeyGenSubmissionRejectedError))
+    )
+      return;
+    if (error instanceof HeyGenSubmissionRejectedError) {
+      await this.avatarBilling.recordSubmissionRejection(
+        ingredientId,
+        context.organizationId,
+      );
+    }
+    await this.recordGenerationFailure(ingredientId, context, error);
+    await this.avatarBilling.releaseGenerationHold(
+      ingredientId,
+      context.organizationId,
+    );
+  }
+
+  /**
+   * Chooses what pays for a platform-funded render: the request's own hold when
+   * the credits guard reserved one, otherwise a hold the service opens itself.
+   * Runs before any provider work so an unaffordable render fails first.
+   */
+  private generationFailure(error: unknown): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+
+    return new HttpException(
+      {
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while generating avatar video',
+        title: 'Avatar video generation failed',
+      },
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  private createAvatarDocuments(
+    brandId: string,
+    identity: ResolvedIdentity,
+    context: AvatarVideoGenerationContext,
+    placeholderScope?: GenerationPlaceholderScope,
+  ): ReturnType<SharedService['createMediaDocumentsInternal']> {
+    return this.sharedService.createMediaDocumentsInternal({
+      brandId,
+      category: IngredientCategory.AVATAR,
+      extension: MetadataExtension.MP4,
+      groupId: placeholderScope?.groupId,
+      groupIndex: placeholderScope?.groupIndex,
+      model: MODEL_KEYS.HEYGEN_AVATAR,
+      organizationId: context.organizationId,
+      parentId:
+        identity.photoIngredientId != null
+          ? identity.photoIngredientId
+          : undefined,
+      status: IngredientStatus.PROCESSING,
+      userId: context.userId,
+    });
+  }
+
+  private async persistAcceptedAvatar(
+    context: AvatarVideoGenerationContext,
+    metadataId: string,
+    ingredientId: string,
+    externalId: string,
+    audioDuration: number,
+  ): Promise<void> {
+    try {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          duration: audioDuration > 0 ? audioDuration : undefined,
+          externalId,
+        }),
+      );
+    } catch (error: unknown) {
+      await this.avatarBilling.rememberAcceptedOutput({
+        ingredientId,
+        externalId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+      });
+      this.loggerService.error(
+        'Accepted avatar provider identity queued for recovery',
+        error,
+        { ingredientId },
+      );
+    }
+    try {
+      await this.lifecycleService.publishInitialStatus(
+        ingredientId,
+        context.userId,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Accepted avatar initial notification failed',
+        error,
+        { ingredientId },
       );
     }
   }
@@ -852,30 +902,6 @@ export class AvatarVideoGenerationService {
         title: 'Validation failed',
       },
       HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  private async assertPlaceholderCredits(
-    context: AvatarVideoGenerationContext,
-    placeholderScope?: GenerationPlaceholderScope,
-  ): Promise<void> {
-    if (
-      !placeholderScope?.settleCreditsExternally ||
-      placeholderScope.isByokBypass
-    )
-      return;
-    const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-        context.organizationId,
-        AVATAR_GENERATION_CREDIT_COST,
-      );
-    if (hasCredits) return;
-    throw new HttpException(
-      {
-        detail: 'Insufficient credits for avatar generation.',
-        title: 'Insufficient credits',
-      },
-      HttpStatus.PAYMENT_REQUIRED,
     );
   }
 

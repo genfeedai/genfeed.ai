@@ -148,12 +148,14 @@ export class ImageGenerationAdmissionService {
     organizationId: string,
     request: Request,
     onCreditsPrepared?: () => Promise<void>,
+    providerInput?: Record<string, unknown>,
   ): Promise<void> {
     await this.creditsService.ensureDeferredCredits(
       dto,
       model,
       organizationId,
       request,
+      providerInput,
     );
     await onCreditsPrepared?.();
   }

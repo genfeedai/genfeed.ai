@@ -160,12 +160,22 @@ describe('IngredientsService — asset-gate interception', () => {
       expect(markFirstAssetGenerated).not.toHaveBeenCalled();
     });
 
-    it('does NOT mark or pre-read on a non-GENERATED bulk update', async () => {
+    it('scopes a non-GENERATED bulk update to its owner without marking the asset gate', async () => {
+      delegate.findMany.mockResolvedValue([{ organizationId: 'org-a' }]);
       delegate.updateMany.mockResolvedValue({ count: 5 });
 
       await service.patchAll({ brandId: 'brand-1' }, { isDeleted: true });
 
-      expect(delegate.findMany).not.toHaveBeenCalled();
+      expect(delegate.findMany).toHaveBeenCalledOnce();
+      expect(delegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            AND: [{ brandId: 'brand-1', isDeleted: false }],
+            organizationId: 'org-a',
+            isDeleted: false,
+          },
+        }),
+      );
       expect(markFirstAssetGenerated).not.toHaveBeenCalled();
     });
   });

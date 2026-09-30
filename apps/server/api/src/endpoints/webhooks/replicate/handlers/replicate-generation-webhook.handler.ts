@@ -9,7 +9,6 @@ import { isAllowedReplicateOutputUrl } from '@api/endpoints/webhooks/replicate/w
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
-import { supportsMultipleOutputs } from '@genfeedai/contracts/constants';
 import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -188,6 +187,10 @@ export class ReplicateGenerationWebhookHandler {
   ): Promise<IngredientCategory | null> {
     const metadata =
       (await this.metadataService.findOne({ externalId })) ??
+      (await this.metadataService.findOne({
+        externalId: `${externalId}_0`,
+        externalProvider: 'replicate',
+      })) ??
       (externalId.includes('_')
         ? await this.metadataService.findOne({
             externalId: externalId.split('_')[0],
@@ -280,11 +283,15 @@ export class ReplicateGenerationWebhookHandler {
           `Replicate callback ${payload.id} does not own continuation ${workflowContinuationId}`,
         );
       }
-      const workflowOutputUrl = Array.isArray(output)
-        ? output.find((candidate) => isAllowedReplicateOutputUrl(candidate))
-        : isAllowedReplicateOutputUrl(output)
-          ? output
-          : undefined;
+      const targetIngredient = await this.ingredientsService.findOne({
+        id: target.ingredientId,
+        organizationId: target.organizationId,
+        isDeleted: false,
+      });
+      const workflowOutputUrl = await this.requireSingleOutput(
+        payload,
+        targetIngredient?.metadataId ?? undefined,
+      );
       if (!workflowOutputUrl) {
         this.loggerService.warn(
           'Replicate workflow callback has no allowed output URL',
@@ -313,81 +320,206 @@ export class ReplicateGenerationWebhookHandler {
 
     const ingredientCategory = await this.resolveIngredientCategory(payload);
 
-    // Check if the model supports multiple outputs
-    // Extract model key from payload (format: "owner/model-name" or ModelKey)
-    // @ts-expect-error TS2339
-    const extractedModelKey = payload.model?.split('/').pop() || '';
-    const modelSupportsMultiOutputs =
-      supportsMultipleOutputs(extractedModelKey);
+    // Persisted indexed metadata proves native dispatch. A provider cap may return just one output.
+    const primaryIdentity = {
+      externalId: `${payload.id}_0`,
+      externalProvider: 'replicate',
+    };
+    const batchPrimary =
+      (await this.metadataService.findOne({
+        ...primaryIdentity,
+        isDeleted: false,
+      })) ??
+      (await this.metadataService.findOne({
+        ...primaryIdentity,
+        isDeleted: true,
+      }));
+    if (batchPrimary) {
+      await this.completePersistedBatch(
+        payload,
+        output,
+        ingredientCategory,
+        batchPrimary.id,
+      );
+      return;
+    }
 
-    if (Array.isArray(output)) {
-      const uploadTasks = output
-        .map((url, index) => {
-          if (!isAllowedReplicateOutputUrl(url)) {
-            if (url) {
-              this.loggerService.error(
-                'Replicate webhook: output URL rejected by host allowlist',
-                { index, predictionId: payload.id },
-              );
-            }
-            return null;
-          }
-
-          const externalId =
-            modelSupportsMultiOutputs && output.length > 1
-              ? `${payload.id}_${index}`
-              : payload.id;
-
-          return this.webhooksService.processMediaFromWebhook(
-            'replicate',
-            ingredientCategory,
-            externalId,
-            url,
-          );
-        })
-        .filter((task): task is Promise<void> => Boolean(task));
-
-      if (uploadTasks.length > 0) {
-        const uploadResults = await Promise.allSettled(uploadTasks);
-        uploadResults.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            this.loggerService.error(
-              'Replicate webhook: failed to process output',
-              {
-                error: result.reason,
-                index,
-                predictionId: payload.id,
-              },
-            );
-          }
-        });
-      } else {
-        this.loggerService.warn(
-          'Replicate webhook: output array contained no URLs',
-          { model: payload.model, predictionId: payload.id },
-        );
-      }
-    } else if (isAllowedReplicateOutputUrl(output)) {
+    const singleOutput = await this.requireSingleOutput(payload);
+    if (isAllowedReplicateOutputUrl(singleOutput)) {
       await this.webhooksService.processMediaFromWebhook(
         'replicate',
         ingredientCategory,
         payload.id,
-        output,
+        singleOutput,
       );
-    } else if (typeof output === 'string') {
+    } else if (typeof singleOutput === 'string') {
       this.loggerService.error(
         'Replicate webhook: output URL rejected by host allowlist',
         { model: payload.model, predictionId: payload.id },
       );
-    } else {
-      // No direct URL(s) available — log and skip
-      this.loggerService.warn('Replicate webhook: no output URLs to process', {
-        hasOutput: !!output,
-        id: payload.id,
-        model: payload.model,
-        status: payload.status,
-      });
+      this.loggerService.warn(
+        'Replicate webhook: output array contained no URLs',
+        { predictionId: payload.id },
+      );
     }
+  }
+
+  private async requireSingleOutput(
+    payload: ReplicateWebhookPayload,
+    metadataId?: string,
+  ): Promise<string | undefined> {
+    const output: unknown = payload.output;
+    const validShape =
+      typeof output === 'string' ||
+      (Array.isArray(output) &&
+        output.every((entry) => typeof entry === 'string'));
+    const outputs =
+      typeof output === 'string'
+        ? [output]
+        : Array.isArray(output)
+          ? output
+          : [];
+    if (!validShape || outputs.length !== 1) {
+      const metadata = metadataId
+        ? null
+        : await this.metadataService.findOne({
+            externalId: payload.id,
+            externalProvider: 'replicate',
+            isDeleted: false,
+          });
+      const targetId = metadataId ?? metadata?.id;
+      if (targetId)
+        await this.metadataService.patch(targetId, {
+          result: JSON.stringify(output) ?? 'null',
+          error:
+            'Provider output does not match the single-output dispatch manifest; recovery is required',
+        });
+      this.loggerService.error(
+        'Replicate single-output dispatch requires recovery',
+        {
+          predictionId: payload.id,
+          hasMetadata: Boolean(targetId),
+        },
+      );
+      throw new Error('Replicate single-output dispatch requires recovery');
+    }
+    return outputs[0];
+  }
+
+  private async completePersistedBatch(
+    payload: ReplicateWebhookPayload,
+    output: unknown,
+    category: IngredientCategory,
+    primaryMetadataId: string,
+  ): Promise<void> {
+    const ownerIdentity = { metadataId: primaryMetadataId };
+    const owner =
+      (await this.ingredientsService.findOne({
+        ...ownerIdentity,
+        isDeleted: false,
+      })) ??
+      (await this.ingredientsService.findOne({
+        ...ownerIdentity,
+        isDeleted: true,
+      }));
+    const organizationId = owner?.organizationId;
+    if (!organizationId)
+      throw new Error('Replicate batch tenant identity is missing');
+    // Deleted library entries remain part of the original provider manifest.
+    // Removing one cannot shrink the authorization for a still-funded retry.
+    const records = await Promise.all(
+      [false, true].map((isDeleted) =>
+        this.metadataService.findAll(
+          {
+            where: {
+              externalId: { startsWith: `${payload.id}_` },
+              externalProvider: 'replicate',
+              ingredients: {
+                some: {
+                  organizationId,
+                  OR: [{ isDeleted: false }, { isDeleted: true }],
+                },
+              },
+              isDeleted,
+            },
+          },
+          { pagination: false },
+          false,
+        ),
+      ),
+    );
+    const slots = [
+      ...new Map(
+        records.flatMap((record) => record.docs).map((row) => [row.id, row]),
+      ).values(),
+    ].filter((row) => {
+      const suffix = row.externalId?.slice(payload.id.length + 1);
+      return suffix !== undefined && /^\d+$/.test(suffix);
+    });
+    if (
+      (typeof output !== 'string' && !Array.isArray(output)) ||
+      (Array.isArray(output) &&
+        output.some((entry) => typeof entry !== 'string'))
+    ) {
+      const primary = slots.find((row) => row.externalId === `${payload.id}_0`);
+      if (primary)
+        await this.metadataService.patch(primary.id, {
+          result: JSON.stringify(output),
+          error:
+            'Unsupported provider output representation; recovery is required',
+        });
+      throw new Error('Replicate output representation requires recovery');
+    }
+    const returned =
+      typeof output === 'string'
+        ? [output]
+        : Array.isArray(output)
+          ? output
+          : [];
+    if (returned.length > slots.length) {
+      const primary = slots.find((row) => row.externalId === `${payload.id}_0`);
+      if (primary)
+        await this.metadataService.patch(primary.id, {
+          result: JSON.stringify(returned),
+          error:
+            'Provider returned more outputs than the funded dispatch manifest; recovery is required',
+        });
+      throw new Error(
+        'Replicate output cardinality exceeds the funded dispatch manifest',
+      );
+    }
+    await Promise.all(
+      slots.map(async (slot) => {
+        if (slot.isDeleted) return;
+        const liveOwner = await this.ingredientsService.findOne({
+          metadataId: slot.id,
+          organizationId,
+          isDeleted: false,
+        });
+        if (!liveOwner) return;
+        const index = Number(slot.externalId?.slice(payload.id.length + 1));
+        const url = returned[index];
+        if (isAllowedReplicateOutputUrl(url)) {
+          await this.webhooksService.processMediaFromWebhook(
+            'replicate',
+            category,
+            String(slot.externalId),
+            url,
+          );
+        } else if (index >= returned.length) {
+          await this.webhooksService.handleFailedGeneration(
+            String(slot.externalId),
+            'Provider completed without producing this requested output',
+          );
+        } else {
+          // Invalid/unknown artifact roles remain pending instead of being treated as successful images.
+          this.loggerService.error('Replicate batch output requires recovery', {
+            predictionId: payload.id,
+            index,
+          });
+        }
+      }),
+    );
   }
 
   /**

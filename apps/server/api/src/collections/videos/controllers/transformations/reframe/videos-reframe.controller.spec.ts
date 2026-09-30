@@ -1,3 +1,6 @@
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -107,6 +110,11 @@ const mockUser = {
 describe('VideosReframeController', () => {
   let controller: VideosReframeController;
 
+  const generationBilling = {
+    bindOutput: vi.fn(),
+    releaseOutput: vi.fn(),
+    rememberAcceptedOutput: vi.fn(),
+  };
   const mockServices = {
     activitiesService: {
       record: vi.fn().mockResolvedValue({ id: activityId }),
@@ -146,6 +154,11 @@ describe('VideosReframeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosReframeController],
       providers: [
+        { provide: GenerationQuoteGroupService, useValue: {} },
+        {
+          provide: GenerationBillingService,
+          useValue: generationBilling,
+        },
         {
           provide: CreditDeductionQueueService,
           useValue: { queueByokUsage: vi.fn(), queueDeduction: vi.fn() },
@@ -237,6 +250,8 @@ describe('VideosReframeController', () => {
       ),
     ).toEqual({
       description: 'Video reframe',
+      settlement: 'completion',
+      isBodyModelIgnored: true,
       modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
       source: ActivitySource.VIDEO_REFRAME,
     });
@@ -249,6 +264,29 @@ describe('VideosReframeController', () => {
     });
     expect(
       mockServices.creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('recovers an accepted reframe identity without releasing its funding after a metadata outage', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.metadataService.patch.mockImplementationOnce(
+      async (_id, metadata) => {
+        if (metadata.externalId) throw new Error('metadata unavailable');
+      },
+    );
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredientId,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
+      }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      mockServices.failedGenerationService.handleFailedVideoGeneration,
     ).not.toHaveBeenCalled();
   });
 

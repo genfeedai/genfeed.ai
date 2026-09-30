@@ -1,3 +1,4 @@
+import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
 import {
@@ -6,6 +7,7 @@ import {
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflows/engine';
+import type { ConfigService } from '@libs/config/config.service';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -113,6 +115,83 @@ describe('WorkflowMediaProcessingExecutorRegistrarService', () => {
 
     expect(files.getPresignedDownloadUrl).not.toHaveBeenCalled();
     expect(files.audioOverlay).not.toHaveBeenCalled();
+  });
+
+  describe('avatar submission intent', () => {
+    it.each(['submission transport lost', 'accepted identity write failed'])(
+      'does not convert %s into confirmed provider failure',
+      async (message) => {
+        const accepted = message === 'accepted identity write failed';
+        const helper = {
+          createProviderContinuation: vi
+            .fn()
+            .mockResolvedValue({ continuationId: 'continuation-1' }),
+          failProviderContinuationSubmission: vi.fn(),
+          getAspectRatioConfig: () => undefined,
+          getOptionalStringInput: () => undefined,
+          getRequiredStringInput: () => 'script',
+          markProviderContinuationSubmitted: accepted
+            ? vi.fn().mockRejectedValue(new Error(message))
+            : vi.fn(),
+          readConfigString: () => undefined,
+          wrapEngineExecutor,
+        };
+        const avatar = {
+          generateAvatarVideo: vi.fn(
+            async (
+              _input: unknown,
+              _context: unknown,
+              beforeSubmit: (ingredientId: string) => Promise<void>,
+            ) => {
+              await beforeSubmit('ingredient-1');
+              if (!accepted) throw new Error(message);
+              return {
+                externalId: 'accepted-job',
+                ingredientId: 'ingredient-1',
+                status: 'PROCESSING',
+              };
+            },
+          ),
+        };
+        const engine = new WorkflowEngine();
+        new WorkflowMediaProcessingExecutorRegistrarService(
+          helper as unknown as WorkflowEngineExecutorHelperService,
+          { get: vi.fn() } as unknown as ConfigService,
+          avatar as unknown as AvatarVideoGenerationService,
+        ).register(engine);
+        await expect(
+          getActionExecutor(engine, 'aiAvatarVideo')?.(
+            {
+              config: {},
+              id: 'avatar-1',
+              inputs: [],
+              label: 'Avatar',
+              type: 'aiAvatarVideo',
+            },
+            new Map(),
+            {
+              organizationId: 'org-1',
+              runId: 'run-1',
+              userId: 'user-1',
+              workflowId: 'workflow-1',
+              workflowVersionId: 'version-1',
+            },
+          ),
+        ).rejects.toThrow(message);
+        expect(helper.createProviderContinuation).toHaveBeenCalledOnce();
+        expect(
+          helper.failProviderContinuationSubmission,
+        ).not.toHaveBeenCalled();
+        if (accepted)
+          expect(helper.markProviderContinuationSubmitted).toHaveBeenCalledWith(
+            {
+              continuationId: 'continuation-1',
+              externalId: 'accepted-job',
+              organizationId: 'org-1',
+            },
+          );
+      },
+    );
   });
 
   describe('videoQa continuity references', () => {

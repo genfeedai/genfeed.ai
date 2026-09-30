@@ -1,6 +1,8 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { isNativeImageBatch } from '@api/collections/images/services/image-generation-provider.util';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import {
   baseModelKey,
@@ -26,19 +28,18 @@ import {
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import {
-  ActivitySource,
-  type ByokProvider,
-  PricingType,
-} from '@genfeedai/contracts';
+import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
 import {
   MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
   normalizeMusicSettings,
 } from '@genfeedai/contracts/constants';
-import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
+import type {
+  CreditsConfig,
+  ModelBillableQuoteSnapshot,
+} from '@genfeedai/contracts/interfaces';
 import { getDeserializer, isDeserializerRuntime } from '@genfeedai/helpers';
 import {
-  billCreditsFromProviderCost,
   buildPricingAuditStamp,
   getVideoGenerationResolutionCreditMultiplier,
   isTopazVideoUpscaleFps,
@@ -99,6 +100,7 @@ export class CreditsGuard implements CanActivate {
 
     private loggerService: LoggerService,
     private configService: ConfigService,
+    private readonly modelCreditQuote: ModelCreditQuoteService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -148,6 +150,7 @@ export class CreditsGuard implements CanActivate {
     try {
       let requiredCredits: number;
       let creditsDeferred = false;
+      let modelQuote: ModelBillableQuoteSnapshot | undefined;
 
       // Try to get model and outputs from request body (supports JSON:API data.attributes)
       let modelKey: string | undefined;
@@ -253,6 +256,15 @@ export class CreditsGuard implements CanActivate {
       // Determine credits required: from model in body, modelKey in decorator, or fixed amount
       if (shouldSkipCredits) {
         requiredCredits = 0;
+      } else if (shouldDeferModelResolution) {
+        requiredCredits = 0;
+        creditsDeferred = true;
+        request.creditsConfig = { ...creditsConfig, amount: 0, deferred: true };
+        if (pricingModelKey && creditsConfig.allowByokBypass) {
+          resolvedModel = await this.modelsService.findOne({
+            key: pricingModelKey,
+          });
+        }
       } else if (pricingModelKey) {
         const modelKey = pricingModelKey;
         const normalized = baseModelKey(modelKey);
@@ -300,7 +312,7 @@ export class CreditsGuard implements CanActivate {
           // bytedance/seedance) carry live providerCostUsd pricing; only an
           // unknown destination should use the custom-model fallback.
           const model = await this.modelsService.findOne({
-            key: normalized,
+            key: modelKey,
           });
 
           if (model) {
@@ -324,21 +336,43 @@ export class CreditsGuard implements CanActivate {
                 'Credits guard: Training model label detected, flat credits applied',
                 { label: model.label, modelKey: normalized, requiredCredits },
               );
+            } else if (model.pricingType === 'per-token') {
+              // LLM admission remains a minimum; settlement bills the answering model's actual tokens.
+              requiredCredits = getMinimumTextCredits(model);
             } else {
-              // Use dynamic pricing calculation
-              requiredCredits = this.calculateDynamicCost(
-                model,
-                width,
-                height,
-                pricingDuration,
+              // Use exact generation tariff quantities
+              modelQuote = await this.modelCreditQuote.quoteSnapshotByKey(
+                modelKey,
+                {
+                  organizationId: user.organizationId,
+                  provider: model.provider,
+                  duration: pricingDuration || undefined,
+                  height: height || undefined,
+                  width: width || undefined,
+                  outputs,
+                  requests: (
+                    creditsConfig.source === ActivitySource.IMAGE_GENERATION
+                      ? isNativeImageBatch(modelKey, model.provider)
+                      : MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported
+                  )
+                    ? 1
+                    : outputs,
+                  selectors: this.readSelectedPricingDimensions(body),
+                },
               );
+              requiredCredits = modelQuote.credits;
             }
           } else if (
             isFalDestination(modelKey) ||
             isReplicateDestination(modelKey) ||
             isReplicateVersionId(modelKey)
           ) {
-            // Model not in database but is a dynamic provider destination/version: use custom model cost as fallback
+            if (creditsConfig.settlement === 'completion') {
+              await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
+                organizationId: user.organizationId,
+              });
+            }
+            // Legacy non-media custom/training tariffs retain their separate contract.
             requiredCredits = this.getCustomModelCost();
             this.loggerService.warn(
               'Credits guard: Model not found in database, using custom model cost fallback',
@@ -373,13 +407,6 @@ export class CreditsGuard implements CanActivate {
         request.creditsConfig = { ...creditsConfig, amount: 0, deferred: true };
         creditsDeferred = true;
         requiredCredits = 0;
-      } else if (shouldDeferModelResolution) {
-        this.loggerService.debug(
-          'Credits guard: deferring credit check until controller resolves default model',
-        );
-        request.creditsConfig = { ...creditsConfig, amount: 0, deferred: true };
-        creditsDeferred = true;
-        requiredCredits = 0;
       } else if (creditsConfig.amount !== undefined) {
         requiredCredits = creditsConfig.amount;
       } else {
@@ -392,12 +419,20 @@ export class CreditsGuard implements CanActivate {
       // Video generation uses model-aware bands (including 4K); other legacy
       // generation routes retain their historical high/1080p multiplier.
       const resolution = body?.resolution;
-      if (creditsConfig.source === ActivitySource.VIDEO_GENERATION) {
+      if (
+        !creditsDeferred &&
+        !modelQuote &&
+        creditsConfig.source === ActivitySource.VIDEO_GENERATION
+      ) {
         requiredCredits *= getVideoGenerationResolutionCreditMultiplier(
           modelKey || creditsConfig.modelKey || '',
           resolution,
         );
-      } else if (resolution === 'high' || resolution === '1080p') {
+      } else if (
+        !creditsDeferred &&
+        !modelQuote &&
+        (resolution === 'high' || resolution === '1080p')
+      ) {
         requiredCredits *= 2;
       }
       if (
@@ -422,6 +457,8 @@ export class CreditsGuard implements CanActivate {
       const targetResolution = body?.targetResolution;
       const targetFps = body?.targetFps;
       if (
+        !creditsDeferred &&
+        !modelQuote &&
         effectiveModelKey === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE &&
         isTopazVideoUpscaleResolution(targetResolution) &&
         isTopazVideoUpscaleFps(targetFps)
@@ -436,7 +473,7 @@ export class CreditsGuard implements CanActivate {
       // Multiply credits by outputs for non-trained models (each output = separate API call)
       // Trained models use num_outputs in single API call, so no multiplication needed
       const keyForMultiplier = modelKey || creditsConfig.modelKey;
-      if (outputs > 1) {
+      if (!creditsDeferred && !modelQuote && outputs > 1) {
         const shouldMultiply =
           !keyForMultiplier || !isTrainingKey(keyForMultiplier);
 
@@ -584,6 +621,7 @@ export class CreditsGuard implements CanActivate {
         ...creditsConfig,
         amount: requiredCredits,
         modelKey: modelKey || creditsConfig.modelKey, // Store the actual model key used
+        ...(modelQuote ? { modelQuote } : {}),
         ...(resolvedModel
           ? { pricingMetadata: buildPricingAuditStamp(resolvedModel) }
           : {}),
@@ -635,6 +673,29 @@ export class CreditsGuard implements CanActivate {
     }
   }
 
+  private readSelectedPricingDimensions(
+    body: CreditsRequestBody | null,
+  ): Record<string, string | number | boolean> | undefined {
+    const selected: Record<string, string | number | boolean> = {};
+    for (const key of [
+      'resolution',
+      'quality',
+      'mode',
+      'generate_audio',
+      'audio',
+      'fps',
+    ]) {
+      const value = body?.[key];
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      )
+        selected[key] = value;
+    }
+    return Object.keys(selected).length ? selected : undefined;
+  }
+
   /**
    * Calculate training credits based on number of steps
    * @param steps Number of training steps
@@ -661,105 +722,5 @@ export class CreditsGuard implements CanActivate {
       Number(this.configService.get('TRAINING_CUSTOM_MODEL_CREDITS_COST')) ||
       this.TRAINING_MODEL_FLAT_COST
     );
-  }
-
-  /**
-   * Resolve credits for a generation.
-   *
-   * Preferred: shared `billCreditsFromProviderCost` (provider USD × units ×
-   * live admin margin). Same helper projects virtual `cost`/`costPerUnit` on
-   * model reads via ModelsService.normalizeModelDocument.
-   *
-   * Fallback: legacy baked `cost` / `costPerUnit` when providerCostUsd is null.
-   */
-  private calculateDynamicCost(
-    model: {
-      cost?: number | null;
-      costPerUnit?: number | null;
-      defaultDuration?: number | null;
-      minCost?: number | null;
-      pricingType?: string | null;
-      providerCostUsd?: number | null;
-    },
-    width?: number,
-    height?: number,
-    duration?: number,
-  ): number {
-    const liveCredits = billCreditsFromProviderCost(model, {
-      duration,
-      height,
-      width,
-    });
-    if (liveCredits !== null) {
-      this.loggerService.debug(
-        'Credits guard: providerCostUsd × applyMargin (live margin)',
-        {
-          credits: liveCredits,
-          duration,
-          pricingType: model.pricingType,
-          providerCostUsd: model.providerCostUsd,
-        },
-      );
-      return liveCredits;
-    }
-
-    const pricingType = model.pricingType || PricingType.FLAT;
-    let baseCost = model.cost || 0;
-
-    switch (pricingType) {
-      case PricingType.PER_MEGAPIXEL: {
-        if (width && height && model.costPerUnit) {
-          const megapixels = (width * height) / 1_000_000;
-          baseCost = Math.ceil(megapixels * model.costPerUnit);
-          this.loggerService.debug(
-            'Credits guard: Per-megapixel cost calculated (legacy costPerUnit)',
-            {
-              calculatedCost: baseCost,
-              costPerUnit: model.costPerUnit,
-              height,
-              megapixels: megapixels.toFixed(2),
-              width,
-            },
-          );
-        }
-        break;
-      }
-
-      case PricingType.PER_SECOND: {
-        if (duration && model.costPerUnit) {
-          baseCost = Math.ceil(duration * model.costPerUnit);
-          this.loggerService.debug(
-            'Credits guard: Per-second cost calculated (legacy costPerUnit)',
-            {
-              calculatedCost: baseCost,
-              costPerUnit: model.costPerUnit,
-              duration,
-            },
-          );
-        }
-        break;
-      }
-
-      case 'per-token':
-        baseCost = getMinimumTextCredits(model);
-        break;
-
-      default:
-        // Use model.cost as-is (already set)
-        break;
-    }
-
-    // Apply minimum cost floor (legacy baked credits only)
-    const minCost = model.minCost || 0;
-    if (minCost > 0 && baseCost < minCost) {
-      this.loggerService.debug('Credits guard: Minimum cost floor applied', {
-        calculatedCost: baseCost,
-        finalCost: minCost,
-        minCost,
-      });
-      baseCost = minCost;
-    }
-
-    return baseCost;
   }
 }

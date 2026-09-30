@@ -19,6 +19,19 @@ import type {
   ExecuteBrandRemixScenes,
   QuoteBrandRemixScenes,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import {
+  type ControlStoryboardRun,
+  type CreateStoryboardRun,
+  type StoryboardRun,
+  storyboardRunSchema,
+  type UpdateStoryboardSource,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import {
+  type ListStoryboardRuns,
+  type StoryboardRunSummary,
+  storyboardRunSummarySchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
 import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
@@ -93,6 +106,102 @@ export class ContentRunsService extends HTTPBaseService {
       ContentRunsService,
       token,
     ) as ContentRunsService;
+  }
+
+  async createStoryboardRun(
+    brandId: string,
+    input: CreateStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs`,
+      input,
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+
+  async updateStoryboardPlan(
+    brandId: string,
+    runId: string,
+    input: UpdateStoryboardPlan,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan`,
+      input,
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+
+  async resetStoryboardPlan(
+    brandId: string,
+    runId: string,
+    input: ControlStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/reset`,
+      input,
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+
+  async approveStoryboardPlan(
+    brandId: string,
+    runId: string,
+    input: ControlStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/approve`,
+      input,
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+
+  async updateStoryboardSource(
+    brandId: string,
+    runId: string,
+    input: UpdateStoryboardSource,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/source`,
+      input,
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+
+  async getStoryboardRun(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}`,
+      { signal },
+    );
+    return storyboardRunSchema.parse(
+      deserializeResource<StoryboardRun>(response.data),
+    );
+  }
+  async listStoryboardRuns(
+    brandId: string,
+    query: ListStoryboardRuns,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRunSummary[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs`,
+      { params: query, signal },
+    );
+    return deserializeCollection<StoryboardRunSummary>(response.data).map(
+      (summary) => storyboardRunSummarySchema.parse(summary),
+    );
   }
 
   async list(

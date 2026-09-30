@@ -54,6 +54,7 @@ describe('ReplicateImageGenerationProviderAdapter BYOK dispatch key (#5294)', ()
       'replicate/some-model',
       { prompt: 'a cinematic still' },
       undefined,
+      undefined,
     );
     expect(replicateService.getPrediction).toHaveBeenCalledWith(
       'pred_platform',
@@ -82,6 +83,7 @@ describe('ReplicateImageGenerationProviderAdapter BYOK dispatch key (#5294)', ()
       'replicate/some-model',
       { prompt: 'a cinematic still' },
       'org-replicate-key',
+      undefined,
     );
     expect(replicateService.getPrediction).toHaveBeenCalledWith(
       'pred_byok',
@@ -160,4 +162,33 @@ describe('ReplicateImageGenerationProviderAdapter BYOK dispatch key (#5294)', ()
     );
     expect(replicateService.getPrediction).not.toHaveBeenCalled();
   });
+  it.each([
+    { images: ['https://cdn.test/out.png'] },
+    ['https://cdn.test/out.png', { url: 'https://cdn.test/layer.png' }],
+  ])(
+    'persists the complete raw succeeded result before rejecting unsupported output (%s)',
+    async (output) => {
+      const events: string[] = [];
+      const onProviderOutput = vi.fn(async () => {
+        events.push('persisted');
+      });
+      const replicateService = {
+        generateTextToImage: vi.fn().mockResolvedValue('pred_drift'),
+        getPrediction: vi
+          .fn()
+          .mockResolvedValue({ output, status: 'succeeded' }),
+      };
+      const adapter = new ReplicateImageGenerationProviderAdapter(
+        replicateService as unknown as ReplicateService,
+      );
+      const prepared = await adapter.prepare(
+        buildRequest({ onProviderOutput }),
+      );
+      await expect(prepared.generate()).rejects.toThrow(
+        'without an output URL',
+      );
+      expect(onProviderOutput).toHaveBeenCalledExactlyOnceWith(output);
+      expect(events).toEqual(['persisted']);
+    },
+  );
 });

@@ -1,3 +1,4 @@
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({
@@ -131,6 +132,7 @@ describe('VideosLipSyncController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosLipSyncController],
       providers: [
+        { provide: GenerationQuoteGroupService, useValue: {} },
         { provide: ByokService, useValue: byokService },
         // CreditsInterceptor is now bound to the handler (@UseInterceptors); Nest
         // instantiates it at module compile, so its queue dependency must resolve.

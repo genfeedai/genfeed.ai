@@ -179,6 +179,8 @@ describe('CreditDeductionProcessor', () => {
       creditTransactionsService.createTransactionEntry.mock.calls[1].at(-1),
     ).toEqual({
       idempotencyKey: `byok:${job.data.organizationId}:interpolation-asset`,
+      actorUserId: job.data.userId,
+      metadata: job.data.metadata,
     });
     expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
     expect(
@@ -226,90 +228,12 @@ describe('CreditDeductionProcessor', () => {
     ).not.toHaveBeenCalled();
     expect(prisma.workflowExecution.findFirst).not.toHaveBeenCalled();
   });
-  it('waits to settle agent media credits until a durable asset is generated', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'asset-1',
-      status: 'PROCESSING',
-      url: null,
-    });
-
-    await expect(
-      processor.process(buildJob({ settlementAssetId: 'asset-1' })),
-    ).rejects.toThrow('not terminal');
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('emits an operator signal before an unsettled asset exhausts durable retries', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'asset-1',
-      status: 'PROCESSING',
-    });
-    const job = buildJob({ settlementAssetId: 'asset-1' });
-    job.attemptsMade = 20_159;
-    job.opts.attempts = 20_160;
-
-    await expect(processor.process(job)).rejects.toThrow('not terminal');
-    expect(logger.error).toHaveBeenCalledWith(
-      expect.stringContaining('requires operator reconciliation'),
-      expect.objectContaining({ assetId: 'asset-1' }),
-    );
-  });
-
-  it('moves no credits when agent media reaches a terminal failure without an asset', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      id: 'asset-1',
-      status: 'FAILED',
-      url: null,
-    });
-
+  it('settles a media-generation hold once through the reserved branch, forwarding its metadata', async () => {
     await processor.process(
       buildJob({
-        reservationId: 'reservation-1',
-        settlementAssetId: 'asset-1',
-      }),
-    );
-
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-      organizationId: 'org-1',
-      reservationId: 'reservation-1',
-    });
-  });
-
-  it('moves no credits when a terminal media row has no user-accessible file', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      cdnUrl: null,
-      id: 'asset-1',
-      s3Key: null,
-      status: 'GENERATED',
-    });
-
-    await processor.process(buildJob({ settlementAssetId: 'asset-1' }));
-
-    expect(
-      creditsUtilsService.deductCreditsFromOrganization,
-    ).not.toHaveBeenCalled();
-  });
-
-  it('settles one referenced charge for a generated user-accessible asset', async () => {
-    prisma.ingredient.findFirst.mockResolvedValue({
-      cdnUrl: 'https://cdn.genfeed.ai/images/asset-1.png',
-      id: 'asset-1',
-      s3Key: 'images/asset-1.png',
-      status: 'GENERATED',
-    });
-
-    await processor.process(
-      buildJob({
-        idempotencyKey: 'agent-media-action-1',
-        referenceId: 'action-1',
-        referenceType: 'agent-media:generation',
-        reservationId: 'reservation-1',
-        settlementAssetId: 'asset-1',
+        idempotencyKey: 'media-generation-settle:hold-1',
+        metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
+        reservationId: 'hold-1',
       }),
     );
 
@@ -318,13 +242,15 @@ describe('CreditDeductionProcessor', () => {
       actualAmount: 10,
       actorUserId: 'user-1',
       description: 'Image generation',
+      metadata: { assetId: 'asset-1', marginMultiplier: 3.33 },
       organizationId: 'org-1',
-      reservationId: 'reservation-1',
+      reservationId: 'hold-1',
       source: ActivitySource.IMAGE_GENERATION,
     });
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
+    expect(prisma.ingredient.findFirst).not.toHaveBeenCalled();
   });
 
   it('passes completion billing references into the credit utility', async () => {
@@ -477,6 +403,67 @@ describe('CreditDeductionProcessor', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('preserves the completion gate on legacy jobs already in Redis', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'legacy-asset',
+      status: 'PROCESSING',
+    } as never);
+    await expect(
+      processor.process(buildJob({ settlementAssetId: 'legacy-asset' })),
+    ).rejects.toThrow('not terminal');
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('skips failed legacy media jobs without charging', async () => {
+    prisma.ingredient.findFirst.mockResolvedValue({
+      id: 'legacy-asset',
+      status: 'FAILED',
+    } as never);
+    await processor.process(
+      buildJob({
+        settlementAssetId: 'legacy-asset',
+        reservationId: 'legacy-hold',
+      }),
+    );
+    expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'legacy-hold',
+    });
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+  });
+
+  it('retains canonical actor and output attribution in BYOK usage evidence', async () => {
+    await processor.process(
+      buildJob({
+        type: 'record-byok-usage',
+        userId: 'canonical-user',
+        metadata: { assetId: 'asset-1' },
+      }),
+    );
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      CreditTransactionCategory.BYOK_USAGE,
+      expect.any(Number),
+      5000,
+      5000,
+      expect.anything(),
+      expect.anything(),
+      undefined,
+      undefined,
+      expect.objectContaining({
+        actorUserId: 'canonical-user',
+        metadata: { assetId: 'asset-1' },
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
   it('records BYOK usage as a zero-balance-change ledger entry', async () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(1234);
 
@@ -500,7 +487,11 @@ describe('CreditDeductionProcessor', () => {
       '[BYOK] BYOK image call',
       undefined,
       undefined,
-      { idempotencyKey: 'byok:org-1:job-1' },
+      {
+        idempotencyKey: 'byok:org-1:job-1',
+        actorUserId: 'user-1',
+        metadata: undefined,
+      },
     );
     expect(
       creditsUtilsService.deductCreditsFromOrganization,

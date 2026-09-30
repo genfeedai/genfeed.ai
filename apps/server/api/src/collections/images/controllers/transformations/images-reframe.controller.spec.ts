@@ -142,6 +142,8 @@ describe('ImagesReframeController', () => {
 
     expect(Reflect.getMetadata(CREDITS_KEY, handler) as CreditsConfig).toEqual({
       description: 'Image reframe',
+      settlement: 'completion',
+      isBodyModelIgnored: true,
       modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
       source: ActivitySource.IMAGE_REFRAME,
     });

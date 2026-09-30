@@ -706,6 +706,7 @@ describe('VideoStitchService', () => {
     it('marks the output failed with the error and emits the failure events', async () => {
       const handle = await fixture.service.stitch(request());
       fixture.failWaitFor.set(handle.jobId, new Error('ffmpeg exited'));
+      fixture.jobStates.set(handle.jobId, JobState.FAILED);
 
       await expect(
         fixture.service.waitForCompletion(handle),
@@ -725,6 +726,29 @@ describe('VideoStitchService', () => {
       expect(logged).not.toContain('https://');
     });
 
+    it.each(['Job timeout', 'Queue connection lost'])(
+      'preserves a submitted job after an unresolved wait error: %s',
+      async (message) => {
+        const handle = await fixture.service.stitch(request());
+        fixture.failWaitFor.set(handle.jobId, new Error(message));
+        await expect(fixture.service.waitForCompletion(handle)).rejects.toThrow(
+          message,
+        );
+        expect(fixture.row(handle.outputId).status).toBe(
+          IngredientStatus.PROCESSING,
+        );
+        expect(fixture.eventsNamed('media.failed')).toEqual([]);
+        fixture.failWaitFor.delete(handle.jobId);
+        fixture.completeJob(
+          handle.jobId,
+          `ingredients/videos/${handle.outputId}`,
+        );
+        await expect(fixture.service.settle(handle)).resolves.toMatchObject({
+          state: 'generated',
+        });
+      },
+    );
+
     it('rejects a result that is not a persisted video', async () => {
       const handle = await fixture.service.stitch(request());
       fixture.jobStates.set(handle.jobId, JobState.COMPLETED);
@@ -732,10 +756,13 @@ describe('VideoStitchService', () => {
         outputPath: '/tmp/merged.mp4',
         success: true,
       });
-      await expect(fixture.service.settle(handle)).resolves.toMatchObject({
-        error: 'Video merge did not return a persisted video',
-        state: 'failed',
-      });
+      await expect(fixture.service.settle(handle)).rejects.toThrow(
+        'Video merge did not return a persisted video',
+      );
+      expect(fixture.row(handle.outputId).status).toBe(
+        IngredientStatus.PROCESSING,
+      );
+      expect(fixture.eventsNamed('media.failed')).toEqual([]);
     });
 
     it('reports a still-running job as processing without touching the output', async () => {

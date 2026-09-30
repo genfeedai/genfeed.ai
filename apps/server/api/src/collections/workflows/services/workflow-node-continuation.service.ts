@@ -18,7 +18,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const RESUME_LEASE_MS = 5 * 60 * 1000;
-const SUBMISSION_LEASE_MS = 5 * 60 * 1000;
 
 const MEDIA_CALLBACK_ACTION_IDS = new Set([
   'aiAvatarVideo',
@@ -775,42 +774,34 @@ export class WorkflowNodeContinuationService {
             resumeClaimedAt: { lt: staleBefore },
             status: WorkflowNodeContinuationStatus.RESUMING,
           },
-          {
-            status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
-            updatedAt: {
-              lt: new Date(Date.now() - SUBMISSION_LEASE_MS),
-            },
-          },
         ],
       },
     })) as ContinuationRow[];
 
-    return rows.map((row) => {
-      const staleSubmission =
-        row.status === WorkflowNodeContinuationStatus.PENDING_SUBMISSION;
-      const succeeded =
-        row.status === WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED ||
-        (row.status === WorkflowNodeContinuationStatus.RESUMING &&
-          row.error === null);
-      return {
-        continuationId: row.id,
-        ...(staleSubmission
-          ? {
-              error:
-                'Provider submission ownership expired before acceptance was persisted',
-            }
-          : row.error
-            ? { error: row.error }
-            : {}),
-        organizationId: row.organizationId,
-        provider: row.provider,
-        providerResult:
-          row.providerResult && typeof row.providerResult === 'object'
-            ? (row.providerResult as Record<string, unknown>)
-            : undefined,
-        succeeded: staleSubmission ? false : succeeded,
-      };
-    });
+    // An expired submission lease does not establish provider rejection.
+    // Recover only authoritative provider results or a resumable result lease.
+    return rows
+      .filter(
+        (row) =>
+          row.status !== WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+      )
+      .map((row) => {
+        const succeeded =
+          row.status === WorkflowNodeContinuationStatus.PROVIDER_SUCCEEDED ||
+          (row.status === WorkflowNodeContinuationStatus.RESUMING &&
+            row.error === null);
+        return {
+          continuationId: row.id,
+          ...(row.error ? { error: row.error } : {}),
+          organizationId: row.organizationId,
+          provider: row.provider,
+          providerResult:
+            row.providerResult && typeof row.providerResult === 'object'
+              ? (row.providerResult as Record<string, unknown>)
+              : undefined,
+          succeeded,
+        };
+      });
   }
 
   async findReplicatePollCandidates(): Promise<
