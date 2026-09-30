@@ -684,6 +684,7 @@ export default function IngredientsListContent({
    */
   const {
     lightboxRequestCount,
+    requestedLightboxIngredient,
     selectedIngredient: publishedIngredient,
     setSelectedAsset,
   } = useAssetSelection();
@@ -724,10 +725,14 @@ export default function IngredientsListContent({
       return;
     }
     handledLightboxRequestRef.current = lightboxRequestCount;
-    if (inspectedIngredient) {
-      openIngredientPreview(inspectedIngredient);
+    if (requestedLightboxIngredient) {
+      openIngredientPreview(requestedLightboxIngredient);
     }
-  }, [inspectedIngredient, lightboxRequestCount, openIngredientPreview]);
+  }, [
+    lightboxRequestCount,
+    openIngredientPreview,
+    requestedLightboxIngredient,
+  ]);
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.

@@ -47,7 +47,7 @@ vi.mock('@services/social/trends.service', () => ({
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
-  usePathname: (...args: unknown[]) => mockUsePathname(...args),
+  usePathname: () => mockUsePathname(),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),

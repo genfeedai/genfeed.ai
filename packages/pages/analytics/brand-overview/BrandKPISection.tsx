@@ -21,7 +21,7 @@ export default function BrandKPISection({
   return (
     <KPISection
       title="Brand Performance"
-      gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
+      gridCols={{ desktop: 3, mobile: 1 }}
       className="bg-background"
       isLoading={isLoading}
       items={[

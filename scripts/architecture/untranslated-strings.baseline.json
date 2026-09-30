@@ -117,7 +117,7 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/error.tsx": 2,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/content.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/overview/page.tsx": 1,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": 11,
+    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-dashboard.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-overview-sidebar.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-page.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-field.tsx": 4,

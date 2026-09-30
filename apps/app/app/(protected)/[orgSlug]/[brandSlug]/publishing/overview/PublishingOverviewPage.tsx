@@ -403,7 +403,7 @@ export default function PublishingOverviewPage() {
             error={
               isMetricsError ? 'Publishing metrics could not be loaded.' : null
             }
-            gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
+            gridCols={{ desktop: 4, mobile: 2 }}
             isLoading={isMetricsLoading}
             items={kpiItems}
           />

@@ -95,6 +95,11 @@ export default function AgentActivitySection({
     (showReportState && (isSnapshotLoading || isReportsLoading)) ||
     (showRunState && isExecutionsLoading);
 
+  const isRelevantError =
+    (showContentState && isContentError) ||
+    (showReportState && (isSnapshotError || isReportsError)) ||
+    (showRunState && isExecutionsError);
+
   return (
     <CollectionSection
       actions={
@@ -205,7 +210,7 @@ export default function AgentActivitySection({
           </CollectionList>
         ) : isRelevantLoading ? (
           <p role="status">{translate('activityLoading')}</p>
-        ) : (
+        ) : isRelevantError ? null : (
           <p className="text-sm text-muted-foreground">
             {translate('activityEmpty')}
           </p>

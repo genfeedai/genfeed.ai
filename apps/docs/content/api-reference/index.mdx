@@ -16,6 +16,14 @@ genfeed.ai is a B2B AI content creation and distribution platform. The API provi
 
 **Authentication:** Better Auth bearer JWTs or `gf_` API keys
 
+## Video merge options
+
+Video merge requests support transitions, captions, resizing, muting and
+background music. `zoomEaseCurve` and `zoomConfigs` are slideshow effects and
+are unsupported by video stitching. Supplying either option to a video merge
+returns HTTP 400 with “Zoom effects are not supported when merging videos.”
+The merge schema omits these options.
+
 ## Authentication
 
 The API accepts two bearer credentials on the same `Authorization` header. Any

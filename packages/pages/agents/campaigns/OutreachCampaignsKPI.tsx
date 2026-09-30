@@ -22,7 +22,7 @@ export default function OutreachCampaignsKPI({
   return (
     <KPISection
       title={translate('statisticsTitle')}
-      gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
+      gridCols={{ desktop: 4, mobile: 2 }}
       items={[
         {
           description: translate('allSequences'),

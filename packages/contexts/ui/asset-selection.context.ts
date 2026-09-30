@@ -12,6 +12,7 @@ export const AssetSelectionContext = createContext<IAssetSelectionContextType>({
   lightboxRequestCount: 0,
   removeFromQueue: () => {},
   requestLightbox: () => {},
+  requestedLightboxIngredient: null,
   selectedCanonicalAsset: null,
   selectedIngredient: null,
   setCurrentFormat: () => {},

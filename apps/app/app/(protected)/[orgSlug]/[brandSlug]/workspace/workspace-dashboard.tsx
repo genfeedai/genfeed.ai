@@ -37,20 +37,6 @@ import { WorkspaceTaskRowsSkeleton } from './workspace-task-loading';
 
 const DASHBOARD_ROW_LIMIT = 5;
 
-function formatRelativeTime(date: string): string {
-  const delta = Date.now() - new Date(date).getTime();
-  const minutes = Math.floor(delta / 60_000);
-  if (minutes < 1) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
-function formatOptionalRelativeTime(date?: string | null): string {
-  return date ? formatRelativeTime(date) : 'unknown';
-}
-
 /** Key under `pages.workspaceOverview.runCards.status` for a run's badge. */
 function getRunStatusKey(
   status: WorkflowExecutionStatus,
@@ -70,7 +56,12 @@ function getRunStatusKey(
 }
 
 /** Pass a `pages.workspaceOverview.relativeTime`-scoped translate. */
-function formatRunTime(date: string, translate: WorkspaceTranslate): string {
+function formatRunTime(
+  date: string | null | undefined,
+  translate: WorkspaceTranslate,
+): string {
+  if (!date || Number.isNaN(new Date(date).getTime()))
+    return translate('unknown');
   const minutes = Math.floor((Date.now() - new Date(date).getTime()) / 60_000);
   if (minutes < 1) return translate('justNow');
   if (minutes < 60) return translate('minutesAgo', { minutes });
@@ -301,6 +292,8 @@ export function DashboardRecentActivity({
   workspaceTasks: Task[];
 }) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.workspaceOverview');
+  const translateTime = useTranslations('pages.workspaceOverview.relativeTime');
   const sortedTasks = useMemo(
     () =>
       workspaceTasks
@@ -316,7 +309,7 @@ export function DashboardRecentActivity({
   return (
     <WorkspaceSurface
       aria-busy={isLoading}
-      title="Recent Activity"
+      title={translate('recentActivity.title')}
       density="compact"
       className="h-full"
       data-testid="dashboard-recent-activity"
@@ -329,7 +322,7 @@ export function DashboardRecentActivity({
           className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
-            View All &rarr;
+            {translate('recentViewAll')}
           </Link>
         </Button>
       }
@@ -361,8 +354,9 @@ export function DashboardRecentActivity({
                 title={task.title}
                 trailing={
                   <span className="text-2xs text-foreground/35">
-                    {formatOptionalRelativeTime(
+                    {formatRunTime(
                       task.updatedAt ?? task.createdAt,
+                      translateTime,
                     )}
                   </span>
                 }
@@ -372,7 +366,7 @@ export function DashboardRecentActivity({
         </div>
       ) : (
         <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
-          No activity yet.
+          {translate('recentActivity.empty')}
         </p>
       )}
     </WorkspaceSurface>
@@ -387,6 +381,8 @@ export function DashboardRecentTasks({
   workspaceTasks: Task[];
 }) {
   const { href } = useOrgUrl();
+  const translate = useTranslations('pages.workspaceOverview');
+  const translateTime = useTranslations('pages.workspaceOverview.relativeTime');
   const sortedTasks = useMemo(
     () =>
       workspaceTasks
@@ -402,7 +398,7 @@ export function DashboardRecentTasks({
   return (
     <WorkspaceSurface
       aria-busy={isLoading}
-      title="Recent Tasks"
+      title={translate('recentTasks.title')}
       density="compact"
       className="h-full"
       data-testid="dashboard-recent-tasks"
@@ -415,7 +411,7 @@ export function DashboardRecentTasks({
           className="h-auto px-0 text-2xs font-normal text-foreground/45 hover:bg-transparent"
         >
           <Link href={href(APP_ROUTES.WORKSPACE.INBOX_UNREAD)}>
-            View All &rarr;
+            {translate('recentViewAll')}
           </Link>
         </Button>
       }
@@ -437,7 +433,10 @@ export function DashboardRecentTasks({
               title={task.title}
               trailing={
                 <span className="text-2xs text-foreground/35">
-                  {formatOptionalRelativeTime(task.updatedAt ?? task.createdAt)}
+                  {formatRunTime(
+                    task.updatedAt ?? task.createdAt,
+                    translateTime,
+                  )}
                 </span>
               }
             />
@@ -445,7 +444,7 @@ export function DashboardRecentTasks({
         </div>
       ) : (
         <p className="px-4 py-6 text-center text-xs text-foreground/45 sm:px-5">
-          No recent tasks.
+          {translate('recentTasks.empty')}
         </p>
       )}
     </WorkspaceSurface>

@@ -4,6 +4,7 @@ import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
 import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
+import { ClipProjectClientSourceService } from '@api/collections/clip-projects/services/clip-project-client-source.service';
 import { HookClipApprovalService } from '@api/collections/clip-projects/services/hook-clip-approval.service';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -55,6 +56,7 @@ export class ClipProjectsController {
     private readonly clipProjectsService: ClipProjectsService,
     private readonly clipIdentityResolutionService: ClipIdentityResolutionService,
     private readonly hookClipApprovalService: HookClipApprovalService,
+    private readonly clipProjectClientSourceService: ClipProjectClientSourceService,
   ) {}
 
   @Post()
@@ -71,8 +73,14 @@ export class ClipProjectsController {
       });
     }
 
+    const source = await this.clipProjectClientSourceService.resolve(
+      createDto,
+      user.organizationId,
+      createDto.brandId,
+    );
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,
+      ...source,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
@@ -155,9 +163,31 @@ export class ClipProjectsController {
       return returnNotFound(this.constructorName, id);
     }
 
+    const hasSourceUpdate =
+      updateDto.sourceVideoS3Key !== undefined ||
+      updateDto.sourceVideoUrl !== undefined;
+    const source = hasSourceUpdate
+      ? await this.clipProjectClientSourceService.resolve(
+          updateDto,
+          user.organizationId,
+          updateDto.brandId ?? existing.brandId,
+        )
+      : null;
     const data: ClipProjectDocument = await this.clipProjectsService.patch(
       id,
-      updateDto,
+      {
+        ...updateDto,
+        ...(source
+          ? {
+              ...source,
+              // Config merging ignores undefined. An explicit null prevents a
+              // keyless source from retaining and reading the previous object.
+              sourceVideoS3Key: source.sourceVideoS3Key ?? null,
+            }
+          : {}),
+      },
+      [],
+      user.organizationId,
     );
 
     return serializeSingle(request, ClipProjectSerializer, data);

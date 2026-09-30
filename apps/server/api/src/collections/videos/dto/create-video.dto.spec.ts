@@ -1,5 +1,9 @@
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  CreateMergedVideoDto,
+  CreateVideoDto,
+} from '@api/collections/videos/dto/create-video.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { IngredientCategory, VideoEaseCurve } from '@genfeedai/contracts';
 import type { ArgumentMetadata } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
@@ -163,5 +167,37 @@ describe('CreateVideoDto', () => {
         width: 1920,
       });
     });
+  });
+});
+
+describe('CreateMergedVideoDto unsupported zoom', () => {
+  it('accepts the same supported merge without zoom', async () => {
+    const value = {
+      category: IngredientCategory.VIDEO,
+      ids: [entityId(1), entityId(2)],
+    };
+    await expect(
+      new ValidationPipe().transform(value, {
+        metatype: CreateMergedVideoDto,
+        type: 'body',
+      }),
+    ).resolves.toMatchObject(value);
+  });
+
+  it.each([
+    { zoomEaseCurve: VideoEaseCurve.EASE_IN_OUT_CUBIC },
+    { zoomConfigs: [{ startZoom: 1, endZoom: 1.2 }] },
+  ])('rejects zoom instead of silently stripping it', async (zoom) => {
+    const pipe = new ValidationPipe();
+    await expect(
+      pipe.transform(
+        {
+          category: IngredientCategory.VIDEO,
+          ids: [entityId(1), entityId(2)],
+          ...zoom,
+        },
+        { metatype: CreateMergedVideoDto, type: 'body' },
+      ),
+    ).rejects.toThrow();
   });
 });

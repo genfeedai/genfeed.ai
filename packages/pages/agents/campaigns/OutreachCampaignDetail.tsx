@@ -255,12 +255,7 @@ export default function OutreachCampaignDetail() {
             <CampaignNeedsYou
               isExecuting={isStartingCampaign}
               isPaused={campaign.status === CampaignStatus.PAUSED}
-              onResume={() => {
-                if (!isPairExecutable) {
-                  return;
-                }
-                handleStartCampaign();
-              }}
+              onResume={isPairExecutable ? handleStartCampaign : undefined}
               pausedDescription={translate('needsYou.pausedDescription')}
               resumeLabel={translate('needsYou.resume')}
               title={translate('needsYou.title')}
@@ -270,7 +265,7 @@ export default function OutreachCampaignDetail() {
 
         <KPISection
           title="Target Statistics"
-          gridCols={{ desktop: 6, mobile: 2, tablet: 3 }}
+          gridCols={{ desktop: 6, mobile: 2 }}
           items={kpiItems}
           isLoading={isLoading}
         />

@@ -293,12 +293,6 @@ vi.mock('./EmptyWorkflowState', () => ({
   default: () => <div>Empty workflows</div>,
 }));
 
-vi.mock('./WorkflowCardDropdown', () => ({
-  default: ({ onDuplicate }: { onDuplicate: () => void }) => (
-    <button type="button" aria-label="Workflow actions" onClick={onDuplicate} />
-  ),
-}));
-
 vi.mock('./WorkflowCardPreview', () => ({
   default: ({ name }: { name: string }) => <div>{name} preview</div>,
 }));

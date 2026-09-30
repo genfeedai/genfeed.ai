@@ -87,6 +87,26 @@ describe('destination guard', () => {
     );
   });
 
+  it('aborts a stalled DNS lookup without starting transport', async () => {
+    dnsLookupMock.mockImplementation(() => new Promise(() => {}));
+    const controller = new AbortController();
+    const request = safeFetch('https://public.example/status', {
+      signal: controller.signal,
+    });
+    const reason = new Error('lookup deadline');
+    controller.abort(reason);
+    await expect(request).rejects.toBe(reason);
+    expect(httpsRequestMock).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve DNS for a request already aborted', async () => {
+    const signal = AbortSignal.abort(new Error('already expired'));
+    await expect(
+      safeFetch('https://public.example/status', { signal }),
+    ).rejects.toThrow('already expired');
+    expect(dnsLookupMock).not.toHaveBeenCalled();
+  });
+
   it('rejects non-http schemes', async () => {
     await expect(resolveSafeDestination('file:///etc/passwd')).rejects.toThrow(
       'http or https',

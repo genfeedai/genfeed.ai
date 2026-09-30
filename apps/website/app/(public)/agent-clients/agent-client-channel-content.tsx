@@ -2,14 +2,11 @@ import {
   type AgentClientChannelPage,
   getAgentClientChannels,
 } from '@data/agent-client-channels.data';
-import {
-  type AgentClient,
-  agentClients,
-  getAgentClientCommandBlocks,
-} from '@data/agent-clients.data';
+import { type AgentClient, agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import CommandBlock from '@public/agent-clients/agent-client-command-block';
-import { EnvironmentService } from '@services/core/environment.service';
+import AgentClientInstallAction from '@public/agent-clients/agent-client-install-action';
+import AgentClientSetup from '@public/agent-clients/agent-client-setup';
+import AgentClientVisual from '@public/agent-clients/agent-client-visual';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
@@ -34,7 +31,6 @@ export default function AgentClientChannelContent({
   client: AgentClient;
   page: AgentClientChannelPage;
 }): React.ReactElement {
-  const signUpHref = `${EnvironmentService.apps.app}/sign-up`;
   const lowerNoun = page.noun.toLowerCase();
   const otherChannels = getAgentClientChannels().filter(
     (channel) => channel.slug !== page.channelSlug,
@@ -52,15 +48,7 @@ export default function AgentClientChannelContent({
         description={page.description}
         heroActions={
           <>
-            <Button
-              asChild
-              size={ButtonSize.PUBLIC}
-              variant={ButtonVariant.DEFAULT}
-            >
-              <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-                Start free
-              </a>
-            </Button>
+            <AgentClientInstallAction client={client} />
             <Button
               asChild
               size={ButtonSize.PUBLIC}
@@ -70,24 +58,16 @@ export default function AgentClientChannelContent({
             </Button>
           </>
         }
+        heroVisual={
+          <AgentClientVisual channelName={page.channelName} client={client} />
+        }
         title={page.title}
       >
-        <WebSection className="gsap-section" maxWidth="lg" py="sm">
-          <SectionHeader
-            className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
-            description={`${client.connectInstruction} Then connect your ${page.channelName} account in Genfeed once.`}
-            title={`How to post to ${page.channelName} from ${client.name}`}
-          />
-          <div className="flex flex-col gap-4">
-            {getAgentClientCommandBlocks(client).map((block) => (
-              <CommandBlock
-                key={block.label}
-                label={block.label}
-                value={block.value}
-              />
-            ))}
-          </div>
-        </WebSection>
+        <AgentClientSetup client={client} />
+        <p className="container mx-auto px-6 pb-6 text-base leading-7 text-surface/75">
+          Connect your {page.channelName} account in Genfeed once to make it
+          available to {client.name}.
+        </p>
 
         <WebSection
           bg="bordered"
@@ -103,7 +83,7 @@ export default function AgentClientChannelContent({
           <NeuralGrid columns={3}>
             {page.prompts.map((prompt) => (
               <NeuralGridItem key={prompt} padding="lg">
-                <p className="text-sm leading-relaxed text-surface/75">
+                <p className="text-base leading-7 text-surface/75">
                   “{prompt}”
                 </p>
               </NeuralGridItem>
@@ -120,9 +100,7 @@ export default function AgentClientChannelContent({
           <NeuralGrid columns={2}>
             {page.features.map((feature) => (
               <NeuralGridItem key={feature} padding="lg">
-                <p className="text-sm leading-relaxed text-surface/65">
-                  {feature}
-                </p>
+                <p className="text-base leading-7 text-surface/75">{feature}</p>
               </NeuralGridItem>
             ))}
           </NeuralGrid>
@@ -163,7 +141,7 @@ export default function AgentClientChannelContent({
         <WebSection className="gsap-section" maxWidth="xl" py="md">
           <SectionHeader
             className="[&_h2]:text-3xl sm:[&_h2]:text-4xl"
-            title={`Schedule ${page.channelName} ${lowerNoun} from other AI agents`}
+            title={`Connect ${page.channelName} to other AI agents`}
           />
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {otherClients.map((entry) => (
@@ -196,11 +174,7 @@ export default function AgentClientChannelContent({
           description={`Start on managed cloud, connect ${page.channelName}, then connect ${client.name} with the steps above.`}
           title={`Post to ${page.channelName} from ${client.name}.`}
         >
-          <Button asChild size={ButtonSize.PUBLIC}>
-            <a href={signUpHref} rel="noopener noreferrer" target="_blank">
-              Start free
-            </a>
-          </Button>
+          <AgentClientInstallAction client={client} />
           <Button
             asChild
             size={ButtonSize.PUBLIC}
