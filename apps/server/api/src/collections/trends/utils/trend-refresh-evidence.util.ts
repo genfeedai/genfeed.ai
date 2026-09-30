@@ -96,11 +96,9 @@ export function markTrendRefreshPersistenceFailed(
   platform: string,
   dataset: TrendRefreshDataset,
 ): void {
-  const attempt = attempts
-    .getStore()
-    ?.findLast(
-      (value) => value.platform === platform && value.dataset === dataset,
-    );
+  const attempt = [...(attempts.getStore() ?? [])]
+    .reverse()
+    .find((value) => value.platform === platform && value.dataset === dataset);
   if (attempt) {
     attempt.outcome = attempt.outcome.startsWith('fallback')
       ? 'fallback_failed'
