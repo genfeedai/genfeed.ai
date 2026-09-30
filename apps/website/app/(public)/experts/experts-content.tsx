@@ -4,6 +4,7 @@ import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Quote, ShieldCheck, X } from 'lucide-react';
@@ -130,6 +131,7 @@ export default function ExpertsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork isCompact kind="creator" />}
         compact
         description="Built for consultants, coaches, founders, and practitioners who know their business cold but never wanted to become an AI-tool operator. You bring the truth and the taste; Genfeed brings the system and the loop."
         heroActions={

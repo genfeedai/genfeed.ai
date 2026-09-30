@@ -1,8 +1,8 @@
 import type { Integration } from '@data/integrations.data';
 import Card from '@ui/card/Card';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
@@ -33,26 +33,7 @@ export default function IntegrationContent({
     [integration],
   );
 
-  const heroVisual = useMemo(
-    () => (
-      <EditorialPoster
-        eyebrow={integration.tagline}
-        title={`Build for ${integration.name}`}
-        detail={integration.description}
-        items={integration.workflow.slice(0, 4).map((step) => ({
-          label: `Step ${step.step}`,
-          value: step.title,
-        }))}
-        footer={
-          <>
-            <span>{integration.features.length} workflow advantages</span>
-            <span>{integration.cta}</span>
-          </>
-        }
-      />
-    ),
-    [integration],
-  );
+  const heroVisual = <MarketingArtwork kind="publishing" />;
 
   return (
     <PageLayout

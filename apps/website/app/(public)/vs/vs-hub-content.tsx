@@ -1,5 +1,6 @@
 import { competitors } from '@data/competitors.data';
 import Card from '@ui/card/Card';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
@@ -8,6 +9,7 @@ export default function VsHubContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
+        heroMedia={<MarketingArtwork kind="research" />}
         title="Compare Genfeed"
         description="See how Genfeed compares to other AI content platforms. Choose the right tool for your needs."
       >

@@ -1,0 +1,31 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-09-30",
+  "destination": "s3://cdn.genfeed.ai/assets/branding/website/editorial/",
+  "prompts": [
+    {
+      "file": "integration-v1.webp",
+      "prompt": "Use case: stylized-concept. Create a polished editorial 3D illustration for Genfeed.ai's AI-tool integration landing pages. A sculptural brushed-silver connector bridge joins a small rounded graphite input block to three floating output panels arranged in an elegant fan. Panels contain richly colored abstract miniature campaign imagery: a coral glass object, a blue cinematic landscape, a warm orange portrait silhouette, no UI or text. Main structure is tactile ceramic, smoked glass and chrome, softly lit with warm amber rim light, midnight black backdrop fading to pure black at every edge, sophisticated art direction, generous negative space, balanced landscape 3:2 composition. Physical connection and creative output should be understandable. No words, letters, logos, mascots, robots, neon glow, purple gradients or watermarks."
+    },
+    {
+      "file": "campaign-v1.webp",
+      "prompt": "Use case: ads-marketing. Generate a premium photorealistic editorial product campaign still for an AI content creation website. A translucent amber glass perfume bottle with a plain unmarked brushed silver cap on a folded terracotta textile, framed by an architectural curved peach plaster form. Sculptural hard afternoon sunlight with rich soft shadows, warm copper, apricot and sand palette, high-end independent magazine photography. Vertical portrait 3:4 composition, subject in central third so it also crops well to square and landscape. Real material texture and beautiful subtle film grain. No typography, labels, words, logos, watermarks or user interface."
+    },
+    {
+      "file": "creator-v1.webp",
+      "prompt": "Use case: photorealistic-natural. Create an editorial cinematic still for Genfeed.ai's AI video and creator workflow pages: a fictional adult creative director, close half-body portrait in a minimalist cobalt-blue studio, dressed in a sculptural dark blue jacket, holding an unmarked silver compact camera low at chest level, looking slightly off-camera with an engaged natural expression. Vivid blue backdrop and warm soft key light, analog-film texture, realistic skin, sophisticated magazine art direction. Vertical portrait 3:4 composition with subject central so it crops elegantly to square and landscape. No words, brands, logos, typography, watermarks or UI."
+    },
+    {
+      "file": "publishing-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium editorial 3D illustration for Genfeed.ai publishing and calendar landing pages. A sculptural chrome rail carries three carefully aligned smoked-glass media frames from foreground left towards background right; frames contain miniature coral product photography, a cinematic blue sky and warm portrait photography, no text. A small minimalist silver mechanical release gate suggests a deliberate scheduled handoff. Tactile brushed aluminum, warm amber accent lighting, dark cinematic black background fading to pure black at edges, elegant high-end design magazine composition, landscape 3:2. No words, letters, numbers, logos, neon purple, mascot, robot or watermarks."
+    },
+    {
+      "file": "workflow-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium sculptural editorial 3D still for Genfeed.ai workflow and automation landing pages. Five matte graphite and brushed-silver modules linked by elegant curved chrome tracks forming an intentional flowing sequence, an amber glass sphere passes between modules, and the final module holds a small framed colorful campaign photograph. Isometric architectural angle, refined material realism, quiet cinematic lighting and subtle amber rim light, black background dissolving into pure black at edges, landscape 3:2 composition. No labels, words, UI, logos, robots, neon, purple or watermarks."
+    },
+    {
+      "file": "research-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium editorial 3D illustration for Genfeed.ai analytics, research and model-catalog pages. A smoked-glass optical prism on a low graphite plinth separates a single warm white light beam into three restrained amber and soft-blue beams that illuminate three translucent flat photographic contact sheets. Physical metaphor for finding signal in creative work. Beautiful precise brushed-aluminum details, museum product photography, dramatic but quiet black background fading to pure black at edges, balanced landscape 3:2 composition. No words, letters, charts with text, numbers, logos, robots, neon purple or watermarks."
+    }
+  ]
+}

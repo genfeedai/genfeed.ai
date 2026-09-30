@@ -5,6 +5,7 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -121,6 +122,7 @@ export default function StudioContent({ models }: StudioContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork isCompact kind="creator" />}
         heroActions={<AgentFirstActions trackingName="studio_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={heroVisual}

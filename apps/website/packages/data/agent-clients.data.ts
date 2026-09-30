@@ -1,7 +1,12 @@
+import {
+  agentInstallations,
+  buildCursorInstallUrl,
+} from '@data/agent-installation.data';
 import type {
   ConnectGenfeedClient,
   ConnectGenfeedInstructions,
 } from '@genfeedai/contracts/interfaces';
+import type { AgentInstallation } from '@genfeedai/contracts/interfaces/website/agent-installation.interface';
 import {
   buildConnectGenfeedChatPrompt,
   buildConnectGenfeedInstructions,
@@ -64,6 +69,7 @@ export interface AgentClient {
   description: string;
   faq: readonly AgentClientFaq[];
   helperClient: ConnectGenfeedClient;
+  installation: AgentInstallation;
   /** Chat agents only take OAuth; a pasted key would land in the chat log. */
   manualKey?: ConnectGenfeedInstructions;
   name: string;
@@ -117,7 +123,13 @@ function buildClient(copy: AgentClientCopy): AgentClient {
     GENFEED_PUBLIC_MCP_URL,
     'oauth',
   );
-  const manualKey = copy.isChatConnector
+  const isOAuthOnly =
+    copy.isChatConnector ||
+    ['chatgpt', 'claude', 'claude-cowork', 'grok'].includes(copy.slug);
+  const installation: AgentInstallation = { ...agentInstallations[copy.slug] };
+  if (copy.slug === 'cursor')
+    installation.destination = buildCursorInstallUrl(GENFEED_PUBLIC_MCP_URL);
+  const manualKey = isOAuthOnly
     ? undefined
     : buildConnectGenfeedInstructions(
         helperClient,
@@ -127,9 +139,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
   const chatPrompt = copy.isChatConnector
     ? buildConnectGenfeedChatPrompt(GENFEED_PUBLIC_MCP_URL)
     : undefined;
-  const connectInstruction = copy.isChatConnector
-    ? `Paste the prompt into a ${copy.name} chat. ${copy.name} creates a custom connector for the Genfeed MCP server and sends back a sign-in link. Approve access in your browser.`
-    : oauth.authorizationInstruction;
+  const connectInstruction = installation.instruction;
   return {
     about: copy.about,
     chatPrompt,
@@ -150,7 +160,7 @@ function buildClient(copy: AgentClientCopy): AgentClient {
         question: 'What URL do I connect?',
       },
       {
-        answer: copy.isChatConnector
+        answer: isOAuthOnly
           ? 'No. You approve OAuth in your browser. Never paste an API key or password into the chat.'
           : 'No. Browser OAuth is the default. A scoped API key is the advanced fallback for clients without OAuth, and it stays in the GENFEED_API_KEY environment variable.',
         question: `Do I need an API key to use Genfeed with ${copy.name}?`,
@@ -171,12 +181,17 @@ function buildClient(copy: AgentClientCopy): AgentClient {
       },
     ],
     helperClient,
+    installation,
     manualKey,
     name: copy.name,
     oauth,
-    preview: chatPrompt ?? oauth.primaryCommand ?? oauth.configuration,
+    preview:
+      chatPrompt ??
+      installation.command ??
+      oauth.primaryCommand ??
+      GENFEED_PUBLIC_MCP_URL,
     slug: copy.slug,
-    title: `Create and Schedule Social Media Posts with ${copy.name}`,
+    title: `Genfeed for ${copy.name}`,
   };
 }
 
@@ -185,7 +200,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude is Anthropic’s AI assistant on the web, desktop, and mobile. It can add a remote MCP server as a custom connector, so Genfeed tools work inside a normal Claude chat.',
     description:
-      'Create, schedule, and publish social media posts from Claude. Add Genfeed as a custom connector, approve OAuth, and draft with review gates.',
+      'Bring your brand, content library, and creative tools into Claude. Connect Genfeed to create images, video, and campaigns from one conversation.',
     extraFaq: [
       {
         answer:
@@ -200,7 +215,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude Code is Anthropic’s agentic coding tool for the terminal and IDE. It adds a remote MCP server with one command, so the session that ships code can also draft, generate, and schedule posts.',
     description:
-      'Schedule social media posts from the terminal with Claude Code. One MCP command, browser OAuth, then draft, generate, and publish with review gates.',
+      'Add Genfeed’s creative tools to Claude Code. Install the plugin to access your brands, generate media, and prepare content alongside your code.',
     extraFaq: [
       {
         answer:
@@ -215,7 +230,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Claude Cowork is Anthropic’s desktop agent for knowledge work outside the terminal. It uses the same remote MCP connectors as Claude, so Genfeed connects with the shared URL.',
     description:
-      'Create and schedule social media posts from Claude Cowork. Connect the Genfeed MCP server, approve OAuth, and draft with review gates.',
+      'Give Cowork access to your Genfeed workspace. Turn briefs, files, and research into on-brand content with a connected creative workflow.',
     extraFaq: [
       {
         answer:
@@ -230,11 +245,11 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'ChatGPT is OpenAI’s AI assistant. It can connect remote MCP servers, so Genfeed tools run from a ChatGPT conversation.',
     description:
-      'Create and schedule social media posts from ChatGPT. Connect the Genfeed MCP server, approve OAuth, and generate posts, images, and video.',
+      'Bring Genfeed into ChatGPT. Connect your brand context, generate images and video, and turn a conversation into content ready for review.',
     extraFaq: [
       {
         answer:
-          'ChatGPT uses the generic remote MCP configuration from the connect helper, not a separate CLI.',
+          'ChatGPT connects through a custom MCP app. Follow the ChatGPT setup on this page; account and workspace permissions determine availability.',
         question: 'Is there a ChatGPT install command?',
       },
     ],
@@ -245,7 +260,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Codex is OpenAI’s coding agent for the terminal and IDE. It reads MCP servers from ~/.codex/config.toml and adds them with codex mcp add.',
     description:
-      'Schedule social media posts from Codex. Add the Genfeed MCP server with one command, approve OAuth, then draft and publish with review gates.',
+      'Give Codex a creative toolkit. Install Genfeed to work with your brands, generate campaign assets, and manage content from the same workspace.',
     extraFaq: [
       {
         answer:
@@ -260,11 +275,11 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Cursor is an AI code editor. Its agent loads remote MCP servers, so Genfeed tools sit next to your code.',
     description:
-      'Create and schedule social media posts from Cursor. Connect the Genfeed MCP server, approve OAuth, and draft posts without leaving the editor.',
+      'Bring Genfeed’s creative tools into Cursor. Add the connector to access brand context, generate media, and prepare launch content in your editor.',
     extraFaq: [
       {
         answer:
-          'Not in the connect helper. Cursor uses the generic Streamable HTTP configuration and browser OAuth.',
+          'Use Add to Cursor to open the native connector installation flow, then complete browser OAuth. You can also add the server manually in Cursor MCP settings.',
         question: 'Does Cursor have a separate CLI?',
       },
     ],
@@ -275,11 +290,11 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Gemini is Google’s AI model family, available in the Gemini app and Gemini CLI. Gemini clients that support remote MCP servers connect to Genfeed with the shared URL.',
     description:
-      'Create and schedule social media posts from Gemini. Connect the Genfeed MCP server, approve OAuth, and generate posts, images, and video.',
+      'Extend Gemini CLI with Genfeed. Install the extension to bring brand context, media generation, and content workflows into your terminal.',
     extraFaq: [
       {
         answer:
-          'Yes. Gemini uses the same hosted MCP URL and generic configuration. Only Claude Code and Codex have client-specific commands.',
+          'Install the Genfeed extension in Gemini CLI with the command on this page. It includes the playbook and connects to the same hosted MCP server.',
         question: 'Can Gemini use the same server as Claude?',
       },
     ],
@@ -290,7 +305,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'OpenClaw is an open-source personal AI agent you run yourself. It loads remote MCP servers, so Genfeed tools are available wherever OpenClaw already listens.',
     description:
-      'Create and schedule social media posts from OpenClaw. Connect the Genfeed MCP server, approve OAuth, and draft with review gates.',
+      'Connect your OpenClaw agent to Genfeed. Add the playbook and creative tools for brand-aware media, content, and repeatable workflows.',
     extraFaq: [
       {
         answer:
@@ -305,7 +320,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Grok is xAI’s AI assistant. It supports remote MCP servers, so Genfeed tools can run from a Grok conversation.',
     description:
-      'Create and schedule social media posts from Grok. Connect the Genfeed MCP server, approve OAuth, and generate posts, images, and video.',
+      'Connect Grok to your Genfeed workspace. Explore your brands, generate media, and develop campaigns from one conversation.',
     extraFaq: [
       {
         answer:
@@ -320,7 +335,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Grok Bot is the always-on AI teammate from xAI and Cursor. Each Bot runs on its own cloud computer and uses plugins and remote MCP servers, so routines keep running while you are offline.',
     description:
-      'Create and schedule social media posts from Grok Bot. Paste one prompt, approve OAuth, and let Bot routines draft posts for your review.',
+      'Give Grok Bot a connected creative workspace. Use Genfeed’s brand context and media tools in the routines you already run.',
     extraFaq: [
       {
         answer:
@@ -341,7 +356,7 @@ const AGENT_CLIENT_COPY: readonly AgentClientCopy[] = [
     about:
       'Meta Muse is Meta’s personal AI agent. It completes tasks through connectors and can build a custom connector from a remote MCP server URL you give it in chat. It is separate from Meta AI, the assistant inside Facebook, Instagram, and Messenger.',
     description:
-      'Create and schedule social media posts from Meta Muse. Paste one message, approve OAuth, and Muse drafts, generates, and schedules with review gates.',
+      'Bring Genfeed into Meta Muse. Connect once to work with your brands, generate creative assets, and prepare campaigns from a conversation.',
     extraFaq: [
       {
         answer:
@@ -392,6 +407,13 @@ export function getAgentClientCommandBlocks(
     });
   }
 
+  if (client.installation.command) {
+    blocks.push({
+      label: client.installation.method,
+      value: client.installation.command,
+    });
+  }
+
   blocks.push({ label: 'Connect URL', value: client.connectUrl });
 
   if (client.oauth.primaryCommand) {
@@ -401,7 +423,7 @@ export function getAgentClientCommandBlocks(
     });
   }
 
-  if (!client.chatPrompt) {
+  if (!client.chatPrompt && (client.oauth.primaryCommand || client.manualKey)) {
     blocks.push({
       label: 'Configuration',
       value: client.oauth.configuration,
@@ -577,7 +599,7 @@ export function renderAgentConnectMarkdown(input: {
   lines.push('- Pricing page: https://genfeed.ai/pricing');
   lines.push('');
   lines.push(
-    'Claude Code and Codex have client-specific install commands. Meta Muse and Grok Bot build their own connector from a pasted chat prompt and use OAuth only. Every other client uses the same connect URL and the generic Streamable HTTP configuration.',
+    'Claude Code and Codex offer packaged plugins; Gemini CLI offers an extension. Cursor has a native MCP install link. ChatGPT, Claude, Cowork, and Grok use custom OAuth connectors. Meta Muse and Grok Bot connect from a pasted chat prompt. OpenClaw needs the playbook and a separately configured connector.',
   );
   lines.push('');
 

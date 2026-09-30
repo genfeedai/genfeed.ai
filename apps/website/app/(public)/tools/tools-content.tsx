@@ -1,4 +1,5 @@
 import Card from '@ui/card/Card';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { FileText, Scissors } from 'lucide-react';
 import Link from 'next/link';
@@ -6,6 +7,7 @@ import Link from 'next/link';
 export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
+      heroMedia={<MarketingArtwork kind="creator" />}
       badge="Free tools"
       badgeIcon={Scissors}
       compact

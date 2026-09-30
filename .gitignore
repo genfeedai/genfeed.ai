@@ -107,3 +107,4 @@ public/tmp/
 
 # Homepage video artefacts (generated, published to the CDN)
 apps/website/.home-video/
+apps/website/.marketing-assets/

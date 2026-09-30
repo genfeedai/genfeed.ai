@@ -1,5 +1,6 @@
 import { EnvironmentService } from '@services/core/environment.service';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -66,6 +67,7 @@ export default function CloudContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork kind="workflow" />}
         title="One studio for your team"
         description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
       >

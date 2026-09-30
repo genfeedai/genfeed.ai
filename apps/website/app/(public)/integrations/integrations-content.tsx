@@ -28,6 +28,7 @@ import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, Newspaper, Sparkles, Star } from 'lucide-react';
@@ -102,6 +103,7 @@ export default function IntegrationsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork isCompact kind="publishing" />}
         heroActions={
           <ButtonTracked
             asChild
