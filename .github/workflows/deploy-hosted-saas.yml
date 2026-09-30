@@ -16,7 +16,7 @@ on:
         required: true
         type: string
       marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai SHA (empty = no marketplace handoff)"
+        description: "exact marketplace.genfeed.ai SHA (empty = skip marketplace)"
         required: false
         default: ""
         type: string
@@ -47,7 +47,7 @@ on:
         required: true
         type: string
       marketplace_source_sha:
-        description: "exact marketplace.genfeed.ai SHA (empty = no marketplace handoff)"
+        description: "exact marketplace.genfeed.ai SHA (empty = skip marketplace)"
         required: false
         default: ""
         type: string
@@ -67,6 +67,8 @@ on:
         default: ""
         type: string
     secrets:
+      MARKETPLACE_DEPLOY_TOKEN:
+        required: false
       VERCEL_TOKEN:
         required: true
       NEXT_PUBLIC_POSTHOG_KEY:
@@ -108,6 +110,7 @@ jobs:
         env:
           SOURCE_SHA: ${{ inputs.source_sha }}
           MARKETPLACE_SOURCE_SHA: ${{ inputs.marketplace_source_sha }}
+          MARKETPLACE_DEPLOY_TOKEN: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
           CORRELATION_ID: ${{ inputs.correlation_id }}
         run: |
           set -euo pipefail
@@ -131,7 +134,24 @@ jobs:
           fi
 
           if [ -n "${MARKETPLACE_SOURCE_SHA}" ]; then
-            echo "::warning::marketplace_source_sha is ignored on the public hosted SaaS lane. Marketplace is an independent repo and is not cloned or deployed from here."
+            if ! printf '%s' "${MARKETPLACE_SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::marketplace_source_sha must be an exact lowercase 40-character Git commit SHA."
+              exit 1
+            fi
+            if [ -z "${MARKETPLACE_DEPLOY_TOKEN}" ]; then
+              echo "::error::MARKETPLACE_DEPLOY_TOKEN requires read access to genfeedai/marketplace.genfeed.ai."
+              exit 1
+            fi
+            git init marketplace-source
+            git -C marketplace-source remote add origin https://github.com/genfeedai/marketplace.genfeed.ai.git
+            auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$MARKETPLACE_DEPLOY_TOKEN" | base64 -w0)"
+            echo "::add-mask::${auth_header}"
+            git -C marketplace-source -c "http.https://github.com/.extraheader=${auth_header}" fetch --no-tags --filter=blob:none origin master
+            git -C marketplace-source -c "http.https://github.com/.extraheader=${auth_header}" fetch --no-tags --filter=blob:none origin "${MARKETPLACE_SOURCE_SHA}"
+            if ! git -C marketplace-source merge-base --is-ancestor "${MARKETPLACE_SOURCE_SHA}" origin/master; then
+              echo "::error::marketplace_source_sha must be reachable from Marketplace master."
+              exit 1
+            fi
           fi
 
           echo "source_sha=${SOURCE_SHA}" >>"${GITHUB_OUTPUT}"
@@ -148,9 +168,11 @@ jobs:
     with:
       release_tag: ${{ inputs.release_tag }}
       source_sha: ${{ needs.validate-and-resolve.outputs.source_sha }}
+      marketplace_source_sha: ${{ inputs.marketplace_source_sha }}
       image_tag: ${{ inputs.image_tag }}
       allow_rollback: ${{ inputs.allow_rollback }}
     secrets:
+      MARKETPLACE_DEPLOY_TOKEN: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
