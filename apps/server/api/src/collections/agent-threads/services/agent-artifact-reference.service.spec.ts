@@ -203,9 +203,12 @@ describe('AgentArtifactReferenceService', () => {
         ingredients: [],
         organizationId: orgId,
       });
-      const postReference = {
-        ...reference('post'),
-        brandId: canonicalBrandId ?? undefined,
+      const postReference: AgentArtifactReference = {
+        kind: 'post',
+        organizationId: orgId,
+        recordId: 'post-1',
+        serializer: 'post',
+        ...(canonicalBrandId ? { brandId: canonicalBrandId } : {}),
       };
       await expect(
         authorizeAgentArtifactWrite({

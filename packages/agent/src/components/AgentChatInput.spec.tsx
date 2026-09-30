@@ -21,7 +21,11 @@ const storeState = {
   setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
     storeState.draftAgentMode = mode;
   }),
-  threads: [] as Array<{ id: string; mode?: AgentThreadMode }>,
+  threads: [] as Array<{
+    id: string;
+    mode?: AgentThreadMode;
+    brandId?: string | null;
+  }>,
   updateThread: vi.fn((threadId: string, patch: { mode?: AgentThreadMode }) => {
     storeState.threads = storeState.threads.map((thread) =>
       thread.id === threadId ? { ...thread, ...patch } : thread,
@@ -609,6 +613,31 @@ describe('AgentChatInput', () => {
       within(tray).getByLabelText('Referenced content: Launch post: Skipped'),
     ).toBeInTheDocument();
     expect(within(tray).queryByText('^Launch post')).not.toBeInTheDocument();
+  });
+
+  it('marks a stale cross-brand post as skipped and accepts the remaining prompt', async () => {
+    storeState.activeThreadId = 'thread-bound';
+    storeState.threads = [{ id: 'thread-bound', brandId: 'brand-2' }];
+    const onSend = vi.fn().mockResolvedValue(true);
+    const user = userEvent.setup();
+    render(<AgentChatInput onSend={onSend} />);
+    await user.click(screen.getByRole('button', { name: 'Add context' }));
+    await user.click(
+      await screen.findByRole('option', { name: 'Reference Launch post' }),
+    );
+    const tile = await screen.findByLabelText(
+      'Referenced content: Launch post: Skipped',
+    );
+    expect(within(tile).getByText('Skipped')).toBeInTheDocument();
+    expect(tile).toHaveAttribute(
+      'title',
+      expect.stringContaining('brand does not match'),
+    );
+    const editor = screen.getByRole('textbox');
+    await user.click(editor);
+    await user.type(editor, 'Continue anyway{Enter}');
+    await waitFor(() => expect(onSend).toHaveBeenCalledTimes(1));
+    expect(onSend.mock.calls[0]?.[3].artifactReferences).toBeUndefined();
   });
 
   it('opens the library picker from the reference toolbar control', async () => {
