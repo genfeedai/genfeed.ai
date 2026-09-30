@@ -84,6 +84,67 @@ async function atomic(path, value) {
   await writeFile(temporary, value, { mode: 0o600, flush: true });
   await rename(temporary, path);
 }
+export async function verifyVideo(
+  media,
+  input,
+  signal = new AbortController().signal,
+) {
+  signal.throwIfAborted();
+  if (media.format !== 'mp4') return;
+  const probe = await command(
+    'ffprobe',
+    [
+      '-v',
+      'error',
+      '-protocol_whitelist',
+      'pipe',
+      '-i',
+      'pipe:0',
+      '-show_entries',
+      'stream=width,height,codec_name,codec_type,r_frame_rate,duration:format=duration',
+      '-of',
+      'json',
+    ],
+    {
+      input: Buffer.from(media.bytes, 'base64'),
+      limit: 8192,
+      signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+    },
+  );
+  invariant(probe.code === 0, 'video_probe_failed');
+  signal.throwIfAborted();
+  const info = JSON.parse(probe.bytes.toString());
+  const stream = info.streams?.find((item) => item.codec_type === 'video');
+  invariant(
+    stream?.width === input.settings.width &&
+      stream?.height === input.settings.height &&
+      stream?.codec_name === 'h264',
+    'invalid_video_dimensions_or_codec',
+  );
+  const [numerator, denominator] = String(stream.r_frame_rate)
+    .split('/')
+    .map(Number);
+  invariant(
+    Number.isFinite(numerator / denominator) &&
+      Math.abs(numerator / denominator - input.settings.fps) < 0.01,
+    'invalid_video_fps',
+  );
+  const duration = Number(stream.duration ?? info.format?.duration);
+  invariant(
+    Number.isFinite(duration) &&
+      Math.abs(duration - input.settings.durationFrames / input.settings.fps) <=
+        1 / input.settings.fps + 0.001,
+    'invalid_video_duration',
+  );
+  invariant(
+    info.streams
+      .filter((item) => item.codec_type === 'audio')
+      .every((item) => item.codec_name === 'aac'),
+    'invalid_audio_codec',
+  );
+  return info;
+}
+
 export class Coordinator {
   constructor(directory) {
     this.directory = directory;
@@ -214,39 +275,6 @@ export class Coordinator {
     this.admissions = admission.catch(() => {});
     return admission;
   }
-  async verifyVideo(media, input) {
-    if (media.format !== 'mp4') return;
-    const probe = await command(
-      'ffprobe',
-      [
-        '-v',
-        'error',
-        '-protocol_whitelist',
-        'pipe',
-        '-i',
-        'pipe:0',
-        '-select_streams',
-        'v:0',
-        '-show_entries',
-        'stream=width,height,codec_name',
-        '-of',
-        'json',
-      ],
-      {
-        input: Buffer.from(media.bytes, 'base64'),
-        limit: 8192,
-        signal: AbortSignal.timeout(10_000),
-      },
-    );
-    invariant(probe.code === 0, 'video_probe_failed');
-    const stream = JSON.parse(probe.bytes.toString()).streams?.[0];
-    invariant(
-      stream?.width === input.settings.width &&
-        stream?.height === input.settings.height &&
-        stream?.codec_name === 'h264',
-      'invalid_video_dimensions_or_codec',
-    );
-  }
   async execute(input, receipt, controller) {
     const started = performance.now();
     const timer = setTimeout(() => controller.abort(), DEADLINE_MS);
@@ -257,13 +285,17 @@ export class Coordinator {
         input: encodeFrame(input),
         signal: controller.signal,
       });
+      controller.signal.throwIfAborted();
       const result = validateResult(decodeFrame(processResult.bytes), input);
       invariant(
         processResult.code === 0 || result.diagnostics.length > 0,
         'renderer_exit_failure',
       );
-      for (const media of result.media) await this.verifyVideo(media, input);
+      for (const media of result.media)
+        await verifyVideo(media, input, controller.signal);
+      controller.signal.throwIfAborted();
       await atomic(this.resultPath(input.id), encodeFrame(result));
+      controller.signal.throwIfAborted();
       outcome = result.diagnostics.length ? 'failed' : 'completed';
       diagnostic = result.diagnostics.length ? 'render_failed' : undefined;
     } catch (error) {
@@ -281,10 +313,7 @@ export class Coordinator {
         status: outcome,
         diagnostic,
         finishedAt: Date.now(),
-        computeSeconds: Math.min(
-          DEADLINE_MS / 1000,
-          (performance.now() - started) / 1000,
-        ),
+        computeSeconds: (performance.now() - started) / 1000,
       };
       await this.persist(final);
       this.running.delete(input.id);

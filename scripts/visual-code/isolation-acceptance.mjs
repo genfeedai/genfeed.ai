@@ -3,7 +3,7 @@ import { execFile, spawn } from 'node:child_process';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { containerName, dockerArguments } from './coordinator.mjs';
+import { containerName, dockerArguments, verifyVideo } from './coordinator.mjs';
 import {
   decodeFrame,
   encodeFrame,
@@ -166,6 +166,26 @@ await writeFile(
 assert.equal(rendered.code, 0, JSON.stringify(decoded.diagnostics));
 const result = validateResult(decoded, input);
 assert.deepEqual(result.diagnostics, []);
+const mp4 = result.media.find((media) => media.format === 'mp4');
+const videoProbe = await verifyVideo(mp4, input);
+await writeFile(
+  resolve(artifacts, 'video-probe.json'),
+  JSON.stringify(videoProbe, null, 2),
+);
+await assert.rejects(
+  verifyVideo(
+    { ...mp4, bytes: Buffer.from('0000ftypisom').toString('base64') },
+    input,
+  ),
+  /video_probe_failed/,
+);
+await assert.rejects(
+  verifyVideo(mp4, { ...input, settings: { ...input.settings, width: 642 } }),
+  /invalid_video_dimensions_or_codec/,
+);
+const cancelledProbe = new AbortController();
+cancelledProbe.abort();
+await assert.rejects(verifyVideo(mp4, input, cancelledProbe.signal));
 for (const [index, media] of result.media.entries())
   await writeFile(
     resolve(artifacts, `hybrid-${index}.${media.format}`),
