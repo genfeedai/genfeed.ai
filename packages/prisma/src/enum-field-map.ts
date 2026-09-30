@@ -7275,6 +7275,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'schedule',
       'startedAt',
       'status',
+      'templateInstantiationKey',
+      'templateInstantiationRequestHash',
       'thumbnail',
       'thumbnailNodeId',
       'timezone',

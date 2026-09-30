@@ -16,6 +16,8 @@ export class WorkflowRecurrenceEntity {
 
 export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare id: string;
+  declare templateInstantiationKey: string | null;
+  declare templateInstantiationRequestHash: string | null;
   declare defaultRecurringBrandId: string | null;
   declare organizationId: string;
   declare brandId: string | null;

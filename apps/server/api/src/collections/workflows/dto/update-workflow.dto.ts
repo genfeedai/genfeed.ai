@@ -1,6 +1,6 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { IsEnum, IsOptional } from 'class-validator';
 
 /**
@@ -12,7 +12,9 @@ import { IsEnum, IsOptional } from 'class-validator';
  * publish/archive, thumbnail, schedule, and marketplace publish/unpublish all
  * flow through here as plain field writes instead of dedicated RPC routes.
  */
-export class UpdateWorkflowDto extends PartialType(CreateWorkflowDto) {
+export class UpdateWorkflowDto extends PartialType(
+  OmitType(CreateWorkflowDto, ['idempotencyKey'] as const),
+) {
   @IsEnum(WorkflowLifecycle)
   @IsOptional()
   @ApiProperty({

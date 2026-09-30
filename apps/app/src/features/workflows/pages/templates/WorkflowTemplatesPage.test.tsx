@@ -20,6 +20,18 @@ type Translator = (
 ) => string;
 
 const mocks = vi.hoisted(() => ({
+  routed: {
+    isRouteConfirmed: true,
+    confirmedOrganizationId: 'org-1',
+    confirmedOrganizationSlug: 'demo',
+  },
+  auth: { isLoaded: true, userId: 'user-1', orgId: 'org-1' },
+  brand: {
+    organizationId: 'org-1',
+    isBrandScopeResolved: true,
+    brands: [{ id: 'brand-1', slug: 'FUDNEWS' }],
+  },
+  route: { orgSlug: 'demo', brandSlug: 'FUDNEWS' },
   copyFeatured: vi.fn(),
   create: vi.fn(),
   getService: vi.fn(),
@@ -34,6 +46,17 @@ const mocks = vi.hoisted(() => ({
   scopedGetService: null as null | ReturnType<typeof vi.fn>,
   searchParams: new URLSearchParams(),
   useTranslations: vi.fn(),
+}));
+
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({ useRoutedOrganization: () => mocks.routed }),
+);
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => mocks.auth,
+}));
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mocks.brand,
 }));
 
 vi.mock('next-intl', () => ({
@@ -94,7 +117,7 @@ const PINNED_WORKFLOW = {
 } satisfies FeaturedWorkflow;
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ href: mocks.href }),
+  useOrgUrl: () => ({ href: mocks.href, ...mocks.route }),
 }));
 
 vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
@@ -320,6 +343,19 @@ describe('WorkflowTemplatesPage', () => {
     );
     vi.clearAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
+    mocks.routed = {
+      isRouteConfirmed: true,
+      confirmedOrganizationId: 'org-1',
+      confirmedOrganizationSlug: 'demo',
+    };
+    mocks.auth = { isLoaded: true, userId: 'user-1', orgId: 'org-1' };
+    mocks.brand = {
+      organizationId: 'org-1',
+      isBrandScopeResolved: true,
+      brands: [{ id: 'brand-1', slug: 'FUDNEWS' }],
+    };
+    mocks.route = { orgSlug: 'demo', brandSlug: 'FUDNEWS' };
     mocks.scopedGetService = null;
     mocks.searchParams = new URLSearchParams();
     mocks.useTranslations.mockImplementation(translateFromCatalog);
@@ -1117,6 +1153,131 @@ describe('WorkflowTemplatesPage', () => {
       mocks.searchParams = new URLSearchParams('template=tpl-1');
     });
 
+    it('waits for route organization confirmation before catalog or POST', async () => {
+      mocks.routed.isRouteConfirmed = false;
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      expect(mocks.getService).not.toHaveBeenCalled();
+      mocks.routed.isRouteConfirmed = true;
+      mocks.routed.confirmedOrganizationSlug = 'previous-org';
+      rerender(<WorkflowTemplatesPage />);
+      expect(mocks.getService).not.toHaveBeenCalled();
+      mocks.routed.confirmedOrganizationSlug = 'demo';
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    });
+
+    it('rejects a stale catalog while route scope changes', async () => {
+      let resolveCatalog: (value: unknown[]) => void = () => {};
+      mocks.listSystemCatalog.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCatalog = resolve;
+          }),
+      );
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(1),
+      );
+      mocks.route.brandSlug = 'other';
+      mocks.brand.brands.push({ id: 'brand-2', slug: 'other' });
+      mocks.listSystemCatalog.mockRejectedValueOnce(
+        new Error('new catalog unavailable'),
+      );
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(2),
+      );
+      await act(async () => resolveCatalog([]));
+      expect(mocks.create).not.toHaveBeenCalled();
+    });
+
+    it('uses the latest template when the catalog resolves', async () => {
+      let resolveCatalog: (value: unknown[]) => void = () => {};
+      mocks.listSystemCatalog.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCatalog = resolve;
+          }),
+      );
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(1),
+      );
+      mocks.searchParams = new URLSearchParams('template=tpl-2');
+      rerender(<WorkflowTemplatesPage />);
+      await act(async () => resolveCatalog([]));
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      expect(mocks.create.mock.calls[0][0].templateId).toBe('tpl-2');
+    });
+
+    it('reuses the same key after remount and a lost response', async () => {
+      mocks.create.mockRejectedValueOnce(new Error('Response lost'));
+      const first = render(<WorkflowTemplatesPage />);
+      await screen.findByText('Response lost');
+      const key = mocks.create.mock.calls[0][0].idempotencyKey;
+      expect(key).toMatch(/^[a-f0-9]{64}$/);
+      first.unmount();
+      render(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.replace).toHaveBeenCalledTimes(1));
+      expect(mocks.create.mock.calls[1][0].idempotencyKey).toBe(key);
+      expect(mocks.create.mock.calls[1][0].brandId).toBe('brand-1');
+    });
+
+    it('reuses A after A-B-A while distinct templates have distinct attempts', async () => {
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      const firstKey = mocks.create.mock.calls[0][0].idempotencyKey;
+      mocks.searchParams = new URLSearchParams('template=tpl-2');
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
+      expect(mocks.create.mock.calls[1][0].idempotencyKey).not.toBe(firstKey);
+      mocks.searchParams = new URLSearchParams('template=tpl-1');
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(3));
+      expect(mocks.create.mock.calls[2][0].idempotencyKey).toBe(firstKey);
+    });
+
+    it('waits for loaded identity and route brand and changes attempts for route scopes', async () => {
+      mocks.auth.isLoaded = false;
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      expect(mocks.getService).not.toHaveBeenCalled();
+      mocks.auth.isLoaded = true;
+      mocks.route.brandSlug = 'other';
+      rerender(<WorkflowTemplatesPage />);
+      expect(mocks.create).not.toHaveBeenCalled();
+      mocks.brand.brands.push({ id: 'brand-2', slug: 'other' });
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      expect(mocks.create.mock.calls[0][0].brandId).toBe('brand-2');
+      const key = mocks.create.mock.calls[0][0].idempotencyKey;
+      mocks.route.brandSlug = '~';
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
+      expect(mocks.create.mock.calls[1][0]).not.toHaveProperty('brandId');
+      expect(mocks.create.mock.calls[1][0].idempotencyKey).not.toBe(key);
+    });
+
+    it('cancels a late POST result and reopens the same committed attempt', async () => {
+      let resolveCreate: (value: { id: string }) => void = () => {};
+      mocks.create.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCreate = resolve;
+          }),
+      );
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      const key = mocks.create.mock.calls[0][0].idempotencyKey;
+      mocks.searchParams = new URLSearchParams();
+      rerender(<WorkflowTemplatesPage />);
+      await act(async () => resolveCreate({ id: 'committed' }));
+      expect(mocks.replace).not.toHaveBeenCalled();
+      mocks.searchParams = new URLSearchParams('template=tpl-1');
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(2));
+      expect(mocks.create.mock.calls[1][0].idempotencyKey).toBe(key);
+    });
+
     it('creates the starter template once and opens it', async () => {
       render(<WorkflowTemplatesPage />);
 
@@ -1242,6 +1403,9 @@ describe('WorkflowTemplatesPage', () => {
         );
       });
       expect(mocks.create).toHaveBeenCalledTimes(2);
+      expect(mocks.create.mock.calls[1][0].idempotencyKey).not.toBe(
+        mocks.create.mock.calls[0][0].idempotencyKey,
+      );
     });
 
     it('waits for the official catalog, and a catalog retry creates only once', async () => {

@@ -9,6 +9,18 @@ describe('UpdateWorkflowDto', () => {
   });
 
   describe('validation', () => {
+    it('does not whitelist template instantiation identity on PATCH', async () => {
+      const dto = plainToInstance(UpdateWorkflowDto, {
+        label: 'edit',
+        idempotencyKey: 'key',
+        templateInstantiationKey: 'internal',
+        templateInstantiationRequestHash: 'hash',
+      });
+      expect(await validate(dto, { whitelist: true })).toHaveLength(0);
+      expect(dto).not.toHaveProperty('idempotencyKey');
+      expect(dto).not.toHaveProperty('templateInstantiationKey');
+      expect(dto).not.toHaveProperty('templateInstantiationRequestHash');
+    });
     it('retains an edge-style-only patch through whitelist validation', async () => {
       const dto = plainToInstance(UpdateWorkflowDto, { edgeStyle: 'straight' });
       expect(await validate(dto, { whitelist: true })).toHaveLength(0);

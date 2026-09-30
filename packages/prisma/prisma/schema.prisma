@@ -4783,6 +4783,8 @@ model Workflow {
   organization      Organization    @relation(fields: [organizationId], references: [id])
   brandId           String?
   brand             Brand?          @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  templateInstantiationKey String?
+  templateInstantiationRequestHash String?
   label             String?
   description       String?
   currentVersionId  String          @unique
@@ -4829,6 +4831,7 @@ model Workflow {
   @@index([organizationId, brandId, isDeleted])
   // Supporting index for the partial unique constraint lookup.
   @@index([defaultRecurringBrandId, organizationId])
+  @@unique([organizationId, userId, templateInstantiationKey], map: "workflows_template_instantiation_scope_key")
   @@map("workflows")
 }
 
