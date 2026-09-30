@@ -3639,6 +3639,7 @@ model LiveSession {
 /// store tokens/latency with vendorCostMicros = 0. Never stores prompt or
 /// completion content.
 model LlmVendorCost {
+  learningAttemptId String? @unique
   pricingSnapshot Json?
   costEvidence String?
   workflowExecutionId String?
@@ -3802,6 +3803,7 @@ model MediaTextDecision {
 /// units (seconds / megapixels / runs). BYOK rows store units with
 /// vendorCostMicros = 0. Never stores prompt content.
 model MediaVendorCost {
+  learningAttemptId String? @unique
   pricingSnapshot Json?
   costEvidence String?
   workflowExecutionId String?
