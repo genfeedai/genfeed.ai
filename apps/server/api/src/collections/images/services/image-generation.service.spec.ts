@@ -185,6 +185,7 @@ const createService = () => {
       status: IngredientStatus.PROCESSING,
     }),
     patch: vi.fn().mockResolvedValue(undefined),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
@@ -194,7 +195,7 @@ const createService = () => {
     publishVideoComplete: vi.fn().mockResolvedValue(undefined),
   };
   const failedGenerationService = {
-    handleFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
+    notifyFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
   };
   const routerService = {
     getDefaultModel: vi.fn().mockResolvedValue(NON_BATCH_REPLICATE_MODEL),
@@ -652,9 +653,8 @@ describe('ImageGenerationService', () => {
     ).rejects.toThrow('run linkage failed');
 
     expect(
-      failedGenerationService.handleFailedImageGeneration,
+      failedGenerationService.notifyFailedImageGeneration,
     ).toHaveBeenCalledWith(
-      expect.anything(),
       'ing-0',
       '/images/ing-0',
       expect.objectContaining({ organizationId: ORG }),
@@ -979,8 +979,8 @@ describe('ImageGenerationService', () => {
       expect(error).toBeInstanceOf(Error);
 
       const markedIds =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[1],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[0],
         );
       // The failed additional output (ing-1) is marked; the primary (ing-0) is not.
       expect(markedIds).toContain('ing-1');
@@ -988,8 +988,8 @@ describe('ImageGenerationService', () => {
 
       // The websocket path targets the failed output, not the primary.
       const markedWsPaths =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[2],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[1],
         );
       expect(markedWsPaths).toContain('/images/ing-1');
     });
@@ -1011,13 +1011,13 @@ describe('ImageGenerationService', () => {
 
       await vi.waitFor(() => {
         expect(
-          failedGenerationService.handleFailedImageGeneration,
+          failedGenerationService.notifyFailedImageGeneration,
         ).toHaveBeenCalled();
       });
 
       const markedIds =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[1],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[0],
         );
       // The failed additional output (ing-1) is marked; the already-succeeded
       // primary (ing-0) is not.

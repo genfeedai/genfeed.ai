@@ -1,3 +1,5 @@
+import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
+
 vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
   EvaluationsService: class {},
 }));
@@ -141,6 +143,7 @@ describe('WebhooksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhooksService,
+        WebhookGenerationSettlementService,
         {
           provide: GenerationBillingService,
           useValue: {

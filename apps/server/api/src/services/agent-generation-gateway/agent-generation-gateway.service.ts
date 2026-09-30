@@ -430,6 +430,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Image reframe',
+          settlement: 'completion',
+          isBodyModelIgnored: true,
           modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
           source: ActivitySource.IMAGE_REFRAME,
         },
@@ -462,6 +464,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Image upscaling',
+          settlement: 'completion',
+          isBodyModelIgnored: true,
           modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
           source: ActivitySource.IMAGE_UPSCALE,
         },

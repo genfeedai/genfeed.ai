@@ -21,7 +21,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     generateImage: vi.fn(),
   };
   const failedGenerationService = {
-    handleFailedImageGeneration: vi.fn(),
+    notifyFailedImageGeneration: vi.fn(),
   };
   const filesClientService = {
     uploadToS3: vi.fn().mockResolvedValue({
@@ -89,18 +89,20 @@ describe('ImageGenerationProviderDispatchService', () => {
   const mediaGenerationCostService = {
     recordGenerationCost: vi.fn().mockResolvedValue(undefined),
   };
+  const generationBilling = {
+    bindOutput: vi.fn().mockResolvedValue(undefined),
+    deferPoolRelease: vi.fn(),
+    hasPool: vi.fn().mockReturnValue(false),
+    releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+    releasePool: vi.fn().mockResolvedValue(undefined),
+    rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
+    settleOutput: vi.fn().mockResolvedValue('no-hold'),
+  };
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
-    {
-      bindOutput: vi.fn().mockResolvedValue(undefined),
-      deferPoolRelease: vi.fn(),
-      hasPool: vi.fn().mockReturnValue(false),
-      releaseOutput: vi.fn().mockResolvedValue('no-hold'),
-      releasePool: vi.fn().mockResolvedValue(undefined),
-      settleOutput: vi.fn().mockResolvedValue('no-hold'),
-    } as never,
+    generationBilling as never,
     generationEventWebhookService as never,
     mediaGenerationCostService as never,
     imagesService as never,
@@ -354,7 +356,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     );
 
     expect(
-      failedGenerationService.handleFailedImageGeneration,
+      failedGenerationService.notifyFailedImageGeneration,
     ).toHaveBeenCalled();
     expect(
       generationEventWebhookService.emitGenerationFailed,
@@ -367,6 +369,147 @@ describe('ImageGenerationProviderDispatchService', () => {
       organizationId: 'organization-1',
     });
   });
+
+  it('preserves completion when failure loses the terminal claim', async () => {
+    const failure = new Error('provider rejected');
+    comfyUIService.generateImage.mockRejectedValueOnce(failure);
+    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    const plan = await service.dispatch(
+      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+    );
+    await expect(plan?.generationPromise).rejects.toBe(failure);
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      }),
+      expect.objectContaining({ status: IngredientStatus.FAILED }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).not.toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationFailed,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not publish completion when expiry wins the terminal claim', async () => {
+    comfyUIService.generateImage.mockResolvedValueOnce({
+      imageBuffer: Buffer.from('image'),
+    });
+    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    const plan = await service.dispatch(
+      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+    );
+    await plan?.generationPromise;
+    expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
+    expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('recovers a provider ID after metadata failure and keeps its hold', async () => {
+    klingAIService.queueGenerateImage.mockResolvedValueOnce('accepted-image');
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    const plan = await service.dispatch(buildContext());
+    await plan?.generationPromise;
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+      ingredientId: 'ingredient-1',
+      externalId: 'accepted-image',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).not.toHaveBeenCalled();
+    metadataService.patch.mockReset();
+  });
+
+  it.each(['network-outage', 'confirmed-failure'])(
+    'uses the second output identity for early acceptance and handles %s after polling',
+    async (outcome) => {
+      replicateService.generateTextToImage
+        .mockReset()
+        .mockResolvedValueOnce('first-job')
+        .mockResolvedValueOnce('second-job');
+      replicateService.getPrediction.mockReset().mockResolvedValueOnce({
+        status: 'succeeded',
+        output: ['https://provider.example/first.png'],
+      });
+      if (outcome === 'network-outage')
+        replicateService.getPrediction.mockRejectedValueOnce(
+          new Error('poll network outage'),
+        );
+      else
+        replicateService.getPrediction.mockResolvedValueOnce({
+          status: 'failed',
+          error: 'provider confirmed failure',
+        });
+      sharedService.createMediaDocuments.mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-2' },
+        metadataData: { id: 'metadata-2' },
+      });
+      const identities = new Map<string, string>();
+      metadataService.patch.mockImplementation(async (id, metadata) => {
+        if (metadata.externalId) identities.set(id, metadata.externalId);
+      });
+      const context = buildContext({
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        outputs: 2,
+        request: {
+          creditsConfig: {
+            amount: 6,
+            isByokBypass: true,
+            byokApiKeyOverride: 'org-key',
+          },
+        } as never,
+      });
+      const plan = await service.dispatch(context);
+      await expect(plan?.generationPromise).rejects.toThrow(
+        outcome === 'network-outage'
+          ? 'poll network outage'
+          : 'provider confirmed failure',
+      );
+      expect(identities.get('metadata-1')).toBe('first-job');
+      expect(identities.get('metadata-2')).toBe('second-job');
+      expect(
+        generationBilling.bindOutput.mock.calls.map(
+          ([, output]) => output.ingredientId,
+        ),
+      ).toEqual(['ingredient-1', 'ingredient-2']);
+      if (outcome === 'network-outage') {
+        expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+        expect(
+          failedGenerationService.notifyFailedImageGeneration,
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+          'ingredient-2',
+          'organization-1',
+        );
+        expect(imagesService.patchAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'ingredient-2',
+            status: IngredientStatus.PROCESSING,
+            organizationId: 'organization-1',
+            isDeleted: false,
+          }),
+          expect.objectContaining({ status: IngredientStatus.FAILED }),
+        );
+      }
+      metadataService.patch.mockReset();
+      replicateService.getPrediction.mockReset().mockResolvedValue({
+        status: 'succeeded',
+        output: ['https://provider.example/generated.png'],
+      });
+    },
+  );
 
   it('fans out Fal outputs and tracks each placeholder', async () => {
     falService.generateImage

@@ -39,6 +39,7 @@ describe('VideoGenerationExecutionService', () => {
       hasPool: vi.fn().mockReturnValue(false),
       releaseOutput: vi.fn().mockResolvedValue('no-hold'),
       releasePool: vi.fn().mockResolvedValue(undefined),
+      rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
       settleOutput: vi.fn().mockResolvedValue('no-hold'),
     };
     const loggerService = { debug: vi.fn(), error: vi.fn(), log: vi.fn() };
@@ -73,6 +74,8 @@ describe('VideoGenerationExecutionService', () => {
 
     return {
       generationBilling,
+      metadataService,
+      videosService,
       webhooksService,
       providerDispatchService,
       replicatePollQueueService,
@@ -128,6 +131,100 @@ describe('VideoGenerationExecutionService', () => {
     expect(
       failedGenerationService.handleFailedVideoGeneration,
     ).toHaveBeenCalledTimes(1);
+  });
+
+  it('funds every sequential dispatch before the provider accepts it', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      sharedService,
+    } = createHarness();
+    sharedService.createMediaDocuments.mockResolvedValue({
+      ingredientData: { id: 'ingredient-2' },
+      metadataData: { id: 'metadata-2' },
+    });
+    providerDispatchService.dispatch.mockImplementation(async () => {
+      expect(generationBilling.bindOutput).toHaveBeenCalledTimes(
+        providerDispatchService.dispatch.mock.calls.length,
+      );
+      return {
+        completion: 'polling',
+        externalId: 'accepted',
+        provider: 'replicate',
+      };
+    });
+    await service.execute(
+      buildContext({
+        createVideoDto: { outputs: 2 } as never,
+        pendingIngredientIds: ['ingredient-1'],
+        request: { creditsConfig: { amount: 6 } } as never,
+      }),
+    );
+    expect(
+      generationBilling.bindOutput.mock.calls.map(([, output]) => output),
+    ).toEqual([
+      { credits: 3, ingredientId: 'ingredient-1' },
+      { credits: 3, ingredientId: 'ingredient-2' },
+    ]);
+  });
+
+  it('recovers accepted identity after a metadata outage without failing or releasing the output', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      metadataService,
+      failedGenerationService,
+    } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'accepted-id',
+      provider: 'replicate',
+    });
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    await service.execute(
+      buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: { creditsConfig: { amount: 6 } } as never,
+      }),
+    );
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+      ingredientId: 'ingredient-1',
+      externalId: 'accepted-id',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.handleFailedVideoGeneration,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('retains accepted funding even when metadata and attachment recovery are both unavailable', async () => {
+    const {
+      service,
+      generationBilling,
+      providerDispatchService,
+      metadataService,
+    } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'accepted-id',
+      provider: 'replicate',
+    });
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    generationBilling.rememberAcceptedOutput.mockRejectedValue(
+      new Error('queue unavailable'),
+    );
+    await service.execute(
+      buildContext({ pendingIngredientIds: ['ingredient-1'] }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
   });
 
   it.each(['fal', 'higgsfield'])(

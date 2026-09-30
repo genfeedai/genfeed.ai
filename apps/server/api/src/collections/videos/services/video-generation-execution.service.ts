@@ -78,31 +78,27 @@ export class VideoGenerationExecutionService {
     });
 
     try {
-      const generation = await this.dispatch(context);
-
       const isBatchSupported =
         MODEL_OUTPUT_CAPABILITIES[context.model]?.isBatchSupported ?? false;
       const placement = resolveVideoOutputPlacement(isBatchSupported, outputs);
       if (placement === 'batch') {
-        await this.createBatchOutputs(context, generation, outputs, accepted);
+        await this.createBatchOutputs(context, outputs, accepted);
       } else if (placement === 'sequential') {
-        await this.createSequentialOutputs(
-          context,
-          generation,
-          outputs,
-          accepted,
-        );
+        await this.createSequentialOutputs(context, outputs, accepted);
       } else {
         await this.bindOutputCredits(
           context,
           context.ingredientData.id.toString(),
           outputs,
         );
-        await this.metadataService.patch(
-          context.metadataData.id,
-          new MetadataEntity({ externalId: generation.externalId }),
-        );
+        const generation = await this.dispatch(context);
         accepted.add(context.ingredientData.id.toString());
+        await this.persistAcceptedOutput(
+          context,
+          context.ingredientData.id.toString(),
+          context.metadataData.id,
+          generation,
+        );
         await this.completeOrScheduleOutput(
           context,
           context.ingredientData.id.toString(),
@@ -147,50 +143,50 @@ export class VideoGenerationExecutionService {
 
   private async createBatchOutputs(
     context: VideoGenerationContext,
-    generation: StartedVideoGeneration,
     outputs: number,
     accepted: Set<string>,
   ): Promise<void> {
-    const generationId = generation.externalId;
     await this.bindOutputCredits(
       context,
       context.ingredientData.id.toString(),
       outputs,
     );
-    await this.metadataService.patch(
-      context.metadataData.id,
-      new MetadataEntity({ externalId: `${generationId}_0` }),
-    );
-    accepted.add(context.ingredientData.id.toString());
-    const additionalDocuments = await Promise.all(
-      Array.from({ length: outputs - 1 }, () =>
-        this.createAdditionalDocuments(context),
-      ),
-    );
-    context.pendingIngredientIds.push(
-      ...additionalDocuments.map(({ ingredientData }) =>
-        ingredientData.id.toString(),
-      ),
-    );
-    for (const { ingredientData } of additionalDocuments) {
-      await this.bindOutputCredits(
-        context,
-        ingredientData.id.toString(),
-        outputs,
-      );
+    const additionalDocuments: VideoGenerationSaveDocumentsResult[] = [];
+    for (let index = 1; index < outputs; index += 1) {
+      const documents = await this.createAdditionalDocuments(context);
+      const id = documents.ingredientData.id.toString();
+      context.pendingIngredientIds.push(id);
+      additionalDocuments.push(documents);
+      await this.bindOutputCredits(context, id, outputs);
     }
+    const generation = await this.dispatch(context);
+    const documents = [
+      {
+        ingredientData: context.ingredientData,
+        metadataData: context.metadataData,
+      },
+      ...additionalDocuments,
+    ];
+    for (const { ingredientData } of documents)
+      accepted.add(ingredientData.id.toString());
     await Promise.all(
-      additionalDocuments.map(
-        async ({ metadataData, ingredientData }, index) => {
-          await this.metadataService.patch(
-            metadataData.id,
-            new MetadataEntity({
-              externalId: `${generationId}_${index + 1}`,
-              externalProvider: generation.provider,
-            }),
-          );
-          accepted.add(ingredientData.id.toString());
-        },
+      documents.map(({ ingredientData, metadataData }, index) =>
+        this.persistAcceptedOutput(
+          context,
+          ingredientData.id.toString(),
+          metadataData.id,
+          { ...generation, externalId: `${generation.externalId}_${index}` },
+        ),
+      ),
+    );
+    await Promise.all(
+      documents.map(({ ingredientData }, index) =>
+        this.completeOrScheduleOutput(
+          context,
+          ingredientData.id.toString(),
+          generation,
+          index,
+        ),
       ),
     );
     await Promise.all(
@@ -204,99 +200,79 @@ export class VideoGenerationExecutionService {
         }),
       ),
     );
-    await Promise.all(
-      context.pendingIngredientIds.map((ingredientId, outputIndex) =>
-        this.completeOrScheduleOutput(
-          context,
-          ingredientId,
-          generation,
-          outputIndex,
-        ),
-      ),
-    );
-    this.loggerService.log(
-      'Created multiple placeholders for batch-capable model multi-output',
-      {
-        generationId,
-        isBatchSupported: true,
-        model: context.model,
-        outputs,
-        pendingIngredientIds: context.pendingIngredientIds,
-      },
-    );
   }
 
   private async createSequentialOutputs(
     context: VideoGenerationContext,
-    generation: StartedVideoGeneration,
     outputs: number,
     accepted: Set<string>,
   ): Promise<void> {
-    const generationId = generation.externalId;
-    await this.bindOutputCredits(
-      context,
-      context.ingredientData.id.toString(),
-      outputs,
-    );
-    await this.metadataService.patch(
-      context.metadataData.id,
-      new MetadataEntity({ externalId: generationId }),
-    );
-    accepted.add(context.ingredientData.id.toString());
-    await this.completeOrScheduleOutput(
-      context,
-      context.ingredientData.id.toString(),
-      generation,
-    );
-
-    for (let index = 1; index < outputs; index += 1) {
-      const documents = await this.createAdditionalDocuments(context);
-      context.pendingIngredientIds.push(documents.ingredientData.id.toString());
-      const additionalGeneration = await this.dispatch(context, index + 1);
-      await this.bindOutputCredits(
+    for (let index = 0; index < outputs; index += 1) {
+      const documents =
+        index === 0
+          ? {
+              ingredientData: context.ingredientData,
+              metadataData: context.metadataData,
+            }
+          : await this.createAdditionalDocuments(context);
+      const id = documents.ingredientData.id.toString();
+      if (index > 0) context.pendingIngredientIds.push(id);
+      await this.bindOutputCredits(context, id, outputs);
+      const generation = await this.dispatch(context, index + 1);
+      accepted.add(id);
+      await this.persistAcceptedOutput(
         context,
-        documents.ingredientData.id.toString(),
-        outputs,
+        id,
+        documents.metadataData.id,
+        generation,
       );
-      await Promise.all([
-        this.metadataService
-          .patch(
-            documents.metadataData.id,
-            new MetadataEntity({
-              externalId: additionalGeneration.externalId,
-              externalProvider: additionalGeneration.provider,
-            }),
-          )
-          .then(() => {
-            accepted.add(documents.ingredientData.id.toString());
-          }),
-        this.videosService.patch(documents.ingredientData.id, {
-          promptId: context.promptData.id,
-        }),
-      ]);
-      await this.createPlaceholderActivity({
-        brandId: context.brand.id,
-        ingredientId: documents.ingredientData.id,
-        model: context.model,
-        organizationId: context.user.organizationId,
-        userId: context.user.userId ?? context.user.id,
-      });
-      await this.completeOrScheduleOutput(
-        context,
-        documents.ingredientData.id.toString(),
-        additionalGeneration,
-      );
+      await this.completeOrScheduleOutput(context, id, generation);
+      if (index > 0)
+        await this.createPlaceholderActivity({
+          brandId: context.brand.id,
+          ingredientId: documents.ingredientData.id,
+          model: context.model,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId ?? context.user.id,
+        });
     }
+  }
 
-    this.loggerService.log(
-      'Created multiple API calls for non-batch model multi-output',
-      {
-        isBatchSupported: false,
-        model: context.model,
-        outputs,
-        pendingIngredientIds: context.pendingIngredientIds,
-      },
-    );
+  private async persistAcceptedOutput(
+    context: VideoGenerationContext,
+    ingredientId: string,
+    metadataId: string,
+    generation: StartedVideoGeneration,
+  ): Promise<void> {
+    try {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          externalId: generation.externalId,
+          externalProvider: generation.provider,
+        }),
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Accepted video metadata persistence failed',
+        error,
+        { ingredientId },
+      );
+      try {
+        await this.generationBilling.rememberAcceptedOutput({
+          ingredientId,
+          externalId: generation.externalId,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId,
+        });
+      } catch (recoveryError: unknown) {
+        this.loggerService.error(
+          'Accepted video attachment recovery failed; retain its funding',
+          recoveryError,
+          { ingredientId, externalId: generation.externalId },
+        );
+      }
+    }
   }
 
   private createAdditionalDocuments(
@@ -471,8 +447,8 @@ export class VideoGenerationExecutionService {
   }
 
   /**
-   * Binds one accepted output to an even share of the request's credit hold,
-   * before its provider id is persisted so a fast webhook finds the hold.
+   * Binds one output to an even share of the request's credit hold,
+   * before dispatch so a fast webhook finds the hold.
    */
   private async bindOutputCredits(
     context: VideoGenerationContext,

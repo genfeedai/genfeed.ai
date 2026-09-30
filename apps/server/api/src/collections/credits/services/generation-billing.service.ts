@@ -141,9 +141,8 @@ export class GenerationBillingService {
   }
 
   /**
-   * Binds one accepted output to its own hold. Call it after the provider
-   * accepted the job and before the ingredient can complete (before the
-   * external id is persisted), so a fast webhook always finds the hold.
+   * Binds an output to its own hold before provider dispatch, so a fast
+   * completion callback always finds immutable funding for that output.
    */
   async bindOutput(
     request: GenerationBillingRequest,

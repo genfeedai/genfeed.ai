@@ -24,6 +24,7 @@ import {
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
+import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
@@ -63,6 +64,25 @@ interface RealizedImageDimensions {
  */
 @Injectable()
 export class ImageGenerationProviderDispatchService {
+  private readonly acceptedOutputs = new WeakMap<
+    ImageGenerationContext,
+    Set<string>
+  >();
+  private readonly batchDocuments = new WeakMap<
+    ImageGenerationContext,
+    Array<
+      Pick<
+        ImageGenerationSaveDocumentsResult,
+        'ingredientData' | 'metadataData'
+      >
+    >
+  >();
+
+  private readonly activeDocument = new WeakMap<
+    ImageGenerationContext,
+    Pick<ImageGenerationSaveDocumentsResult, 'ingredientData' | 'metadataData'>
+  >();
+
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -104,17 +124,30 @@ export class ImageGenerationProviderDispatchService {
       modelProvider: context.modelProvider,
       modelSchemaFamily: context.modelSchemaFamily,
       onExternalJobCreated: async (externalId) => {
-        await this.metadataService.patch(
-          context.metadataData.id,
-          new MetadataEntity({
-            externalId,
-            externalProvider:
-              this.providerRegistry.providerFor(
-                context.model,
-                context.modelProvider,
-              ) ?? undefined,
-          }),
-        );
+        const documents = this.batchDocuments.get(context);
+        if (documents) {
+          await Promise.all(
+            documents.map(({ ingredientData, metadataData }, index) =>
+              this.patchExternalId(
+                metadataData.id,
+                { kind: 'external-id', externalId: `${externalId}_${index}` },
+                context,
+                ingredientData.id,
+              ),
+            ),
+          );
+        } else {
+          const target = this.activeDocument.get(context) ?? {
+            ingredientData: context.ingredientData,
+            metadataData: context.metadataData,
+          };
+          await this.patchExternalId(
+            target.metadataData.id,
+            { kind: 'external-id', externalId },
+            context,
+            target.ingredientData.id,
+          );
+        }
       },
       organizationId: context.user.organizationId,
       outputs: context.outputs,
@@ -320,7 +353,12 @@ export class ImageGenerationProviderDispatchService {
     try {
       const result = await provider.generate();
       const externalId = this.externalId(result);
-      await this.patchExternalId(context.metadataData.id, result, context);
+      await this.patchExternalId(
+        context.metadataData.id,
+        result,
+        context,
+        context.ingredientData.id,
+      );
       await this.finalizeReturnedOutput(
         context,
         context.ingredientData.id,
@@ -338,48 +376,47 @@ export class ImageGenerationProviderDispatchService {
     provider: PreparedImageGenerationProvider,
     pollIds: string[],
   ): Promise<string> {
+    const documents: Array<
+      Pick<
+        ImageGenerationSaveDocumentsResult,
+        'ingredientData' | 'metadataData'
+      >
+    > = [
+      {
+        ingredientData: context.ingredientData,
+        metadataData: context.metadataData,
+      },
+    ];
     try {
+      // Every batch output must exist and be funded before the provider accepts the batch.
+      const additionalDocuments: ImageGenerationSaveDocumentsResult[] = [];
+      for (let index = 1; index < context.outputs; index += 1) {
+        const output = await this.createAdditionalDocuments(context);
+        additionalDocuments.push(output);
+        documents.push(output);
+        await this.bindOutputCredits(context, output.ingredientData.id);
+      }
+      this.batchDocuments.set(context, documents);
       const result = await provider.generate();
       const generationId = this.externalId(result);
-      await this.metadataService.patch(
-        context.metadataData.id,
-        new MetadataEntity({ externalId: `${generationId}_0` }),
-      );
-
-      const additionalDocuments = await Promise.all(
-        Array.from({ length: context.outputs - 1 }, () =>
-          this.createAdditionalDocuments(context),
-        ),
-      );
+      for (const { ingredientData } of documents)
+        this.markAccepted(context, ingredientData.id);
       await Promise.all(
-        additionalDocuments.map(({ ingredientData }) =>
-          this.bindOutputCredits(context, ingredientData.id),
+        documents.map(({ ingredientData, metadataData }, index) =>
+          this.patchExternalId(
+            metadataData.id,
+            {
+              kind: 'external-id',
+              externalId: `${generationId}_${index}`,
+              ...(result.kind === 'external-id' && result.promptId
+                ? { promptId: result.promptId }
+                : {}),
+            },
+            context,
+            ingredientData.id,
+          ),
         ),
       );
-
-      await Promise.all(
-        additionalDocuments.flatMap(
-          ({ metadataData, ingredientData }, index) => [
-            this.metadataService.patch(
-              metadataData.id,
-              new MetadataEntity({
-                externalId: `${generationId}_${index + 1}`,
-              }),
-            ),
-            this.imagesService.patch(ingredientData.id, {
-              promptId: context.promptData.id,
-            }),
-          ],
-        ),
-      );
-
-      const documents = [
-        {
-          ingredientData: context.ingredientData,
-          metadataData: context.metadataData,
-        },
-        ...additionalDocuments,
-      ];
       await Promise.all(
         documents.map(({ ingredientData, metadataData }, index) =>
           this.finalizeReturnedOutput(
@@ -411,7 +448,27 @@ export class ImageGenerationProviderDispatchService {
       );
       return generationId;
     } catch (error: unknown) {
-      return this.handleProviderFailure(context, error, provider.failureLabel);
+      const outputIds =
+        documents.length > 0
+          ? documents.map(({ ingredientData }) => ingredientData.id)
+          : [context.ingredientData.id];
+      await Promise.all(
+        outputIds.map(async (id) => {
+          try {
+            await this.handleProviderFailure(
+              context,
+              error,
+              provider.failureLabel,
+              id,
+            );
+          } catch {
+            /* Return the original dispatch failure after cleanup. */
+          }
+        }),
+      );
+      throw error;
+    } finally {
+      this.batchDocuments.delete(context);
     }
   }
 
@@ -428,6 +485,7 @@ export class ImageGenerationProviderDispatchService {
         context.metadataData.id,
         primaryResult,
         context,
+        context.ingredientData.id,
       );
       await this.finalizeReturnedOutput(
         context,
@@ -466,9 +524,15 @@ export class ImageGenerationProviderDispatchService {
       const documents = await this.createAdditionalDocuments(context);
       ingredientId = documents.ingredientData.id;
       await this.bindOutputCredits(context, ingredientId);
+      this.activeDocument.set(context, documents);
       const result = await provider.generate();
       await Promise.all([
-        this.patchExternalId(documents.metadataData.id, result, context),
+        this.patchExternalId(
+          documents.metadataData.id,
+          result,
+          context,
+          documents.ingredientData.id,
+        ),
         this.imagesService.patch(documents.ingredientData.id, {
           promptId: context.promptData.id,
         }),
@@ -519,6 +583,8 @@ export class ImageGenerationProviderDispatchService {
         error,
       );
       throw error;
+    } finally {
+      this.activeDocument.delete(context);
     }
   }
 
@@ -557,26 +623,59 @@ export class ImageGenerationProviderDispatchService {
     });
   }
 
-  private patchExternalId(
+  private markAccepted(
+    context: ImageGenerationContext,
+    ingredientId: string,
+  ): void {
+    const ids = this.acceptedOutputs.get(context) ?? new Set<string>();
+    ids.add(ingredientId.toString());
+    this.acceptedOutputs.set(context, ids);
+  }
+
+  private async patchExternalId(
     metadataId: string,
     result: ImageGenerationProviderResult,
     context: ImageGenerationContext,
-  ): Promise<unknown> {
+    ingredientId: string,
+  ): Promise<void> {
     const externalId = this.externalId(result);
-    return this.metadataService.patch(
-      metadataId,
-      new MetadataEntity({
-        externalId,
-        externalProvider:
-          this.providerRegistry.providerFor(
-            context.model,
-            context.modelProvider,
-          ) ?? undefined,
-        ...(result.kind === 'external-id' && result.promptId
-          ? { promptId: result.promptId }
-          : {}),
-      }),
-    );
+    this.markAccepted(context, ingredientId);
+    try {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          externalId,
+          externalProvider:
+            this.providerRegistry.providerFor(
+              context.model,
+              context.modelProvider,
+            ) ?? undefined,
+          ...(result.kind === 'external-id' && result.promptId
+            ? { promptId: result.promptId }
+            : {}),
+        }),
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Accepted image metadata persistence failed',
+        error,
+        { ingredientId },
+      );
+      try {
+        await this.generationBilling.rememberAcceptedOutput({
+          ingredientId: ingredientId.toString(),
+          externalId,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId,
+        });
+      } catch (recoveryError: unknown) {
+        this.loggerService.error(
+          'Accepted image attachment recovery failed; retain its funding',
+          recoveryError,
+          { ingredientId, externalId },
+        );
+      }
+    }
   }
 
   private async finalizeReturnedOutput(
@@ -590,7 +689,11 @@ export class ImageGenerationProviderDispatchService {
       return;
     }
 
-    const current = await this.imagesService.findOne({ id: ingredientId });
+    const current = await this.imagesService.findOne({
+      id: ingredientId,
+      organizationId: context.user.organizationId,
+      isDeleted: false,
+    });
     if (!isProcessingIngredient(current)) {
       return;
     }
@@ -666,25 +769,37 @@ export class ImageGenerationProviderDispatchService {
       throw error;
     }
 
-    const latest = await this.imagesService.findOne({
-      id: ingredientId,
-      organizationId: context.user.organizationId,
-      isDeleted: false,
-    });
-    if (!isProcessingIngredient(latest)) throw error;
-    this.loggerService.error(`${label} failed`, error);
+    if (
+      this.acceptedOutputs.get(context)?.has(ingredientId.toString()) &&
+      !(error instanceof ProviderGenerationFailedError)
+    ) {
+      this.loggerService.error(
+        'Accepted image postdispatch work failed; retain its funding',
+        error,
+        { ingredientId },
+      );
+      throw error;
+    }
     const errorMessage = getErrorMessage(error);
-
-    await this.failedGenerationService.handleFailedImageGeneration(
-      this.imagesService,
+    const claimed = await this.imagesService.patchAll(
+      {
+        id: ingredientId,
+        organizationId: context.user.organizationId,
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      { generationError: errorMessage, status: IngredientStatus.FAILED },
+    );
+    if (claimed.modifiedCount !== 1) throw error;
+    this.loggerService.error(`${label} failed`, error);
+    await this.releaseOutputCredits(context, ingredientId);
+    await this.failedGenerationService.notifyFailedImageGeneration(
       ingredientId,
       WebSocketPaths.image(ingredientId),
       context.user,
       getUserRoomName(context.user.id),
       errorMessage,
     );
-
-    await this.releaseOutputCredits(context, ingredientId);
 
     await this.generationEventWebhookService.emitGenerationFailed({
       brandId: context.brand.id?.toString() ?? null,

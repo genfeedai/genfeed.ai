@@ -398,10 +398,42 @@ export class CreditReservationService {
   }
 
   async expireDue(now = new Date()): Promise<number> {
-    // tenant-scope-ignore: platform maintenance sweep — every candidate carries
-    // its organizationId and release is re-scoped before mutating its wallet
+    // Enumerate organization identities at the system boundary, including archived
+    // organizations that may still have held funds. Every wallet query below is scoped.
+    let cursor: string | undefined;
+    let expired = 0;
+    for (;;) {
+      const organizations = await this.prisma.organization.findMany({
+        select: { id: true },
+        orderBy: { id: 'asc' },
+        take: 100,
+        where: {
+          ...(cursor ? { id: { gt: cursor } } : {}),
+          creditReservations: {
+            some: {
+              isDeleted: false,
+              status: CreditReservationStatus.RESERVED,
+              expiresAt: { lte: now },
+            },
+          },
+        },
+      });
+      for (const organization of organizations)
+        expired += await this.expireDueForOrganization(organization.id, now);
+      if (organizations.length < 100) break;
+      cursor = organizations[organizations.length - 1].id;
+    }
+    this.logger.log('Expired credit reservations', { expired });
+    return expired;
+  }
+
+  private async expireDueForOrganization(
+    organizationId: string,
+    now: Date,
+  ): Promise<number> {
     const due = await this.prisma.creditReservation.findMany({
       where: {
+        organizationId,
         expiresAt: { lte: now },
         OR: [
           { workloadType: null },
@@ -439,7 +471,6 @@ export class CreditReservationService {
       }
     }
 
-    this.logger.log('Expired credit reservations', { expired });
     return expired;
   }
 

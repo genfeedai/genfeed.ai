@@ -1,5 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -49,7 +50,7 @@ describe('AvatarVideoGenerationService', () => {
     const creditsUtilsService = {
       bindReservationOutput: vi
         .fn()
-        .mockResolvedValue({ amount: AVATAR_PRICE }),
+        .mockResolvedValue({ id: 'avatar-output-hold', amount: AVATAR_PRICE }),
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       findReservationForWorkload: vi.fn().mockResolvedValue(null),
@@ -131,9 +132,12 @@ describe('AvatarVideoGenerationService', () => {
       brandsService as never,
       configService as never,
       byokService as never,
-      creditsUtilsService as never,
-      generationBilling,
-      modelCreditQuote as never,
+      new AvatarVideoBillingService(
+        creditsUtilsService as never,
+        generationBilling,
+        modelCreditQuote as never,
+        loggerService,
+      ),
       elevenlabsService as never,
       failedGenerationService as never,
       managedInferenceRuntimeService as never,
@@ -385,6 +389,69 @@ describe('AvatarVideoGenerationService', () => {
       metadataService.patch.mock.invocationCallOrder[externalIdPatch],
     );
   });
+
+  it.each(['metadata', 'notification'])(
+    'preserves an accepted avatar after a %s outage',
+    async (outage) => {
+      const {
+        service,
+        brandsService,
+        metadataService,
+        websocketService,
+        creditsUtilsService,
+        creditDeductionQueueService,
+        failedGenerationService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      if (outage === 'metadata')
+        metadataService.patch.mockImplementation(async (_id, metadata) => {
+          if (metadata.externalId) throw new Error('metadata unavailable');
+        });
+      else
+        websocketService.publishVideoProgress.mockRejectedValue(
+          new Error('notification unavailable'),
+        );
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoUrl: 'https://cdn.example/avatar.png',
+            text: 'Speech',
+          },
+          context,
+        ),
+      ).resolves.toEqual({
+        externalId: 'heygen-job-1',
+        ingredientId: 'avatar-ingredient-1',
+        status: 'processing',
+      });
+      expect(
+        creditsUtilsService.releaseReservation,
+      ).toHaveBeenCalledExactlyOnceWith({
+        organizationId: 'test-object-id',
+        reservationId: 'service-pool-1',
+      });
+      expect(
+        creditsUtilsService.findReservationForWorkload,
+      ).not.toHaveBeenCalled();
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+      if (outage === 'metadata')
+        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            amount: 0,
+            acceptedGeneration: {
+              ingredientId: 'avatar-ingredient-1',
+              externalId: 'heygen-job-1',
+            },
+          }),
+        );
+    },
+  );
 
   it('releases the hold and charges nothing when HeyGen rejects the job', async () => {
     const {

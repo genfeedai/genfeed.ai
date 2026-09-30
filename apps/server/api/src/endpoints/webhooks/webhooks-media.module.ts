@@ -10,6 +10,7 @@ import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.se
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
+import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { BotCallbackModule } from '@api/services/bot-gateway/bot-callback.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -58,6 +59,7 @@ import { Module } from '@nestjs/common';
     MetadataLookupService,
     PostProcessingOrchestratorService,
     WebhooksService,
+    WebhookGenerationSettlementService,
   ],
 })
 export class WebhooksMediaModule {}

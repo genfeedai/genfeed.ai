@@ -861,8 +861,8 @@ describe('VideoGenerationService', () => {
         failedGenerationService.handleFailedVideoGeneration.mock.calls.map(
           (call) => call[1],
         );
-      // Both the first and the additional placeholder are torn down.
-      expect(cleanedIds).toContain('ing-0');
+      // Preserve the accepted primary; only the unaccepted output fails.
+      expect(cleanedIds).not.toContain('ing-0');
       expect(cleanedIds).toContain('ing-1');
     });
 

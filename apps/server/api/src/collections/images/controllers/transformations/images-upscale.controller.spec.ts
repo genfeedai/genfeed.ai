@@ -136,6 +136,8 @@ describe('ImagesUpscaleController', () => {
 
     expect(Reflect.getMetadata(CREDITS_KEY, handler) as CreditsConfig).toEqual({
       description: 'Image upscaling',
+      settlement: 'completion',
+      isBodyModelIgnored: true,
       modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       source: ActivitySource.IMAGE_UPSCALE,
     });

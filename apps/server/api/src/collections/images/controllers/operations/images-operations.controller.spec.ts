@@ -332,7 +332,7 @@ describe('ImagesOperationsController', () => {
         {
           provide: FailedGenerationService,
           useValue: {
-            handleFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
+            notifyFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -399,6 +399,7 @@ describe('ImagesOperationsController', () => {
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockImage),
             patch: vi.fn().mockResolvedValue(mockImage),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
           },
         },
         {
@@ -869,7 +870,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Generation failed');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -889,7 +890,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Generation failed');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -909,7 +910,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow();
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -1304,7 +1305,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Replicate error');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
   });

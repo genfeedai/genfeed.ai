@@ -1,4 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -203,6 +204,10 @@ describe('VideosController', () => {
     testingModule = await Test.createTestingModule({
       controllers: [VideosController],
       providers: [
+        {
+          provide: WebhooksService,
+          useValue: { processMediaForIngredient: vi.fn() },
+        },
         {
           provide: MediaPromptEnhancementService,
           useValue: {

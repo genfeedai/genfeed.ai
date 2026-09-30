@@ -1,5 +1,4 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -8,12 +7,12 @@ import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.se
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
+import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   categoryToMediaType,
@@ -64,10 +63,9 @@ export class WebhooksService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
-    private readonly generationBilling: GenerationBillingService,
+    private readonly generationSettlement: WebhookGenerationSettlementService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
-    private readonly mediaGenerationCostService: MediaGenerationCostService,
     private readonly mediaUploadService: MediaUploadService,
     private readonly metadataLookupService: MetadataLookupService,
     private readonly metadataService: MetadataService,
@@ -224,11 +222,20 @@ export class WebhooksService {
       uploadMetadata,
     );
     if (!completed) return;
-    await this.settleGenerationCredits(
+    await this.generationSettlement.settleOutput(
       input.ingredientId,
       ingredient.organizationId,
     );
 
+    await this.notifyMediaGenerated(input, ingredient, metadata);
+  }
+
+  private async notifyMediaGenerated(
+    input: Parameters<WebhooksService['finalizeWebhookMedia']>[0],
+    ingredient: NonNullable<Awaited<ReturnType<IngredientsService['findOne']>>>,
+    metadata: Awaited<ReturnType<MetadataService['findOne']>>,
+  ): Promise<void> {
+    const logContext = `${this.constructorName} notifyMediaGenerated`;
     // 3.5 Vendor-cost ledger row from the realized output (fire-and-forget;
     // the service swallows every failure so it can never break finalization).
     const generationMetadata = metadata as {
@@ -237,7 +244,7 @@ export class WebhooksService {
       model?: string;
       width?: number;
     } | null;
-    void this.mediaGenerationCostService.recordGenerationCost({
+    void this.generationSettlement.recordGenerationCost({
       brandId: ingredient.brandId ?? null,
       category: input.categoryValue,
       durationSeconds: generationMetadata?.duration ?? null,
@@ -408,7 +415,7 @@ export class WebhooksService {
       }
     }
 
-    await this.releaseGenerationCredits(
+    await this.generationSettlement.releaseOutput(
       ingredient.id.toString(),
       ingredient.organizationId,
     );
@@ -460,38 +467,6 @@ export class WebhooksService {
    * Completion settles the output's credit hold. A failure here must not undo a
    * finished generation; the reconcile sweep settles any hold this misses.
    */
-  private async settleGenerationCredits(
-    ingredientId: string,
-    organizationId: string | null | undefined,
-  ): Promise<void> {
-    if (!organizationId) return;
-    try {
-      await this.generationBilling.settleOutput(ingredientId, organizationId);
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} generation credit settlement failed`,
-        error,
-        { ingredientId, organizationId },
-      );
-    }
-  }
-
-  private async releaseGenerationCredits(
-    ingredientId: string,
-    organizationId: string | null | undefined,
-  ): Promise<void> {
-    if (!organizationId) return;
-    try {
-      await this.generationBilling.releaseOutput(ingredientId, organizationId);
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} generation credit release failed`,
-        error,
-        { ingredientId, organizationId },
-      );
-    }
-  }
-
   private schedulePostUploadNotifications(
     ingredientId: string,
     categoryValue: IngredientCategory | string,

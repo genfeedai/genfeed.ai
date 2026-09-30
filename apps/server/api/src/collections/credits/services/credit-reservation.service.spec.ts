@@ -10,6 +10,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {
   const prisma = {
+    organization: { findMany: vi.fn() },
     creditReservation: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -46,7 +47,16 @@ describe('CreditReservationService', () => {
     transactionUtil as unknown as TransactionUtil,
   );
 
+  function mockDueReservations(rows: Array<Record<string, unknown>>): void {
+    prisma.creditReservation.findMany.mockImplementation(async (args) =>
+      rows.filter((row) => row.organizationId === args.where.organizationId),
+    );
+  }
+
   beforeEach(() => {
+    prisma.organization.findMany
+      .mockReset()
+      .mockResolvedValue([{ id: 'org_1' }, { id: 'org_2' }]);
     prisma.creditReservation.create.mockReset();
     prisma.creditReservation.findFirst.mockReset();
     prisma.creditReservation.findMany.mockReset();
@@ -443,6 +453,19 @@ describe('CreditReservationService', () => {
     expect(snapshot.available).toBe(100);
   });
 
+  it('scopes each expiry candidate query to its owning organization', async () => {
+    mockDueReservations([]);
+    await service.expireDue();
+    expect(prisma.creditReservation.findMany).toHaveBeenCalledTimes(2);
+    expect(
+      prisma.creditReservation.findMany.mock.calls.map(
+        ([args]) => args.where.organizationId,
+      ),
+    ).toEqual(['org_1', 'org_2']);
+    for (const [args] of prisma.creditReservation.findMany.mock.calls)
+      expect(args.where.isDeleted).toBe(false);
+  });
+
   it('settles accepted interpolation at its held quote without releasing it', async () => {
     const reservation = {
       id: 'hold',
@@ -452,7 +475,7 @@ describe('CreditReservationService', () => {
       workloadType: 'interpolation',
       workloadId: 'asset',
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reservation]);
+    mockDueReservations([reservation]);
     prisma.ingredient.findFirst.mockResolvedValue({
       metadata: { externalId: 'provider-id', isDeleted: false },
     });
@@ -476,7 +499,7 @@ describe('CreditReservationService', () => {
   });
 
   it('releases only confirmed failed unaccepted interpolation holds', async () => {
-    prisma.creditReservation.findMany.mockResolvedValue([
+    mockDueReservations([
       {
         id: 'hold',
         organizationId: 'org_1',
@@ -503,7 +526,7 @@ describe('CreditReservationService', () => {
     'retains unknown or foreign interpolation holds and permits other expiry work',
     async (asset) => {
       const now = new Date('2026-09-24T10:00:00Z');
-      prisma.creditReservation.findMany.mockResolvedValue([
+      mockDueReservations([
         {
           id: 'hold',
           organizationId: 'org_1',
@@ -552,7 +575,7 @@ describe('CreditReservationService', () => {
       status: CreditReservationStatus.RESERVED,
       workloadType: 'live-session',
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reserved]);
+    mockDueReservations([reserved]);
     prisma.creditReservation.findFirst.mockResolvedValue(reserved);
     const settle = vi.spyOn(service, 'settle').mockResolvedValue({} as never);
 
@@ -586,7 +609,7 @@ describe('CreditReservationService', () => {
       organizationId: 'org_1',
       status: CreditReservationStatus.RESERVED,
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reserved]);
+    mockDueReservations([reserved]);
     prisma.creditReservation.findFirst.mockResolvedValue(reserved);
     prisma.creditReservation.update.mockResolvedValue({
       ...reserved,
@@ -606,7 +629,7 @@ describe('CreditReservationService', () => {
   });
 
   it('continues expiring later reservations when one tenant fails', async () => {
-    prisma.creditReservation.findMany.mockResolvedValue([
+    mockDueReservations([
       { id: 'res_1', organizationId: 'org_1' },
       { id: 'res_2', organizationId: 'org_2' },
     ]);
@@ -626,7 +649,7 @@ describe('CreditReservationService', () => {
   });
 
   it('leaves media holds to generation reconciliation even when settlement is queued at expiry', async () => {
-    prisma.creditReservation.findMany.mockResolvedValue([
+    mockDueReservations([
       {
         id: 'media-hold',
         organizationId: 'org_1',

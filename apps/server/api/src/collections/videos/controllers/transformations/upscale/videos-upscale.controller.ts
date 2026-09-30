@@ -341,10 +341,32 @@ export class VideosUpscaleController {
       promptParams,
     );
     if (externalId) {
-      await this.metadataService.patch(
-        metadataId,
-        new MetadataEntity({ externalId }),
-      );
+      try {
+        await this.metadataService.patch(
+          metadataId,
+          new MetadataEntity({ externalId }),
+        );
+      } catch (error: unknown) {
+        this.loggerService.error(
+          'Accepted upscale metadata persistence failed',
+          error,
+          { ingredientId },
+        );
+        try {
+          await this.generationBilling.rememberAcceptedOutput({
+            ingredientId,
+            externalId,
+            organizationId: user.organizationId,
+            userId: user.userId,
+          });
+        } catch (recoveryError: unknown) {
+          this.loggerService.error(
+            'Accepted upscale recovery failed; retain its funding',
+            recoveryError,
+            { ingredientId, externalId },
+          );
+        }
+      }
       return false;
     }
     await this.failedGenerationService.handleFailedVideoGeneration(

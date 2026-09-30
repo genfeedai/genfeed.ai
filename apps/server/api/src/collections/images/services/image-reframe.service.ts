@@ -220,6 +220,7 @@ export class ImageReframeService {
       user,
       websocketUrl,
     } = params;
+    let acceptedExternalId: string | undefined;
     try {
       const parentImageUrl: string = `${this.configService.ingredientsEndpoint}/images/${parentId}`;
       const promptResult = await this.promptBuilderService.buildPrompt(
@@ -264,6 +265,7 @@ export class ImageReframeService {
       );
 
       if (generationId) {
+        acceptedExternalId = generationId;
         await this.metadataService.patch(
           metadataId,
           new MetadataEntity({
@@ -285,6 +287,30 @@ export class ImageReframeService {
         );
       }
     } catch (error: unknown) {
+      if (acceptedExternalId) {
+        this.loggerService.error(
+          'Accepted transformation metadata persistence failed',
+          error,
+        );
+        try {
+          await this.generationBilling.rememberAcceptedOutput({
+            ingredientId: String(ingredientData.id),
+            externalId: acceptedExternalId,
+            organizationId: user.organizationId,
+            userId: user.userId,
+          });
+        } catch (recoveryError: unknown) {
+          this.loggerService.error(
+            'Accepted transformation recovery failed; retain its funding',
+            recoveryError,
+            {
+              ingredientId: String(ingredientData.id),
+              externalId: acceptedExternalId,
+            },
+          );
+        }
+        return;
+      }
       this.loggerService.error(`${url} failed`, error);
       const errorMessage = getErrorMessage(error);
       await this.generationBilling.releaseOutput(

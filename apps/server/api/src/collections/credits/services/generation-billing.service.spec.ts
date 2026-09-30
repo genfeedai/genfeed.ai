@@ -285,6 +285,49 @@ describe('GenerationBillingService', () => {
       expect(queue.queueDeduction).not.toHaveBeenCalled();
       expect(credits.reserveCredits).not.toHaveBeenCalled();
     });
+    it('marks confirmed BYOK usage recorded without enqueueing again or changing wallet funding', async () => {
+      credits.findReservationForWorkload.mockResolvedValue(null);
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'ing_1',
+        status: IngredientStatus.GENERATED,
+        generationBilling: receipt,
+      });
+      prisma.creditTransaction.findFirst.mockResolvedValue({ id: 'usage_1' });
+      expect(await service.settleOutput('ing_1', 'org_1')).toBe(
+        'already-settled',
+      );
+      expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: {
+          organizationId: 'org_1',
+          isDeleted: false,
+          idempotencyKey: 'byok:org_1:media-generation-usage:ing_1',
+        },
+      });
+      expect(prisma.ingredient.updateMany).toHaveBeenCalledWith({
+        data: { generationBilling: { ...receipt, state: 'recorded' } },
+        where: {
+          id: 'ing_1',
+          organizationId: 'org_1',
+          isDeleted: false,
+          status: {
+            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+          },
+        },
+      });
+      prisma.ingredient.findFirst.mockResolvedValue({
+        id: 'ing_1',
+        status: IngredientStatus.GENERATED,
+        generationBilling: { ...receipt, state: 'recorded' },
+      });
+      expect(await service.settleOutput('ing_1', 'org_1')).toBe(
+        'already-settled',
+      );
+      expect(queue.queueByokUsage).not.toHaveBeenCalled();
+      expect(queue.queueDeduction).not.toHaveBeenCalled();
+      expect(credits.reserveCredits).not.toHaveBeenCalled();
+      expect(credits.releaseReservation).not.toHaveBeenCalled();
+    });
     it('retains failed-generation evidence without recording usage', async () => {
       credits.findReservationForWorkload.mockResolvedValue(null);
       prisma.ingredient.findFirst.mockResolvedValue({
