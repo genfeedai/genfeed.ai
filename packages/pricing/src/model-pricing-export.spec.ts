@@ -8,6 +8,7 @@ it('exports the same dated snapshot with unresolved values and prevents spreadsh
     retrievedAt: '2026-09-30T00:00:00Z',
     source: 'https://api.example/admin/model-pricing',
     isConversionPolicyConfigured: false,
+    marginMultiplierGeneration: null,
     rows: [
       {
         id: 'model',
@@ -39,6 +40,7 @@ it('exports the same dated snapshot with unresolved values and prevents spreadsh
   expect(csv).toContain('2026-09-30T00:00:00Z');
   expect(csv).toContain('https://api.example/admin/model-pricing');
   expect(csv).toContain('Unresolved');
+  expect(csv).toContain('Configured generation margin multiplier');
   expect(csv).toContain("'=IMPORTXML");
   expect(csv).toContain('Unknown price');
   expect(csv.split('\r\n')).toHaveLength(2);

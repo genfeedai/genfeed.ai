@@ -348,13 +348,19 @@ export class AdminModelPricingService {
             select: { marginMultiplierGeneration: true },
           }),
         ]);
-        const margin = setting?.marginMultiplierGeneration ?? null;
+        const configuredMargin = setting?.marginMultiplierGeneration;
+        const margin =
+          typeof configuredMargin === 'number' &&
+          Number.isFinite(configuredMargin) &&
+          configuredMargin > 0
+            ? configuredMargin
+            : null;
         return {
           id: 'model-pricing',
           retrievedAt,
           source,
-          isConversionPolicyConfigured:
-            typeof margin === 'number' && Number.isFinite(margin) && margin > 0,
+          isConversionPolicyConfigured: margin !== null,
+          marginMultiplierGeneration: margin,
           rows: models.map((model) =>
             projectAdminModelPricing(
               model,

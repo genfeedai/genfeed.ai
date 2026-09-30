@@ -98,6 +98,7 @@ export interface AdminModelPricingReport {
   retrievedAt: string;
   source: string;
   isConversionPolicyConfigured: boolean;
+  marginMultiplierGeneration: number | null;
   rows: AdminModelPricingRow[];
 }
 

@@ -176,7 +176,13 @@ describe('operator model pricing projection', () => {
     const findMany = vi
       .fn()
       .mockResolvedValue([{ ...model, providerContracts: [] }]);
-    const findFirst = vi.fn().mockResolvedValue(null);
+    const findFirst = vi
+      .fn<
+        (args: {
+          where: { key: string; isDeleted: boolean };
+        }) => Promise<{ marginMultiplierGeneration: number } | null>
+      >()
+      .mockResolvedValue(null);
     const transaction = { model: { findMany }, platformSetting: { findFirst } };
     const transact = vi.fn(
       async (
@@ -199,5 +205,12 @@ describe('operator model pricing projection', () => {
       isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
     });
     expect(report.isConversionPolicyConfigured).toBe(false);
+    expect(report.marginMultiplierGeneration).toBeNull();
+    findFirst.mockResolvedValue({ marginMultiplierGeneration: 3.75 });
+    const configured = await new AdminModelPricingService({
+      $transaction: transact,
+    } as never).getReport('https://api.example/admin/model-pricing');
+    expect(configured.isConversionPolicyConfigured).toBe(true);
+    expect(configured.marginMultiplierGeneration).toBe(3.75);
   });
 });

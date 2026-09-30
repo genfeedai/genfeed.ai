@@ -16,6 +16,7 @@ describe('private operator pricing boundary', () => {
       source: 'https://api.example/v1/admin/model-pricing',
       retrievedAt: '2026-09-30T00:00:00Z',
       isConversionPolicyConfigured: false,
+      marginMultiplierGeneration: null,
       rows: [],
     });
     const controller = new AdminModelPricingController({ getReport } as never);
@@ -24,7 +25,9 @@ describe('private operator pricing boundary', () => {
       get: () => 'api.example',
       originalUrl: '/v1/admin/model-pricing',
     } as never);
-    expect(response.data.attributes.rows).toEqual([]);
+    expect(response).toMatchObject({
+      data: { attributes: { rows: [], marginMultiplierGeneration: null } },
+    });
     const ordinary = ModelSerializer.serialize({
       id: 'ordinary',
       providerCostUsd: 0.2,

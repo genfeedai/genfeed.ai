@@ -15,20 +15,31 @@ import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
-function credits(value: number | null, isFree: boolean): string {
-  if (value === null || (value === 0 && !isFree)) return 'Unresolved';
-  return value === 0 ? 'Explicitly free' : `${formatCreditCost(value)} credits`;
+type PricingTranslate = ReturnType<
+  typeof useTranslations<'pages.adminModelPricing'>
+>;
+
+function credits(
+  value: number | null,
+  isFree: boolean,
+  t: PricingTranslate,
+): string {
+  if (value === null || (value === 0 && !isFree)) return t('unresolved');
+  return value === 0
+    ? t('explicitlyFree')
+    : t('credits', { value: formatCreditCost(value) });
 }
 
-function usd(value: number | null): string {
+function usd(value: number | null, t: PricingTranslate): string {
   return value === null
-    ? 'Unresolved'
+    ? t('unresolved')
     : `$${value.toLocaleString('en-US', { maximumFractionDigits: 8 })} USD`;
 }
 
-function dimensions(row: AdminModelPricingRow): string {
+function dimensions(row: AdminModelPricingRow, t: PricingTranslate): string {
   const values = row.dimensions;
   const durations = Array.isArray(values.durations) ? values.durations : [];
   const selectors =
@@ -36,22 +47,22 @@ function dimensions(row: AdminModelPricingRow): string {
       ? values.selectors
       : {};
   return [
-    durations.length ? `${durations.join(', ')} seconds` : null,
+    durations.length ? t('seconds', { value: durations.join(', ') }) : null,
     Object.keys(selectors).length
       ? JSON.stringify(selectors)
-      : 'Resolution / quality bands not captured',
-    values.maxOutputs
-      ? `Up to ${values.maxOutputs} outputs`
-      : 'Output limit unresolved',
-    values.maxReferences ? `Up to ${values.maxReferences} references` : null,
-    values.hasAudioToggle
-      ? 'Audio selectable; rate applicability requires review'
+      : t('bandsNotCaptured'),
+    typeof values.maxOutputs === 'number' && values.maxOutputs > 0
+      ? t('maxOutputs', { count: values.maxOutputs })
+      : t('outputLimitUnresolved'),
+    typeof values.maxReferences === 'number' && values.maxReferences > 0
+      ? t('maxReferences', { count: values.maxReferences })
       : null,
+    values.hasAudioToggle ? t('audioReview') : null,
     values.maxDimensions
-      ? `Maximum dimensions: ${JSON.stringify(values.maxDimensions)}`
+      ? t('maxDimensions', { value: JSON.stringify(values.maxDimensions) })
       : null,
     values.minDimensions
-      ? `Minimum dimensions: ${JSON.stringify(values.minDimensions)}`
+      ? t('minDimensions', { value: JSON.stringify(values.minDimensions) })
       : null,
   ]
     .filter(Boolean)
@@ -65,23 +76,40 @@ function PricingEvidence({
   label: string;
   evidence: ModelPricingEvidence | null;
 }) {
-  if (!evidence) return <p>{label}: unresolved</p>;
+  const t = useTranslations('pages.adminModelPricing');
+  if (!evidence)
+    return (
+      <p>
+        {label}: {t('unresolved')}
+      </p>
+    );
   return (
     <div className="mb-2">
       <p>
-        {label}: {evidence.currency ?? 'Unresolved'}{' '}
-        {evidence.unitPrice ?? 'Unresolved'} /{' '}
-        {evidence.billingUnit ?? 'unresolved unit'}
+        {label}: {evidence.currency ?? t('unresolved')}{' '}
+        {evidence.unitPrice ?? t('unresolved')} /{' '}
+        {evidence.billingUnit ?? t('unresolvedUnit')}
       </p>
       <p>
-        Review: {evidence.reviewStatus} · Mapping: {evidence.mappingStatus}
+        {t('review')} {evidence.reviewStatus} {t('mapping')}{' '}
+        {evidence.mappingStatus}
       </p>
-      <p>Provenance: {evidence.source ?? 'unresolved'}</p>
-      <p>Source: {evidence.sourceUrl ?? 'unresolved'}</p>
-      <p>Rate verified: {evidence.verifiedAt ?? 'unresolved'}</p>
-      <p>Contract observed: {evidence.observedAt}</p>
+      <p>
+        {t('provenance')} {evidence.source ?? t('unresolved')}
+      </p>
+      <p>
+        {t('source')} {evidence.sourceUrl ?? t('unresolved')}
+      </p>
+      <p>
+        {t('rateVerified')} {evidence.verifiedAt ?? t('unresolved')}
+      </p>
+      <p>
+        {t('contractObserved')} {evidence.observedAt}
+      </p>
       {evidence.rates ? (
-        <p>Reviewed rate bands: {JSON.stringify(evidence.rates)}</p>
+        <p>
+          {t('reviewedBands')} {JSON.stringify(evidence.rates)}
+        </p>
       ) : null}
       {Object.keys(evidence.conditionalDimensions).length ? (
         <p>{JSON.stringify(evidence.conditionalDimensions)}</p>
@@ -90,88 +118,97 @@ function PricingEvidence({
   );
 }
 
-const columns: TableColumn<AdminModelPricingRow>[] = [
-  {
-    header: 'Model',
-    key: 'key',
-    render: (row) => (
-      <div>
-        <span className="font-medium">{row.key}</span>
-        <p className="text-xs text-muted-foreground">
-          {row.provider} · {row.category} ·{' '}
-          {row.isActive ? 'Enabled' : 'Disabled'} · {row.lifecycle}
-        </p>
-      </div>
-    ),
-  },
-  {
-    header: 'Configured provider cost',
-    key: 'configuredProviderCostUsd',
-    render: (row) => (
-      <div className="text-xs tabular-nums">
-        <p>{usd(row.configuredProviderCostUsd)}</p>
-        <p>{row.pricingType ?? 'flat (runtime fallback)'}</p>
-        {row.category === 'text' ? (
-          <p>
-            Input / output: {usd(row.inputCostPerMillionTokens)} /{' '}
-            {usd(row.outputCostPerMillionTokens)} per 1M tokens
+function pricingColumns(
+  t: PricingTranslate,
+): TableColumn<AdminModelPricingRow>[] {
+  return [
+    {
+      header: t('model'),
+      key: 'key',
+      render: (row) => (
+        <div>
+          <span className="font-medium">{row.key}</span>
+          <p className="text-xs text-muted-foreground">
+            {row.provider} · {row.category} ·{' '}
+            {row.isActive ? t('enabled') : t('disabled')} · {row.lifecycle}
           </p>
-        ) : null}
-      </div>
-    ),
-  },
-  {
-    header: 'Configured customer quote',
-    key: 'effectiveUnitCredits',
-    render: (row) => (
-      <div className="text-xs tabular-nums">
-        <p>{credits(row.effectiveUnitCredits, row.isFree)} / unit</p>
-        <p>
-          {credits(row.effectiveSampleCredits, row.isFree)} /{' '}
-          {row.sampleDuration
-            ? `${row.sampleDuration}s sample`
-            : 'single-output sample'}
-        </p>
-        <p className="text-muted-foreground">
-          Stored: {credits(row.configuredCost, row.isFree)}; per unit:{' '}
-          {credits(row.configuredCostPerUnit, row.isFree)}; minimum:{' '}
-          {credits(row.configuredMinCost, row.isFree)}
-        </p>
-      </div>
-    ),
-  },
-  {
-    header: 'Billed dimensions',
-    key: 'dimensions',
-    render: (row) => <p className="max-w-sm text-xs">{dimensions(row)}</p>,
-  },
-  {
-    header: 'Provider evidence',
-    key: 'reviewed',
-    render: (row) => (
-      <div className="text-xs">
-        <PricingEvidence label="Reviewed" evidence={row.reviewed} />
-        {row.pending ? (
-          <PricingEvidence label="Pending" evidence={row.pending} />
-        ) : null}
-      </div>
-    ),
-  },
-  {
-    header: 'Reconciliation',
-    key: 'status',
-    render: (row) => (
-      <div className="text-xs">
-        <p className="font-medium capitalize">{row.status}</p>
-        <p className="max-w-sm text-muted-foreground">
-          {row.reasons.join(' · ')}
-        </p>
-      </div>
-    ),
-  },
-];
+        </div>
+      ),
+    },
+    {
+      header: t('providerCost'),
+      key: 'configuredProviderCostUsd',
+      render: (row) => (
+        <div className="text-xs tabular-nums">
+          <p>{usd(row.configuredProviderCostUsd, t)}</p>
+          <p>{row.pricingType ?? t('flatFallback')}</p>
+          {row.category === 'text' ? (
+            <p>
+              {t('inputOutput')} {usd(row.inputCostPerMillionTokens, t)} /{' '}
+              {usd(row.outputCostPerMillionTokens, t)} {t('perMillionTokens')}
+            </p>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: t('customerQuote'),
+      key: 'effectiveUnitCredits',
+      render: (row) => (
+        <div className="text-xs tabular-nums">
+          <p>
+            {credits(row.effectiveUnitCredits, row.isFree, t)} {t('perUnit')}
+          </p>
+          <p>
+            {credits(row.effectiveSampleCredits, row.isFree, t)} /{' '}
+            {row.sampleDuration
+              ? t('durationSample', { seconds: row.sampleDuration })
+              : t('singleOutputSample')}
+          </p>
+          <p className="text-muted-foreground">
+            {t('stored')} {credits(row.configuredCost, row.isFree, t)}
+            {t('storedPerUnit')}{' '}
+            {credits(row.configuredCostPerUnit, row.isFree, t)}
+            {t('minimum')} {credits(row.configuredMinCost, row.isFree, t)}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: t('billedDimensions'),
+      key: 'dimensions',
+      render: (row) => <p className="max-w-sm text-xs">{dimensions(row, t)}</p>,
+    },
+    {
+      header: t('providerEvidence'),
+      key: 'reviewed',
+      render: (row) => (
+        <div className="text-xs">
+          <PricingEvidence label={t('reviewed')} evidence={row.reviewed} />
+          {row.pending ? (
+            <PricingEvidence label={t('pending')} evidence={row.pending} />
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: t('reconciliation'),
+      key: 'status',
+      render: (row) => (
+        <div className="text-xs">
+          <p className="font-medium capitalize">{row.status}</p>
+          <p className="max-w-sm text-muted-foreground">
+            {row.reasons.join(' · ')}
+          </p>
+        </div>
+      ),
+    },
+  ];
+}
 
 export default function ModelPricingTable() {
+  const t = useTranslations('pages.adminModelPricing');
+  const columns = pricingColumns(t);
   const [search, setSearch] = useState('');
   const getService = useAuthedService((token: string) =>
     AdminModelPricingService.getInstance(token),
@@ -194,20 +231,17 @@ export default function ModelPricingTable() {
     [report, search],
   );
   return (
-    <section aria-label="Operator model pricing">
+    <section aria-label={t('operatorLabel')}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">
-            Model pricing reconciliation
-          </h2>
+          <h2 className="text-sm font-semibold">{t('title')}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Configured quotes are single-output samples. Provider variants and
-            account discounts require approved evidence.
+            {t('description')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <FormSearchbar
-            placeholder="Search pricing by model"
+            placeholder={t('search')}
             value={search}
             onSearch={setSearch}
           />
@@ -217,7 +251,7 @@ export default function ModelPricingTable() {
             disabled={isFetching}
           >
             <RefreshCw />
-            Refresh snapshot
+            {t('refresh')}
           </Button>
           <Button
             variant={ButtonVariant.SECONDARY}
@@ -241,19 +275,21 @@ export default function ModelPricingTable() {
             }}
           >
             <Download />
-            Export displayed pricing
+            {t('export')}
           </Button>
         </div>
       </div>
       {report ? (
         <p className="mb-3 text-xs text-muted-foreground">
-          Source: {report.source} · Retrieved {report.retrievedAt} ·{' '}
-          {rows.length} rows ·{' '}
-          {rows.filter((row) => row.status === 'unresolved').length} unresolved
-          ·{' '}
+          {t('source')} {report.source} {t('retrieved')} {report.retrievedAt} ·{' '}
+          {rows.length} {t('rows')} ·{' '}
+          {rows.filter((row) => row.status === 'unresolved').length}{' '}
+          {t('unresolved')} ·{' '}
           {report.isConversionPolicyConfigured
-            ? 'Configured conversion policy loaded'
-            : 'Conversion policy unresolved'}
+            ? t('policyLoaded', {
+                margin: report.marginMultiplierGeneration ?? t('unresolved'),
+              })
+            : t('policyUnresolved')}
         </p>
       ) : null}
       <AppTable
@@ -261,16 +297,16 @@ export default function ModelPricingTable() {
         items={rows}
         getRowKey={(row) => row.id}
         isLoading={isLoading}
-        ariaLabel="Model pricing reconciliation"
+        ariaLabel={t('title')}
         error={
           error
             ? {
-                title: 'Pricing snapshot unavailable',
+                title: t('unavailable'),
                 onRetry: () => void refetch(),
               }
             : undefined
         }
-        emptyLabel="No pricing rows"
+        emptyLabel={t('empty')}
       />
     </section>
   );
