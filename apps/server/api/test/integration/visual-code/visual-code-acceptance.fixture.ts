@@ -30,7 +30,13 @@ import {
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
-import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
+import {
+  getSystemWorkflowMetadata,
+  isHiddenSystemWorkflowMetadata,
+  isProtectedSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@api/collections/workflows/system-workflow.contract';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   WORKFLOW_ENGINE_ADAPTER,
@@ -161,7 +167,9 @@ interface VisualCodeFixtureSeedState {
   organizationIds: string[];
   brandIds: string[];
   roleIds: string[];
-  existingWorkflowIds: Set<string>;
+  initialCanonicalMirrorIds: string[];
+  ownedCanonicalMirrorIds: Set<string>;
+  mirrorOwnershipReady: boolean;
   fallbackModelId: string;
   metadataIds: string[];
   createdSystemUser: boolean;
@@ -357,7 +365,9 @@ export async function createVisualCodeAcceptanceFixture(
     organizationIds: [],
     brandIds: [],
     roleIds: [],
-    existingWorkflowIds: new Set(),
+    initialCanonicalMirrorIds: [],
+    ownedCanonicalMirrorIds: new Set(),
+    mirrorOwnershipReady: false,
     fallbackModelId: '',
     createdSystemUser: false,
     createdSystemOrganization: false,
@@ -565,17 +575,16 @@ export async function createVisualCodeAcceptanceFixture(
     }).compile();
     prisma = moduleRef.get(PrismaService);
     await prisma.onModuleInit();
-    seeds.existingWorkflowIds = new Set(
-      (
-        await prisma.workflow.findMany({
-          where: {
-            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-            isDeleted: false,
-          },
-          select: { id: true },
-        })
-      ).map((row) => row.id),
-    );
+    const initialMirrors = await prisma.workflow.findMany({
+      where: canonicalMirrorPredicate(),
+      select: { id: true },
+    });
+    seeds.initialCanonicalMirrorIds = initialMirrors.map((row) => row.id);
+    if (initialMirrors.length)
+      throw new Error(
+        'Pre-existing visual canonical mirror prevents fixture ownership',
+      );
+    seeds.mirrorOwnershipReady = true;
     const systemUser = await prisma.user.findUnique({
       where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
     });
@@ -920,6 +929,26 @@ async function cleanupVisualCodeSeedState(
   prisma: PrismaService,
   seeds: VisualCodeFixtureSeedState,
 ): Promise<void> {
+  if (seeds.mirrorOwnershipReady) {
+    const mirrors = await prisma.workflow.findMany({
+      where: canonicalMirrorPredicate(),
+    });
+    if (mirrors.length > 1)
+      throw new Error('Ambiguous visual canonical mirror ownership');
+    for (const mirror of mirrors) {
+      if (
+        seeds.initialCanonicalMirrorIds.includes(mirror.id) ||
+        !isHiddenSystemWorkflowMetadata(mirror.metadata) ||
+        !isProtectedSystemWorkflowMetadata(mirror.metadata) ||
+        getSystemWorkflowMetadata(mirror.metadata)?.canonicalId !==
+          'visual-code.execute'
+      )
+        throw new Error(
+          'Unexpected visual canonical mirror metadata or ownership',
+        );
+      seeds.ownedCanonicalMirrorIds.add(mirror.id);
+    }
+  }
   for (const original of seeds.originalModels) {
     deepStrictEqual(
       await prisma.model.findUnique({ where: { id: original.id } }),
@@ -964,14 +993,10 @@ async function cleanupVisualCodeSeedState(
   await prisma.workflowExecution.deleteMany({
     where: { ...scope, id: executionId },
   });
-  const workflowIds = executions
-    .map((row) => row.workflowId)
-    .filter((id) => !seeds.existingWorkflowIds.has(id));
   await prisma.workflow.deleteMany({
     where: {
-      id: { in: workflowIds },
-      organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-      isDeleted: false,
+      ...canonicalMirrorPredicate(),
+      id: { in: [...seeds.ownedCanonicalMirrorIds] },
     },
   });
   const metadataIds = [
@@ -1052,4 +1077,16 @@ async function cleanupVisualCodeSeedState(
     });
   if (seeds.createdSystemUser)
     await prisma.user.delete({ where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID } });
+}
+
+function canonicalMirrorPredicate() {
+  return {
+    organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+    userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+    isDeleted: false,
+    metadata: {
+      path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
+      equals: 'visual-code.execute',
+    },
+  };
 }

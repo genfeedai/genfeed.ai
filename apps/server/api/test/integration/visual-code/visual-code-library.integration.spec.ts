@@ -2,6 +2,11 @@ import { createHash } from 'node:crypto';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import type { CreateVisualProjectDto } from '@api/collections/visual-projects/dto/create-visual-project.dto';
 import {
+  SYSTEM_WORKFLOW_METADATA_KEY,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@api/collections/workflows/system-workflow.contract';
+import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import {
   createTestBrand,
   generateIdString,
 } from '@api-test/e2e/e2e-test.utils';
@@ -13,7 +18,10 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { VISUAL_CODE_RENDERER_VERSION } from '@genfeedai/contracts/constants';
-import { WORKFLOW_EXECUTION_QUEUE } from '@genfeedai/contracts/queue';
+import {
+  SystemWorkflowDispatchClass,
+  WORKFLOW_EXECUTION_QUEUE,
+} from '@genfeedai/contracts/queue';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
@@ -482,6 +490,82 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
       render: fixture.calls.rendererSubmissions,
       uploads: fixture.calls.uploads,
     }).toEqual(effects);
+  });
+
+  it('cleans the real persisted mirror when tenant execution creation fails after mirror insertion', async () => {
+    fixture = await createVisualCodeAcceptanceFixture();
+    const actor = await seedVisualCodeAcceptanceActor(fixture);
+    const missingUserId = generateIdString();
+    expect(
+      await fixture.prisma.user.findUnique({ where: { id: missingUserId } }),
+    ).toBeNull();
+    const runner = fixture.moduleRef.get(SystemWorkflowRunnerService);
+    fixture.resetExternalCalls();
+    await expect(
+      runner.enqueueWorkflow(
+        {
+          canonicalId: 'visual-code.execute',
+          actionType: 'visual-code.execute',
+          source: 'visual-code',
+          organizationId: actor.organizationId,
+          userId: missingUserId,
+          idempotencyKey: `visual-cleanup-${generateIdString()}`,
+          inputValues: {},
+        },
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+      ),
+    ).rejects.toMatchObject({ code: 'P2003' });
+    const mirrors = await fixture.prisma.workflow.findMany({
+      where: {
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        isDeleted: false,
+        metadata: {
+          path: [SYSTEM_WORKFLOW_METADATA_KEY, 'canonicalId'],
+          equals: 'visual-code.execute',
+        },
+      },
+      include: { versions: true },
+    });
+    expect(mirrors).toHaveLength(1);
+    const mirror = mirrors[0];
+    if (!mirror)
+      throw new Error(
+        'Persisted visual mirror absent after execution FK failure',
+      );
+    expect(mirror.versions).toHaveLength(1);
+    const savedMirrorId = mirror.id;
+    const savedVersionIds = mirror.versions.map((version) => version.id);
+    expect(
+      await fixture.prisma.workflowExecution.count({
+        where: { organizationId: actor.organizationId, isDeleted: false },
+      }),
+    ).toBe(0);
+    expect(
+      [...fixture.queues.values()].every((queue) => queue.jobs.size === 0),
+    ).toBe(true);
+    expectNoGeneration(fixture);
+    expect(fixture.calls.renderer).toEqual([]);
+    expect(fixture.calls.routes).toEqual([]);
+    await fixture.close();
+    const freshFixture = await createVisualCodeAcceptanceFixture();
+    try {
+      expect(
+        await freshFixture.prisma.workflow.findUnique({
+          where: { id: savedMirrorId },
+        }),
+      ).toBeNull();
+      expect(
+        await freshFixture.prisma.workflowVersion.findMany({
+          where: {
+            id: { in: savedVersionIds },
+            organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+          },
+        }),
+      ).toEqual([]);
+    } finally {
+      await freshFixture.close();
+    }
   });
 
   it('rejects explicit paid-model quote and create for a free actor before reservation or dispatch', async () => {
