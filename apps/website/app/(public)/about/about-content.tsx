@@ -9,6 +9,7 @@ import {
   DefinitionTerm,
 } from '@ui/primitives/definition-list';
 import FaqGrid from '@web-components/content/FaqGrid';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -285,6 +286,7 @@ export default function AboutContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
+        heroMedia={<MarketingArtwork page="/about" kind="creator" />}
         title="About Genfeed"
         description="Genfeed is an open-source AI content platform that generates, publishes, and measures video, image, voice, and written content for creators, agencies, and founders."
       >

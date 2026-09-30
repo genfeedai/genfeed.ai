@@ -78,7 +78,7 @@ describe('agent client channel pages', () => {
       'tiktok',
     );
 
-    expect(page.title).toBe('Schedule TikTok Videos with Claude Code');
+    expect(page.title).toBe('TikTok in Claude Code, powered by Genfeed');
   });
 
   it('emits a three-level breadcrumb and an ordered HowTo', () => {

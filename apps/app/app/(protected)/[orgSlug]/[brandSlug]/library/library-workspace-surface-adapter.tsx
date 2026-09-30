@@ -83,7 +83,7 @@ export default function LibraryWorkspaceSurfaceAdapter() {
       {selectedIngredient ? (
         <IngredientInspectorRail
           ingredient={selectedIngredient}
-          onOpenPreview={requestLightbox}
+          onOpenPreview={() => requestLightbox(selectedIngredient)}
         />
       ) : null}
     </ContextSidebarPanel>

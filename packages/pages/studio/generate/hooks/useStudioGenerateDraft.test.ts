@@ -5,6 +5,7 @@ import {
   STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX,
   type StudioGenerateDraftOutbox,
 } from '@pages/studio/generate/utils/studio-generate-draft-outbox';
+import { logger } from '@services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useCallback } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -303,6 +304,49 @@ describe('useStudioGenerateDraft', () => {
       mocks.getCurrent.mock.invocationCallOrder[0] ?? 0,
     );
     await waitFor(() => expect(view.onRestore).toHaveBeenCalled());
+  });
+
+  it('retries restoration after an idle deadline and never reads stale content over an unsent draft', async () => {
+    mocks.outbox.current = createStudioGenerateDraftOutbox({
+      idleTimeoutMs: 100,
+      retryBaseMs: 100,
+      retryMaxMs: 100,
+    });
+    window.localStorage.setItem(
+      `${STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX}:brand-1`,
+      JSON.stringify({
+        ownerId: 'user-1',
+        payload: buildPayload('recoverable draft'),
+      }),
+    );
+    mocks.saveCurrent.mockRejectedValue(new Error('offline'));
+    mocks.getCurrent.mockResolvedValue(buildDraft('recoverable draft'));
+    const view = renderDraft();
+    await waitFor(() =>
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to restore the Studio composer draft',
+        expect.objectContaining({
+          message: expect.stringContaining('timed out'),
+        }),
+      ),
+    );
+    expect(mocks.getCurrent).not.toHaveBeenCalled();
+    expect(view.onRestore).not.toHaveBeenCalled();
+    expect(mocks.outbox.current.readUnsent('brand-1', 'user-1')?.prompt).toBe(
+      'recoverable draft',
+    );
+    mocks.saveCurrent.mockResolvedValue({});
+    await waitFor(
+      () =>
+        expect(view.onRestore).toHaveBeenCalledWith(
+          expect.objectContaining({ prompt: 'recoverable draft' }),
+          expect.any(AbortSignal),
+          expect.any(Function),
+        ),
+      { timeout: 3000 },
+    );
+    expect(mocks.outbox.current.readUnsent('brand-1', 'user-1')).toBeNull();
+    view.unmount();
   });
 
   it("never replays another user's unsent draft", async () => {

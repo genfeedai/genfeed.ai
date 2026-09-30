@@ -176,7 +176,8 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
 
   @IsUrl()
   @ApiProperty({
-    description: 'Source video URL',
+    description:
+      'Canonical URL of an organization-owned Library video. Use ingestion routes for new sources.',
     required: true,
   })
   readonly sourceVideoUrl!: string;
@@ -184,7 +185,8 @@ export class CreateClipProjectDto extends OrganizationalCreateDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'S3 key for the source video',
+    description:
+      'Stored key of an organization-owned Library video; must match sourceVideoUrl when both are supplied.',
     required: false,
   })
   readonly sourceVideoS3Key?: string;

@@ -7,6 +7,7 @@ import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import { Button } from '@ui/primitives/button';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarCreditsBar from '@ui/topbars/credits-bar/TopbarCreditsBar';
 import {
@@ -151,92 +152,138 @@ function AppProtectedTopbarContent({
               below `xl` the rail is display:none, so the same slot swaps to a
               variant that opens the inspector drawer instead. */}
           {agentDock ? (
-            <Button
-              aria-controls="workspace-agent-dock"
-              aria-expanded={agentDock.isAvailable && agentDock.isOpen}
-              aria-keyshortcuts="Meta+J Control+J"
-              type="button"
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.ICON}
-              className="size-8"
-              data-active={
-                agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
-              }
-              data-testid="topbar-agent-dock-toggle"
-              isDisabled={!agentDock.isAvailable}
-              ariaLabel={
-                !agentDock.isAvailable
-                  ? translateAgentDock('unavailable')
-                  : agentDock.isOpen
-                    ? translateAgentDock('close')
-                    : translateAgentDock('open')
-              }
-              onClick={agentDock.toggle}
+            <SimpleTooltip
+              label={translateAgentDock('unavailable')}
+              isDisabled={agentDock.isAvailable}
             >
-              {agentDock.isAvailable && agentDock.isOpen ? (
-                <PanelBottomClose className="size-4" />
-              ) : (
-                <PanelBottomOpen className="size-4" />
-              )}
-            </Button>
+              <span
+                role="group"
+                tabIndex={agentDock.isAvailable ? undefined : 0}
+                aria-label={
+                  !agentDock.isAvailable
+                    ? translateAgentDock('unavailable')
+                    : undefined
+                }
+                className="inline-flex"
+              >
+                <Button
+                  aria-controls="workspace-agent-dock"
+                  aria-expanded={agentDock.isAvailable && agentDock.isOpen}
+                  aria-keyshortcuts="Meta+J Control+J"
+                  type="button"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  className="size-8"
+                  data-active={
+                    agentDock.isAvailable && agentDock.isOpen ? 'true' : 'false'
+                  }
+                  data-testid="topbar-agent-dock-toggle"
+                  isDisabled={!agentDock.isAvailable}
+                  ariaLabel={
+                    !agentDock.isAvailable
+                      ? translateAgentDock('unavailable')
+                      : agentDock.isOpen
+                        ? translateAgentDock('close')
+                        : translateAgentDock('open')
+                  }
+                  onClick={agentDock.toggle}
+                >
+                  {agentDock.isAvailable && agentDock.isOpen ? (
+                    <PanelBottomClose className="size-4" />
+                  ) : (
+                    <PanelBottomOpen className="size-4" />
+                  )}
+                </Button>
+              </span>
+            </SimpleTooltip>
           ) : null}
           {rightPanel ? (
             <>
-              <Button
-                aria-controls="workspace-context-inspector"
-                aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
-                type="button"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                className="hidden size-8 xl:inline-flex"
-                data-active={
-                  !rightPanel.isDisabled && rightPanel.isOpen ? 'true' : 'false'
-                }
-                data-testid="topbar-inspector-toggle"
-                isDisabled={rightPanel.isDisabled}
-                ariaLabel={
-                  rightPanel.isDisabled
-                    ? rightPanel.labels.empty
-                    : rightPanel.isOpen
-                      ? rightPanel.labels.collapse
-                      : rightPanel.labels.expand
-                }
-                onClick={rightPanel.toggle}
+              <SimpleTooltip
+                label={rightPanel.labels.empty}
+                isDisabled={!rightPanel.isDisabled}
               >
-                {rightPanel.isOpen ? (
-                  <PanelRightClose className="size-4" />
-                ) : (
-                  <PanelRightOpen className="size-4" />
-                )}
-              </Button>
-              <Button
-                aria-controls="workspace-context-inspector-drawer"
-                aria-expanded={
-                  !rightPanel.isDisabled && rightPanel.isMobileOpen
-                }
-                type="button"
-                variant={ButtonVariant.GHOST}
-                size={ButtonSize.ICON}
-                className="inline-flex size-8 xl:hidden"
-                data-testid="topbar-inspector-drawer-toggle"
-                isDisabled={rightPanel.isDisabled}
-                ariaLabel={
-                  rightPanel.isDisabled
-                    ? rightPanel.labels.empty
-                    : rightPanel.isMobileOpen
-                      ? rightPanel.labels.close
-                      : rightPanel.labels.open
-                }
-                onClick={() =>
-                  rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
-                }
+                <span
+                  role="group"
+                  tabIndex={rightPanel.isDisabled ? 0 : undefined}
+                  aria-label={
+                    rightPanel.isDisabled ? rightPanel.labels.empty : undefined
+                  }
+                  className="hidden xl:inline-flex"
+                >
+                  <Button
+                    aria-controls="workspace-context-inspector"
+                    aria-expanded={!rightPanel.isDisabled && rightPanel.isOpen}
+                    type="button"
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.ICON}
+                    className="hidden size-8 xl:inline-flex"
+                    data-active={
+                      !rightPanel.isDisabled && rightPanel.isOpen
+                        ? 'true'
+                        : 'false'
+                    }
+                    data-testid="topbar-inspector-toggle"
+                    isDisabled={rightPanel.isDisabled}
+                    ariaLabel={
+                      rightPanel.isDisabled
+                        ? rightPanel.labels.empty
+                        : rightPanel.isOpen
+                          ? rightPanel.labels.collapse
+                          : rightPanel.labels.expand
+                    }
+                    onClick={rightPanel.toggle}
+                  >
+                    {rightPanel.isOpen ? (
+                      <PanelRightClose className="size-4" />
+                    ) : (
+                      <PanelRightOpen className="size-4" />
+                    )}
+                  </Button>
+                </span>
+              </SimpleTooltip>
+              <SimpleTooltip
+                label={rightPanel.labels.empty}
+                isDisabled={!rightPanel.isDisabled}
               >
-                {rightPanel.isMobileOpen ? (
-                  <PanelRightClose className="size-4" />
-                ) : (
-                  <PanelRightOpen className="size-4" />
-                )}
-              </Button>
+                <span
+                  role="group"
+                  tabIndex={rightPanel.isDisabled ? 0 : undefined}
+                  aria-label={
+                    rightPanel.isDisabled ? rightPanel.labels.empty : undefined
+                  }
+                  className="inline-flex xl:hidden"
+                >
+                  <Button
+                    aria-controls="workspace-context-inspector-drawer"
+                    aria-expanded={
+                      !rightPanel.isDisabled && rightPanel.isMobileOpen
+                    }
+                    type="button"
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.ICON}
+                    className="inline-flex size-8 xl:hidden"
+                    data-testid="topbar-inspector-drawer-toggle"
+                    isDisabled={rightPanel.isDisabled}
+                    ariaLabel={
+                      rightPanel.isDisabled
+                        ? rightPanel.labels.empty
+                        : rightPanel.isMobileOpen
+                          ? rightPanel.labels.close
+                          : rightPanel.labels.open
+                    }
+                    onClick={() =>
+                      rightPanel.setIsMobileOpen(!rightPanel.isMobileOpen)
+                    }
+                  >
+                    {rightPanel.isMobileOpen ? (
+                      <PanelRightClose className="size-4" />
+                    ) : (
+                      <PanelRightOpen className="size-4" />
+                    )}
+                  </Button>
+                </span>
+              </SimpleTooltip>
             </>
           ) : null}
         </div>

@@ -215,8 +215,16 @@ export function getActivityMediaPreviewUrl(
 
 /** Credits a generation was charged, stamped on its activity when it settled. */
 export function getGenerationCreditAmount(
-  activity: Pick<IActivity, 'value'>,
+  activity: Pick<IActivity, 'key' | 'value'>,
 ): number | null {
+  const generationKeys: readonly string[] = [
+    ActivityKeys.image.generate.completed,
+    ActivityKeys.video.generate.completed,
+    ActivityKeys.video.generate.finished,
+    ActivityKeys.music.generate.completed,
+    ActivityKeys.voice.generate.completed,
+  ];
+  if (!generationKeys.includes(activity.key)) return null;
   const credits = parseActivityValue(activity.value ?? '')?.credits;
   return typeof credits === 'number' && Number.isFinite(credits) && credits > 0
     ? credits

@@ -440,6 +440,7 @@ export class BatchProjectsService {
       if (project.kind !== BatchProjectKind.IDEAS) {
         throw new BadRequestException('Only idea batches are quoted');
       }
+      await this.assertIdeasEnabled(scope);
       return this.ideaGeneration.quote(project, dto.itemIds, scope);
     });
   }
@@ -466,6 +467,7 @@ export class BatchProjectsService {
         throw new BadRequestException('Add at least one input before starting');
       }
       if (project.kind === BatchProjectKind.IDEAS) {
+        await this.assertIdeasEnabled(scope);
         await this.ideaGeneration.start(project, pending, quoteId, scope);
         return this.loadProject(id, scope);
       }
@@ -589,6 +591,7 @@ export class BatchProjectsService {
         throw new BadRequestException('Only a failed item can be retried');
       }
       if (project.kind === BatchProjectKind.IDEAS) {
+        await this.assertIdeasEnabled(scope);
         await this.ideaGeneration.retry(project, item, quoteId, scope);
         await this.reconcileService.refreshProjectStatus(
           id,

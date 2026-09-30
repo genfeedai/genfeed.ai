@@ -7,7 +7,7 @@ import {
   mockWorkflowTemplates,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
-import { brandPath } from '../../utils/app-chrome';
+import { brandPath, WORKFLOW_TEMPLATES_ROUTE } from '../../utils/app-chrome';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**

@@ -777,6 +777,28 @@ describe('BatchProjectsService', () => {
   });
 
   describe('ideas', () => {
+    it.each(['quote', 'start', 'retry'] as const)(
+      'rejects disabled existing-project idea %s before delegating',
+      async (operation) => {
+        platformSettingsService.getFeatureSettings.mockResolvedValue({
+          flags: { batch_ideas: false },
+        });
+        useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
+        prisma.batchProjectItem.findFirst.mockResolvedValue(
+          makeItem({ status: BatchProjectItemStatus.FAILED }),
+        );
+        const result =
+          operation === 'quote'
+            ? service.quote('project-1', {}, scope)
+            : operation === 'start'
+              ? service.start('project-1', scope, 'quote-1')
+              : service.retryItem('project-1', 'item-1', scope, 'quote-1');
+        await expect(result).rejects.toThrow('Idea batches are not enabled');
+        expect(ideaGeneration[operation]).not.toHaveBeenCalled();
+        expect(prisma.batchProject.updateMany).not.toHaveBeenCalled();
+      },
+    );
+
     it('starts an idea batch through its accepted quote', async () => {
       useProject(makeProject({ kind: BatchProjectKind.IDEAS }), [makeItem()]);
 

@@ -204,7 +204,17 @@ describe('WebSocketGateway agent thread status (#5636)', () => {
     await settle();
 
     expect(received.get('dave-no-org')).toHaveLength(1);
+    expect(metrics.count).toHaveBeenCalledWith('delivered', 1);
     expect(received.get('bob-in-org-a')).toEqual([]);
+  });
+
+  it('counts the union of both self-hosted rooms once', async () => {
+    isCloud = false;
+    await connectAs('alice-in-org-a');
+    publish(statusEvent());
+    await settle();
+    expect(received.get('alice-in-org-a')).toHaveLength(1);
+    expect(metrics.count).toHaveBeenCalledWith('delivered', 1);
   });
 
   it('counts each socket a status event is delivered to', async () => {
