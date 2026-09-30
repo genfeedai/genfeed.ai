@@ -1,3 +1,8 @@
+---
+title: "Self-host the visual-code renderer"
+description: "Configure the isolated gVisor renderer, durable job receipts, bounded media verification, and recovery for self-hosted Motion generation."
+---
+
 # Self-host the visual-code renderer
 
 Motion requires a separate Linux renderer host with Docker, gVisor `runsc`, Node.js, `flock` and FFmpeg/ffprobe. The API and workflow workers never execute or bundle submitted source. The coordinator knows only its internal renderer token, persistent state directory and fixed image; never give it application, storage or model-provider credentials.
@@ -65,3 +70,5 @@ from creating an orphan hold after cancellation. Zero-total quotes skip the barr
 and every wallet operation. Failed lookup or barrier requests retain recovery state
 and do not write a settlement marker. Cancellation and settlement do not consume an
 admission attempt. A late queue response cannot clear cancellation or admit paid work.
+
+Credit holds expire after two hours, including time spent queued. Motion checks the existing hold before each paid stage and stops with `visual_reservation_unavailable` when it is no longer usable. Request a new explicit quoted retry after recovery; Motion never renews or duplicates the old hold. If the wallet releases an expired hold while an admitted call is pending, confirmed costs become operator liability, preserving actual usage without a second user debit.

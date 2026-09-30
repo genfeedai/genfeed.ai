@@ -43,7 +43,14 @@ function fixture() {
   };
   const renderer = { recoverStopped: vi.fn() };
   const prisma = {
-    creditReservation: { findFirst: vi.fn() },
+    creditReservation: {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'hold',
+        status: 'RESERVED',
+        amount: 6,
+        expiresAt: new Date(Date.now() + 3600000),
+      }),
+    },
     visualRevision: {
       findFirstOrThrow: vi.fn(async () => revision),
       updateMany: vi.fn(async ({ data }) => {
@@ -224,7 +231,13 @@ it('uses the original idempotent wallet reservation as the uncertain admission b
       amount: 6,
     }),
   );
-  expect(f.prisma.creditReservation.findFirst).not.toHaveBeenCalled();
+  expect(f.prisma.creditReservation.findFirst).toHaveBeenCalledWith({
+    where: expect.objectContaining({
+      id: 'barrier-hold',
+      organizationId: 'org',
+      actorUserId: 'user',
+    }),
+  });
   expect(f.credits.releaseReservation).toHaveBeenCalledWith(
     expect.objectContaining({ reservationId: 'barrier-hold' }),
   );
@@ -238,4 +251,121 @@ it('uses the original idempotent wallet reservation as the uncertain admission b
       }),
     ]),
   );
+});
+
+describe('visual paid hold lifetime', () => {
+  it.each(['RELEASED', 'EXPIRED', 'SETTLED'])(
+    'refuses new paid work with a %s hold',
+    async (status) => {
+      const f = fixture();
+      vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
+      f.prisma.creditReservation.findFirst.mockResolvedValue({
+        id: 'hold',
+        status,
+        amount: 6,
+        expiresAt: new Date(Date.now() + 10000),
+      });
+      await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
+        'visual_reservation_unavailable',
+      );
+      expect(f.credits.reserveCredits).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects queue delay past expiry and a changed hold amount', async () => {
+    const f = fixture();
+    vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
+    f.prisma.creditReservation.findFirst.mockResolvedValue({
+      id: 'hold',
+      status: 'RESERVED',
+      amount: 6,
+      expiresAt: new Date(0),
+    });
+    await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
+      'visual_reservation_unavailable',
+    );
+    f.prisma.creditReservation.findFirst.mockResolvedValue({
+      id: 'hold',
+      status: 'RESERVED',
+      amount: 5,
+      expiresAt: new Date(Date.now() + 10000),
+    });
+    await expect(f.service.validateSnapshot(f.revision)).rejects.toThrow(
+      'visual_reservation_unavailable',
+    );
+  });
+  it.each(['RELEASED', 'EXPIRED'])(
+    'assigns confirmed work to the operator when a pending call outlives a %s hold',
+    async (status) => {
+      const f = fixture();
+      vi.spyOn(f.service, 'quote').mockResolvedValue(quote);
+      await f.service.validateSnapshot(f.revision);
+      (f.revision.receipts as unknown[]).push({
+        id: 'inspection',
+        kind: 'inspection',
+        state: 'confirmed',
+        credits: 2,
+        operatorCredits: 1,
+        boundCredits: 2,
+        isResultApplied: true,
+        providerCost: 0.1,
+      });
+      f.prisma.creditReservation.findFirst.mockResolvedValue({
+        id: 'hold',
+        status,
+        amount: 6,
+        expiresAt: new Date(0),
+      });
+      await f.service.settle(f.revision);
+      await f.service.settle(f.revision);
+      expect(f.revision.consumedCredits).toBe(0);
+      expect(f.revision.receipts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'inspection',
+            credits: 0,
+            operatorCredits: 3,
+            providerCost: 0.1,
+          }),
+        ]),
+      );
+      expect(f.credits.releaseReservation).toHaveBeenCalledOnce();
+      expect(f.credits.settleReservation).not.toHaveBeenCalled();
+      expect(f.credits.reserveCredits).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps missing paid-hold settlement recoverable without a false marker', async () => {
+    const f = fixture();
+    f.prisma.creditReservation.findFirst.mockResolvedValue(null);
+    await expect(f.service.settle(f.revision)).rejects.toThrow(
+      'visual_reservation_unavailable',
+    );
+    expect(f.credits.settleReservation).not.toHaveBeenCalled();
+    expect(f.credits.releaseReservation).not.toHaveBeenCalled();
+    expect(f.revision.receipts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'settlement' })]),
+    );
+  });
+  it('preserves already settled user costs during marker recovery', async () => {
+    const f = fixture();
+    f.prisma.creditReservation.findFirst.mockResolvedValue({
+      id: 'hold',
+      status: 'SETTLED',
+      amount: 6,
+      expiresAt: new Date(0),
+    });
+    await f.service.settle(f.revision);
+    expect(f.revision.consumedCredits).toBe(2);
+    expect(f.credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ actualAmount: 2 }),
+    );
+    expect(f.credits.releaseReservation).not.toHaveBeenCalled();
+  });
+  it('skips all hold reads for a free quote before stage admission', async () => {
+    const f = fixture();
+    const free = { ...quote, maximumCredits: 0 };
+    f.revision.receipts = [f.service.quoteReceipt(free)] as never;
+    vi.spyOn(f.service, 'quote').mockResolvedValue(free);
+    await f.service.validateSnapshot(f.revision);
+    expect(f.prisma.creditReservation.findFirst).not.toHaveBeenCalled();
+  });
 });

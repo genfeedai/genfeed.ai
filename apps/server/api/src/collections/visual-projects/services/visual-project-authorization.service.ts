@@ -52,7 +52,7 @@ export class VisualProjectAuthorizationService {
       where: {
         id,
         organizationId: user.organizationId,
-        ...(user.brandId ? { brandId: user.brandId } : {}),
+        brandId: user.brandId || undefined,
         isDeleted: false,
       },
     });

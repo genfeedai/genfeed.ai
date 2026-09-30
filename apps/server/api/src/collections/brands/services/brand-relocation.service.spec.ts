@@ -256,6 +256,26 @@ describe('BrandRelocationService', () => {
     },
   );
 
+  it('rejects preview and relocation until visual work has settled', async () => {
+    primeBrand();
+    getDelegate('visualRevision').findFirst.mockResolvedValue({
+      id: 'visual-revision',
+    });
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+    ).rejects.toThrow(/unfinished visual work/);
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      ),
+    ).rejects.toThrow(/unfinished visual work/);
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+  });
+
   it('rejects preview and relocation while the brand has an open live session', async () => {
     primeBrand();
     getDelegate('liveSession').findFirst.mockResolvedValue({ id: 'live-1' });

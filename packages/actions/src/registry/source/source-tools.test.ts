@@ -9,6 +9,7 @@ import { MCP_ADMIN_TOOLS } from './mcp-only/admin.tools';
 import { MCP_ONLY_TOOLS } from './mcp-only/index';
 import { OVERLAP_TOOLS } from './overlap.tools';
 import { OVERLAP_INSPIRATION_TOOLS } from './overlap-inspiration.tools';
+import { VISUAL_CODE_TOOLS } from './visual-code.tools';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MAX_MODULE_LINES = 500;
@@ -39,6 +40,7 @@ describe('hand-authored action definitions', () => {
 
   it('concatenates every definition shard in order', () => {
     expect(SOURCE_TOOLS).toEqual([
+      ...VISUAL_CODE_TOOLS,
       ...OVERLAP_TOOLS,
       ...OVERLAP_INSPIRATION_TOOLS,
       ...AGENT_ONLY_TOOLS,

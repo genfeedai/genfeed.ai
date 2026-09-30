@@ -17,19 +17,19 @@ import { Clapperboard, Film, Layers, Scissors, Wand2 } from 'lucide-react';
 export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: APP_ROUTES.STUDIO.MOTION,
-    label: 'Motion',
-    matchPaths: [APP_ROUTES.STUDIO.MOTION],
-    outline: Film,
-    solid: Film,
-  },
-  {
-    group: '',
     href: APP_ROUTES.STUDIO.GENERATE,
     label: 'Generate',
     matchPaths: [APP_ROUTES.STUDIO.ROOT, APP_ROUTES.STUDIO.GENERATE],
     outline: Wand2,
     solid: Wand2,
+  },
+  {
+    group: '',
+    href: APP_ROUTES.STUDIO.MOTION,
+    label: 'Motion',
+    matchPaths: [APP_ROUTES.STUDIO.MOTION],
+    outline: Film,
+    solid: Film,
   },
   {
     group: '',

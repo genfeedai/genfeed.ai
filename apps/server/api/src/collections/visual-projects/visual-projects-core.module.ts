@@ -4,6 +4,7 @@ import { VisualProjectAssetsService } from '@api/collections/visual-projects/ser
 import { VisualProjectAuthoringService } from '@api/collections/visual-projects/services/visual-project-authoring.service';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
 import { VisualProjectBillingService } from '@api/collections/visual-projects/services/visual-project-billing.service';
+import { VisualProjectDispatchService } from '@api/collections/visual-projects/services/visual-project-dispatch.service';
 import { VisualProjectRendererClientService } from '@api/collections/visual-projects/services/visual-project-renderer-client.service';
 import { VisualProjectWorkflowService } from '@api/collections/visual-projects/services/visual-project-workflow.service';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
     SharedModule,
   ],
   providers: [
+    VisualProjectDispatchService,
     VisualProjectAuthorizationService,
     VisualProjectAssetsService,
     VisualProjectBillingService,

@@ -11,7 +11,12 @@ const create = {
   requestId: 'request',
   label: 'Visual',
   sourceCode: 'export const VisualComposition=()=>null;',
-  settings: { width: 1080, height: 1920, fps: 30 as const, durationFrames: 450 },
+  settings: {
+    width: 1080,
+    height: 1920,
+    fps: 30 as const,
+    durationFrames: 450,
+  },
   maximumCredits: 10,
 };
 describe('visual-code application request boundary', () => {

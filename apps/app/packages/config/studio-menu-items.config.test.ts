@@ -5,6 +5,7 @@ describe('STUDIO_MENU_ITEMS', () => {
   it('lists Studio surfaces in a single flat group, Generate first', () => {
     expect(STUDIO_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Generate',
+      'Motion',
       'Storyboard',
       'Clips',
       'Batch',
@@ -13,6 +14,7 @@ describe('STUDIO_MENU_ITEMS', () => {
     expect(STUDIO_MENU_ITEMS.every((item) => item.group === '')).toBe(true);
     expect(STUDIO_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/studio/generate',
+      '/studio/motion',
       '/studio/storyboard',
       '/studio/clips',
       '/studio/batch',

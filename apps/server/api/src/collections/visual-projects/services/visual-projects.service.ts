@@ -1,8 +1,9 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { VisualProjectAssetsService } from '@api/collections/visual-projects/services/visual-project-assets.service';
 import { VisualProjectAuthorizationService } from '@api/collections/visual-projects/services/visual-project-authorization.service';
 import { VisualProjectBillingService } from '@api/collections/visual-projects/services/visual-project-billing.service';
+import { VisualProjectDispatchService } from '@api/collections/visual-projects/services/visual-project-dispatch.service';
 import {
   parseCreate,
   parseExport,
@@ -11,17 +12,12 @@ import {
   visualInputHash,
   visualSettingsSchema,
 } from '@api/collections/visual-projects/utils/visual-code-validation.util';
-import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { runSerializableWithRetry } from '@api/collections/workflows/utils/serializable-retry.util';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { VISUAL_CODE_ACTION_ALIASES } from '@genfeedai/actions';
 import { VisualCodeStatus } from '@genfeedai/contracts';
-import {
-  VISUAL_CODE_LIMITS,
-  VISUAL_CODE_RENDERER_VERSION,
-} from '@genfeedai/contracts/constants';
+import { VISUAL_CODE_RENDERER_VERSION } from '@genfeedai/contracts/constants';
 import type { IVisualCodeReceipt } from '@genfeedai/contracts/interfaces';
 import { SystemWorkflowDispatchClass } from '@genfeedai/contracts/queue';
 import { toPrismaJson, type VisualRevision } from '@genfeedai/prisma';
@@ -50,7 +46,7 @@ export class VisualProjectsService implements OnModuleInit {
     private readonly assets: VisualProjectAssetsService,
     private readonly billing: VisualProjectBillingService,
     private readonly workflows: SystemWorkflowRunnerService,
-    private readonly queue: WorkflowExecutionQueueService,
+    private readonly dispatcher: VisualProjectDispatchService,
   ) {}
   onModuleInit(): void {
     for (const [alias, operation] of Object.entries(
@@ -234,7 +230,7 @@ export class VisualProjectsService implements OnModuleInit {
         organizationId: user.organizationId,
         brandId: project.brandId,
         isDeleted: false,
-        ...(beforeRevision ? { number: { lt: beforeRevision } } : {}),
+        number: beforeRevision ? { lt: beforeRevision } : undefined,
       },
       orderBy: { number: 'desc' },
       take: limit + 1,
@@ -265,14 +261,12 @@ export class VisualProjectsService implements OnModuleInit {
         organizationId: user.organizationId,
         brandId,
         isDeleted: false,
-        ...(anchor
-          ? {
-              OR: [
-                { createdAt: { lt: anchor.createdAt } },
-                { createdAt: anchor.createdAt, id: { lt: anchor.id } },
-              ],
-            }
-          : {}),
+        OR: anchor
+          ? [
+              { createdAt: { lt: anchor.createdAt } },
+              { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+            ]
+          : undefined,
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
@@ -323,7 +317,7 @@ export class VisualProjectsService implements OnModuleInit {
           (entry) => entry.kind === 'settlement',
         )
       )
-        await this.stopWithoutOwner(
+        await this.dispatcher.stopWithoutOwner(
           initial,
           Boolean(initial.cancelRequestedAt),
         );
@@ -331,7 +325,7 @@ export class VisualProjectsService implements OnModuleInit {
         initial.status === VisualCodeStatus.QUEUED &&
         !initial.cancelRequestedAt
       )
-        await this.dispatch(initial, dispatchClass);
+        await this.dispatcher.dispatch(initial, dispatchClass);
       return this.get(user, existing.id);
     }
     await this.assets.authorize(
@@ -407,7 +401,7 @@ export class VisualProjectsService implements OnModuleInit {
           (entry) => entry.kind === 'settlement',
         )
       )
-        await this.stopWithoutOwner(
+        await this.dispatcher.stopWithoutOwner(
           initial,
           Boolean(initial.cancelRequestedAt),
         );
@@ -415,10 +409,10 @@ export class VisualProjectsService implements OnModuleInit {
         initial.status === VisualCodeStatus.QUEUED &&
         !initial.cancelRequestedAt
       )
-        await this.dispatch(initial, dispatchClass);
+        await this.dispatcher.dispatch(initial, dispatchClass);
       return this.get(user, replay.id);
     }
-    await this.dispatch(revision, dispatchClass);
+    await this.dispatcher.dispatch(revision, dispatchClass);
     return this.get(user, revision.projectId);
   }
   private async prepare(
@@ -618,7 +612,7 @@ export class VisualProjectsService implements OnModuleInit {
           (entry) => entry.kind === 'settlement',
         )
       )
-        await this.stopWithoutOwner(
+        await this.dispatcher.stopWithoutOwner(
           existing,
           Boolean(existing.cancelRequestedAt),
         );
@@ -626,7 +620,7 @@ export class VisualProjectsService implements OnModuleInit {
         existing.status === VisualCodeStatus.QUEUED &&
         !existing.cancelRequestedAt
       )
-        await this.dispatch(existing, dispatchClass);
+        await this.dispatcher.dispatch(existing, dispatchClass);
       return this.get(user, id);
     }
     let dispatchAttempted = false;
@@ -634,78 +628,16 @@ export class VisualProjectsService implements OnModuleInit {
       const prepared = await this.prepare(user, id, operation, raw);
       if (prepared.input.maximumCredits < prepared.quote.maximumCredits)
         throw new BadRequestException('visual_credit_ceiling_below_quote');
-      const revision = await runSerializableWithRetry(
-        this.prisma,
-        async (tx) => {
-          await tx.$queryRaw`SELECT id FROM visual_projects WHERE id=${id} AND "organizationId"=${user.organizationId} AND "brandId"=${project.brandId} AND "isDeleted"=false FOR UPDATE`;
-          const current = await tx.visualProject.findFirstOrThrow({
-            where: {
-              id,
-              organizationId: user.organizationId,
-              brandId: project.brandId,
-              isDeleted: false,
-            },
-          });
-          if (current.currentRevision !== prepared.input.expectedRevision)
-            throw new ConflictException('stale_visual_revision');
-          const active = await tx.visualRevision.count({
-            where: {
-              projectId: id,
-              organizationId: user.organizationId,
-              brandId: project.brandId,
-              isDeleted: false,
-              status: { notIn: terminal },
-            },
-          });
-          if (active)
-            throw new ConflictException('visual_revision_in_progress');
-          const number = current.currentRevision + 1;
-          const sourceCode =
-            prepared.changed?.sourceCode ?? prepared.prior.sourceCode;
-          const created = await tx.visualRevision.create({
-            data: {
-              organizationId: user.organizationId,
-              brandId: project.brandId,
-              userId: user.userId,
-              projectId: id,
-              number,
-              requestId,
-              inputHash,
-              prompt: prepared.changed?.prompt ?? null,
-              sourceCode,
-              sourceHash: sourceCode
-                ? createHash('sha256').update(sourceCode).digest('hex')
-                : null,
-              receipts: toPrismaJson([
-                this.billing.quoteReceipt(prepared.quote),
-              ]),
-              modelKey: prepared.quote.modelKey,
-              rendererVersion: VISUAL_CODE_RENDERER_VERSION,
-              settings: toPrismaJson(prepared.prior.settings),
-              props: toPrismaJson(
-                prepared.changed?.props ?? prepared.prior.props,
-              ),
-              sourceAssetIds: toPrismaJson(prepared.prior.sourceAssetIds),
-              outputRequests: toPrismaJson(prepared.outputRequests),
-              maximumCredits: prepared.input.maximumCredits,
-              status: VisualCodeStatus.QUEUED,
-            },
-          });
-          await tx.visualProject.updateMany({
-            where: {
-              id,
-              organizationId: user.organizationId,
-              brandId: project.brandId,
-              isDeleted: false,
-              currentRevision: current.currentRevision,
-            },
-            data: { currentRevision: number },
-          });
-          return created;
-        },
+      const revision = await this.createNextRevision(
+        user,
+        id,
+        project.brandId,
+        requestId,
+        inputHash,
+        prepared,
       );
       dispatchAttempted = true;
-      await this.dispatch(revision, dispatchClass);
+      await this.dispatcher.dispatch(revision, dispatchClass);
       return this.get(user, id);
     } catch (error) {
       if (dispatchAttempted) throw error;
@@ -727,14 +659,88 @@ export class VisualProjectsService implements OnModuleInit {
           (entry) => entry.kind === 'settlement',
         )
       )
-        await this.stopWithoutOwner(replay, Boolean(replay.cancelRequestedAt));
+        await this.dispatcher.stopWithoutOwner(
+          replay,
+          Boolean(replay.cancelRequestedAt),
+        );
       if (
         replay.status === VisualCodeStatus.QUEUED &&
         !replay.cancelRequestedAt
       )
-        await this.dispatch(replay, dispatchClass);
+        await this.dispatcher.dispatch(replay, dispatchClass);
       return this.get(user, id);
     }
+  }
+  private async createNextRevision(
+    user: AuthenticatedUser,
+    id: string,
+    brandId: string,
+    requestId: string,
+    inputHash: string,
+    prepared: Awaited<ReturnType<VisualProjectsService['prepare']>>,
+  ) {
+    return runSerializableWithRetry(this.prisma, async (tx) => {
+      await tx.$queryRaw`SELECT id FROM visual_projects WHERE id=${id} AND "organizationId"=${user.organizationId} AND "brandId"=${brandId} AND "isDeleted"=false FOR UPDATE`;
+      const current = await tx.visualProject.findFirstOrThrow({
+        where: {
+          id,
+          organizationId: user.organizationId,
+          brandId: brandId,
+          isDeleted: false,
+        },
+      });
+      if (current.currentRevision !== prepared.input.expectedRevision)
+        throw new ConflictException('stale_visual_revision');
+      const active = await tx.visualRevision.count({
+        where: {
+          projectId: id,
+          organizationId: user.organizationId,
+          brandId: brandId,
+          isDeleted: false,
+          status: { notIn: terminal },
+        },
+      });
+      if (active) throw new ConflictException('visual_revision_in_progress');
+      const number = current.currentRevision + 1;
+      const sourceCode =
+        prepared.changed?.sourceCode ?? prepared.prior.sourceCode;
+      const created = await tx.visualRevision.create({
+        data: {
+          organizationId: user.organizationId,
+          brandId: brandId,
+          userId: user.userId,
+          projectId: id,
+          number,
+          requestId,
+          inputHash,
+          prompt: prepared.changed?.prompt ?? null,
+          sourceCode,
+          sourceHash: sourceCode
+            ? createHash('sha256').update(sourceCode).digest('hex')
+            : null,
+          receipts: toPrismaJson([this.billing.quoteReceipt(prepared.quote)]),
+          modelKey: prepared.quote.modelKey,
+          rendererVersion: VISUAL_CODE_RENDERER_VERSION,
+          settings: toPrismaJson(prepared.prior.settings),
+          props: toPrismaJson(prepared.changed?.props ?? prepared.prior.props),
+          sourceAssetIds: toPrismaJson(prepared.prior.sourceAssetIds),
+          outputRequests: toPrismaJson(prepared.outputRequests),
+          maximumCredits: prepared.input.maximumCredits,
+          status: VisualCodeStatus.QUEUED,
+        },
+      });
+      await tx.visualProject.updateMany({
+        where: {
+          id,
+          organizationId: user.organizationId,
+          brandId: brandId,
+          isDeleted: false,
+          currentRevision: current.currentRevision,
+        },
+        data: { currentRevision: number },
+      });
+      return created;
+    });
   }
   async cancel(user: AuthenticatedUser, id: string, raw: unknown) {
     const input = z
@@ -759,240 +765,8 @@ export class VisualProjectsService implements OnModuleInit {
       id,
       input.revision,
     );
-    if (revision.cancelRequestedAt) await this.stopWithoutOwner(revision, true);
+    if (revision.cancelRequestedAt)
+      await this.dispatcher.stopWithoutOwner(revision, true);
     return this.get(user, id);
-  }
-  private async stopWithoutOwner(
-    revision: VisualRevision,
-    cancelled: boolean,
-  ): Promise<void> {
-    const scope = {
-      id: revision.id,
-      organizationId: revision.organizationId,
-      brandId: revision.brandId,
-      isDeleted: false,
-    };
-    await this.authorization.authorizeBrand(
-      {
-        id: revision.userId,
-        userId: revision.userId,
-        organizationId: revision.organizationId,
-        brandId: revision.brandId,
-      },
-      revision.brandId,
-    );
-    try {
-      const execution = await this.prisma.workflowExecution.findFirst({
-        where: {
-          organizationId: revision.organizationId,
-          userId: revision.userId,
-          isDeleted: false,
-          idempotencyKey: `visual-code-${revision.id}`,
-        },
-      });
-      if (execution) {
-        const binding = await this.prisma.visualRevision.updateMany({
-          where: {
-            ...scope,
-            OR: [
-              { workflowExecutionId: null },
-              { workflowExecutionId: execution.id },
-            ],
-          },
-          data: { workflowExecutionId: execution.id },
-        });
-        if (binding.count !== 1)
-          throw new ConflictException('visual_worker_binding_invalid');
-        const withdrawal = await this.queue.withdrawUnstartedSystemWorkflowJob(
-          `system-workflow-${execution.id}`,
-        );
-        if (withdrawal === 'started') return;
-      } else if (revision.workflowExecutionId) {
-        throw new ConflictException('visual_dispatch_state_unknown');
-      }
-      let current = await this.prisma.visualRevision.findFirstOrThrow({
-        where: scope,
-      });
-      const live =
-        execution &&
-        (await this.prisma.workflowNodeClaim.findFirst({
-          where: {
-            organizationId: revision.organizationId,
-            executionId: execution.id,
-            status: 'running',
-            leaseExpiresAt: { gt: new Date() },
-          },
-        }));
-      if (live) return;
-      current = await this.billing.recoverReservation(current);
-      // Receipt CAS prevents terminating work admitted after the owner check.
-      const stopped = await this.prisma.visualRevision.updateMany({
-        where: {
-          ...scope,
-          receipts: { equals: toPrismaJson(current.receipts) },
-          status: current.status,
-        },
-        data: {
-          status: terminal.includes(current.status)
-            ? current.status
-            : cancelled
-              ? VisualCodeStatus.CANCELLED
-              : VisualCodeStatus.FAILED,
-          diagnostics: terminal.includes(current.status)
-            ? toPrismaJson(current.diagnostics)
-            : toPrismaJson([
-                cancelled ? 'visual_cancelled' : 'visual_dispatch_failed',
-              ]),
-        },
-      });
-      if (stopped.count !== 1)
-        throw new ConflictException('visual_dispatch_state_changed');
-      await this.billing.reconcileStopped(
-        await this.prisma.visualRevision.findFirstOrThrow({ where: scope }),
-      );
-    } catch (error) {
-      await this.prisma.visualRevision.updateMany({
-        where: scope,
-        data: {
-          diagnostics: toPrismaJson(['visual_dispatch_recovery_required']),
-        },
-      });
-      throw error;
-    }
-  }
-  private async admission(
-    revision: VisualRevision,
-    id: string,
-    confirm = false,
-  ): Promise<VisualRevision> {
-    const scope = {
-      id: revision.id,
-      organizationId: revision.organizationId,
-      brandId: revision.brandId,
-      isDeleted: false,
-    };
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const current = await this.prisma.visualRevision.findFirstOrThrow({
-        where: scope,
-      });
-      const entries = current.receipts as unknown as IVisualCodeReceipt[];
-      if (
-        !confirm &&
-        (terminal.includes(current.status) || current.cancelRequestedAt)
-      )
-        throw new ConflictException('visual_admission_cancelled');
-      if (
-        !confirm &&
-        entries.filter((entry) => entry.kind === 'admission').length >=
-          VISUAL_CODE_LIMITS.maxAdmissionAttempts
-      )
-        throw new ConflictException('visual_admission_attempt_limit');
-      const next: IVisualCodeReceipt[] = confirm
-        ? entries.map((entry) =>
-            entry.id === id
-              ? { ...entry, state: 'confirmed', isResultApplied: true }
-              : entry,
-          )
-        : [
-            ...entries,
-            {
-              id,
-              kind: 'admission',
-              state: 'started',
-              isResultApplied: false,
-              credits: 0,
-              operatorCredits: 0,
-              boundCredits: 0,
-            },
-          ];
-      const updated = await this.prisma.visualRevision.updateMany({
-        where: {
-          ...scope,
-          receipts: { equals: toPrismaJson(entries) },
-          ...(!confirm
-            ? { status: { notIn: terminal }, cancelRequestedAt: null }
-            : {}),
-        },
-        data: { receipts: toPrismaJson(next) },
-      });
-      if (updated.count === 1)
-        return { ...current, receipts: toPrismaJson(next) } as VisualRevision;
-    }
-    throw new ConflictException('visual_admission_retry_required');
-  }
-  private async dispatch(
-    revision: VisualRevision,
-    dispatchClass: SystemWorkflowDispatchClass,
-  ): Promise<void> {
-    const scope = {
-      id: revision.id,
-      organizationId: revision.organizationId,
-      brandId: revision.brandId,
-      isDeleted: false,
-    };
-    const admissionId = `admission-${randomUUID()}`;
-    revision = await this.admission(revision, admissionId);
-    let hasReservationResult = false;
-    try {
-      const reservationId = await this.billing.reserve(revision);
-      hasReservationResult = true;
-      const admitted = await this.prisma.visualRevision.updateMany({
-        where: {
-          ...scope,
-          status: { notIn: terminal },
-          cancelRequestedAt: null,
-        },
-        data: { reservationId },
-      });
-      if (admitted.count !== 1) {
-        await this.admission(revision, admissionId, true);
-        await this.stopWithoutOwner(revision, true);
-        throw new ConflictException('visual_admission_cancelled');
-      }
-      const execution = await this.workflows.enqueueWorkflow(
-        {
-          canonicalId: 'visual-code.execute',
-          actionType: 'visual-code.execute',
-          source: 'visual-code',
-          organizationId: revision.organizationId,
-          userId: revision.userId,
-          idempotencyKey: `visual-code-${revision.id}`,
-          inputValues: {
-            job: {
-              revisionId: revision.id,
-              organizationId: revision.organizationId,
-              brandId: revision.brandId,
-              userId: revision.userId,
-            },
-          },
-        },
-        { dispatchClass },
-      );
-      await this.prisma.visualRevision.updateMany({
-        where: {
-          ...scope,
-          status: { notIn: terminal },
-          cancelRequestedAt: null,
-          OR: [
-            { workflowExecutionId: null },
-            { workflowExecutionId: execution.executionId },
-          ],
-        },
-        data: { workflowExecutionId: execution.executionId },
-      });
-      await this.admission(revision, admissionId, true);
-    } catch (error) {
-      if (
-        hasReservationResult ||
-        (error instanceof BusinessLogicException &&
-          error.errorCode === 'INSUFFICIENT_CREDITS')
-      )
-        await this.admission(revision, admissionId, true);
-      const latest = await this.prisma.visualRevision.findFirstOrThrow({
-        where: scope,
-      });
-      await this.stopWithoutOwner(latest, Boolean(latest.cancelRequestedAt));
-      throw error;
-    }
   }
 }

@@ -1,3 +1,8 @@
+---
+title: "Motion: create visuals with code"
+description: "Create model-authored or supplied-code visuals in Motion, review costs and revisions, and export videos or still assets to your Library."
+---
+
 # Motion: create visuals with code
 
 Open **Studio → Motion** in a brand. Describe the animation you want, or supply React source that exports a named `VisualComposition`. Motion generates preview frames in an isolated renderer, asks your selected model to inspect them, then saves accepted media to the brand Library.
@@ -47,3 +52,5 @@ If cancellation overlaps a credit reservation, your approved hold may briefly be
 established before it is released or settled. Cancellation cannot start another
 model call or render. A pending provider call must return, or its workflow ownership
 must expire, before the remaining hold can be reconciled safely.
+
+Credit holds expire after two hours, including time spent queued. Motion checks the existing hold before each paid stage and stops with `visual_reservation_unavailable` when it is no longer usable. Request a new explicit quoted retry after recovery; Motion never renews or duplicates the old hold. If the wallet releases an expired hold while an admitted call is pending, confirmed costs become operator liability, preserving actual usage without a second user debit.

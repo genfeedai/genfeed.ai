@@ -162,6 +162,66 @@ export class VisualProjectAssetsService {
     }
     return result;
   }
+  private outputRecord(
+    revision: VisualRevision,
+    item: IVisualSandboxMedia,
+    index: number,
+    bytes: Buffer,
+  ) {
+    return {
+      id: visualOutputId('ingredient', revision, index),
+      organization: { connect: { id: revision.organizationId } },
+      brand: { connect: { id: revision.brandId } },
+      user: { connect: { id: revision.userId } },
+      category:
+        item.format === 'mp4'
+          ? IngredientCategory.VIDEO
+          : IngredientCategory.IMAGE,
+      status: IngredientStatus.PROCESSING,
+      s3Key: `visual-code/${revision.organizationId}/${revision.brandId}/${revision.id}/outputs/${index}.${item.format}`,
+      mimeType: item.format === 'mp4' ? 'video/mp4' : `image/${item.format}`,
+      fileSize: bytes.length,
+      generationSource: `visual-code:${revision.projectId}@${revision.number}`,
+      modelUsed: revision.prompt ? revision.modelKey : null,
+      sourceActionId: 'visual-code.generate',
+      providerData: toPrismaJson({
+        projectId: revision.projectId,
+        revisionId: revision.id,
+        sourceHash: revision.sourceHash,
+        rendererVersion: revision.rendererVersion,
+        sourceAssetIds: revision.sourceAssetIds,
+        outputHash: createHash('sha256').update(bytes).digest('hex'),
+        authoringModel: revision.prompt ? revision.modelKey : null,
+        inspectionModel: revision.modelKey,
+      }),
+      metadata: {
+        create: {
+          id: visualOutputId('metadata', revision, index),
+          label: `Visual ${revision.number} / ${index + 1}`,
+          extension:
+            item.format === 'mp4'
+              ? MetadataExtension.MP4
+              : item.format === 'png'
+                ? MetadataExtension.PNG
+                : MetadataExtension.JPEG,
+          result: '',
+          width: item.width,
+          height: item.height,
+          size: bytes.length,
+          duration:
+            item.format === 'mp4'
+              ? Number(
+                  (revision.settings as Record<string, unknown>).durationFrames,
+                ) / Number((revision.settings as Record<string, unknown>).fps)
+              : 0,
+          fps:
+            item.format === 'mp4'
+              ? Number((revision.settings as Record<string, unknown>).fps)
+              : null,
+        },
+      },
+    };
+  }
   async commit(
     user: AuthenticatedUser,
     revision: VisualRevision,
@@ -238,61 +298,7 @@ export class VisualProjectAssetsService {
         }
         return tx.ingredient.create({
           include: { metadata: true },
-          data: {
-            id,
-            organization: { connect: { id: revision.organizationId } },
-            brand: { connect: { id: revision.brandId } },
-            user: { connect: { id: revision.userId } },
-            category:
-              item.format === 'mp4'
-                ? IngredientCategory.VIDEO
-                : IngredientCategory.IMAGE,
-            status: IngredientStatus.PROCESSING,
-            s3Key: key,
-            mimeType: mime,
-            fileSize: bytes.length,
-            generationSource,
-            modelUsed: revision.prompt ? revision.modelKey : null,
-            sourceActionId: 'visual-code.generate',
-            providerData: toPrismaJson({
-              projectId: revision.projectId,
-              revisionId: revision.id,
-              sourceHash: revision.sourceHash,
-              rendererVersion: revision.rendererVersion,
-              sourceAssetIds: revision.sourceAssetIds,
-              outputHash,
-              authoringModel: revision.prompt ? revision.modelKey : null,
-              inspectionModel: revision.modelKey,
-            }),
-            metadata: {
-              create: {
-                id: metadataId,
-                label: `Visual ${revision.number} / ${index + 1}`,
-                extension:
-                  item.format === 'mp4'
-                    ? MetadataExtension.MP4
-                    : item.format === 'png'
-                      ? MetadataExtension.PNG
-                      : MetadataExtension.JPEG,
-                result: '',
-                width: item.width,
-                height: item.height,
-                size: bytes.length,
-                duration:
-                  item.format === 'mp4'
-                    ? Number(
-                        (revision.settings as Record<string, unknown>)
-                          .durationFrames,
-                      ) /
-                      Number((revision.settings as Record<string, unknown>).fps)
-                    : 0,
-                fps:
-                  item.format === 'mp4'
-                    ? Number((revision.settings as Record<string, unknown>).fps)
-                    : null,
-              },
-            },
-          },
+          data: this.outputRecord(revision, item, index, bytes),
         });
       });
       verify(admitted);

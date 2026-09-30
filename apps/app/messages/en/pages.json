@@ -3789,6 +3789,7 @@
     "loadSource": "Load source for editing",
     "loadProps": "Load props for editing",
     "exportOutputs": "Separate export settings",
-    "inheritedOutputs": "Prompt, source and props revisions keep these outputs:"
+    "inheritedOutputs": "Prompt, source and props revisions keep these outputs:",
+    "rendererProvenance": "· {model} · Remotion {version}"
   }
 }

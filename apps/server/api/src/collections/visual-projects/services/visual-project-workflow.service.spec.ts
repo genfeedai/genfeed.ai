@@ -53,6 +53,16 @@ function fixture() {
           : { leaseOwnerId: leaseOwner },
       ),
     },
+    workflow: {
+      findFirstOrThrow: vi.fn(async () => ({
+        metadata: {
+          sourceType: 'hidden-system-workflow',
+          systemWorkflow: buildHiddenSystemWorkflowMetadata({
+            canonicalId: 'visual-code.execute',
+          }),
+        },
+      })),
+    },
     workflowExecution: {
       findFirstOrThrow: vi.fn(async () => ({
         workflowId: 'workflow',

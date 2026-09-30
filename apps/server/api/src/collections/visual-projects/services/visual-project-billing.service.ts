@@ -38,8 +38,14 @@ export class VisualProjectBillingService {
   ) {}
   async resolveModel(organizationId: string, explicit?: string) {
     const rows = await this.registry.listSelectable();
+    const organization = await this.prisma.organization.findFirst({
+      where: { id: organizationId, isDeleted: false },
+      select: { id: true },
+    });
+    if (!organization)
+      throw new ForbiddenException('visual_organization_unavailable');
     const settings = await this.prisma.organizationSetting.findFirst({
-      where: { organizationId, isDeleted: false },
+      where: { organizationId },
       select: { defaultModel: true },
     });
     const models = await this.prisma.model.findMany({
@@ -262,7 +268,82 @@ export class VisualProjectBillingService {
       if (current[key] !== snapshot[key])
         throw new BadRequestException('quote_changed');
     }
+    if (snapshot.maximumCredits > 0) {
+      const hold = await this.ownedReservation(revision);
+      if (
+        hold?.status !== 'RESERVED' ||
+        hold.expiresAt <= new Date() ||
+        Number(hold.amount) !== revision.maximumCredits
+      )
+        throw new BadRequestException('visual_reservation_unavailable');
+    }
     return snapshot;
+  }
+  private async ownedReservation(revision: VisualRevision) {
+    if (!revision.reservationId) return null;
+    return this.prisma.creditReservation.findFirst({
+      where: {
+        id: revision.reservationId,
+        organizationId: revision.organizationId,
+        actorUserId: revision.userId,
+        workloadType: 'visual-code',
+        workloadId: revision.id,
+        idempotencyKey: `visual-code-${revision.id}`,
+        isDeleted: false,
+      },
+    });
+  }
+  private async reconcileReleasedHold(
+    revision: VisualRevision,
+    assertOwnership: () => Promise<void>,
+  ): Promise<VisualRevision> {
+    const entries = revision.receipts as unknown as IVisualCodeReceipt[];
+    const quote = entries.find((entry) => entry.kind === 'quote')?.quote;
+    if (!quote) throw new BadRequestException('visual_quote_unavailable');
+    if (quote.maximumCredits === 0) return revision;
+    if (!revision.reservationId) {
+      if (revision.consumedCredits > 0)
+        throw new ServiceUnavailableException('visual_reservation_unavailable');
+      return revision;
+    }
+    const hold = await this.ownedReservation(revision);
+    if (!hold)
+      throw new ServiceUnavailableException('visual_reservation_unavailable');
+    if (hold.status !== 'RELEASED' && hold.status !== 'EXPIRED')
+      return revision;
+    const next = entries.map((entry) =>
+      entry.state === 'confirmed' &&
+      !['quote', 'settlement', 'admission'].includes(entry.kind)
+        ? {
+            ...entry,
+            credits: 0,
+            operatorCredits: entry.operatorCredits + entry.credits,
+          }
+        : entry,
+    );
+    await assertOwnership();
+    const updated = await this.prisma.visualRevision.updateMany({
+      where: {
+        id: revision.id,
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+        isDeleted: false,
+        receipts: { equals: toPrismaJson(entries) },
+      },
+      data: { receipts: toPrismaJson(next), consumedCredits: 0 },
+    });
+    if (updated.count !== 1)
+      throw new ServiceUnavailableException(
+        'visual_reconciliation_retry_required',
+      );
+    return this.prisma.visualRevision.findFirstOrThrow({
+      where: {
+        id: revision.id,
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+        isDeleted: false,
+      },
+    });
   }
   async reserve(revision: VisualRevision): Promise<string | null> {
     const snapshot = (
@@ -287,7 +368,11 @@ export class VisualProjectBillingService {
     await assertOwnership();
     const entries = revision.receipts as unknown as IVisualCodeReceipt[];
     if (entries.some((entry) => entry.kind === 'settlement')) return;
-    if (revision.reservationId && revision.consumedCredits > 0)
+    revision = await this.reconcileReleasedHold(revision, assertOwnership);
+    const isFree =
+      entries.find((entry) => entry.kind === 'quote')?.quote?.maximumCredits ===
+      0;
+    if (!isFree && revision.reservationId && revision.consumedCredits > 0)
       await this.credits.settleReservation({
         organizationId: revision.organizationId,
         actorUserId: revision.userId,
@@ -299,7 +384,7 @@ export class VisualProjectBillingService {
         description: 'Visual code authoring, inspection and rendering',
         metadata: { revisionId: revision.id, projectId: revision.projectId },
       });
-    else if (revision.reservationId)
+    else if (!isFree && revision.reservationId)
       await this.credits.releaseReservation({
         organizationId: revision.organizationId,
         reservationId: revision.reservationId,
@@ -313,7 +398,12 @@ export class VisualProjectBillingService {
         isDeleted: false,
       };
       const current = await this.prisma.visualRevision.findFirstOrThrow({
-        where: scope,
+        where: {
+          id: scope.id,
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          isDeleted: false,
+        },
       });
       const prior = current.receipts as unknown as IVisualCodeReceipt[];
       if (prior.some((entry) => entry.kind === 'settlement')) return;
@@ -328,7 +418,13 @@ export class VisualProjectBillingService {
       };
       await assertOwnership();
       const written = await this.prisma.visualRevision.updateMany({
-        where: { ...scope, receipts: { equals: toPrismaJson(prior) } },
+        where: {
+          id: scope.id,
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          isDeleted: false,
+          receipts: { equals: toPrismaJson(prior) },
+        },
         data: { receipts: toPrismaJson([...prior, marker]) },
       });
       if (written.count === 1) return;
@@ -445,7 +541,13 @@ export class VisualProjectBillingService {
     }
     await assertOwnership();
     const updated = await this.prisma.visualRevision.updateMany({
-      where: { ...scope, receipts: { equals: toPrismaJson(entries) } },
+      where: {
+        id: scope.id,
+        organizationId: scope.organizationId,
+        brandId: scope.brandId,
+        isDeleted: false,
+        receipts: { equals: toPrismaJson(entries) },
+      },
       data: { receipts: toPrismaJson(next), consumedCredits, reservationId },
     });
     if (updated.count !== 1)
@@ -453,7 +555,14 @@ export class VisualProjectBillingService {
         'visual_reconciliation_retry_required',
       );
     await this.settle(
-      await this.prisma.visualRevision.findFirstOrThrow({ where: scope }),
+      await this.prisma.visualRevision.findFirstOrThrow({
+        where: {
+          id: scope.id,
+          organizationId: scope.organizationId,
+          brandId: scope.brandId,
+          isDeleted: false,
+        },
+      }),
       assertOwnership,
     );
   }

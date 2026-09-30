@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import { VisualProjectDispatchService } from '@api/collections/visual-projects/services/visual-project-dispatch.service';
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import {
   parseCreate,
@@ -75,7 +76,13 @@ function fixture() {
     {} as never,
     billing as never,
     workflows as never,
-    queue as never,
+    new VisualProjectDispatchService(
+      prisma as never,
+      authorization as never,
+      billing as never,
+      workflows as never,
+      queue as never,
+    ),
   );
   const user = {
     id: 'user',

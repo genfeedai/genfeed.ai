@@ -62,7 +62,11 @@ import type {
   AgentThreadModeValue,
   CuratedActionName,
 } from '@genfeedai/actions';
-import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import {
+  getToolByName,
+  getToolsForSurface,
+  VISUAL_CODE_ACTION_ALIASES,
+} from '@genfeedai/actions';
 import {
   ActionOrigin,
   type RouterPriority,
@@ -287,7 +291,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     for (const toolName of getToolsForSurface('agent').map(
       (tool) => tool.name,
     )) {
-      if (this.visualProjects.handlesAction(toolName)) continue;
+      if (Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)) continue;
       const definition = getToolByName(toolName);
       if (
         !definition ||
@@ -484,7 +488,11 @@ export class AgentToolExecutorService implements OnModuleInit {
         context,
         {
           dispatchPreview: (previewToolName, previewParams, previewContext) =>
-            this.dispatch(previewToolName, previewParams, previewContext),
+            this.dispatchRegisteredTool(
+              previewToolName,
+              previewParams,
+              previewContext,
+            ),
           prepareHandler: this.prepareHandler,
           publishHandler: this.publishHandler,
           routeRewriteService: this.routeRewriteService,
@@ -515,7 +523,11 @@ export class AgentToolExecutorService implements OnModuleInit {
                   parameters,
                   context,
                 )
-              : await this.dispatch(toolName, parameters, context);
+              : await this.dispatchRegisteredTool(
+                  toolName,
+                  parameters,
+                  context,
+                );
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -581,7 +593,16 @@ export class AgentToolExecutorService implements OnModuleInit {
     }
   }
 
-  private async dispatch(
+  private dispatchRegisteredTool(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
+      ? this.dispatchVisualCode(toolName, params, ctx)
+      : this.dispatch(toolName, params, ctx);
+  }
+  private async dispatchVisualCode(
     toolName: CuratedActionName,
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -597,6 +618,17 @@ export class AgentToolExecutorService implements OnModuleInit {
       case 'retry_visual_code_project':
         return this.visualProjects.executeAgentAction(toolName, params, ctx);
 
+      default:
+        throw new Error('Unsupported visual-code action');
+    }
+  }
+
+  private async dispatch(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    switch (toolName) {
       case 'list_genfeed_tools':
         return this.catalogHandler.listGenfeedTools(params);
 

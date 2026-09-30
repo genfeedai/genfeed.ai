@@ -76,14 +76,6 @@ const receiptSchema = z.object({
 function receipts(revision: VisualRevision): IVisualCodeReceipt[] {
   return z.array(receiptSchema).parse(revision.receipts);
 }
-function scope(revision: VisualRevision) {
-  return {
-    id: revision.id,
-    organizationId: revision.organizationId,
-    brandId: revision.brandId,
-    isDeleted: false,
-  };
-}
 function actor(revision: VisualRevision): AuthenticatedUser {
   return {
     id: revision.userId,
@@ -153,15 +145,18 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         userId: job.userId,
         isDeleted: false,
         idempotencyKey: `visual-code-${revision.id}`,
-        workflow: {
-          organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-          userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
-          isDeleted: false,
-        },
       },
-      include: { workflow: true, workflowVersion: true },
+      include: { workflowVersion: true },
     });
-    const canonical = getSystemWorkflowMetadata(execution.workflow.metadata);
+    const mirror = await this.prisma.workflow.findFirstOrThrow({
+      where: {
+        id: execution.workflowId,
+        organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
+        isDeleted: false,
+      },
+    });
+    const canonical = getSystemWorkflowMetadata(mirror.metadata);
     const result = z
       .object({
         metadata: z
@@ -172,8 +167,8 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       .safeParse(execution.result);
     if (
       !result.success ||
-      !isHiddenSystemWorkflowMetadata(execution.workflow.metadata) ||
-      !isProtectedSystemWorkflowMetadata(execution.workflow.metadata) ||
+      !isHiddenSystemWorkflowMetadata(mirror.metadata) ||
+      !isProtectedSystemWorkflowMetadata(mirror.metadata) ||
       canonical?.canonicalId !== 'visual-code.execute' ||
       execution.workflowVersion.workflowId !== execution.workflowId ||
       execution.workflowVersion.contentHash !==
@@ -195,7 +190,10 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       throw new WorkflowNodeClaimLeaseLostError({ executionId, nodeId });
     const bound = await this.prisma.visualRevision.updateMany({
       where: {
-        ...scope(revision),
+        id: revision.id,
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+        isDeleted: false,
         userId: job.userId,
         OR: [
           { workflowExecutionId: null },
@@ -237,7 +235,12 @@ export class VisualProjectWorkflowService implements OnModuleInit {
   private async current(revision: VisualRevision) {
     await this.assertOwnership();
     return this.prisma.visualRevision.findFirstOrThrow({
-      where: scope(revision),
+      where: {
+        id: revision.id,
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+        isDeleted: false,
+      },
     });
   }
   private async update(
@@ -246,7 +249,12 @@ export class VisualProjectWorkflowService implements OnModuleInit {
   ) {
     await this.assertOwnership();
     await this.prisma.visualRevision.updateMany({
-      where: scope(revision),
+      where: {
+        id: revision.id,
+        organizationId: revision.organizationId,
+        brandId: revision.brandId,
+        isDeleted: false,
+      },
       data,
     });
     return this.current(revision);
@@ -272,7 +280,10 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       await this.assertOwnership();
       const updated = await this.prisma.visualRevision.updateMany({
         where: {
-          ...scope(revision),
+          id: revision.id,
+          organizationId: revision.organizationId,
+          brandId: revision.brandId,
+          isDeleted: false,
           receipts: { equals: toPrismaJson(prior) },
         },
         data: { ...data, receipts: toPrismaJson(next), consumedCredits },
@@ -297,7 +308,7 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     diagnostics: string[],
     frames?: IVisualSandboxResult['media'],
   ) {
-    let current = await this.ensureActive(revision);
+    const current = await this.ensureActive(revision);
     const existing = receipts(current).find((item) => item.id === id);
     if (existing) {
       if (existing.state === 'started') {
@@ -339,7 +350,10 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     await this.assertOwnership();
     const claimed = await this.prisma.visualRevision.updateMany({
       where: {
-        ...scope(current),
+        id: current.id,
+        organizationId: current.organizationId,
+        brandId: current.brandId,
+        isDeleted: false,
         receipts: { equals: toPrismaJson(previous) },
         cancelRequestedAt: null,
         status: { notIn: terminal },
@@ -393,6 +407,14 @@ export class VisualProjectWorkflowService implements OnModuleInit {
         { cause: error },
       );
     }
+    return this.applyProviderResult(current, started, response, kind);
+  }
+  private async applyProviderResult(
+    current: VisualRevision,
+    started: IVisualCodeReceipt,
+    response: Awaited<ReturnType<VisualProjectAuthoringService['call']>>,
+    kind: 'authoring' | 'repair' | 'inspection',
+  ) {
     await this.assertOwnership();
     const actual = await this.billing.actualCredits(
       current.modelKey ?? '',
@@ -475,7 +497,10 @@ export class VisualProjectWorkflowService implements OnModuleInit {
       };
       const claimed = await this.prisma.visualRevision.updateMany({
         where: {
-          ...scope(current),
+          id: current.id,
+          organizationId: current.organizationId,
+          brandId: current.brandId,
+          isDeleted: false,
           receipts: { equals: toPrismaJson(previous) },
           status: { notIn: terminal },
           cancelRequestedAt: null,
