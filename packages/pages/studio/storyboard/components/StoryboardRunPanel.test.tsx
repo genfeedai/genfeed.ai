@@ -4,9 +4,33 @@ import {
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardRunPanel from './StoryboardRunPanel';
+
+vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
+  useStoryboardAssets: vi.fn(() => ({})),
+}));
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: 'org-1' }),
+}));
+vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
+  useAvatarImages: () => ({
+    avatars: [
+      { id: 'avatar-row-1', brandId: 'brand-1', metadataLabel: 'Presenter' },
+    ],
+  }),
+}));
+vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
+  useVoiceCatalog: () => ({
+    voices: [
+      { id: 'voice-row-1', brandId: 'brand-1', metadataLabel: 'Narrator' },
+    ],
+  }),
+}));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
@@ -70,6 +94,35 @@ const run = {
 } as unknown as BrandRemixRunView;
 
 describe('StoryboardRunPanel', () => {
+  beforeEach(() => {
+    vi.mocked(useStoryboardAssets).mockReturnValue({});
+  });
+
+  it.each([undefined, '', '   '])(
+    'renders a contextual name for a real unnamed Video (%j)',
+    (label) => {
+      const asset = new Video({
+        id: 'video-1',
+        brandId: 'brand-1',
+        ...(label === undefined ? {} : { metadata: new Metadata({ label }) }),
+      });
+      vi.mocked(useStoryboardAssets).mockReturnValue({
+        'video:video-1': asset,
+      });
+      render(
+        <StoryboardRunPanel
+          error={null}
+          isWorking={false}
+          onReview={vi.fn()}
+          onVary={vi.fn()}
+          run={run}
+        />,
+      );
+      expect(screen.getByText('Output 1 · Asset 1')).toBeVisible();
+      expect(screen.queryByText('video-1')).toBeNull();
+    },
+  );
+
   it('shows durable recipe lineage and groups every variation under the run', () => {
     render(
       <StoryboardRunPanel
@@ -84,8 +137,8 @@ describe('StoryboardRunPanel', () => {
     expect(screen.getByText('Proof-led TikTok hook')).toBeVisible();
     expect(screen.getByText('Proof before promise')).toBeVisible();
     expect(screen.getByText('Recipe v1 · revision 2')).toBeVisible();
-    expect(screen.getByText('variant-1')).toBeVisible();
-    expect(screen.getByText('variant-2')).toBeVisible();
+    expect(screen.getByText('Output 1')).toBeVisible();
+    expect(screen.getByText('Output 2')).toBeVisible();
     expect(screen.getByText('1 of 2 outputs ready')).toBeVisible();
     expect(
       screen.getByText(
@@ -147,8 +200,8 @@ describe('StoryboardRunPanel', () => {
       />,
     );
 
-    expect(screen.getByText('Avatar · avatar-row-1')).toBeVisible();
-    expect(screen.getByText('Voice · voice-row-1')).toBeVisible();
+    expect(screen.getByText('Avatar · Presenter')).toBeVisible();
+    expect(screen.getByText('Voice · Narrator')).toBeVisible();
   });
 
   it('varies the recipe and submits only ready variants for review', () => {
