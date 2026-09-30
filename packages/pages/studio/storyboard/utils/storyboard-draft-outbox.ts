@@ -522,7 +522,12 @@ export class StoryboardDraftOutbox {
                     : 'Saved version refreshed. Retry to save your retained edits.';
               }
               this.persist();
-              if (this.status === 'saved') return;
+              if (
+                this.status === 'saved' &&
+                (status === 409 ||
+                  member?.code === 'STORYBOARD_CAPABILITIES_CHANGED')
+              )
+                return;
             } else {
               this.envelope.submitted = undefined;
               this.status = 'failed';

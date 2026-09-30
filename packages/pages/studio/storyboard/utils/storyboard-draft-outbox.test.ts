@@ -74,7 +74,11 @@ function fixture() {
           ...run.config,
           revision: revision + 1,
           ...(channel === 'plan'
-            ? { plan: value.plan as StoryboardNativeRunConfig['plan'] }
+            ? {
+                plan: structuredClone(
+                  value.plan,
+                ) as StoryboardNativeRunConfig['plan'],
+              }
             : {
                 sourceSnapshot: {
                   selector: value.source,
@@ -428,7 +432,7 @@ describe('scoped shared Storyboard draft outbox', () => {
     const { queue } = fixture();
     await queue.initialize();
     const failure = vi
-      .spyOn(Storage.prototype, 'setItem')
+      .spyOn(window.sessionStorage, 'setItem')
       .mockImplementation(() => {
         throw new Error('Full');
       });
