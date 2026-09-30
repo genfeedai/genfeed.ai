@@ -263,7 +263,24 @@ describe('PinterestService', () => {
           headers: { Authorization: 'Bearer stored-token' },
         }),
       );
-      expect(result).toEqual({
+      expect(result.learningMetrics?.metrics).toMatchObject({
+        impressions: {
+          value: 120,
+          source: 'metrics.IMPRESSION.value',
+          availability: 'observed',
+        },
+        saves: {
+          value: 9,
+          source: 'metrics.SAVE.value',
+          availability: 'observed',
+        },
+        clicks: {
+          value: 4,
+          source: 'metrics.OUTBOUND_CLICK.value',
+          availability: 'observed',
+        },
+      });
+      expect(result).toMatchObject({
         clicks: 10,
         comments: 0,
         impressions: 120,
@@ -304,7 +321,13 @@ describe('PinterestService', () => {
 
       const result = await service.getMediaAnalytics('org', 'brand', 'pin-1');
 
-      expect(result).toEqual({
+      expect(result.learningMetrics?.metrics.impressions?.source).toBe(
+        'metrics.daily.IMPRESSION.value',
+      );
+      expect(result.learningMetrics?.metrics.clicks?.source).toBe(
+        'metrics.daily.OUTBOUND_CLICK.value',
+      );
+      expect(result).toMatchObject({
         clicks: 3,
         comments: 0,
         impressions: 42,

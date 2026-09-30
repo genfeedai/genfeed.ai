@@ -81,6 +81,59 @@ describe('FacebookService', () => {
     service = module.get<FacebookService>(FacebookService);
   });
 
+  it('retains exact provider keys and paths on learning evidence before display fallbacks', async () => {
+    mockHttpService.get.mockReturnValue(
+      of({
+        data: {
+          reactions: { summary: { total_count: 0 } },
+          comments: { summary: { total_count: 2 } },
+          shares: { count: 3 },
+          insights: {
+            data: [{ name: 'post_impressions', values: [{ value: 100 }] }],
+          },
+        },
+      }),
+    );
+    const result = await service.getPostAnalytics('post', 'token');
+    expect(result.learningMetrics?.metrics).toEqual({
+      impressions: {
+        value: 100,
+        availability: 'observed',
+        source: 'post_impressions',
+      },
+      likes: {
+        value: 0,
+        availability: 'observed',
+        source: 'reactions.summary.total_count',
+      },
+      comments: {
+        value: 2,
+        availability: 'observed',
+        source: 'comments.summary.total_count',
+      },
+      shares: { value: 3, availability: 'observed', source: 'shares.count' },
+    });
+  });
+  it.each([
+    [401, 'terminal_unavailable'],
+    [404, 'terminal_unavailable'],
+    [429, 'retryable_failure'],
+    [503, 'retryable_failure'],
+  ])(
+    'classifies transport status %s without granting observation',
+    async (status, outcome) => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({ response: { status } })),
+      );
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection?.outcome).toBe(outcome);
+      expect(
+        Object.values(result.learningMetrics?.metrics ?? {}).every(
+          (metric) => metric?.availability !== 'observed',
+        ),
+      ).toBe(true);
+    },
+  );
   afterEach(() => {
     vi.clearAllMocks();
   });

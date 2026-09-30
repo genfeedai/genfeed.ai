@@ -775,16 +775,17 @@ export class FacebookService {
       return {
         learningMetrics: captureLearningMetrics(
           {
-            impressions: rawInsights.post_impressions,
-            likes: data.reactions?.summary?.total_count,
-            comments: data.comments?.summary?.total_count,
-            shares: data.shares?.count,
+            post_impressions: rawInsights.post_impressions,
+            'reactions.summary.total_count':
+              data.reactions?.summary?.total_count,
+            'comments.summary.total_count': data.comments?.summary?.total_count,
+            'shares.count': data.shares?.count,
           },
           {
-            impressions: 'impressions',
-            likes: 'likes',
-            comments: 'comments',
-            shares: 'shares',
+            impressions: 'post_impressions',
+            likes: 'reactions.summary.total_count',
+            comments: 'comments.summary.total_count',
+            shares: 'shares.count',
           },
         ),
         comments: data.comments?.summary?.total_count || 0,
@@ -799,12 +800,32 @@ export class FacebookService {
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
+      const response =
+        error && typeof error === 'object' && 'response' in error
+          ? error.response
+          : null;
+      const status =
+        response &&
+        typeof response === 'object' &&
+        'status' in response &&
+        typeof response.status === 'number'
+          ? response.status
+          : null;
+      const permanent =
+        status !== null && [401, 403, 404, 405, 410].includes(status);
       return {
         learningMetrics: {
           collection: {
             version: 1,
-            outcome: 'retryable_failure',
-            reasonCode: 'provider_fetch_failed',
+            outcome: permanent ? 'terminal_unavailable' : 'retryable_failure',
+            reasonCode:
+              status === 401 || status === 403
+                ? 'unauthorized'
+                : status === 404 || status === 410
+                  ? 'publication_unavailable'
+                  : status === 405
+                    ? 'unsupported_metric'
+                    : 'provider_fetch_failed',
           },
           metrics: {
             impressions: { availability: 'failed', source: 'post_impressions' },
