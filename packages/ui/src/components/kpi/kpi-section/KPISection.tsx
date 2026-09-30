@@ -35,7 +35,7 @@ export default function KPISection({
   isLoading = false,
   error = null,
   headerActions,
-  gridCols = { desktop: 3, mobile: 1, tablet: 2 },
+  gridCols = { desktop: 3, mobile: 1 },
   className,
 }: KPISectionProps) {
   const columns = Math.max(
