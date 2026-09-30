@@ -118,3 +118,46 @@ export interface LearningOperationView {
   error: string | null;
   resultReferences: unknown;
 }
+
+export interface LearningControlInput {
+  action:
+    | 'live'
+    | 'pause'
+    | 'resume'
+    | 'reset'
+    | 'rollback'
+    | 'shadow'
+    | 'disable';
+  expectedRevision: number;
+  requestId: string;
+  reason: string;
+  approvedArmIds?: string[];
+  policyId?: string;
+}
+export interface LearningConsentInput {
+  enabled: boolean;
+  noticeVersion: string;
+  expectedRevision: number;
+  requestId: string;
+}
+export interface LearningReceivingInput {
+  preference: 'automatic' | 'disabled' | 'pinned';
+  releaseId?: string;
+  expectedRevision: number;
+  requestId: string;
+}
+export interface LearningResourceView {
+  id: string;
+  status?: string;
+  synthetic?: boolean;
+  [field: string]: unknown;
+}
+export interface LearningDatasetInput {
+  rightsStatement: string;
+  profile: LearningObjective;
+  cell: string;
+  cutoff: string;
+  requestId: string;
+  rows?: LearningNumericRow[];
+  sourceAccountIds?: string[];
+}
