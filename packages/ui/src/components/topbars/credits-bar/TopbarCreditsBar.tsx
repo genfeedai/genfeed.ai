@@ -14,14 +14,13 @@ import type {
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CreditsBarTrigger from './CreditsBarTrigger';
 
 /** Infinity from OSS stub can serialize as null/non-finite — never treat as wallet. */
-function coerceFiniteBalance(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+function coerceFiniteBalance(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function TopbarCreditsBarContent() {
@@ -66,7 +65,9 @@ function TopbarCreditsBarContent() {
     const orgHandler = (data: unknown) => {
       const orgData = data as IOrganizationEventData & { balance?: number };
       if (orgData?.balance !== undefined) {
-        publishGenfeedBalance(coerceFiniteBalance(orgData.balance));
+        const nextBalance = coerceFiniteBalance(orgData.balance);
+        if (nextBalance !== null) publishGenfeedBalance(nextBalance);
+        else void refreshTopbarBalances();
         refreshBreakdownRef.current();
       }
     };
@@ -74,7 +75,9 @@ function TopbarCreditsBarContent() {
     const creditsHandler = (data: unknown) => {
       const creditsData = data as ICreditsEventData;
       if (creditsData?.balance !== undefined) {
-        publishGenfeedBalance(coerceFiniteBalance(creditsData.balance));
+        const nextBalance = coerceFiniteBalance(creditsData.balance);
+        if (nextBalance !== null) publishGenfeedBalance(nextBalance);
+        else void refreshTopbarBalances();
         refreshBreakdownRef.current();
       }
     };
@@ -90,6 +93,7 @@ function TopbarCreditsBarContent() {
     isSocketReady,
     organizationId,
     publishGenfeedBalance,
+    refreshTopbarBalances,
     showCredits,
     subscribe,
     unsubscribe,
@@ -167,7 +171,5 @@ function TopbarCreditsBarContent() {
 }
 
 export default function TopbarCreditsBar() {
-  const isDesktop = useIsDesktopClient();
-
-  return isDesktop ? null : <TopbarCreditsBarContent />;
+  return <TopbarCreditsBarContent />;
 }

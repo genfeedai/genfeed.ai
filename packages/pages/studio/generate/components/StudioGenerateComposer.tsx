@@ -15,9 +15,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
-import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
+import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
 import { useStudioGenerationSetupLookOptions } from '@pages/studio/generate/hooks/useStudioGenerationSetupLookOptions';
 import {
@@ -29,6 +29,7 @@ import {
   listStudioGenerateTypeConfigs,
   resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
+import { resolveStudioGenerationCost } from '@pages/studio/generate/utils/studio-generation-cost';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
@@ -163,19 +164,12 @@ export default function StudioGenerateComposer({
     isListening ||
     isTranscribing ||
     isUploading;
-  const estimatedCredits =
-    type === 'video' && selectedModel
-      ? quoteVideoGenerationCredits({
-          cost: selectedModel.cost,
-          costPerUnit: selectedModel.costPerUnit,
-          duration: settings.duration,
-          minCost: selectedModel.minCost,
-          modelKey: selectedModel.key,
-          outputs: settings.outputs,
-          pricingType: selectedModel.pricingType,
-          resolution: settings.resolution,
-        })
-      : null;
+  const estimate = resolveStudioGenerationCost({
+    isLoadingModels,
+    model: selectedModel,
+    settings,
+    type,
+  });
 
   const scope = buildStudioGenerationSetupScope(type);
   const defaults = getDefaultGenerationSetupValues(type);
@@ -318,8 +312,30 @@ export default function StudioGenerateComposer({
         value={prompt}
       />
 
-      <div className="mt-0.5 flex min-h-9 min-w-0 items-center justify-between gap-2 pt-1">
-        <div className="flex min-w-0 shrink items-center gap-0.5">
+      <StudioGenerationSummary
+        estimate={estimate}
+        isLoadingModels={isLoadingModels}
+        model={selectedModel}
+        settings={settings}
+        type={type}
+      />
+
+      {isFirstFrameMissing ||
+      isReferenceCombinationInvalid ||
+      isKling4KReferenceInvalid ? (
+        <p
+          aria-live="polite"
+          className="mt-1 text-xs font-medium text-destructive"
+        >
+          {isFirstFrameMissing
+            ? translate('startFrameRequired')
+            : isReferenceCombinationInvalid
+              ? translate('seedanceReferenceConflict')
+              : translate('kling4KReferenceConflict')}
+        </p>
+      ) : null}
+      <div className="mt-0.5 flex min-h-9 min-w-0 flex-wrap items-center justify-between gap-2 pt-1">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">
           <GenerationSetupPopover
             capabilities={capabilities}
             favoriteModelKeys={favoriteModelKeys}
@@ -406,39 +422,7 @@ export default function StudioGenerateComposer({
           ) : null}
         </div>
 
-        <div className="-mr-2 flex shrink-0 items-center">
-          {isFirstFrameMissing ? (
-            <span
-              aria-live="polite"
-              className="mr-2 text-xs font-medium text-destructive"
-            >
-              {translate('startFrameRequired')}
-            </span>
-          ) : null}
-          {isReferenceCombinationInvalid ? (
-            <span
-              aria-live="polite"
-              className="mr-2 text-xs font-medium text-destructive"
-            >
-              {translate('seedanceReferenceConflict')}
-            </span>
-          ) : null}
-          {isKling4KReferenceInvalid ? (
-            <span
-              aria-live="polite"
-              className="mr-2 text-xs font-medium text-destructive"
-            >
-              {translate('kling4KReferenceConflict')}
-            </span>
-          ) : null}
-          {estimatedCredits !== null ? (
-            <span
-              aria-live="polite"
-              className="mr-2 text-xs font-medium text-muted-foreground"
-            >
-              {translate('estimatedCredits', { credits: estimatedCredits })}
-            </span>
-          ) : null}
+        <div className="-mr-2 ml-auto flex shrink-0 items-center">
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
               ariaLabel={translate('undoPromptEnhancement')}

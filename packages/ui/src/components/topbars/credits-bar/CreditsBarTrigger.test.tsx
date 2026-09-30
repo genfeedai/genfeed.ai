@@ -38,7 +38,12 @@ describe('CreditsBarTrigger', () => {
     render(<CreditsBarTrigger {...defaultProps} />);
 
     const trigger = screen.getByTestId('topbar-credits-trigger');
-    expect(trigger).toHaveClass('outline-none', 'ring-0');
+    expect(trigger).toHaveClass(
+      'inline-flex',
+      'focus-visible:outline-2',
+      'focus-visible:outline-ring',
+    );
+    expect(trigger).not.toHaveClass('hidden', 'sm:inline-flex');
     expect(trigger).toHaveClass(
       'text-destructive',
       'bg-destructive/15',

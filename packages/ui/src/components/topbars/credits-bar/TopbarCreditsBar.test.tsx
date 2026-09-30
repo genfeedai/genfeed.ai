@@ -227,7 +227,7 @@ describe('TopbarCreditsBar', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('coerces non-finite genfeed balance (OSS Infinity → JSON null) to 0', async () => {
+  it('keeps loaded null balance unavailable', async () => {
     mockGetTopbarBalances.mockResolvedValue({
       generatedAt: '2026-06-17T00:00:00.000Z',
       segments: [
@@ -245,8 +245,14 @@ describe('TopbarCreditsBar', () => {
     renderBar();
 
     await waitFor(() => {
-      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('0');
-      expect(screen.getByTestId('credits-balance')).toHaveTextContent('0');
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent(
+        'unknown',
+      );
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('—');
+      expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+        'data-loading',
+        'false',
+      );
     });
   });
 
@@ -454,5 +460,36 @@ describe('TopbarCreditsBar', () => {
         'false',
       );
     });
+  });
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'keeps nonfinite balance %s unavailable',
+    async (balance) => {
+      mockGetTopbarBalances.mockResolvedValue(balanceResponse(balance));
+      renderBar();
+      await waitFor(() =>
+        expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+          'data-loading',
+          'false',
+        ),
+      );
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent(
+        'unknown',
+      );
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('—');
+    },
+  );
+
+  it('reconciles invalid socket balances without publishing a false zero', async () => {
+    mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
+    renderBar();
+    await waitFor(() =>
+      expect(screen.getByTestId('credits-numeric')).toHaveTextContent('42'),
+    );
+    const handler = mockSubscribe.mock.calls.find(
+      ([topic]) => topic === '/credits/org_1',
+    )?.[1];
+    act(() => handler({ balance: Number.NaN }));
+    expect(screen.getByTestId('credits-numeric')).toHaveTextContent('42');
+    await waitFor(() => expect(mockGetTopbarBalances).toHaveBeenCalledTimes(2));
   });
 });

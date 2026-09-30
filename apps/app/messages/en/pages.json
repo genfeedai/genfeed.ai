@@ -631,6 +631,8 @@
       "outputCount": "{count}x",
       "outputs": "Outputs",
       "referencesHelp": "Library references guide the look. Brand defaults are added automatically.",
+      "referenceLabel": "Reference {ordinal}",
+      "referenceUnavailable": "Reference {ordinal} unavailable",
       "regionLabel": "Run recipe",
       "removeReference": "Remove reference {id}",
       "title": "Recipe"
@@ -644,6 +646,9 @@
       },
       "metaHandoffUnavailable": "Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.",
       "outputCount": "{actual} of {requested} outputs ready",
+      "outputLabel": "Output {ordinal}",
+      "outputAssetLabel": "Output {ordinal} · Asset {asset}",
+      "outputAssetUnavailable": "Output {ordinal} · Asset {asset} unavailable",
       "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
       "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
       "preparePaidDraft": "Prepare paused Meta draft",
@@ -733,7 +738,10 @@
       "progress": "Still: {image} · Clip: {video} · Planned: {planned}s · Actual: {actual}s",
       "identityPairRequired": "Choose both an avatar and a saved voice for each scene override, or use the run identity.",
       "save": "Save storyboard (no generation)",
-      "outputPreview": "Completed original captioned ad"
+      "outputPreview": "Completed original captioned ad",
+      "previewUnavailable": "Preview unavailable",
+      "sourceFrame": "Source frame",
+      "unsavedChanges": "Unsaved changes"
     }
   },
   "studioEditorLock": {
@@ -757,9 +765,29 @@
     "emptyTitle": "Nothing here yet",
     "cancelEnhancingPrompt": "Cancel enhancing prompt",
     "enhancePrompt": "Enhance prompt",
-    "estimatedCredits": "~{credits} credits",
+    "estimatedCredits": "Estimated {credits} credits",
+    "summary": {
+      "setup": "Generation setup summary",
+      "modelLoading": "Loading model…",
+      "modelUnavailable": "Model unavailable",
+      "outputs": "{count, plural, one {# output} other {# outputs}}",
+      "availableCredits": "{credits} available",
+      "balanceLoading": "Loading balance…",
+      "balanceUnavailable": "Balance unavailable",
+      "estimateAfterSelection": "Estimate available after model selection",
+      "estimateLoading": "Loading estimate…",
+      "estimateUnavailable": "Estimate unavailable"
+    },
     "generate": "Generate",
     "generationFailed": "Generation failed",
+    "history": {
+      "loadFailedTitle": "Generation history couldn’t load",
+      "loadFailedDescription": "Try again to see your saved generations.",
+      "refreshFailedTitle": "Generation history couldn’t refresh",
+      "refreshFailedDescription": "The latest history is unavailable. Your last loaded results are still shown.",
+      "retry": "Retry history",
+      "retrying": "Retrying history…"
+    },
     "inspectPrompt": "View prompt",
     "inspector": {
       "actions": "Asset actions",
