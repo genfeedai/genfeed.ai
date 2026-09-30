@@ -78,6 +78,21 @@ const test = authenticatedTest.extend<{
 const desktopTest = (context: IDesktopRuntimeContext, pending = false) =>
   test.extend({ desktopRuntime: [{ context, pending }, { option: true }] });
 
+async function captureRuntimeState(
+  page: Page,
+  observation: DesktopNetworkObservation,
+  name: string,
+) {
+  expect(observation.pageErrors).toEqual([]);
+  await expectNoErrorOverlay(page);
+  await assertNoErrorBoundaryFallback(page, page.url());
+  await page.screenshot({
+    path: test.info().outputPath(`${name}.png`),
+    fullPage: true,
+    style: 'nextjs-portal { visibility: hidden !important; }',
+  });
+}
+
 async function installBridge(
   browser: BrowserContext,
   context: IDesktopRuntimeContext,
@@ -238,6 +253,7 @@ for (const theme of ['light', 'dark'] as const)
       `desktop cloud readiness and switching ${theme} ${width}`,
       async ({ authenticatedPage: page, desktopNetwork }) => {
         await page.setViewportSize({ width, height: 1000 });
+        await page.emulateMedia({ colorScheme: theme });
         await page.addInitScript(
           (theme) => localStorage.setItem('theme', theme),
           theme,
@@ -259,6 +275,7 @@ for (const theme of ['light', 'dark'] as const)
         });
         await page.goto(brandPath(APP_ROUTES.STUDIO.GENERATE));
         await expect(page.locator('body')).toHaveClass(/gf-desktop-shell/);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         const summary = page.getByTestId('studio-generation-summary');
         await expect(summary).toContainText('Loading cost context');
         expect(walletRequests).toBe(0);
@@ -275,6 +292,11 @@ for (const theme of ['light', 'dark'] as const)
         await page.keyboard.press('Meta+Enter');
         expect(generationRequests).toBe(0);
         expect(desktopNetwork.generationRequests).toBe(0);
+        await captureRuntimeState(
+          page,
+          desktopNetwork,
+          `desktop-loading-${theme}-${width}`,
+        );
         await page.evaluate(() =>
           (window as FixtureWindow).desktopRuntimeResolve(),
         );
@@ -301,6 +323,11 @@ for (const theme of ['light', 'dark'] as const)
         await page.keyboard.press('Meta+Enter');
         expect(generationRequests).toBe(0);
         expect(desktopNetwork.generationRequests).toBe(0);
+        await captureRuntimeState(
+          page,
+          desktopNetwork,
+          `desktop-switching-${theme}-${width}`,
+        );
         await page.evaluate(
           (context) => (window as FixtureWindow).desktopRuntimeEmit(context),
           {
@@ -326,11 +353,11 @@ for (const theme of ['light', 'dark'] as const)
             () => document.documentElement.scrollWidth > innerWidth,
           ),
         ).toBe(false);
-        await page.screenshot({
-          path: test.info().outputPath(`desktop-cloud-${theme}-${width}.png`),
-          fullPage: true,
-          style: 'nextjs-portal { visibility: hidden !important; }',
-        });
+        await captureRuntimeState(
+          page,
+          desktopNetwork,
+          `desktop-cloud-${theme}-${width}`,
+        );
       },
     );
   }
@@ -395,6 +422,7 @@ for (const mode of [
       expect(desktopNetwork.pageErrors).toEqual([]);
       await expectNoErrorOverlay(page);
       await assertNoErrorBoundaryFallback(page, page.url());
+      await captureRuntimeState(page, desktopNetwork, `desktop-${mode}`);
     },
   );
 }
@@ -457,6 +485,11 @@ for (const networkAccess of [
       expect(desktopNetwork.pageErrors).toEqual([]);
       await expectNoErrorOverlay(page);
       await assertNoErrorBoundaryFallback(page, page.url());
+      await captureRuntimeState(
+        page,
+        desktopNetwork,
+        `desktop-provider-${networkAccess}`,
+      );
     },
   );
 }
