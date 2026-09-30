@@ -72,3 +72,13 @@ output "task_subnets" {
 output "task_security_group" {
   value = aws_security_group.ecs.id
 }
+
+# Network outputs consumed by the separate Marketplace state. No credentials.
+output "vpc_id" { value = local.vpc_id }
+output "cluster_arn" { value = aws_ecs_cluster.main.arn }
+output "alb_security_group_id" { value = aws_security_group.alb.id }
+output "rds_security_group_ids" { value = data.aws_db_instance.genfeed.vpc_security_groups }
+output "https_listener_arn" { value = aws_lb_listener.https.arn }
+output "route53_zone_id" { value = local.zone_id }
+output "alb_zone_id" { value = aws_lb.main.zone_id }
+output "service_discovery_namespace_id" { value = aws_service_discovery_private_dns_namespace.internal.id }

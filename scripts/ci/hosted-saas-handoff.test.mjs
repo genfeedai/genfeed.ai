@@ -35,6 +35,7 @@ const publicDeployVercel = readFileSync(
 );
 
 const FRONTEND_SECRETS = [
+  'MARKETPLACE_DEPLOY_TOKEN',
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
   'SENTRY_AUTH_TOKEN',
@@ -188,7 +189,7 @@ test('public deploy workflow runs the in-repo engine and never calls console', (
   );
 });
 
-test('validates public source reachability and does not clone marketplace', () => {
+test('validates both repositories against master before deployment', () => {
   const dispatchScript = readFileSync(
     fileURLToPath(new URL('./dispatch-hosted-saas.mjs', import.meta.url)),
     'utf8',
@@ -205,10 +206,9 @@ test('validates public source reachability and does not clone marketplace', () =
   );
   assert.match(
     publicDeployWorkflow,
-    /Marketplace is an independent repo and is not cloned or deployed from here/,
+    /git -C marketplace-source merge-base --is-ancestor/,
   );
-  assert.doesNotMatch(publicDeployWorkflow, /git -C marketplace-source/);
-  assert.doesNotMatch(
+  assert.match(
     publicDeployWorkflow,
     /https:\/\/github\.com\/genfeedai\/marketplace\.genfeed\.ai\.git/,
   );
@@ -313,7 +313,7 @@ test('hosted SaaS site identity comes from GitHub environment variables', () => 
   assert.doesNotMatch(publicDeployVercel, /prj_[A-Za-z0-9]+/);
   assert.doesNotMatch(publicDeployVercel, /team_[A-Za-z0-9]+/);
   assert.match(publicDeployVercel, /vars\.VERCEL_PROJECT_APP/);
-  assert.match(publicDeployVercel, /Require app and web Vercel project ids/);
+  assert.match(publicDeployVercel, /Require selected Vercel project ids/);
   const vercelMatrix = publicDeployVercel.slice(
     publicDeployVercel.indexOf('strategy:'),
     publicDeployVercel.indexOf('env:'),
