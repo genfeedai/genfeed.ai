@@ -1,10 +1,11 @@
-import type { StoryboardRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import { describe, expect, it, vi } from 'vitest';
 import { StoryboardRunsService } from './storyboard-runs.service';
 
 function setup() {
-  const config: StoryboardRunConfig = {
+  const config: StoryboardNativeRunConfig = {
+    origin: 'native',
     contract: 'storyboard-run',
     version: 1,
     revision: 1,

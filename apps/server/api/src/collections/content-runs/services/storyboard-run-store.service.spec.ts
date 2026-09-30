@@ -1,9 +1,10 @@
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { StoryboardRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { describe, expect, it, vi } from 'vitest';
 
-const config: StoryboardRunConfig = {
+const config: StoryboardNativeRunConfig = {
+  origin: 'native',
   contract: 'storyboard-run',
   version: 1,
   revision: 1,
@@ -98,5 +99,35 @@ describe('Storyboard compare-and-swap storage', () => {
       revision: 2,
     });
     expect(saved.config.revision).toBe(2);
+  });
+  it('compares the exact read JSON when native defaults were absent in persisted config', async () => {
+    const { store, contentRun, record } = setup();
+    const { origin, ...raw } = config;
+    contentRun.findFirst.mockResolvedValue({
+      ...record,
+      config: raw as typeof config,
+    });
+    const { config: previous } = await store.read('org-1', 'brand-1', 'run-1');
+    await store.save('org-1', 'brand-1', 'run-1', previous, {
+      ...previous,
+      revision: 2,
+    });
+    expect(contentRun.findFirst).toHaveBeenCalledTimes(2);
+    expect(contentRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ config: { equals: raw } }),
+      }),
+    );
+  });
+  it('cannot reuse a captured snapshot for another tenant or run', async () => {
+    const { store, contentRun } = setup();
+    const { config: previous } = await store.read('org-1', 'brand-1', 'run-1');
+    await expect(
+      store.save('other-org', 'brand-1', 'run-1', previous, {
+        ...previous,
+        revision: 2,
+      }),
+    ).rejects.toThrow('another run');
+    expect(contentRun.updateMany).not.toHaveBeenCalled();
   });
 });

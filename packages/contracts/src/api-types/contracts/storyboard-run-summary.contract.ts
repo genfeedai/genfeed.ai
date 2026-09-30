@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { storyboardMigrationReviewSchema } from './storyboard-migration.contract';
 import { storyboardRunStateSchema } from './storyboard-run.contract';
 import { storyboardIdSchema } from './storyboard-source.contract';
 
@@ -12,13 +13,14 @@ export const storyboardRunSummarySchema = z
   .object({
     id: storyboardIdSchema,
     brandId: storyboardIdSchema,
-    title: z.string().max(120),
+    title: z.string().max(1_000),
     sourceLabel: z.enum(['brief', 'remix_upload', 'remix_discovery']),
     shotCount: z.number().int().min(0).max(12),
-    runtimeSeconds: z.number().nonnegative().max(60),
+    runtimeSeconds: z.number().finite().nonnegative(),
     runtimeBudgetSeconds: z.number().positive().max(60).nullable(),
     approvalState: z.enum(['draft', 'approved']),
     state: storyboardRunStateSchema,
+    migrationReview: storyboardMigrationReviewSchema.nullable().optional(),
     updatedAt: z.string().datetime(),
   })
   .strict();

@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { brandRemixScenePipelineSchema } from './brand-remix-scene.contract';
 import {
+  storyboardImportedPresentationSchema,
+  storyboardMigrationMetadataSchema,
+  storyboardMigrationReviewSchema,
+} from './storyboard-migration.contract';
+import {
+  storyboardImportedPlanSchema,
   storyboardPlanSchema,
   storyboardPlanSettingsSchema,
 } from './storyboard-plan.contract';
@@ -27,8 +33,11 @@ export const storyboardRunStateSchema = z.enum([
   'cancelled',
   'blocked',
 ]);
-export const storyboardRunConfigSchema = z
+export const storyboardNativeRunConfigSchema = z
   .object({
+    origin: z.literal('native').default('native'),
+    migrationReview: z.null().optional(),
+    importedPresentation: z.null().optional(),
     contract: z.literal(STORYBOARD_RUN_CONTRACT),
     version: z.literal(STORYBOARD_RUN_VERSION),
     revision: z.number().int().positive(),
@@ -44,7 +53,25 @@ export const storyboardRunConfigSchema = z
     scenePipeline: brandRemixScenePipelineSchema.optional(),
     error: z.string().max(1_000).optional(),
   })
-  .strict()
+  .strict();
+export const storyboardMigratedRunConfigSchema = storyboardNativeRunConfigSchema
+  .extend({
+    origin: z.literal('migrated'),
+    clientRequestId: z.string().uuid().nullable(),
+    createdByUserId: storyboardIdSchema.nullable(),
+    submittedInputHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .nullable(),
+    migration: storyboardMigrationMetadataSchema,
+    migrationReview: storyboardMigrationReviewSchema,
+    importedPresentation: storyboardImportedPresentationSchema.nullable(),
+    plan: storyboardImportedPlanSchema.nullable(),
+    generatedPlan: storyboardImportedPlanSchema.optional(),
+  })
+  .strict();
+export const storyboardRunConfigSchema = z
+  .union([storyboardNativeRunConfigSchema, storyboardMigratedRunConfigSchema])
   .superRefine((config, ctx) => {
     if (
       config.approvedRevision !== undefined &&
@@ -70,6 +97,10 @@ export const storyboardRunSchema = z
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
     config: storyboardRunConfigSchema,
+    migrationReview: storyboardMigrationReviewSchema.nullable().optional(),
+    importedPresentation: storyboardImportedPresentationSchema
+      .nullable()
+      .optional(),
   })
   .strict();
 export const createStoryboardRunSchema = z
@@ -88,6 +119,9 @@ export const updateStoryboardSourceSchema = z
     source: storyboardSourceSelectorSchema,
   })
   .strict();
+export type StoryboardNativeRunConfig = z.infer<
+  typeof storyboardNativeRunConfigSchema
+>;
 export type StoryboardRunConfig = z.infer<typeof storyboardRunConfigSchema>;
 export type StoryboardRun = z.infer<typeof storyboardRunSchema>;
 export type CreateStoryboardRun = z.infer<typeof createStoryboardRunSchema>;

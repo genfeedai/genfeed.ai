@@ -9,7 +9,7 @@ import type { ModelsService } from '@api/collections/models/services/models.serv
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RouterService } from '@api/services/router/router.service';
 import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
-import type { StoryboardRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +39,7 @@ function model(patch: Record<string, unknown> = {}): ModelDocument {
 function setup(requested: string | null = null) {
   const catalogModel = model();
   const config = {
+    origin: 'native',
     contract: 'storyboard-run',
     version: 1,
     revision: 1,
@@ -60,7 +61,7 @@ function setup(requested: string | null = null) {
       cast: [],
       shots: [],
     },
-  } as StoryboardRunConfig;
+  } as StoryboardNativeRunConfig;
   const store = { read: vi.fn(async () => ({ config })) };
   const planning = {
     resolveBrandContext: vi.fn(async () => ({

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { storyboardPlanSchema } from '../../src/api-types/contracts/storyboard-plan.contract';
+import {
+  storyboardImportedPlanSchema,
+  storyboardPlanSchema,
+} from '../../src/api-types/contracts/storyboard-plan.contract';
 import {
   createStoryboardRunSchema,
   storyboardRunConfigSchema,
@@ -199,5 +202,26 @@ describe('Canonical storyboard contract', () => {
       plan,
     };
     expect(storyboardRunConfigSchema.safeParse(config).success).toBe(false);
+  });
+  it('preserves imported 4:5 while keeping new native intent formats unchanged', () => {
+    expect(
+      storyboardImportedPlanSchema.safeParse({ ...plan, format: '4:5' })
+        .success,
+    ).toBe(true);
+    expect(
+      storyboardPlanSchema.safeParse({ ...plan, format: '4:5' }).success,
+    ).toBe(false);
+    expect(
+      createStoryboardRunSchema.safeParse({
+        clientRequestId: requestId,
+        source: { kind: 'brief', brief: 'Product' },
+        planSettings: {
+          format: '4:5',
+          runtimeBudgetSeconds: null,
+          styleReferenceAssetIds: [],
+          cast: [],
+        },
+      }).success,
+    ).toBe(false);
   });
 });

@@ -4,11 +4,12 @@ import {
   snapStoryboardDurations,
   storyboardShotPrompt,
 } from '@api/collections/content-runs/services/storyboard-plan-state';
-import type { StoryboardRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardNativeRunConfig } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import { describe, expect, it } from 'vitest';
 
-function fixture(): StoryboardRunConfig {
+function fixture(): StoryboardNativeRunConfig {
   return {
+    origin: 'native',
     contract: 'storyboard-run',
     version: 1,
     revision: 1,
