@@ -128,14 +128,14 @@ describe('resolveStudioGenerationCost', () => {
   );
 
   it.each([
-    [PricingType.PER_SECOND, '720p', 5, 1],
+    [PricingType.PER_SECOND, 'standard', 5, 1],
     [PricingType.PER_SECOND, '4k', 10, 3],
     [PricingType.PER_MEGAPIXEL, '1080p', 8, 2],
     [PricingType.FLAT, 'unsupported-stale-resolution', 5, 2],
   ])(
     'matches effective video submission for %s %s %s %s',
     (pricingType, resolution, duration, outputs) => {
-      const key = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5;
+      const key = MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO;
       const model = catalogModel({
         key,
         category: ModelCategory.VIDEO,

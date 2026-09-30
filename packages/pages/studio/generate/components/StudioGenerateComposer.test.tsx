@@ -562,10 +562,10 @@ describe('StudioGenerateComposer', () => {
       isActive: true,
       lifecycle: ModelLifecycle.AVAILABLE,
       provider: ModelProvider.REPLICATE,
-      label: 'Seedance',
+      label: 'Kling',
       cost: 50,
       costPerUnit: 10,
-      key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
       pricingType: 'per-second',
     };
     const props = {
@@ -581,7 +581,7 @@ describe('StudioGenerateComposer', () => {
           ...settings,
           duration: 5,
           modelKey: model.key,
-          resolution: '720p',
+          resolution: 'standard',
         }}
       />,
     );
