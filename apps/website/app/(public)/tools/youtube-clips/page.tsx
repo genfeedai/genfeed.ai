@@ -1,5 +1,6 @@
 import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import YoutubeClipsContent from '@public/tools/youtube-clips/youtube-clips-content';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { Scissors } from 'lucide-react';
 
@@ -13,6 +14,7 @@ export default function YoutubeClipsPage(): React.ReactElement {
   // The hero, footer and copy render on the server; only the tool hydrates.
   return (
     <PageLayout
+      heroMedia={<MarketingArtwork isCompact kind="creator" />}
       badge="Free AI tool"
       badgeIcon={Scissors}
       compact

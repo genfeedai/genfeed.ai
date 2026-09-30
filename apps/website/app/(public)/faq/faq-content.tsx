@@ -6,6 +6,7 @@ import {
   AccordionTrigger,
 } from '@ui/primitives/accordion';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import {
@@ -42,6 +43,7 @@ export default function FAQContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
+        heroMedia={<MarketingArtwork isCompact kind="integration" />}
         title="FAQ"
         description="Pricing, features, and how to get access to Genfeed"
       >

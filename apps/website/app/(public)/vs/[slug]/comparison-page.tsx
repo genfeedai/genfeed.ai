@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@ui/primitives/table';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { Check, X } from 'lucide-react';
 import Link from 'next/link';
@@ -41,6 +42,7 @@ export default function ComparisonPage({
 }) {
   return (
     <PageLayout
+      heroMedia={<MarketingArtwork kind="research" />}
       title={`Genfeed vs ${competitor.name}`}
       description={`Why Genfeed tracks revenue and ${competitor.name} doesn't. Compare features and pricing.`}
     >

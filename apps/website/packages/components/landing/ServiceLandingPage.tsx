@@ -5,6 +5,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import FaqGrid from '@web-components/content/FaqGrid';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -79,6 +80,7 @@ export default function ServiceLandingPage({
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
+        heroMedia={<MarketingArtwork kind="campaign" />}
         badge={config.badge}
         badgeIcon={Sparkles}
         title={
