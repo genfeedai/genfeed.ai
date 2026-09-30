@@ -7,6 +7,7 @@ import {
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
 } from '@api/collections/workflows/system-workflow.contract';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   createTestBrand,
   generateIdString,
@@ -24,6 +25,7 @@ import {
   SystemWorkflowDispatchClass,
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
+import { HttpStatus } from '@nestjs/common';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
@@ -677,13 +679,30 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
     });
     const maximumCredits = await quote(fixture, actor, createInput(actor, 1));
     fixture.resetExternalCalls();
-    await expect(
-      fixture.controller.create(
+    const denial = await fixture.controller
+      .create(
         fixture.request(actor.user),
         actor.user,
         createInput(actor, maximumCredits, 'zero-wallet'),
-      ),
-    ).rejects.toThrow(/Insufficient organization credits/);
+      )
+      .catch((caught: unknown) => caught);
+    expect(denial).toBeInstanceOf(BusinessLogicException);
+    if (!(denial instanceof BusinessLogicException)) throw denial;
+    expect(denial.getStatus()).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
+    expect(denial.errorCode).toBe('INSUFFICIENT_CREDITS');
+    expect(denial.getResponse()).toMatchObject({
+      code: 'INSUFFICIENT_CREDITS',
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+      title: 'Business Logic Error',
+      detail: `Insufficient organization credits. Available: 0, Required: ${maximumCredits}, Max overdraft: 0`,
+      meta: {
+        available: 0,
+        balanceDelta: 0,
+        heldDelta: maximumCredits,
+        maxOverdraftCredits: 0,
+        organizationId: actor.organizationId,
+      },
+    });
     expectNoGeneration(fixture);
     expect(
       [...fixture.queues.values()].every((queue) => queue.jobs.size === 0),
