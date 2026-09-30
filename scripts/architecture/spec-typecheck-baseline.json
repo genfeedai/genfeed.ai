@@ -5165,7 +5165,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "34456683a759b2d7ade1",
-      "message": "Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'pricingType' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -5173,7 +5173,7 @@
       "count": 1,
       "file": "packages/contracts/src/constants/self-hosted-models.constant.test.ts",
       "fingerprint": "997d3dd44ab0fe1e5fc1",
-      "message": "Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite — fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
+      "message": "Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; } | ... 19 more ... | { ...; }'.   Property 'costPerUnit' does not exist on type '{ readonly category: ModelCategory.IMAGE; readonly cost: 12; readonly costTier: CostTier.MEDIUM; readonly description: \"Google Nano Banana 2 Lite \u2014 fast 1K image generation and editing with up to 14 references.\"; ... 6 more ...; readonly providerCostUsd: 0.034; }'.",
       "workspace": "contracts"
     },
     {
@@ -7165,7 +7165,7 @@
       "count": 8,
       "file": "packages/pages/brands/components/integrations/AccountsTable.test.tsx",
       "fingerprint": "174809e07da2db9eb1f7",
-      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: any[]; onConnectAccount: () => void; onDisconnect: () => void; onPostingTimes: () => void; onReconnect: () => void; unavailablePlatforms: Set<Platform>; }' but required in type 'AccountsTableProps'.",
+      "message": "Property 'reconnectingCredentialId' is missing in type '{ accountHealth: never[]; connections: BrandDetailSocialConnection[]; onConnectAccount: () => void; onDisconnect: () => void; onOpenSettings: () => void; onReconnect: () => void; unavailablePlatforms: Set<...>; }' but required in type 'AccountsTableProps'.",
       "workspace": "pages"
     },
     {
@@ -7366,6 +7366,286 @@
       "file": "packages/pages/studio/generate/components/StudioGenerateInspector.test.tsx",
       "fingerprint": "f911ff1612c1d5c7934b",
       "message": "Conversion of type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' to type 'IIngredient' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ category: IngredientCategory.IMAGE; id: string; metadata: { mood: string; style: string; }; promptText: string; }' is missing the following properties from type 'IIngredient': status, user, organization, scope, and 10 more.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/StoryboardDraftPage.test.tsx",
+      "fingerprint": "f52509b8bcef1072160f",
+      "message": "Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.   Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is missing the following properties from type '{ contract: \"storyboard-run\"; version: 1; revision: number; state: \"ready\" | \"cancelled\" | \"blocked\" | \"generating\" | \"approved\" | \"planning\" | \"storyboard\" | \"awaiting_analysis\" | \"analysing\" | \"quoted\" | \"assembling\" | \"partial_failure\"; ... 13 more ...; generatedPlan?: { ...; } | undefined; }': origin, migration, migrationReview, importedPresentation",
+      "workspace": "pages"
+    },
+    {
+      "code": 18047,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/StoryboardDraftPage.tsx",
+      "fingerprint": "6f29f155aa1fff873a93",
+      "message": "'run.config.plan' is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 18047,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/StoryboardDraftPage.tsx",
+      "fingerprint": "ff58c846853904023bde",
+      "message": "'run.config.plan' is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2769,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardAnimatic.test.tsx",
+      "fingerprint": "3dad91f0ebdb4f08bf49",
+      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement | null', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement | null', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2769,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardAnimatic.test.tsx",
+      "fingerprint": "be9e8e81dcb715b28845",
+      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2769,
+      "count": 4,
+      "file": "packages/pages/studio/storyboard/components/StoryboardAnimatic.test.tsx",
+      "fingerprint": "dc2486261f206ff01a08",
+      "message": "No overload matches this call.   Overload 1 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.   Overload 2 of 2, '(role: ByRoleMatcher, options?: ByRoleOptions | undefined): HTMLElement', gave the following error.     Object literal may only specify known properties, and 'exact' does not exist in type 'ByRoleOptions'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "0a4c810c638982e1348d",
+      "message": "Type 'Mock<(revision: number, plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }...' is not assignable to type '(revision: number, plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }, sig...'.   Type 'Promise<{ config: { revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string ...' is not assignable to type 'Promise<{ id: string; organizationId: string; brandId: string; createdAt: string; updatedAt: string; config: { origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; ... 11 more ...; error?: string | undefined; } | { ...; }; operation?: { ...; } | ... 1 more ... | undefi...'.     Type '{ config: { revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefi...' is not assignable to type '{ id: string; organizationId: string; brandId: string; createdAt: string; updatedAt: string; config: { origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; ... 11 more ...; error?: string | undefined; } | { ...; }; operation?: { ...; } | ... 1 more ... | undefined; mig...'.       Types of property 'config' are incompatible.         Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.           Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.             Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; }'.               Types of property 'plan' are incompatible.                 Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.                   Type 'null' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "66489113fce504a54b96",
+      "message": "Type '{ config: { plan: { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; } | { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; videoModelKey: string | null; ... 6 more ...; styleLabel?: string | undefined; } | { ...; }; ... 15 more ...; error?: strin...' is not assignable to type '{ id: string; organizationId: string; brandId: string; createdAt: string; updatedAt: string; config: { origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; ... 11 more ...; error?: string | undefined; } | { ...; }; operation?: { ...; } | ... 1 more ... | undefined; mig...'.   Types of property 'config' are incompatible.     Type '{ plan: { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; } | { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; videoModelKey: string | null; ... 6 more ...; styleLabel?: string | undefined; } | { ...; }; ... 15 more ...; error?: string | undefi...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.       Type '{ plan: { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; } | { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; videoModelKey: string | null; ... 6 more ...; styleLabel?: string | undefined; } | { ...; }; ... 15 more ...; error?: string | undefi...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.         Type '{ plan: { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; } | { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; videoModelKey: string | null; ... 6 more ...; styleLabel?: string | undefined; } | { ...; }; ... 15 more ...; error?: string | undefi...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; }'.           Types of property 'plan' are incompatible.             Type '{ cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; } | { cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; videoModelKey: string | null; ... 6 more ...; styleLabel?: string | undefined; } | { ...; }' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.               Type '{ cast: { id: string; name: string; voiceId: string; referenceAssetIds: never[]; }[]; }' is missing the following properties from type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...': videoModelKey, format, runtimeBudgetSeconds, styleReferenceAssetIds, and 3 more.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "c6e29ce57abb276578a9",
+      "message": "Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.   Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is missing the following properties from type '{ contract: \"storyboard-run\"; version: 1; revision: number; state: \"ready\" | \"cancelled\" | \"blocked\" | \"generating\" | \"approved\" | \"planning\" | \"storyboard\" | \"awaiting_analysis\" | \"analysing\" | \"quoted\" | \"assembling\" | \"partial_failure\"; ... 13 more ...; generatedPlan?: { ...; } | undefined; }': origin, migration, migrationReview, importedPresentation",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "cfb29d2679164b54b088",
+      "message": "Type 'Mock<(revision: number, plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }...' is not assignable to type '(revision: number, plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }, sig...'.   Type 'Promise<{ config: { revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string ...' is not assignable to type 'Promise<{ id: string; organizationId: string; brandId: string; createdAt: string; updatedAt: string; config: { origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; ... 11 more ...; error?: string | undefined; } | { ...; }; operation?: { ...; } | ... 1 more ... | undefi...'.     Type '{ config: { revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefi...' is not assignable to type '{ id: string; organizationId: string; brandId: string; createdAt: string; updatedAt: string; config: { origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; ... 11 more ...; error?: string | undefined; } | { ...; }; operation?: { ...; } | ... 1 more ... | undefined; mig...'.       Types of property 'config' are incompatible.         Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.           Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.             Type '{ revision: number; plan: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | {...' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; }'.               Types of property 'plan' are incompatible.                 Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.                   Type 'null' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "778fc53e4260f7858808",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 2,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.test.tsx",
+      "fingerprint": "8c7cae936f327e9f7595",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.tsx",
+      "fingerprint": "9fcb9a9ee70cc2e94f6a",
+      "message": "Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2719,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/components/StoryboardPlanEditor.tsx",
+      "fingerprint": "9556fe0adaf763c8e3e7",
+      "message": "Type '(snapshot: import(\"<root>/packages/props/studio/storyboard.props\").StoryboardSaveSnapshot<{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[...' is not assignable to type '(snapshot: import(\"<root>/packages/props/studio/storyboard.props\").StoryboardSaveSnapshot<{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[...'. Two different types with this name exist, but they are unrelated.   Type 'Promise<{ revision: number; value: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefin...' is not assignable to type 'Promise<StoryboardSaveSnapshot<{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; ...'.     Type '{ revision: number; value: { videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | ...' is not assignable to type 'StoryboardSaveSnapshot<{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }>'.       Types of property 'value' are incompatible.         Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.           Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-create-storyboard.ts",
+      "fingerprint": "a7364f70c8809f018c37",
+      "message": "Property 'activeOrganizationId' does not exist on type 'StripEmptyObjects<{ id: string; createdAt: Date; updatedAt: Date; userId: string; expiresAt: Date; token: string; ipAddress?: string | null | undefined; userAgent?: string | null | undefined; } & {} & { ...; }>'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.test.tsx",
+      "fingerprint": "975d1121d41475681cd5",
+      "message": "Type '{ title: string; } | { title: string; videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; logline: string; shots: { ...; }[]; format: ...' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type '{ title: string; }' is missing the following properties from type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }': videoModelKey, runtimeBudgetSeconds, styleReferenceAssetIds, cast, and 3 more.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.test.tsx",
+      "fingerprint": "bf2bef7343dc9a40419d",
+      "message": "Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.   Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is missing the following properties from type '{ contract: \"storyboard-run\"; version: 1; revision: number; state: \"ready\" | \"cancelled\" | \"blocked\" | \"generating\" | \"approved\" | \"planning\" | \"storyboard\" | \"awaiting_analysis\" | \"analysing\" | \"quoted\" | \"assembling\" | \"partial_failure\"; ... 13 more ...; generatedPlan?: { ...; } | undefined; }': origin, migration, migrationReview, importedPresentation",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.test.tsx",
+      "fingerprint": "e36a5e13f22176f7248b",
+      "message": "Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 18047,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.test.tsx",
+      "fingerprint": "cd903dfe9ed63d0ea74e",
+      "message": "'saved.config.plan' is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2339,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.ts",
+      "fingerprint": "e4e012084062bec6afbf",
+      "message": "Property 'activeOrganizationId' does not exist on type 'StripEmptyObjects<{ id: string; createdAt: Date; updatedAt: Date; userId: string; expiresAt: Date; token: string; ipAddress?: string | null | undefined; userAgent?: string | null | undefined; } & {} & { ...; }>'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.ts",
+      "fingerprint": "99f950d1afda3966e22f",
+      "message": "Argument of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to parameter of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/hooks/use-durable-storyboard-run.ts",
+      "fingerprint": "ee01a97a0e2bd9efde5f",
+      "message": "Argument of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to parameter of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 2,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "28f29dfb5395e9aec695",
+      "message": "Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is not assignable to type '{ origin: \"native\"; contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"ready\" | \"cancelled\" | ... 9 more ... | \"partial_failure\"; ... 8 more ...; error?: string | undefined; } | { ...; }'.   Type '{ contract: \"storyboard-run\"; version: 1; revision: number; clientRequestId: string; createdByUserId: string; submittedInputHash: string; state: \"storyboard\"; sourceSnapshot: { selector: { kind: \"brief\"; brief: string; }; capturedAt: string; }; plan: { ...; }; }' is missing the following properties from type '{ contract: \"storyboard-run\"; version: 1; revision: number; state: \"ready\" | \"cancelled\" | \"blocked\" | \"generating\" | \"approved\" | \"planning\" | \"storyboard\" | \"awaiting_analysis\" | \"analysing\" | \"quoted\" | \"assembling\" | \"partial_failure\"; ... 13 more ...; generatedPlan?: { ...; } | undefined; }': origin, migration, migrationReview, importedPresentation",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "c17bc89318ab648737a1",
+      "message": "Type '{ videoModelKey?: string | null | undefined; runtimeBudgetSeconds?: number | null | undefined; styleReferenceAssetIds?: string[] | undefined; cast?: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[] | undefined; ... 4 more ...; styleLabel?:...' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null'.   Type '{ videoModelKey?: string | null | undefined; runtimeBudgetSeconds?: number | null | undefined; styleReferenceAssetIds?: string[] | undefined; cast?: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[] | undefined; ... 4 more ...; styleLabel?:...' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null'.     Type '{ videoModelKey?: string | null | undefined; runtimeBudgetSeconds?: number | null | undefined; styleReferenceAssetIds?: string[] | undefined; cast?: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[] | undefined; ... 4 more ...; styleLabel?:...' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; }'.       Type '{ videoModelKey?: string | null | undefined; runtimeBudgetSeconds?: number | null | undefined; styleReferenceAssetIds?: string[] | undefined; cast?: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[] | undefined; ... 4 more ...; styleLabel?:...' is not assignable to type '{ videoModelKey: string | null; format: \"16:9\" | \"9:16\" | \"1:1\"; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; title: string; logline: string; shots: { ...; }...'.         Types of property 'videoModelKey' are incompatible.           Type 'string | null | undefined' is not assignable to type 'string | null'.             Type 'undefined' is not assignable to type 'string | null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "07016817f47d7beecbac",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 6,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "1e754058359e0c7a5fde",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "2966734a0a96dd209316",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "2b0a1a8745b2f078f92c",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "6e9d3c7e07085ee399eb",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "70cb2e73c16224f61167",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "8841a9389afd9c81698e",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2531,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "a35356bf149fb12cee32",
+      "message": "Object is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 18047,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.test.ts",
+      "fingerprint": "84699f4db33117573741",
+      "message": "'run.config.plan' is possibly 'null'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2322,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.ts",
+      "fingerprint": "ca16123669264735decd",
+      "message": "Type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
+      "workspace": "pages"
+    },
+    {
+      "code": 2345,
+      "count": 1,
+      "file": "packages/pages/studio/storyboard/utils/storyboard-draft-outbox.ts",
+      "fingerprint": "da8dd76c0540f881a3fa",
+      "message": "Argument of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; } | { ...; } | null' is not assignable to parameter of type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.   Type 'null' is not assignable to type '{ videoModelKey: string | null; runtimeBudgetSeconds: number | null; styleReferenceAssetIds: string[]; cast: { id: string; name: string; referenceAssetIds: string[]; voiceId?: string | undefined; avatarAssetId?: string | undefined; }[]; ... 4 more ...; styleLabel?: string | undefined; }'.",
       "workspace": "pages"
     },
     {
