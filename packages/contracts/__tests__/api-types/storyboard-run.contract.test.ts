@@ -12,6 +12,7 @@ import { storyboardVideoModelCapabilitySchema } from '../../src/api-types/contra
 import {
   controlStoryboardOperationSchema,
   createStoryboardRunQuoteSchema,
+  storyboardOperationProjectionSchema,
   storyboardRunQuoteSchema,
 } from '../../src/api-types/contracts/storyboard-run-quote.contract';
 import {
@@ -296,6 +297,51 @@ describe('Canonical storyboard contract', () => {
       controlStoryboardOperationSchema.safeParse({ expectedRevision: 2 })
         .success,
     ).toBe(false);
+  });
+  it('retains accepted operation and quote bytes for control and projection', () => {
+    for (const id of [
+      'operation/old key',
+      ' operation/old key ',
+      's'.repeat(200),
+    ]) {
+      expect(
+        controlStoryboardOperationSchema.parse({
+          expectedRevision: 4,
+          operationId: id,
+        }).operationId,
+      ).toBe(id);
+      expect(
+        storyboardOperationProjectionSchema.parse({
+          id,
+          quoteId: id,
+          acceptedRevision: 3,
+          status: 'cancelled',
+          canResume: true,
+          reasonCode: null,
+        }),
+      ).toMatchObject({ id, quoteId: id });
+    }
+    for (const id of ['', ' ', 's'.repeat(201)]) {
+      expect(
+        controlStoryboardOperationSchema.safeParse({
+          expectedRevision: 4,
+          operationId: id,
+        }).success,
+      ).toBe(false);
+      expect(
+        storyboardOperationProjectionSchema.safeParse({
+          id,
+          quoteId: id,
+          acceptedRevision: 3,
+          status: 'cancelled',
+          canResume: true,
+          reasonCode: null,
+        }).success,
+      ).toBe(false);
+    }
+    expect(storyboardIdSchema.safeParse('operation/old key').success).toBe(
+      false,
+    );
   });
   it('preserves legacy reference bytes only in the read-only imported branch', () => {
     for (const id of [

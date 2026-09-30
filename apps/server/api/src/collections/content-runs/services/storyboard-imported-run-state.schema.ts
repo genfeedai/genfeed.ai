@@ -182,3 +182,12 @@ export function storyboardLegacyStages(
     });
   return stages;
 }
+
+export function storyboardHasUnresolvedAssemblyJobs(
+  pipeline: StoryboardLegacyConfig['scenePipeline'],
+): boolean {
+  return Boolean(
+    (pipeline?.assembly?.mergeJobId && !pipeline.assembly.mergedAssetId) ||
+      (pipeline?.assembly?.captionJobId && !pipeline.assembly.assetId),
+  );
+}

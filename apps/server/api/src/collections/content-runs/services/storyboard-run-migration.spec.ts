@@ -559,6 +559,53 @@ describe('Lossless in-place Storyboard converter', () => {
       ).toBe('unchanged');
     },
   );
+  it.each(['merge', 'caption'] as const)(
+    'blocks adoption until cancelled %s assembly work has its result',
+    (kind) => {
+      const { record, context, config } = fixture();
+      if (!config.scenePipeline) throw new Error('fixture');
+      const pipeline = config.scenePipeline;
+      pipeline.state = 'cancelled';
+      pipeline.scenes = {};
+      pipeline.receipts = [];
+      pipeline.operation = {
+        id: 'operation/old key',
+        quoteId: ' quote/old key ',
+        revision: 4,
+        cancellationGeneration: 1,
+        startedAt: '2026-09-30T12:00:00.000Z',
+        userId: 'user:Original',
+        sequence: 9,
+      };
+      pipeline.assembly = {
+        orderedAssetIds: ['clip:Original'],
+        transcription: { state: 'ready', attempt: 1 },
+        ...(kind === 'merge'
+          ? { mergeJobId: 'merge/Original' }
+          : { captionJobId: 'caption/Original' }),
+      };
+      const converted = storyboardStoredRunConfigSchema.parse(
+        convertStoryboardRun(record, context).config,
+      );
+      expect(converted.migrationRecovery?.operationId).toBe(
+        'operation/old key',
+      );
+      expect(() => assertStoryboardEditable(converted)).toThrow(
+        'reconcile accepted',
+      );
+      if (kind === 'merge') pipeline.assembly.mergedAssetId = 'merged:Original';
+      else pipeline.assembly.assetId = 'captioned:Original';
+      const resolved = storyboardStoredRunConfigSchema.parse(
+        convertStoryboardRun(record, context).config,
+      );
+      expect(resolved.migrationRecovery).toBeUndefined();
+      expect(() => assertStoryboardEditable(resolved)).not.toThrow();
+      expect(
+        resolved.importedState?.originalConfig.scenePipeline?.operation
+          ?.quoteId,
+      ).toBe(' quote/old key ');
+    },
+  );
   it('preserves surrounding whitespace in validated opaque archived IDs and read-only references', () => {
     const { record, context, config } = fixture();
     if (!config.scenePipeline || !config.concept) throw new Error('fixture');

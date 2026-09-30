@@ -156,16 +156,24 @@ export type CreateStoryboardRunQuote = z.infer<
 >;
 export type ExecuteStoryboardRun = z.infer<typeof executeStoryboardRunSchema>;
 
+// Historical operation identities are validated without changing accepted bytes.
+export const storyboardAcceptedOperationIdSchema = z
+  .string()
+  .refine(
+    (value) => value.trim().length > 0 && value.trim().length <= 200,
+    'Invalid accepted operation ID',
+  );
+
 export const controlStoryboardOperationSchema = z
   .object({
     expectedRevision: z.number().int().positive(),
-    operationId: storyboardIdSchema,
+    operationId: storyboardAcceptedOperationIdSchema,
   })
   .strict();
 export const storyboardOperationProjectionSchema = z
   .object({
-    id: storyboardIdSchema,
-    quoteId: storyboardIdSchema,
+    id: storyboardAcceptedOperationIdSchema,
+    quoteId: storyboardAcceptedOperationIdSchema,
     acceptedRevision: z.number().int().positive(),
     status: z.enum([
       'running',

@@ -1,5 +1,6 @@
 import {
   type StoryboardStoredRunConfig,
+  storyboardHasUnresolvedAssemblyJobs,
   storyboardLegacyStages,
   storyboardLegacyState,
   storyboardStoredRunConfigSchema,
@@ -72,6 +73,7 @@ export function assertStoryboardEditable(
         ['claimed', 'submitted', 'uncertain'].includes(stage.state) ||
         Boolean(stage.groupId && !stage.assetId && stage.state !== 'ready'),
     ) ||
+    storyboardHasUnresolvedAssemblyJobs(pipeline) ||
     pipeline?.receipts.some((receipt) =>
       ['reserved', 'uncertain'].includes(receipt.state),
     )

@@ -2,6 +2,7 @@ import {
   parseStoryboardLegacyConfig,
   type StoryboardLegacyConfig,
   type StoryboardStoredRunConfig,
+  storyboardHasUnresolvedAssemblyJobs,
   storyboardLegacyConfigSchema,
   storyboardLegacyStages,
   storyboardStoredRunConfigSchema,
@@ -359,10 +360,7 @@ export function convertStoryboardRun(
     pipeline?.receipts.some((receipt) =>
       ['reserved', 'uncertain'].includes(receipt.state),
     ) ||
-    Boolean(
-      pipeline?.assembly?.mergeJobId && !pipeline.assembly.mergedAssetId,
-    ) ||
-    Boolean(pipeline?.assembly?.captionJobId && !pipeline.assembly.assetId);
+    storyboardHasUnresolvedAssemblyJobs(pipeline);
   const recover =
     pipeline?.operation &&
     (unresolved || !['ready', 'cancelled'].includes(pipeline.state));
