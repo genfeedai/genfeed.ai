@@ -5,9 +5,9 @@ export function AgentChatInputStyles(): ReactElement {
     <style>{`
         .gen-agent-prompt-highlight {
           position: absolute;
-          inset: -1px;
-          width: calc(100% + 2px);
-          height: calc(100% + 2px);
+          inset: 0;
+          width: 100%;
+          height: 100%;
           overflow: visible;
           pointer-events: none;
         }
@@ -16,7 +16,7 @@ export function AgentChatInputStyles(): ReactElement {
           y: 0.5px;
           width: calc(100% - 1px);
           height: calc(100% - 1px);
-          rx: var(--radius-workspace-composer);
+          rx: calc(var(--radius-workspace-composer) - 1px);
           fill: none;
           stroke: hsl(var(--foreground) / 0.65);
           stroke-width: 1px;
