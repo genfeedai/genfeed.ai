@@ -9,7 +9,7 @@ export default function UseCasesHubContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="campaign" />}
+        heroMedia={<MarketingArtwork page="/use-cases" kind="campaign" />}
         title="Genfeed Use Cases"
         description="See how creators, agencies, e-commerce brands, and founders put Genfeed to work."
       >

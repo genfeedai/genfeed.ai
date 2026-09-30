@@ -151,7 +151,9 @@ export default function PricingContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="campaign" />}
+        heroMedia={
+          <MarketingArtwork page="/pricing" isCompact kind="campaign" />
+        }
         title={<>Pay for output.</>}
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >

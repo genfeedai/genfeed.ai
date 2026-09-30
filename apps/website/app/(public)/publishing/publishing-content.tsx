@@ -147,7 +147,9 @@ export default function PublishingContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="publishing" />}
+        heroMedia={
+          <MarketingArtwork page="/publishing" isCompact kind="publishing" />
+        }
         heroActions={<AgentFirstActions trackingName="publishing_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}

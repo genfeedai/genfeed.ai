@@ -100,7 +100,9 @@ export default function CalendarContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="publishing" />}
+        heroMedia={
+          <MarketingArtwork page="/calendar" isCompact kind="publishing" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}

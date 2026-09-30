@@ -115,7 +115,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="integration" />}
+        heroMedia={<MarketingArtwork page="/developers" />}
         badge="Genfeed for Developers"
         badgeIcon={Terminal}
         title="Content infrastructure for developers"

@@ -42,7 +42,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="workflow" />}
+        heroMedia={<MarketingArtwork page="/skills" kind="workflow" />}
         badge="Open Source Skills"
         badgeIcon={BrainCircuit}
         compact

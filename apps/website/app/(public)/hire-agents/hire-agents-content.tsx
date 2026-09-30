@@ -91,7 +91,9 @@ export default function HireAgentsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="workflow" />}
+        heroMedia={
+          <MarketingArtwork page="/hire-agents" isCompact kind="workflow" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}

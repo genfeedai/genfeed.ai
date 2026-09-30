@@ -100,7 +100,7 @@ export default function SelfHostedContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="integration" />}
+        heroMedia={<MarketingArtwork page="/self-hosted" kind="integration" />}
         badge="Open Source"
         badgeIcon={GitBranch}
         title={

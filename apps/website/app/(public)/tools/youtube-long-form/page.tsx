@@ -14,7 +14,13 @@ export default function YoutubeLongFormPage(): React.ReactElement {
   // The hero, footer and copy render on the server; only the tool hydrates.
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork isCompact kind="creator" />}
+      heroMedia={
+        <MarketingArtwork
+          page="/tools/youtube-long-form"
+          isCompact
+          kind="creator"
+        />
+      }
       badge="Free AI tool"
       badgeIcon={FileText}
       compact

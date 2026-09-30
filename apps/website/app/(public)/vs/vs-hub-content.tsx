@@ -9,7 +9,7 @@ export default function VsHubContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="research" />}
+        heroMedia={<MarketingArtwork page="/vs" kind="research" />}
         title="Compare Genfeed"
         description="See how Genfeed compares to other AI content platforms. Choose the right tool for your needs."
       >

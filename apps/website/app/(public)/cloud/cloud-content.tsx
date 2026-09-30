@@ -67,7 +67,7 @@ export default function CloudContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="workflow" />}
+        heroMedia={<MarketingArtwork page="/cloud" kind="workflow" />}
         title="One studio for your team"
         description="Shared workspaces, a brand library, roles, and approvals. The studio your whole team creates in."
       >

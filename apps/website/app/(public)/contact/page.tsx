@@ -39,7 +39,7 @@ const CONTACT_PATHS = [
 export default function ContactPage() {
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork isCompact kind="creator" />}
+      heroMedia={<MarketingArtwork page="/contact" isCompact kind="creator" />}
       compact
       title="Contact Genfeed"
       description="Reach the right team for product support, security, privacy, partnerships, or managed content operations."

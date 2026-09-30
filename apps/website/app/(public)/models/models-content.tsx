@@ -124,7 +124,9 @@ export default function ModelsContent({ models }: ModelsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="research" />}
+        heroMedia={
+          <MarketingArtwork page="/models" isCompact kind="research" />
+        }
         compact
         description="The models available in Genfeed, read directly from the product registry."
         heroActions={

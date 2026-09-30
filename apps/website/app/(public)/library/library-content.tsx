@@ -106,7 +106,9 @@ export default function LibraryContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="campaign" />}
+        heroMedia={
+          <MarketingArtwork page="/library" isCompact kind="campaign" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={`${EnvironmentService.apps.app}/sign-up?plan=payg`}

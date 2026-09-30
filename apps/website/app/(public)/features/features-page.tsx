@@ -72,7 +72,9 @@ export default function FeaturesPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="workflow" />}
+        heroMedia={
+          <MarketingArtwork page="/features" isCompact kind="workflow" />
+        }
         badge="Platform Capabilities"
         badgeIcon={Layers}
         compact

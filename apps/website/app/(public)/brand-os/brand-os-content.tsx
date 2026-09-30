@@ -232,7 +232,7 @@ export default function BrandOSContent(): React.ReactElement {
 
                 <BrandOSPreviewAction />
               </div>
-              <MarketingArtwork kind="campaign" />
+              <MarketingArtwork page="/brand-os" kind="campaign" />
             </div>
           </div>
         </section>

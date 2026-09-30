@@ -7,7 +7,7 @@ import Link from 'next/link';
 export default function ToolsContent(): React.ReactElement {
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork kind="creator" />}
+      heroMedia={<MarketingArtwork page="/tools" kind="creator" />}
       badge="Free tools"
       badgeIcon={Scissors}
       compact

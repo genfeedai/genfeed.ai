@@ -192,7 +192,9 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="research" />}
+        heroMedia={
+          <MarketingArtwork page="/benchmark" isCompact kind="research" />
+        }
         compact
         description="An independent benchmark for image and video generation models. Public tasks, blind judging, and a match journal anyone can re-run. Genfeed competes; it does not score itself."
         heroActions={

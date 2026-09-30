@@ -38,7 +38,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           ]}
         />
       }
-      heroVisual={<MarketingArtwork kind="campaign" />}
+      heroVisual={<MarketingArtwork page={`/use-cases/${useCase.slug}`} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5">

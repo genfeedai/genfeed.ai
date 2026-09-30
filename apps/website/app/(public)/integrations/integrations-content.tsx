@@ -103,7 +103,9 @@ export default function IntegrationsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="publishing" />}
+        heroMedia={
+          <MarketingArtwork page="/integrations" isCompact kind="publishing" />
+        }
         heroActions={
           <ButtonTracked
             asChild

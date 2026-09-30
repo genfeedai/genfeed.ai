@@ -114,7 +114,9 @@ export default function AnalyticsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="research" />}
+        heroMedia={
+          <MarketingArtwork page="/analytics" isCompact kind="research" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}

@@ -286,7 +286,7 @@ export default function AboutContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="creator" />}
+        heroMedia={<MarketingArtwork page="/about" kind="creator" />}
         title="About Genfeed"
         description="Genfeed is an open-source AI content platform that generates, publishes, and measures video, image, voice, and written content for creators, agencies, and founders."
       >

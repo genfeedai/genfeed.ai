@@ -33,7 +33,9 @@ export default function IntegrationContent({
     [integration],
   );
 
-  const heroVisual = <MarketingArtwork kind="publishing" />;
+  const heroVisual = (
+    <MarketingArtwork page={`/integrations/${integration.slug}`} />
+  );
 
   return (
     <PageLayout

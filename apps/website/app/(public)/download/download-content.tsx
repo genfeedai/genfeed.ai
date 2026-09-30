@@ -105,7 +105,7 @@ export default function DownloadContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="integration" />}
+        heroMedia={<MarketingArtwork page="/download" kind="integration" />}
         badge="Desktop"
         badgeIcon={MonitorDown}
         title={

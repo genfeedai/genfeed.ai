@@ -23,7 +23,7 @@ export default function ProductPage({ product }: { product: Product }) {
 
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork isCompact kind="integration" />}
+      heroMedia={<MarketingArtwork isCompact page={`/${product.slug}`} />}
       title={product.name}
       description={product.description}
       heroActions={

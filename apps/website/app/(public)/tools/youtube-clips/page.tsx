@@ -14,7 +14,13 @@ export default function YoutubeClipsPage(): React.ReactElement {
   // The hero, footer and copy render on the server; only the tool hydrates.
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork isCompact kind="creator" />}
+      heroMedia={
+        <MarketingArtwork
+          page="/tools/youtube-clips"
+          isCompact
+          kind="creator"
+        />
+      }
       badge="Free AI tool"
       badgeIcon={Scissors}
       compact

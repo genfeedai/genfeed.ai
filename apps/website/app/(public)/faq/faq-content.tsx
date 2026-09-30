@@ -43,7 +43,9 @@ export default function FAQContent() {
   return (
     <MarketingEntrance sections={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="integration" />}
+        heroMedia={
+          <MarketingArtwork page="/faq" isCompact kind="integration" />
+        }
         title="FAQ"
         description="Pricing, features, and how to get access to Genfeed"
       >

@@ -80,7 +80,7 @@ export default function ServiceLandingPage({
   return (
     <MarketingEntrance cards={false}>
       <PageLayout
-        heroMedia={<MarketingArtwork kind="campaign" />}
+        heroMedia={<MarketingArtwork page={`/${slug}`} />}
         badge={config.badge}
         badgeIcon={Sparkles}
         title={

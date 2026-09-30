@@ -152,7 +152,9 @@ export default function WorkflowsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="workflow" />}
+        heroMedia={
+          <MarketingArtwork page="/workflows" isCompact kind="workflow" />
+        }
         heroActions={<AgentFirstActions trackingName="workflows_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}

@@ -1,4 +1,4 @@
-import { MARKETING_ASSETS } from '@data/marketing-assets.data';
+import { getPageMarketingAsset } from '@data/page-marketing-assets.data';
 import type { AgentClientVisualProps } from '@props/agent-client.props';
 import { ArrowRight, Check, ImageIcon, Video } from 'lucide-react';
 import Image from 'next/image';
@@ -7,6 +7,7 @@ export default function AgentClientVisual({
   client,
   channelName,
 }: AgentClientVisualProps): React.ReactElement {
+  const asset = getPageMarketingAsset(`/${client.slug}`);
   return (
     <figure className="w-full max-w-2xl overflow-hidden rounded-2xl border border-edge/10 bg-card">
       <div className="flex items-center justify-between gap-4 border-b border-edge/10 px-5 py-4 text-sm text-surface/75">
@@ -19,12 +20,12 @@ export default function AgentClientVisual({
       </div>
       <div className="relative aspect-[3/2]">
         <Image
-          alt={MARKETING_ASSETS.integration.alt}
+          alt={asset.alt}
           className="object-cover"
           fill
           preload
           sizes="(min-width: 1024px) 55vw, 100vw"
-          src={MARKETING_ASSETS.integration.src}
+          src={asset.src}
         />
       </div>
       <figcaption className="grid grid-cols-3 gap-3 border-t border-edge/10 px-5 py-4 text-xs leading-5 text-surface/75">

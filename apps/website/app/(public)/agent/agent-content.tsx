@@ -106,7 +106,9 @@ export default function AgentContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="integration" />}
+        heroMedia={
+          <MarketingArtwork page="/agent" isCompact kind="integration" />
+        }
         compact
         description="Tell it what you want. It makes the content, keeps it on brand, and schedules it — and shows you everything before it goes out."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}

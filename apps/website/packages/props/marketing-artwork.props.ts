@@ -1,5 +1,6 @@
 export interface MarketingArtworkProps {
-  kind:
+  page?: string;
+  kind?:
     | 'campaign'
     | 'creator'
     | 'integration'

@@ -131,7 +131,9 @@ export default function ExpertsContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="creator" />}
+        heroMedia={
+          <MarketingArtwork page="/experts" isCompact kind="creator" />
+        }
         compact
         description="Built for consultants, coaches, founders, and practitioners who know their business cold but never wanted to become an AI-tool operator. You bring the truth and the taste; Genfeed brings the system and the loop."
         heroActions={

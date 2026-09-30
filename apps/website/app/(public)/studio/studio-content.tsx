@@ -122,7 +122,7 @@ export default function StudioContent({ models }: StudioContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="creator" />}
+        heroMedia={<MarketingArtwork page="/studio" isCompact kind="creator" />}
         heroActions={<AgentFirstActions trackingName="studio_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={heroVisual}

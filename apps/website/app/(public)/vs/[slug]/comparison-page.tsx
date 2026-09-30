@@ -42,7 +42,7 @@ export default function ComparisonPage({
 }) {
   return (
     <PageLayout
-      heroMedia={<MarketingArtwork kind="research" />}
+      heroMedia={<MarketingArtwork page="/vs/*" />}
       title={`Genfeed vs ${competitor.name}`}
       description={`Why Genfeed tracks revenue and ${competitor.name} doesn't. Compare features and pricing.`}
     >

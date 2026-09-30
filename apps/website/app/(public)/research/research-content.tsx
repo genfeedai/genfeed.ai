@@ -112,7 +112,9 @@ export default function ResearchContent() {
   return (
     <MarketingEntrance>
       <PageLayout
-        heroMedia={<MarketingArtwork isCompact kind="research" />}
+        heroMedia={
+          <MarketingArtwork page="/research" isCompact kind="research" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={signUpHref}
