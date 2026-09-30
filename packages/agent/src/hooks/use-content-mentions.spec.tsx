@@ -23,9 +23,8 @@ describe('useContentMentions', () => {
       },
     ];
 
-    const { result } = renderHook(() =>
-      useContentMentions(apiServiceStub(Promise.resolve(mentions))),
-    );
+    const api = apiServiceStub(Promise.resolve(mentions));
+    const { result } = renderHook(() => useContentMentions(api));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.mentions).toEqual(mentions);
@@ -43,9 +42,8 @@ describe('useContentMentions', () => {
     );
     decodeFailure.catch(() => {});
 
-    const { result } = renderHook(() =>
-      useContentMentions(apiServiceStub(decodeFailure)),
-    );
+    const api = apiServiceStub(decodeFailure);
+    const { result } = renderHook(() => useContentMentions(api));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.mentions).toEqual([]);

@@ -199,13 +199,18 @@ function buildContentReferenceArtifact(
   const recordBrandId = contentReference.brandId;
   const kind = contentReference.kind ?? 'post';
 
-  return {
-    kind,
+  const identity = {
     organizationId,
     recordId: contentReference.id,
-    serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND[kind],
     ...(recordBrandId ? { brandId: recordBrandId } : {}),
   };
+  return kind === 'ingredient'
+    ? {
+        ...identity,
+        kind,
+        serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
+      }
+    : { ...identity, kind, serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.post };
 }
 
 export {
