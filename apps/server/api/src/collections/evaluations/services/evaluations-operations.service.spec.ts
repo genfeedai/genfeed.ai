@@ -754,7 +754,7 @@ describe('EvaluationsOperationsService', () => {
                 ))) as {
           overallScore: number;
           scores: IEvaluationScores;
-          strengths: string[];
+          analysis: { strengths: string[] };
         };
         expect(
           mockServices.promptBuilderService.buildPrompt,
@@ -774,7 +774,7 @@ describe('EvaluationsOperationsService', () => {
         });
         expect(result.overallScore).toBe(72);
         expect(result.scores.technical).toEqual({ overall: 60 });
-        expect(result.strengths).toEqual(['Concrete example']);
+        expect(result.analysis.strengths).toEqual(['Concrete example']);
       },
     );
     it('derives absent provider overall without changing other scores', async () => {

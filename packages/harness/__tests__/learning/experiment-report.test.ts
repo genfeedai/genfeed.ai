@@ -2,6 +2,7 @@ import type { LearningExperimentSpecV1 } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 import {
   buildLearningExperimentReport,
+  LearningEvidenceValidationError,
   type LearningExperimentObservation,
 } from '../../src/learning/experiment-report';
 
@@ -126,4 +127,47 @@ describe('frozen opportunity denominators and online gates', () => {
       }).status,
     ).toBe('failed');
   });
+});
+
+it.each([
+  { attemptCount: Infinity },
+  { attemptCount: -1 },
+  { attemptCount: 0.5 },
+  { readinessKnown: false, publishable: true },
+  { published: false },
+  { unchanged: false },
+])('blocks inconsistent or nonfinite online evidence: %j', (patch) => {
+  expect(() =>
+    buildLearningExperimentReport({
+      ...input,
+      observations: observations.map((row, i) =>
+        i === 0 ? { ...row, ...patch } : row,
+      ),
+    }),
+  ).toThrow(LearningEvidenceValidationError);
+});
+
+it('rejects duplicate opportunity identities before any counting or bootstrap', () => {
+  expect(() =>
+    buildLearningExperimentReport({
+      ...input,
+      observations: [...observations, { ...observations[0], reward: 0.9 }],
+    }),
+  ).toThrow(LearningEvidenceValidationError);
+});
+it('exposes only a safe code and field path for invalid stored evidence', () => {
+  try {
+    buildLearningExperimentReport({
+      ...input,
+      observations: [{ ...observations[0], attemptCount: Infinity }],
+    });
+  } catch (error) {
+    expect(error).toBeInstanceOf(LearningEvidenceValidationError);
+    expect(error).toMatchObject({
+      code: 'invalid_evidence',
+      path: 'observations[0].attemptCount',
+    });
+    return;
+  }
+  throw new Error('Expected invalid evidence rejection');
 });

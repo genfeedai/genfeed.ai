@@ -55,17 +55,18 @@ export function validLearningDistribution(
     )
   )
     return false;
+  const entries: Record<string, unknown> = value as Record<string, unknown>;
   return (
     LEARNING_ARMS.every(
       (arm) =>
-        arm in value &&
-        typeof value[arm] === 'number' &&
-        Number.isFinite(value[arm]) &&
-        value[arm] >= 0 &&
-        value[arm] <= 1,
+        arm in entries &&
+        typeof entries[arm] === 'number' &&
+        Number.isFinite(entries[arm]) &&
+        Number(entries[arm]) >= 0 &&
+        Number(entries[arm]) <= 1,
     ) &&
     Math.abs(
-      LEARNING_ARMS.reduce((sum, arm) => sum + Number(value[arm]), 0) - 1,
+      LEARNING_ARMS.reduce((sum, arm) => sum + Number(entries[arm]), 0) - 1,
     ) < 1e-9
   );
 }

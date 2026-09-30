@@ -37,6 +37,49 @@ export interface LearningExperimentReportInput {
   invalidationRevision: number;
   dependenciesValid: boolean;
 }
+export class LearningEvidenceValidationError extends Error {
+  readonly code = 'invalid_evidence';
+  constructor(readonly path: string) {
+    super('Invalid stored learning evidence');
+    this.name = 'LearningEvidenceValidationError';
+  }
+}
+function validateObservations(
+  rows: readonly LearningExperimentObservation[],
+): void {
+  const seen = new Set<string>();
+  const reject = (index: number, field: string): never => {
+    throw new LearningEvidenceValidationError(
+      `observations[${index}].${field}`,
+    );
+  };
+  rows.forEach((row, index) => {
+    if (typeof row.id !== 'string' || !row.id || seen.has(row.id))
+      reject(index, 'id');
+    seen.add(row.id);
+    if (!['control', 'treatment'].includes(row.group)) reject(index, 'group');
+    if (!Number.isFinite(new Date(row.assignedAt).getTime()))
+      reject(index, 'assignedAt');
+    for (const field of ['attemptCount', 'publishedDescendants'] as const)
+      if (!Number.isSafeInteger(row[field]) || row[field] < 0)
+        reject(index, field);
+    if (
+      row.costMicros !== null &&
+      (!Number.isSafeInteger(row.costMicros) || row.costMicros < 0)
+    )
+      reject(index, 'costMicros');
+    if (
+      row.reward !== null &&
+      (!Number.isFinite(row.reward) ||
+        Math.abs(row.reward) > 1 ||
+        !row.published ||
+        !row.unchanged)
+    )
+      reject(index, 'reward');
+    if (!row.readinessKnown && row.publishable !== null)
+      reject(index, 'publishable');
+  });
+}
 function average(values: readonly number[]): number | null {
   if (!values.length) return null;
   const total = values.reduce((sum, value) => sum + value / values.length, 0);
@@ -99,6 +142,7 @@ function metrics(rows: readonly LearningExperimentObservation[]) {
 export function buildLearningExperimentReport(
   input: LearningExperimentReportInput,
 ): LearningEvaluationReportV1 {
+  validateObservations(input.observations);
   const spec = input.spec,
     reasonCodes: string[] = [],
     start = new Date(spec.startAt).getTime(),
@@ -112,18 +156,6 @@ export function buildLearningExperimentReport(
     reasonCodes.push('analysis_not_frozen');
   if (spec.synthetic) reasonCodes.push('synthetic_evidence');
   if (!input.dependenciesValid) reasonCodes.push('invalid_dependency');
-  if (
-    observations.some(
-      (row) =>
-        (row.reward !== null &&
-          (!Number.isFinite(row.reward) || Math.abs(row.reward) > 1)) ||
-        (row.costMicros !== null &&
-          (!Number.isSafeInteger(row.costMicros) || row.costMicros < 0)) ||
-        !Number.isSafeInteger(row.publishedDescendants) ||
-        row.publishedDescendants < 0,
-    )
-  )
-    reasonCodes.push('invalid_observation');
   const summarize = (
     group: 'control' | 'treatment',
   ): LearningExperimentGroupV1 => {
