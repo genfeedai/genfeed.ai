@@ -68,6 +68,7 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_onboarding_org_from_user](feedback_onboarding_org_from_user.md) — first-login org/brand is named from the signed-in user; onboarding sits on their membership org
 - [feedback_user_prompt_no_composer_chrome](feedback_user_prompt_no_composer_chrome.md) — agent user prompts render through @ui/card/Card; not PromptBarComposer chrome
 - [feedback_article_card_editorial_system](feedback_article_card_editorial_system.md) — article covers and OG cards use the dark physical-studio Genfeed system with article-specific metaphors
+- [feedback_marketing_og_founder_direction](feedback_marketing_og_founder_direction.md) — expressive founder likeness, cinematic physical G, and code-rendered marketing headlines
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)
 - [project_x_author_reply_loop](project_x_author_reply_loop.md) — Automate **Replies** surface (inbox + auto-replies + closed-loop memory for X)
