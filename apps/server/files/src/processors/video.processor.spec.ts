@@ -1352,6 +1352,7 @@ describe('VideoProcessor', () => {
       expect(s3Service.downloadFromUrl).toHaveBeenCalledWith(
         'https://media.argil.test/videos/library-video.mp4',
         expect.stringContaining('input.mp4'),
+        10 * 1024 * 1024 * 1024,
       );
       expect(s3Service.uploadFile).toHaveBeenCalledWith(
         expect.any(String),
@@ -1365,6 +1366,29 @@ describe('VideoProcessor', () => {
         }),
       );
       expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('fails an oversized materialization before upload or audio conversion and cleans scratch files', async () => {
+      s3Service.downloadFromUrl.mockRejectedValueOnce(
+        new Error('Media download exceeds size limit'),
+      );
+      const job = createMockJob(
+        JOB_TYPES.VIDEO_TO_AUDIO,
+        createMockJobData({
+          params: {
+            inputPath: 'https://media.example.com/source.mp4',
+            materializeSource: true,
+            s3Key: undefined,
+          },
+        }),
+      );
+      await expect(processor.handleVideoToAudio(job)).rejects.toThrow(
+        'size limit',
+      );
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+      expect(ffmpegService.convertVideoToAudio).not.toHaveBeenCalled();
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalled();
+      expect(webSocketService.emitError).toHaveBeenCalled();
     });
 
     it('never touches the Library asset key when a materialized run fails', async () => {
