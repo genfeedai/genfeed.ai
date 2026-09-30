@@ -13,6 +13,7 @@ import { FoldersService } from '@api/collections/folders/services/folders.servic
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MembersService } from '@api/collections/members/services/members.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { VisualProjectsController } from '@api/collections/visual-projects/controllers/visual-projects.controller';
@@ -527,6 +528,7 @@ export async function createVisualCodeAcceptanceFixture(
         AgentModelAccessService,
         OrganizationPaidAccessService,
         IngredientsService,
+        MembersService,
         OrganizationSettingsService,
         AssetGateService,
         BillingAccountsService,
