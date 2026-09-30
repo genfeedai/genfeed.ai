@@ -13,11 +13,18 @@ on:
         required: false
         default: ""
         type: string
+      marketplace_source_sha:
+        description: "exact Marketplace master SHA; empty skips Marketplace"
+        required: false
+        default: ""
+        type: string
       source_sha:
         description: "exact public genfeed.ai source commit to build"
         required: true
         type: string
     secrets:
+      MARKETPLACE_DEPLOY_TOKEN:
+        required: false
       VERCEL_TOKEN:
         required: true
       NEXT_PUBLIC_POSTHOG_KEY:
@@ -38,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        label: [app, web, docs]
+        label: ${{ fromJSON(inputs.marketplace_source_sha != '' && '["app", "web", "docs", "marketplace"]' || '["app", "web", "docs"]') }}
     env:
       # Git auto-deploy is disabled in each vercel.json, so `vercel build` runs
       # without Git deployment context and Vercel leaves VERCEL_GIT_COMMIT_SHA="".
@@ -48,12 +55,12 @@ jobs:
       # Resolve project ids here, after `environment: production`, not in strategy.matrix
       # — environment vars are empty during matrix expansion.
       RELEASE_TAG: ${{ inputs.release_tag }}
-      BUILD_ID: ${{ inputs.source_sha }}
+      BUILD_ID: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
       DOMAIN: ${{ vars.DOMAIN }}
-      FRONTEND_REPOSITORY: ${{ github.repository }}
-      FRONTEND_SHA: ${{ inputs.source_sha }}
+      FRONTEND_REPOSITORY: ${{ matrix.label == 'marketplace' && 'genfeedai/marketplace.genfeed.ai' || github.repository }}
+      FRONTEND_SHA: ${{ matrix.label == 'marketplace' && inputs.marketplace_source_sha || inputs.source_sha }}
       VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || '' }}
+      VERCEL_PROJECT_ID: ${{ matrix.label == 'app' && vars.VERCEL_PROJECT_APP || matrix.label == 'web' && vars.VERCEL_PROJECT_WEB || matrix.label == 'docs' && vars.VERCEL_PROJECT_DOCS || matrix.label == 'marketplace' && vars.VERCEL_PROJECT_MARKETPLACE || '' }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
@@ -72,8 +79,8 @@ jobs:
             exit 1
           fi
 
-      - name: Require app and web Vercel project ids
-        if: ${{ matrix.label == 'app' || matrix.label == 'web' }}
+      - name: Require selected Vercel project ids
+        if: ${{ matrix.label == 'app' || matrix.label == 'web' || matrix.label == 'marketplace' }}
         run: |
           set -euo pipefail
           if [ -z "${VERCEL_PROJECT_ID}" ]; then
@@ -98,8 +105,9 @@ jobs:
           repository: ${{ env.FRONTEND_REPOSITORY }}
           ref: ${{ env.FRONTEND_SHA }}
           persist-credentials: false
-          token: ${{ github.token }}
+          token: ${{ matrix.label == 'marketplace' && secrets.MARKETPLACE_DEPLOY_TOKEN || github.token }}
 
+      # Each checkout supplies its own helper and Bun version pin.
       - if: ${{ env.VERCEL_PROJECT_ID != '' }}
         uses: ./.github/actions/setup-bun-env
         with:
@@ -178,6 +186,20 @@ jobs:
           command -v sh
           command -v bun
           command -v vercel
+
+      - name: Configure Marketplace API origins
+        if: ${{ matrix.label == 'marketplace' }}
+        run: |
+          set -euo pipefail
+          test -n "$DOMAIN"
+          env_file=".vercel/.env.production.local"
+          awk '!/^(NEXT_PUBLIC_GENFEED_API_URL|NEXT_PUBLIC_MARKETPLACE_API_URL|NEXT_PUBLIC_GENFEED_APP_URL)=/' "$env_file" > "${env_file}.tmp"
+          {
+            printf 'NEXT_PUBLIC_GENFEED_API_URL=https://api.%s\n' "$DOMAIN"
+            printf 'NEXT_PUBLIC_MARKETPLACE_API_URL=https://api.marketplace.%s\n' "$DOMAIN"
+            printf 'NEXT_PUBLIC_GENFEED_APP_URL=https://app.%s\n' "$DOMAIN"
+          } >> "${env_file}.tmp"
+          mv "${env_file}.tmp" "$env_file"
 
       - name: Build ${{ matrix.label }}
         if: ${{ env.VERCEL_PROJECT_ID != '' }}

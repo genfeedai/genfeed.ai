@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import type { ReadableStream as NodeWebReadableStream } from 'node:stream/web';
 import {
@@ -208,17 +208,31 @@ export class S3Service {
     }
   }
 
-  async downloadFromUrl(url: string, localPath: string): Promise<void> {
+  async downloadFromUrl(
+    url: string,
+    localPath: string,
+    maxBytes?: number,
+  ): Promise<void> {
     const containedLocalPath = resolveContainedPath(
       FILES_TMP_ROOT,
       localPath,
       createBadRequest,
     );
+    let hasPartialFile = false;
     try {
       // This helper accepts caller-supplied media URLs, not a configured
       // storage service origin. Keep the public-network policy fail-closed.
-      const response = await safeFetch(url);
+      const signal =
+        maxBytes !== undefined ? AbortSignal.timeout(5 * 60_000) : undefined;
+      const response = signal
+        ? await safeFetch(url, { signal })
+        : await safeFetch(url);
       if (!response.ok) {
+        if (maxBytes !== undefined) {
+          if (response.body)
+            asNodeReadable(response.body, 'Empty download body').destroy();
+          throw new Error(`Media download failed (${response.status})`);
+        }
         const errorText = await response
           .text()
           .catch(() => response.statusText);
@@ -241,18 +255,49 @@ export class S3Service {
         );
       }
 
-      const dir = path.dirname(containedLocalPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-
       const stream = asNodeReadable(
         response.body,
         `Empty response body for ${url}`,
       );
-      await pipeline(stream, fs.createWriteStream(containedLocalPath));
+      if (
+        maxBytes !== undefined &&
+        Number(response.headers.get('content-length')) > maxBytes
+      ) {
+        stream.destroy();
+        throw new Error('Media download exceeds size limit');
+      }
+      const dir = path.dirname(containedLocalPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      hasPartialFile = true;
+      if (maxBytes === undefined) {
+        await pipeline(stream, fs.createWriteStream(containedLocalPath));
+      } else {
+        let sizeBytes = 0;
+        const byteCap = new Transform({
+          transform(chunk: Buffer, _encoding, callback) {
+            sizeBytes += chunk.byteLength;
+            callback(
+              sizeBytes > maxBytes
+                ? new Error('Media download exceeds size limit')
+                : null,
+              chunk,
+            );
+          },
+        });
+        await pipeline(
+          stream,
+          byteCap,
+          fs.createWriteStream(containedLocalPath),
+          { signal },
+        );
+      }
       this.logger.log(`File downloaded from URL to ${containedLocalPath}`);
     } catch (error: unknown) {
+      if (maxBytes !== undefined && hasPartialFile) {
+        await fs.promises.unlink(containedLocalPath).catch(() => undefined);
+      }
       this.logger.error('Failed to download file from URL', {
         error: getErrorMessage(error) || 'Unknown error',
         statusCode: getErrorMessage(error)?.match(/:\s(\d+)/)?.[1],

@@ -12,11 +12,21 @@ export default function PageLayout({
   heroActions,
   heroDetails,
   heroProof,
+  heroMedia,
   heroVisual,
   showFooter = true,
   title,
   variant = 'poster',
 }: PageLayoutProps): React.ReactElement {
+  const visual = heroMedia ? (
+    <div className="w-full space-y-5">
+      {heroMedia}
+      {heroVisual}
+    </div>
+  ) : (
+    heroVisual
+  );
+
   const pageBody = (
     <>
       {children}
@@ -33,7 +43,7 @@ export default function PageLayout({
         description={description}
         heroActions={heroActions}
         heroProof={heroProof}
-        heroVisual={heroVisual}
+        heroVisual={visual}
         title={title}
       >
         {pageBody}
@@ -49,7 +59,7 @@ export default function PageLayout({
       description={description}
       heroActions={heroActions}
       heroDetails={heroDetails}
-      heroVisual={heroVisual}
+      heroVisual={visual}
       title={title}
     >
       {pageBody}

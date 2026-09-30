@@ -33,7 +33,8 @@ const contextSidebarState = vi.hoisted(() => ({
 }));
 const originalLocation = window.location;
 
-vi.mock('@genfeedai/contracts', () => ({
+vi.mock('@genfeedai/contracts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts')>()),
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
   SettingsSurface: {
@@ -43,7 +44,8 @@ vi.mock('@genfeedai/contracts', () => ({
   },
 }));
 
-vi.mock('@genfeedai/contracts/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts/constants')>()),
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
     agent: 'Agent',
@@ -525,6 +527,12 @@ describe('AppProtectedTopbar', () => {
 
     const railToggle = screen.getByTestId('topbar-inspector-toggle');
     const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(railToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      railToggle.getAttribute('aria-label') ?? '',
+    );
+    expect(drawerToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      drawerToggle.getAttribute('aria-label') ?? '',
+    );
     expect(railToggle).toBeDisabled();
     expect(railToggle).toHaveAccessibleName('Select an item to see details');
     expect(drawerToggle).toBeDisabled();
@@ -554,6 +562,23 @@ describe('AppProtectedTopbar', () => {
     );
   });
 
+  it('exposes the disabled dock reason as a visible tooltip on keyboard focus', async () => {
+    agentDockState.value = {
+      isAvailable: false,
+      isOpen: false,
+      toggle: vi.fn(),
+    };
+    render(<AppProtectedTopbar />);
+    const wrapper = screen
+      .getByTestId('topbar-agent-dock-toggle')
+      .closest('[tabindex="0"]');
+    expect(wrapper).not.toBeNull();
+    fireEvent.focus(wrapper as HTMLElement);
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'Agent is the main view here',
+    );
+  });
+
   it('keeps the agent dock toggle in the bar, disabled, where no dock is hosted', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: false, isOpen: false, toggle };
@@ -562,6 +587,9 @@ describe('AppProtectedTopbar', () => {
 
     const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
     expect(dockToggle).toBeDisabled();
+    expect(dockToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      'Agent is the main view here',
+    );
     expect(dockToggle).toHaveAccessibleName('Agent is the main view here');
 
     fireEvent.click(dockToggle);

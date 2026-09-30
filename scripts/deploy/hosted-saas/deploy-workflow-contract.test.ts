@@ -6,14 +6,17 @@ const turboConfig = (): Promise<string> =>
   Bun.file('../../../turbo.json').text();
 
 describe('hosted SaaS Vercel deployment contract', () => {
-  test('deploys only monorepo frontends from this repository', async () => {
+  test('selects Marketplace only when an immutable source commit is supplied', async () => {
     const vercel = await workflow('_deploy-hosted-saas-vercel.yml');
 
-    expect(vercel).toContain('label: [app, web, docs]');
-    expect(vercel).not.toContain('marketplace');
-    expect(vercel).not.toContain('marketplace.genfeed.ai');
+    expect(vercel).toContain('inputs.marketplace_source_sha !=');
+    expect(vercel).toContain('["app", "web", "docs", "marketplace"]');
+    expect(vercel).toContain('["app", "web", "docs"]');
+    expect(vercel).toContain('genfeedai/marketplace.genfeed.ai');
+    expect(vercel).toContain('vars.VERCEL_PROJECT_MARKETPLACE');
+    expect(vercel).toContain('secrets.MARKETPLACE_DEPLOY_TOKEN');
     expect(vercel).toContain('Require Vercel token');
-    expect(vercel).toContain('Require app and web Vercel project ids');
+    expect(vercel).toContain('Require selected Vercel project ids');
   });
 
   test('resolves Vercel project ids after the production environment, not in matrix', async () => {
@@ -24,6 +27,26 @@ describe('hosted SaaS Vercel deployment contract', () => {
     );
 
     expect(matrix).not.toContain('vars.VERCEL_PROJECT_');
+  });
+
+  test('gates the selected Marketplace frontend on its isolated API release', async () => {
+    const core = await workflow('_deploy-hosted-saas-core.yml');
+    const api = await workflow('_deploy-marketplace-api.yml');
+    expect(core).toContain('needs: [deploy, deploy-marketplace-api]');
+    expect(core).toContain("needs.deploy-marketplace-api.result == 'success'");
+    expect(api).toContain(`ref: \${{ inputs.source_sha }}`);
+    expect(api).toContain(`ref: \${{ inputs.marketplace_source_sha }}`);
+    expect(api).toContain(`key=\${TF_STATE_KEY}.marketplace`);
+    expect(api.indexOf('Require payment configuration')).toBeLessThan(
+      api.indexOf('Ensure dedicated image repository'),
+    );
+    expect(api.indexOf('Migrate only the Marketplace database')).toBeLessThan(
+      api.indexOf('Roll API after successful migration'),
+    );
+    expect(api.indexOf('Verify target health before DNS cutover')).toBeLessThan(
+      api.indexOf('Cut over the dedicated API domain'),
+    );
+    expect(api).not.toContain('--with-decryption');
   });
 
   test('routes the production app auth proxy through the public API', async () => {

@@ -1,5 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { HOME_OUTPUT_CAROUSEL_ASSETS } from '@web-components/home/_assets';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -71,6 +72,9 @@ export default function FeaturesPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/features" isCompact kind="workflow" />
+        }
         badge="Platform Capabilities"
         badgeIcon={Layers}
         compact

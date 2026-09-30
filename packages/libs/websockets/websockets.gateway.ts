@@ -468,10 +468,14 @@ export class WebSocketGateway
       : this.server.to(room);
 
     target.emit(AGENT_THREAD_STATUS_EVENT_TYPE, data);
-    countAgentThreadStatus(
-      'delivered',
-      this.server.sockets?.adapter?.rooms?.get(room)?.size ?? 0,
-    );
+    const rooms = this.server.sockets?.adapter?.rooms;
+    const recipients = new Set(rooms?.get(room));
+    if (isSingleTenant) {
+      for (const socketId of rooms?.get(getUserRoomName(userId)) ?? []) {
+        recipients.add(socketId);
+      }
+    }
+    countAgentThreadStatus('delivered', recipients.size);
 
     this.logger.debug(`Sent thread status to ${room} for thread ${threadId}`);
   }

@@ -53,6 +53,7 @@ vi.mock('fs', () => ({
   createWriteStream: vi.fn(),
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
+  promises: { unlink: vi.fn().mockResolvedValue(undefined) },
   writeFileSync: vi.fn(),
 }));
 
@@ -261,6 +262,101 @@ describe('S3Service', () => {
       expect(fs.mkdirSync).toHaveBeenCalled();
       expect(pipelineMock).toHaveBeenCalledWith(body, expect.anything());
       expect(fs.writeFileSync).not.toHaveBeenCalled();
+    });
+
+    it('rejects a declared oversized materialization before writing', async () => {
+      const body = Readable.from(Buffer.from('oversized'));
+      safeFetchMock.mockResolvedValue({
+        body,
+        headers: new Headers({ 'content-length': '11' }),
+        ok: true,
+      });
+      await expect(
+        service.downloadFromUrl(
+          'https://example.com/source.mp4',
+          'videos/source.mp4',
+          10,
+        ),
+      ).rejects.toThrow(/size limit/);
+      expect(body.destroyed).toBe(true);
+      expect(pipelineMock).not.toHaveBeenCalled();
+      expect(safeFetchMock).toHaveBeenCalledWith(
+        'https://example.com/source.mp4',
+        { signal: expect.any(AbortSignal) },
+      );
+    });
+
+    it.each([undefined, '1'])(
+      'caps actual streamed bytes with content-length %s and cleans partial output',
+      async (length) => {
+        const body = Readable.from([Buffer.from('abc'), Buffer.from('def')]);
+        safeFetchMock.mockResolvedValue({
+          body,
+          headers: new Headers(length ? { 'content-length': length } : {}),
+          ok: true,
+        });
+        const { pipeline } = await vi.importActual<
+          typeof import('node:stream/promises')
+        >('node:stream/promises');
+        const { Writable } = await import('node:stream');
+        (fs.createWriteStream as Mock).mockImplementation(
+          () =>
+            new Writable({
+              write(_chunk, _encoding, callback) {
+                callback();
+              },
+            }),
+        );
+        const unlink = vi
+          .spyOn(fs.promises, 'unlink')
+          .mockResolvedValue(undefined);
+        pipelineMock.mockImplementationOnce(pipeline);
+        try {
+          await expect(
+            service.downloadFromUrl(
+              'https://example.com/source.mp4',
+              'videos/source.mp4',
+              5,
+            ),
+          ).rejects.toThrow(/size limit/);
+          expect(body.destroyed).toBe(true);
+          expect(unlink).toHaveBeenCalledWith(
+            expect.stringContaining('videos/source.mp4'),
+          );
+        } finally {
+          unlink.mockRestore();
+        }
+      },
+    );
+
+    it('accepts exactly the streamed limit', async () => {
+      const body = Readable.from([Buffer.from('abc'), Buffer.from('de')]);
+      safeFetchMock.mockResolvedValue({
+        body,
+        headers: new Headers(),
+        ok: true,
+      });
+      const { pipeline } = await vi.importActual<
+        typeof import('node:stream/promises')
+      >('node:stream/promises');
+      const { Writable } = await import('node:stream');
+      const chunks: Buffer[] = [];
+      (fs.createWriteStream as Mock).mockImplementation(
+        () =>
+          new Writable({
+            write(chunk: Buffer, _encoding, callback) {
+              chunks.push(chunk);
+              callback();
+            },
+          }),
+      );
+      pipelineMock.mockImplementationOnce(pipeline);
+      await service.downloadFromUrl(
+        'https://example.com/source.mp4',
+        'videos/source.mp4',
+        5,
+      );
+      expect(Buffer.concat(chunks).toString()).toBe('abcde');
     });
 
     it('rejects a local path outside the temp root before fetching', async () => {

@@ -1,0 +1,182 @@
+name: Deploy Marketplace API
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        required: true
+        type: string
+      marketplace_source_sha:
+        required: true
+        type: string
+    secrets:
+      MARKETPLACE_DEPLOY_TOKEN:
+        required: true
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      PROJECT: ${{ vars.PROJECT }}
+      DOMAIN: ${{ vars.DOMAIN }}
+      MARKETPLACE_SHA: ${{ inputs.marketplace_source_sha }}
+      MARKETPLACE_SSM_PATH: ${{ vars.MARKETPLACE_SSM_PATH }}
+      DATABASE_ADMIN_PARAMETER: ${{ vars.MARKETPLACE_DATABASE_ADMIN_PARAMETER }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_STATE_KEY: ${{ vars.TF_STATE_KEY }}
+      RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
+      TF_VAR_region: ${{ vars.AWS_REGION }}
+      TF_VAR_project: ${{ vars.PROJECT }}
+      TF_VAR_domain: ${{ vars.DOMAIN }}
+      TF_VAR_state_bucket: ${{ vars.TF_STATE_BUCKET }}
+      TF_VAR_hosted_state_key: ${{ vars.TF_STATE_KEY }}
+      TF_VAR_ssm_path: ${{ vars.MARKETPLACE_SSM_PATH }}
+      TF_VAR_database_admin_parameter: ${{ vars.MARKETPLACE_DATABASE_ADMIN_PARAMETER }}
+    steps:
+      - name: Require dedicated Marketplace configuration
+        env:
+          GENFEED_SSM_PATH: ${{ vars.SSM_PATH }}
+        run: |
+          set -euo pipefail
+          for name in AWS_REGION PROJECT DOMAIN MARKETPLACE_SSM_PATH TF_STATE_BUCKET TF_STATE_KEY RDS_INSTANCE_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::${name} is required in the production environment."
+              exit 1
+            fi
+          done
+          if [[ "$MARKETPLACE_SSM_PATH" == "$GENFEED_SSM_PATH" || "$MARKETPLACE_SSM_PATH" == "$GENFEED_SSM_PATH/"* ]]; then
+            echo "::error::Marketplace SSM must be outside the recursively injected Genfeed SSM namespace."
+            exit 1
+          fi
+      - name: Checkout release infrastructure
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.source_sha }}
+      - name: Setup deployment scripts
+        uses: ./.github/actions/setup-bun-env
+        with:
+          install-command: bun install --cwd scripts/deploy/hosted-saas --frozen-lockfile
+      - name: Checkout exact Marketplace source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: genfeedai/marketplace.genfeed.ai
+          ref: ${{ inputs.marketplace_source_sha }}
+          token: ${{ secrets.MARKETPLACE_DEPLOY_TOKEN }}
+          path: marketplace-source
+          persist-credentials: false
+      - name: Configure AWS OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Require payment configuration
+        run: |
+          set -euo pipefail
+          for name in STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET; do
+            present="$(aws ssm describe-parameters --parameter-filters "Key=Name,Option=Equals,Values=$MARKETPLACE_SSM_PATH/$name" --query 'length(Parameters)' --output text)"
+            if [ "$present" != 1 ]; then echo "::error::Missing Marketplace SSM parameter $name"; exit 1; fi
+          done
+      - name: Ensure dedicated image repository
+        id: image
+        run: |
+          set -euo pipefail
+          repository="$PROJECT/marketplace"
+          if ! aws ecr describe-repositories --repository-names "$repository" >/dev/null 2>&1; then
+            aws ecr create-repository --repository-name "$repository" --image-tag-mutability IMMUTABLE \
+              --image-scanning-configuration scanOnPush=true \
+              --tags Key=Project,Value="$PROJECT" Key=Environment,Value=production Key=ManagedBy,Value=opentofu >/dev/null
+          fi
+          url="$(aws ecr describe-repositories --repository-names "$repository" --query 'repositories[0].repositoryUri' --output text)"
+          aws ecr get-login-password | docker login --username AWS --password-stdin "${url%%/*}"
+          digest="$(aws ecr describe-images --repository-name "$repository" --image-ids imageTag="$MARKETPLACE_SHA" --query 'imageDetails[0].imageDigest' --output text 2>/dev/null || true)"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            docker build -f marketplace-source/docker/Dockerfile.api -t "$url:$MARKETPLACE_SHA" marketplace-source
+            docker push "$url:$MARKETPLACE_SHA"
+            digest="$(aws ecr describe-images --repository-name "$repository" --image-ids imageTag="$MARKETPLACE_SHA" --query 'imageDetails[0].imageDigest' --output text)"
+          fi
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "TF_VAR_image_digest=$digest" >> "$GITHUB_ENV"
+      - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+        with:
+          tofu_version: '1.12.2'
+      - name: Initialize separate Marketplace state
+        working-directory: infra/tofu/marketplace
+        run: |
+          tofu init -input=false \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=${TF_STATE_KEY}.marketplace" \
+            -backend-config="region=$AWS_REGION"
+      - name: Register operations without rolling the API
+        working-directory: infra/tofu/marketplace
+        run: |
+          tofu apply -input=false -auto-approve \
+            -target=aws_ecs_task_definition.operation \
+            -target=aws_security_group.marketplace
+      - name: Provision isolated database roles if needed
+        working-directory: infra/tofu/marketplace
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in DATABASE_URL MIGRATION_DATABASE_URL; do
+            present="$(aws ssm describe-parameters --parameter-filters "Key=Name,Option=Equals,Values=$MARKETPLACE_SSM_PATH/$name" --query 'length(Parameters)' --output text)"
+            if [ "$present" != 1 ]; then missing=1; fi
+          done
+          if [ "$missing" = 0 ]; then exit 0; fi
+          task="$(tofu output -raw bootstrap_task_definition_arn)"
+          if [ -z "$task" ]; then
+            echo "::error::Set MARKETPLACE_DATABASE_ADMIN_PARAMETER to an administrator URL SecureString for initial database provisioning."
+            exit 1
+          fi
+          bun "$GITHUB_WORKSPACE/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase marketplace-bootstrap --cluster "$(tofu output -raw cluster_name)" --task-definition "$task" \
+            --subnets "$(tofu output -json task_subnets | jq -r 'join(",")')" \
+            --security-groups "$(tofu output -raw task_security_group)" --timeout-seconds 600 --stop-on-timeout
+      - name: Snapshot database before Marketplace migrations
+        env:
+          RDS_INSTANCE_ID: ${{ vars.RDS_INSTANCE_ID }}
+        run: |
+          set -euo pipefail
+          snapshot="marketplace-pre-migrate-${MARKETPLACE_SHA:0:12}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          aws rds create-db-snapshot --db-instance-identifier "$RDS_INSTANCE_ID" --db-snapshot-identifier "$snapshot" >/dev/null
+          aws rds wait db-snapshot-available --db-snapshot-identifier "$snapshot"
+      - name: Migrate only the Marketplace database
+        working-directory: infra/tofu/marketplace
+        run: |
+          bun "$GITHUB_WORKSPACE/scripts/deploy/hosted-saas/ecs-run-task-and-wait.ts" \
+            --phase marketplace-migrate --cluster "$(tofu output -raw cluster_name)" \
+            --task-definition "$(tofu output -raw migrate_task_definition_arn)" \
+            --subnets "$(tofu output -json task_subnets | jq -r 'join(",")')" \
+            --security-groups "$(tofu output -raw task_security_group)" --timeout-seconds 600 --stop-on-timeout
+      - name: Roll API after successful migration
+        working-directory: infra/tofu/marketplace
+        env:
+          TF_VAR_enable_service: 'true'
+          TF_VAR_enable_dns_cutover: 'false'
+        run: |
+          set -euo pipefail
+          # Preserve an existing DNS cutover while registering the new task definition.
+          if tofu state list | grep -q '^aws_route53_record.api\[0\]$'; then export TF_VAR_enable_dns_cutover=true; fi
+          tofu apply -input=false -auto-approve
+          aws ecs wait services-stable --cluster "$(tofu output -raw cluster_name)" --services "$(tofu output -raw service_name)"
+      - name: Verify target health before DNS cutover
+        working-directory: infra/tofu/marketplace
+        run: |
+          set -euo pipefail
+          target_group="$(tofu output -raw target_group_arn)"
+          healthy="$(aws elbv2 describe-target-health --target-group-arn "$target_group" --query 'length(TargetHealthDescriptions[?TargetHealth.State==`healthy`])' --output text)"
+          if [ "$healthy" -lt 1 ]; then echo '::error::Marketplace has no healthy API target'; exit 1; fi
+      - name: Cut over the dedicated API domain
+        working-directory: infra/tofu/marketplace
+        env:
+          TF_VAR_enable_service: 'true'
+          TF_VAR_enable_dns_cutover: 'true'
+        run: |
+          set -euo pipefail
+          tofu apply -input=false -auto-approve
+          curl --fail --retry 6 --retry-all-errors --retry-delay 10 "https://api.marketplace.$DOMAIN/health/ready"
+          curl --fail "https://api.marketplace.$DOMAIN/marketplace/listings?limit=1"

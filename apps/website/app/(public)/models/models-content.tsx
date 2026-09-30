@@ -4,6 +4,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -123,6 +124,9 @@ export default function ModelsContent({ models }: ModelsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/models" isCompact kind="research" />
+        }
         compact
         description="The models available in Genfeed, read directly from the product registry."
         heroActions={

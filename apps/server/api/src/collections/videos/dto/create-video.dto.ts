@@ -8,12 +8,13 @@ import {
   VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/contracts';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsEmpty,
   IsEnum,
   IsIn,
   IsNumber,
@@ -118,15 +119,9 @@ export class CreateMergedVideoDto {
   @ApiProperty({ required: true })
   readonly ids!: string[];
 
-  @IsEnum(VideoEaseCurve)
-  @IsOptional()
-  @ApiProperty({
-    description: 'Ease curve for zoom effects (Ken Burns)',
-    enum: VideoEaseCurve,
-    enumName: 'VideoEaseCurve',
-    required: false,
-  })
-  readonly zoomEaseCurve?: VideoEaseCurve;
+  @IsEmpty({ message: 'Zoom effects are not supported when merging videos' })
+  @ApiHideProperty()
+  readonly zoomEaseCurve?: unknown;
 
   @IsEnum(VideoEaseCurve)
   @IsOptional()
@@ -138,71 +133,9 @@ export class CreateMergedVideoDto {
   })
   readonly transitionEaseCurve?: VideoEaseCurve;
 
-  @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => ZoomConfigDto)
-  @ApiProperty({
-    description: 'Per-video zoom configuration',
-    required: false,
-    type: [Object],
-  })
-  readonly zoomConfigs?: ZoomConfigDto[];
-}
-
-export class ZoomConfigDto {
-  @IsNumber()
-  @IsOptional()
-  @Min(0.1)
-  @Max(5)
-  @ApiProperty({
-    default: 1.0,
-    description: 'Starting zoom level (1.0 = no zoom)',
-    required: false,
-  })
-  readonly startZoom?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0.1)
-  @Max(5)
-  @ApiProperty({
-    default: 1.2,
-    description: 'Ending zoom level (1.0 = no zoom)',
-    required: false,
-  })
-  readonly endZoom?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Starting X position for panning (0-1, normalized)',
-    required: false,
-  })
-  readonly startX?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Starting Y position for panning (0-1, normalized)',
-    required: false,
-  })
-  readonly startY?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Ending X position for panning (0-1, normalized)',
-    required: false,
-  })
-  readonly endX?: number;
-
-  @IsNumber()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Ending Y position for panning (0-1, normalized)',
-    required: false,
-  })
-  readonly endY?: number;
+  @IsEmpty({ message: 'Zoom effects are not supported when merging videos' })
+  @ApiHideProperty()
+  readonly zoomConfigs?: unknown;
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
