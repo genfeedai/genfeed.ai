@@ -575,6 +575,10 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+contentLearningConsents ContentLearningConsent[]
+contentLearningDatasets ContentLearningDataset[]
+contentLearningOperations ContentLearningOperation[]
+
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
@@ -745,6 +749,15 @@ model User {
 }
 
 model Organization {
+contentLearningAccounts ContentLearningAccount[]
+contentLearningConsents ContentLearningConsent[]
+contentLearningDecisions ContentLearningDecision[]
+contentLearningCheckpoints ContentLearningCheckpoint[]
+contentLearningBaselines ContentLearningBaseline[]
+contentLearningRewards ContentLearningReward[]
+contentLearningPolicyVersions ContentLearningPolicyVersion[]
+contentLearningBrandPreferences ContentLearningBrandPreference[]
+
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   brandOsRevisions BrandOsRevision[]
@@ -978,6 +991,15 @@ model McpApproval {
 }
 
 model Brand {
+contentLearningAccounts ContentLearningAccount[]
+contentLearningConsents ContentLearningConsent[]
+contentLearningDecisions ContentLearningDecision[]
+contentLearningCheckpoints ContentLearningCheckpoint[]
+contentLearningBaselines ContentLearningBaseline[]
+contentLearningRewards ContentLearningReward[]
+contentLearningPolicyVersions ContentLearningPolicyVersion[]
+contentLearningBrandPreferences ContentLearningBrandPreference[]
+
   visualProjects VisualProject[]
   visualRevisions VisualRevision[]
   brandOsRevisionVersion Int @default(0)
@@ -1790,6 +1812,14 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+contentLearningAccounts ContentLearningAccount[]
+contentLearningConsents ContentLearningConsent[]
+contentLearningDecisions ContentLearningDecision[]
+contentLearningCheckpoints ContentLearningCheckpoint[]
+contentLearningBaselines ContentLearningBaseline[]
+contentLearningRewards ContentLearningReward[]
+contentLearningPolicyVersions ContentLearningPolicyVersion[]
+
   connectedAt DateTime?
   @@index([organizationId, userId, connectedAt])
   id                              String             @id @default(cuid())
@@ -2623,6 +2653,10 @@ model LinkClick {
 // ═══════════════════════════════════════════════════════════════
 
 model Post {
+learningDecisionId String?
+learningDecision ContentLearningDecision? @relation(fields: [learningDecisionId], references: [id])
+learningCheckpoints ContentLearningCheckpoint[]
+
   id                  String             @id @default(cuid())
   // Polymorphic entity: either an Ingredient or an Article
   entityIngredientId  String?
@@ -8116,4 +8150,398 @@ model VisualRevision {
   @@unique([projectId, requestId])
   @@index([organizationId, brandId, projectId, status, isDeleted])
   @@map("visual_revisions")
+}
+
+model ContentLearningAccount {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+mode String @default("shadow")
+revision Int @default(0)
+epoch Int @default(0)
+evidenceRevision Int @default(0)
+resetAt DateTime?
+activeConfigVersion String @default("rl-reward-v1-experimental")
+sharingConsentVersion Int?
+sharedReleasePreference String @default("automatic")
+pinnedReleaseId String?
+activePolicyId String?
+approvedArmIds String[] @default([])
+pilotStartedAt DateTime?
+prePilotReleaseId String?
+failureReason String?
+driftState String?
+@@unique([organizationId, credentialId])
+@@map("content_learning_accounts")
+}
+
+model ContentLearningConsent {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+accountId String
+version Int
+granted Boolean
+purpose String @default("shared_strategy_training_v1")
+actorId String
+actor User @relation(fields: [actorId], references: [id])
+noticeVersion String
+grantedAt DateTime?
+revokedAt DateTime?
+@@unique([accountId, version])
+@@map("content_learning_consents")
+}
+
+model ContentLearningDecision {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+requestKey String
+destinationKey String
+candidateIndex Int
+payloadHash String
+scopeKey String
+epoch Int
+accountRevision Int
+mode String
+contextVector Float[]
+contextSnapshot Json
+eligibleArmIds String[]
+probabilities Json
+selectedArmId String
+selectedProbability Float
+assignment String
+assignmentProbability Float
+executionProbability Float
+configVersion String
+baselineId String?
+accountPolicyId String?
+sharedReleaseId String?
+sharedReleaseRevision Int?
+modelVersion String?
+briefVersion String?
+promptVersion String?
+harnessVersion String?
+parentRequestId String?
+runId String?
+workflowExecutionId String?
+generationId String?
+originalPromptHash String?
+finalArtifactHash String?
+state String @default("pending")
+censorshipReason String?
+synthetic Boolean @default(false)
+posts Post[]
+@@unique([organizationId, requestKey, destinationKey, candidateIndex])
+@@index([scopeKey, epoch, createdAt])
+@@map("content_learning_decisions")
+}
+
+model ContentLearningCheckpoint {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+postId String
+post Post @relation(fields: [postId], references: [id])
+windowId String @default("48h-v1")
+revision Int @default(0)
+sourceAttemptId String
+dueAt DateTime
+requestStartedAt DateTime
+receivedAt DateTime
+providerAsOf DateTime?
+sourceAnalyticsId String?
+measurement Json
+format String
+publishedAt DateTime
+organicProvenance Json
+sourceFingerprint String @unique
+supersedesId String?
+validity String
+attestation Json?
+@@unique([organizationId, postId, credentialId, windowId, revision])
+@@index([organizationId, credentialId, format, publishedAt])
+@@map("content_learning_checkpoints")
+}
+
+model ContentLearningBaseline {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+fingerprint String @unique
+scopeKey String
+cutoff DateTime
+configVersion String
+contributorCheckpointIds String[]
+contributorRevisions Int[]
+count Int
+medianExposure Float
+samples Json
+validity String
+@@index([scopeKey, cutoff])
+@@map("content_learning_baselines")
+}
+
+model ContentLearningReward {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+decisionId String
+version Int
+checkpointId String
+baselineId String
+rawComponents Json
+boundedComponents Json
+composite Float?
+confidence Json
+status String
+reasons String[]
+sourceFingerprint String @unique
+supersedesId String?
+@@unique([decisionId, version])
+@@index([organizationId, credentialId, status])
+@@map("content_learning_rewards")
+}
+
+model ContentLearningPolicyVersion {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+@@index([organizationId, brandId, credentialId, isDeleted])
+scopeKey String
+epoch Int
+version Int
+parentId String?
+algorithm String @default("ridge-epsilon-v1")
+configVersion String
+featureSchema String
+armState Json
+coefficients Json
+evidenceManifestHash String
+evidenceIds String[]
+state String
+synthetic Boolean @default(false)
+@@unique([scopeKey, epoch, version])
+@@map("content_learning_policy_versions")
+}
+
+model ContentLearningSharedPolicy {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+cell String
+version Int
+runId String
+datasetId String
+featureSchema String
+coefficients Json
+directives Json
+validity String
+synthetic Boolean @default(false)
+@@unique([cell, version])
+@@map("content_learning_shared_policys")
+}
+
+model ContentLearningBrandPreference {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+preference String @default("automatic")
+pinnedReleaseId String?
+revision Int @default(0)
+@@unique([organizationId, brandId])
+@@map("content_learning_brand_preferences")
+}
+
+model ContentLearningDataset {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+origin String
+ownerActorId String
+ownerActor User @relation(fields: [ownerActorId], references: [id])
+rightsStatement String
+schemaVersion String
+profile String
+cell String
+cutoff DateTime
+manifestHash String @unique
+manifest Json
+status String
+counts Json
+invalidationRevision Int @default(0)
+synthetic Boolean @default(false)
+entries ContentLearningDatasetEntry[]
+@@map("content_learning_datasets")
+}
+
+model ContentLearningDatasetEntry {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+datasetId String
+dataset ContentLearningDataset @relation(fields: [datasetId], references: [id])
+sourceFingerprint String
+sourceReference Json
+consentVersion Int?
+accountGroup String
+decisionAt DateTime
+measuredAt DateTime
+features Float[]
+armId String
+probabilities Json
+reward Float
+split String
+synthetic Boolean @default(false)
+@@unique([datasetId, sourceFingerprint])
+@@index([datasetId, split])
+@@map("content_learning_dataset_entrys")
+}
+
+model ContentLearningRun {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+datasetId String
+configHash String
+parentArtifactId String?
+baselineArtifactId String?
+type String
+status String @default("pending")
+progress Int @default(0)
+error String?
+workflowExecutionId String?
+resultArtifactId String?
+report Json?
+seed String
+idempotencyKey String @unique
+startedAt DateTime?
+completedAt DateTime?
+synthetic Boolean @default(false)
+@@map("content_learning_runs")
+}
+
+model ContentLearningRelease {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+manifest Json
+reviewId String
+reportId String
+stage String @default("candidate")
+revision Int @default(0)
+priorReleaseId String?
+recipientSalt String
+synthetic Boolean @default(false)
+invalidationRevision Int @default(0)
+stageStartedAt DateTime?
+activeCells String[] @default([])
+@@map("content_learning_releases")
+}
+
+model ContentLearningOperation {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String?
+brandId String?
+credentialId String?
+scope String
+actorId String
+actor User @relation(fields: [actorId], references: [id])
+requestId String
+payloadHash String
+type String
+beforeRevision Int?
+afterRevision Int?
+status String @default("pending")
+error String?
+resultReferences Json
+@@unique([actorId, scope, requestId])
+@@index([organizationId, status])
+@@map("content_learning_operations")
+}
+
+model ContentLearningDependency {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+sourceKind String
+sourceId String
+sourceVersion String
+derivedKind String
+derivedId String
+valid Boolean @default(true)
+invalidatedAt DateTime?
+@@unique([sourceKind, sourceId, sourceVersion, derivedKind, derivedId])
+@@index([sourceKind, sourceId, valid])
+@@index([derivedKind, derivedId, valid])
+@@map("content_learning_dependencys")
 }

@@ -40,6 +40,7 @@ export * from './component-size.enum';
 export * from './content-campaign.enum';
 export * from './content-engine.enum';
 export * from './content-intelligence.enum';
+export * from './content-learning.enum';
 export * from './content-schedule.enum';
 export * from './content-skill.enum';
 export * from './content-source.enum';
