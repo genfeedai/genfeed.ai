@@ -616,4 +616,141 @@ describe('ApifyRunBudgetService', () => {
     ).toBe(true);
     expect(httpService.get).not.toHaveBeenCalled();
   });
+  describe('truthful settlement acknowledgement', () => {
+    const receipt = {
+      reservationKey: 'settlement-receipt',
+      reservedMicroUsd: 250_000,
+      usageKey: 'settlement-usage',
+    };
+    it('requires both counter and bookkeeping acknowledgements, including retries', async () => {
+      counters[receipt.usageKey] = 250_000;
+      expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
+        'settled',
+      );
+      expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
+        'settled',
+      );
+      expect(counters[receipt.usageKey]).toBe(12_000);
+      expect(cacheService.noteSettledResearchReservation).toHaveBeenCalledTimes(
+        2,
+      );
+    });
+    it.each(['settled', 'duplicate'])(
+      'accepts a duplicate bookkeeping receipt after %s counter result',
+      async (result) => {
+        cacheService.reconcileCounterReservation.mockResolvedValue(result);
+        cacheService.noteSettledResearchReservation.mockResolvedValue(
+          'duplicate',
+        );
+        expect(await service.reconcileRunWithResult(receipt, 0)).toBe(
+          'settled',
+        );
+      },
+    );
+    it('reports not_required only for an absent reservation', async () => {
+      expect(await service.reconcileRunWithResult(undefined, undefined)).toBe(
+        'not_required',
+      );
+      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
+      expect(
+        cacheService.noteSettledResearchReservation,
+      ).not.toHaveBeenCalled();
+    });
+    it.each([
+      undefined,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      -1,
+      Number.MAX_SAFE_INTEGER,
+    ])('retains funding for invalid/missing actual usage %s', async (usage) => {
+      expect(await service.reconcileRunWithResult(receipt, usage)).toBe(
+        'pending',
+      );
+      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
+      expect(
+        cacheService.noteSettledResearchReservation,
+      ).not.toHaveBeenCalled();
+    });
+    it.each([
+      { ...receipt, reservationKey: '' },
+      { ...receipt, usageKey: '' },
+      { ...receipt, reservationKey: receipt.usageKey },
+      { ...receipt, reservedMicroUsd: 0 },
+      { ...receipt, reservedMicroUsd: -1 },
+      { ...receipt, reservedMicroUsd: 0.5 },
+    ])(
+      'rejects incomplete/invalid persisted receipt %# before settlement',
+      async (invalid) => {
+        expect(await service.reconcileRunWithResult(invalid, 0)).toBe(
+          'pending',
+        );
+        expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
+      },
+    );
+    it.each(['unavailable', 'throws'])(
+      'retains funding when counter reconciliation %s',
+      async (failure) => {
+        if (failure === 'throws')
+          cacheService.reconcileCounterReservation.mockRejectedValue(
+            new Error('synthetic cache failure'),
+          );
+        else
+          cacheService.reconcileCounterReservation.mockResolvedValue(
+            'unavailable',
+          );
+        expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
+          'pending',
+        );
+        expect(
+          cacheService.noteSettledResearchReservation,
+        ).not.toHaveBeenCalled();
+        expect(loggerService.warn).toHaveBeenCalled();
+      },
+    );
+    it.each(['unavailable', 'throws'])(
+      'keeps unhealthy books when bookkeeping %s, even after counter settlement',
+      async (failure) => {
+        cacheService.reconcileCounterReservation.mockResolvedValue('settled');
+        if (failure === 'throws')
+          cacheService.noteSettledResearchReservation.mockRejectedValue(
+            new Error('synthetic bookkeeping failure'),
+          );
+        else
+          cacheService.noteSettledResearchReservation.mockResolvedValue(
+            'unavailable',
+          );
+        expect(await service.reconcileRunWithResult(receipt, 0.012)).toBe(
+          'pending',
+        );
+        expect(cacheService.set).toHaveBeenCalledWith(
+          `${receipt.usageKey}:books-unhealthy`,
+          true,
+          { ttl: 90 * 24 * 60 * 60 },
+        );
+        expect(loggerService.warn).toHaveBeenCalled();
+      },
+    );
+    it('retains pending when the unhealthy marker cannot be written', async () => {
+      cacheService.reconcileCounterReservation.mockResolvedValue('duplicate');
+      cacheService.noteSettledResearchReservation.mockResolvedValue(
+        'unavailable',
+      );
+      cacheService.set.mockRejectedValue(
+        new Error('synthetic marker unavailable'),
+      );
+      expect(await service.reconcileRunWithResult(receipt, 0)).toBe('pending');
+      expect(loggerService.warn).toHaveBeenCalled();
+    });
+    it('keeps the compatibility API void while performing the same settlement', async () => {
+      counters[receipt.usageKey] = 250_000;
+      expect(await service.reconcileRun(receipt, 0.012)).toBeUndefined();
+      expect(counters[receipt.usageKey]).toBe(12_000);
+      expect(
+        cacheService.noteSettledResearchReservation,
+      ).toHaveBeenCalledExactlyOnceWith(
+        receipt.usageKey,
+        receipt.reservationKey,
+      );
+    });
+  });
 });
