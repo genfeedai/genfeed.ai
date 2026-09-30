@@ -478,4 +478,89 @@ export interface LearningRunDispatchReceiptV1 {
   attemptCount: number;
   nextAttemptAt: string | null;
   claimedStartedAt: string | null;
+  terminalResult?: LearningRunDispatchTerminalResultV1;
+}
+
+export interface LearningRunDispatchTerminalResultV1 {
+  runStatus:
+    | 'completed'
+    | 'insufficient_data'
+    | 'failed'
+    | 'cancelled'
+    | 'invalidated';
+  reasonCode: string | null;
+  resultArtifactId: string | null;
+  completedAt: string;
+  trainingCount: number | null;
+  requiredTrainingCount: 30 | null;
+}
+export function validLearningRunTerminalResult(
+  value: unknown,
+): value is LearningRunDispatchTerminalResultV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const raw = value as Record<string, unknown>;
+  const nullableCode = (v: unknown) =>
+    v === null || (typeof v === 'string' && v.length > 0 && v.length <= 256);
+  if (
+    ![
+      'completed',
+      'insufficient_data',
+      'failed',
+      'cancelled',
+      'invalidated',
+    ].includes(String(raw.runStatus)) ||
+    !nullableCode(raw.reasonCode) ||
+    !nullableCode(raw.resultArtifactId) ||
+    typeof raw.completedAt !== 'string' ||
+    !Number.isFinite(new Date(raw.completedAt).getTime()) ||
+    new Date(raw.completedAt).toISOString() !== raw.completedAt
+  )
+    return false;
+  if (raw.runStatus === 'insufficient_data')
+    return (
+      raw.reasonCode === 'minimum_training_30' &&
+      raw.resultArtifactId === null &&
+      Number.isSafeInteger(raw.trainingCount) &&
+      Number(raw.trainingCount) >= 0 &&
+      Number(raw.trainingCount) < 30 &&
+      raw.requiredTrainingCount === 30
+    );
+  if (raw.trainingCount !== null || raw.requiredTrainingCount !== null)
+    return false;
+  if (raw.runStatus === 'completed') return raw.reasonCode === null;
+  return (
+    raw.resultArtifactId === null &&
+    (raw.runStatus === 'cancelled'
+      ? raw.reasonCode === 'cancelled'
+      : typeof raw.reasonCode === 'string')
+  );
+}
+
+export function validLearningRunDispatchReceipt(
+  value: unknown,
+): value is LearningRunDispatchReceiptV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const raw = value as Record<string, unknown>;
+  const id = (value: unknown) =>
+    typeof value === 'string' && value.length > 0 && value.length <= 256;
+  const timestamp = (value: unknown) =>
+    value === null ||
+    (typeof value === 'string' &&
+      Number.isFinite(new Date(value).getTime()) &&
+      new Date(value).toISOString() === value);
+  if (
+    raw.dispatchVersion !== 1 ||
+    !id(raw.runId) ||
+    !id(raw.datasetId) ||
+    !(raw.retryOfOperationId === null || id(raw.retryOfOperationId)) ||
+    !Number.isInteger(raw.attemptCount) ||
+    Number(raw.attemptCount) < 0 ||
+    Number(raw.attemptCount) > 3 ||
+    !timestamp(raw.nextAttemptAt) ||
+    !timestamp(raw.claimedStartedAt) ||
+    (raw.terminalResult !== undefined &&
+      !validLearningRunTerminalResult(raw.terminalResult))
+  )
+    return false;
+  return true;
 }

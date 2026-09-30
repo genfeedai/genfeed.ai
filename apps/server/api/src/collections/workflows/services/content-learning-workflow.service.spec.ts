@@ -166,7 +166,12 @@ describe('durable scoped content learning workflow dispatch', () => {
       operationId: 'operation',
       runId: 'forged',
     });
-    expect(f.runs.execute).toHaveBeenCalledWith('stored-run');
+    expect(f.runs.execute).toHaveBeenCalledWith({
+      runId: 'stored-run',
+      operationId: 'operation',
+      organizationId: 'org',
+    });
+    expect(f.prisma.contentLearningOperation.updateMany).not.toHaveBeenCalled();
   });
   it('registers all six versioned graphs', () => {
     const f = fixture();

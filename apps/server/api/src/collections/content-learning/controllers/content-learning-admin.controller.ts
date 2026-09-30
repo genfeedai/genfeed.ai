@@ -6,7 +6,10 @@ import {
   LearningReleaseControlDto,
   LearningReleaseDto,
 } from '@api/collections/content-learning/dto/learning-release.dto';
-import { LearningRunDto } from '@api/collections/content-learning/dto/learning-run.dto';
+import {
+  LearningRunControlDto,
+  LearningRunDto,
+} from '@api/collections/content-learning/dto/learning-run.dto';
 import { LearningAccountService } from '@api/collections/content-learning/services/learning-account.service';
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
@@ -170,25 +173,36 @@ export class ContentLearningAdminController {
   }
   @Post('runs/:id/cancel') async cancel(
     @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Body() body: LearningRunControlDto,
   ) {
-    await this.runs.cancel(id);
     return serializeSingle(
       request,
       ContentLearningRunSerializer,
-      await this.prisma.contentLearningRun.findFirst({
-        where: { id, isDeleted: false },
+      await this.runs.cancel({
+        id,
+        requestId: body.requestId,
+        actorId: user.userId ?? user.id,
+        organizationId: user.organizationId,
       }),
     );
   }
   @Post('runs/:id/retry') async retry(
     @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
+    @Body() body: LearningRunControlDto,
   ) {
     return serializeSingle(
       request,
       ContentLearningRunSerializer,
-      await this.runs.retry(id),
+      await this.runs.retry({
+        id,
+        requestId: body.requestId,
+        actorId: user.userId ?? user.id,
+        organizationId: user.organizationId,
+      }),
     );
   }
   @Post('releases') async createRelease(

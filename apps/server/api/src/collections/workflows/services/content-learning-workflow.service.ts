@@ -21,7 +21,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
-  PlatformRole,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -235,31 +234,6 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     });
     if (!operation)
       throw new BadRequestException('Stored authorized operation required');
-    if (
-      ['completed', 'failed', 'cancelled', 'invalidated'].includes(
-        operation.status,
-      )
-    )
-      return { operationId: operation.id, status: operation.status };
-    const actor = await this.prisma.user.findFirst({
-      where: {
-        id: operation.actorId,
-        isDeleted: false,
-        banned: false,
-        platformRole: PlatformRole.SUPERADMIN,
-      },
-    });
-    if (!actor) {
-      await this.prisma.contentLearningOperation.updateMany({
-        where: { id: operation.id, organizationId, isDeleted: false },
-        data: { status: 'invalidated', error: 'authorization_withdrawn' },
-      });
-      return {
-        operationId: operation.id,
-        status: 'invalidated',
-        reason: 'authorization_withdrawn',
-      };
-    }
     const refs = operation.resultReferences;
     if (
       !refs ||
@@ -268,20 +242,25 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       typeof refs.runId !== 'string'
     )
       throw new BadRequestException('Stored run receipt required');
-    const result = await this.runs.execute(refs.runId);
+    await this.runs.execute({
+      runId: refs.runId,
+      operationId: operation.id,
+      organizationId,
+    });
+    const authoritative = await this.prisma.contentLearningOperation.findFirst({
+      where: { id: operation.id, organizationId, isDeleted: false },
+    });
     const run = await this.prisma.contentLearningRun.findFirst({
       where: { id: refs.runId, isDeleted: false },
     });
-    await this.prisma.contentLearningOperation.updateMany({
-      where: { id: operation.id, organizationId, isDeleted: false },
-      data: { status: run?.status ?? 'failed', error: run?.error ?? null },
-    });
     return {
       operationId: operation.id,
-      status: run?.status ?? 'failed',
-      result,
+      runStatus: run?.status ?? null,
+      status: authoritative?.status ?? 'unavailable',
+      reason: authoritative?.error ?? null,
     };
   }
+
   async reconcile(organizationId: string) {
     const posts = await this.prisma.post.findMany({
       where: {
@@ -307,6 +286,20 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
     for (const operation of operations) {
+      const refs = operation.resultReferences;
+      if (
+        !refs ||
+        typeof refs !== 'object' ||
+        Array.isArray(refs) ||
+        typeof refs.runId !== 'string'
+      )
+        continue;
+      const repaired = await this.runs.reconcileDispatch({
+        runId: refs.runId,
+        operationId: operation.id,
+        organizationId,
+      });
+      if (!repaired.dispatchable) continue;
       const action =
         operation.type === 'dataset-train'
           ? CONTENT_LEARNING_ACTION_IDS.DATASET_TRAIN

@@ -9,6 +9,7 @@ import { LearningPolicyService } from '@api/collections/content-learning/service
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
 import { LearningRewardService } from '@api/collections/content-learning/services/learning-reward.service';
 import { LearningRunService } from '@api/collections/content-learning/services/learning-run.service';
+import { LearningRunControlService } from '@api/collections/content-learning/services/learning-run-control.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
 import { Module } from '@nestjs/common';
 @Module({
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     LearningRewardService,
     LearningPolicyService,
     LearningDatasetService,
+    LearningRunControlService,
     LearningRunService,
     LearningReleaseService,
     LearningDependencyService,
