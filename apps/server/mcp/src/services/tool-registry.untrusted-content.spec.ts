@@ -46,7 +46,12 @@ describe('native MCP untrusted-result integration', () => {
     resolveApproval: vi.fn(),
     attachApprovalResult: vi.fn(),
   };
-  const logger = { warn: vi.fn(), error: vi.fn(), log: vi.fn() };
+  const logger = {
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+  };
   const registry = () =>
     new ToolRegistryService(
       client as unknown as ClientService,

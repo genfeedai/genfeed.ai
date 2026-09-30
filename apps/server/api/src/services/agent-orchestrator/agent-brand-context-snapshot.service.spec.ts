@@ -63,7 +63,7 @@ const BRAND_CONTEXT: AssembledBrandContext = {
 
 // Exactly the four higher-priority sections (identity, guidelines, voice,
 // custom instructions) fit; the lowest-priority performance section drops.
-const TEST_BUDGET = 156;
+const TEST_BUDGET = 700;
 
 /**
  * Renders the brand-context block the way the real assembler shapes it and
