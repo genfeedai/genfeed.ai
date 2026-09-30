@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -531,13 +532,20 @@ function WorkflowTemplatesPageContent() {
   const translate = useTranslations('pages.workflows.templates');
   const translateWorkflows = useTranslations('common.automation.workflows');
   const { href, orgSlug, brandSlug } = useOrgUrl();
-  const { isLoaded, userId, orgId } = useAuthIdentity();
+  const { isLoaded, userId } = useAuthIdentity();
+  const {
+    isRouteConfirmed,
+    confirmedOrganizationId: orgId,
+    confirmedOrganizationSlug,
+  } = useRoutedOrganization();
   const { organizationId, brands, isBrandScopeResolved } = useBrand();
   const routeBrand = brands.find((brand) => brand.slug === brandSlug);
   const isBrandRoute = Boolean(brandSlug && brandSlug !== '~');
   const routeBrandId = isBrandRoute ? routeBrand?.id : undefined;
   const isScopeReady = Boolean(
     isLoaded &&
+      isRouteConfirmed &&
+      confirmedOrganizationSlug === orgSlug &&
       userId &&
       orgId &&
       organizationId === orgId &&
@@ -549,6 +557,7 @@ function WorkflowTemplatesPageContent() {
     orgSlug,
     brandSlug,
     routeBrandId,
+    isScopeReady,
   ]);
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {

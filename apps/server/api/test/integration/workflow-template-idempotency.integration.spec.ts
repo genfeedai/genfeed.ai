@@ -104,7 +104,6 @@ describe('Seeded template idempotency (real PostgreSQL, #5560)', () => {
         where: {
           organizationId: org,
           workflowId: results[0].id,
-          isDeleted: false,
         },
       }),
     ).toBe(1);
@@ -140,7 +139,6 @@ describe('Seeded template idempotency (real PostgreSQL, #5560)', () => {
         where: {
           workflowId: created.id,
           organizationId: org,
-          isDeleted: false,
         },
       }),
     ).toBe(2);

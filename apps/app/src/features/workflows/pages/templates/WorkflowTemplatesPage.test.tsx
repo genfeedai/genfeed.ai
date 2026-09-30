@@ -20,6 +20,11 @@ type Translator = (
 ) => string;
 
 const mocks = vi.hoisted(() => ({
+  routed: {
+    isRouteConfirmed: true,
+    confirmedOrganizationId: 'org-1',
+    confirmedOrganizationSlug: 'demo',
+  },
   auth: { isLoaded: true, userId: 'user-1', orgId: 'org-1' },
   brand: {
     organizationId: 'org-1',
@@ -43,6 +48,10 @@ const mocks = vi.hoisted(() => ({
   useTranslations: vi.fn(),
 }));
 
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({ useRoutedOrganization: () => mocks.routed }),
+);
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mocks.auth,
 }));
@@ -335,6 +344,11 @@ describe('WorkflowTemplatesPage', () => {
     vi.clearAllMocks();
     window.localStorage.clear();
     window.sessionStorage.clear();
+    mocks.routed = {
+      isRouteConfirmed: true,
+      confirmedOrganizationId: 'org-1',
+      confirmedOrganizationSlug: 'demo',
+    };
     mocks.auth = { isLoaded: true, userId: 'user-1', orgId: 'org-1' };
     mocks.brand = {
       organizationId: 'org-1',
@@ -1137,6 +1151,63 @@ describe('WorkflowTemplatesPage', () => {
   describe('with a ?template= query', () => {
     beforeEach(() => {
       mocks.searchParams = new URLSearchParams('template=tpl-1');
+    });
+
+    it('waits for route organization confirmation before catalog or POST', async () => {
+      mocks.routed.isRouteConfirmed = false;
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      expect(mocks.getService).not.toHaveBeenCalled();
+      mocks.routed.isRouteConfirmed = true;
+      mocks.routed.confirmedOrganizationSlug = 'previous-org';
+      rerender(<WorkflowTemplatesPage />);
+      expect(mocks.getService).not.toHaveBeenCalled();
+      mocks.routed.confirmedOrganizationSlug = 'demo';
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    });
+
+    it('rejects a stale catalog while route scope changes', async () => {
+      let resolveCatalog: (value: unknown[]) => void = () => {};
+      mocks.listSystemCatalog.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCatalog = resolve;
+          }),
+      );
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(1),
+      );
+      mocks.route.brandSlug = 'other';
+      mocks.brand.brands.push({ id: 'brand-2', slug: 'other' });
+      mocks.listSystemCatalog.mockRejectedValueOnce(
+        new Error('new catalog unavailable'),
+      );
+      rerender(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(2),
+      );
+      await act(async () => resolveCatalog([]));
+      expect(mocks.create).not.toHaveBeenCalled();
+    });
+
+    it('uses the latest template when the catalog resolves', async () => {
+      let resolveCatalog: (value: unknown[]) => void = () => {};
+      mocks.listSystemCatalog.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveCatalog = resolve;
+          }),
+      );
+      const { rerender } = render(<WorkflowTemplatesPage />);
+      await waitFor(() =>
+        expect(mocks.listSystemCatalog).toHaveBeenCalledTimes(1),
+      );
+      mocks.searchParams = new URLSearchParams('template=tpl-2');
+      rerender(<WorkflowTemplatesPage />);
+      await act(async () => resolveCatalog([]));
+      await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+      expect(mocks.create.mock.calls[0][0].templateId).toBe('tpl-2');
     });
 
     it('reuses the same key after remount and a lost response', async () => {
