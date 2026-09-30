@@ -215,7 +215,7 @@ export function buildAgentClientChannelPage(
   return {
     channelName,
     channelSlug,
-    description: `Create and schedule ${channelName} ${lowerNoun} from ${client.name}. Connect Genfeed over MCP, approve OAuth, and publish after review.`,
+    description: `Connect ${client.name} to Genfeed for ${channelName}. Bring your brand context, media tools, and ${lowerNoun} into one creative workflow.`,
     faq: [
       {
         answer: `Yes. Once your ${channelName} account is connected in Genfeed, ${client.name} can draft, schedule, and publish ${channelName} ${lowerNoun} through the Genfeed MCP server.`,
@@ -243,7 +243,7 @@ export function buildAgentClientChannelPage(
     features: integration.features,
     noun,
     prompts,
-    title: `Schedule ${channelName} ${noun} with ${client.name}`,
+    title: `${channelName} in ${client.name}, powered by Genfeed`,
   };
 }
 

@@ -3,6 +3,7 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
@@ -105,6 +106,9 @@ export default function LibraryContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/library" isCompact kind="campaign" />
+        }
         heroActions={
           <AgentFirstActions
             signUpHref={`${EnvironmentService.apps.app}/sign-up?plan=payg`}

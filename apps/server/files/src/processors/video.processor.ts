@@ -776,7 +776,13 @@ export class VideoProcessor extends WorkerHost {
         // later steps read the source by key instead of its remote URL. The
         // copy gets its own run-scoped key: `ingredients/videos/<id>` may be
         // the user's own asset, and failure cleanup deletes this key.
-        await this.downloadInput(params, inputPath);
+        // Match the existing 10 GB clip upload limit, enforcing actual
+        // streamed bytes even if the remote Content-Length is missing/wrong.
+        await this.s3Service.downloadFromUrl(
+          params.inputPath,
+          inputPath,
+          10 * 1024 * 1024 * 1024,
+        );
         sourceS3Key = this.s3Service.generateRunScopedKey(
           'clip-sources',
           `${organizationId}/${ingredientId}/${randomUUID()}/source.mp4`,
