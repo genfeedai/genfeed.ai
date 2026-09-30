@@ -302,6 +302,13 @@ export default function DesktopLocalProviderSettings({
         <p className="mt-1 text-sm text-muted-foreground">
           {translate('inactive.description')}
         </p>
+        <p
+          role="status"
+          data-testid="desktop-provider-generation-cost"
+          className="mt-2 text-xs text-muted-foreground"
+        >
+          {costTranslate(getDesktopLocalCostState(runtime))}
+        </p>
         <Button
           className="mt-3 rounded px-2 py-1 text-xs"
           disabled={isLocalMode === null}

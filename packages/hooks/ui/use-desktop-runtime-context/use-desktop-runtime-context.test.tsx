@@ -1,5 +1,6 @@
 import type { IDesktopRuntimeContext } from '@genfeedai/contracts/desktop';
 import { act } from '@testing-library/react';
+import { StrictMode } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { expect, it, vi } from 'vitest';
@@ -37,10 +38,10 @@ it('hydrates from stable unknown and deduplicates bridge reads across consumers'
     return <span>{state.status}</span>;
   };
   const tree = (
-    <>
+    <StrictMode>
       <View />
       <View />
-    </>
+    </StrictMode>
   );
   const container = document.createElement('div');
   container.innerHTML = renderToString(tree);

@@ -72,17 +72,18 @@ import {
   DESKTOP_PROCESS_EXCEPTION_SOURCE,
 } from './main/process-exceptions.util';
 import {
+  assertDesktopRuntimeAvailable,
   commitDesktopRuntimeSwitch,
   createDesktopRuntimeContext,
   getDesktopProviderContext,
+  selectDesktopRuntimeDataService,
+  transitionDesktopRuntimeToCloud,
 } from './main/runtime-context.util';
 import {
   activateDesktopLocalMode,
   createLocalRuntimeCleanupBarrier,
   createUnwoundLocalRuntimeState,
   restoreDesktopRuntimeMode,
-  selectDesktopDataService,
-  switchDesktopToCloud,
   type UnwoundLocalRuntimeState,
   unwindFailedLocalRuntimeAfterClose,
 } from './main/runtime-mode.util';
@@ -149,7 +150,7 @@ let appShellService: DesktopAppShellService;
 let isOfflineMode = false;
 const runtimeContextId = randomUUID();
 let runtimeContextRevision = 0;
-let runtimeContextStatus: 'ready' | 'switching' = 'ready';
+let runtimeContextStatus: IDesktopRuntimeContext['status'] = 'ready';
 let publicLocalProvider: IDesktopRuntimeContext['localProvider'] = null;
 let runtimeContextCache: IDesktopRuntimeContext | null = null;
 
@@ -428,12 +429,15 @@ const setActiveWorkspaceId = async (workspaceId: string): Promise<void> => {
 };
 
 function getDataService(): IDesktopDataService {
-  return selectDesktopDataService<IDesktopDataService>({
-    cloudService,
-    hasCloudSession: Boolean(sessionService.getSession()),
-    isOfflineMode,
-    localService,
-  });
+  return selectDesktopRuntimeDataService<IDesktopDataService>(
+    runtimeContextStatus,
+    {
+      cloudService,
+      hasCloudSession: Boolean(sessionService.getSession()),
+      isOfflineMode,
+      localService,
+    },
+  );
 }
 
 const emitQuickGenerate = (): void => {
@@ -665,6 +669,7 @@ const invalidateLocalRuntimeAttempt = (): void => {
 };
 
 const requireLocalRuntime = (): void => {
+  assertDesktopRuntimeAvailable(runtimeContextStatus);
   if (!isOfflineMode || !localService) {
     throw new Error(
       'Local mode is not enabled. Select Local workspace before using this feature.',
@@ -1045,6 +1050,7 @@ const createWindow = async (): Promise<void> => {
 
   buildDesktopMenu(mainWindow, () => {
     void (async () => {
+      assertDesktopRuntimeAvailable(runtimeContextStatus);
       await activateDesktopLocalMode(
         initializeLocalRuntime,
         () => {
@@ -1053,6 +1059,8 @@ const createWindow = async (): Promise<void> => {
         undefined,
         invalidateLocalRuntimeAttempt,
       );
+      // Local mode is already committed even when the folder dialog is canceled.
+      await emitBootstrap();
       const workspace = await openAndActivateWorkspace();
       if (!workspace) return;
       await emitBootstrap();
@@ -1411,6 +1419,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
     async () => {
+      assertDesktopRuntimeAvailable(runtimeContextStatus);
       try {
         await activateDesktopLocalMode(
           initializeLocalRuntime,
@@ -1432,31 +1441,28 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appUseCloudMode,
     async () => {
-      runtimeContextStatus = 'switching';
-      emitRuntimeContext();
-      let committed = false;
-      try {
-        await switchDesktopToCloud({
-          closeLocalRuntime: async () => {
-            await prismaService?.getClient().$disconnect();
-            await pgliteService?.close();
-          },
-          exit: () => app.exit(0),
-          persistCloudMode: () => {
-            desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud');
-            isOfflineMode = false;
-            committed = true;
-          },
-          relaunch: () => app.relaunch(),
-        });
-      } catch (error) {
-        if (!committed) {
-          runtimeContextStatus = 'ready';
-          publicLocalProvider = null;
+      assertDesktopRuntimeAvailable(runtimeContextStatus);
+      await transitionDesktopRuntimeToCloud({
+        previous: {
+          status: runtimeContextStatus,
+          isOfflineMode,
+          localProvider: publicLocalProvider,
+        },
+        publish: (state) => {
+          runtimeContextStatus = state.status;
+          isOfflineMode = state.isOfflineMode;
+          publicLocalProvider = state.localProvider;
           emitRuntimeContext();
-        }
-        throw error;
-      }
+        },
+        closeLocalRuntime: async () => {
+          await prismaService?.getClient().$disconnect();
+          await pgliteService?.close();
+        },
+        persistCloudMode: () =>
+          desktopStore.setValueSync(OFFLINE_MODE_KEY, 'cloud'),
+        relaunch: () => app.relaunch(),
+        exit: () => app.exit(0),
+      });
     },
   );
   registerPrivilegedIpcHandler(
@@ -1541,6 +1547,7 @@ const registerIpcHandlers = (): void => {
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
     async (_event: unknown, params: IDesktopGenerationOptions) => {
+      assertDesktopRuntimeAvailable(runtimeContextStatus);
       try {
         return await runDataService((service) =>
           service.generateContent({

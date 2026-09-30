@@ -29,15 +29,18 @@ function fixture() {
         resolve = done;
       }),
   );
+  const bridge = {
+    getRuntimeContext: rpc,
+    onDidChangeRuntimeContext: (
+      callback: (value: IDesktopRuntimeContext) => void,
+    ) => {
+      event = callback;
+      return detach;
+    },
+  };
   const service = new DesktopRuntimeService(
     () => true,
-    () => ({
-      getRuntimeContext: rpc,
-      onDidChangeRuntimeContext: (callback) => {
-        event = callback;
-        return detach;
-      },
-    }),
+    () => bridge,
   );
   return {
     service,
@@ -62,12 +65,126 @@ describe('shared authoritative runtime store', () => {
     expect(read).not.toHaveBeenCalled();
     off();
   });
+  it.each(['before cleanup', 'during grace', 'after remount'] as const)(
+    'retains newer event %s over delayed initial RPC throughout StrictMode remount',
+    async (phase) => {
+      const f = fixture();
+      const listener = vi.fn();
+      const off = f.service.subscribe(listener);
+      const newer = {
+        ...context,
+        revision: 4,
+        status: 'unavailable' as const,
+        generationExecution: 'unknown' as const,
+        runtimeMode: 'local' as const,
+        localProvider: {
+          provider: 'ollama' as const,
+          networkAccess: 'local' as const,
+        },
+      };
+      if (phase === 'before cleanup') f.event(newer);
+      off();
+      const calls = listener.mock.calls.length;
+      if (phase === 'during grace') {
+        f.event(newer);
+        expect(listener).toHaveBeenCalledTimes(calls);
+      }
+      const remount = f.service.subscribe(() => {});
+      if (phase === 'after remount') f.event(newer);
+      f.resolve(context);
+      await flush();
+      expect(f.rpc).toHaveBeenCalledTimes(1);
+      expect(f.detach).not.toHaveBeenCalled();
+      expect(f.service.getSnapshot()).toEqual({
+        status: 'unavailable',
+        context: newer,
+      });
+      expect(getDesktopLocalCostState(f.service.getSnapshot())).toBe('unknown');
+      remount();
+      await flush();
+      expect(f.detach).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('starts a fresh lifetime for a changed bridge and ignores old callbacks', async () => {
+    let oldEvent!: (value: IDesktopRuntimeContext) => void;
+    const oldDetach = vi.fn();
+    const oldBridge = {
+      getRuntimeContext: vi.fn(async () => context),
+      onDidChangeRuntimeContext: (
+        callback: (value: IDesktopRuntimeContext) => void,
+      ) => {
+        oldEvent = callback;
+        return oldDetach;
+      },
+    };
+    const nextBridge = {
+      getRuntimeContext: vi.fn(async () => ({
+        ...context,
+        runtimeId: 'next-launch',
+      })),
+      onDidChangeRuntimeContext: () => vi.fn(),
+    };
+    let bridge = oldBridge as Pick<
+      import('@genfeedai/contracts/desktop').IGenfeedDesktopBridge['app'],
+      'getRuntimeContext' | 'onDidChangeRuntimeContext'
+    >;
+    const service = new DesktopRuntimeService(
+      () => true,
+      () => bridge,
+    );
+    const off = service.subscribe(() => {});
+    await flush();
+    off();
+    bridge = nextBridge;
+    expect(service.getCurrentSnapshot().status).toBe('loading');
+    const fresh = service.subscribe(() => {});
+    await flush();
+    oldEvent({ ...context, revision: 999 });
+    expect(service.getSnapshot().context?.runtimeId).toBe('next-launch');
+    expect(oldDetach).toHaveBeenCalledTimes(1);
+    expect(nextBridge.getRuntimeContext).toHaveBeenCalledTimes(1);
+    fresh();
+    await flush();
+  });
+  it('deduplicates a synchronous development remount but discards a real unmount', async () => {
+    let resolve!: (value: IDesktopRuntimeContext) => void;
+    const bridge = {
+      getRuntimeContext: vi.fn(
+        () =>
+          new Promise<IDesktopRuntimeContext>((done) => {
+            resolve = done;
+          }),
+      ),
+      onDidChangeRuntimeContext: vi.fn(() => vi.fn()),
+    };
+    const service = new DesktopRuntimeService(
+      () => true,
+      () => bridge,
+    );
+    const off = service.subscribe(() => {});
+    off();
+    const remount = service.subscribe(() => {});
+    expect(bridge.getRuntimeContext).toHaveBeenCalledTimes(1);
+    resolve(context);
+    await flush();
+    expect(service.getSnapshot().status).toBe('ready');
+    remount();
+    await flush();
+    const fresh = service.subscribe(() => {});
+    expect(bridge.getRuntimeContext).toHaveBeenCalledTimes(2);
+    fresh();
+  });
   it('subscribes before one deduplicated RPC and rejects late initial data', async () => {
     const f = fixture();
     const off1 = f.service.subscribe(() => {});
     const off2 = f.service.subscribe(() => {});
     expect(f.rpc).toHaveBeenCalledTimes(1);
-    f.event({ ...context, revision: 2, status: 'switching' });
+    f.event({
+      ...context,
+      revision: 2,
+      status: 'switching',
+      generationExecution: 'unknown',
+    });
     f.resolve(context);
     await flush();
     expect(f.service.getSnapshot().status).toBe('switching');
@@ -76,7 +193,23 @@ describe('shared authoritative runtime store', () => {
     off1();
     expect(f.detach).not.toHaveBeenCalled();
     off2();
+    await flush();
     expect(f.detach).toHaveBeenCalledTimes(1);
+  });
+  it('cannot restore readiness from a late RPC after an invalid runtime event', async () => {
+    const f = fixture();
+    const off = f.service.subscribe(() => {});
+    f.event({
+      ...context,
+      selectedApiEndpoint: 'https://server.example/v1?credential=hidden',
+    });
+    f.resolve({ ...context, revision: 100 });
+    await flush();
+    expect(f.service.getSnapshot()).toEqual({
+      status: 'unavailable',
+      context: null,
+    });
+    off();
   });
   it('rejects a different-runtime late RPC and discards detached results/events', async () => {
     const f = fixture();
@@ -86,6 +219,7 @@ describe('shared authoritative runtime store', () => {
     await flush();
     expect(f.service.getSnapshot().context?.runtimeId).toBe('new-launch');
     off();
+    await flush();
     f.event({ ...context, revision: 10 });
     expect(f.service.getSnapshot().context).toBeNull();
   });

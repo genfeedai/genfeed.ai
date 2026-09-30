@@ -3,12 +3,16 @@ import type {
   IDesktopGenerationProviderPublicConfig,
   IDesktopRuntimeContext,
 } from '@genfeedai/contracts/desktop';
+import {
+  selectDesktopDataService,
+  switchDesktopToCloud,
+} from './runtime-mode.util';
 
 interface DesktopRuntimeContextInput {
   environment: IDesktopEnvironment;
   runtimeId: string;
   revision: number;
-  status: 'ready' | 'switching';
+  status: IDesktopRuntimeContext['status'];
   hasSession: boolean;
   isOfflineMode: boolean;
   isLocalInitialized: boolean;
@@ -66,7 +70,7 @@ export function createDesktopRuntimeContext(
       : !input.isOfflineMode && input.hasSession && input.status === 'ready'
         ? 'remote'
         : 'unknown',
-    localProvider: localReady ? input.localProvider : null,
+    localProvider: input.isOfflineMode ? input.localProvider : null,
   };
 }
 
@@ -84,4 +88,71 @@ export async function commitDesktopRuntimeSwitch<T>(
     status('ready');
     throw error;
   }
+}
+
+export interface DesktopRuntimeTransitionState {
+  status: IDesktopRuntimeContext['status'];
+  isOfflineMode: boolean;
+  localProvider: IDesktopRuntimeContext['localProvider'];
+}
+interface DesktopRuntimeCloudTransition {
+  previous: DesktopRuntimeTransitionState;
+  publish: (state: DesktopRuntimeTransitionState) => void;
+  closeLocalRuntime: () => Promise<void>;
+  persistCloudMode: () => void;
+  relaunch: () => void;
+  exit: () => void;
+}
+export function assertDesktopRuntimeAvailable(
+  status: IDesktopRuntimeContext['status'],
+): void {
+  if (status === 'unavailable')
+    throw new Error('Restart Genfeed Desktop to recover the local workspace.');
+  if (status === 'switching')
+    throw new Error(
+      'Genfeed Desktop is switching servers. Wait for it to restart.',
+    );
+}
+/** The persisted rename is the commit point; attempted teardown requires restart on failure. */
+export async function transitionDesktopRuntimeToCloud(
+  input: DesktopRuntimeCloudTransition,
+): Promise<void> {
+  const previous = { ...input.previous };
+  let teardownAttempted = false;
+  let committed = false;
+  try {
+    input.publish({ ...previous, status: 'switching' });
+    await switchDesktopToCloud({
+      closeLocalRuntime: async () => {
+        teardownAttempted = true;
+        await input.closeLocalRuntime();
+      },
+      persistCloudMode: () => {
+        input.persistCloudMode();
+        committed = true;
+        input.publish({
+          status: 'switching',
+          isOfflineMode: false,
+          localProvider: null,
+        });
+      },
+      relaunch: input.relaunch,
+      exit: input.exit,
+    });
+  } catch (error) {
+    if (!committed)
+      input.publish({
+        ...previous,
+        status: teardownAttempted ? 'unavailable' : previous.status,
+      });
+    throw error;
+  }
+}
+
+export function selectDesktopRuntimeDataService<TService>(
+  status: IDesktopRuntimeContext['status'],
+  selection: Parameters<typeof selectDesktopDataService<TService>>[0],
+): TService {
+  assertDesktopRuntimeAvailable(status);
+  return selectDesktopDataService(selection);
 }

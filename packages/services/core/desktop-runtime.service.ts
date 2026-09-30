@@ -61,7 +61,7 @@ function decodeContext(value: unknown): IDesktopRuntimeContext | null {
     !data.runtimeId ||
     !Number.isInteger(data.revision) ||
     Number(data.revision) < 0 ||
-    !['ready', 'switching'].includes(String(data.status)) ||
+    !['ready', 'switching', 'unavailable'].includes(String(data.status)) ||
     typeof data.selectedServerId !== 'string' ||
     !data.selectedServerId ||
     !['cloud', 'self-hosted'].includes(String(data.selectedServerKind)) ||
@@ -106,16 +106,15 @@ function decodeContext(value: unknown): IDesktopRuntimeContext | null {
   }
   if (
     data.generationExecution === 'local-byok' &&
-    (data.runtimeMode !== 'local' || !localProvider)
+    (data.status !== 'ready' || data.runtimeMode !== 'local' || !localProvider)
   )
-    return null;
-  if (data.generationExecution === 'remote' && data.runtimeMode !== 'cloud')
     return null;
   if (
-    localProvider &&
-    (data.runtimeMode !== 'local' || data.generationExecution !== 'local-byok')
+    data.generationExecution === 'remote' &&
+    (data.runtimeMode !== 'cloud' || data.status !== 'ready')
   )
     return null;
+  if (localProvider && data.runtimeMode !== 'local') return null;
   return {
     version: 1,
     runtimeId: data.runtimeId,
@@ -140,6 +139,8 @@ export class DesktopRuntimeService {
   private epoch = 0;
   private started = false;
   private accepted: IDesktopRuntimeContext | null = null;
+  private activeBridge: RuntimeBridge | null = null;
+  private teardownGeneration = 0;
 
   constructor(
     private readonly detect = isDesktopRuntimeShell,
@@ -149,36 +150,53 @@ export class DesktopRuntimeService {
   getServerSnapshot = (): DesktopRuntimeSnapshot => UNKNOWN;
   getSnapshot = (): DesktopRuntimeSnapshot => this.snapshot;
   getCurrentSnapshot = (): DesktopRuntimeSnapshot =>
-    this.detect() ? this.snapshot : WEB;
+    this.detect()
+      ? this.started && this.bridge() !== this.activeBridge
+        ? UNKNOWN
+        : this.snapshot
+      : WEB;
 
   private publish(snapshot: DesktopRuntimeSnapshot): void {
     this.snapshot = Object.freeze(snapshot);
     for (const listener of this.listeners) listener();
   }
 
+  private teardown(): void {
+    this.epoch += 1;
+    this.started = false;
+    const detach = this.detach;
+    this.detach = null;
+    this.activeBridge = null;
+    this.accepted = null;
+    this.snapshot = UNKNOWN;
+    detach?.();
+  }
+
   subscribe = (listener: () => void): (() => void) => {
+    this.teardownGeneration += 1;
     this.listeners.add(listener);
-    if (!this.started) this.start();
+    const bridge = this.detect() ? this.bridge() : null;
+    if (this.started && bridge !== this.activeBridge) this.teardown();
+    if (!this.started) this.start(bridge);
     return () => {
       this.listeners.delete(listener);
       if (this.listeners.size) return;
-      this.epoch += 1;
-      this.detach?.();
-      this.detach = null;
-      this.started = false;
-      this.accepted = null;
-      this.snapshot = UNKNOWN;
+      const generation = ++this.teardownGeneration;
+      queueMicrotask(() => {
+        if (!this.listeners.size && generation === this.teardownGeneration)
+          this.teardown();
+      });
     };
   };
 
-  private start(): void {
+  private start(bridge: RuntimeBridge | null): void {
     this.started = true;
     const epoch = ++this.epoch;
     if (!this.detect()) {
       this.publish(WEB);
       return;
     }
-    const bridge = this.bridge();
+    this.activeBridge = bridge;
     if (!bridge) {
       this.publish(UNAVAILABLE);
       return;
@@ -188,7 +206,7 @@ export class DesktopRuntimeService {
     const accept = (value: unknown, fromRpc: boolean) => {
       if (fromRpc && receivedEvent) return;
       if (!fromRpc) receivedEvent = true;
-      if (epoch !== this.epoch || !this.listeners.size) return;
+      if (epoch !== this.epoch || !this.started) return;
       const context = decodeContext(value);
       if (!context) {
         this.publish(UNAVAILABLE);

@@ -1,7 +1,20 @@
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
+
+const runtimeMocks = vi.hoisted(() => ({
+  snapshot: { status: 'web', context: null } as DesktopRuntimeSnapshot,
+  subscription: vi.fn(),
+}));
 vi.mock(
   '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
-  () => ({
-    useDesktopRuntimeContext: () => ({ status: 'web', context: null }),
+  () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
+);
+vi.mock(
+  '@genfeedai/services/core/desktop-runtime.service',
+  async (importOriginal) => ({
+    ...(await importOriginal<
+      typeof import('@genfeedai/services/core/desktop-runtime.service')
+    >()),
+    desktopRuntimeService: { getCurrentSnapshot: () => runtimeMocks.snapshot },
   }),
 );
 
@@ -51,10 +64,13 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock(
   '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
   () => ({
-    useSubscription: () => ({
-      creditsBreakdown: null,
-      refreshCreditsBreakdown: mockRefreshCreditsBreakdown,
-    }),
+    useSubscription: () => {
+      runtimeMocks.subscription();
+      return {
+        creditsBreakdown: null,
+        refreshCreditsBreakdown: mockRefreshCreditsBreakdown,
+      };
+    },
   }),
 );
 
@@ -162,6 +178,7 @@ function renderBar() {
 
 describe('TopbarCreditsBar', () => {
   beforeEach(() => {
+    runtimeMocks.snapshot = { status: 'web', context: null };
     vi.clearAllMocks();
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
@@ -171,6 +188,33 @@ describe('TopbarCreditsBar', () => {
     });
     mockGetTopbarBalances.mockResolvedValue(balanceResponse(42));
     socketState.isReady = true;
+  });
+
+  it('uses the authoritative cloud wallet without mounting the web plan cache', async () => {
+    runtimeMocks.snapshot = {
+      status: 'ready',
+      context: {
+        version: 1,
+        runtimeId: 'launch',
+        revision: 0,
+        status: 'ready',
+        selectedServerId: 'cloud',
+        selectedServerKind: 'cloud',
+        selectedApiEndpoint: 'https://api.genfeed.ai/v1',
+        runtimeMode: 'cloud',
+        generationExecution: 'remote',
+        localProvider: null,
+      },
+    };
+    renderBar();
+    await waitFor(() =>
+      expect(screen.getByTestId('credits-balance')).toHaveTextContent('42'),
+    );
+    expect(runtimeMocks.subscription).not.toHaveBeenCalled();
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-plan-limit',
+      '0',
+    );
   });
 
   it('subscribes to live balance events only once the socket is ready', async () => {

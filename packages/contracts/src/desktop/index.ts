@@ -210,7 +210,7 @@ export interface IDesktopRuntimeContext {
   version: 1;
   runtimeId: string;
   revision: number;
-  status: 'ready' | 'switching';
+  status: 'ready' | 'switching' | 'unavailable';
   selectedServerId: string;
   selectedServerKind: 'cloud' | 'self-hosted';
   selectedApiEndpoint: string;

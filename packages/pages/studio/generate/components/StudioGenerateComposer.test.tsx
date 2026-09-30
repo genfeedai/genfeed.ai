@@ -9,12 +9,20 @@ vi.mock(
 );
 vi.mock(
   '@genfeedai/services/core/desktop-runtime.service',
-  async (importOriginal) => ({
-    ...(await importOriginal<
-      typeof import('@genfeedai/services/core/desktop-runtime.service')
-    >()),
-    desktopRuntimeService: { getCurrentSnapshot: () => runtimeMocks.snapshot },
-  }),
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/services/core/desktop-runtime.service')
+      >();
+    return {
+      ...actual,
+      desktopRuntimeService: {
+        getCurrentSnapshot: () => runtimeMocks.snapshot,
+      },
+      canSubmitStudioGeneration: (snapshot = runtimeMocks.snapshot) =>
+        actual.canSubmitStudioGeneration(snapshot),
+    };
+  },
 );
 
 import {
