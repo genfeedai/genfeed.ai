@@ -76,7 +76,7 @@ test.describe('Workflows builder & canvas interactions', () => {
     ).toBeVisible();
     await expect(
       authenticatedPage
-        .locator('a[href*="/automation/workflows/templates"]')
+        .locator('a[href*="/automation/workflows?view=templates"]')
         .first(),
     ).toBeVisible();
 

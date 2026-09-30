@@ -38,8 +38,8 @@ describe('workflow surface routing', () => {
   it('keeps the templates tab in the workflow inspector family', () => {
     expect(
       resolveWorkflowSurfaceRoute(
-        '/acme/moonrise/automation/workflows/templates',
-        new URLSearchParams(),
+        '/acme/moonrise/automation/workflows',
+        new URLSearchParams({ view: 'templates' }),
       ),
     ).toEqual({
       executionId: null,

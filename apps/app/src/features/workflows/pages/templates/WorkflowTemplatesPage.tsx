@@ -20,13 +20,13 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
+import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionGrid from '@ui/collection/CollectionGrid';
 import CollectionItemActions from '@ui/collection/CollectionItemActions';
 import CollectionSection from '@ui/collection/CollectionSection';
 import CollectionToolbar from '@ui/collection/CollectionToolbar';
 import CollectionView from '@ui/collection/CollectionView';
 import Container from '@ui/layout/container/Container';
-import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
 import ListRow from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -57,7 +57,10 @@ import {
   type WorkflowApiService,
   type WorkflowTemplate,
 } from '@/features/workflows/services/workflow-api';
-import { workflowCollectionHeaderTabs } from '../workflow-library-tabs';
+import {
+  workflowCollectionHeaderTabs,
+  workflowTemplatesTabPath,
+} from '../workflow-library-tabs';
 import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
@@ -431,9 +434,7 @@ function buildCatalogItems({
     description: template.description,
     edges: template.edges,
     exampleOutput: template.exampleOutput,
-    href: href(
-      `${APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES}?template=${template.id}`,
-    ),
+    href: href(workflowTemplatesTabPath({ template: template.id })),
     id: `template-${template.id}`,
     nodes: template.nodes,
     schedule: template.schedule,
@@ -1114,7 +1115,8 @@ function WorkflowTemplatesPageContent() {
       ) : null}
 
       <div className="flex flex-col gap-8" data-testid="templates-content">
-        <CollectionSection
+        <CollectionCarouselSection
+          gap="md"
           title={translate('sections.featured')}
           itemCount={isFeaturedLoading ? 0 : featuredItems.length}
           error={
@@ -1125,14 +1127,12 @@ function WorkflowTemplatesPageContent() {
           }
           data-testid="templates-featured-section"
         >
-          <HorizontalCarousel gap="md">
-            {featuredItems.map((item) => (
-              <div key={item.id} className="w-[min(26rem,85%)] shrink-0">
-                {renderTemplateCard(item)}
-              </div>
-            ))}
-          </HorizontalCarousel>
-        </CollectionSection>
+          {featuredItems.map((item) => (
+            <div key={item.id} className="w-[min(26rem,85%)] shrink-0">
+              {renderTemplateCard(item)}
+            </div>
+          ))}
+        </CollectionCarouselSection>
 
         <CollectionSection
           title={translate('sections.browseByType')}

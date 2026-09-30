@@ -5,9 +5,9 @@ import type { ContentTeamRolePreset } from '@pages/agents/content-team/content-t
 import { CONTENT_TEAM_ROLE_PRESETS } from '@pages/agents/content-team/content-team-presets';
 import type { AgentMarketplaceProps } from '@props/automation/agent-marketplace.props';
 import Card from '@ui/card/Card';
+import CollectionCarouselSection from '@ui/collection/CollectionCarouselSection';
 import CollectionList from '@ui/collection/CollectionList';
 import CollectionSection from '@ui/collection/CollectionSection';
-import HorizontalCarousel from '@ui/layout/horizontal-carousel/HorizontalCarousel';
 import { ListRow } from '@ui/lists/list-row/ListRow';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -103,48 +103,47 @@ export default function AgentMarketplace({
         ))}
       </div>
 
-      <CollectionSection
+      <CollectionCarouselSection
+        gap="md"
         data-testid="agent-marketplace-featured"
         itemCount={featuredPresets.length}
         title={translate('featured')}
       >
-        <HorizontalCarousel gap="md">
-          {featuredPresets.map((preset) => {
-            const isActivating = submittingPresetId === preset.id;
-            return (
-              <Card
-                key={`featured-${preset.id}`}
-                className="w-64 shrink-0"
-                data-testid={`agent-preset-featured-${preset.id}`}
-                description={preset.description}
-                icon={
-                  <AgentPresetAvatar
-                    platforms={preset.platforms}
-                    presetId={preset.id}
-                    type={preset.type}
-                  />
+        {featuredPresets.map((preset) => {
+          const isActivating = submittingPresetId === preset.id;
+          return (
+            <Card
+              key={`featured-${preset.id}`}
+              className="w-64 shrink-0"
+              data-testid={`agent-preset-featured-${preset.id}`}
+              description={preset.description}
+              icon={
+                <AgentPresetAvatar
+                  platforms={preset.platforms}
+                  presetId={preset.id}
+                  type={preset.type}
+                />
+              }
+              iconWrapperClassName="bg-transparent p-0"
+              isDisabled={isSubmitting}
+              label={preset.displayRole}
+              onClick={() => {
+                if (!isSubmitting) {
+                  void onActivate(preset.id);
                 }
-                iconWrapperClassName="bg-transparent p-0"
-                isDisabled={isSubmitting}
-                label={preset.displayRole}
-                onClick={() => {
-                  if (!isSubmitting) {
-                    void onActivate(preset.id);
-                  }
-                }}
-              >
-                <p className="text-xs text-foreground/45">
-                  {isActivating
-                    ? translate('activating')
-                    : translate('creditsPerDay', {
-                        credits: preset.defaultBudget,
-                      })}
-                </p>
-              </Card>
-            );
-          })}
-        </HorizontalCarousel>
-      </CollectionSection>
+              }}
+            >
+              <p className="text-xs text-foreground/45">
+                {isActivating
+                  ? translate('activating')
+                  : translate('creditsPerDay', {
+                      credits: preset.defaultBudget,
+                    })}
+              </p>
+            </Card>
+          );
+        })}
+      </CollectionCarouselSection>
 
       {visiblePresets.length === 0 ? (
         <p className="py-8 text-center text-sm text-foreground/50">

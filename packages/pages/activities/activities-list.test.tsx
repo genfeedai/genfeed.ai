@@ -116,7 +116,13 @@ describe('ActivitiesList', () => {
         }),
       }),
     ];
-    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
     expect(screen.getByText('Onboarding preview image')).toBeInTheDocument();
     expect(screen.getByText('−1 credit')).toBeInTheDocument();
     expect(screen.queryByText('1 credits used')).not.toBeInTheDocument();
@@ -129,7 +135,13 @@ describe('ActivitiesList', () => {
         value: JSON.stringify({ credits: 4, resultId: 'img-1' }),
       }),
     ];
-    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
     expect(screen.getByText('−4 credits')).toBeInTheDocument();
   });
 
@@ -140,7 +152,13 @@ describe('ActivitiesList', () => {
         value: JSON.stringify({ resultId: 'img-1' }),
       }),
     ];
-    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 

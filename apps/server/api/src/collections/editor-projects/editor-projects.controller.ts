@@ -186,7 +186,10 @@ export class EditorProjectsController {
           sourceEndFrame: durationFrames,
           sourceStartFrame: 0,
           startFrame,
-          thumbnailUrl: video.thumbnailUrl ?? undefined,
+          thumbnailUrl:
+            typeof video.thumbnailUrl === 'string'
+              ? video.thumbnailUrl
+              : undefined,
         };
         startFrame += durationFrames;
         return clip;

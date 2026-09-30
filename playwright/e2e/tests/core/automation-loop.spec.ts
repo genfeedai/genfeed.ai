@@ -84,7 +84,7 @@ test.describe('Core Automation Loop', () => {
 
     await expect(automationPage.getByText('Templates').first()).toBeVisible();
     await automationPage
-      .locator('a[href*="/automation/workflows/templates?template="]')
+      .locator('a[href*="/automation/workflows?view=templates&template="]')
       .first()
       .click({ force: true });
 

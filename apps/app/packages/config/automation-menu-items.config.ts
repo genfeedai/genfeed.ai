@@ -27,10 +27,8 @@ export const AUTOMATION_MENU_ITEMS: MenuItemConfig[] = [
     href: APP_ROUTES.AUTOMATION.WORKFLOWS,
     label: 'Workflows',
     matchPaths: [
-      APP_ROUTES.AUTOMATION.TEMPLATES,
       APP_ROUTES.AUTOMATION.WORKFLOWS,
       APP_ROUTES.AUTOMATION.WORKFLOWS_NEW,
-      APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES,
     ],
     outline: Workflow,
     solid: Workflow,

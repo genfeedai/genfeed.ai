@@ -105,7 +105,9 @@ describe('NewClipProjectPage', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mocks.createDraft).not.toHaveBeenCalled();
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', { name: 'Creating project…' }),
+    ).toBeInTheDocument();
   });
 
   it('starts a project from a Library video and opens its analysis', async () => {

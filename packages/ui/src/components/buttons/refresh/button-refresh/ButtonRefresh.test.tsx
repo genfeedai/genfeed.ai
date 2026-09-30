@@ -39,13 +39,13 @@ describe('ButtonRefresh', () => {
     );
 
     const idle = screen.getByRole('button', { name: 'Refresh' });
-    expect(idle.querySelector('svg')).toBeTruthy();
+    expect(idle.querySelector('.lucide-refresh-cw')).toBeTruthy();
     expect(idle.querySelector('output')).toBeNull();
 
     rerender(<ButtonRefresh onClick={vi.fn()} isRefreshing />);
 
     const refreshing = screen.getByRole('button', { name: 'Refresh' });
-    expect(refreshing.querySelector('svg')).toBeNull();
+    expect(refreshing.querySelector('.lucide-refresh-cw')).toBeNull();
     expect(refreshing.querySelector('output')).toHaveClass(
       'genfeed-loader-root',
     );
