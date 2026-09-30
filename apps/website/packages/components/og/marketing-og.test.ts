@@ -25,7 +25,16 @@ function stubCdnFetch(fetchArtwork: typeof fetch) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('marketing OG images', () => {
-  it.each(Object.keys(MARKETING_OG_CARDS) as MarketingOgCard[])(
+  it.each([
+    'default',
+    'x',
+    'claude',
+    'codex',
+    'integration-wordpress',
+    'card-0003',
+    'claude--x-twitter',
+    'vs--canva',
+  ] as MarketingOgCard[])(
     'renders a crawler-ready %s PNG with the real bundled fonts',
     async (kind) => {
       const fetchArtwork = vi
@@ -38,14 +47,10 @@ describe('marketing OG images', () => {
       const response = await renderMarketingOg(kind);
       const png = Buffer.from(await response.arrayBuffer());
 
-      if (kind === 'default') {
-        expect(fetchArtwork).not.toHaveBeenCalled();
-      } else {
-        expect(fetchArtwork).toHaveBeenCalledWith(
-          MARKETING_OG_CARDS[kind].artwork,
-          expect.objectContaining({ next: { revalidate: 3600 } }),
-        );
-      }
+      expect(fetchArtwork).toHaveBeenCalledWith(
+        MARKETING_OG_CARDS[kind].artwork,
+        expect.objectContaining({ next: { revalidate: 3600 } }),
+      );
       expect(response.headers.get('content-type')).toBe('image/png');
       expect(response.headers.get('cache-control')).toContain('max-age=3600');
       expect(png.subarray(1, 4).toString()).toBe('PNG');

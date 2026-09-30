@@ -46,10 +46,6 @@ describe('PatternMatcherService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should generate a cache key with brand-patterns prefix', async () => {
     cacheService.generateKey.mockReturnValue(cacheKey);
     cacheService.getOrSet.mockResolvedValue(mockPatterns as CreativePattern[]);

@@ -4,6 +4,7 @@ import { BRAND_INTERVIEW_TOOLS } from './brand-interview.tools';
 import { MCP_ONLY_TOOLS } from './mcp-only/index';
 import { OVERLAP_TOOLS } from './overlap.tools';
 import { OVERLAP_INSPIRATION_TOOLS } from './overlap-inspiration.tools';
+import { VISUAL_CODE_TOOLS } from './visual-code.tools';
 
 /**
  * Hand-authored schemas and metadata for curated product actions. The shard
@@ -11,6 +12,7 @@ import { OVERLAP_INSPIRATION_TOOLS } from './overlap-inspiration.tools';
  * exclusively in `curated-action-catalog.ts`.
  */
 export const SOURCE_TOOLS: SourceTool[] = [
+  ...VISUAL_CODE_TOOLS,
   ...OVERLAP_TOOLS,
   ...OVERLAP_INSPIRATION_TOOLS,
   ...AGENT_ONLY_TOOLS,

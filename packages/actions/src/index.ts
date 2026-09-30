@@ -61,6 +61,11 @@ export {
   SEARCH_KNOWLEDGE_DATA_SCHEMA,
 } from './registry/contracts/knowledge-tool-action-contracts';
 export { REMOTION_COMPOSITION_INPUT_SCHEMA } from './registry/contracts/remotion-action-contracts';
+export {
+  getVisualCodeActionContract,
+  VISUAL_CODE_ACTION_ALIASES,
+  VISUAL_CODE_INPUT_SCHEMAS,
+} from './registry/contracts/visual-code-action-contracts';
 export type {
   CuratedActionCatalogEntry,
   CuratedActionName,

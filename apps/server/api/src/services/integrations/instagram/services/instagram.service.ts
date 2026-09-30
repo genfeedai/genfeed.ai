@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -489,6 +490,7 @@ export class InstagramService {
       const trendingHashtags: InstagramTrendingHashtag[] = [];
 
       if (!organizationId || !brandId) {
+        recordTrendProviderOutcome('native_empty', 'native_unavailable');
         this.loggerService.warn(
           `${url} - Instagram trend provider unavailable`,
           {
@@ -553,6 +555,7 @@ export class InstagramService {
               trendingHashtags.push(...personalizedTrends);
             }
           } else {
+            recordTrendProviderOutcome('native_empty', 'native_unavailable');
             this.loggerService.warn(
               `${url} - Instagram trend provider unavailable`,
               {
@@ -564,6 +567,7 @@ export class InstagramService {
             );
           }
         } catch (error: unknown) {
+          recordTrendProviderOutcome('native_failed', 'native_failed');
           this.loggerService.warn(
             `${url} - Could not fetch personalized trends`,
             error,
@@ -573,6 +577,7 @@ export class InstagramService {
 
       return trendingHashtags;
     } catch (error: unknown) {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }

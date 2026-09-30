@@ -1,5 +1,5 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import BrandOSContent from '@public/brand-os/brand-os-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Brand OS: Genfeed Design System',

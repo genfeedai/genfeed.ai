@@ -28,6 +28,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
+import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 const REFRESH_WINDOW_MS = 12 * 60 * 60 * 1000;
@@ -43,6 +44,7 @@ export class CronTrendsService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly ingestionHealth: TrendIngestionHealthService,
   ) {}
 
   onModuleInit(): void {
@@ -63,6 +65,11 @@ export class CronTrendsService implements OnModuleInit {
 
   async refreshGlobalTrends(now = new Date()): Promise<void> {
     if (!this.configService.isDevSchedulersEnabled) return;
+    try {
+      await this.ingestionHealth.checkMissedWindows(now);
+    } catch (error: unknown) {
+      this.loggerService.error('Trend ingestion health check failed', error);
+    }
     const windowId = Math.floor(now.getTime() / REFRESH_WINDOW_MS);
     await Promise.all([
       this.enqueue(

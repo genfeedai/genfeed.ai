@@ -1,6 +1,6 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import YoutubeLongFormContent from '@public/tools/youtube-long-form/youtube-long-form-content';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 import { FileText } from 'lucide-react';
 

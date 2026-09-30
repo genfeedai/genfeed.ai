@@ -25,6 +25,14 @@ export const STUDIO_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
+    href: APP_ROUTES.STUDIO.MOTION,
+    label: 'Motion',
+    matchPaths: [APP_ROUTES.STUDIO.MOTION],
+    outline: Film,
+    solid: Film,
+  },
+  {
+    group: '',
     href: APP_ROUTES.STUDIO.STORYBOARD,
     label: 'Storyboard',
     matchPaths: [

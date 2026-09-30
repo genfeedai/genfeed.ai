@@ -1,5 +1,5 @@
 import { getPublishedReleases } from '@data/releases.data';
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import ChangelogContent from './content';
 
 export const revalidate = 300;

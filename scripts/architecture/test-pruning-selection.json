@@ -1,0 +1,537 @@
+{
+  "base": "472819143c21a78ce9647cc1168f2009cee81d0f",
+  "files": [
+    {
+      "afterHash": "6bd6b93464f4f65f56192804a019fabd1319e0b96432760c0354ba4e934bbc63",
+      "beforeHash": "82eeaea684034cc3b5235e29915a6b3017493122f942a3a003f7abc6b6fb6163",
+      "file": "apps/server/api/src/collections/brands/controllers/brands-agent-config.controller.spec.ts",
+      "removed": [
+        {
+          "end": 2598,
+          "line": 84,
+          "start": 2519,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "calls updateAgentConfig with correct parameters",
+          "witnessLine": 88
+        }
+      ]
+    },
+    {
+      "afterHash": "dd788ee29cc2e8052fde58d62d0969e00748a16b73fcc5bc0d6ef099ae42336a",
+      "beforeHash": "8b75a3d45ef0839e9cd5daf6ae156866093a2f584c2bd4067f58c0a56aadeda4",
+      "file": "apps/server/api/src/collections/brands/controllers/brands.controller.spec.ts",
+      "removed": [
+        {
+          "end": 9105,
+          "line": 245,
+          "start": 9026,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "passes onboarding profile fields through the sync rename path",
+          "witnessLine": 261
+        }
+      ]
+    },
+    {
+      "afterHash": "0a5d16c17b455b73fa964efda58b11da22536f4be56070261d9d09c596dc986e",
+      "beforeHash": "13ea0e02019e7932b531a5e0498601d391f40e8a7288edcf996021af7d50296f",
+      "file": "apps/server/api/src/collections/content-intelligence/services/content-generator.service.spec.ts",
+      "removed": [
+        {
+          "end": 7852,
+          "line": 209,
+          "start": 7776,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "generates content using available patterns",
+          "witnessLine": 280
+        }
+      ]
+    },
+    {
+      "afterHash": "4f117defa3a5c50e6b33a9155c1d362f4e5647c35ed284ce94e6c0a519e35090",
+      "beforeHash": "6a7b63c3641f691a714981248b494a8f933f1a8a6ba6c31a64988b11f22334fc",
+      "file": "apps/server/api/src/collections/launch-copy/controllers/launch-copy.controller.spec.ts",
+      "removed": [
+        {
+          "end": 2297,
+          "line": 64,
+          "start": 2218,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "generates copy when the brand is accessible",
+          "witnessLine": 68
+        }
+      ]
+    },
+    {
+      "afterHash": "521a9ccd62ec7a957b2240f4645c1407f56f0ed447fcda7428acf8dcf401fcf9",
+      "beforeHash": "d32bf059d45e2cbb31c1812cad25c73bfda6540453c08ed740b7bab49536ee9b",
+      "file": "apps/server/api/src/collections/organizations/controllers/organizations-relationships.controller.spec.ts",
+      "removed": [
+        {
+          "end": 6243,
+          "line": 179,
+          "start": 6164,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "counts credentials only for the requested analytics brand",
+          "witnessLine": 217
+        }
+      ]
+    },
+    {
+      "afterHash": "0f95b74ba66c4737e5bd0bbaa1cf25859355998746d955c42610cf9093489c02",
+      "beforeHash": "bcbddb3f3527cba7db8983171c4cb7599606a21d824068f43f75a2f66bdd9a5d",
+      "file": "apps/server/api/src/collections/prompts/controllers/prompts-operations.controller.spec.ts",
+      "removed": [
+        {
+          "end": 3032,
+          "line": 74,
+          "start": 2953,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "converts an accepted voice file to text",
+          "witnessLine": 78
+        }
+      ]
+    },
+    {
+      "afterHash": "2810edb01b6c14f827114ef1326705eab5c3c62552ee046aa471b74ec374cdb5",
+      "beforeHash": "49098d635403c3b16441e2ad5a5ffb5227911da468b026ed9b614e10ed700a6d",
+      "file": "apps/server/api/src/collections/trends/services/trends.service.spec.ts",
+      "removed": [
+        {
+          "end": 10244,
+          "line": 305,
+          "start": 10168,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "delegates corpus freshness health to the reference corpus owner",
+          "witnessLine": 309
+        }
+      ]
+    },
+    {
+      "afterHash": "a686d6fb3118f18a6d01a384b5b57eeb0ff9f9c4e078c94ef2144d1e11cf0656",
+      "beforeHash": "489f942adaafebfa632b00edcf81ecb82d57d7bf374614dbb9028bd6b5207ea6",
+      "file": "apps/server/api/src/collections/votes/controllers/votes.controller.spec.ts",
+      "removed": [
+        {
+          "end": 2287,
+          "line": 70,
+          "start": 2208,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "creates a vote",
+          "witnessLine": 74
+        }
+      ]
+    },
+    {
+      "afterHash": "0f47f9d5b7c39d003a3e80dd3bbabcb02b4ad7226a91e762a926698ea17add34",
+      "beforeHash": "809811a6131f9078cbbc14c83aaa2dfeadc276ddd2e34ef0f431dc4bf5a2af1d",
+      "file": "apps/server/api/src/endpoints/ads-research/ads-research.controller.spec.ts",
+      "removed": [
+        {
+          "end": 4767,
+          "line": 132,
+          "start": 4688,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "keeps discovery preview-only when the request omits the session brand",
+          "witnessLine": 36
+        }
+      ]
+    },
+    {
+      "afterHash": "7a2c7eff685cc519be053a65429147d111d11abf18fe02a260eb752a9854fe79",
+      "beforeHash": "25ea395c94879ebe8a73cb262152f4916dd7be315c85734d7487e2ee01d50506",
+      "file": "apps/server/api/src/endpoints/dev/dev.controller.spec.ts",
+      "removed": [
+        {
+          "end": 1728,
+          "line": 44,
+          "start": 1649,
+          "subject": "controller",
+          "title": "should be defined",
+          "witness": "sends Discord notification for valid ingredient",
+          "witnessLine": 76
+        }
+      ]
+    },
+    {
+      "afterHash": "ce73fa039c82d4db2143b6776429052c6008554fcc49cac2078965bff39c94aa",
+      "beforeHash": "a31f3e853a62e3fa97313b628b2c6ee74938033462c773e5350556be32c4a3a4",
+      "file": "apps/server/api/src/helpers/filters/all-exception/all-exception.filter.spec.ts",
+      "removed": [
+        {
+          "end": 2703,
+          "line": 109,
+          "start": 2628,
+          "subject": "filter",
+          "title": "should be defined",
+          "witness": "should handle generic exceptions",
+          "witnessLine": 113
+        }
+      ]
+    },
+    {
+      "afterHash": "1b0ec5bbdd1c11d8ec194518f7626c6500a66edf1134b6aa82006eb899b536e1",
+      "beforeHash": "ecdcf6c8052797f51df1ee94100970c74c4b9b250854fd5a89407583c75ed643",
+      "file": "apps/server/api/src/helpers/filters/http-exception/http-exception.filter.spec.ts",
+      "removed": [
+        {
+          "end": 2751,
+          "line": 110,
+          "start": 2676,
+          "subject": "filter",
+          "title": "should be defined",
+          "witness": "should handle HttpException with string message",
+          "witnessLine": 114
+        }
+      ]
+    },
+    {
+      "afterHash": "8e4c52526cf6b54198f022a05728612692c3c3d7804d6d3c4525accb00e72469",
+      "beforeHash": "8f3edfb998a48c7d5a86bab7e8a02b23c5ae0b353e9c892b16a95b0a42582b11",
+      "file": "apps/server/api/src/helpers/pipes/upload-validation/upload-validation.pipe.spec.ts",
+      "removed": [
+        {
+          "end": 1187,
+          "line": 42,
+          "start": 1108,
+          "subject": "pipe",
+          "title": "should be defined",
+          "witness": "should pass through a valid file",
+          "witnessLine": 46
+        }
+      ]
+    },
+    {
+      "afterHash": "921c4a67d872bf09985e11dbdda6200c299ec3ab7f906564298fb6cfc36ef8fb",
+      "beforeHash": "63627b6f8b77528ec7b6e6626f700f0e2b693ee40f229837ad760401b0e0f282",
+      "file": "apps/server/api/src/services/cache/cache-client.service.spec.ts",
+      "removed": [
+        {
+          "end": 2729,
+          "line": 78,
+          "start": 2653,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should call connect on module init",
+          "witnessLine": 210
+        }
+      ]
+    },
+    {
+      "afterHash": "e22eba2063d5cc0b8f83c82741a49051149b29923a10866a53bb76d6f813be13",
+      "beforeHash": "ee03e0d667f3a4ba4757745677dabeccc6c412b1f4b13366b796915f2b320e11",
+      "file": "apps/server/api/src/services/cache/cache-tags.service.spec.ts",
+      "removed": [
+        {
+          "end": 1513,
+          "line": 50,
+          "start": 1437,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should add key to each tag set via pipeline",
+          "witnessLine": 59
+        }
+      ]
+    },
+    {
+      "afterHash": "0cf0efd97279a01363feafa99b0dba2e232396e48e9ef471486ea5a516f443b2",
+      "beforeHash": "5a1dd0c4768be04b8d35c4b3e4b81c5423fe9d4e94a914ce195bfe351da434cf",
+      "file": "apps/server/api/src/services/content-engine/content-planner.service.spec.ts",
+      "removed": [
+        {
+          "end": 10274,
+          "line": 318,
+          "start": 10198,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "generates a plan for a stored onboarding text audience",
+          "witnessLine": 169
+        }
+      ]
+    },
+    {
+      "afterHash": "cb696721478be58321994dc59ae6e48b91daac56f26f035c00332baac0af62ed",
+      "beforeHash": "66e2d54922929c4bbb369316f985c0764dd223b78286915673a184998f1ecf79",
+      "file": "apps/server/api/src/services/knowledge-base/master-prompt-generator.service.spec.ts",
+      "removed": [
+        {
+          "end": 3590,
+          "line": 108,
+          "start": 3514,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should parse brand voice analysis from JSON response",
+          "witnessLine": 112
+        }
+      ]
+    },
+    {
+      "afterHash": "15261a45038de2134417e398cd428540c00efc34e916d69d3841f35f5014e7a3",
+      "beforeHash": "626272453d3694deae1b48db6255503ffaaaa839a1ff518519d239c135b63042",
+      "file": "apps/server/api/src/services/notifications/notifications.service.spec.ts",
+      "removed": [
+        {
+          "end": 2912,
+          "line": 95,
+          "start": 2836,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "sends system notifications only to this deployment notifications service with acknowledgement",
+          "witnessLine": 63
+        }
+      ]
+    },
+    {
+      "afterHash": "f4d74a6bf2e1b5931cfeef106df0f32e71134691cdf85b82d7615b28cab8625c",
+      "beforeHash": "cd9a3170432b3016bc12d5558d945958306affc96aff14f93b26787092eb2696",
+      "file": "apps/server/api/src/services/notifications/publisher/notifications-publisher.service.spec.ts",
+      "removed": [
+        {
+          "end": 612,
+          "line": 17,
+          "start": 536,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "publishes video progress to Redis",
+          "witnessLine": 21
+        }
+      ]
+    },
+    {
+      "afterHash": "7d711a12c845e01bfbc40d2d286ec60039da443b02048798ef498745340c5291",
+      "beforeHash": "6e0ea36ad464c99c40a69cca9265b959e63ef9fd97196720f653d0fdddba368e",
+      "file": "apps/server/api/src/services/pattern-matcher/pattern-matcher.service.spec.ts",
+      "removed": [
+        {
+          "end": 1580,
+          "line": 49,
+          "start": 1504,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should generate a cache key with brand-patterns prefix",
+          "witnessLine": 53
+        }
+      ]
+    },
+    {
+      "afterHash": "55a504543b85233cea32209015d938993a7578f803921ae191cbf1b7e099999c",
+      "beforeHash": "cff5292b097af632c8ec9460aa37306014882053191d14f67ae53542f2778da0",
+      "file": "apps/server/api/src/services/persona-content/persona-content-plan.service.spec.ts",
+      "removed": [
+        {
+          "end": 2265,
+          "line": 73,
+          "start": 2189,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should generate entries for the requested number of days with daily frequency",
+          "witnessLine": 84
+        }
+      ]
+    },
+    {
+      "afterHash": "bf84dbfe418e27d80ba92d2264d0eda336f3cc6fc4c31a15f0b06f8437e4a8c6",
+      "beforeHash": "2ccfcfa0923bac8ec557d01309d501c513ea4df1459be9adedabec21dac32776",
+      "file": "apps/server/api/src/services/persona-content/persona-content.service.spec.ts",
+      "removed": [
+        {
+          "end": 2926,
+          "line": 80,
+          "start": 2850,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should use HeyGen by default for photo generation",
+          "witnessLine": 92
+        }
+      ]
+    },
+    {
+      "afterHash": "01912f6e95f2c420920cfbe8dd5b9e4945455295cbb0f471390b2c5e41cf9bdf",
+      "beforeHash": "8a48ed7048ce3bf435b110fae95d65fdc300ffed6c1931f22ebcad24453a163b",
+      "file": "apps/server/api/src/services/quota/quota.service.spec.ts",
+      "removed": [
+        {
+          "end": 2521,
+          "line": 68,
+          "start": 2445,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "counts posts by domain platform for a Prisma INSTAGRAM credential",
+          "witnessLine": 79
+        }
+      ]
+    },
+    {
+      "afterHash": "7298d2fd05f6e628406a8f89c79f64a3e0d17c30974806350e7c7b15d1f10a92",
+      "beforeHash": "a7b7d18178ce6d235b9480a71587ee13c19daedffd0980f646c7437baf30b9e6",
+      "file": "apps/server/api/src/services/reply-bot/social-monitor.service.spec.ts",
+      "removed": [
+        {
+          "end": 3527,
+          "line": 97,
+          "start": 3451,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "prefers official X API replies over Apify",
+          "witnessLine": 101
+        }
+      ]
+    },
+    {
+      "afterHash": "8a2f71c779133758afb6bd6fc385286302f0d36aad0319edf6dae4c533a80d38",
+      "beforeHash": "02e89b9ed7eb979598a4d8e8167f716653d86874b569beb3a2f1f1cca8412825",
+      "file": "apps/server/discord/src/services/discord-bot-manager.service.spec.ts",
+      "removed": [
+        {
+          "end": 6362,
+          "line": 208,
+          "start": 6286,
+          "subject": "manager",
+          "title": "should be defined",
+          "witness": "should initialize and subscribe to redis events",
+          "witnessLine": 212
+        }
+      ]
+    },
+    {
+      "afterHash": "03bb506012eb7b8de8fe82456ac63074dad5970b9e9be81eba34d575eca8e6c5",
+      "beforeHash": "6b70f934c72beb0bb820c3274f23d6692a3f30405beea9e140000792ae9c617f",
+      "file": "apps/server/files/src/services/ffmpeg/config/binary-validation.service.spec.ts",
+      "removed": [
+        {
+          "end": 1346,
+          "line": 45,
+          "start": 1270,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "returns validated binary paths",
+          "witnessLine": 49
+        }
+      ]
+    },
+    {
+      "afterHash": "a61ddcfbad46fd4034406981227339ae52f88e9d002eb8ff22dde8aedcdd966c",
+      "beforeHash": "fa07364b12a7f27734cc834c8f573cdcb58687fb0eb74f557cab66485a9911de",
+      "file": "apps/server/files/src/services/ffmpeg/services/ffmpeg-beat-detection.service.spec.ts",
+      "removed": [
+        {
+          "end": 3412,
+          "line": 114,
+          "start": 3336,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "analyzes beats using aubio when it succeeds",
+          "witnessLine": 118
+        }
+      ]
+    },
+    {
+      "afterHash": "3d7309e91fa546bc63cd08b93ccf3442f80f5ee58866acca46d4f13dc385d9c5",
+      "beforeHash": "859b52e4333bce850f6ce13e779da76f139cdbb16f1ee6a049e3fedc7790c26b",
+      "file": "apps/server/files/src/services/files/captions/files-captions.service.spec.ts",
+      "removed": [
+        {
+          "end": 2450,
+          "line": 86,
+          "start": 2374,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "parses srt content",
+          "witnessLine": 90
+        }
+      ]
+    },
+    {
+      "afterHash": "f9e47d603064afb5c8eaefb05ed73202bdbac77cf7990cc5c40a1006e86752c2",
+      "beforeHash": "7e627798b851a049804fdd447e6096b351749f3c8fd60c83c1abc8d47cce9844",
+      "file": "apps/server/files/src/services/job-lifecycle-publisher.service.spec.ts",
+      "removed": [
+        {
+          "end": 1851,
+          "line": 71,
+          "start": 1775,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "should publish serialized job status to Redis",
+          "witnessLine": 112
+        }
+      ]
+    },
+    {
+      "afterHash": "986d82d7a5dd818b3f84c9cc66d3efbed16e5b95113e6629042786720cadf9aa",
+      "beforeHash": "c558a0ed1810264da620915404960f3fe8ffa9c735150d57a88cc8582ebd35d9",
+      "file": "apps/server/files/src/services/s3/s3.service.spec.ts",
+      "removed": [
+        {
+          "end": 3318,
+          "line": 123,
+          "start": 3242,
+          "subject": "service",
+          "title": "should be defined",
+          "witness": "builds a legitimate nested key under the ingredients prefix",
+          "witnessLine": 133
+        }
+      ]
+    },
+    {
+      "afterHash": "e5ac67d39e6f08d53decf25eae525e9769fd1779e1e35369bccd096d4022f606",
+      "beforeHash": "dee64cee856a9ced2d34fae21e04c5ea28594bfe0d4dc3e96d4c340b9612b220",
+      "file": "apps/server/mcp/src/services/tool-registry.service.spec.ts",
+      "removed": [
+        {
+          "end": 10740,
+          "line": 333,
+          "start": 10671,
+          "subject": "service",
+          "title": "is defined",
+          "witness": "getTools returns the MCP tool list",
+          "witnessLine": 337
+        }
+      ]
+    },
+    {
+      "afterHash": "fba15ce15109609dbaef8e91acbacd90547a4a3448fbb80c486c7164d6b5669b",
+      "beforeHash": "97952e11d555fdffd149d4f051a7f53d66c79550097dfb9f4923842d65f50ac7",
+      "file": "apps/server/telegram/src/services/telegram-bot-manager.service.spec.ts",
+      "removed": [
+        {
+          "end": 5380,
+          "line": 180,
+          "start": 5304,
+          "subject": "manager",
+          "title": "should be defined",
+          "witness": "should initialize and subscribe to redis events",
+          "witnessLine": 184
+        }
+      ]
+    },
+    {
+      "afterHash": "41da6dc68a220eb9c0baeb23a1c5374460b6ed6955bb8b9f583abfb80cf93375",
+      "beforeHash": "cc5c1243804b8b32bb41de8956e25159dbbf0a49f9ec71886c00af0b6fc1ceb1",
+      "file": "packages/libs/websockets/websockets.gateway.spec.ts",
+      "removed": [
+        {
+          "end": 2268,
+          "line": 97,
+          "start": 2192,
+          "subject": "gateway",
+          "title": "should be defined",
+          "witness": "should initialize and subscribe to Redis channels after startup delay",
+          "witnessLine": 101
+        }
+      ]
+    }
+  ],
+  "lockHash": "9e642def6b866dcd1d58e3a03861e3433469a67df7964d410c069522d082965e",
+  "parser": "6.0.3",
+  "rule": "same-suite-reset-fixture-method-witness-v1",
+  "selectorHash": "b6b0d5ddc8090cc603358ea4327b4af4227e1d5bdc8ec9d9ceb6798cf5623592"
+}

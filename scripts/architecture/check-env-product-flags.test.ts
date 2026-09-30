@@ -55,6 +55,21 @@ describe('runCheckEnvProductFlags', () => {
     expect(result.violations).toEqual([]);
   });
 
+  it('permits only the renderer infrastructure flag and rejects feature switches', () => {
+    const rootDir = createRepo({
+      'packages/config/src/schemas/ai.schema.ts': [
+        'export const schema = {',
+        '  VISUAL_CODE_RENDERER_ENABLED: Joi.string(),',
+        '  VISUAL_CODE_ENABLED: Joi.string(),',
+        '  ARBITRARY_FEATURE_ENABLED: Joi.string(),',
+        '};',
+      ].join('\n'),
+    });
+    expect(
+      runCheckEnvProductFlags({ rootDir }).violations.map(({ key }) => key),
+    ).toEqual(['VISUAL_CODE_ENABLED', 'ARBITRARY_FEATURE_ENABLED']);
+  });
+
   it('fails a new product flag in a shared schema', () => {
     const rootDir = createRepo({
       'packages/config/src/schemas/ai.schema.ts': [

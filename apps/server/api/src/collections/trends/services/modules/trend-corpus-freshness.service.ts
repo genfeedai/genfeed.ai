@@ -7,6 +7,7 @@ import type {
   TrendSourceIntendedUse,
   TrendSourceKind,
 } from '@api/collections/trends/interfaces/trend.interfaces';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import {
   DEFAULT_SOURCE_FRESHNESS_WINDOW_DAYS_BY_KIND as DEFAULT_FRESHNESS_WINDOW_DAYS_BY_SOURCE_KIND,
   normalizeTrendSourceClassification,
@@ -84,7 +85,10 @@ const MAX_CORPUS_FRESHNESS_TREND_RECORDS = 2000;
  */
 @Injectable()
 export class TrendCorpusFreshnessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly refreshHealth: TrendRefreshHealthService,
+  ) {}
 
   async getCorpusFreshnessHealth(
     options: TrendCorpusFreshnessHealthOptions = {},
@@ -94,7 +98,8 @@ export class TrendCorpusFreshnessService {
       options.sourcePreviewStaleAfterDays ??
       DEFAULT_SOURCE_PREVIEW_STALE_AFTER_DAYS;
 
-    const [referenceDocs, trendDocs] = await Promise.all([
+    const [referenceDocs, trendDocs, refreshHealth] = await Promise.all([
+      // Durable evidence only; this service has no provider/queue dependency.
       this.prisma.trendSourceReference.findMany({
         orderBy: [{ platform: 'asc' }, { lastSeenAt: 'asc' }],
         select: {
@@ -125,14 +130,40 @@ export class TrendCorpusFreshnessService {
         take: MAX_CORPUS_FRESHNESS_TREND_RECORDS,
         where: this.buildFreshnessTrendWhere(options),
       }) as Promise<TrendHealthDoc[]>,
+      this.refreshHealth.getHealth(options),
     ]);
 
     const segments = this.buildFreshnessSegments(referenceDocs, now);
-    const providerFailures = this.buildProviderFailures(
-      trendDocs,
-      now,
-      sourcePreviewStaleAfterDays,
-    );
+    const providerFailures = [
+      ...this.buildProviderFailures(
+        trendDocs,
+        now,
+        sourcePreviewStaleAfterDays,
+      ),
+      ...refreshHealth
+        .filter(
+          (refresh) =>
+            refresh.outcome.endsWith('failed') ||
+            (refresh.outcome === 'native_empty' &&
+              refresh.reason === 'native_unavailable'),
+        )
+        .map(
+          (refresh): TrendProviderFailureSummary => ({
+            affectedTrendCount: 0,
+            latestObservedAt: refresh.lastAttemptAt,
+            message:
+              'The most recent provider refresh did not complete successfully.',
+            platform: refresh.platform,
+            provider:
+              refresh.scope === 'scoped'
+                ? 'connected-provider'
+                : 'global-provider',
+            reason: 'refresh_failed',
+            retryAction: `Inspect ${refresh.platform} ${refresh.dataset} refresh logs, credentials and rate limits, then retry.`,
+            severity: 'error',
+          }),
+        ),
+    ];
     const activeTrends = trendDocs.filter((doc) =>
       this.isCurrentTrend(doc, now),
     ).length;
@@ -145,6 +176,7 @@ export class TrendCorpusFreshnessService {
       new Set(
         [
           ...segments.map((segment) => segment.platform),
+          ...refreshHealth.map((refresh) => refresh.platform),
           ...providerFailures.map((failure) => failure.platform),
         ].filter(Boolean),
       ),
@@ -153,6 +185,7 @@ export class TrendCorpusFreshnessService {
     return {
       generatedAt: now.toISOString(),
       providerFailures,
+      refreshHealth,
       segments,
       status,
       summary: {

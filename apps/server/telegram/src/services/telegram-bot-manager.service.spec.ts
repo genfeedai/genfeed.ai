@@ -177,10 +177,6 @@ describe('TelegramBotManager', () => {
     manager = createManager();
   });
 
-  it('should be defined', () => {
-    expect(manager).toBeDefined();
-  });
-
   it('should initialize and subscribe to redis events', async () => {
     await manager.initialize();
     expect(mockRedisService.subscribe).toHaveBeenCalled();

@@ -126,6 +126,7 @@ const PUBLIC_WORKFLOW_API_CONTRACT_KEYS: Record<
     'edgeStyle',
     'edges',
     'groups',
+    'idempotencyKey',
     'inputVariables',
     'isScheduleEnabled',
     'label',

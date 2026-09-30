@@ -92,10 +92,6 @@ describe('NotificationsService', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   describe('deliverChannelMessage', () => {
     const request = {
       destination: null,

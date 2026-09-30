@@ -38,6 +38,7 @@ import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.mo
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
+import { VisualProjectsCoreModule } from '@api/collections/visual-projects/visual-projects-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
@@ -158,6 +159,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    VisualProjectsCoreModule,
     PlatformSettingsModule,
     ActivityRecordingModule,
     MediaPromptEnhancementModule,

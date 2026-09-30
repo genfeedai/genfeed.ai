@@ -41,9 +41,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function toGeminiFunctionSchema(
   schema: Record<string, unknown>,
 ): Record<string, unknown> {
-  return Object.fromEntries(
+  const projected = Object.fromEntries(
     Object.entries(schema).flatMap(([key, value]) => {
       if (!GEMINI_FUNCTION_SCHEMA_KEYS.has(key)) return [];
+      if (
+        key === 'enum' &&
+        Array.isArray(value) &&
+        !value.every((entry) => typeof entry === 'string')
+      )
+        return [];
 
       if ((key === 'properties' || key === '$defs') && isRecord(value)) {
         return [
@@ -81,6 +87,13 @@ function toGeminiFunctionSchema(
       return [[key, value]];
     }),
   );
+  if (
+    Array.isArray(schema.enum) &&
+    !schema.enum.every((entry) => typeof entry === 'string')
+  ) {
+    projected.description = `${typeof schema.description === 'string' ? `${schema.description} ` : ''}Allowed values: ${schema.enum.map((entry) => JSON.stringify(entry)).join(', ')}.`;
+  }
+  return projected;
 }
 
 function resolveProviderToolDefinitions(

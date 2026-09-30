@@ -49,6 +49,7 @@ import { VideoStitchFixture } from '@api/services/video-stitch/video-stitch.fixt
 import {
   IngredientCategory,
   IngredientStatus,
+  JobState,
   VideoTransition,
 } from '@genfeedai/contracts';
 import type { NodeExecutor, WorkflowEngine } from '@genfeedai/workflows/engine';
@@ -358,28 +359,30 @@ describe('workflow media composition integration', () => {
     expect(h.stitch.queued).toEqual([]);
     expect(h.stitch.outputs()).toEqual([]);
   });
-  it('marks a stitch output failed when the queue returns no persisted object', async () => {
+  it('retains a stitch output without a persisted object and accepts its late artifact', async () => {
     const h = setup();
+    const inputs = new Map<string, unknown>([
+      [
+        'videos',
+        [
+          'https://cdn.example/ingredients/videos/clip-1',
+          'https://cdn.example/ingredients/videos/clip-2',
+        ],
+      ],
+    ]);
     h.stitch.jobResults.set('stitch-output-1', {
       outputPath: '/already/deleted.mp4',
       success: true,
     });
     await expect(
-      h.run(
-        'videoStitch',
-        new Map<string, unknown>([
-          [
-            'videos',
-            [
-              'https://cdn.example/ingredients/videos/clip-1',
-              'https://cdn.example/ingredients/videos/clip-2',
-            ],
-          ],
-        ]),
-        { brandId: 'brand' },
-      ),
+      h.run('videoStitch', inputs, { brandId: 'brand' }),
     ).rejects.toThrow('persisted video');
-    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.FAILED);
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.PROCESSING);
+    expect(h.stitch.eventsNamed('media.failed')).toEqual([]);
+    h.stitch.completeJob('stitch-output-1', 'ingredients/videos/output-1');
+    await h.run('videoStitch', inputs, { brandId: 'brand' });
+    expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
+    expect(h.stitch.mergeJobs()).toHaveLength(1);
     expect(h.files.uploadToS3).not.toHaveBeenCalled();
   });
   it('re-enqueues a processing output whose job was lost when the node reruns', async () => {
@@ -417,7 +420,7 @@ describe('workflow media composition integration', () => {
     ]);
     expect(h.stitch.row('output-1').status).toBe(IngredientStatus.GENERATED);
   });
-  it('requeues the same output when the node is retried in its run', async () => {
+  it('requeues the same output after a confirmed failed worker job', async () => {
     const h = setup();
     const inputs = new Map<string, unknown>([
       [
@@ -428,6 +431,7 @@ describe('workflow media composition integration', () => {
         ],
       ],
     ]);
+    h.stitch.jobStates.set('stitch-output-1', JobState.FAILED);
     h.stitch.failWaitFor.set('stitch-output-1', new Error('ffmpeg exited'));
     await expect(
       h.run('videoStitch', inputs, { brandId: 'brand' }),

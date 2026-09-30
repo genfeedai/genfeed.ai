@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { FeaturedWorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
@@ -192,5 +193,43 @@ export function applyWorkflowTemplateDefaults(
     nodes: shouldUseTemplateNodes ? template.nodes : workflowData.nodes,
     schedule: workflowData.schedule ?? template.schedule,
     timezone: workflowData.timezone ?? template.timezone,
+  };
+}
+
+export function hashTemplateInstantiationRequest(
+  templateId: string,
+  brandId?: string,
+): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        'workflow-template-instantiation:v1',
+        templateId,
+        brandId ?? null,
+      ]),
+    )
+    .digest('hex');
+}
+
+/** Resolve template provenance together with the seeded graph/schedule defaults. */
+export function prepareWorkflowTemplateCreation(
+  workflowData: CreateWorkflowDto,
+): CreateWorkflowDto {
+  const templateMetadata = workflowData.templateId
+    ? {
+        sourceTemplateId: workflowData.templateId,
+        sourceType: 'seeded-template',
+      }
+    : undefined;
+  const resolved = applyWorkflowTemplateDefaults(
+    workflowData,
+    templateMetadata,
+  );
+  return {
+    ...resolved,
+    metadata:
+      resolved.metadata || templateMetadata
+        ? { ...templateMetadata, ...(resolved.metadata ?? {}) }
+        : undefined,
   };
 }

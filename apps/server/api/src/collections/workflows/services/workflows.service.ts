@@ -5,11 +5,11 @@ import { type WorkflowDocument } from '@api/collections/workflows/schemas/workfl
 import { FeaturedWorkflowsService } from '@api/collections/workflows/services/featured-workflows.service';
 import type { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
-  applyWorkflowTemplateDefaults,
   buildFeaturedWorkflowCopyPayload,
   buildWorkflowCreatePayload,
   getDefaultInputValuesFromWorkflowData,
   getMissingRequiredInputKeys,
+  prepareWorkflowTemplateCreation,
   resolveWorkflowBrandId,
   WORKFLOW_CONFIG_FIELDS,
   type WorkflowCreateExtras,
@@ -19,6 +19,10 @@ import {
   type WorkflowSchedulerSyncRow,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  createWorkflowWithTemplateInstantiation,
+  validateTemplateInstantiationKey,
+} from '@api/collections/workflows/services/workflow-template-instantiation.util';
 import {
   buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
@@ -208,6 +212,17 @@ export class WorkflowsService extends BaseService<
     updateDto: Partial<UpdateWorkflowDto> | Record<string, unknown>,
   ): Promise<WorkflowDocument> {
     const workflowPatch = updateDto as Record<string, unknown>;
+    if (
+      [
+        'idempotencyKey',
+        'templateInstantiationKey',
+        'templateInstantiationRequestHash',
+      ].some((field) => field in workflowPatch)
+    ) {
+      throw new BadRequestException(
+        'Template instantiation identity is immutable',
+      );
+    }
     const configPatch = pickDefinedFields(
       workflowPatch,
       WORKFLOW_CONFIG_FIELDS,
@@ -346,6 +361,8 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
+    const key = validateTemplateInstantiationKey(workflowData);
+
     // Featured "Use" (#5511) copies only the sanitized cross-org projection.
     if (workflowData.sourceType === 'featured-workflow') {
       return this.copyFeaturedWorkflow(
@@ -411,43 +428,38 @@ export class WorkflowsService extends BaseService<
       return EntityFactory.fromDocument(WorkflowEntity, installed);
     }
 
-    const templateMetadata = workflowData.templateId
-      ? {
-          sourceTemplateId: workflowData.templateId,
-          sourceType: 'seeded-template',
-        }
-      : undefined;
-    workflowData = applyWorkflowTemplateDefaults(
-      workflowData,
-      templateMetadata,
-    );
-
-    const metadata =
-      workflowData.metadata || templateMetadata
-        ? {
-            ...templateMetadata,
-            ...(workflowData.metadata ?? {}),
-          }
-        : undefined;
+    workflowData = prepareWorkflowTemplateCreation(workflowData);
     const brandId = resolveWorkflowBrandId(
       (workflowData as WorkflowCreateExtras).brandId,
       defaultBrandId,
     );
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
-    const workflow = await this.create(
-      buildWorkflowCreatePayload({
+    const payload = buildWorkflowCreatePayload({
+      brandId,
+      defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
+      organizationId,
+      userId,
+      workflowData: {
+        ...(workflowData as WorkflowCreateExtras),
+        metadata: workflowData.metadata,
+        status: workflowData.status ?? WorkflowStatus.ACTIVE,
+      },
+    });
+
+    const { workflow, isCreated } =
+      await createWorkflowWithTemplateInstantiation({
         brandId,
-        defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
+        create: (data) => this.create(data),
+        key,
+        normalize: (document) => this.normalizeDocument(document),
         organizationId,
+        payload,
+        prisma: this.prisma,
+        templateId: workflowData.templateId,
         userId,
-        workflowData: {
-          ...(workflowData as WorkflowCreateExtras),
-          metadata,
-          status: workflowData.status ?? WorkflowStatus.ACTIVE,
-        },
-      }) as unknown as CreateWorkflowDto,
-    );
+      });
+    if (!isCreated) return EntityFactory.fromDocument(WorkflowEntity, workflow);
 
     // Register the BullMQ job scheduler when the workflow is created with an
     // enabled schedule (template-seeded or explicit).

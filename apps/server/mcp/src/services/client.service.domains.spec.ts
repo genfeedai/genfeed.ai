@@ -67,6 +67,32 @@ describe('ClientService (MCP) domain clients', () => {
     vi.clearAllMocks();
   });
 
+  it('reads brand-scoped Storyboard capabilities as an exact response without writes', async () => {
+    const response = {
+      version: 1,
+      runId: 'run-1',
+      runRevision: 1,
+      capabilityVersion: 'a'.repeat(64),
+      status: 'unavailable',
+      requestedModelKey: 'missing/video',
+      effectiveModel: null,
+      eligibleModels: [],
+      reasonCode: 'MODEL_UNAVAILABLE',
+    };
+    mockAxiosInstance.get.mockResolvedValue({ data: response });
+    expect(
+      await service.getStoryboardRunCapabilities({
+        brandId: 'brand-1',
+        runId: 'run-1',
+      }),
+    ).toEqual(response);
+    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/capabilities',
+    );
+    expect(mockAxiosInstance.post).not.toHaveBeenCalled();
+    expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
+  });
+
   // ==================== GENERIC ATTRIBUTE POST ====================
 
   describe('postAttributes', () => {

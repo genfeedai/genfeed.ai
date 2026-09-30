@@ -5,9 +5,9 @@ import {
   getAgentClient,
 } from '@data/agent-clients.data';
 import { stringifyJsonLd } from '@data/json-ld';
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import AgentClientContent from '@public/agent-clients/agent-client-content';
 import { EnvironmentService } from '@services/core/environment.service';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 const CHANNELS = getAgentClientChannels();
 

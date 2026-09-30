@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { useCases } from '@data/use-cases.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import UseCasesHubContent from '@public/use-cases/use-cases-hub-content';
@@ -32,9 +33,9 @@ const useCasesJsonLd = {
 
 export async function generateMetadata(
   _params: unknown,
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const images = [...((await parent).openGraph?.images || [])];
+  const images = [getMarketingOgImage('/use-cases', 'Genfeed use cases')];
   const title = `Use Cases: AI Content for Every Team | ${metadata.name}`;
 
   return {

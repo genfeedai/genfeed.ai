@@ -1,12 +1,11 @@
 import type { ContentRunStatus } from '@genfeedai/contracts';
-import {
-  type BrandRemixRunView,
-  brandRemixRunViewSchema,
-  type CreateBrandRemixRun,
-  type PreparePausedMetaCampaignDraft,
-  type ReviseBrandRemixRun,
-  type StartBrandRemixRun,
-  type SubmitBrandRemixRunForReview,
+import type {
+  BrandRemixRunView,
+  CreateBrandRemixRun,
+  PreparePausedMetaCampaignDraft,
+  ReviseBrandRemixRun,
+  StartBrandRemixRun,
+  SubmitBrandRemixRunForReview,
 } from '@genfeedai/contracts/api-types/contracts';
 import {
   type BrandRemixRunListQuery,
@@ -20,13 +19,16 @@ import type {
   QuoteBrandRemixScenes,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { UpdateStoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
-import {
-  type ControlStoryboardRun,
-  type CreateStoryboardRun,
-  type StoryboardRun,
-  storyboardRunSchema,
-  type UpdateStoryboardSource,
+import type {
+  ControlStoryboardRun,
+  CreateStoryboardRun,
+  StoryboardRun,
+  UpdateStoryboardSource,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import {
+  type StoryboardRunCapabilities,
+  storyboardRunCapabilitiesSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import {
   type ListStoryboardRuns,
   type StoryboardRunSummary,
@@ -39,6 +41,10 @@ import type {
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/contracts/interfaces/content/content-run.interface';
+import {
+  deserializeLegacyStoryboardRunDocument,
+  deserializeStoryboardRunDocument,
+} from '@services/content/content-run-document';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -108,6 +114,18 @@ export class ContentRunsService extends HTTPBaseService {
     ) as ContentRunsService;
   }
 
+  async getStoryboardRunCapabilities(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRunCapabilities> {
+    const response = await this.instance.get<StoryboardRunCapabilities>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/capabilities`,
+      { signal },
+    );
+    return storyboardRunCapabilitiesSchema.parse(response.data);
+  }
+
   async createStoryboardRun(
     brandId: string,
     input: CreateStoryboardRun,
@@ -116,9 +134,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs`,
       input,
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async updateStoryboardPlan(
@@ -130,9 +146,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan`,
       input,
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async resetStoryboardPlan(
@@ -144,9 +158,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/reset`,
       input,
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async approveStoryboardPlan(
@@ -158,9 +170,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan/approve`,
       input,
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async updateStoryboardSource(
@@ -172,9 +182,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/source`,
       input,
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async getStoryboardRun(
@@ -186,9 +194,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}`,
       { signal },
     );
-    return storyboardRunSchema.parse(
-      deserializeResource<StoryboardRun>(response.data),
-    );
+    return deserializeStoryboardRunDocument(response.data);
   }
   async listStoryboardRuns(
     brandId: string,
@@ -242,9 +248,7 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async listBrandRemixRuns(
@@ -271,9 +275,7 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async reviseBrandRemixRun(
@@ -285,9 +287,7 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async startBrandRemixRun(
@@ -299,9 +299,7 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async submitBrandRemixRunForReview(
@@ -313,9 +311,7 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async prepareBrandRemixPausedDraft(
@@ -327,9 +323,7 @@ export class ContentRunsService extends HTTPBaseService {
       input,
     );
 
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async attachBrandRemixAnalysisSource(
@@ -340,9 +334,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/content-runs/${runId}/remix/scenes/source`,
       input,
     );
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async quoteBrandRemixScenes(
@@ -353,9 +345,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/content-runs/${runId}/remix/scenes/quote`,
       input,
     );
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async executeBrandRemixScenes(
@@ -366,9 +356,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/content-runs/${runId}/remix/scenes/execute`,
       input,
     );
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async cancelBrandRemixScenes(
@@ -379,9 +367,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/content-runs/${runId}/remix/scenes/cancel`,
       input,
     );
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async resumeBrandRemixScenes(
@@ -392,9 +378,7 @@ export class ContentRunsService extends HTTPBaseService {
       `/content-runs/${runId}/remix/scenes/resume`,
       input,
     );
-    return brandRemixRunViewSchema.parse(
-      deserializeResource<BrandRemixRunView>(response.data),
-    );
+    return deserializeLegacyStoryboardRunDocument(response.data);
   }
 
   async findOne(runId: string): Promise<ContentRunRecord> {

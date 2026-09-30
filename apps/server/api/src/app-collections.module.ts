@@ -1,5 +1,6 @@
 import { BatchProjectsModule } from '@api/collections/batch-projects/batch-projects.module';
 import { OutliersModule } from '@api/collections/outliers/outliers.module';
+import { VisualProjectsModule } from '@api/collections/visual-projects/visual-projects.module';
 /** Collection HTTP and persistence modules registered by the API process. */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
@@ -125,6 +126,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   imports: [
+    VisualProjectsModule,
     AgentCampaignsModule,
     AgentThreadsModule,
     AgentTransfersModule,
