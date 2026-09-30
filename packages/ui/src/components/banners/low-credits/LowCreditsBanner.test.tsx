@@ -27,6 +27,16 @@ vi.mock('@genfeedai/config/license', async (importOriginal) => {
   };
 });
 
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: 'org-1',
+    sessionId: 'session_1',
+    userId: 'user_1',
+  }),
+}));
+
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     getTopbarBalances: mockGetTopbarBalances,
