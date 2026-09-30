@@ -8,7 +8,13 @@ import {
   useAgentDock,
 } from '@genfeedai/contexts/ui/agent-dock-context';
 import type { AgentDockContentReference } from '@props/ui/agent-dock.props';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -76,7 +82,7 @@ describe('AgentDockProvider', () => {
     );
   });
 
-  it('restores a clamped height and stays closed while dock chrome is hidden', () => {
+  it('restores a clamped height and stays closed while dock chrome is hidden', async () => {
     expect(AGENT_DOCK_CHROME_VISIBLE).toBe(false);
     window.localStorage.setItem(
       AGENT_DOCK_STORAGE_KEY,
@@ -85,9 +91,11 @@ describe('AgentDockProvider', () => {
 
     renderDock();
 
-    expect(screen.getByTestId('dock')).toHaveTextContent(
-      `closed:${AGENT_DOCK_MAX_HEIGHT}`,
-    );
+    await waitFor(() => {
+      expect(screen.getByTestId('dock')).toHaveTextContent(
+        `closed:${AGENT_DOCK_MAX_HEIGHT}`,
+      );
+    });
 
     act(() => {
       latestDock?.setHeight(10);
