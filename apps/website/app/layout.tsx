@@ -32,10 +32,10 @@ export const metadata = createAppMetadata({
       description,
       images: {
         alt: 'Genfeed.ai - the AI content studio',
-        height: 836,
-        type: 'image/jpeg',
+        height: 630,
+        type: 'image/png',
         url: cards.default,
-        width: 1600,
+        width: 1200,
       },
       siteName: name,
       title: name,
