@@ -7,6 +7,10 @@ import type {
   ModelBillableQuoteSnapshot,
   ProviderQuoteDimensions,
 } from '@genfeedai/contracts/interfaces';
+import {
+  ceilDecimalPricingRatio,
+  multiplyDecimalPricing,
+} from './decimal-pricing';
 import { resolveBillableProviderCost } from './live-model-pricing';
 import { applyMargin } from './plans-pricing';
 import { quoteReviewedProviderPricing } from './reviewed-provider-pricing';
@@ -177,7 +181,10 @@ export function quoteModelBillablePricing(
             return unresolved(
               'Legacy metered rate or actual duration is unavailable',
             );
-          unitCredits = input.duration * model.costPerUnit;
+          unitCredits = multiplyDecimalPricing(
+            input.duration,
+            model.costPerUnit,
+          );
           break;
         case 'per-megapixel':
           if (
@@ -193,8 +200,12 @@ export function quoteModelBillablePricing(
             return unresolved(
               'Legacy metered rate or actual dimensions are unavailable',
             );
-          unitCredits =
-            ((input.width * input.height) / 1000000) * model.costPerUnit;
+          unitCredits = multiplyDecimalPricing(
+            input.width,
+            input.height,
+            0.000001,
+            model.costPerUnit,
+          );
           break;
         default:
           return unresolved('Legacy billing unit is unsupported');
@@ -208,9 +219,12 @@ export function quoteModelBillablePricing(
         return unresolved(
           'Legacy tariff is unavailable; zero is not a free designation',
         );
-      credits = Math.ceil(
-        Math.max(unitCredits, model.minCost ?? 0) *
-          (allocationBasis === 'request' ? requests : outputs),
+      credits = ceilDecimalPricingRatio(
+        [
+          Math.max(unitCredits, model.minCost ?? 0),
+          allocationBasis === 'request' ? requests : outputs,
+        ],
+        1,
       );
       providerCostUsd = null;
       costSource = 'legacy-credits';
@@ -293,7 +307,8 @@ export function quoteModelBillableCompletion(
     rates.some((rate) => rate.unit === 'request');
   if (
     hasRequestComponent &&
-    completedOutputs !== reservedOutputs &&
+    (completedOutputs !== reservedOutputs ||
+      successfulRequests !== reservedRequests) &&
     snapshot.pricingProfile.requestCompletionPolicy !== 'successful-request'
   )
     return unresolved(

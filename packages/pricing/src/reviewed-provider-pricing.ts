@@ -5,7 +5,11 @@ import type {
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
 
-import { multiplyDecimalPricing, sumDecimalPricing } from './decimal-pricing';
+import {
+  ceilDecimalPricingRatio,
+  multiplyDecimalPricing,
+  sumDecimalPricing,
+} from './decimal-pricing';
 import { applyMargin } from './plans-pricing';
 
 function validQuantity(value: unknown): value is number {
@@ -132,8 +136,16 @@ export function quoteReviewedProviderPricing(
     ) {
       return unresolved(`Missing or invalid billed quantity: ${component}`);
     }
-    let billedUnits = Math.max(minimum, units - included, 0);
-    if (step > 0) billedUnits = Math.ceil(billedUnits / step) * step;
+    let billedUnits = Math.max(
+      minimum,
+      sumDecimalPricing([units, -included]),
+      0,
+    );
+    if (step > 0)
+      billedUnits = multiplyDecimalPricing(
+        ceilDecimalPricingRatio([billedUnits], step),
+        step,
+      );
     componentCosts.push(
       multiplyDecimalPricing(
         billedUnits,

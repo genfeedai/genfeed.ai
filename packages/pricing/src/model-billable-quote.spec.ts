@@ -52,6 +52,16 @@ describe('authoritative bill-time quote snapshots', () => {
       'unresolved',
     );
   });
+  it('preserves exact decimal quantities in legacy metered credits', () => {
+    expect(
+      quoteModelBillablePricing(
+        { ...model, providerCostUsd: null, costPerUnit: 100 },
+        { ...input, duration: 0.07 },
+        null,
+        date,
+      ),
+    ).toMatchObject({ status: 'priced', snapshot: { credits: 7 } });
+  });
   it('distinguishes provider requests from outputs without batch waivers', () => {
     const quote = quoteModelBillablePricing(
       { ...model, pricingType: 'per-request', providerCostUsd: 0.1 },
@@ -404,6 +414,21 @@ describe('authoritative bill-time quote snapshots', () => {
         successfulRequests: 1,
       }),
     ).toEqual({ status: 'priced', credits: 10, billableProviderCostUsd: 0.1 });
+  });
+  it('requires frozen request policy even when all outputs complete', () => {
+    const quote = quoteModelBillablePricing(
+      { ...model, pricingType: 'per-request', providerCostUsd: 0.1 },
+      { ...input, outputs: 2, requests: 2 },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 2,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
   });
   it('keeps rate/margin evidence immutable and refuses invented partial input usage', () => {
     const profile = {

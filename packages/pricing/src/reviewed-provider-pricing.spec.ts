@@ -33,6 +33,33 @@ const pricing: ReviewedProviderPricing = {
 };
 
 describe('reviewed provider variant quotes', () => {
+  it.each([
+    { duration: 0.07, includedUnits: 0, roundUnitsTo: 0.01, expected: 0.07 },
+    { duration: 0.4, includedUnits: 0.1, roundUnitsTo: 0.1, expected: 0.3 },
+  ])('rounds decimal billed units without overcharging %s', (example) => {
+    const result = quoteReviewedProviderPricing(
+      {
+        ...pricing,
+        rates: [
+          {
+            component: 'duration',
+            unit: 'second',
+            unitPriceUsd: 1,
+            includedUnits: example.includedUnits,
+            roundUnitsTo: example.roundUnitsTo,
+            when: {},
+          },
+        ],
+      },
+      { duration: example.duration },
+      1,
+    );
+    expect(result).toMatchObject({
+      status: 'priced',
+      providerCostUsd: example.expected,
+      credits: Math.round(example.expected * 100),
+    });
+  });
   it('rejects zero output-frame quantities for paid generation', () => {
     const framePricing: ReviewedProviderPricing = {
       ...pricing,
