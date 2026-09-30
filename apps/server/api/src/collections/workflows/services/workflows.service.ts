@@ -1,3 +1,4 @@
+import { isPrismaUniqueConstraintError } from '@api/collections/shared/slug-allocation.util';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
@@ -10,6 +11,7 @@ import {
   buildWorkflowCreatePayload,
   getDefaultInputValuesFromWorkflowData,
   getMissingRequiredInputKeys,
+  hashTemplateInstantiationRequest,
   resolveWorkflowBrandId,
   WORKFLOW_CONFIG_FIELDS,
   type WorkflowCreateExtras,
@@ -57,6 +59,7 @@ import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
@@ -208,6 +211,17 @@ export class WorkflowsService extends BaseService<
     updateDto: Partial<UpdateWorkflowDto> | Record<string, unknown>,
   ): Promise<WorkflowDocument> {
     const workflowPatch = updateDto as Record<string, unknown>;
+    if (
+      [
+        'idempotencyKey',
+        'templateInstantiationKey',
+        'templateInstantiationRequestHash',
+      ].some((field) => field in workflowPatch)
+    ) {
+      throw new BadRequestException(
+        'Template instantiation identity is immutable',
+      );
+    }
     const configPatch = pickDefinedFields(
       workflowPatch,
       WORKFLOW_CONFIG_FIELDS,
@@ -346,6 +360,25 @@ export class WorkflowsService extends BaseService<
     workflowData: CreateWorkflowDto,
     defaultBrandId?: string,
   ): Promise<WorkflowEntity> {
+    const key = workflowData.idempotencyKey;
+    if (
+      key !== undefined &&
+      (typeof key !== 'string' ||
+        key.trim().length === 0 ||
+        key.length > 256 ||
+        !workflowData.templateId ||
+        !Object.hasOwn(WORKFLOW_TEMPLATES, workflowData.templateId) ||
+        workflowData.sourceWorkflowId ||
+        (workflowData.sourceType !== undefined &&
+          workflowData.sourceType !== 'seeded-template') ||
+        (workflowData.metadata?.sourceType !== undefined &&
+          workflowData.metadata.sourceType !== 'seeded-template'))
+    ) {
+      throw new BadRequestException(
+        'idempotencyKey requires a seeded template creation',
+      );
+    }
+
     // Featured "Use" (#5511) copies only the sanitized cross-org projection.
     if (workflowData.sourceType === 'featured-workflow') {
       return this.copyFeaturedWorkflow(
@@ -435,19 +468,55 @@ export class WorkflowsService extends BaseService<
     );
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
-    const workflow = await this.create(
-      buildWorkflowCreatePayload({
-        brandId,
-        defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
+    const requestHash =
+      key && workflowData.templateId
+        ? hashTemplateInstantiationRequest(workflowData.templateId, brandId)
+        : undefined;
+    if (key && requestHash) {
+      const existing = await this.findTemplateInstantiation(
         organizationId,
         userId,
-        workflowData: {
-          ...(workflowData as WorkflowCreateExtras),
-          metadata,
-          status: workflowData.status ?? WorkflowStatus.ACTIVE,
-        },
-      }) as unknown as CreateWorkflowDto,
-    );
+        key,
+        requestHash,
+      );
+      if (existing) return EntityFactory.fromDocument(WorkflowEntity, existing);
+    }
+
+    const payload = buildWorkflowCreatePayload({
+      brandId,
+      defaultLabel: `Workflow: ${workflowData.templateId || 'Custom'}`,
+      organizationId,
+      userId,
+      workflowData: {
+        ...(workflowData as WorkflowCreateExtras),
+        metadata,
+        status: workflowData.status ?? WorkflowStatus.ACTIVE,
+      },
+    });
+
+    let workflow: WorkflowDocument;
+    try {
+      workflow = await this.create({
+        ...payload,
+        ...(key
+          ? {
+              templateInstantiationKey: key,
+              templateInstantiationRequestHash: requestHash,
+            }
+          : {}),
+      } as unknown as CreateWorkflowDto);
+    } catch (error: unknown) {
+      if (!key || !requestHash || !isPrismaUniqueConstraintError(error))
+        throw error;
+      const winner = await this.findTemplateInstantiation(
+        organizationId,
+        userId,
+        key,
+        requestHash,
+      );
+      if (!winner) throw error;
+      return EntityFactory.fromDocument(WorkflowEntity, winner);
+    }
 
     // Register the BullMQ job scheduler when the workflow is created with an
     // enabled schedule (template-seeded or explicit).
@@ -482,6 +551,36 @@ export class WorkflowsService extends BaseService<
     }
 
     return EntityFactory.fromDocument(WorkflowEntity, workflow);
+  }
+
+  private async findTemplateInstantiation(
+    organizationId: string,
+    userId: string,
+    key: string,
+    requestHash: string,
+  ): Promise<WorkflowDocument | null> {
+    const where = { organizationId, userId, templateInstantiationKey: key };
+    const existing = await this.prisma.workflow.findFirst({
+      include: { currentVersion: true },
+      where: { ...where, isDeleted: false },
+    });
+    if (existing) {
+      if (existing.templateInstantiationRequestHash !== requestHash) {
+        throw new ConflictException(
+          'Template attempt belongs to another template or brand',
+        );
+      }
+      return this.normalizeDocument(existing);
+    }
+    const deleted = await this.prisma.workflow.findFirst({
+      select: { id: true },
+      where: { ...where, isDeleted: true },
+    });
+    if (deleted)
+      throw new ConflictException(
+        'Template attempt was deleted; start a new attempt',
+      );
+    return null;
   }
 
   /**

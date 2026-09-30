@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { FeaturedWorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
@@ -193,4 +194,19 @@ export function applyWorkflowTemplateDefaults(
     schedule: workflowData.schedule ?? template.schedule,
     timezone: workflowData.timezone ?? template.timezone,
   };
+}
+
+export function hashTemplateInstantiationRequest(
+  templateId: string,
+  brandId?: string,
+): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        'workflow-template-instantiation:v1',
+        templateId,
+        brandId ?? null,
+      ]),
+    )
+    .digest('hex');
 }

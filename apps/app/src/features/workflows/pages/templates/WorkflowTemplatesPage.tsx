@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -15,6 +16,7 @@ import {
 } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CollectionOverflowAction } from '@genfeedai/props/ui/collection/collection.props';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
@@ -61,6 +63,11 @@ import {
   workflowCollectionHeaderTabs,
   workflowTemplatesTabPath,
 } from '../workflow-library-tabs';
+import {
+  reserveTemplateAttempt,
+  templateAttemptKey,
+  templateAttemptScope,
+} from './template-bootstrap-attempt';
 import WorkflowTemplateCardPreview from './WorkflowTemplateCardPreview';
 import { WorkflowTemplateDetailsDialog } from './WorkflowTemplateDetailsDialog';
 
@@ -143,7 +150,7 @@ type Translate = (key: string) => string;
 type BootstrapAttempt = {
   request: number;
   /** The auth-scoped service getter; a new identity means a new scope. */
-  scope: unknown;
+  scope: string;
   templateId: string;
 };
 
@@ -523,7 +530,26 @@ function filterCatalogItems(
 function WorkflowTemplatesPageContent() {
   const translate = useTranslations('pages.workflows.templates');
   const translateWorkflows = useTranslations('common.automation.workflows');
-  const { href } = useOrgUrl();
+  const { href, orgSlug, brandSlug } = useOrgUrl();
+  const { isLoaded, userId, orgId } = useAuthIdentity();
+  const { organizationId, brands, isBrandScopeResolved } = useBrand();
+  const routeBrand = brands.find((brand) => brand.slug === brandSlug);
+  const isBrandRoute = Boolean(brandSlug && brandSlug !== '~');
+  const routeBrandId = isBrandRoute ? routeBrand?.id : undefined;
+  const isScopeReady = Boolean(
+    isLoaded &&
+      userId &&
+      orgId &&
+      organizationId === orgId &&
+      (!isBrandRoute || (isBrandScopeResolved && routeBrandId)),
+  );
+  const scopeKey = JSON.stringify([
+    userId,
+    orgId,
+    orgSlug,
+    brandSlug,
+    routeBrandId,
+  ]);
   const [state, dispatch] = useReducer(pageReducer, initialState);
   const {
     templates,
@@ -547,7 +573,7 @@ function WorkflowTemplatesPageContent() {
   const templateId = searchParams.get('template');
   const templateIdRef = useRef(templateId);
   templateIdRef.current = templateId;
-  const catalogScopeRef = useRef<typeof getService | null>(null);
+  const catalogScopeRef = useRef<string | null>(null);
   const [detailsItem, setDetailsItem] = useState<CatalogItem | null>(null);
   const { view, setView } = useCollectionViewPreference({
     defaultView: ViewType.LIST,
@@ -563,8 +589,8 @@ function WorkflowTemplatesPageContent() {
     systemCatalog: 0,
     templates: 0,
   });
-  const scopeRef = useRef(getService);
-  scopeRef.current = getService;
+  const scopeRef = useRef(scopeKey);
+  scopeRef.current = scopeKey;
 
   /**
    * Loads the given requests side by side. Each one settles independently,
@@ -572,7 +598,8 @@ function WorkflowTemplatesPageContent() {
    */
   const loadSources = useCallback(
     async (sources: readonly DataSource[], signal?: AbortSignal) => {
-      const scope = getService;
+      const scope = scopeKey;
+      if (!isScopeReady) return;
       const generations = sources.map((source) => {
         requestGenerationRef.current[source] += 1;
         return requestGenerationRef.current[source];
@@ -621,7 +648,7 @@ function WorkflowTemplatesPageContent() {
         dispatch({ type: 'LOAD_FAILED', source });
       });
     },
-    [getService],
+    [getService, isScopeReady, scopeKey],
   );
 
   useEffect(() => {
@@ -654,6 +681,19 @@ function WorkflowTemplatesPageContent() {
 
   const [bootstrapRequest, setBootstrapRequest] = useState(0);
   const bootstrapAttemptRef = useRef<BootstrapAttempt | null>(null);
+  const postedAttemptRef = useRef<string | null>(null);
+  const bootstrapIdentity = JSON.stringify([
+    scopeKey,
+    templateId,
+    bootstrapRequest,
+  ]);
+  const bootstrapIdentityRef = useRef(bootstrapIdentity);
+  if (bootstrapIdentityRef.current !== bootstrapIdentity)
+    postedAttemptRef.current = null;
+  bootstrapIdentityRef.current = bootstrapIdentity;
+  const isSystemCatalogId = systemCatalog.some(
+    (entry) => entry.canonicalId === templateId,
+  );
 
   useEffect(() => {
     if (!templateId) {
@@ -664,22 +704,27 @@ function WorkflowTemplatesPageContent() {
       return;
     }
 
+    if (postedAttemptRef.current === bootstrapIdentity) return;
     const previous = bootstrapAttemptRef.current;
     if (
       previous &&
-      (previous.templateId !== templateId || previous.scope !== getService)
+      (previous.templateId !== templateId || previous.scope !== scopeKey)
     ) {
       bootstrapAttemptRef.current = null;
       dispatch({ type: 'BOOTSTRAP_CANCEL' });
     }
 
-    if (!isSystemCatalogReady || catalogScopeRef.current !== getService) {
+    if (
+      !isScopeReady ||
+      !isSystemCatalogReady ||
+      catalogScopeRef.current !== scopeKey
+    ) {
       return;
     }
     if (
       previous &&
       previous.templateId === templateId &&
-      previous.scope === getService &&
+      previous.scope === scopeKey &&
       previous.request === bootstrapRequest
     ) {
       // Already attempted: a data reload must not create the workflow again.
@@ -688,11 +733,20 @@ function WorkflowTemplatesPageContent() {
 
     const attempt: BootstrapAttempt = {
       request: bootstrapRequest,
-      scope: getService,
+      scope: scopeKey,
       templateId,
     };
+    const persistentScope = templateAttemptScope(
+      userId!,
+      orgId!,
+      JSON.stringify([orgSlug, brandSlug, routeBrandId]),
+      templateId,
+    );
+    const nonce = reserveTemplateAttempt(persistentScope);
     bootstrapAttemptRef.current = attempt;
+    const controller = new AbortController();
     const isCurrentAttempt = () =>
+      !controller.signal.aborted &&
       mountedRef.current &&
       bootstrapAttemptRef.current === attempt &&
       templateIdRef.current === attempt.templateId &&
@@ -706,13 +760,16 @@ function WorkflowTemplatesPageContent() {
         if (!isCurrentAttempt()) {
           return;
         }
-        const isSystemCatalogId = systemCatalog.some(
-          (entry) => entry.canonicalId === templateId,
-        );
-
+        const idempotencyKey = isSystemCatalogId
+          ? undefined
+          : await templateAttemptKey(persistentScope, nonce);
+        if (!isCurrentAttempt()) return;
+        postedAttemptRef.current = bootstrapIdentity;
         const workflow = isSystemCatalogId
           ? await service.installSystemCatalog(templateId)
           : await service.create({
+              ...(isBrandRoute ? { brandId: routeBrandId } : {}),
+              idempotencyKey,
               edges: [],
               metadata: {
                 createdFrom: 'templates',
@@ -747,12 +804,28 @@ function WorkflowTemplatesPageContent() {
     };
 
     void bootstrapTemplate();
+    return () => {
+      controller.abort();
+      if (bootstrapAttemptRef.current === attempt) {
+        bootstrapAttemptRef.current = null;
+        dispatch({ type: 'BOOTSTRAP_CANCEL' });
+      }
+    };
   }, [
     bootstrapRequest,
     getService,
     isSystemCatalogReady,
+    isScopeReady,
+    scopeKey,
+    userId,
+    orgId,
+    orgSlug,
+    brandSlug,
+    isBrandRoute,
+    routeBrandId,
     replace,
-    systemCatalog,
+    isSystemCatalogId,
+    bootstrapIdentity,
     templateId,
   ]);
 
@@ -1106,7 +1179,19 @@ function WorkflowTemplatesPageContent() {
             <Button
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              onClick={() => setBootstrapRequest((request) => request + 1)}
+              onClick={() => {
+                if (!userId || !orgId || !templateId) return;
+                reserveTemplateAttempt(
+                  templateAttemptScope(
+                    userId,
+                    orgId,
+                    JSON.stringify([orgSlug, brandSlug, routeBrandId]),
+                    templateId,
+                  ),
+                  true,
+                );
+                setBootstrapRequest((request) => request + 1);
+              }}
             >
               {translate('actions.tryAgain')}
             </Button>

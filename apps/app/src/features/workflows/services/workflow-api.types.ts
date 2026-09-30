@@ -97,6 +97,7 @@ export interface WorkflowScheduleInput {
 
 /** Payload for creating a new workflow */
 export interface CreateWorkflowInput {
+  idempotencyKey?: string;
   label: string;
   description?: string;
   nodes?: Node[];
