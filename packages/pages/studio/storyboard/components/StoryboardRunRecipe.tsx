@@ -11,6 +11,7 @@ import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.pr
 import type { StoryboardRunRecipeProps } from '@genfeedai/props/studio/storyboard.props';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
+import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
 import {
   clampRunDurationSeconds,
   getStoryboardRunAspectRatioOptions,
@@ -24,7 +25,6 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { ImagePlus, Sparkles, X } from 'lucide-react';
 import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -189,20 +189,19 @@ export default function StoryboardRunRecipe({
                   ? pickedReferences.assets[assetId]
                   : undefined);
               const label = reference
-                ? getIngredientDisplayLabel(reference)
+                ? getStoryboardAssetLabel(reference)
                 : undefined;
-              const name =
-                label && label !== assetId
-                  ? label
-                  : reference
-                    ? translate.has?.('referenceLabel')
-                      ? translate('referenceLabel', { ordinal: index + 1 })
-                      : `Reference ${index + 1}`
-                    : translate.has?.('referenceUnavailable')
-                      ? translate('referenceUnavailable', {
-                          ordinal: index + 1,
-                        })
-                      : `Reference ${index + 1} unavailable`;
+              const name = label
+                ? label
+                : reference
+                  ? translate.has?.('referenceLabel')
+                    ? translate('referenceLabel', { ordinal: index + 1 })
+                    : `Reference ${index + 1}`
+                  : translate.has?.('referenceUnavailable')
+                    ? translate('referenceUnavailable', {
+                        ordinal: index + 1,
+                      })
+                    : `Reference ${index + 1} unavailable`;
               return (
                 <Badge key={assetId} variant="ghost">
                   {reference?.thumbnailUrl || reference?.cdnUrl ? (

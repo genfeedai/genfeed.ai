@@ -16,6 +16,7 @@ import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
+import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
 import { getStoryboardScenePreview } from '@pages/studio/storyboard/utils/storyboard-scene-preview';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -23,7 +24,6 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -52,10 +52,7 @@ export default function StoryboardRunScenes({
     )
     .map((avatar) => ({
       value: avatar.id,
-      label:
-        getIngredientDisplayLabel(avatar) !== avatar.id
-          ? getIngredientDisplayLabel(avatar)
-          : t('avatar'),
+      label: getStoryboardAssetLabel(avatar) ?? t('avatar'),
     }));
   const voiceOptions = voices
     .filter(
@@ -65,10 +62,7 @@ export default function StoryboardRunScenes({
     )
     .map((voice) => ({
       value: voice.id,
-      label:
-        getIngredientDisplayLabel(voice) !== voice.id
-          ? getIngredientDisplayLabel(voice)
-          : t('voice'),
+      label: getStoryboardAssetLabel(voice) ?? t('voice'),
     }));
   const [storyboard, setStoryboard] = useState(run.concept?.storyboard ?? []);
   const [isPickerOpen, setPickerOpen] = useState(false);
@@ -115,10 +109,7 @@ export default function StoryboardRunScenes({
       : undefined;
   const source = runAssets[`video:${run.analysisSource?.assetId}`];
   const sourcePreview = source?.cdnUrl;
-  const sourceLabel =
-    source && getIngredientDisplayLabel(source) !== source.id
-      ? getIngredientDisplayLabel(source)
-      : t('analysisPreview');
+  const sourceLabel = getStoryboardAssetLabel(source) ?? t('analysisPreview');
   const active =
     pipeline &&
     ['analysing', 'generating', 'assembling'].includes(pipeline.state);
@@ -262,10 +253,7 @@ export default function StoryboardRunScenes({
           brandId: video.brandId ?? null,
           id: video.id,
           contentType: 'video',
-          contentTitle:
-            getIngredientDisplayLabel(video) !== video.id
-              ? getIngredientDisplayLabel(video)
-              : t('analysisPreview'),
+          contentTitle: getStoryboardAssetLabel(video) ?? t('analysisPreview'),
           thumbnailUrl: video.thumbnailUrl,
         }))}
         onSelect={(item) => {
