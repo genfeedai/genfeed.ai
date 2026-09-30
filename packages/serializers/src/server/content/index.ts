@@ -75,3 +75,4 @@ export * from '@serializers/server/content/workspace-task-realtime.builder';
 export * from './remotion-composition.serializer';
 
 export * from './remotion-render.serializer';
+export * from './visual-project.serializer';

@@ -3,6 +3,11 @@
  * All properties are optional here - each service validates only what it needs.
  */
 export interface IEnvConfig {
+  VISUAL_CODE_ENABLED?: 'true' | 'false';
+  VISUAL_CODE_RENDERER_URL?: string;
+  VISUAL_CODE_RENDERER_TOKEN?: string;
+  VISUAL_CODE_RENDER_CREDITS_PER_SECOND?: number;
+
   SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL?: string;
   // === Base ===
   NODE_ENV: 'development' | 'staging' | 'production' | 'test';

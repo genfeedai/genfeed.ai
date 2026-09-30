@@ -28,6 +28,7 @@ export interface ICreateVisualProject {
   settings: IVisualCodeSettings;
   props?: Record<string, VisualCodeJson>;
   sourceAssetIds?: string[];
+  outputs?: IVisualCodeOutputRequest[];
   maximumCredits: number;
 }
 export interface IReviseVisualProject {
@@ -39,14 +40,28 @@ export interface IReviseVisualProject {
   maximumCredits: number;
 }
 export interface IExportVisualProject {
+  expectedRevision: number;
   requestId: string;
   revision: number;
-  outputs: IVisualCodeOutputRequest[];
+  outputs?: IVisualCodeOutputRequest[];
   maximumCredits: number;
 }
 export interface IVisualCodeReceipt {
+  state: 'started' | 'confirmed' | 'indeterminate';
+  boundCredits: number;
+  isResultApplied: boolean;
+  isAccepted?: boolean;
+
   id: string;
-  kind: 'authoring' | 'inspection' | 'repair' | 'render';
+  kind:
+    | 'authoring'
+    | 'inspection'
+    | 'repair'
+    | 'render'
+    | 'quote'
+    | 'settlement'
+    | 'admission';
+  quote?: IVisualCodeQuoteSnapshot;
   credits: number;
   operatorCredits: number;
   modelKey?: string;
@@ -73,6 +88,9 @@ export interface IVisualRevision {
   modelKey: string | null;
   rendererVersion: string;
   sourceHash: string | null;
+  hasSource: boolean;
+  prompt: string | null;
+  outputRequests: IVisualCodeOutputRequest[];
   settings: IVisualCodeSettings;
   props: Record<string, VisualCodeJson>;
   sourceAssetIds: string[];
@@ -90,4 +108,134 @@ export interface IVisualProject extends IBaseEntity {
   label: string;
   currentRevision: number;
   revisions: IVisualRevision[];
+  nextRevisionCursor: number | null;
+}
+
+export interface IRetryVisualProject {
+  requestId: string;
+  revision: number;
+  expectedRevision: number;
+  maximumCredits: number;
+}
+export interface ICancelVisualProject {
+  revision: number;
+}
+export type VisualCodeQuoteRequest =
+  | { operation: 'create'; input: Omit<ICreateVisualProject, 'maximumCredits'> }
+  | {
+      operation: 'revise';
+      projectId: string;
+      input: Omit<IReviseVisualProject, 'maximumCredits'>;
+    }
+  | {
+      operation: 'export';
+      projectId: string;
+      input: Omit<IExportVisualProject, 'maximumCredits'>;
+    }
+  | {
+      operation: 'retry';
+      projectId: string;
+      input: Omit<IRetryVisualProject, 'maximumCredits'>;
+    };
+export interface IVisualCodeQuote {
+  unit: 'credits';
+  modelKey: string;
+  isByok: boolean;
+  authoringCredits: number;
+  inspectionCredits: number;
+  renderCredits: number;
+  maximumCredits: number;
+  maximumAuthoringCalls: number;
+  maximumInspectionCalls: number;
+  maximumRepairs: number;
+  maximumRenderJobs: number;
+  renderDeadlineSeconds: number;
+  rendererVersion: string;
+  creditsPerSecond: number;
+  settings: IVisualCodeSettings;
+  outputRequests: IVisualCodeOutputRequest[];
+}
+export interface IVisualCodeQuoteSnapshot extends IVisualCodeQuote {
+  provider: string;
+  inputCostPerMillion: number;
+  outputCostPerMillion: number;
+}
+export interface IVisualCodeCatalogModel {
+  inspectionCapability: 'declared' | 'unknown';
+
+  key: string;
+  label: string;
+  provider: string;
+  isDefault: boolean;
+  isByok: boolean;
+  isAvailable: boolean;
+  unavailableReason: string | null;
+  inputCostPerMillion: number | null;
+  outputCostPerMillion: number | null;
+}
+export interface IVisualCodeCatalog {
+  isAvailable: boolean;
+  unavailableReason: string | null;
+  rendererVersion: string;
+  creditsPerSecond: number | null;
+  defaultModelKey: string | null;
+  models: IVisualCodeCatalogModel[];
+  limits: {
+    maxSourceBytes: number;
+    maxPromptBytes: number;
+    maxPropsBytes: number;
+    maxAssets: number;
+    maxOutputs: number;
+    maxWidth: number;
+    maxHeight: number;
+    maxPixels: number;
+    maxDurationFrames: number;
+    maxDurationSeconds: number;
+    allowedFps: number[];
+    maxRepairs: number;
+    renderDeadlineSeconds: number;
+  };
+  outputFormats: ('mp4' | 'png' | 'jpeg')[];
+  defaultSettings: IVisualCodeSettings;
+}
+export interface IVisualSandboxAsset {
+  id: string;
+  mime: string;
+  bytes: string;
+}
+export interface IVisualSandboxMedia {
+  format: 'mp4' | 'png' | 'jpeg';
+  width: number;
+  height: number;
+  frame?: number;
+  bytes: string;
+}
+export interface IVisualSandboxInput {
+  id: string;
+  sourceCode: string;
+  settings: IVisualCodeSettings;
+  props: Record<string, VisualCodeJson>;
+  assets: IVisualSandboxAsset[];
+  outputs: IVisualCodeOutputRequest[];
+  mode: 'preview' | 'export';
+}
+export interface IVisualSandboxReceipt {
+  id: string;
+  inputHash: string;
+  sourceHash: string;
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  startedAt: number;
+  finishedAt?: number;
+  computeSeconds: number;
+  diagnostic?: string;
+  isComputeIndeterminate?: boolean;
+}
+export interface IVisualSandboxResult {
+  rendererVersion: string;
+  media: IVisualSandboxMedia[];
+  diagnostics: string[];
+}
+export interface IVisualSandboxExecution {
+  receipt: IVisualSandboxReceipt;
+  result: IVisualSandboxResult | null;
 }

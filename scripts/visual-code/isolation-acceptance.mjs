@@ -186,6 +186,10 @@ await assert.rejects(
 const cancelledProbe = new AbortController();
 cancelledProbe.abort();
 await assert.rejects(verifyVideo(mp4, input, cancelledProbe.signal));
+const interruptedProbe = new AbortController();
+const pendingProbe = verifyVideo(mp4, input, interruptedProbe.signal);
+queueMicrotask(() => interruptedProbe.abort());
+await assert.rejects(pendingProbe);
 for (const [index, media] of result.media.entries())
   await writeFile(
     resolve(artifacts, `hybrid-${index}.${media.format}`),

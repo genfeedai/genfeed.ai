@@ -1,0 +1,67 @@
+# Self-host the visual-code renderer
+
+Motion requires a separate Linux renderer host with Docker, gVisor `runsc`, Node.js, `flock` and FFmpeg/ffprobe. The API and workflow workers never execute or bundle submitted source. The coordinator knows only its internal renderer token, persistent state directory and fixed image; never give it application, storage or model-provider credentials.
+
+## Prepare the renderer
+
+Install gVisor using its [official installation guide](https://gvisor.dev/docs/user_guide/install/). Verify the complete release distribution and its published checksum, including runtime sidecars. Configure Docker's `runsc` runtime. A missing or unhealthy sandbox makes Motion unavailable; there is no ordinary-container fallback.
+
+Review the current [Remotion licensing terms](https://www.remotion.dev/docs/license/pricing) and [license text](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md), including the terms for automated media tools. Configuring this feature does not purchase a license or infrastructure.
+
+Build the pinned image from the repository root:
+
+```sh
+docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+```
+
+Run `scripts/visual-code/coordinator.mjs` under a dedicated service account permitted to start only this renderer workload. Supply `VISUAL_CODE_STATE_DIR` as an absolute persistent disk path with mode `0700` and `VISUAL_CODE_RENDERER_TOKEN` as a private token of at least 32 characters. Set these through your service manager or secret store. The coordinator binds loopback port 8789; use an authenticated HTTPS internal proxy for a remote hosted API.
+
+Application configuration:
+
+- `VISUAL_CODE_ENABLED=true`
+- `VISUAL_CODE_RENDERER_URL`: HTTPS internal endpoint, or loopback HTTP for a local installation
+- `VISUAL_CODE_RENDERER_TOKEN`: matching internal token
+- `VISUAL_CODE_CREDITS_PER_SECOND`: explicit finite nonnegative rendering rate; use `0` only when the operator intends free rendering
+
+Run the API and workflow workers with the same configuration. Apply the additive visual project/revision migration through your normal reviewed deployment process. Model availability and pricing come from the existing registry. Local model routes use an already configured endpoint and never start a GPU instance.
+
+## Isolation and capacity
+
+Each job starts a fresh runsc container with no network, host mounts or application secrets, a read-only root filesystem, UID/GID 65532, dropped capabilities, no-new-privileges, two CPUs, 2 GiB memory, 256 PIDs, bounded temporary storage and a 120-second deadline. React, Remotion 4.0.530, Chromium, fonts and FFmpeg are installed at image build time. Jobs cannot install packages.
+
+The coordinator permits at most two active jobs and has no private unbounded queue. Busy admission returns 503 before a job starts. The application waits at most 120 seconds for admission with the same identity. Trusted readiness, cleanup and media probes have 10-second command deadlines. Encoded media dimensions, frame rate, duration and codecs are validated before results are accepted.
+
+## Durable state and crash recovery
+
+One exclusive OS advisory lock protects the state directory. Started manifests persist before container launch; final receipts and verified result bytes persist atomically with private permissions. Manifests omit source and asset payloads. Same job ID and hash replays the durable result; a different hash conflicts.
+
+On restart, unfinished jobs become `renderer_call_indeterminate`. Their deterministic containers must be removed before readiness succeeds. They are never automatically rerun. Only confirmed compute is user-billable; crash-uncertain compute is operator liability.
+
+State admission fails closed at 16 GiB. Receipts are never automatically deleted to admit more work. Monitor disk capacity and readiness. Cleanup is an explicit operator operation: stop admissions and the coordinator, reconcile terminal jobs with retained application receipts, archive required evidence/results, and remove only reconciled terminal job files. Removing a receipt discards renderer replay protection for that identity; retain backups according to your organization's retention policy.
+
+## Verification and rollback
+
+The scoped `visual-code-isolation` CI job builds the image on Linux and renders hybrid image/video/audio media under real runsc. It saves MP4/PNG/JPEG outputs, encoded video probe data and evidence that outbound network, host files, credentials and package installation are denied. It also tests deadline cleanup. Unit mocks alone do not establish isolation.
+
+Disable `VISUAL_CODE_ENABLED` to stop new Motion requests. Drain or cancel active revisions and reconcile their costs before stopping the renderer. Preserve coordinator state and the additive project tables so history, source downloads and replay evidence survive rollback. Existing approved Remotion templates and Editor rendering remain independent.
+
+## Interrupted workflow recovery
+
+Visual jobs reuse the workflow engine's existing durable node lease: a 30-minute
+lease with a 10-minute heartbeat. A lost process is not immediately presumed dead.
+Cancellation records intent first. While a queue job or live lease can still own
+paid work, the credit hold stays pending so its confirmed cost can be settled.
+After definite queue withdrawal or absence and expiration of any live ownership,
+repeating cancellation reconciles persisted provider and renderer receipts.
+Unknown provider execution is operator liability; it is never automatically
+redispatched. An uncertain queue response can be retried with the original request
+ID and unchanged inputs. Do not create a second request merely to check its status.
+
+Dispatch admission uses distinct durable zero-cost receipts, capped at 16 attempts
+per revision. These receipts never count as model, render, or operator consumption.
+An uncertain wallet admission is reconciled with the original approved idempotent
+reservation before settlement. This barrier prevents a late reservation response
+from creating an orphan hold after cancellation. Zero-total quotes skip the barrier
+and every wallet operation. Failed lookup or barrier requests retain recovery state
+and do not write a settlement marker. Cancellation and settlement do not consume an
+admission attempt. A late queue response cannot clear cancellation or admit paid work.

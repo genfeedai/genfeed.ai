@@ -10,6 +10,7 @@ export class VisualProject extends BaseEntity implements IVisualProject {
   declare public userId: string;
   declare public label: string;
   declare public currentRevision: number;
+  declare public nextRevisionCursor: number | null;
   declare public revisions: IVisualRevision[];
 
   constructor(data: Partial<IVisualProject> = {}) {

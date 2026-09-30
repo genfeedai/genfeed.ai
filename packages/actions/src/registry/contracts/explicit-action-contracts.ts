@@ -35,6 +35,7 @@ import { getSocialSourceActionContract } from './social-source-action-contracts'
 import { getSystemActionContract } from './system-action-contracts';
 import { getTelegramActionContract } from './telegram-action-contracts';
 import { getTwitterPipelineActionContract } from './twitter-pipeline-action-contracts';
+import { getVisualCodeActionContract } from './visual-code-action-contracts';
 import { getWorkflowNodeActionContract } from './workflow-node-action-contracts';
 import { getWorkspaceTaskActionContract } from './workspace-task-action-contracts';
 import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
@@ -42,6 +43,7 @@ import { getYoutubeClipActionContract } from './youtube-clip-action-contracts';
 const CONTRACT_RESOLVERS = [
   getEmailProductSignalsActionContract,
   getRemotionActionContract,
+  getVisualCodeActionContract,
   getDailyPublishingActionContract,
   getCriticalActionContract,
   getAdsActionContract,

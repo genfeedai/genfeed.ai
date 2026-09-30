@@ -45,6 +45,11 @@ const OUTBOUND_TOOL_NAMES = new Set<string>([
 
 /** Charges credits on execution — media generation and paid workflows. */
 const CREDIT_SPENDING_TOOL_NAMES = new Set<string>([
+  'generate_visual_code',
+  'revise_visual_code_project',
+  'export_visual_code_project',
+  'retry_visual_code_project',
+
   'generate_ad_pack',
   'generate_as_identity',
   'generate_clips',

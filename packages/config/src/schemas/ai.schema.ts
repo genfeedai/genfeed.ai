@@ -10,6 +10,32 @@ import { conditionalRequired } from '../helpers';
  * `bun run check:env-product-flags` fails CI if a new one appears here.
  */
 export const generalAiSchema = {
+  VISUAL_CODE_ENABLED: Joi.string().valid('true', 'false').default('false'),
+  VISUAL_CODE_RENDERER_URL: Joi.string()
+    .uri()
+    .when('VISUAL_CODE_ENABLED', {
+      is: 'true',
+      // biome-ignore lint/suspicious/noThenProperty: Joi conditional schema key.
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(''),
+    }),
+  VISUAL_CODE_RENDERER_TOKEN: Joi.string()
+    .min(32)
+    .when('VISUAL_CODE_ENABLED', {
+      is: 'true',
+      // biome-ignore lint/suspicious/noThenProperty: Joi conditional schema key.
+      then: Joi.required(),
+      otherwise: Joi.optional().allow(''),
+    }),
+  VISUAL_CODE_RENDER_CREDITS_PER_SECOND: Joi.number()
+    .min(0)
+    .when('VISUAL_CODE_ENABLED', {
+      is: 'true',
+      // biome-ignore lint/suspicious/noThenProperty: Joi conditional schema key.
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+
   // Optional override. Unset falls back to LLM_DEFAULTS.volumeAgent in
   // ThreadContextCompressorService — do not copy a model id here.
   AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().optional().allow(''),

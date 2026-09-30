@@ -8093,6 +8093,7 @@ model VisualRevision {
   consumedCredits Float @default(0)
   receipts Json @default("[]")
   preview Json @default("[]")
+  outputRequests Json @default("[{\"format\":\"mp4\"}]")
   outputs Json @default("[]")
   diagnostics Json @default("[]")
   cancelRequestedAt DateTime?

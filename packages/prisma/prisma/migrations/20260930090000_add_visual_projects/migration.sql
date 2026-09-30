@@ -41,6 +41,7 @@ CREATE TABLE "visual_revisions" (
     "consumedCredits" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "receipts" JSONB NOT NULL DEFAULT '[]',
     "preview" JSONB NOT NULL DEFAULT '[]',
+    "outputRequests" JSONB NOT NULL DEFAULT '[{"format":"mp4"}]',
     "outputs" JSONB NOT NULL DEFAULT '[]',
     "diagnostics" JSONB NOT NULL DEFAULT '[]',
     "cancelRequestedAt" TIMESTAMP(3),
