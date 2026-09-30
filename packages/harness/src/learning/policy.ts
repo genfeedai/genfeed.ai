@@ -120,6 +120,16 @@ export function sampleLearningArm(
     Math.abs(Object.values(probabilities).reduce((a, b) => a + b, 0) - 1) > 1e-9
   )
     throw new Error('invalid_distribution');
+  if (
+    Object.keys(probabilities).length !== LEARNING_ARMS.length ||
+    LEARNING_ARMS.some(
+      (arm) =>
+        !Number.isFinite(probabilities[arm]) ||
+        probabilities[arm] < 0 ||
+        probabilities[arm] > 1,
+    )
+  )
+    throw new Error('invalid_distribution');
   let cumulative = 0;
   for (const arm of LEARNING_ARMS) {
     if (probabilities[arm] < 0 || !Number.isFinite(probabilities[arm]))

@@ -10,6 +10,14 @@ import {
 import { LEARNING_ARMS } from '../../src/learning/strategies';
 
 describe('ridge epsilon replay', () => {
+  it('rejects invalid later arms before returning an early sample', () => {
+    expect(() =>
+      sampleLearningArm(
+        { 'baseline-v1': 1, 'question-example-v1': -1, 'proof-steps-v1': 1 },
+        0,
+      ),
+    ).toThrow('invalid_distribution');
+  });
   const features = learningFeatures({
     decisionAt: new Date('2026-09-30T12:00:00Z'),
     followers: 1000,

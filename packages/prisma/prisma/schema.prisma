@@ -8181,6 +8181,7 @@ failureReason String?
 driftState String?
 @@unique([organizationId, credentialId])
 @@map("content_learning_accounts")
+consents ContentLearningConsent[]
 }
 
 model ContentLearningConsent {
@@ -8206,6 +8207,7 @@ grantedAt DateTime?
 revokedAt DateTime?
 @@unique([accountId, version])
 @@map("content_learning_consents")
+account ContentLearningAccount @relation(fields: [accountId], references: [id], onDelete: Restrict, map: "learning_consent_account_fk")
 }
 
 model ContentLearningDecision {
@@ -8259,6 +8261,8 @@ posts Post[]
 @@unique([organizationId, requestKey, destinationKey, candidateIndex])
 @@index([scopeKey, epoch, createdAt])
 @@map("content_learning_decisions")
+rewards ContentLearningReward[]
+baseline ContentLearningBaseline? @relation(fields: [baselineId], references: [id], onDelete: Restrict, map: "learning_decision_baseline_fk")
 }
 
 model ContentLearningCheckpoint {
@@ -8294,6 +8298,7 @@ attestation Json?
 @@unique([organizationId, postId, credentialId, windowId, revision])
 @@index([organizationId, credentialId, format, publishedAt])
 @@map("content_learning_checkpoints")
+rewards ContentLearningReward[]
 }
 
 model ContentLearningBaseline {
@@ -8320,6 +8325,8 @@ samples Json
 validity String
 @@index([scopeKey, cutoff])
 @@map("content_learning_baselines")
+rewards ContentLearningReward[]
+decisions ContentLearningDecision[]
 }
 
 model ContentLearningReward {
@@ -8349,6 +8356,9 @@ supersedesId String?
 @@unique([decisionId, version])
 @@index([organizationId, credentialId, status])
 @@map("content_learning_rewards")
+decision ContentLearningDecision @relation(fields: [decisionId], references: [id], onDelete: Restrict, map: "learning_reward_decision_fk")
+checkpoint ContentLearningCheckpoint @relation(fields: [checkpointId], references: [id], onDelete: Restrict, map: "learning_reward_checkpoint_fk")
+baseline ContentLearningBaseline @relation(fields: [baselineId], references: [id], onDelete: Restrict, map: "learning_reward_baseline_fk")
 }
 
 model ContentLearningPolicyVersion {
@@ -8396,6 +8406,7 @@ validity String
 synthetic Boolean @default(false)
 @@unique([cell, version])
 @@map("content_learning_shared_policies")
+dataset ContentLearningDataset @relation(fields: [datasetId], references: [id], onDelete: Restrict, map: "learning_shared_dataset_fk")
 }
 
 model ContentLearningBrandPreference {
@@ -8435,6 +8446,8 @@ invalidationRevision Int @default(0)
 synthetic Boolean @default(false)
 entries ContentLearningDatasetEntry[]
 @@map("content_learning_datasets")
+runs ContentLearningRun[]
+sharedPolicies ContentLearningSharedPolicy[]
 }
 
 model ContentLearningDatasetEntry {
@@ -8483,6 +8496,7 @@ startedAt DateTime?
 completedAt DateTime?
 synthetic Boolean @default(false)
 @@map("content_learning_runs")
+dataset ContentLearningDataset @relation(fields: [datasetId], references: [id], onDelete: Restrict, map: "learning_run_dataset_fk")
 }
 
 model ContentLearningRelease {

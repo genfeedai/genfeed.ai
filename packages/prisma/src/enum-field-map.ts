@@ -1774,7 +1774,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'sharingConsentVersion',
       'updatedAt',
     ],
-    listFields: ['approvedArmIds'],
+    listFields: ['approvedArmIds', 'consents'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -1803,7 +1803,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'updatedAt',
       'validity',
     ],
-    listFields: ['contributorCheckpointIds', 'contributorRevisions'],
+    listFields: [
+      'contributorCheckpointIds',
+      'contributorRevisions',
+      'decisions',
+      'rewards',
+    ],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -1863,7 +1868,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'validity',
       'windowId',
     ],
-    listFields: [],
+    listFields: ['rewards'],
     enumFields: {},
     relationIdFields: {
       brand: 'brandId',
@@ -1874,6 +1879,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   ContentLearningConsent: {
     allFields: [
+      'account',
       'accountId',
       'actor',
       'actorId',
@@ -1897,6 +1903,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {},
     relationIdFields: {
+      account: 'accountId',
       actor: 'actorId',
       brand: 'brandId',
       credential: 'credentialId',
@@ -1924,7 +1931,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'synthetic',
       'updatedAt',
     ],
-    listFields: ['entries'],
+    listFields: ['entries', 'runs', 'sharedPolicies'],
     enumFields: {},
     relationIdFields: {
       ownerActor: 'ownerActorId',
@@ -1962,6 +1969,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'accountRevision',
       'assignment',
       'assignmentProbability',
+      'baseline',
       'baselineId',
       'brand',
       'brandId',
@@ -2002,9 +2010,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'updatedAt',
       'workflowExecutionId',
     ],
-    listFields: ['contextVector', 'eligibleArmIds', 'posts'],
+    listFields: ['contextVector', 'eligibleArmIds', 'posts', 'rewards'],
     enumFields: {},
     relationIdFields: {
+      baseline: 'baselineId',
       brand: 'brandId',
       credential: 'credentialId',
       organization: 'organizationId',
@@ -2111,16 +2120,19 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   ContentLearningReward: {
     allFields: [
+      'baseline',
       'baselineId',
       'boundedComponents',
       'brand',
       'brandId',
+      'checkpoint',
       'checkpointId',
       'composite',
       'confidence',
       'createdAt',
       'credential',
       'credentialId',
+      'decision',
       'decisionId',
       'id',
       'isDeleted',
@@ -2136,8 +2148,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['reasons'],
     enumFields: {},
     relationIdFields: {
+      baseline: 'baselineId',
       brand: 'brandId',
+      checkpoint: 'checkpointId',
       credential: 'credentialId',
+      decision: 'decisionId',
       organization: 'organizationId',
     },
   },
@@ -2147,6 +2162,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'completedAt',
       'configHash',
       'createdAt',
+      'dataset',
       'datasetId',
       'error',
       'id',
@@ -2166,13 +2182,16 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
-    relationIdFields: {},
+    relationIdFields: {
+      dataset: 'datasetId',
+    },
   },
   ContentLearningSharedPolicy: {
     allFields: [
       'cell',
       'coefficients',
       'createdAt',
+      'dataset',
       'datasetId',
       'directives',
       'featureSchema',
@@ -2186,7 +2205,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
-    relationIdFields: {},
+    relationIdFields: {
+      dataset: 'datasetId',
+    },
   },
   ContentPattern: {
     allFields: [
