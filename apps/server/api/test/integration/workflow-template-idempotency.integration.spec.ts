@@ -28,7 +28,15 @@ describe('Seeded template idempotency (real PostgreSQL, #5560)', () => {
   });
   beforeAll(async () => {
     const url = process.env.DATABASE_URL;
-    if (!url || !new URL(url).pathname.startsWith('/genfeed_5560_disposable')) {
+    const database = url ? new URL(url) : null;
+    const isDisposableStudioDatabase = database?.pathname.startsWith(
+      '/genfeed_5560_disposable',
+    );
+    const isDisposableCiDatabase =
+      process.env.CI === 'true' &&
+      database?.pathname === '/test' &&
+      ['localhost', '127.0.0.1'].includes(database.hostname);
+    if (!url || (!isDisposableStudioDatabase && !isDisposableCiDatabase)) {
       throw new Error(
         'Requires DATABASE_URL for genfeed_5560_disposable on Studio',
       );
@@ -83,7 +91,18 @@ describe('Seeded template idempotency (real PostgreSQL, #5560)', () => {
         service.createWorkflow(
           user,
           org,
-          request(key, { trigger: 'manual' as never }),
+          request(key, {
+            trigger: 'manual' as never,
+            inputVariables: [
+              {
+                key: 'fixture',
+                label: 'Fixture',
+                type: 'text',
+                required: true,
+                defaultValue: 'test-only',
+              },
+            ],
+          }),
           brand,
         ),
       ),
