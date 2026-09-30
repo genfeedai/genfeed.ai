@@ -17,10 +17,12 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /** Selection/upload saves media only; creating a draft never dispatches paid work. */
 export default function StoryboardCreate() {
+  const translate = useTranslations('pages.studioStoryboard.create');
   const brandId = useBrandId();
   const { openGallery } = useGalleryModal();
   const { openUpload } = useUploadModal();
@@ -88,17 +90,14 @@ export default function StoryboardCreate() {
     }
   }
   return (
-    <Card
-      label="Create a storyboard"
-      description="Save your brief or video, then review a credit quote before generating."
-    >
+    <Card label={translate('title')} description={translate('description')}>
       <div
         role="group"
-        aria-label="Storyboard source"
+        aria-label={translate('sourceAria')}
         className="mb-4 flex flex-wrap gap-2"
       >
         <Button
-          label="From a brief"
+          label={translate('fromBrief')}
           aria-pressed={mode === 'brief'}
           variant={
             mode === 'brief' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
@@ -107,7 +106,7 @@ export default function StoryboardCreate() {
           onClick={() => setMode('brief')}
         />
         <Button
-          label="Remix a video"
+          label={translate('remixTitle')}
           aria-pressed={mode === 'video'}
           variant={
             mode === 'video' ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
@@ -119,23 +118,23 @@ export default function StoryboardCreate() {
       {mode === 'brief' ? (
         <div className="grid gap-3 sm:grid-cols-2">
           <Field
-            label="Brief"
+            label={translate('brief')}
             className="sm:col-span-2"
-            helpText={`${brief.length}/2,000 characters`}
+            helpText={translate('characterCount', { count: brief.length })}
           >
             <Textarea
               value={brief}
               maxLength={2000}
               disabled={isCreating}
-              placeholder="Describe the video you want to make"
+              placeholder={translate('briefPlaceholder')}
               onChange={(event) => setBrief(event.target.value)}
             />
           </Field>
-          <Field label="Format">
+          <Field label={translate('format')}>
             <StoryboardSelect
-              ariaLabel="Storyboard format"
+              ariaLabel={translate('formatAria')}
               value={format}
-              placeholder="Choose format"
+              placeholder={translate('chooseFormat')}
               isDisabled={isCreating}
               options={['9:16', '16:9', '1:1'].map((value) => ({
                 value,
@@ -148,8 +147,8 @@ export default function StoryboardCreate() {
             />
           </Field>
           <Field
-            label="Runtime budget (seconds)"
-            helpText="Choose up to 60 seconds."
+            label={translate('runtimeBudget')}
+            helpText={translate('runtimeBudgetHelp')}
           >
             <Input
               type="number"
@@ -162,14 +161,14 @@ export default function StoryboardCreate() {
           </Field>
           <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
             <Button
-              label="Choose a starting image"
+              label={translate('chooseStartingImage')}
               variant={ButtonVariant.SECONDARY}
               disabled={isCreating}
               onClick={() =>
                 openGallery({
                   category: IngredientCategory.IMAGE,
                   maxSelectableItems: 1,
-                  title: 'Starting image',
+                  title: translate('startingImage'),
                   onSelect: (items) => {
                     const item = items.find(
                       (candidate) =>
@@ -179,7 +178,10 @@ export default function StoryboardCreate() {
                       setSeed({
                         brandId,
                         id: item.id,
-                        title: storyboardAssetLabel(item, 'Starting image'),
+                        title: storyboardAssetLabel(
+                          item,
+                          translate('startingImage'),
+                        ),
                       });
                   },
                 })
@@ -188,34 +190,32 @@ export default function StoryboardCreate() {
             {image ? (
               <Button
                 label={`${image.title} ×`}
-                ariaLabel={`Remove ${image.title}`}
+                ariaLabel={translate('removeAsset', { title: image.title })}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isCreating}
                 onClick={() => setSeed(undefined)}
               />
             ) : null}
             <p className="text-xs text-muted-foreground">
-              A starting image can replace the brief. It is saved as a reference
-              and requires generated stills before approval.
+              {translate('startingImageHelp')}
             </p>
           </div>
         </div>
       ) : (
         <div className="space-y-3">
           <p role="status" className="text-sm">
-            {video?.title ||
-              'Choose an owned video up to 60 seconds and 100 MiB.'}
+            {video?.title || translate('chooseOwnedVideo')}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
-              label="Choose from Library"
+              label={translate('chooseFromLibrary')}
               variant={ButtonVariant.SECONDARY}
               disabled={isCreating}
               onClick={() =>
                 openGallery({
                   category: IngredientCategory.VIDEO,
                   maxSelectableItems: 1,
-                  title: 'Remix a video',
+                  title: translate('remixTitle'),
                   onSelect: (items) => {
                     const item = items.find(
                       (candidate) =>
@@ -225,14 +225,17 @@ export default function StoryboardCreate() {
                       setSelected({
                         brandId,
                         id: item.id,
-                        title: storyboardAssetLabel(item, 'Uploaded video'),
+                        title: storyboardAssetLabel(
+                          item,
+                          translate('uploadedVideo'),
+                        ),
                       });
                   },
                 })
               }
             />
             <Button
-              label="Upload a video"
+              label={translate('uploadVideo')}
               variant={ButtonVariant.SECONDARY}
               disabled={isCreating}
               onClick={() =>
@@ -251,7 +254,10 @@ export default function StoryboardCreate() {
                       setSelected({
                         brandId,
                         id: item.id,
-                        title: storyboardAssetLabel(item, 'Uploaded video'),
+                        title: storyboardAssetLabel(
+                          item,
+                          translate('uploadedVideo'),
+                        ),
                       });
                   },
                 })
@@ -259,7 +265,7 @@ export default function StoryboardCreate() {
             />
             {video ? (
               <Button
-                label="Clear video"
+                label={translate('clearVideo')}
                 variant={ButtonVariant.SECONDARY}
                 disabled={isCreating}
                 onClick={() => setSelected(undefined)}
@@ -267,8 +273,7 @@ export default function StoryboardCreate() {
             ) : null}
           </div>
           <p className="text-xs text-muted-foreground">
-            Uploading or selecting a video does not create a run. Its ownership,
-            duration, and size are validated when you continue.
+            {translate('videoHelp')}
           </p>
         </div>
       )}
@@ -281,10 +286,10 @@ export default function StoryboardCreate() {
         <Button
           label={
             isCreating
-              ? 'Saving…'
+              ? translate('saving')
               : error
-                ? 'Retry saving storyboard'
-                : 'Save storyboard'
+                ? translate('retrySaving')
+                : translate('save')
           }
           disabled={isCreating || !valid}
           onClick={() => void submit()}

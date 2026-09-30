@@ -23,6 +23,7 @@ import Field from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
 /** Neutral detail page stays separate until existing-run migration is integrated. */
@@ -37,6 +38,8 @@ export default function StoryboardDraftPage({
   capabilityError,
   refreshCapabilities,
 }: StoryboardDraftPageProps) {
+  const translate = useTranslations('pages.studioStoryboard');
+  const translateAction = useTranslations('ui.quickActions');
   const { href } = useOrgUrl();
   const router = useRouter();
   const editor = useRef<StoryboardPlanEditorHandle>(null);
@@ -53,14 +56,14 @@ export default function StoryboardDraftPage({
     },
     save: async (snapshot, signal) => {
       if (!saveSource || run.config.scenePipeline)
-        throw new Error('This source cannot be edited.');
+        throw new Error(translate('draft.sourceNotEditable'));
       const savedPlan = await editor.current?.flush();
-      if (signal.aborted) throw new Error('Storyboard scope changed.');
+      if (signal.aborted) throw new Error(translate('draft.scopeChanged'));
       const saved = await saveSource(
         savedPlan?.revision ?? snapshot.revision,
         snapshot.value,
       );
-      if (signal.aborted) throw new Error('Storyboard scope changed.');
+      if (signal.aborted) throw new Error(translate('draft.scopeChanged'));
       return {
         revision: saved.config.revision,
         value: saved.config.sourceSnapshot.selector,
@@ -80,7 +83,7 @@ export default function StoryboardDraftPage({
       sourceAutosave.status === 'saved' &&
       Boolean(draft.queue) &&
       run.config.revision === draft.snapshot?.revision,
-    shotIds: run.config.plan.shots.map((shot) => shot.id),
+    shotIds: (run.config.plan?.shots ?? []).map((shot) => shot.id),
     videos: Object.fromEntries(
       Object.entries(pipeline?.scenes ?? {}).map(([id, scene]) => [
         id,
@@ -116,29 +119,23 @@ export default function StoryboardDraftPage({
           requiresReady &&
           saved?.value.shots.some((shot) => shot.stillFreshness !== 'fresh')
         )
-          throw new Error(
-            'Storyboard changed. Regenerate stale shots before opening Editor.',
-          );
+          throw new Error(translate('draft.regenerateBeforeEditor'));
         router.push(destination);
       })
-      .catch(() =>
-        setNavigationError(
-          'Your edits could not be saved. Retry saving before leaving.',
-        ),
-      )
+      .catch(() => setNavigationError(translate('draft.saveBeforeLeave')))
       .finally(() => setLeaving(false));
   }
   const backHref = href(APP_ROUTES.STUDIO.STORYBOARD);
   const back = (
     <Button asChild variant={ButtonVariant.SECONDARY} disabled={leaving}>
       <Link href={backHref} onClick={(event) => leave(event, backHref)}>
-        All storyboards
+        {translate('runs.all')}
       </Link>
     </Button>
   );
   return (
     <Container
-      label={run.config.plan.title || 'Storyboard'}
+      label={run.config.plan?.title || translate('draft.untitled')}
       right={
         <div className="flex flex-wrap gap-2">
           {editorSeed.href ? (
@@ -153,7 +150,7 @@ export default function StoryboardDraftPage({
                   leave(event, href(editorSeed.href ?? ''), true)
                 }
               >
-                Open in Editor
+                {translateAction('openInEditor')}
               </Link>
             </Button>
           ) : null}
@@ -189,12 +186,14 @@ export default function StoryboardDraftPage({
         sourceAutosave.value.kind === 'brief' &&
         !run.config.scenePipeline ? (
           <Card
-            label="Brief"
-            description="Source changes mark existing stills stale and require a new review."
+            label={translate('draft.brief')}
+            description={translate('draft.briefDescription')}
           >
             <Field
-              label="Brief"
-              helpText={`${sourceAutosave.value.brief.length}/2,000 characters`}
+              label={translate('draft.brief')}
+              helpText={translate('create.characterCount', {
+                count: sourceAutosave.value.brief.length,
+              })}
             >
               <Textarea
                 value={sourceAutosave.value.brief}

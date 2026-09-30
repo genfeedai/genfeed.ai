@@ -1,12 +1,12 @@
-import type {
-  StoryboardPlan,
-  StoryboardShot,
-} from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardShot } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import type { StoryboardEditablePlan } from '@genfeedai/props/studio/storyboard.props';
 import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
 
 /** The server repeats these checks; this keeps invalid edits out of the save queue. */
-export function storyboardApprovalProblems(plan: StoryboardPlan): string[] {
+export function storyboardApprovalProblems(
+  plan: StoryboardEditablePlan,
+): string[] {
   const problems: string[] = [];
   if (plan.shots.length < 2) problems.push('Add at least two shots.');
   if (plan.runtimeBudgetSeconds === null)
@@ -28,10 +28,10 @@ export function storyboardApprovalProblems(plan: StoryboardPlan): string[] {
 }
 
 export function editStoryboardShot(
-  plan: StoryboardPlan,
+  plan: StoryboardEditablePlan,
   id: string,
   patch: Partial<StoryboardShot>,
-): StoryboardPlan {
+): StoryboardEditablePlan {
   return {
     ...plan,
     shots: plan.shots.map((shot) => {
@@ -45,13 +45,16 @@ export function editStoryboardShot(
         next.stillFreshness = 'stale';
       return next;
     }),
-  };
+  } as StoryboardEditablePlan;
 }
 
 export function editStoryboardStyle(
-  plan: StoryboardPlan,
-  patch: Pick<Partial<StoryboardPlan>, 'styleLabel' | 'styleReferenceAssetIds'>,
-): StoryboardPlan {
+  plan: StoryboardEditablePlan,
+  patch: Pick<
+    Partial<StoryboardEditablePlan>,
+    'styleLabel' | 'styleReferenceAssetIds'
+  >,
+): StoryboardEditablePlan {
   const next = { ...plan, ...patch };
   const changed =
     next.styleLabel !== plan.styleLabel ||
@@ -65,14 +68,14 @@ export function editStoryboardStyle(
           stillFreshness: shot.stillAssetId ? 'stale' : shot.stillFreshness,
         }))
       : plan.shots,
-  };
+  } as StoryboardEditablePlan;
 }
 
 export function reorderStoryboardShots(
-  plan: StoryboardPlan,
+  plan: StoryboardEditablePlan,
   id: string,
   offset: -1 | 1,
-): StoryboardPlan {
+): StoryboardEditablePlan {
   const index = plan.shots.findIndex((shot) => shot.id === id);
   const target = index + offset;
   if (index < 0 || target < 0 || target >= plan.shots.length) return plan;
@@ -88,13 +91,13 @@ export function reorderStoryboardShots(
           ? 'cut'
           : shot.transition,
     })),
-  };
+  } as StoryboardEditablePlan;
 }
 
 export function removeStoryboardShot(
-  plan: StoryboardPlan,
+  plan: StoryboardEditablePlan,
   id: string,
-): StoryboardPlan {
+): StoryboardEditablePlan {
   const shots = plan.shots.filter((shot) => shot.id !== id);
   return {
     ...plan,
@@ -106,7 +109,7 @@ export function removeStoryboardShot(
           ? 'cut'
           : shot.transition,
     })),
-  };
+  } as StoryboardEditablePlan;
 }
 
 export function storyboardAssetLabel(
