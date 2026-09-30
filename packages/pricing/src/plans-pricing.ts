@@ -1,3 +1,4 @@
+import { ceilDecimalPricingRatio } from './decimal-pricing';
 /**
  * Genfeed.ai Pricing Configuration
  *
@@ -278,8 +279,10 @@ export function applyMargin(
     marginMultiplier,
     DEFAULT_GENERATION_MARGIN_MULTIPLIER,
   );
-  const sellPriceUsd = providerCostUsd * safeMultiplier;
-  const credits = Math.ceil(sellPriceUsd / CREDIT_VALUE_DOLLARS);
+  const credits = ceilDecimalPricingRatio(
+    [providerCostUsd, safeMultiplier],
+    CREDIT_VALUE_DOLLARS,
+  );
   return Math.max(credits, 2); // absolute minimum floor
 }
 

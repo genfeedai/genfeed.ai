@@ -10,6 +10,7 @@ export * from './iuser-subscriptions-service.contract';
 export * from './llm-vendor-cost.interface';
 export * from './managed-credits.interface';
 export * from './media-vendor-cost.interface';
+export * from './model-pricing.interface';
 export * from './pricing.interface';
 export * from './referral.interface';
 export * from './subscription.interface';
