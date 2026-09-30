@@ -306,6 +306,9 @@ describe('ClipProjectsController', () => {
     { sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/foreign' },
     { sourceVideoUrl: 'https://provider.example.com/foreign.mp4' },
   ])('refuses a foreign source before generic create: %j', async (source) => {
+    vi.mocked(clipProjectsService.create).mockResolvedValue(
+      createProject(projectId, organizationId),
+    );
     await expect(
       crudController.create(
         {} as never,
@@ -334,6 +337,9 @@ describe('ClipProjectsController', () => {
     'refuses a foreign or cleared source before generic patch: %j',
     async (source) => {
       vi.mocked(clipProjectsService.findOne).mockResolvedValue(
+        createProject(projectId, organizationId),
+      );
+      vi.mocked(clipProjectsService.patch).mockResolvedValue(
         createProject(projectId, organizationId),
       );
       await expect(
@@ -368,6 +374,30 @@ describe('ClipProjectsController', () => {
         sourceVideoS3Key: 'ingredients/videos/owned',
         sourceVideoUrl: 'https://cdn.example.com/ingredients/videos/owned',
       },
+      [],
+      organizationId,
+    );
+  });
+
+  it('clears the previous storage key when a source update resolves to owned keyless media', async () => {
+    const sourceVideoUrl = 'https://provider.example.com/owned.mp4';
+    sourceIngredient.findFirst.mockResolvedValue({
+      s3Key: null,
+      metadata: { result: sourceVideoUrl },
+    });
+    vi.mocked(clipProjectsService.findOne).mockResolvedValue({
+      ...createProject(projectId, organizationId),
+      sourceVideoS3Key: 'ingredients/videos/previous',
+    });
+    vi.mocked(clipProjectsService.patch).mockResolvedValue(
+      createProject(projectId, organizationId),
+    );
+    await crudController.update({} as never, currentUser as never, projectId, {
+      sourceVideoUrl,
+    });
+    expect(clipProjectsService.patch).toHaveBeenCalledWith(
+      projectId,
+      { sourceVideoS3Key: null, sourceVideoUrl },
       [],
       organizationId,
     );

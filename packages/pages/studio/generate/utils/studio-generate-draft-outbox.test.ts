@@ -185,12 +185,17 @@ describe('createStudioGenerateDraftOutbox', () => {
       ownerId: 'user-1',
       write,
     });
-    const result = outbox.whenIdle('brand-1').then(
-      () => 'idle',
-      () => 'timed out',
+    let result = 'pending';
+    void outbox.whenIdle('brand-1').then(
+      () => {
+        result = 'idle';
+      },
+      () => {
+        result = 'timed out';
+      },
     );
     await vi.advanceTimersByTimeAsync(2500);
-    expect(await result).toBe('timed out');
+    expect(result).toBe('timed out');
     expect(outbox.readUnsent('brand-1', 'user-1')).toEqual(
       payload('recover me'),
     );
@@ -217,12 +222,17 @@ describe('createStudioGenerateDraftOutbox', () => {
     const request = deferred();
     write.mockReturnValueOnce(request.promise);
     outbox.enqueue('brand-1', payload('A'), { write });
-    const result = outbox.whenIdle('brand-1').then(
-      () => 'idle',
-      () => 'timed out',
+    let result = 'pending';
+    void outbox.whenIdle('brand-1').then(
+      () => {
+        result = 'idle';
+      },
+      () => {
+        result = 'timed out';
+      },
     );
     await vi.advanceTimersByTimeAsync(1000);
-    expect(await result).toBe('timed out');
+    expect(result).toBe('timed out');
     request.resolve();
     await outbox.whenIdle('brand-1');
     expect(write).toHaveBeenCalledTimes(1);

@@ -172,10 +172,20 @@ export class ClipProjectsController {
           user.organizationId,
           updateDto.brandId ?? existing.brandId,
         )
-      : {};
+      : null;
     const data: ClipProjectDocument = await this.clipProjectsService.patch(
       id,
-      { ...updateDto, ...source },
+      {
+        ...updateDto,
+        ...(source
+          ? {
+              ...source,
+              // Config merging ignores undefined. An explicit null prevents a
+              // keyless source from retaining and reading the previous object.
+              sourceVideoS3Key: source.sourceVideoS3Key ?? null,
+            }
+          : {}),
+      },
       [],
       user.organizationId,
     );

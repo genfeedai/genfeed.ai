@@ -1,5 +1,6 @@
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { assertSafeObjectKey } from '@libs/security';
@@ -39,7 +40,7 @@ export class ClipProjectClientSourceService {
     const ingredient = await this.prisma.ingredient.findFirst({
       select: { metadata: { select: { result: true } }, s3Key: true },
       where: scopedWhere(organizationId, {
-        category: 'VIDEO',
+        category: IngredientCategory.VIDEO,
         ...(brandId ? { OR: [{ brandId }, { brandId: null }] } : {}),
         ...(key
           ? { s3Key: key }
