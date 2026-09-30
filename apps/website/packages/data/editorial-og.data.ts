@@ -384,7 +384,8 @@ export function getEditorialArticleCard(slug: string, source?: string) {
   const id = ARTICLE_OG_CARDS[slug as keyof typeof ARTICLE_OG_CARDS];
   const url = new URL(source);
   return url.origin === 'https://cdn.genfeed.ai' &&
-    url.pathname === `/assets/cards/articles/${id}.webp`
+    (url.pathname === `/assets/cards/articles/${id}.webp` ||
+      url.pathname === `/assets/cards/articles/${slug}.jpg`)
     ? id
     : null;
 }

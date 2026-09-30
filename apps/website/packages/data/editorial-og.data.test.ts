@@ -36,10 +36,16 @@ describe('dedicated editorial OG coverage', () => {
     );
     expect(versioned.searchParams.get('v')).toBe('founder-20260930');
     expect(versioned.searchParams.get('width')).toBe('1280');
+    const published = `https://cdn.genfeed.ai/assets/cards/articles/${slug}.jpg`;
+    expect(getEditorialArticleCard(slug, published)).toBe('card-0003');
+    expect(getEditorialArticleCoverUrl(slug, published)).toBe(
+      `${published}?v=founder-20260930`,
+    );
     for (const custom of [
       'https://example.com/assets/cards/articles/card-0003.webp',
       'https://cdn.genfeed.ai/custom-cover.webp',
       '/custom-cover.webp',
+      'https://cdn.genfeed.ai/assets/cards/articles/another-article.jpg',
     ]) {
       expect(getEditorialArticleCard(slug, custom)).toBeNull();
       expect(getEditorialArticleCoverUrl(slug, custom)).toBe(custom);
