@@ -607,6 +607,7 @@ describe('AnalyticsTrends', () => {
         id: 'cached-video',
         title: 'Cached video',
         platform: Platform.TIKTOK,
+        publishedAt: new Date().toISOString(),
         views: 100,
       } as never,
     ]);
@@ -792,6 +793,7 @@ describe('AnalyticsTrends', () => {
         id: 'cached',
         title: 'Cached snapshot',
         platform: Platform.TIKTOK,
+        publishedAt: new Date().toISOString(),
         views: 100,
       } as never,
     ]);
