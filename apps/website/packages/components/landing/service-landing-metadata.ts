@@ -11,6 +11,13 @@ export const createServiceLandingMetadata = (
   config: ServiceLandingConfig,
 ): Metadata => {
   const url = `${metadata.url}/${config.slug}`;
+  const image = {
+    alt: config.metaTitle,
+    height: 630,
+    type: 'image/png',
+    url: config.slug === 'x' ? `${url}/og` : metadata.cards.default,
+    width: 1200,
+  };
 
   return {
     alternates: {
@@ -19,7 +26,7 @@ export const createServiceLandingMetadata = (
     description: config.metaDescription,
     openGraph: {
       description: config.metaDescription,
-      images: [metadata.cards.default],
+      images: [image],
       siteName: metadata.name,
       title: config.metaTitle,
       type: 'website',
@@ -29,7 +36,7 @@ export const createServiceLandingMetadata = (
     twitter: {
       card: 'summary_large_image',
       description: config.metaDescription,
-      images: [metadata.cards.default],
+      images: [image],
       title: config.metaTitle,
     },
   };
