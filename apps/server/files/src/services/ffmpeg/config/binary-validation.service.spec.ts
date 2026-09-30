@@ -42,10 +42,6 @@ describe('BinaryValidationService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('returns validated binary paths', async () => {
     await service.validateBinaries();
     expect(service.getBinaryPaths()).toEqual({

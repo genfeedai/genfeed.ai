@@ -6,11 +6,13 @@ import '@testing-library/jest-dom/vitest';
 
 const ITEMS: readonly ContentMentionItem[] = [
   {
+    brandId: 'brand-1',
     contentTitle: 'Launch thread',
     contentType: 'text',
     id: 'post-1',
   },
   {
+    brandId: 'brand-1',
     contentTitle: 'Campaign visual',
     contentType: 'image',
     id: 'post-2',

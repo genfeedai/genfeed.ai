@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -473,11 +474,10 @@ export class TiktokService {
     brandId?: string,
   ): Promise<ISocialTrend[]> {
     const url = `${this.constructorName} getTrends organizationId: ${organizationId} brandId: ${brandId}`;
-
     try {
       const trendingHashtags: ISocialTrend[] = [];
-
       if (!organizationId || !brandId) {
+        recordTrendProviderOutcome('native_empty', 'native_unavailable');
         this.loggerService.warn(`${url} - TikTok trend provider unavailable`, {
           reason: 'missing_organization_or_brand_scope',
         });
@@ -485,13 +485,11 @@ export class TiktokService {
         let credential: CredentialDocument | null = null;
         try {
           credential = await this.getValidCredential(organizationId, brandId);
-
           if (credential?.accessToken) {
             // Decrypt the access token
             const decryptedAccessToken = EncryptionUtil.decrypt(
               credential.accessToken,
             );
-
             // Fetch user's trending content
             const userTrends = await firstValueFrom(
               this.httpService.get(`${this.endpoint}/video/list/`, {
@@ -505,7 +503,6 @@ export class TiktokService {
                 },
               }),
             );
-
             if (userTrends.data?.data?.videos) {
               trendingHashtags.push(
                 ...userTrends.data.data.videos.map((video: ITikTokVideo) => ({
@@ -520,6 +517,7 @@ export class TiktokService {
               );
             }
           } else {
+            recordTrendProviderOutcome('native_empty', 'native_unavailable');
             this.loggerService.warn(
               `${url} - TikTok trend provider unavailable`,
               {
@@ -531,6 +529,7 @@ export class TiktokService {
             );
           }
         } catch (error: unknown) {
+          recordTrendProviderOutcome('native_failed', 'native_failed');
           this.loggerService.warn(
             `${url} - Could not fetch personalized trends`,
             error,
@@ -549,6 +548,7 @@ export class TiktokService {
 
       return trendingHashtags;
     } catch (error: unknown) {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }

@@ -14,6 +14,7 @@ describe('ContentMentionsController', () => {
     const postsService = {
       listContentMentions: vi.fn().mockResolvedValue([
         {
+          brandId: 'brand-1',
           contentTitle: 'Launch thread',
           contentType: 'text',
           id: 'post-1',
@@ -24,16 +25,32 @@ describe('ContentMentionsController', () => {
 
     const result = await controller.getMentions(makeUser());
 
-    expect(postsService.listContentMentions).toHaveBeenCalledWith('org-1');
+    expect(postsService.listContentMentions).toHaveBeenCalledWith(
+      'org-1',
+      undefined,
+    );
     expect(result).toEqual({
       mentions: [
         {
+          brandId: 'brand-1',
           contentTitle: 'Launch thread',
           contentType: 'text',
           id: 'post-1',
         },
       ],
     });
+  });
+
+  it('forwards the requested conversation brand rather than user brand metadata', async () => {
+    const listContentMentions = vi.fn().mockResolvedValue([]);
+    const controller = new ContentMentionsController({
+      listContentMentions,
+    } as never);
+    await controller.getMentions(makeUser(), 'conversation-brand');
+    expect(listContentMentions).toHaveBeenCalledWith(
+      'org-1',
+      'conversation-brand',
+    );
   });
 
   it('rejects requests missing organization metadata', async () => {

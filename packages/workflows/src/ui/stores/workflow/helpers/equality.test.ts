@@ -1,3 +1,8 @@
+import type {
+  NodeGroup,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/contracts/types';
 import { describe, expect, it } from 'vitest';
 
 import { temporalStateEquals } from './equality';
@@ -15,7 +20,7 @@ function makeNode(id: string, overrides: Record<string, unknown> = {}) {
     type: 'imageGen',
     width: 200,
     ...overrides,
-  } as any;
+  } as WorkflowNode;
 }
 
 function makeEdge(
@@ -31,21 +36,25 @@ function makeEdge(
     target,
     targetHandle: 'input',
     ...overrides,
-  } as any;
+  } as WorkflowEdge;
 }
 
-function makeGroup(id: string, overrides: Record<string, unknown> = {}) {
+function makeGroup(id: string, overrides: Partial<NodeGroup> = {}): NodeGroup {
   return {
-    color: '#ff0000',
+    color: 'red',
     id,
     isLocked: false,
     name: 'Group',
     nodeIds: ['n1'],
     ...overrides,
-  } as any;
+  };
 }
 
-function makeState(nodes: any[] = [], edges: any[] = [], groups: any[] = []) {
+function makeState(
+  nodes: WorkflowNode[] = [],
+  edges: WorkflowEdge[] = [],
+  groups: NodeGroup[] = [],
+) {
   return { edges, groups, nodes };
 }
 
@@ -202,8 +211,8 @@ describe('temporalStateEquals', () => {
   });
 
   it('returns false when group color changes', () => {
-    const a = makeState([], [], [makeGroup('g1', { color: '#ff0000' })]);
-    const b = makeState([], [], [makeGroup('g1', { color: '#00ff00' })]);
+    const a = makeState([], [], [makeGroup('g1', { color: 'red' })]);
+    const b = makeState([], [], [makeGroup('g1', { color: 'green' })]);
     expect(temporalStateEquals(a, b)).toBe(false);
   });
 

@@ -283,6 +283,7 @@ function formatDurationMs(durationMs: number | null): string | null {
 function useLiveElapsedLabel(startIso: string, isLive: boolean): string | null {
   const [nowMs, setNowMs] = useState(() => Date.now());
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A new start timestamp restarts the elapsed timer.
   useEffect(() => {
     if (!isLive) {
       return;

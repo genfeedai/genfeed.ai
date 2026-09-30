@@ -72,6 +72,7 @@ describe('curated Agent action catalog', () => {
   it('maps every Agent action to a concrete execution route', () => {
     const memberNames = new Set([
       ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatch'),
+      ...collectRouteCaseMembers(EXECUTOR_PATH, 'dispatchVisualCode'),
       ...collectRouteCaseMembers(WORK_OBJECT_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),

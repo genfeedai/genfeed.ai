@@ -237,4 +237,30 @@ describe('useTimeseries', () => {
 
     expect(result.current.timeseriesData[0]?.instagram).toBe(22);
   });
+  it('fetches changed dates and refresh events after hydration', async () => {
+    const { rerender } = renderHook(
+      ({ dateRange, refreshTrigger }) =>
+        useTimeseries({
+          dateRange,
+          refreshTrigger,
+          scope: PageScope.ORGANIZATION,
+          initialData: [],
+          revalidateOnMount: false,
+        }),
+      { initialProps: { dateRange: DATE_RANGE, refreshTrigger: 0 } },
+    );
+    expect(mockGetTimeSeries).not.toHaveBeenCalled();
+    const changedDates = {
+      ...DATE_RANGE,
+      startDate: new Date('2025-01-03T00:00:00.000Z'),
+    };
+    rerender({ dateRange: changedDates, refreshTrigger: 0 });
+    await waitFor(() =>
+      expect(mockGetTimeSeries).toHaveBeenCalledWith(
+        expect.objectContaining({ startDate: '2025-01-03' }),
+      ),
+    );
+    rerender({ dateRange: changedDates, refreshTrigger: 1 });
+    await waitFor(() => expect(mockGetTimeSeries).toHaveBeenCalledTimes(2));
+  });
 });

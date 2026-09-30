@@ -97,7 +97,7 @@ function InspectorNote({
       <div className="text-2xs uppercase tracking-[0.12em] text-foreground/35">
         {label}
       </div>
-      <p className="line-clamp-6 text-xs leading-relaxed text-foreground/62">
+      <p className="min-w-0 select-text whitespace-pre-wrap break-words text-xs leading-relaxed text-foreground/62">
         {text}
       </p>
     </div>

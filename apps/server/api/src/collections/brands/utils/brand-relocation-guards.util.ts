@@ -1,5 +1,5 @@
 import { scopedWhere } from '@api/index';
-import { LiveSessionStatus } from '@genfeedai/contracts';
+import { LiveSessionStatus, VisualCodeStatus } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { ConflictException } from '@nestjs/common';
 
@@ -103,4 +103,59 @@ export async function assertNoSecurityAuditHistory(
       'Cannot move a brand with security audit history. Direct and indirect audits, including deleted records, must remain in their original organization.',
     );
   }
+}
+
+export async function assertNoOpenVisualProjects(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  const revision = await client.visualRevision.findFirst({
+    where: {
+      organizationId,
+      brandId,
+      isDeleted: false,
+      OR: [
+        {
+          status: {
+            notIn: [
+              VisualCodeStatus.COMPLETED,
+              VisualCodeStatus.FAILED,
+              VisualCodeStatus.CANCELLED,
+            ],
+          },
+        },
+        {
+          AND: [
+            {
+              receipts: {
+                not: {
+                  array_contains: [{ kind: 'settlement', state: 'confirmed' }],
+                },
+              },
+            },
+            {
+              OR: [
+                { reservationId: { not: null } },
+                {
+                  receipts: {
+                    not: {
+                      array_contains: [
+                        { kind: 'quote', quote: { maximumCredits: 0 } },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    select: { id: true },
+  });
+  if (revision)
+    throw new ConflictException(
+      'Cannot move a brand with unfinished visual work. Finish or cancel and settle it first; its credit hold belongs to the current organization.',
+    );
 }

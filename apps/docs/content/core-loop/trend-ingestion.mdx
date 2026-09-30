@@ -172,3 +172,32 @@ That keeps verification repo-native without standing up a full ingestion environ
 ## V1 Boundary
 
 This page documents the existing ingestion surface. It does **not** re-scope v1 into new ingestion features or replace lower-level platform-specific issues.
+
+## Refresh evidence and ingestion health
+
+`GET /trends/corpus/health` reads saved corpus data and refresh receipts. Its
+`refreshHealth` entries contain platform, dataset, global/scoped source,
+`lastAttemptAt`, `completedAt`, `lastSuccessfulRefreshAt`, outcome and a fixed
+reason code. Tenant reads include their own receipts and the public corpus.
+There are no provider calls, queue submissions or health writes on this GET.
+
+The existing system-workflow node results only retained dataset counts; zero
+could mean empty, failed, or fallback, and manual refreshes have no workflow
+execution. Refresh receipts therefore use the existing operational event journal
+(`NotificationEvent`, source type `trend_refresh_health`) with no deliveries.
+This requires no schema migration. Provider responses and credential details are
+never stored in the receipt. Cache hits do not create new attempts. A completed
+empty response counts as a successful refresh; unavailable native credentials and
+provider or persistence failures do not. Successful fallbacks are explicitly
+identified. Source health displays real timestamps, distinguishes never-successful
+attempts, and keeps missing observations separate from refresh evidence.
+
+The scheduled maintenance entry point checks two fully closed 12-hour windows
+aligned to 00:15/12:15 UTC before queuing the next refresh. A durable enrollment
+record gives new deployments two windows of grace. Each missing platform/dataset
+gets one actionable operator alert through the durable notification outbox;
+continued misses share an incident key. The next successful refresh produces a
+recovery on the next scheduled health check and allows a later incident to alert
+again. Alert delivery failures cannot stop collection. Connected scopes are checked separately from the public corpus, so global fallback
+success cannot conceal a failed connected provider. Health alert messages and
+metrics carry no tenant identifiers; scoped incident keys use opaque fingerprints.

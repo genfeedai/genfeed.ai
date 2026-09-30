@@ -36,6 +36,26 @@ function request(
 }
 
 describe('ChannelMessageDispatcherService', () => {
+  it('delivers actionable trend ingestion alerts through the operator card transport', async () => {
+    const { discord, dispatcher } = makeDispatcher();
+    const card = {
+      color: 0xef4444,
+      description:
+        'YouTube trends missed two windows; inspect credentials and retry.',
+      title: 'Trend ingestion missed two scheduled windows',
+    };
+    await expect(
+      dispatcher.dispatch(
+        request({
+          action: 'ingestion_health',
+          payload: { card },
+          type: 'discord',
+        }),
+      ),
+    ).resolves.toEqual({ messageId: 'delivery/key', status: 'delivered' });
+    expect(discord.sendStreakNotification).toHaveBeenCalledWith(card);
+  });
+
   it('sends operator Discord alerts and reports delivery', async () => {
     const { discord, dispatcher } = makeDispatcher();
 

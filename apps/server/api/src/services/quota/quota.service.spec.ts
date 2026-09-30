@@ -65,10 +65,6 @@ describe('QuotaService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should throw NOT_FOUND when organization settings missing', async () => {
     mockOrganizationSettingsService.findOne.mockResolvedValue(null);
     const cred = makeCredential();

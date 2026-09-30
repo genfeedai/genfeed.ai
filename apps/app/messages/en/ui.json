@@ -79,6 +79,9 @@
     }
   },
   "quickActions": {
+    "creationFailed": "Storyboard couldn’t be created. Try again.",
+    "remixThisVideo": "Remix this video",
+    "remixThisVideoTooltip": "Remix this video",
     "openInEditor": "Open in Editor",
     "openInEditorTooltip": "Open in the Studio editor",
     "resizeFormats": {

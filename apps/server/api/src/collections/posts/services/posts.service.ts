@@ -65,6 +65,7 @@ const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
 
 type ContentMentionPostRecord = {
+  brandId: string | null;
   category: string;
   description: string;
   entityArticle: {
@@ -267,6 +268,7 @@ export class PostsService extends BaseService<
 
   async listContentMentions(
     organizationId: string,
+    brandId?: string,
     limit: number = DEFAULT_CONTENT_MENTION_LIMIT,
   ): Promise<AgentContentMentionItem[]> {
     if (!organizationId) {
@@ -277,6 +279,7 @@ export class PostsService extends BaseService<
     const posts = (await this.prisma.post.findMany({
       orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }],
       select: {
+        brandId: true,
         category: true,
         description: true,
         entityArticle: {
@@ -295,10 +298,11 @@ export class PostsService extends BaseService<
         label: true,
       },
       take: safeLimit,
-      where: scopedWhere(organizationId, {}),
+      where: scopedWhere(organizationId, brandId ? { brandId } : {}),
     })) as unknown as ContentMentionPostRecord[];
 
     return posts.map((post) => ({
+      brandId: post.brandId,
       contentTitle: this.formatContentMentionTitle(post),
       contentType: String(post.category).toLowerCase(),
       id: post.id,

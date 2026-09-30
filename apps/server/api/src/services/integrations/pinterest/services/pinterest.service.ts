@@ -1,4 +1,5 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import {
   SERVER_TOKENS,
   type ServerCredentialStore,
@@ -205,6 +206,7 @@ export class PinterestService {
       platform: CredentialPlatform.PINTEREST,
     });
     if (!credential?.accessToken) {
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
       return [];
     }
 

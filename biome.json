@@ -132,8 +132,8 @@
             "noNonNullAssertion": "off"
           },
           "suspicious": {
-            "noArrayIndexKey": "off",
-            "noExplicitAny": "off"
+            "noArrayIndexKey": "error",
+            "noExplicitAny": "error"
           }
         }
       }
@@ -212,8 +212,19 @@
             "noChildrenProp": "warn",
             "noUnusedFunctionParameters": "warn",
             "noUnusedVariables": "warn",
-            "useExhaustiveDependencies": "warn",
-            "useHookAtTopLevel": "warn"
+            "useExhaustiveDependencies": {
+              "level": "error",
+              "options": {
+                "hooks": [
+                  {
+                    "name": "useAbortEffect",
+                    "closureIndex": 0,
+                    "dependenciesIndex": 1
+                  }
+                ]
+              }
+            },
+            "useHookAtTopLevel": "error"
           },
           "performance": {
             "noImgElement": "off"
@@ -225,8 +236,8 @@
             "noNonNullAssertion": "warn"
           },
           "suspicious": {
-            "noArrayIndexKey": "off",
-            "noExplicitAny": "off",
+            "noArrayIndexKey": "error",
+            "noExplicitAny": "error",
             "noImplicitAnyLet": "warn",
             "noShadowRestrictedNames": "warn",
             "useIterableCallbackReturn": "warn"

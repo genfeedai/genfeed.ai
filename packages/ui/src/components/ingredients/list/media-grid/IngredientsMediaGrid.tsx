@@ -89,6 +89,7 @@ function IngredientsMediaGridSkeleton({
     <div style={{ columnCount, columnGap: COLUMN_GAP }}>
       {Array.from({ length: 12 }).map((_, index) => (
         <Skeleton
+          // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
           key={index}
           className="mb-1 aspect-[4/5] w-full break-inside-avoid rounded-card"
           variant="rounded"
@@ -217,6 +218,7 @@ export default function IngredientsMediaGrid({
     <div className="flex items-start" style={{ gap: COLUMN_GAP }}>
       {dealIntoColumns(columnItems, columnCount).map((column, index) => (
         <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
           key={index}
           className="flex min-w-0 flex-1 flex-col"
           data-masonry-column={index}

@@ -11,7 +11,7 @@ describe('getMediaFromNode', () => {
           'https://example.com/a.png',
           'https://example.com/b.png',
         ],
-      } as any;
+      } as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('imageGen', data);
       expect(result.url).toBe('https://example.com/img.png');
       expect(result.urls).toEqual([
@@ -24,7 +24,7 @@ describe('getMediaFromNode', () => {
     it('returns image with outputImage only and empty urls', () => {
       const data = {
         outputImage: 'https://example.com/img.png',
-      } as any;
+      } as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('imageGen', data);
       expect(result.url).toBe('https://example.com/img.png');
       expect(result.urls).toEqual([]);
@@ -32,7 +32,7 @@ describe('getMediaFromNode', () => {
     });
 
     it('returns null type when neither outputImage nor outputImages', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('imageGen', data);
       expect(result.url).toBeUndefined();
       expect(result.urls).toEqual([]);
@@ -42,14 +42,16 @@ describe('getMediaFromNode', () => {
 
   describe('videoGen', () => {
     it('returns video with outputVideo', () => {
-      const data = { outputVideo: 'https://example.com/vid.mp4' } as any;
+      const data = { outputVideo: 'https://example.com/vid.mp4' } as Parameters<
+        typeof getMediaFromNode
+      >[1];
       const result = getMediaFromNode('videoGen', data);
       expect(result.url).toBe('https://example.com/vid.mp4');
       expect(result.type).toBe('video');
     });
 
     it('returns null type without outputVideo', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('videoGen', data);
       expect(result.url).toBeUndefined();
       expect(result.type).toBeNull();
@@ -58,14 +60,16 @@ describe('getMediaFromNode', () => {
 
   describe('imageInput', () => {
     it('returns image with image property', () => {
-      const data = { image: 'https://example.com/input.png' } as any;
+      const data = { image: 'https://example.com/input.png' } as Parameters<
+        typeof getMediaFromNode
+      >[1];
       const result = getMediaFromNode('imageInput', data);
       expect(result.url).toBe('https://example.com/input.png');
       expect(result.type).toBe('image');
     });
 
     it('returns null type without image property', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('imageInput', data);
       expect(result.url).toBeUndefined();
       expect(result.type).toBeNull();
@@ -74,14 +78,16 @@ describe('getMediaFromNode', () => {
 
   describe('videoInput', () => {
     it('returns video with video property', () => {
-      const data = { video: 'https://example.com/input.mp4' } as any;
+      const data = { video: 'https://example.com/input.mp4' } as Parameters<
+        typeof getMediaFromNode
+      >[1];
       const result = getMediaFromNode('videoInput', data);
       expect(result.url).toBe('https://example.com/input.mp4');
       expect(result.type).toBe('video');
     });
 
     it('returns null type without video property', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('videoInput', data);
       expect(result.url).toBeUndefined();
       expect(result.type).toBeNull();
@@ -90,14 +96,16 @@ describe('getMediaFromNode', () => {
 
   describe('motionControl', () => {
     it('returns video with outputVideo', () => {
-      const data = { outputVideo: 'https://example.com/motion.mp4' } as any;
+      const data = {
+        outputVideo: 'https://example.com/motion.mp4',
+      } as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('motionControl', data);
       expect(result.url).toBe('https://example.com/motion.mp4');
       expect(result.type).toBe('video');
     });
 
     it('returns null type without outputVideo', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('motionControl', data);
       expect(result.url).toBeUndefined();
       expect(result.type).toBeNull();
@@ -106,21 +114,25 @@ describe('getMediaFromNode', () => {
 
   describe('download', () => {
     it('returns video when inputVideo is present', () => {
-      const data = { inputVideo: 'https://example.com/dl.mp4' } as any;
+      const data = { inputVideo: 'https://example.com/dl.mp4' } as Parameters<
+        typeof getMediaFromNode
+      >[1];
       const result = getMediaFromNode('download', data);
       expect(result.url).toBe('https://example.com/dl.mp4');
       expect(result.type).toBe('video');
     });
 
     it('returns image when inputImage is present and no inputVideo', () => {
-      const data = { inputImage: 'https://example.com/dl.png' } as any;
+      const data = { inputImage: 'https://example.com/dl.png' } as Parameters<
+        typeof getMediaFromNode
+      >[1];
       const result = getMediaFromNode('download', data);
       expect(result.url).toBe('https://example.com/dl.png');
       expect(result.type).toBe('image');
     });
 
     it('returns null when neither inputVideo nor inputImage', () => {
-      const data = {} as any;
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
       const result = getMediaFromNode('download', data);
       expect(result.url).toBeNull();
       expect(result.type).toBeNull();
@@ -129,8 +141,11 @@ describe('getMediaFromNode', () => {
 
   describe('unknown node type', () => {
     it('returns null for unknown node type', () => {
-      const data = {} as any;
-      const result = getMediaFromNode('unknownType' as any, data);
+      const data = {} as Parameters<typeof getMediaFromNode>[1];
+      const result = getMediaFromNode(
+        'unknownType' as Parameters<typeof getMediaFromNode>[0],
+        data,
+      );
       expect(result.url).toBeNull();
       expect(result.type).toBeNull();
     });

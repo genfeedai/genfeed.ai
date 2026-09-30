@@ -47,10 +47,6 @@ describe('CacheTagsService', () => {
     service = module.get<CacheTagsService>(CacheTagsService);
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should do nothing when tags array is empty', async () => {
     await service.setTags('cache:key', []);
     expect(mockRedisClient.multi).not.toHaveBeenCalled();

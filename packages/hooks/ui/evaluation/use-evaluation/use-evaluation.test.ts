@@ -277,7 +277,7 @@ describe('useEvaluation', () => {
     });
 
     it('manages loading state during fetch', async () => {
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
@@ -432,7 +432,7 @@ describe('useEvaluation', () => {
     });
 
     it('manages isEvaluating state during evaluation', async () => {
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const promise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
@@ -545,7 +545,9 @@ describe('useEvaluation', () => {
         useEvaluation({
           autoFetch: false,
           contentId: 'test-id',
-          contentType: 'unknown' as any,
+          contentType: 'unknown' as Parameters<
+            typeof useEvaluation
+          >[0]['contentType'],
         }),
       );
 

@@ -27,7 +27,7 @@ if (typeof global.document === 'undefined') {
     url: 'http://localhost',
   });
   global.document = dom.window.document;
-  global.window = dom.window as any;
+  global.window = dom.window as unknown as Window & typeof globalThis;
   global.navigator = dom.window.navigator;
 }
 
@@ -65,7 +65,7 @@ globalThis.React = React;
 // Mock console.error to reduce noise in tests (except for actual errors)
 const originalConsoleError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const message = args[0];
     // Let actual errors through, but suppress React warnings about missing providers etc.
     if (

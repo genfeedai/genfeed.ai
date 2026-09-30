@@ -242,10 +242,6 @@ describe('BrandsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('charges one credit for direct AI brand profile generation', () => {
     expect(
       Reflect.getMetadata(

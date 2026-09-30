@@ -87,6 +87,7 @@ import type { ExtractedMention } from './AgentChatInput';
 
 function contentReferenceToTrayItem(
   item: PersistedConversationComposerContentReference,
+  brandId: string | undefined,
 ): AgentChatReferenceItem {
   return {
     contentType: item.contentType,
@@ -94,6 +95,7 @@ function contentReferenceToTrayItem(
     label: item.contentTitle,
     thumbnailUrl: item.thumbnailUrl,
     type: 'content',
+    ...(isContentReferenceOutOfScope(item, brandId) ? { isSkipped: true } : {}),
   };
 }
 
@@ -174,38 +176,41 @@ function artifactReferenceKey(reference: AgentArtifactReference): string {
   return `${reference.kind}:${reference.recordId}`;
 }
 
-/**
- * A record attached from a page (e.g. Studio "Ask Agent about this") becomes a
- * typed artifact reference on send. Only ingredients qualify: they come from
- * the brand the conversation is bound to. Content-picker posts span every
- * brand in the organization, and the server rejects the whole turn when a
- * reference's brand differs from the thread's, so they stay display-only
- * until the picker is brand-scoped.
- */
+function isContentReferenceOutOfScope(
+  reference: PersistedConversationComposerContentReference,
+  brandId: string | undefined,
+): boolean {
+  return Boolean(
+    (brandId && reference.brandId !== brandId) ||
+      (reference.kind !== 'ingredient' && reference.brandId === undefined),
+  );
+}
+
+/** Preserve canonical identity; stale selections must never fail the turn. */
 function buildContentReferenceArtifact(
   contentReference: PersistedConversationComposerContentReference,
   organizationId: string,
   brandId: string | undefined,
 ): AgentArtifactReference | null {
-  if (contentReference.kind !== 'ingredient') {
+  if (isContentReferenceOutOfScope(contentReference, brandId)) {
     return null;
   }
 
-  // A record keeps the brand it was attached from. One from another brand
-  // than the composer is bound to, or with no known brand while the composer
-  // is bound to one, is left out rather than relabelled.
   const recordBrandId = contentReference.brandId;
-  if (brandId && recordBrandId !== brandId) {
-    return null;
-  }
+  const kind = contentReference.kind ?? 'post';
 
-  return {
-    kind: 'ingredient',
+  const identity = {
     organizationId,
     recordId: contentReference.id,
-    serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
     ...(recordBrandId ? { brandId: recordBrandId } : {}),
   };
+  return kind === 'ingredient'
+    ? {
+        ...identity,
+        kind,
+        serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.ingredient,
+      }
+    : { ...identity, kind, serializer: AGENT_ARTIFACT_SERIALIZER_BY_KIND.post };
 }
 
 export {
@@ -315,6 +320,12 @@ export function useAgentChatInput({
     [draftScopeKey],
   );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const activeThread = useAgentChatStore((s) =>
+    s.threads.find((thread) => thread.id === s.activeThreadId),
+  );
+  const conversationBrandId = activeThread
+    ? (activeThread.brandId ?? undefined)
+    : composerShell?.brandId;
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
   const isDragActive = dragState?.isActive ?? false;
   const placeholder = isDragActive
@@ -332,7 +343,7 @@ export function useAgentChatInput({
     apiService ?? null,
   );
   const { isLoading: isContentLibraryLoading, mentions: contentLibraryItems } =
-    useContentMentions(apiService ?? null);
+    useContentMentions(apiService ?? null, conversationBrandId);
 
   // `/` palette: the Agent's own actions, then every skill the catalog offers
   // on this surface. The extension reads the list through a ref so a catalog
@@ -840,7 +851,7 @@ export function useAgentChatInput({
         const artifact = buildContentReferenceArtifact(
           contentReference,
           organizationId,
-          composerShell?.brandId,
+          conversationBrandId,
         );
         if (!artifact) {
           continue;
@@ -860,7 +871,7 @@ export function useAgentChatInput({
         ...(mergedArtifactReferences.length > 0
           ? { artifactReferences: mergedArtifactReferences }
           : {}),
-        ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
+        ...(conversationBrandId ? { brandId: conversationBrandId } : {}),
         generationMode: sendMode,
         ...(isExplicitAgentMediaGenerationMode(sendMode) && generationSettings
           ? { generationSettings }
@@ -882,6 +893,7 @@ export function useAgentChatInput({
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
+    conversationBrandId,
     attachments,
     composerShell,
     contentReferences,
@@ -943,9 +955,11 @@ export function useAgentChatInput({
         const next: PersistedConversationComposerContentReference[] = [
           ...current,
           {
+            brandId: item.brandId,
             contentTitle: item.contentTitle,
             contentType: item.contentType,
             id: item.id,
+            kind: 'post',
             ...(item.thumbnailUrl ? { thumbnailUrl: item.thumbnailUrl } : {}),
           },
         ];
@@ -1070,12 +1084,17 @@ export function useAgentChatInput({
     for (const reference of contentReferences) {
       referencesByKey.set(
         `content:${reference.id}`,
-        contentReferenceToTrayItem(reference),
+        contentReferenceToTrayItem(reference, conversationBrandId),
       );
     }
 
     return [...referencesByKey.values()];
-  }, [composerShell?.references, contentReferences, mentionReferences]);
+  }, [
+    composerShell?.references,
+    contentReferences,
+    conversationBrandId,
+    mentionReferences,
+  ]);
   const displayedReferences = useMemo<AgentChatReferenceItem[]>(() => {
     const referencesById = new Map<string, AgentChatReferenceItem>();
 

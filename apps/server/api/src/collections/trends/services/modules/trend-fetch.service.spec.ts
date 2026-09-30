@@ -1,4 +1,5 @@
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendFetchService', () => {
@@ -49,6 +50,8 @@ describe('TrendFetchService', () => {
     getTrends: vi.fn(),
   };
 
+  const refreshHealth = { record: vi.fn().mockResolvedValue(undefined) };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -80,6 +83,7 @@ describe('TrendFetchService', () => {
       mockYoutubeService as never,
       mockPinterestService as never,
       mockTiktokService as never,
+      refreshHealth as never,
     );
   });
 
@@ -711,5 +715,163 @@ describe('TrendFetchService', () => {
       expect(personalizedKey).toContain('brand-1');
       expect(personalizedKey).not.toEqual(globalKey);
     });
+  });
+  it.each([
+    {
+      native: [{ topic: 'News', mentions: 3, growthRate: 1 }],
+      fallback: [],
+      outcome: 'native_available',
+      fails: false,
+    },
+    { native: [], fallback: [], outcome: 'native_empty', fails: false },
+    { native: [], fallback: [], outcome: 'native_failed', fails: true },
+  ])(
+    'records scoped $outcome after completed refresh work',
+    async ({ native, outcome, fails }) => {
+      if (fails)
+        mockYoutubeService.getTrends.mockRejectedValue(
+          new Error('Bearer secret-provider-token'),
+        );
+      else
+        mockYoutubeService.getTrends.mockResolvedValue(
+          native.map((value) => ({
+            ...value,
+            title: value.topic,
+            id: 'video',
+            viewCount: 3,
+            likeCount: 1,
+            commentCount: 0,
+          })),
+        );
+      mockPrisma.trend.create.mockImplementation(
+        (input: { data: Record<string, unknown> }) =>
+          Promise.resolve({ id: 'trend', ...input.data }),
+      );
+      await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+        allowApifyFallback: false,
+        platforms: ['youtube'],
+      });
+      expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+        expect.objectContaining({
+          dataset: 'trends',
+          outcome,
+          platform: 'youtube',
+          scope: 'scoped',
+          lastAttemptAt: expect.any(String),
+        }),
+      ]);
+      const receipt = refreshHealth.record.mock.calls.at(-1)?.[1][0];
+      expect(receipt.lastSuccessfulRefreshAt === null).toBe(fails);
+      expect(JSON.stringify(receipt)).not.toContain('secret-provider-token');
+    },
+  );
+
+  it.each(['fallback_available', 'fallback_empty', 'fallback_failed'])(
+    'records %s for a global provider fallback',
+    async (outcome) => {
+      mockYoutubeService.getTrends.mockRejectedValue(
+        new Error('native provider unavailable'),
+      );
+      if (outcome === 'fallback_failed')
+        mockApifyService.getYouTubeTrends.mockRejectedValue(
+          new Error('secret'),
+        );
+      else
+        mockApifyService.getYouTubeTrends.mockResolvedValue(
+          outcome === 'fallback_empty'
+            ? []
+            : [
+                {
+                  platform: 'youtube',
+                  topic: 'News',
+                  mentions: 3,
+                  growthRate: 1,
+                },
+              ],
+        );
+      mockPrisma.trend.create.mockImplementation(
+        (input: { data: Record<string, unknown> }) =>
+          Promise.resolve({ id: 'trend', ...input.data }),
+      );
+      await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+        platforms: ['youtube'],
+      });
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          outcome,
+          reason:
+            outcome === 'fallback_failed' ? 'provider_failed' : 'native_failed',
+        }),
+      ]);
+    },
+  );
+
+  it('does not advance an attempt when the provider result is already cached', async () => {
+    mockCacheService.get.mockResolvedValue([]);
+    await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith(null, []);
+    expect(mockYoutubeService.getTrends).not.toHaveBeenCalled();
+  });
+
+  it('records persistence failure without claiming a successful refresh', async () => {
+    mockYoutubeService.getTrends.mockResolvedValue([
+      {
+        id: 'video',
+        title: 'News',
+        viewCount: 3,
+        likeCount: 1,
+        commentCount: 0,
+      },
+    ]);
+    mockPrisma.trend.create.mockRejectedValue(
+      new Error('database write failed with secret'),
+    );
+    await service.fetchAndCacheTrends(undefined, undefined, undefined, {
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'persistence_failed',
+        lastSuccessfulRefreshAt: null,
+      }),
+    ]);
+  });
+  it('distinguishes integration-level swallowed failures from genuine empty native responses', async () => {
+    mockYoutubeService.getTrends.mockImplementation(async () => {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
+      return [];
+    });
+    await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+      allowApifyFallback: false,
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'native_failed',
+        lastSuccessfulRefreshAt: null,
+      }),
+    ]);
+  });
+
+  it('does not mark unavailable native credentials as a successful empty refresh', async () => {
+    mockYoutubeService.getTrends.mockImplementation(async () => {
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
+      return [];
+    });
+    await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+      allowApifyFallback: false,
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+      expect.objectContaining({
+        outcome: 'native_empty',
+        reason: 'native_unavailable',
+        lastSuccessfulRefreshAt: null,
+      }),
+    ]);
   });
 });

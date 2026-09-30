@@ -94,10 +94,6 @@ describe('WebSocketGateway', () => {
     vi.restoreAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(gateway).toBeDefined();
-  });
-
   it('should initialize and subscribe to Redis channels after startup delay', () => {
     gateway.afterInit(mockServer as unknown as Server);
     vi.advanceTimersByTime(100);

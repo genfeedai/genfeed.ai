@@ -5,6 +5,15 @@ import type {
   TrendData,
 } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
+import {
+  captureTrendRefreshEvidence,
+  getTrendNativeFailureReason,
+  markTrendRefreshPersistenceFailed,
+  recordTrendProviderOutcome,
+  skipTrendRefreshAttempt,
+  withTrendRefreshAttempt,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
@@ -69,6 +78,7 @@ export class TrendFetchService {
     private readonly youtubeService: YoutubeService,
     private readonly pinterestService: PinterestService,
     private readonly tiktokService: TiktokService,
+    private readonly refreshHealth: TrendRefreshHealthService,
   ) {}
 
   /**
@@ -109,6 +119,7 @@ export class TrendFetchService {
     if (cacheKey) {
       const cached = await this.cacheService.get<TrendData[]>(cacheKey);
       if (cached) {
+        skipTrendRefreshAttempt();
         this.loggerService.debug('Cache hit for personalized X trends', {
           brandId,
           organizationId,
@@ -141,12 +152,18 @@ export class TrendFetchService {
     brandId?: string,
     allowApifyFallback = true,
   ): Promise<TrendData[]> {
-    const officialTrends = await this.twitterService.getTrends(
-      organizationId,
-      brandId,
-    );
+    let nativeReason: 'native_empty' | 'native_failed' = 'native_empty';
+    const officialTrends = await this.twitterService
+      .getTrends(organizationId, brandId)
+      .catch(() => {
+        nativeReason = 'native_failed';
+        return [];
+      });
 
+    if (getTrendNativeFailureReason() === 'native_failed')
+      nativeReason = 'native_failed';
     if (officialTrends.length > 0) {
+      recordTrendProviderOutcome('native_available');
       return officialTrends.map((trend) => ({
         growthRate: trend.growthRate,
         mentions: trend.mentions,
@@ -157,6 +174,11 @@ export class TrendFetchService {
         platform: 'twitter',
         topic: trend.topic,
       }));
+    }
+
+    if (!allowApifyFallback) {
+      recordTrendProviderOutcome(nativeReason, nativeReason);
+      return [];
     }
 
     try {
@@ -178,6 +200,7 @@ export class TrendFetchService {
       });
 
       if (validGrokTrends.length > 0) {
+        recordTrendProviderOutcome('fallback_available', nativeReason);
         return validGrokTrends.map((trend) => ({
           growthRate: trend.growthRate,
           mentions: trend.mentions,
@@ -201,12 +224,20 @@ export class TrendFetchService {
       const apifyTrends = await this.apifyService.getTwitterTrends({
         limit: 20,
       });
+      recordTrendProviderOutcome(
+        apifyTrends.length ? 'fallback_available' : 'fallback_empty',
+        nativeReason,
+      );
       return this.toTrendDataArray(apifyTrends);
     }
 
     const apifyTrends = await this.apifyService.getTwitterTrends({
       limit: 20,
     });
+    recordTrendProviderOutcome(
+      apifyTrends.length ? 'fallback_available' : 'fallback_empty',
+      nativeReason,
+    );
     return this.toTrendDataArray(apifyTrends);
   }
 
@@ -306,6 +337,10 @@ export class TrendFetchService {
       brandId,
     );
 
+    if (linkedinTopics.length || !getTrendNativeFailureReason())
+      recordTrendProviderOutcome(
+        linkedinTopics.length ? 'native_available' : 'native_empty',
+      );
     return linkedinTopics.map((topic) => ({
       growthRate: topic.growthRate,
       mentions: topic.mentions,
@@ -433,44 +468,39 @@ export class TrendFetchService {
   }
 
   private async fetchNativeFirst(
-    platform: 'instagram' | 'pinterest' | 'reddit' | 'tiktok' | 'youtube',
+    platform: string,
     nativeFetch: () => Promise<TrendData[]>,
     fallbackFetch: () => Promise<TrendData[]>,
-    allowApifyFallback = true,
+    allowApifyFallback: boolean,
   ): Promise<TrendData[]> {
+    let reason: 'native_empty' | 'native_failed' | 'native_unavailable' =
+      'native_empty';
     try {
       const nativeTrends = await nativeFetch();
       if (nativeTrends.length > 0) {
+        recordTrendProviderOutcome('native_available');
         return nativeTrends;
       }
-
-      if (!allowApifyFallback) {
-        this.loggerService.warn(
-          `${platform} native trends returned no signal; Apify fallback is disabled for this refresh`,
-        );
-        return [];
-      }
-
-      this.loggerService.warn(
-        `${platform} native trends returned no signal; falling back to Apify`,
-      );
-    } catch (error: unknown) {
-      if (!allowApifyFallback) {
-        this.loggerService.warn(
-          `${platform} native trends failed; Apify fallback is disabled for this refresh`,
-          { error: error instanceof Error ? error.message : 'unknown' },
-        );
-        return [];
-      }
-      this.loggerService.warn(
-        `${platform} native trends failed; falling back to Apify`,
-        { error: error instanceof Error ? error.message : 'unknown' },
-      );
+      reason = getTrendNativeFailureReason() ?? 'native_empty';
+    } catch {
+      reason = 'native_failed';
     }
-
+    if (!allowApifyFallback) {
+      recordTrendProviderOutcome(
+        reason === 'native_unavailable' ? 'native_empty' : reason,
+        reason,
+      );
+      return [];
+    }
     try {
-      return await fallbackFetch();
+      const fallback = await fallbackFetch();
+      recordTrendProviderOutcome(
+        fallback.length ? 'fallback_available' : 'fallback_empty',
+        reason,
+      );
+      return fallback;
     } catch (error: unknown) {
+      recordTrendProviderOutcome('fallback_failed', 'provider_failed');
       this.loggerService.error(
         `${platform} Apify trend fallback failed`,
         error,
@@ -490,7 +520,21 @@ export class TrendFetchService {
       );
 
     if (!organizationId || !brandId) {
-      return allowApifyFallback ? fallback() : [];
+      if (!allowApifyFallback) {
+        recordTrendProviderOutcome('native_empty', 'native_unavailable');
+        return [];
+      }
+      try {
+        const trends = await fallback();
+        recordTrendProviderOutcome(
+          trends.length ? 'fallback_available' : 'fallback_empty',
+          'native_unavailable',
+        );
+        return trends;
+      } catch {
+        recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+        return [];
+      }
     }
 
     return this.fetchNativeFirst(
@@ -524,7 +568,21 @@ export class TrendFetchService {
       );
 
     if (!organizationId || !brandId) {
-      return allowApifyFallback ? fallback() : [];
+      if (!allowApifyFallback) {
+        recordTrendProviderOutcome('native_empty', 'native_unavailable');
+        return [];
+      }
+      try {
+        const trends = await fallback();
+        recordTrendProviderOutcome(
+          trends.length ? 'fallback_available' : 'fallback_empty',
+          'native_unavailable',
+        );
+        return trends;
+      } catch {
+        recordTrendProviderOutcome('fallback_failed', 'provider_failed');
+        return [];
+      }
     }
 
     return this.fetchNativeFirst(
@@ -590,61 +648,90 @@ export class TrendFetchService {
       return cached;
     }
 
-    try {
-      const platformHandlers: Record<string, () => Promise<TrendData[]>> = {
-        instagram: () =>
-          this.fetchInstagramTrends(
-            organizationId,
-            brandId,
-            allowApifyFallback,
-          ),
-        linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
-        pinterest: () =>
-          this.fetchPinterestTrends(
-            organizationId,
-            brandId,
-            allowApifyFallback,
-          ),
-        reddit: () =>
-          this.fetchRedditTrends(organizationId, brandId, allowApifyFallback),
-        tiktok: () =>
-          this.fetchTikTokTrends(organizationId, brandId, allowApifyFallback),
-        twitter: () =>
-          this.fetchTwitterTrends(organizationId, brandId, allowApifyFallback),
-        youtube: () => this.fetchYoutubeTrends(allowApifyFallback),
-      };
+    return withTrendRefreshAttempt(
+      platform,
+      'trends',
+      isGlobalRequest ? 'global' : 'scoped',
+      async () => {
+        try {
+          const platformHandlers: Record<string, () => Promise<TrendData[]>> = {
+            instagram: () =>
+              this.fetchInstagramTrends(
+                organizationId,
+                brandId,
+                allowApifyFallback,
+              ),
+            linkedin: () => this.fetchLinkedInTrends(organizationId, brandId),
+            pinterest: () =>
+              this.fetchPinterestTrends(
+                organizationId,
+                brandId,
+                allowApifyFallback,
+              ),
+            reddit: () =>
+              this.fetchRedditTrends(
+                organizationId,
+                brandId,
+                allowApifyFallback,
+              ),
+            tiktok: () =>
+              this.fetchTikTokTrends(
+                organizationId,
+                brandId,
+                allowApifyFallback,
+              ),
+            twitter: () =>
+              this.fetchTwitterTrends(
+                organizationId,
+                brandId,
+                allowApifyFallback,
+              ),
+            youtube: () => this.fetchYoutubeTrends(allowApifyFallback),
+          };
 
-      const handler = platformHandlers[platform];
-      if (!handler) {
-        this.loggerService.warn(`Unknown platform: ${platform}`);
-        return [];
-      }
+          const handler = platformHandlers[platform];
+          if (!handler) {
+            this.loggerService.warn(`Unknown platform: ${platform}`);
+            return [];
+          }
 
-      let trends: TrendData[];
-      try {
-        trends = await handler();
-      } catch (error: unknown) {
-        this.loggerService.error(
-          `Failed to fetch trends for ${platform}`,
-          error,
-        );
-        trends = [];
-      }
+          let trends: TrendData[];
+          try {
+            trends = await handler();
+          } catch (error: unknown) {
+            this.loggerService.error(
+              `Failed to fetch trends for ${platform}`,
+              error,
+            );
+            recordTrendProviderOutcome(
+              allowApifyFallback && platform === 'twitter'
+                ? 'fallback_failed'
+                : 'native_failed',
+              'provider_failed',
+            );
+            trends = [];
+          }
 
-      await this.cacheService.set(cacheKey, trends, {
-        tags: this.buildPlatformTrendsCacheTags(
-          platform,
-          organizationId,
-          brandId,
-        ),
-        ttl: this.resolvePlatformTrendsTtl(isGlobalRequest, trends.length),
-      });
+          await this.cacheService.set(cacheKey, trends, {
+            tags: this.buildPlatformTrendsCacheTags(
+              platform,
+              organizationId,
+              brandId,
+            ),
+            ttl: this.resolvePlatformTrendsTtl(isGlobalRequest, trends.length),
+          });
 
-      return trends;
-    } catch (error: unknown) {
-      this.loggerService.error(`Failed to cache trends for ${platform}`, error);
-      return [];
-    }
+          return trends;
+        } catch (error: unknown) {
+          recordTrendProviderOutcome('native_failed', 'persistence_failed');
+          this.loggerService.error(
+            `Failed to cache trends for ${platform}`,
+            error,
+          );
+          return [];
+        }
+      },
+    );
   }
 
   /**
@@ -705,72 +792,79 @@ export class TrendFetchService {
     calculateViralityScore?: (trend: TrendData) => number,
     options: TrendFetchBatchOptions = {},
   ): Promise<TrendEntity[]> {
-    const platforms = options.platforms ?? [
-      'tiktok',
-      'instagram',
-      'linkedin',
-      'twitter',
-      'youtube',
-      'reddit',
-      'pinterest',
-    ];
-    const allTrends: TrendEntity[] = [];
+    const captured = await captureTrendRefreshEvidence(
+      async () => {
+        const platforms = options.platforms ?? [
+          'tiktok',
+          'instagram',
+          'linkedin',
+          'twitter',
+          'youtube',
+          'reddit',
+          'pinterest',
+        ];
+        const allTrends: TrendEntity[] = [];
 
-    for (const platform of platforms) {
-      try {
-        const trendsData = await this.fetchPlatformTrends(
-          platform,
-          organizationId,
-          brandId,
-          options,
-        );
+        for (const platform of platforms) {
+          try {
+            const trendsData = await this.fetchPlatformTrends(
+              platform,
+              organizationId,
+              brandId,
+              options,
+            );
 
-        for (const trendData of trendsData) {
-          const viralityScore = calculateViralityScore
-            ? calculateViralityScore(trendData)
-            : 0;
+            for (const trendData of trendsData) {
+              const viralityScore = calculateViralityScore
+                ? calculateViralityScore(trendData)
+                : 0;
 
-          // Determine if this trend requires authentication
-          const requiresAuth = !!(organizationId && brandId);
+              // Determine if this trend requires authentication
+              const requiresAuth = !!(organizationId && brandId);
 
-          // Set TTL based on whether it's personalized or generic
-          const ttlMinutes = requiresAuth
-            ? this.PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES
-            : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
-          const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+              // Set TTL based on whether it's personalized or generic
+              const ttlMinutes = requiresAuth
+                ? this.PERSONALIZED_TREND_DOCUMENT_TTL_MINUTES
+                : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
+              const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
-          const savedTrend = await this.prisma.trend.create({
-            data: {
-              data: {
-                growthRate: trendData.growthRate,
-                mentions: trendData.mentions,
-                metadata: trendData.metadata,
-              } as Prisma.InputJsonValue,
-              brandId: brandId || null,
-              expiresAt,
-              isCurrent: true,
-              organizationId: organizationId?.trim() || null,
-              platform: trendData.platform,
-              requiresAuth,
-              topic: trendData.topic,
-              viralityScore,
-            },
-          });
-          allTrends.push(
-            new TrendEntity({
-              ...savedTrend,
-              ...(savedTrend.data as Record<string, unknown>),
-            } as unknown as TrendDocument),
-          );
+              const savedTrend = await this.prisma.trend.create({
+                data: {
+                  data: {
+                    growthRate: trendData.growthRate,
+                    mentions: trendData.mentions,
+                    metadata: trendData.metadata,
+                  } as Prisma.InputJsonValue,
+                  brandId: brandId || null,
+                  expiresAt,
+                  isCurrent: true,
+                  organizationId: organizationId?.trim() || null,
+                  platform: trendData.platform,
+                  requiresAuth,
+                  topic: trendData.topic,
+                  viralityScore,
+                },
+              });
+              allTrends.push(
+                new TrendEntity({
+                  ...savedTrend,
+                  ...(savedTrend.data as Record<string, unknown>),
+                } as unknown as TrendDocument),
+              );
+            }
+          } catch (error: unknown) {
+            markTrendRefreshPersistenceFailed(platform, 'trends');
+            this.loggerService.error(
+              `Failed to cache trends for ${platform}`,
+              error,
+            );
+          }
         }
-      } catch (error: unknown) {
-        this.loggerService.error(
-          `Failed to cache trends for ${platform}`,
-          error,
-        );
-      }
-    }
 
-    return allTrends;
+        return allTrends;
+      },
+      (evidence) => this.refreshHealth.record(organizationId ?? null, evidence),
+    );
+    return captured.result;
   }
 }

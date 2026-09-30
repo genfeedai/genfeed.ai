@@ -1,3 +1,4 @@
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import GenContent from '@public/gen/gen-content';
 import type { Metadata } from 'next';
@@ -14,7 +15,7 @@ export function generateMetadata(): Metadata {
     description,
     openGraph: {
       description,
-      images: [metadata.cards.default],
+      images: [getMarketingOgImage('/gen', title)],
       siteName: metadata.name,
       title,
       type: 'website',
@@ -26,7 +27,7 @@ export function generateMetadata(): Metadata {
       creator: '@genfeedai',
       creatorId: '1928229187782848512',
       description,
-      images: [metadata.cards.default],
+      images: [getMarketingOgImage('/gen', title)],
       site: metadata.url,
       title,
     },

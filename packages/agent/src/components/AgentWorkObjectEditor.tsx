@@ -152,7 +152,8 @@ export function AgentWorkObjectEditor({
             </TableHeader>
             <TableBody>
               {rows.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
+                // biome-ignore lint/suspicious/noArrayIndexKey: This editor only changes cells; row positions are fixed within a revision.
+                <TableRow key={`${object.id}-${object.revision}-${rowIndex}`}>
                   {object.columns?.map((column) => (
                     <TableCell key={column.key}>
                       <Input

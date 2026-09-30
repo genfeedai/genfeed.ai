@@ -1,5 +1,6 @@
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Clipboard, RefreshCw, Sparkles } from 'lucide-react';
@@ -100,14 +101,16 @@ export function AgentChatMessageFooter({
     >
       {isUser ? (
         <div className="flex min-w-0 items-center gap-1.5 text-foreground/38">
-          {metaItems.map((item, index) => (
-            <span key={`${item}-${index}`} className="inline-flex items-center">
-              {index > 0 ? (
-                <span className="mr-1.5 text-foreground/30">•</span>
-              ) : null}
-              {index === 0 ? <time>{item}</time> : item}
-            </span>
-          ))}
+          {keyListItems(metaItems, (item) => item).map(
+            ({ item, key }, index) => (
+              <span key={key} className="inline-flex items-center">
+                {index > 0 ? (
+                  <span className="mr-1.5 text-foreground/30">•</span>
+                ) : null}
+                {index === 0 ? <time>{item}</time> : item}
+              </span>
+            ),
+          )}
         </div>
       ) : (
         <div />

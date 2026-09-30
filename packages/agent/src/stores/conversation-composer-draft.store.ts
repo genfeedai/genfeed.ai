@@ -59,7 +59,9 @@ function normalizeContentReference(
   return {
     ...(typeof record.brandId === 'string' && record.brandId
       ? { brandId: record.brandId }
-      : {}),
+      : record.brandId === null
+        ? { brandId: null }
+        : {}),
     contentTitle: record.contentTitle,
     contentType: record.contentType,
     id: record.id,

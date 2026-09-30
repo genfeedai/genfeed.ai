@@ -18,6 +18,7 @@ export default function ModelsCatalogOverview({
       <MetricCardGrid className="mb-6" columns={6}>
         {Array.from({ length: 6 }).map((_, index) => (
           <MetricCard
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             key={`loading-${index}`}
             isLoading
             label="Loading"

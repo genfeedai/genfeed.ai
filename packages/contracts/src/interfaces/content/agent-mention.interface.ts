@@ -13,6 +13,7 @@ export interface AgentTeamMentionItem {
 }
 
 export interface AgentContentMentionItem {
+  brandId: string | null;
   contentTitle: string;
   contentType: string;
   id: string;

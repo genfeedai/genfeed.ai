@@ -1,7 +1,7 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PostsIngredientsList from '@pages/posts/ingredients/posts-ingredients-list';
 import { getPublicIngredientsPageCached } from '@public/posts/posts-loader';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadataWithCanonical(

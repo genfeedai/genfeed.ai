@@ -13,6 +13,7 @@ import {
   materializeJsonDocumentSchema,
 } from './contracts/schema-builders';
 import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract';
+import { VISUAL_CODE_ACTION_ALIASES } from './contracts/visual-code-action-contracts';
 import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
@@ -1114,6 +1115,29 @@ const BRAND_REMIX_ACTION_DEFINITIONS = BRAND_REMIX_ACTIONS.map(
 );
 
 const INTERNAL_ACTIONS: readonly GenfeedActionDefinition[] = [
+  internalAction(
+    'visual-code.execute-internal',
+    'Execute Visual Revision',
+    'Runs one bound system visual revision.',
+  ),
+  ...Object.values(VISUAL_CODE_ACTION_ALIASES).map(
+    (operation): GenfeedActionDefinition => ({
+      ...internalAction(
+        `visual-code.${operation}`,
+        `Visual Code ${operation}`,
+        `Visual code ${operation} through the shared scoped project service.`,
+        {
+          authorization: 'user',
+          visibility: 'workflow',
+          workflowCategory: 'composition',
+          workflowIcon: 'Clapperboard',
+        },
+      ),
+      approval: ['generate', 'revise', 'export', 'retry'].includes(operation)
+        ? 'required'
+        : 'none',
+    }),
+  ),
   internalAction(
     'remotion.composition.catalog',
     'List Remotion Compositions',

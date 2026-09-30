@@ -54,6 +54,11 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'batch_approve_reject', surfaces: ['agent'], toolset: 'content' },
   {
+    name: 'cancel_visual_code_project',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
+  {
     name: 'capture_knowledge',
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
@@ -164,6 +169,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'export_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
+  {
+    name: 'export_visual_code_project',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
   { name: 'fetch_x_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'fork_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'generate_ad_pack', surfaces: ['agent'], toolset: 'ads' },
@@ -185,6 +195,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   { name: 'generate_video', surfaces: ['agent', 'mcp'], toolset: 'generation' },
+  {
+    name: 'generate_visual_code',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
   { name: 'generate_voice', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'get_account_info', surfaces: ['mcp'], toolset: 'core' },
   {
@@ -282,6 +297,16 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_usage_stats', surfaces: ['mcp'], toolset: 'core' },
   { name: 'get_video_analytics', surfaces: ['mcp'], toolset: 'analytics' },
   { name: 'get_video_status', surfaces: ['mcp'], toolset: 'generation' },
+  {
+    name: 'get_visual_code_catalog',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
+  {
+    name: 'get_visual_code_project',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
   { name: 'get_workflow_inputs', surfaces: ['agent'], toolset: 'workflows' },
   {
     name: 'get_workflow_run',
@@ -416,6 +441,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
   { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
+  {
+    name: 'quote_visual_code_generation',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
   { name: 'rate_content', surfaces: ['agent'], toolset: 'content' },
   { name: 'rate_ingredient', surfaces: ['agent'], toolset: 'ui' },
   {
@@ -442,6 +472,16 @@ export const CURATED_ACTION_CATALOG = [
     name: 'retry_knowledge_ingestion',
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
+  },
+  {
+    name: 'retry_visual_code_project',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
+  },
+  {
+    name: 'revise_visual_code_project',
+    surfaces: ['agent', 'workflow'],
+    toolset: 'generation',
   },
   { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
@@ -502,8 +542,6 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'ui',
   },
-  // Agent-only: renders conversational choices as in-product controls. MCP
-  // clients own their own affordances and have no card surface to render into.
   { name: 'suggest_next_steps', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'tag_social_conversation',

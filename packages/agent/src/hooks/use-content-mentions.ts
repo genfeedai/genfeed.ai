@@ -9,20 +9,23 @@ interface UseContentMentionsReturn {
 
 export function useContentMentions(
   apiService: AgentApiService | null,
+  brandId?: string,
 ): UseContentMentionsReturn {
   const [mentions, setMentions] = useState<ContentMentionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setMentions([]);
     if (!apiService || typeof apiService.getContentMentions !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
+    setIsLoading(true);
 
     apiService
-      .getContentMentions(controller.signal)
+      .getContentMentions(controller.signal, brandId)
       .then((data) => {
         if (!controller.signal.aborted) {
           setMentions(data ?? []);
@@ -38,7 +41,7 @@ export function useContentMentions(
       });
 
     return () => controller.abort();
-  }, [apiService]);
+  }, [apiService, brandId]);
 
   return { isLoading, mentions };
 }

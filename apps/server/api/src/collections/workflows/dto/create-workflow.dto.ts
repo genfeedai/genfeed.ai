@@ -19,6 +19,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -235,6 +236,17 @@ export class WorkflowRecurrenceDto {
 }
 
 export class CreateWorkflowDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(256)
+  @ApiProperty({
+    description: 'Stable seeded-template creation attempt key',
+    required: false,
+    maxLength: 256,
+  })
+  readonly idempotencyKey?: string;
+
   @ValidateIf((dto: CreateWorkflowDto) => !dto.sourceWorkflowId)
   @IsString()
   @IsNotEmpty()
