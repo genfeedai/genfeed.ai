@@ -1,4 +1,5 @@
 import type { ActivitySource, ByokProvider } from '../..';
+import type { ModelBillableQuoteSnapshot } from '../billing/model-pricing.interface';
 
 /**
  * Pricing facts in force when a generation charge was computed. Stamped into
@@ -37,6 +38,8 @@ export interface CreditsConfig {
   provider?: ByokProvider;
   isByokBypass?: boolean;
   pricingMetadata?: CreditsPricingMetadata;
+  /** Internal frozen quote; exclude from response serializers. */
+  modelQuote?: ModelBillableQuoteSnapshot;
   /**
    * Opt in only — billing fails safe (#5294). CreditsGuard resolves a BYOK
    * provider and bypasses credits ONLY when this is explicitly `true`. Set

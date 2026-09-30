@@ -31,9 +31,10 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       replicateService as unknown as ReplicateService,
     );
 
+    const onProviderSubmissionStarted = vi.fn();
     let thrown: unknown;
     try {
-      await adapter.generate(buildParams());
+      await adapter.generate(buildParams({ onProviderSubmissionStarted }));
     } catch (error: unknown) {
       thrown = error;
     }
@@ -49,6 +50,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       }),
     );
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+    expect(onProviderSubmissionStarted).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid first_frame_image URI before runModel', async () => {
@@ -73,8 +75,15 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
   });
 
   it('dispatches Hailuo 2.3 Fast when first_frame_image is a valid URI', async () => {
+    const onProviderSubmissionStarted = vi.fn();
     const replicateService = {
-      generateTextToVideo: vi.fn().mockResolvedValue('pred_hailuo'),
+      generateTextToVideo: vi
+        .fn()
+        .mockImplementation(async (_model, _input, _key, started) => {
+          started?.();
+          expect(onProviderSubmissionStarted).toHaveBeenCalledExactlyOnceWith();
+          return 'pred_hailuo';
+        }),
     };
     const adapter = new ReplicateVideoGenerationProviderAdapter(
       replicateService as unknown as ReplicateService,
@@ -85,7 +94,9 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
     };
 
     await expect(
-      adapter.generate(buildParams({ promptParams })),
+      adapter.generate(
+        buildParams({ promptParams, onProviderSubmissionStarted }),
+      ),
     ).resolves.toEqual({
       completion: 'polling',
       externalId: 'pred_hailuo',
@@ -95,6 +106,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       promptParams,
       undefined,
+      onProviderSubmissionStarted,
     );
   });
 
@@ -118,6 +130,7 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
       promptParams,
       'org-replicate-key',
+      undefined,
     );
   });
 

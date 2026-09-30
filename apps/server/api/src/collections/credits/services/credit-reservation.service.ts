@@ -1,6 +1,7 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
   BusinessLogicException,
@@ -20,6 +21,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   LIVE_SESSION_WORKLOAD_TYPE,
+  MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
   MEDIA_GENERATION_WORKLOAD_TYPE,
 } from '@genfeedai/contracts/constants';
 import type {
@@ -289,10 +291,22 @@ export class CreditReservationService {
           isDeleted: false,
           organizationId: reservation.organizationId,
           status: CreditReservationStatus.RESERVED,
+          ...(input.expectedReservationMetadata
+            ? {
+                metadata: {
+                  equals: toPrismaJson(input.expectedReservationMetadata),
+                },
+              }
+            : {}),
         },
       });
       if (claimed.count !== 1) {
         const latest = await this.findReservation(input, tx);
+        if (
+          input.expectedReservationMetadata &&
+          latest.status === CreditReservationStatus.RESERVED
+        )
+          throw new ReservationEvidenceChangedException();
         if (
           latest.status === CreditReservationStatus.SETTLED &&
           latest.settledAmount === input.actualAmount
@@ -378,10 +392,23 @@ export class CreditReservationService {
           isDeleted: false,
           organizationId: reservation.organizationId,
           status: CreditReservationStatus.RESERVED,
+          ...(input.expectedReservationMetadata
+            ? {
+                metadata: {
+                  equals: toPrismaJson(input.expectedReservationMetadata),
+                },
+              }
+            : {}),
         },
       });
       if (claimed.count !== 1) {
-        return this.walletSnapshot(await this.findReservation(input, tx), tx);
+        const latest = await this.findReservation(input, tx);
+        if (
+          input.expectedReservationMetadata &&
+          latest.status === CreditReservationStatus.RESERVED
+        )
+          throw new ReservationEvidenceChangedException();
+        return this.walletSnapshot(latest, tx);
       }
 
       const snapshot = await this.creditBalanceService.applyDelta(
@@ -437,7 +464,14 @@ export class CreditReservationService {
         expiresAt: { lte: now },
         OR: [
           { workloadType: null },
-          { workloadType: { not: MEDIA_GENERATION_WORKLOAD_TYPE } },
+          {
+            workloadType: {
+              notIn: [
+                MEDIA_GENERATION_WORKLOAD_TYPE,
+                MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+              ],
+            },
+          },
         ],
         isDeleted: false,
         status: CreditReservationStatus.RESERVED,
@@ -449,7 +483,12 @@ export class CreditReservationService {
     for (const reservation of due) {
       try {
         // Media reconciliation must inspect the output before releasing funds.
-        if (reservation.workloadType === MEDIA_GENERATION_WORKLOAD_TYPE)
+        if (
+          [
+            MEDIA_GENERATION_WORKLOAD_TYPE,
+            MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+          ].includes(reservation.workloadType ?? '')
+        )
           continue;
         if (reservation.workloadType === 'interpolation') {
           if (!(await this.reconcileInterpolation(reservation, now))) continue;

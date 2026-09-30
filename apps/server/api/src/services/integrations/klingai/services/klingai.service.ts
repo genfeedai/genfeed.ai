@@ -101,9 +101,15 @@ export class KlingAIService {
     prompt: string,
     options?: { model: string; width: number; height: number },
     credentialsOverride?: { apiKey: string; apiSecret: string },
+    onProviderSubmissionStarted?: () => void,
   ) {
     return this.enqueue(() =>
-      this.generateTextToVideo(prompt, options, credentialsOverride),
+      this.generateTextToVideo(
+        prompt,
+        options,
+        credentialsOverride,
+        onProviderSubmissionStarted,
+      ),
     );
   }
 
@@ -235,12 +241,15 @@ export class KlingAIService {
     prompt: string,
     options?: { model: string; width: number; height: number },
     credentialsOverride?: { apiKey: string; apiSecret: string },
+    onProviderSubmissionStarted?: () => void,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       this.loggerService.log(`${url} started`);
 
+      const headers = this.getHeadersWithOverride(credentialsOverride);
+      onProviderSubmissionStarted?.();
       const res = await firstValueFrom(
         this.httpService.post(
           `${this.endpoint}/videos/text2video`,
@@ -251,7 +260,7 @@ export class KlingAIService {
             model: options?.model || this.model,
             prompt,
           },
-          { headers: this.getHeadersWithOverride(credentialsOverride) },
+          { headers },
         ),
       );
 

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
@@ -47,7 +48,8 @@ export type GenerationSettlementOutcome =
   | 'queued'
   | 'already-settled'
   | 'no-hold'
-  | 'hold-ended';
+  | 'hold-ended'
+  | 'group-handled';
 
 export type GenerationReleaseOutcome = 'released' | 'no-hold';
 
@@ -84,6 +86,7 @@ export class GenerationBillingService {
     private readonly queue: CreditDeductionQueueService,
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly quoteGroups: GenerationQuoteGroupService,
   ) {}
 
   /**
@@ -158,6 +161,19 @@ export class GenerationBillingService {
       await this.bindByokOutput(request, output, organizationId);
       return;
     }
+    if (
+      config?.modelQuote &&
+      (config.amount ?? 0) > 0 &&
+      !config.isByokBypass &&
+      organizationId
+    ) {
+      await this.quoteGroups.bindOutput(request, output.ingredientId);
+      request.creditsConfig = {
+        ...config,
+        boundOutputCount: (config.boundOutputCount ?? 0) + 1,
+      };
+      return;
+    }
     if (!config?.reservationId || !organizationId || !this.hasPool(request)) {
       return;
     }
@@ -203,6 +219,10 @@ export class GenerationBillingService {
       return;
     }
     try {
+      if (request.creditsConfig?.modelQuote) {
+        await this.quoteGroups.closeDispatch(reservationId, organizationId);
+        return;
+      }
       await this.credits.releaseReservation({ organizationId, reservationId });
     } catch (error: unknown) {
       this.logger.error('Generation pool release failed', error, {
@@ -239,6 +259,8 @@ export class GenerationBillingService {
     ingredientId: string,
     organizationId: string,
   ): Promise<GenerationSettlementOutcome> {
+    if (await this.quoteGroups.reconcileOutput(ingredientId, organizationId))
+      return 'group-handled';
     const hold = await this.findHold(ingredientId, organizationId);
     if (!hold) {
       return this.settleByokOutput(ingredientId, organizationId);
@@ -483,6 +505,14 @@ export class GenerationBillingService {
     organizationId: string,
     reason: 'release' | 'expiry' = 'release',
   ): Promise<GenerationReleaseOutcome> {
+    if (
+      await this.quoteGroups.reconcileOutput(
+        ingredientId,
+        organizationId,
+        reason === 'release',
+      )
+    )
+      return 'released';
     const hold = await this.findHold(ingredientId, organizationId);
     if (!hold) {
       return this.failByokOutput(ingredientId, organizationId);
@@ -533,6 +563,7 @@ export class GenerationBillingService {
       cursor = holds[holds.length - 1].id;
     }
     acted += await this.reconcileByok(now);
+    acted += await this.quoteGroups.reconcile(now);
     this.logger.log('Generation hold reconciliation completed', {
       acted,
       candidates,

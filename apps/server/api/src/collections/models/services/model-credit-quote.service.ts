@@ -1,16 +1,13 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import type { ModelCreditQuoteInput } from '@api/helpers/utils/credits/model-credit-quote.util';
+import type { ModelBillableQuoteSnapshot } from '@genfeedai/contracts/interfaces';
 import {
-  type ModelCreditQuoteInput,
-  quoteModelCredits,
-} from '@api/helpers/utils/credits/model-credit-quote.util';
-import { BadRequestException, Injectable } from '@nestjs/common';
+  getRuntimeMarginMultiplier,
+  quoteModelBillablePricing,
+} from '@genfeedai/pricing';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
-/**
- * Quotes a model's price from its database row. Quotes for a generation, the
- * guard's reservation and the settled amount all come from the same function
- * (`quoteModelCredits`), so a service never carries a fallback price of its own.
- */
+/** Authoritative admission quote from the exact raw model/provider tariff. */
 @Injectable()
 export class ModelCreditQuoteService {
   constructor(private readonly modelsService: ModelsService) {}
@@ -19,12 +16,96 @@ export class ModelCreditQuoteService {
     modelKey: string,
     input: ModelCreditQuoteInput = {},
   ): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(modelKey),
-    });
-    if (!model) {
-      throw new BadRequestException(`Unknown model: ${modelKey}`);
+    return (await this.quoteSnapshotByKey(modelKey, input)).credits;
+  }
+
+  async quoteSnapshotByKey(
+    modelKey: string,
+    input: ModelCreditQuoteInput = {},
+  ): Promise<ModelBillableQuoteSnapshot> {
+    const profile = await this.modelsService.findBillablePricingProfile(
+      modelKey,
+      input.organizationId,
+    );
+    if (!profile)
+      throw this.unavailable(modelKey, 'Exact model tariff is unavailable');
+    const {
+      organizationId: _organizationId,
+      providerInput,
+      provider,
+      ...quantities
+    } = input;
+    const selectorKeys = new Set([
+      ...profile.requiredSelectorKeys,
+      ...(profile.reviewedPricing?.invariantSelectors ?? []),
+      ...(profile.reviewedPricing?.rates.flatMap((rate) =>
+        Object.keys(rate.when),
+      ) ?? []),
+    ]);
+    if (profile.reviewedPricing) {
+      quantities.selectors = Object.fromEntries(
+        Object.entries(quantities.selectors ?? {}).filter(([key]) =>
+          selectorKeys.has(key),
+        ),
+      );
     }
-    return quoteModelCredits(model, input);
+    if (providerInput) {
+      const selectors = { ...quantities.selectors };
+      for (const key of selectorKeys) {
+        const value =
+          providerInput[key] ??
+          (key === 'audio'
+            ? providerInput.generate_audio
+            : key === 'generate_audio'
+              ? providerInput.audio
+              : undefined);
+        if (
+          typeof value === 'string' ||
+          typeof value === 'boolean' ||
+          (typeof value === 'number' && Number.isFinite(value))
+        )
+          selectors[key] = value;
+      }
+      quantities.selectors = selectors;
+      for (const key of ['duration', 'height', 'width'] as const) {
+        const value =
+          providerInput[key] ??
+          (key === 'duration' ? providerInput.seconds : undefined);
+        const number =
+          typeof value === 'string' && /^\d+(?:\.\d+)?$/.test(value)
+            ? Number(value)
+            : value;
+        if (typeof number === 'number' && Number.isFinite(number) && number > 0)
+          quantities[key] = number;
+      }
+    }
+    const quote = quoteModelBillablePricing(
+      profile,
+      {
+        ...quantities,
+        modelKey,
+        provider:
+          provider === 'genfeedai'
+            ? 'genfeed-ai'
+            : (provider ?? profile.provider),
+      },
+      getRuntimeMarginMultiplier(),
+      new Date().toISOString(),
+    );
+    if (quote.status === 'unresolved')
+      throw this.unavailable(modelKey, quote.reason);
+    return quote.snapshot;
+  }
+
+  private unavailable(
+    modelKey: string,
+    reason: string,
+  ): ServiceUnavailableException {
+    return new ServiceUnavailableException({
+      code: 'PRICING_UNAVAILABLE',
+      detail: reason,
+      modelKey,
+      title: 'Pricing is unavailable for this generation',
+    });
   }
 }

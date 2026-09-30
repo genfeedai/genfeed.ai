@@ -52,11 +52,18 @@ describe('GenerationBillingService', () => {
     creditTransaction: { findFirst: vi.fn() },
   };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  const quoteGroups = {
+    reconcileOutput: vi.fn(),
+    reconcile: vi.fn(),
+    closeDispatch: vi.fn(),
+    bindOutput: vi.fn(),
+  };
   const service = new GenerationBillingService(
     credits as unknown as CreditsUtilsService,
     queue as unknown as CreditDeductionQueueService,
     prisma as unknown as PrismaService,
     logger as unknown as LoggerService,
+    quoteGroups as never,
   );
 
   const request = (
@@ -81,6 +88,8 @@ describe('GenerationBillingService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    quoteGroups.reconcile.mockResolvedValue(0);
+    quoteGroups.reconcileOutput.mockResolvedValue(false);
     credits.bindReservationOutput.mockResolvedValue(hold());
     credits.releaseReservation.mockResolvedValue(undefined);
     queue.queueDeduction.mockResolvedValue(undefined);

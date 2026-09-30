@@ -12,6 +12,7 @@ import { AssetGateService } from '@api/collections/organization-settings/service
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist-quote-group-completion.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -353,14 +354,31 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patch`, { id, updateDto });
 
-      const updated = await this.prisma.ingredient.update({
-        where: { id },
-        data: this.normalizeData(
-          toIngredientUpdateData(
-            updateDto as unknown as Record<string, unknown>,
-          ),
-        ) as Prisma.IngredientUpdateInput,
-      });
+      const data = this.normalizeData(
+        toIngredientUpdateData(updateDto as unknown as Record<string, unknown>),
+      );
+      const current =
+        updateDto.status === IngredientStatus.GENERATED &&
+        typeof updateDto.s3Key === 'string'
+          ? await this.prisma.ingredient.findFirst({
+              where: { id, isDeleted: false },
+              select: { organizationId: true },
+            })
+          : null;
+      const completed = current?.organizationId
+        ? await persistQuoteGroupDisposition(
+            this.prisma,
+            { id, organizationId: current.organizationId, isDeleted: false },
+            data as Prisma.IngredientUpdateManyMutationInput,
+          )
+        : null;
+      const updated =
+        completed !== null
+          ? completed.count === 1
+          : await this.prisma.ingredient.update({
+              where: { id },
+              data: data as Prisma.IngredientUpdateInput,
+            });
 
       if (!updated) {
         throw new NotFoundException('Ingredient', id);
@@ -427,15 +445,20 @@ export class IngredientsService extends BaseService<
           ).map((row: { organizationId: string | null }) => row.organizationId)
         : [];
 
-      const result = await this.prisma.ingredient.updateMany({
-        where: this.normalizeWhere({
-          ...filter,
-          isDeleted: filter.isDeleted ?? false,
-        }) as Prisma.IngredientWhereInput,
-        data: this.normalizeData(
-          updateData,
-        ) as Prisma.IngredientUpdateManyMutationInput,
-      });
+      const where = this.normalizeWhere({
+        ...filter,
+        isDeleted: filter.isDeleted ?? false,
+      }) as Prisma.IngredientWhereInput;
+      const data = this.normalizeData(
+        updateData,
+      ) as Prisma.IngredientUpdateManyMutationInput;
+      const result =
+        (await persistQuoteGroupDisposition(
+          this.prisma,
+          where,
+          data,
+          update.isGenerationFailureConfirmed === true,
+        )) ?? (await this.prisma.ingredient.updateMany({ where, data }));
 
       this.logger.debug(`${this.constructorName} patchAll success`, {
         filter,

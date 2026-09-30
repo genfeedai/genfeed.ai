@@ -11,6 +11,7 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { assertRedactedVideoGenerationBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import {
   IngredientCategory,
@@ -269,6 +270,7 @@ describe('VideoGenerationService', () => {
         isByokActiveForProvider: vi.fn().mockResolvedValue(false),
         resolveApiKey: vi.fn().mockResolvedValue(undefined),
       } as never,
+      testModelCreditQuote(modelsService as never, 'replicate'),
     );
     const executionService = new VideoGenerationExecutionService(
       activitiesService as never,
@@ -650,6 +652,7 @@ describe('VideoGenerationService', () => {
         FAL_ENDPOINT,
         expect.any(Object),
         undefined,
+        expect.any(Function),
       );
       expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
     });
@@ -739,39 +742,31 @@ describe('VideoGenerationService', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('authorizes the fully-multiplied amount on the deferred path', async () => {
-      const { service, creditsUtilsService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({
-          model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-          outputs: 2,
-          resolution: 'pro',
-        }),
-        buildRequest({ creditsConfig: { deferred: true } }),
-      );
-
-      // Base 10 × Kling Pro's published 4/3 band, rounded to 14, × two
-      // non-batch outputs = 28.
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 28);
-    });
-
-    it('does not multiply authorization by outputs for batch-capable models', async () => {
-      const { service, creditsUtilsService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({ model: BATCH_MODEL, outputs: 3, resolution: 'standard' }),
-        buildRequest({ creditsConfig: { deferred: true } }),
-      );
-
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 10);
-    });
+    it.each([
+      {
+        model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+        outputs: 2,
+        resolution: 'pro',
+      },
+      { model: BATCH_MODEL, outputs: 3, resolution: 'standard' },
+    ])(
+      'blocks a selected variant without reviewed pricing before provider execution',
+      async (selection) => {
+        const { service, creditsUtilsService, replicateService } =
+          createService();
+        await expect(
+          service.generateVideo(
+            buildUser(),
+            baseDto(selection),
+            buildRequest({ creditsConfig: { deferred: true } }),
+          ),
+        ).rejects.toMatchObject({ response: { code: 'PRICING_UNAVAILABLE' } });
+        expect(
+          creditsUtilsService.checkOrganizationCreditsAvailable,
+        ).not.toHaveBeenCalled();
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      },
+    );
 
     it('throws 502 and cleans up when the first output never starts (no charge)', async () => {
       const { service, klingAIService, failedGenerationService, cacheService } =
@@ -1025,6 +1020,7 @@ describe('VideoGenerationService', () => {
           last_frame_image: `${REFERENCE_INGREDIENTS_ENDPOINT}/images/ref-end`,
         }),
         undefined,
+        expect.any(Function),
       );
     });
 
@@ -1061,6 +1057,7 @@ describe('VideoGenerationService', () => {
           ],
         }),
         undefined,
+        expect.any(Function),
       );
     });
 
@@ -1198,19 +1195,20 @@ describe('VideoGenerationService', () => {
       expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
     });
 
-    it('does not change credit authorization for a compiled model versus an exempt one', async () => {
-      const { service, creditsUtilsService } = createService();
-
-      await service.generateVideo(
-        buildUser(),
-        baseDto({ model: COMPILED_MODEL_MINIMAX, resolution: '2K' }),
-        buildRequest({ creditsConfig: { deferred: true } }),
-      );
-
-      // MiniMax H3's published 2K default keeps the base reservation.
+    it('requires a reviewed tariff for the compiled MiniMax resolution before provider execution', async () => {
+      const { service, creditsUtilsService, replicateService } =
+        createService();
+      await expect(
+        service.generateVideo(
+          buildUser(),
+          baseDto({ model: COMPILED_MODEL_MINIMAX, resolution: '2K' }),
+          buildRequest({ creditsConfig: { deferred: true } }),
+        ),
+      ).rejects.toMatchObject({ response: { code: 'PRICING_UNAVAILABLE' } });
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 10);
+      ).not.toHaveBeenCalled();
+      expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
     });
 
     // Security: the persisted snapshot is the only durable record of what was

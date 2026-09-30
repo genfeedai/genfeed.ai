@@ -42,6 +42,7 @@ export class ReplicateImageGenerationProviderAdapter
     predictionId: string,
     signal?: AbortSignal,
     apiKeyOverride?: string,
+    onProviderOutput?: (output: unknown) => Promise<void>,
   ): Promise<string[]> {
     const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
 
@@ -60,6 +61,9 @@ export class ReplicateImageGenerationProviderAdapter
         signal,
         apiKeyOverride,
       );
+      if (prediction.status === 'succeeded') {
+        await onProviderOutput?.(prediction.output);
+      }
       const outputUrls = this.resolveLocalPredictionResult(
         prediction,
         predictionId,
@@ -158,6 +162,7 @@ export class ReplicateImageGenerationProviderAdapter
     }
 
     return {
+      tracksSubmissionStarted: true,
       additionalActivityFailure: 'fail',
       additionalFailureLabel:
         'ReplicateService generateImage (additional output)',
@@ -169,6 +174,7 @@ export class ReplicateImageGenerationProviderAdapter
           request.modelEndpoint ?? request.model,
           input,
           request.apiKeyOverride,
+          request.onProviderSubmissionStarted,
         );
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
@@ -191,6 +197,7 @@ export class ReplicateImageGenerationProviderAdapter
               generationId,
               request.abortSignal,
               request.apiKeyOverride,
+              request.onProviderOutput,
             )
           : undefined;
 

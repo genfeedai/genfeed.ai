@@ -1,6 +1,7 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
@@ -402,6 +403,49 @@ describe('CreditReservationService', () => {
     });
   });
 
+  it.each(['settle', 'release'])(
+    'rejects a stale completion snapshot before %s changes the wallet',
+    async (action) => {
+      const metadata = { completedArtifacts: [] };
+      prisma.creditReservation.findFirst.mockResolvedValue({
+        id: 'res_1',
+        organizationId: 'org_1',
+        amount: 12,
+        actorUserId: 'user_1',
+        billingAccountId: 'ba_1',
+        status: CreditReservationStatus.RESERVED,
+        metadata: { completedArtifacts: ['late-completion'] },
+      });
+      prisma.creditReservation.updateMany.mockResolvedValue({ count: 0 });
+      const identity = {
+        reservationId: 'res_1',
+        organizationId: 'org_1',
+        expectedReservationMetadata: metadata,
+      };
+      const result =
+        action === 'settle'
+          ? service.settle({
+              ...identity,
+              actualAmount: 4,
+              actorUserId: 'user_1',
+              description: 'partial',
+            })
+          : service.release(identity);
+      await expect(result).rejects.toBeInstanceOf(
+        ReservationEvidenceChangedException,
+      );
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ metadata: { equals: metadata } }),
+        }),
+      );
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('returns held credits to the balance when a failed generation releases its reservation', async () => {
     const reservation = {
       id: 'res_1',
@@ -664,7 +708,11 @@ describe('CreditReservationService', () => {
         where: expect.objectContaining({
           OR: [
             { workloadType: null },
-            { workloadType: { not: 'media-generation' } },
+            {
+              workloadType: {
+                notIn: ['media-generation', 'media-generation-group'],
+              },
+            },
           ],
         }),
       }),

@@ -1,5 +1,6 @@
 import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
@@ -31,6 +32,7 @@ export class CreditsInterceptor implements NestInterceptor {
     private creditDeductionQueueService: CreditDeductionQueueService,
     private creditsUtilsService: CreditsUtilsService,
     private loggerService: LoggerService,
+    private readonly quoteGroups: GenerationQuoteGroupService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -176,6 +178,13 @@ export class CreditsInterceptor implements NestInterceptor {
     if (!config.reservationId || config.isPoolReleaseDeferred) {
       return;
     }
+    if (config.modelQuote) {
+      await this.quoteGroups.closeDispatch(
+        config.reservationId,
+        identity.organizationId,
+      );
+      return;
+    }
     if (!config.boundOutputCount) {
       this.loggerService.warn(
         'Completion-settled request bound no output; releasing its hold',
@@ -201,6 +210,13 @@ export class CreditsInterceptor implements NestInterceptor {
       organizationId,
     });
     if (config?.reservationId && !config.isPoolReleaseDeferred) {
+      if (config.settlement === 'completion' && config.modelQuote) {
+        await this.quoteGroups.closeDispatch(
+          config.reservationId,
+          organizationId,
+        );
+        return;
+      }
       await this.releaseReservation(config.reservationId, organizationId);
     }
   }

@@ -1,6 +1,6 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
@@ -20,7 +20,6 @@ import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
-  calculateVideoGenerationCredits,
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
@@ -64,16 +63,23 @@ export class VideoGenerationCreditsService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly modelsService: ModelsService,
     private readonly byokService: ByokService,
+    private readonly modelCreditQuote: ModelCreditQuoteService,
   ) {}
 
   async ensureDeferredCredits(
     createVideoDto: Pick<
       CreateVideoDto,
-      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+      | 'duration'
+      | 'height'
+      | 'outputs'
+      | 'resolution'
+      | 'width'
+      | 'isAudioEnabled'
     >,
     model: string,
     organization: string,
     request: Request,
+    providerInput?: Record<string, unknown>,
   ): Promise<void> {
     await this.ensureDeferredCreditsResolved(
       createVideoDto,
@@ -81,26 +87,38 @@ export class VideoGenerationCreditsService {
       organization,
       request,
       true,
+      providerInput,
     );
   }
 
   private async ensureDeferredCreditsResolved(
     createVideoDto: Pick<
       CreateVideoDto,
-      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+      | 'duration'
+      | 'height'
+      | 'outputs'
+      | 'resolution'
+      | 'width'
+      | 'isAudioEnabled'
     >,
     model: string,
     organization: string,
     request: Request,
     isReservationEnabled: boolean,
+    providerInput?: Record<string, unknown>,
   ): Promise<void> {
     const reqWithCredits = request as unknown as DeferredCreditsRequest;
     if (!isDeferredCreditsRequest(reqWithCredits)) {
       return;
     }
 
-    const { requiredCredits, resolvedModelDoc } =
-      await this.resolveRequiredCredits(createVideoDto, model);
+    const { requiredCredits, resolvedModelDoc, modelQuote } =
+      await this.resolveRequiredCredits(
+        createVideoDto,
+        model,
+        organization,
+        providerInput,
+      );
     const byok = await this.resolveActiveByokKey(
       organization,
       model,
@@ -126,6 +144,10 @@ export class VideoGenerationCreditsService {
       model,
       resolvedModelDoc ? buildPricingAuditStamp(resolvedModelDoc) : undefined,
     );
+    reqWithCredits.creditsConfig = {
+      ...reqWithCredits.creditsConfig,
+      modelQuote,
+    };
     if (byok) {
       reqWithCredits.creditsConfig = {
         ...reqWithCredits.creditsConfig,
@@ -144,7 +166,12 @@ export class VideoGenerationCreditsService {
   async ensureExtensionCredits(
     createVideoDto: Pick<
       CreateVideoDto,
-      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+      | 'duration'
+      | 'height'
+      | 'outputs'
+      | 'resolution'
+      | 'width'
+      | 'isAudioEnabled'
     >,
     model: string,
     organization: string,
@@ -209,7 +236,7 @@ export class VideoGenerationCreditsService {
 
     const requiredCredits = estimateClipChainCredits(segmentCount);
     const resolvedModelDoc = await this.modelsService.findOne({
-      key: baseModelKey(model),
+      key: model,
     });
     const byok = await this.resolveActiveByokKey(
       organization,
@@ -341,26 +368,46 @@ export class VideoGenerationCreditsService {
   private async resolveRequiredCredits(
     createVideoDto: Pick<
       CreateVideoDto,
-      'duration' | 'height' | 'outputs' | 'resolution' | 'width'
+      | 'duration'
+      | 'height'
+      | 'outputs'
+      | 'resolution'
+      | 'width'
+      | 'isAudioEnabled'
     >,
     model: string,
+    organizationId: string,
+    providerInput?: Record<string, unknown>,
   ) {
-    const resolvedModelDoc = await this.modelsService.findOne({
-      key: baseModelKey(model),
-    });
-    // #4813 Same calculator the Agent quote uses; only the inputs differ.
-    const { credits: requiredCredits } = calculateVideoGenerationCredits({
+    const resolvedModelDoc = await this.modelsService.findOne({ key: model });
+    const outputs = createVideoDto.outputs ?? 1;
+    const modelQuote = await this.modelCreditQuote.quoteSnapshotByKey(model, {
+      organizationId,
+      provider: resolvedModelDoc?.provider,
+      providerInput,
       duration: createVideoDto.duration,
       height: createVideoDto.height,
-      isBatchSupported:
-        MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false,
-      modelKey: model,
-      outputs: createVideoDto.outputs,
-      pricing: resolvedModelDoc,
-      resolution: createVideoDto.resolution,
       width: createVideoDto.width,
+      outputs,
+      requests: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported
+        ? 1
+        : outputs,
+      selectors: {
+        ...(createVideoDto.resolution !== undefined
+          ? { resolution: createVideoDto.resolution }
+          : {}),
+        ...(createVideoDto.isAudioEnabled !== undefined
+          ? {
+              audio: createVideoDto.isAudioEnabled,
+              generate_audio: createVideoDto.isAudioEnabled,
+            }
+          : {}),
+      },
     });
-
-    return { requiredCredits, resolvedModelDoc };
+    return {
+      requiredCredits: modelQuote.credits,
+      resolvedModelDoc,
+      modelQuote,
+    };
   }
 }

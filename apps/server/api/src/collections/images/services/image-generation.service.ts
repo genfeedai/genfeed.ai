@@ -334,6 +334,7 @@ export class ImageGenerationService {
         context.user.organizationId,
         context.request,
         onCreditsPrepared,
+        context.compiledDispatch ?? context.providerInput,
       );
     } catch (error: unknown) {
       return this.imageGenerationProviderDispatchService.failPlaceholderBeforeDispatch(

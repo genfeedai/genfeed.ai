@@ -6,6 +6,7 @@ import {
   CreditsGuard,
   type CreditsGuardRequest,
 } from '@api/helpers/guards/credits/credits.guard';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { BatchRewriteCreditsGuard } from '@api/services/batch-generation/batch-rewrite-credits.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
 import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
@@ -50,6 +51,7 @@ describe('BatchRewriteCreditsGuard admission', () => {
           error: vi.fn(),
         } as unknown as LoggerService,
         { get: vi.fn() } as unknown as ConfigService,
+        testModelCreditQuote(models as never),
       );
       const attributes = {
         itemIds: ['item-1', 'item-2', 'item-1'],

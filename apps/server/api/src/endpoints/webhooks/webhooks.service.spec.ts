@@ -680,6 +680,35 @@ describe('WebhooksService', () => {
       expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
     });
 
+    it.each(['already-failed', 'lost-failure-CAS'])(
+      'repairs definitive provider failure evidence after a %s library transition',
+      async (path) => {
+        const failed = {
+          ...mockIngredientDoc,
+          status: IngredientStatus.FAILED,
+        };
+        if (path === 'already-failed')
+          ingredientsService.findOne.mockResolvedValue(failed);
+        else {
+          ingredientsService.findOne
+            .mockResolvedValueOnce(mockIngredientDoc)
+            .mockResolvedValueOnce(failed);
+          ingredientsService.patchAll.mockResolvedValueOnce({
+            modifiedCount: 0,
+          });
+        }
+        await service.handleFailedGenerationForIngredient(
+          mockIngredientId.toString(),
+          errorMessage,
+        );
+        expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+          mockIngredientId.toString(),
+          mockOrgId,
+        );
+        expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+      },
+    );
+
     it('releases the output credit hold when the generation fails', async () => {
       await service.handleFailedGeneration(externalId, errorMessage);
 
@@ -702,7 +731,7 @@ describe('WebhooksService', () => {
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
         },
-        { status: IngredientStatus.FAILED },
+        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
       );
     });
 
@@ -722,7 +751,7 @@ describe('WebhooksService', () => {
           isDeleted: false,
           status: IngredientStatus.PROCESSING,
         },
-        { status: IngredientStatus.FAILED },
+        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
       );
       expect(
         postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded,

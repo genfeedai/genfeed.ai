@@ -32,6 +32,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { toRedactedGenerationBriefProviderData } from '@api/services/generation-brief';
+import { isReplicateSubmissionRejected } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
@@ -83,6 +84,20 @@ export class ImageGenerationProviderDispatchService {
     Pick<ImageGenerationSaveDocumentsResult, 'ingredientData' | 'metadataData'>
   >();
 
+  private readonly submissionStarted = new WeakMap<
+    ImageGenerationContext,
+    Set<string>
+  >();
+
+  private beginSubmission(
+    context: ImageGenerationContext,
+    ingredientIds: readonly string[],
+  ): void {
+    const started = this.submissionStarted.get(context) ?? new Set<string>();
+    for (const id of ingredientIds) started.add(id);
+    this.submissionStarted.set(context, started);
+  }
+
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -123,6 +138,42 @@ export class ImageGenerationProviderDispatchService {
       modelInputSchema: context.modelInputSchema,
       modelProvider: context.modelProvider,
       modelSchemaFamily: context.modelSchemaFamily,
+      onProviderSubmissionStarted: () => {
+        const documents = this.batchDocuments.get(context);
+        const target = this.activeDocument.get(context);
+        this.beginSubmission(
+          context,
+          documents
+            ? documents.map(({ ingredientData }) => ingredientData.id)
+            : [target?.ingredientData.id ?? context.ingredientData.id],
+        );
+      },
+      onProviderOutput: async (output) => {
+        const target = this.activeDocument.get(context) ?? {
+          metadataData: context.metadataData,
+        };
+        const supported =
+          typeof output === 'string' ||
+          (Array.isArray(output) &&
+            output.length > 0 &&
+            output.every((entry) => typeof entry === 'string'));
+        const count =
+          typeof output === 'string'
+            ? 1
+            : Array.isArray(output)
+              ? output.length
+              : 0;
+        const authorized = this.batchDocuments.get(context)?.length ?? 1;
+        await this.metadataService.patch(target.metadataData.id, {
+          result: JSON.stringify(output) ?? 'null',
+          ...(!supported || count > authorized
+            ? {
+                error:
+                  'Provider output does not match the funded dispatch manifest; recovery is required',
+              }
+            : {}),
+        });
+      },
       onExternalJobCreated: async (externalId) => {
         const documents = this.batchDocuments.get(context);
         if (documents) {
@@ -274,6 +325,8 @@ export class ImageGenerationProviderDispatchService {
     provider: PreparedImageGenerationProvider,
   ): Promise<string> {
     try {
+      if (!provider.tracksSubmissionStarted)
+        this.beginSubmission(context, [context.ingredientData.id]);
       const result = await provider.generate();
       if (result.kind !== 'inline-buffer') {
         throw new Error('Inline image provider returned an external result');
@@ -351,6 +404,8 @@ export class ImageGenerationProviderDispatchService {
     provider: PreparedImageGenerationProvider,
   ): Promise<string> {
     try {
+      if (!provider.tracksSubmissionStarted)
+        this.beginSubmission(context, [context.ingredientData.id]);
       const result = await provider.generate();
       const externalId = this.externalId(result);
       await this.patchExternalId(
@@ -397,6 +452,11 @@ export class ImageGenerationProviderDispatchService {
         await this.bindOutputCredits(context, output.ingredientData.id);
       }
       this.batchDocuments.set(context, documents);
+      if (!provider.tracksSubmissionStarted)
+        this.beginSubmission(
+          context,
+          documents.map(({ ingredientData }) => ingredientData.id),
+        );
       const result = await provider.generate();
       const generationId = this.externalId(result);
       for (const { ingredientData } of documents)
@@ -419,13 +479,17 @@ export class ImageGenerationProviderDispatchService {
       );
       await Promise.all(
         documents.map(({ ingredientData, metadataData }, index) =>
-          this.finalizeReturnedOutput(
-            context,
-            ingredientData.id,
-            metadataData.id,
-            result,
-            index,
-          ),
+          result.kind === 'external-id' &&
+          result.outputUrls &&
+          index >= result.outputUrls.length
+            ? this.markUnproducedBatchOutput(context, ingredientData.id)
+            : this.finalizeReturnedOutput(
+                context,
+                ingredientData.id,
+                metadataData.id,
+                result,
+                index,
+              ),
         ),
       );
       await Promise.all(
@@ -472,6 +536,28 @@ export class ImageGenerationProviderDispatchService {
     }
   }
 
+  private async markUnproducedBatchOutput(
+    context: ImageGenerationContext,
+    ingredientId: string,
+  ): Promise<void> {
+    const claimed = await this.imagesService.patchAll(
+      {
+        id: ingredientId,
+        organizationId: context.user.organizationId,
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      {
+        status: IngredientStatus.FAILED,
+        generationError:
+          'Provider completed without producing this requested output',
+        isGenerationFailureConfirmed: true,
+      },
+    );
+    if (claimed.modifiedCount === 1)
+      await this.releaseOutputCredits(context, ingredientId);
+  }
+
   private async executeSequential(
     context: ImageGenerationContext,
     provider: PreparedImageGenerationProvider,
@@ -479,6 +565,8 @@ export class ImageGenerationProviderDispatchService {
   ): Promise<string> {
     let primaryId: string;
     try {
+      if (!provider.tracksSubmissionStarted)
+        this.beginSubmission(context, [context.ingredientData.id]);
       const primaryResult = await provider.generate();
       primaryId = this.externalId(primaryResult);
       await this.patchExternalId(
@@ -525,6 +613,8 @@ export class ImageGenerationProviderDispatchService {
       ingredientId = documents.ingredientData.id;
       await this.bindOutputCredits(context, ingredientId);
       this.activeDocument.set(context, documents);
+      if (!provider.tracksSubmissionStarted)
+        this.beginSubmission(context, [ingredientId]);
       const result = await provider.generate();
       await Promise.all([
         this.patchExternalId(
@@ -689,6 +779,20 @@ export class ImageGenerationProviderDispatchService {
       return;
     }
 
+    const authorized = this.batchDocuments.get(context)?.length ?? 1;
+    if ((result.outputUrls?.length ?? 0) > authorized) {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          result: JSON.stringify(result.outputUrls),
+          error:
+            'Provider returned more outputs than the funded dispatch manifest; recovery is required',
+        }),
+      );
+      throw new Error(
+        'Provider output cardinality exceeds the funded dispatch manifest',
+      );
+    }
     const current = await this.imagesService.findOne({
       id: ingredientId,
       organizationId: context.user.organizationId,
@@ -770,8 +874,11 @@ export class ImageGenerationProviderDispatchService {
     }
 
     if (
-      this.acceptedOutputs.get(context)?.has(ingredientId.toString()) &&
-      !(error instanceof ProviderGenerationFailedError)
+      ((this.billingRequest(context).creditsConfig?.modelQuote &&
+        this.submissionStarted.get(context)?.has(ingredientId.toString())) ||
+        this.acceptedOutputs.get(context)?.has(ingredientId.toString())) &&
+      !(error instanceof ProviderGenerationFailedError) &&
+      !isReplicateSubmissionRejected(error)
     ) {
       this.loggerService.error(
         'Accepted image postdispatch work failed; retain its funding',
@@ -788,7 +895,11 @@ export class ImageGenerationProviderDispatchService {
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
-      { generationError: errorMessage, status: IngredientStatus.FAILED },
+      {
+        generationError: errorMessage,
+        status: IngredientStatus.FAILED,
+        isGenerationFailureConfirmed: true,
+      },
     );
     if (claimed.modifiedCount !== 1) throw error;
     this.loggerService.error(`${label} failed`, error);

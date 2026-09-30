@@ -157,6 +157,7 @@ describe('MusicGenerationService', () => {
       creditDeductionQueueService as never,
       creditsUtilsService as never,
       loggerService as never,
+      { closeDispatch: vi.fn() } as never,
     );
     // Real facade wired onto the same mocks — MusicGenerationService no
     // longer injects activitiesService/failedGenerationService/musicsService/
@@ -175,6 +176,12 @@ describe('MusicGenerationService', () => {
       creditDeductionQueueService as never,
       {} as never,
       loggerService as never,
+      {
+        reconcileOutput: vi.fn().mockResolvedValue(false),
+        reconcile: vi.fn().mockResolvedValue(0),
+        closeDispatch: vi.fn(),
+        bindOutput: vi.fn(),
+      } as never,
     );
     const service = new MusicGenerationService(
       brandsService as never,

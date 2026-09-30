@@ -1,5 +1,6 @@
 import { resolveIdeaGenerationParams } from '@api/collections/batch-projects/services/batch-project-dispatch.util';
 import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -17,6 +18,9 @@ describe('AgentGenerationEstimateService', () => {
     { selectModel } as never,
     { validateModelForOrg } as never,
     { warn: vi.fn() } as never,
+    testModelCreditQuote({
+      findOne: async () => validateModelForOrg(),
+    } as never),
   );
   const input = {
     category: ModelCategory.IMAGE as const,
@@ -25,6 +29,7 @@ describe('AgentGenerationEstimateService', () => {
   };
   const model = {
     key: 'openai/gpt-image-2',
+    provider: 'replicate',
     category: ModelCategory.IMAGE,
     cost: 50,
     isActive: true,
@@ -43,16 +48,14 @@ describe('AgentGenerationEstimateService', () => {
     const auto = await service.estimate({
       ...input,
       outputs: 2,
-      quality: 'low',
     });
     const explicit = await service.estimate({
       ...input,
       modelKey: model.key,
       outputs: 2,
-      quality: 'low',
     });
     expect(auto).toEqual({
-      credits: 12,
+      credits: 100,
       isAvailable: true,
       modelKey: model.key,
     });
@@ -82,6 +85,7 @@ describe('AgentGenerationEstimateService', () => {
       cost: 1,
       costPerUnit: 4,
       key: 'fal-ai/flux/dev',
+      provider: 'fal',
       pricingType: 'per-megapixel',
     });
     const portrait = await service.estimate({
@@ -155,6 +159,7 @@ describe('AgentGenerationEstimateService', () => {
       cost: 1,
       costPerUnit: 10,
       key: 'fal-ai/video',
+      provider: 'fal',
       pricingType: 'per-second',
     };
     validateModelForOrg.mockResolvedValue(pricedModel);
@@ -183,7 +188,7 @@ describe('AgentGenerationEstimateService', () => {
     expect(quote.credits).toBe(charged.credits);
   });
 
-  it('bills native-batch models once and Fal fan-out per output', async () => {
+  it('prices output units for native batches and Fal fan-out', async () => {
     validateModelForOrg.mockResolvedValue({
       ...model,
       cost: 6,
@@ -195,11 +200,12 @@ describe('AgentGenerationEstimateService', () => {
         modelKey: 'bytedance/seedream-4.5',
         outputs: 4,
       }),
-    ).toMatchObject({ credits: 6, isAvailable: true });
+    ).toMatchObject({ credits: 24, isAvailable: true });
     validateModelForOrg.mockResolvedValue({
       ...model,
       cost: 6,
       key: 'fal-ai/flux/dev',
+      provider: 'fal',
     });
     expect(
       await service.estimate({
@@ -235,12 +241,9 @@ describe('AgentGenerationEstimateService', () => {
       await service.estimate({ ...input, category: ModelCategory.VIDEO }),
     ).toMatchObject({ credits: 100, isAvailable: true });
   });
-  it('preserves the pricing helper minimum when base cost is zero', async () => {
+  it('rejects a zero cost without an explicit free designation', async () => {
     validateModelForOrg.mockResolvedValue({ ...model, cost: 0 });
-    expect(await service.estimate(input)).toMatchObject({
-      credits: 1,
-      isAvailable: true,
-    });
+    expect(await service.estimate(input)).toEqual(unavailable);
   });
   it.each([
     { key: 'retired-successor' },

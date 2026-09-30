@@ -127,6 +127,12 @@ describe('AvatarVideoGenerationService', () => {
       creditDeductionQueueService as never,
       {} as never,
       loggerService,
+      {
+        reconcileOutput: vi.fn().mockResolvedValue(false),
+        reconcile: vi.fn().mockResolvedValue(0),
+        closeDispatch: vi.fn(),
+        bindOutput: vi.fn(),
+      } as never,
     );
     const service = new AvatarVideoGenerationService(
       brandsService as never,

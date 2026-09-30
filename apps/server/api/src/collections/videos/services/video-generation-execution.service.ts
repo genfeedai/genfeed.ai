@@ -6,6 +6,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type {
   CreateVideoPlaceholderActivityParams,
+  DispatchVideoGenerationParams,
   VideoGenerationContext,
   VideoGenerationProviderResult,
   VideoGenerationSaveDocumentsResult,
@@ -24,7 +25,10 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
-import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  isReplicateSubmissionRejected,
+  ReplicateProviderError,
+} from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -47,6 +51,20 @@ type StartedVideoGeneration = VideoGenerationProviderResult & {
 
 @Injectable()
 export class VideoGenerationExecutionService {
+  private readonly submissionStarted = new WeakMap<
+    VideoGenerationContext,
+    Set<string>
+  >();
+
+  private beginSubmission(
+    context: VideoGenerationContext,
+    ids: readonly string[],
+  ): void {
+    const started = this.submissionStarted.get(context) ?? new Set<string>();
+    for (const id of ids) started.add(id);
+    this.submissionStarted.set(context, started);
+  }
+
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
@@ -159,7 +177,11 @@ export class VideoGenerationExecutionService {
       additionalDocuments.push(documents);
       await this.bindOutputCredits(context, id, outputs);
     }
-    const generation = await this.dispatch(context);
+    const generation = await this.dispatch(
+      context,
+      undefined,
+      context.pendingIngredientIds,
+    );
     const documents = [
       {
         ingredientData: context.ingredientData,
@@ -218,7 +240,7 @@ export class VideoGenerationExecutionService {
       const id = documents.ingredientData.id.toString();
       if (index > 0) context.pendingIngredientIds.push(id);
       await this.bindOutputCredits(context, id, outputs);
-      const generation = await this.dispatch(context, index + 1);
+      const generation = await this.dispatch(context, index + 1, [id]);
       accepted.add(id);
       await this.persistAcceptedOutput(
         context,
@@ -325,21 +347,18 @@ export class VideoGenerationExecutionService {
     });
   }
 
-  private async dispatch(
-    context: VideoGenerationContext,
-    output?: number,
-  ): Promise<StartedVideoGeneration> {
-    const externalProvider = this.providerDispatchService.providerFor(
-      context.model,
-      context.modelProvider,
-    );
-    if (externalProvider) {
-      await this.metadataService.patch(
-        context.metadataData.id,
-        new MetadataEntity({ externalProvider }),
+  prepareProviderDispatch(context: VideoGenerationContext): void {
+    context.preparedFalDispatch =
+      this.providerDispatchService.prepareFalDispatch(
+        this.dispatchParams(context),
       );
-    }
-    const result = await this.providerDispatchService.dispatch({
+  }
+
+  private dispatchParams(
+    context: VideoGenerationContext,
+  ): DispatchVideoGenerationParams {
+    return {
+      preparedFalDispatch: context.preparedFalDispatch,
       apiKeyOverride: this.resolveByokApiKeyOverride(context),
       duration: context.createVideoDto.duration,
       height: context.height,
@@ -353,6 +372,28 @@ export class VideoGenerationExecutionService {
       prompt: context.promptInput.prompt || '',
       promptParams: context.promptParams,
       width: context.width,
+    };
+  }
+
+  private async dispatch(
+    context: VideoGenerationContext,
+    output?: number,
+    ingredientIds: readonly string[] = [context.ingredientData.id.toString()],
+  ): Promise<StartedVideoGeneration> {
+    const externalProvider = this.providerDispatchService.providerFor(
+      context.model,
+      context.modelProvider,
+    );
+    if (externalProvider) {
+      await this.metadataService.patch(
+        context.metadataData.id,
+        new MetadataEntity({ externalProvider }),
+      );
+    }
+    const result = await this.providerDispatchService.dispatch({
+      ...this.dispatchParams(context),
+      onProviderSubmissionStarted: () =>
+        this.beginSubmission(context, ingredientIds),
     });
     if (!result.externalId) {
       throw this.generationStartError(output);
@@ -417,6 +458,50 @@ export class VideoGenerationExecutionService {
     const failedIds = context.pendingIngredientIds.filter(
       (id) => !accepted.has(id),
     );
+    if (
+      (context.request as unknown as DeferredCreditsRequest | undefined)
+        ?.creditsConfig?.modelQuote
+    ) {
+      await Promise.all(
+        failedIds.map(async (pendingId) => {
+          if (
+            this.submissionStarted.get(context)?.has(pendingId) &&
+            !isReplicateSubmissionRejected(error)
+          ) {
+            this.loggerService.error(
+              'Video provider submission outcome is unknown; retain funding',
+              error,
+              { ingredientId: pendingId },
+            );
+            return;
+          }
+          const claimed = await this.videosService.patchAll(
+            {
+              id: pendingId,
+              organizationId: context.user.organizationId,
+              isDeleted: false,
+              status: IngredientStatus.PROCESSING,
+            },
+            {
+              status: IngredientStatus.FAILED,
+              isGenerationFailureConfirmed: true,
+              generationError: 'Generation failed before provider submission',
+            },
+          );
+          if (claimed.modifiedCount !== 1) return;
+          await this.releaseOutputCredits(context, pendingId);
+          await this.failedGenerationService.notifyFailedGeneration({
+            ingredientId: pendingId,
+            organizationId: context.user.organizationId,
+            userId: context.user.userId,
+            websocketMethod: 'publishMediaFailed',
+            websocketUrl: WebSocketPaths.video(pendingId),
+            websocketMessage: 'Generation failed before provider submission',
+          });
+        }),
+      );
+      return;
+    }
     await Promise.all(
       failedIds.map((pendingId) =>
         this.releaseOutputCredits(context, pendingId),

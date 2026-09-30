@@ -118,6 +118,8 @@ export interface IBindCreditReservationOutputInput {
 }
 
 export interface ISettleCreditReservationInput {
+  /** Internal evidence CAS: reject a claim computed from an obsolete completion snapshot. */
+  expectedReservationMetadata?: Record<string, unknown>;
   organizationId: string;
   reservationId?: string;
   idempotencyKey?: string;
@@ -130,6 +132,8 @@ export interface ISettleCreditReservationInput {
 }
 
 export interface IReleaseCreditReservationInput {
+  /** Internal evidence CAS: reject a release computed from obsolete completion evidence. */
+  expectedReservationMetadata?: Record<string, unknown>;
   organizationId: string;
   reservationId?: string;
   idempotencyKey?: string;

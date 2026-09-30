@@ -1,8 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
@@ -17,6 +20,7 @@ describe('CreditsInterceptor', () => {
   let creditDeductionQueueService: CreditDeductionQueueService;
   let creditsUtilsService: { releaseReservation: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
+  const quoteGroups = { closeDispatch: vi.fn().mockResolvedValue(undefined) };
 
   const mockRequest: {
     creditsConfig?: CreditsConfig & {
@@ -52,6 +56,7 @@ describe('CreditsInterceptor', () => {
   } as CallHandler;
 
   beforeEach(async () => {
+    quoteGroups.closeDispatch.mockClear();
     mockRequest.creditsConfig = {
       amount: 10,
       description: 'Test operation',
@@ -80,6 +85,7 @@ describe('CreditsInterceptor', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreditsInterceptor,
+        { provide: GenerationQuoteGroupService, useValue: quoteGroups },
         {
           provide: CreditDeductionQueueService,
           useValue: mockCreditDeductionQueueService,
@@ -211,6 +217,41 @@ describe('CreditsInterceptor', () => {
             next: resolve,
           });
         });
+
+      it.each(['success', 'failure'])(
+        'closes frozen group dispatch on HTTP %s without releasing accepted funding',
+        async (outcome) => {
+          const quote = quoteModelBillablePricing(
+            billableProfile(),
+            {
+              modelKey: 'test/model',
+              provider: 'replicate',
+              outputs: 2,
+              requests: 2,
+            },
+            1,
+            '2026-09-30T00:00:00.000Z',
+          );
+          if (quote.status !== 'priced') throw new Error(quote.reason);
+          asCompletion({ boundOutputCount: 1, modelQuote: quote.snapshot });
+          if (outcome === 'success') await run(mockHandler);
+          else
+            await expect(
+              run({
+                handle: () =>
+                  throwError(() => new Error('second submission failed')),
+              }),
+            ).rejects.toThrow('second submission failed');
+          expect(quoteGroups.closeDispatch).toHaveBeenCalledExactlyOnceWith(
+            'pool-1',
+            organizationId,
+          );
+          expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+          expect(
+            creditDeductionQueueService.queueDeduction,
+          ).not.toHaveBeenCalled();
+        },
+      );
 
       it('queues no settlement on the response; bound outputs settle on completion', async () => {
         asCompletion({ boundOutputCount: 1 });

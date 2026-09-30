@@ -392,7 +392,14 @@ export class WebhooksService {
       return;
     }
 
-    if (ingredient.status !== IngredientStatus.PROCESSING) return;
+    if (ingredient.status !== IngredientStatus.PROCESSING) {
+      if (ingredient.status === IngredientStatus.FAILED)
+        await this.generationSettlement.releaseOutput(
+          ingredientId,
+          ingredient.organizationId,
+        );
+      return;
+    }
     const claimed = await this.ingredientsService.patchAll(
       {
         id: ingredient.id.toString(),
@@ -402,9 +409,19 @@ export class WebhooksService {
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
-      { status: IngredientStatus.FAILED },
+      { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
     );
-    if (claimed.modifiedCount !== 1) return;
+    if (claimed.modifiedCount !== 1) {
+      const latest = await this.ingredientsService.findOne({
+        id: ingredientId,
+      });
+      if (latest?.status === IngredientStatus.FAILED)
+        await this.generationSettlement.releaseOutput(
+          ingredientId,
+          latest.organizationId,
+        );
+      return;
+    }
 
     if (errorMessage) {
       const metadataId = ingredient.metadataId;

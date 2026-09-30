@@ -26,12 +26,24 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
   });
 
   describe('prepare', () => {
+    it.each([2, 3, 4])(
+      'rejects unsupported native cardinality before provider submission (%s)',
+      async (outputs) => {
+        const generateTextToImage = vi.fn();
+        const adapter = buildAdapter({ generateTextToImage });
+        await expect(
+          adapter.prepare({ outputs } as ImageGenerationProviderRequest),
+        ).rejects.toThrow('one funded output');
+        expect(generateTextToImage).not.toHaveBeenCalled();
+      },
+    );
+
     it('queues the text-to-image job, polls to completion, and resolves outputUrls for finalization', async () => {
       const generateTextToImage = vi
         .fn()
         .mockResolvedValue({ requestId: 'req-456' });
       const waitForImageCompletion = vi.fn().mockResolvedValue({
-        imageUrls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+        imageUrls: ['https://cdn.test/a.png'],
       });
       const adapter = buildAdapter({
         generateTextToImage,
@@ -42,7 +54,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
         height: 1920,
         model: MODEL_KEYS.HIGGSFIELD_SOUL,
         organizationId: 'org-1',
-        outputs: 3,
+        outputs: 1,
         prompt: 'studio product shot',
         promptId: 'prompt-1',
         width: 1080,
@@ -55,7 +67,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
 
       expect(generateTextToImage).toHaveBeenCalledWith({
         aspectRatio: '9:16',
-        batchSize: 3,
+        batchSize: 1,
         organizationId: 'org-1',
         prompt: 'studio product shot',
       });
@@ -65,7 +77,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       expect(result).toEqual({
         externalId: 'req-456',
         kind: 'external-id',
-        outputUrls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+        outputUrls: ['https://cdn.test/a.png'],
         promptId: 'prompt-1',
       });
     });

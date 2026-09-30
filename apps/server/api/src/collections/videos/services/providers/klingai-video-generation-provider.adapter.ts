@@ -29,6 +29,8 @@ export class KlingAiVideoGenerationProviderAdapter
         model: params.model,
         width: params.width,
       },
+      undefined,
+      params.onProviderSubmissionStarted,
     );
     return {
       completion: 'polling',

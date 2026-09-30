@@ -3,6 +3,7 @@ import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
@@ -13,6 +14,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   IngredientStatus,
   ModelCategory,
@@ -122,7 +124,11 @@ const createService = () => {
       .mockResolvedValue(undefined),
   };
   const modelsService = {
-    findOne: vi.fn().mockResolvedValue({ cost: 10 }),
+    findOne: vi.fn().mockImplementation(async ({ key }) => ({
+      key,
+      provider: resolveImageGenerationProvider(key),
+      cost: 10,
+    })),
   };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
@@ -312,6 +318,7 @@ const createService = () => {
       isByokActiveForProvider: vi.fn().mockResolvedValue(false),
       resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
+    testModelCreditQuote(modelsService as never, 'replicate'),
   );
   const admissionService = new ImageGenerationAdmissionService(
     assetsService as never,
@@ -871,10 +878,10 @@ describe('ImageGenerationService', () => {
         buildRequest({ creditsConfig: { deferred: true } }),
       );
 
-      // batch model yields all outputs from a single call -> single base cost
+      // The configured flat tariff is per output, independently of batch request count.
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 10);
+      ).toHaveBeenCalledWith(ORG, 30);
     });
 
     it('does not multiply for single-output providers (e.g. Leonardo)', async () => {

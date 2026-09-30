@@ -18,3 +18,6 @@ export const MEDIA_GENERATION_WORKLOAD_TYPE = 'media-generation';
  * terminal ingredient.
  */
 export const MEDIA_GENERATION_HOLD_TTL_MS = 2 * 60 * 60 * 1000;
+
+/** One frozen tariff for all actual outputs from a native batch or fanout. */
+export const MEDIA_GENERATION_GROUP_WORKLOAD_TYPE = 'media-generation-group';

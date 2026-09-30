@@ -32,6 +32,7 @@ export class ReplicateVideoGenerationProviderAdapter
       params.modelEndpoint ?? params.model,
       params.promptParams,
       params.apiKeyOverride,
+      params.onProviderSubmissionStarted,
     );
     return {
       completion: 'polling',

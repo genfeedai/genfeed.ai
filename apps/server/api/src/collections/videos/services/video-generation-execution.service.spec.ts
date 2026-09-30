@@ -1,7 +1,9 @@
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { AgentFailureReason, IngredientCategory } from '@genfeedai/contracts';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 function buildContext(
@@ -33,6 +35,7 @@ describe('VideoGenerationExecutionService', () => {
     };
     const failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
+      notifyFailedGeneration: vi.fn().mockResolvedValue(undefined),
     };
     const generationBilling = {
       bindOutput: vi.fn().mockResolvedValue(undefined),
@@ -50,7 +53,10 @@ describe('VideoGenerationExecutionService', () => {
     };
     const replicatePollQueueService = { schedule: vi.fn() };
     const sharedService = { createMediaDocuments: vi.fn() };
-    const videosService = { patch: vi.fn() };
+    const videosService = {
+      patch: vi.fn(),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
+    };
     const webhooksService = {
       processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
     };
@@ -84,6 +90,96 @@ describe('VideoGenerationExecutionService', () => {
       service,
     };
   }
+
+  it.each([
+    'pre-dispatch',
+    'metadata-write',
+    'adapter-preflight',
+    'credit-rejection',
+    'ambiguous-submission',
+  ])(
+    'closes only proven non-submission, preserving a group after %s failure',
+    async (path) => {
+      const state = createHarness();
+      const quote = quoteModelBillablePricing(
+        billableProfile(),
+        {
+          modelKey: 'test/model',
+          provider: 'replicate',
+          outputs: 1,
+          requests: 1,
+        },
+        1,
+        '2026-09-30T00:00:00.000Z',
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      const context = buildContext({
+        pendingIngredientIds: ['ingredient-1'],
+        request: {
+          creditsConfig: {
+            modelQuote: quote.snapshot,
+            amount: quote.snapshot.credits,
+            settlement: 'completion',
+            reservationId: 'hold-1',
+          },
+        } as never,
+      });
+      const error =
+        path === 'credit-rejection'
+          ? new ReplicateProviderError(
+              AgentFailureReason.INSUFFICIENT_CREDITS,
+              'rejected',
+              { statusCode: 402, isRetryable: false },
+            )
+          : new Error('failure');
+      if (path === 'pre-dispatch')
+        await expect(
+          state.service.failPlaceholderBeforeDispatch(context, error),
+        ).rejects.toBe(error);
+      else {
+        if (path === 'metadata-write')
+          state.metadataService.patch.mockRejectedValueOnce(error);
+        else
+          state.providerDispatchService.dispatch.mockImplementation(
+            async (params) => {
+              if (path !== 'adapter-preflight')
+                params.onProviderSubmissionStarted();
+              throw error;
+            },
+          );
+        if (path === 'credit-rejection')
+          await expect(state.service.execute(context)).rejects.toBeInstanceOf(
+            HttpException,
+          );
+        else await expect(state.service.execute(context)).rejects.toBe(error);
+      }
+      if (path !== 'ambiguous-submission') {
+        if (path === 'metadata-write')
+          expect(state.providerDispatchService.dispatch).not.toHaveBeenCalled();
+        expect(state.videosService.patchAll).toHaveBeenCalledWith(
+          expect.objectContaining({ status: 'PROCESSING' }),
+          expect.objectContaining({
+            status: 'FAILED',
+            isGenerationFailureConfirmed: true,
+          }),
+        );
+        expect(
+          state.generationBilling.releaseOutput,
+        ).toHaveBeenCalledExactlyOnceWith('ingredient-1', 'org-1');
+        expect(
+          state.videosService.patchAll.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          state.generationBilling.releaseOutput.mock.invocationCallOrder[0],
+        );
+      } else {
+        expect(state.videosService.patchAll).not.toHaveBeenCalled();
+        expect(state.generationBilling.releaseOutput).not.toHaveBeenCalled();
+      }
+      expect(
+        state.failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps an earlier accepted output funded when a later sequential dispatch fails', async () => {
     const {

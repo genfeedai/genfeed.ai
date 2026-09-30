@@ -66,6 +66,8 @@ describe('VideoGenerationProviderDispatchService', () => {
         model: MODEL_KEYS.KLINGAI_V2,
         width: 1920,
       },
+      undefined,
+      undefined,
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
@@ -91,6 +93,7 @@ describe('VideoGenerationProviderDispatchService', () => {
         prompt: 'A cinematic sunrise',
       },
       undefined,
+      undefined,
     );
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
@@ -111,6 +114,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       MODEL_KEYS.FAL_VEO_3_1,
       expect.anything(),
       'org-fal-key',
+      undefined,
     );
   });
 
@@ -130,6 +134,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       {
         prompt: 'A cinematic sunrise',
       },
+      undefined,
       undefined,
     );
   });
@@ -151,6 +156,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       'minimax/h3/text-to-video',
       expect.objectContaining({ prompt: 'A cinematic sunrise' }),
       undefined,
+      undefined,
     );
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
   });
@@ -170,6 +176,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       'minimax/h3/text-to-video',
       expect.any(Object),
       undefined,
+      undefined,
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
   });
@@ -187,6 +194,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
       'replicate/video-model',
       params.promptParams,
+      undefined,
       undefined,
     );
     expect(falService.generateVideo).not.toHaveBeenCalled();
@@ -206,6 +214,7 @@ describe('VideoGenerationProviderDispatchService', () => {
       'replicate/video-model',
       params.promptParams,
       'org-replicate-key',
+      undefined,
     );
   });
 
@@ -228,6 +237,7 @@ describe('VideoGenerationProviderDispatchService', () => {
     });
 
     expect(higgsFieldService.generateImageToVideo).toHaveBeenCalledWith({
+      onProviderSubmissionStarted: undefined,
       imageUrl: 'https://cdn.example.com/reference.png',
       modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       organizationId: 'org-1',

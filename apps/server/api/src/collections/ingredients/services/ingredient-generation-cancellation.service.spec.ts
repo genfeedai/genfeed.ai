@@ -8,6 +8,7 @@ describe('IngredientGenerationCancellationService', () => {
   const ingredientsService = {
     findOne: vi.fn(),
     patch: vi.fn(),
+    patchAll: vi.fn(),
   };
   const failedGenerationService = {
     handleFailedGeneration: vi.fn().mockResolvedValue(undefined),
@@ -17,6 +18,7 @@ describe('IngredientGenerationCancellationService', () => {
   } as unknown as LoggerService;
   const replicateService = {
     cancelPrediction: vi.fn().mockResolvedValue(undefined),
+    getPrediction: vi.fn().mockResolvedValue({ status: 'processing' }),
   };
 
   const service = new IngredientGenerationCancellationService(
@@ -124,6 +126,42 @@ describe('IngredientGenerationCancellationService', () => {
     expect(failedGenerationService.handleFailedGeneration).toHaveBeenCalled();
     expect(loggerService.warn).toHaveBeenCalled();
   });
+
+  it.each(['network-outage', 'provider-still-processing'])(
+    'retains funded processing and permits late completion when cancellation is %s',
+    async (outcome) => {
+      const processing = {
+        id: 'image-1',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
+        generationBilling: {
+          kind: 'quote-group',
+          reservationId: 'hold-1',
+          outputIndex: 0,
+        },
+        metadata: { externalId: 'prediction-1', externalProvider: 'replicate' },
+      };
+      ingredientsService.findOne.mockResolvedValue(processing);
+      if (outcome === 'network-outage')
+        replicateService.cancelPrediction.mockRejectedValueOnce(
+          new Error('network unavailable'),
+        );
+      else
+        replicateService.getPrediction.mockResolvedValueOnce({
+          status: 'processing',
+        });
+      await expect(
+        service.cancelProcessingIngredient({
+          id: 'image-1',
+          organizationId: 'org-1',
+        }),
+      ).resolves.toBe(processing);
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(
+        failedGenerationService.handleFailedGeneration,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it('cancels immediately when the abort signal has already fired', () => {
     const abort = new AbortController();

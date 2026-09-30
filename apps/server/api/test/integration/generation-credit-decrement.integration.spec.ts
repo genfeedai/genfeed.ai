@@ -1,3 +1,5 @@
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+
 /**
  * Real-backend proof of the "generate -> credit decrement" money path
  * (linking #334).
@@ -298,8 +300,9 @@ const createImageGenerationService = () => {
     modelsService as never,
     providerRegistry,
     {
-      isByokActiveForProvider: vi.fn().mockResolvedValue(false),
+      resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
+    testModelCreditQuote(modelsService as never, 'fal'),
   );
   const admissionService = new ImageGenerationAdmissionService(
     assetsService as never,

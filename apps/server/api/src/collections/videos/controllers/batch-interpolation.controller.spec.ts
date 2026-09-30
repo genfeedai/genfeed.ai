@@ -720,6 +720,7 @@ describe('BatchInterpolationController', () => {
           >[0],
           creditsUtilsService as unknown as CreditsUtilsService,
           { debug: vi.fn() } as unknown as LoggerService,
+          { closeDispatch: vi.fn() } as never,
         );
         await interceptor.settle(req, result);
         expect(queue.queueDeduction).not.toHaveBeenCalled();
@@ -742,6 +743,7 @@ describe('BatchInterpolationController', () => {
           >[0],
           creditsUtilsService as unknown as CreditsUtilsService,
           { debug: vi.fn(), error: vi.fn() } as unknown as LoggerService,
+          { closeDispatch: vi.fn() } as never,
         );
         const context = {
           switchToHttp: () => ({ getRequest: () => req }),

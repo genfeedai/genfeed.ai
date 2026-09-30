@@ -251,12 +251,19 @@ describe('HiggsFieldService', () => {
         ],
       }).compile();
 
+      const started = vi.fn();
       await expect(
-        bare.get(HiggsFieldService).generateTextToImage({ prompt: 'x' }),
+        bare.get(HiggsFieldService).generateImageToVideo({
+          modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
+          imageUrl: 'https://cdn.test/image.png',
+          prompt: 'x',
+          onProviderSubmissionStarted: started,
+        }),
       ).rejects.toMatchObject({
         reason: AgentFailureReason.PROVIDER_CONFIGURATION,
       });
 
+      expect(started).not.toHaveBeenCalled();
       // Never send `Authorization: Key :` and let the platform 401 instead.
       expect(mockHttpService.post).not.toHaveBeenCalled();
     });
