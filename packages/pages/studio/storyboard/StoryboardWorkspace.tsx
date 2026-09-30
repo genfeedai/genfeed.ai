@@ -39,28 +39,11 @@ import { useCallback } from 'react';
 
 const MODE_OPTIONS: Array<{
   id: StoryboardWorkspaceMode;
-  label: string;
-  description: string;
   icon: typeof Clapperboard;
 }> = [
-  {
-    description: 'Blend stills into transitions with camera moves',
-    icon: Film,
-    id: 'interpolate',
-    label: 'Frame sequence',
-  },
-  {
-    description: 'Image + script per beat, then merge the clips',
-    icon: Clapperboard,
-    id: 'scenes',
-    label: 'Scenes',
-  },
-  {
-    description: 'Stitch finished videos into one timeline',
-    icon: Layers2,
-    id: 'merge',
-    label: 'Merge videos',
-  },
+  { icon: Film, id: 'interpolate' },
+  { icon: Clapperboard, id: 'scenes' },
+  { icon: Layers2, id: 'merge' },
 ];
 
 export function LegacyStoryboardWorkspace() {
@@ -118,9 +101,9 @@ export function LegacyStoryboardWorkspace() {
       onSelect: (selected) => {
         addSceneImages(selected ?? []);
       },
-      title: 'Add images to storyboard',
+      title: translate('workspace.addImagesTitle'),
     });
-  }, [addSceneImages, format, openGallery]);
+  }, [addSceneImages, format, openGallery, translate]);
 
   const openVideoPicker = useCallback(() => {
     openGallery({
@@ -130,18 +113,17 @@ export function LegacyStoryboardWorkspace() {
       onSelect: (selected) => {
         addMergeVideos(selected ?? []);
       },
-      title: 'Select videos to merge',
+      title: translate('workspace.selectVideosTitle'),
     });
-  }, [addMergeVideos, format, openGallery]);
+  }, [addMergeVideos, format, openGallery, translate]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SectionTopbar title="Storyboard" />
+      <SectionTopbar title={translate('workspace.title')} />
       <Container>
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            Build multi-frame video: interpolate stills, script scenes from your
-            generated images, or merge finished clips.
+            {translate('workspace.intro')}
           </p>
 
           {/* Remix runs start from a Discovery source and are saved as
@@ -182,10 +164,10 @@ export function LegacyStoryboardWorkspace() {
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <Icon className="size-3.5" />
-                    {option.label}
+                    {translate(`workspace.modes.${option.id}.label`)}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {option.description}
+                    {translate(`workspace.modes.${option.id}.description`)}
                   </span>
                 </Button>
               );
@@ -193,7 +175,9 @@ export function LegacyStoryboardWorkspace() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Format</span>
+            <span className="text-xs text-muted-foreground">
+              {translate('workspace.format')}
+            </span>
             {(
               [
                 IngredientFormat.PORTRAIT,
@@ -246,14 +230,13 @@ export function LegacyStoryboardWorkspace() {
 
           {mode === 'scenes' ? (
             <Card
-              label="Scenes"
-              description="Each scene is an image plus a script. Generate clips, then merge them into one video."
+              label={translate('workspace.scenesTitle')}
+              description={translate('workspace.scenesDescription')}
             >
               <div className="flex flex-col gap-3">
                 {storyboard.frames.length === 0 ? (
                   <div className="rounded-md bg-background-secondary/50 px-3 py-6 text-center text-sm text-muted-foreground">
-                    Add generated images, write a prompt per frame, then
-                    generate.
+                    {translate('workspace.scenesEmpty')}
                   </div>
                 ) : (
                   storyboard.frames.map((frame) => (
@@ -271,19 +254,29 @@ export function LegacyStoryboardWorkspace() {
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                   <div className="text-xs text-muted-foreground">
                     {sceneProgress
-                      ? `Generating scene ${sceneProgress.current} of ${sceneProgress.total}`
-                      : `${storyboard.frames.length} scenes · ${pendingSceneCount} ready · ${completedSceneCount} completed${
-                          failedSceneCount > 0
-                            ? ` · ${failedSceneCount} failed`
-                            : ''
-                        }`}
+                      ? translate('workspace.generatingScene', {
+                          current: sceneProgress.current,
+                          total: sceneProgress.total,
+                        })
+                      : failedSceneCount > 0
+                        ? translate('workspace.sceneProgressFailed', {
+                            scenes: storyboard.frames.length,
+                            pending: pendingSceneCount,
+                            completed: completedSceneCount,
+                            failed: failedSceneCount,
+                          })
+                        : translate('workspace.sceneProgress', {
+                            scenes: storyboard.frames.length,
+                            pending: pendingSceneCount,
+                            completed: completedSceneCount,
+                          })}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       size={ButtonSize.SM}
                       variant={ButtonVariant.SECONDARY}
                       icon={<Plus className="size-3.5" />}
-                      label="Add images"
+                      label={translate('workspace.addImages')}
                       onClick={openImagePicker}
                       isDisabled={isGeneratingScenes}
                     />
@@ -291,7 +284,7 @@ export function LegacyStoryboardWorkspace() {
                       size={ButtonSize.SM}
                       variant={ButtonVariant.SECONDARY}
                       icon={<X className="size-3.5" />}
-                      label="Clear"
+                      label={translate('workspace.clear')}
                       onClick={clearScenes}
                       isDisabled={
                         storyboard.frames.length === 0 || isGeneratingScenes
@@ -305,7 +298,7 @@ export function LegacyStoryboardWorkspace() {
                         size={ButtonSize.SM}
                         variant={ButtonVariant.DESTRUCTIVE}
                         icon={<Square className="size-3.5" />}
-                        label="Cancel"
+                        label={translate('workspace.cancel')}
                         onClick={cancelSceneGeneration}
                       />
                     ) : (
@@ -315,7 +308,9 @@ export function LegacyStoryboardWorkspace() {
                             size={ButtonSize.SM}
                             variant={ButtonVariant.SECONDARY}
                             icon={<RotateCcw className="size-3.5" />}
-                            label={`Retry failed (${failedSceneCount})`}
+                            label={translate('workspace.retryFailed', {
+                              count: failedSceneCount,
+                            })}
                             onClick={() => void retryFailedScenes()}
                           />
                         ) : null}
@@ -323,7 +318,7 @@ export function LegacyStoryboardWorkspace() {
                           size={ButtonSize.SM}
                           variant={ButtonVariant.DEFAULT}
                           icon={<Sparkles className="size-3.5" />}
-                          label="Generate scenes"
+                          label={translate('workspace.generateScenes')}
                           onClick={() => void generatePendingScenes()}
                           isDisabled={pendingSceneCount === 0}
                         />
@@ -333,7 +328,7 @@ export function LegacyStoryboardWorkspace() {
                       size={ButtonSize.SM}
                       variant={ButtonVariant.DEFAULT}
                       icon={<Layers2 className="size-3.5" />}
-                      label="Merge clips"
+                      label={translate('workspace.mergeClips')}
                       onClick={() => void mergeStoryboardVideos()}
                       isLoading={isMerging}
                       isDisabled={completedSceneCount < 2 || isGeneratingScenes}
@@ -358,13 +353,13 @@ export function LegacyStoryboardWorkspace() {
 
           {mode === 'merge' ? (
             <Card
-              label="Merge videos"
-              description="Pick two or more finished videos and stitch them into one timeline."
+              label={translate('workspace.mergeTitle')}
+              description={translate('workspace.mergeDescription')}
             >
               <div className="flex flex-col gap-3">
                 {mergeVideoIds.length === 0 ? (
                   <div className="rounded-md bg-background-secondary/50 px-3 py-6 text-center text-sm text-muted-foreground">
-                    No videos selected yet.
+                    {translate('workspace.mergeEmpty')}
                   </div>
                 ) : (
                   <ul className="flex flex-col gap-2">
@@ -385,7 +380,9 @@ export function LegacyStoryboardWorkspace() {
                         <Button
                           size={ButtonSize.ICON}
                           variant={ButtonVariant.GHOST}
-                          ariaLabel={`Remove ${video.metadataLabel || video.id}`}
+                          ariaLabel={translate('workspace.removeVideo', {
+                            label: video.metadataLabel || video.id,
+                          })}
                           icon={<Trash2 className="size-3.5" />}
                           onClick={() => removeMergeVideo(video.id)}
                         />
@@ -399,14 +396,14 @@ export function LegacyStoryboardWorkspace() {
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                     icon={<Plus className="size-3.5" />}
-                    label="Add videos"
+                    label={translate('workspace.addVideos')}
                     onClick={openVideoPicker}
                   />
                   <Button
                     size={ButtonSize.SM}
                     variant={ButtonVariant.SECONDARY}
                     icon={<X className="size-3.5" />}
-                    label="Clear"
+                    label={translate('workspace.clear')}
                     onClick={clearMergeVideos}
                     isDisabled={mergeVideoIds.length === 0}
                   />
@@ -414,7 +411,7 @@ export function LegacyStoryboardWorkspace() {
                     size={ButtonSize.SM}
                     variant={ButtonVariant.DEFAULT}
                     icon={<Layers2 className="size-3.5" />}
-                    label="Merge"
+                    label={translate('workspace.merge')}
                     onClick={() => void mergeSelectedVideos()}
                     isLoading={isMerging}
                     isDisabled={mergeVideoIds.length < 2}
@@ -443,26 +440,29 @@ export function LegacyStoryboardWorkspace() {
 
 /** New runs start with a persisted brief or owned video, independently of paid execution. */
 export default function StoryboardWorkspace() {
+  const translate = useTranslations('pages.studioStoryboard');
   const { href } = useOrgUrl();
   return (
     <Container
-      label="New storyboard"
-      description="Start with a brief or your own video."
+      label={translate('workspace.newTitle')}
+      description={translate('workspace.newDescription')}
       right={
         <Button asChild variant={ButtonVariant.SECONDARY}>
-          <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>All storyboards</Link>
+          <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>
+            {translate('runs.all')}
+          </Link>
         </Button>
       }
     >
       <div className="mx-auto w-full max-w-5xl space-y-4">
         <StoryboardCreate />
         <Card
-          label="Remix from Discovery"
-          description="Open a saved source and continue its storyboard."
+          label={translate('workspace.remixDiscovery')}
+          description={translate('workspace.remixDiscoveryDescription')}
         >
           <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
-              Browse Discovery
+              {translate('workspace.browseDiscovery')}
             </Link>
           </Button>
         </Card>

@@ -715,7 +715,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
           headers: {},
           url: '/test',
           handledErrorStatuses,
-        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
         const data = {
           errors: [{ status: String(status), detail: 'Unavailable' }],
         };
@@ -809,7 +809,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         handlesErrorResponse: () => {
           throw new Error('policy failed');
         },
-      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
       await expect(
         service.handleError({
           config,
@@ -831,7 +831,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         headers: {},
         handledErrorStatuses: [503],
         handlesErrorResponse: () => false,
-      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
       await expect(
         service.handleError({
           config,
@@ -851,7 +851,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const predicate = vi.fn(() => true);
       const config = {
         handlesErrorResponse: predicate,
-      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
       await expect(
         service.handleError({
           code: 'ERR_CANCELED',
@@ -870,7 +870,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         const data = { errors: [{ detail: 'Original failure' }] };
         const config = {
           handlesErrorResponse: predicate,
-        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
         await expect(
           service.handleError({
             config,
@@ -907,7 +907,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
         };
         const config = {
           handlesErrorResponse: predicate,
-        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
         const error = {
           config,
           message: 'Request failed',
@@ -931,7 +931,7 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const data = { errors: [{ detail: 'Unauthorized' }] };
       const config = {
         handlesErrorResponse: () => true,
-      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
       await expect(
         service.handleError({
           config,

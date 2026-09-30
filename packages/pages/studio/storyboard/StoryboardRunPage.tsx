@@ -164,6 +164,7 @@ export function LegacyStoryboardRunPage({
 export default function StoryboardRunPage({
   runId,
 }: StoryboardRunPageProps): ReactElement {
+  const translate = useTranslations('pages.studioStoryboard');
   const {
     run,
     error,
@@ -193,7 +194,7 @@ export default function StoryboardRunPage({
       />
     );
   return (
-    <Container label="Storyboard">
+    <Container label={translate('runs.title')}>
       <div className="mx-auto max-w-5xl space-y-3">
         {error ? (
           <>
@@ -201,14 +202,14 @@ export default function StoryboardRunPage({
               {error}
             </p>
             <Button
-              label="Retry loading"
+              label={translate('runPage.retryLoad')}
               variant={ButtonVariant.SECONDARY}
               onClick={refresh}
             />
           </>
         ) : (
           <p role="status" className="text-sm text-muted-foreground">
-            Loading storyboard…
+            {translate('runPage.loadingDraft')}
           </p>
         )}
       </div>

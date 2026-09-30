@@ -4,6 +4,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardDraftPage from './StoryboardDraftPage';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 const mocks = vi.hoisted(() => ({ flush: vi.fn(), push: vi.fn() }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
@@ -21,20 +26,21 @@ vi.mock(
     };
   },
 );
-const run: StoryboardRun = {
+const run = {
   id: 'run',
   organizationId: 'org',
   brandId: 'brand',
   createdAt: '2026-09-30T00:00:00Z',
   updatedAt: '2026-09-30T00:00:00Z',
   config: {
-    contract: 'storyboard-run',
-    version: 1,
+    origin: 'native' as const,
+    contract: 'storyboard-run' as const,
+    version: 1 as const,
     revision: 1,
     clientRequestId: 'f86c1871-d577-4dca-b79d-6d9f295a58cc',
     createdByUserId: 'user',
     submittedInputHash: 'a'.repeat(64),
-    state: 'storyboard',
+    state: 'storyboard' as const,
     sourceSnapshot: {
       selector: { kind: 'brief', brief: 'Idea' },
       capturedAt: '2026-09-30T00:00:00Z',
@@ -59,7 +65,7 @@ const run: StoryboardRun = {
       })),
     },
   },
-};
+} satisfies StoryboardRun;
 describe('draft detail navigation', () => {
   beforeEach(() => {
     mocks.flush.mockReset();
