@@ -21,11 +21,28 @@ function fixture() {
     cancelRequestedAt: null as Date | null,
     workflowExecutionId: 'execution',
     receipts: [] as unknown[],
+    settings: { width: 640, height: 360, fps: 30, durationFrames: 30 },
+    sourceCode: 'export const VisualComposition=()=>null;',
+    sourceAssetIds: [],
+    outputRequests: [{ format: 'mp4' }],
+    props: {},
+    modelKey: null,
   };
   const project = { id: 'project', brandId: 'brand', currentRevision: 1 };
+  const transaction = {
+    $queryRaw: vi.fn(),
+    visualProject: {
+      create: vi.fn(async () => project),
+      findFirstOrThrow: vi.fn(async () => project),
+      updateMany: vi.fn(),
+    },
+    visualRevision: { count: vi.fn(async () => 0), create: vi.fn() },
+  };
   const prisma = {
+    $transaction: vi.fn(async (callback) => callback(transaction)),
     visualProject: { findFirst: vi.fn() },
     visualRevision: {
+      findFirst: vi.fn().mockResolvedValue(null),
       updateMany: vi.fn(async ({ where, data }) => {
         if (where.cancelRequestedAt === null && revision.cancelRequestedAt)
           return { count: 0 };
@@ -58,7 +75,10 @@ function fixture() {
     revision: vi.fn(async () => revision),
     authorizeBrand: vi.fn(),
   };
+  const assets = { authorize: vi.fn() };
   const billing = {
+    quote: vi.fn(async () => ({ maximumCredits: 0, modelKey: 'openai/test' })),
+    quoteReceipt: vi.fn(() => ({ kind: 'quote' })),
     reconcileStopped: vi.fn(),
     recoverReservation: vi.fn(async (value) => value),
     reserve: vi.fn(async (): Promise<string | null> => 'hold'),
@@ -73,7 +93,7 @@ function fixture() {
   const service = new VisualProjectsService(
     prisma as never,
     authorization as never,
-    {} as never,
+    assets as never,
     billing as never,
     workflows as never,
     new VisualProjectDispatchService(
@@ -90,7 +110,18 @@ function fixture() {
     organizationId: 'org',
     brandId: 'brand',
   };
-  return { revision, prisma, billing, queue, service, user, workflows };
+  return {
+    revision,
+    prisma,
+    billing,
+    queue,
+    service,
+    user,
+    workflows,
+    authorization,
+    assets,
+    transaction,
+  };
 }
 describe('visual cancellation queue ownership', () => {
   it('settles a definitely unstarted revision after withdrawing its deterministic job', async () => {
@@ -264,6 +295,136 @@ describe('durable visual dispatch admission', () => {
     await expect(f.service.create(f.user, input)).rejects.toThrow(
       'visual_admission_attempt_limit',
     );
+    expect(f.billing.reserve).not.toHaveBeenCalled();
+    expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+});
+
+describe('explicit visual action brand context', () => {
+  it.each([undefined, '', '   '])(
+    'rejects missing agent scope %s before project inference or wallet work',
+    async (brandId) => {
+      const f = fixture();
+      await expect(
+        f.service.executeAgentAction(
+          'get_visual_code_project',
+          { projectId: 'project' },
+          { organizationId: 'org', userId: 'user', brandId },
+        ),
+      ).rejects.toThrow('brand_context_required');
+      expect(f.authorization.project).not.toHaveBeenCalled();
+      expect(
+        f.prisma.workflowExecution.findFirstOrThrow,
+      ).not.toHaveBeenCalled();
+      expect(f.billing.reserve).not.toHaveBeenCalled();
+      expect(f.billing.quote).not.toHaveBeenCalled();
+      expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+    },
+  );
+  it.each([undefined, '', '   '])(
+    'rejects missing workflow scope %s before querying its execution',
+    async (brandId) => {
+      const f = fixture();
+      f.service.onModuleInit();
+      const handler = f.workflows.registerAction.mock.calls.find(
+        ([name]) => name === 'visual-code.status',
+      )?.[1];
+      expect(handler).toBeDefined();
+      await expect(
+        handler({
+          input: { projectId: 'project' },
+          context: { organizationId: 'org', userId: 'user', brandId },
+          provenance: { executionId: 'execution' },
+        }),
+      ).rejects.toThrow('brand_context_required');
+      expect(
+        f.prisma.workflowExecution.findFirstOrThrow,
+      ).not.toHaveBeenCalled();
+      expect(f.authorization.project).not.toHaveBeenCalled();
+      expect(f.billing.reserve).not.toHaveBeenCalled();
+      expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe('permanent visual request identity conflicts', () => {
+  const input = {
+    requestId: 'deleted-request',
+    brandId: 'brand',
+    label: 'Visual',
+    sourceCode: 'export const VisualComposition=()=>null;',
+    settings: { width: 640, height: 360, fps: 30, durationFrames: 30 },
+    maximumCredits: 10,
+  };
+  it('maps a removed project unique collision to 409 without returning deleted rows or dispatching', async () => {
+    const f = fixture();
+    // Active scoped reads cannot see the historical row, but its permanent unique key remains.
+    f.prisma.visualProject.findFirst.mockResolvedValue(null);
+    f.transaction.visualProject.create.mockRejectedValue({ code: 'P2002' });
+    await expect(f.service.create(f.user, input)).rejects.toMatchObject({
+      message: 'request_identity_conflict',
+      status: 409,
+    });
+    expect(f.transaction.visualProject.create).toHaveBeenCalledOnce();
+    for (const [query] of f.prisma.visualProject.findFirst.mock.calls) {
+      expect(query.where).toMatchObject({
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        requestId: 'deleted-request',
+      });
+    }
+    expect(f.billing.reserve).not.toHaveBeenCalled();
+    expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+  it('maps a removed revision unique collision to 409 without wallet or queue dispatch', async () => {
+    const f = fixture();
+    f.transaction.visualRevision.create.mockRejectedValue({ code: 'P2002' });
+    await expect(
+      f.service.revise(f.user, 'project', {
+        requestId: 'deleted-request',
+        expectedRevision: 1,
+        props: {},
+        maximumCredits: 10,
+      }),
+    ).rejects.toMatchObject({
+      message: 'request_identity_conflict',
+      status: 409,
+    });
+    expect(f.transaction.visualRevision.create).toHaveBeenCalledOnce();
+    for (const [query] of f.prisma.visualRevision.findFirst.mock.calls) {
+      expect(query.where).toMatchObject({
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        projectId: 'project',
+      });
+    }
+    expect(f.billing.reserve).not.toHaveBeenCalled();
+    expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+  it('propagates non-unique persistence errors without a replay lookup', async () => {
+    const f = fixture();
+    const failure = new Error('database unavailable');
+    f.transaction.visualProject.create.mockRejectedValue(failure);
+    await expect(f.service.create(f.user, input)).rejects.toBe(failure);
+    expect(f.prisma.visualProject.findFirst).toHaveBeenCalledOnce();
+    expect(f.billing.reserve).not.toHaveBeenCalled();
+    expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
+  });
+  it('propagates non-unique revision errors without treating a replay as success', async () => {
+    const f = fixture();
+    const failure = new Error('database unavailable');
+    f.transaction.visualRevision.create.mockRejectedValue(failure);
+    await expect(
+      f.service.revise(f.user, 'project', {
+        requestId: 'deleted-request',
+        expectedRevision: 1,
+        props: {},
+        maximumCredits: 10,
+      }),
+    ).rejects.toBe(failure);
+    expect(f.prisma.visualRevision.findFirst).toHaveBeenCalledTimes(2);
     expect(f.billing.reserve).not.toHaveBeenCalled();
     expect(f.workflows.enqueueWorkflow).not.toHaveBeenCalled();
   });

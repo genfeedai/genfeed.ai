@@ -683,20 +683,17 @@ export class VisualProjectWorkflowService implements OnModuleInit {
     } catch (error) {
       if (error instanceof WorkflowNodeClaimLeaseLostError) throw error;
       await this.assertOwnership();
-      if (
-        error instanceof ConflictException &&
-        error.message === 'visual_execution_busy'
-      )
-        return { revisionId: id, status: 'busy' };
       revision = await this.current(revision);
       const code =
         error instanceof Error && /^[a-z_]+$/.test(error.message)
           ? error.message
           : 'visual_execution_failed';
       revision = await this.update(revision, {
-        status: revision.cancelRequestedAt
-          ? VisualCodeStatus.CANCELLED
-          : VisualCodeStatus.FAILED,
+        status: terminal.includes(revision.status)
+          ? revision.status
+          : revision.cancelRequestedAt
+            ? VisualCodeStatus.CANCELLED
+            : VisualCodeStatus.FAILED,
         diagnostics: toPrismaJson([
           ...z.array(z.string()).parse(revision.diagnostics).slice(0, 7),
           code,

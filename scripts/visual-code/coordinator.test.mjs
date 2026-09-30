@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -76,3 +76,85 @@ test('concurrent identical admissions persist one source-free receipt and confli
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+for (const [name, output, diagnostic, hasResult] of [
+  [
+    'malformed JSON',
+    Buffer.from([0, 0, 0, 1, 123]),
+    'renderer_output_invalid',
+    false,
+  ],
+  ['truncated frame', Buffer.from([0, 0]), 'truncated_frame', false],
+  [
+    'runner diagnostics',
+    (() => {
+      const bytes = Buffer.from(
+        JSON.stringify({
+          rendererVersion: '4.0.530',
+          media: [],
+          diagnostics: ['compile failed'],
+        }),
+      );
+      const header = Buffer.alloc(4);
+      header.writeUInt32BE(bytes.length);
+      return Buffer.concat([header, bytes]);
+    })(),
+    'render_failed',
+    true,
+  ],
+]) {
+  test(`actual subprocess ${name} persists the correct failed receipt`, async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), 'visual-coordinator-output-'),
+    );
+    const previousPath = process.env.PATH;
+    try {
+      // This unit-only executable consumes the framed input; no Docker daemon is used.
+      await writeFile(
+        join(directory, 'docker'),
+        `#!${process.execPath}
+if (process.argv[2] === 'run') {
+  process.stdin.resume();
+  process.stdin.on('end', () => process.stdout.end(Buffer.from('${output.toString('base64')}', 'base64')));
+}
+`,
+        { mode: 0o700 },
+      );
+      process.env.PATH = directory;
+      const coordinator = new Coordinator(directory);
+      const input = {
+        id: 'malformed-output',
+        sourceCode: 'export const VisualComposition=()=>null;',
+        props: {},
+        settings: { width: 640, height: 360, fps: 30, durationFrames: 30 },
+        assets: [],
+        outputs: [{ format: 'png', frame: 0 }],
+        mode: 'export',
+      };
+      await coordinator.execute(
+        input,
+        { id: input.id, status: 'running' },
+        new AbortController(),
+      );
+      const receipt = JSON.parse(
+        await readFile(coordinator.manifest(input.id), 'utf8'),
+      );
+      assert.equal(receipt.status, 'failed');
+      assert.equal(receipt.diagnostic, diagnostic);
+      if (hasResult) {
+        assert.ok(
+          (await readFile(coordinator.resultPath(input.id))).length > 4,
+        );
+      } else {
+        assert.notEqual(receipt.diagnostic, 'render_failed');
+        await assert.rejects(readFile(coordinator.resultPath(input.id)), {
+          code: 'ENOENT',
+        });
+      }
+    } finally {
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+}

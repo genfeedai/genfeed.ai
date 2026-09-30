@@ -88,6 +88,7 @@ function fixture() {
       updateMany: vi.fn(async ({ where, data }) => {
         if (where.cancelRequestedAt === null && revision.cancelRequestedAt)
           return { count: 0 };
+        if (where.status?.notIn?.includes(revision.status)) return { count: 0 };
         if (
           where.receipts &&
           !isDeepStrictEqual(where.receipts.equals, revision.receipts)
@@ -118,6 +119,7 @@ function fixture() {
       maximumAuthoringCalls: 3,
       inspectionCredits: 3,
       maximumInspectionCalls: 3,
+      creditsPerSecond: 0,
     }),
     actualCredits: vi.fn().mockResolvedValue(2),
     settle: vi.fn().mockResolvedValue(undefined),
@@ -125,6 +127,7 @@ function fixture() {
   const reconcileStopped = billing.settle;
   Object.assign(billing, { reconcileStopped });
   const renderer = { execute: vi.fn() };
+  const assets = { stage: vi.fn().mockResolvedValue([]) };
   const service = new VisualProjectWorkflowService(
     prisma as never,
     workflow as never,
@@ -132,7 +135,7 @@ function fixture() {
     authoring as never,
     billing as never,
     renderer as never,
-    {} as never,
+    assets as never,
   );
   service.onModuleInit();
   const run = async () => {
@@ -175,6 +178,95 @@ function fixture() {
   };
 }
 describe('visual workflow durable provider receipts', () => {
+  it('cancels between provider activity check and admission CAS without a paid call', async () => {
+    const { run, revision, authoring, billing, renderer } = fixture();
+    authoring.authorParameters.mockImplementationOnce(async () => {
+      revision.cancelRequestedAt = new Date();
+      return {};
+    });
+    expect(await run()).toMatchObject({ status: 'cancelled' });
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(renderer.execute).not.toHaveBeenCalled();
+    expect(revision.receipts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ state: 'started' })]),
+    );
+    expect(billing.settle).toHaveBeenCalledOnce();
+    expect(billing.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'cancelled', consumedCredits: 0 }),
+      expect.any(Function),
+    );
+  });
+  it('cancels between render activity check and admission CAS without submitting a render', async () => {
+    const { run, revision, authoring, billing, renderer } = fixture();
+    revision.prompt = null;
+    revision.sourceCode = 'export const VisualComposition=()=>null;';
+    revision.sourceHash = 'source-hash';
+    const quote = await billing.validateSnapshot();
+    billing.validateSnapshot.mockClear();
+    billing.validateSnapshot.mockImplementationOnce(async () => {
+      revision.cancelRequestedAt = new Date();
+      return quote;
+    });
+    expect(await run()).toMatchObject({ status: 'cancelled' });
+    expect(renderer.execute).not.toHaveBeenCalled();
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(billing.settle).toHaveBeenCalledOnce();
+    expect(billing.settle).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'cancelled', consumedCredits: 0 }),
+      expect.any(Function),
+    );
+  });
+  it('fails and reconciles an owned admission contention instead of returning success with live work', async () => {
+    const { run, revision, authoring, billing, prisma } = fixture();
+    const update = prisma.visualRevision.updateMany.getMockImplementation();
+    prisma.visualRevision.updateMany.mockImplementation(async (query) => {
+      if (query.where.cancelRequestedAt === null) return { count: 0 };
+      if (!update) throw new Error('update fixture missing');
+      return update(query);
+    });
+    expect(await run()).toMatchObject({ status: 'failed' });
+    expect(revision.diagnostics).toContain('visual_execution_busy');
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(billing.settle).toHaveBeenCalledOnce();
+  });
+  it('preserves a terminal status observed after an admission race and reconciles it', async () => {
+    const { run, revision, authoring, billing } = fixture();
+    authoring.authorParameters.mockImplementationOnce(async () => {
+      revision.status = 'completed';
+      return {};
+    });
+    expect(await run()).toMatchObject({ status: 'completed' });
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(billing.settle).toHaveBeenCalledOnce();
+  });
+  it('does not spend a repair call on invalid trusted renderer output without a result', async () => {
+    const { run, revision, authoring, renderer, billing } = fixture();
+    revision.sourceCode = 'export const VisualComposition=()=>null;';
+    revision.sourceHash = 'source-hash';
+    revision.receipts = [
+      {
+        id: 'author-0',
+        kind: 'authoring',
+        state: 'confirmed',
+        boundCredits: 0,
+        credits: 0,
+        operatorCredits: 0,
+        isResultApplied: true,
+      },
+    ];
+    renderer.execute.mockResolvedValue({
+      receipt: {
+        status: 'failed',
+        computeSeconds: 0,
+        diagnostic: 'renderer_output_invalid',
+      },
+    });
+    expect(await run()).toMatchObject({ status: 'failed' });
+    expect(renderer.execute).toHaveBeenCalledOnce();
+    expect(authoring.call).not.toHaveBeenCalled();
+    expect(revision.diagnostics).toContain('renderer_output_invalid');
+    expect(billing.settle).toHaveBeenCalledOnce();
+  });
   it('charges a confirmed provider response even when its JSON cannot be parsed', async () => {
     const { run, revision, authoring, billing } = fixture();
     await run();

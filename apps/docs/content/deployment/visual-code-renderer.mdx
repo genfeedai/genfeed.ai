@@ -26,7 +26,7 @@ Application configuration:
 - `VISUAL_CODE_RENDERER_ENABLED=true`
 - `VISUAL_CODE_RENDERER_URL`: HTTPS internal endpoint, or loopback HTTP for a local installation
 - `VISUAL_CODE_RENDERER_TOKEN`: matching internal token
-- `VISUAL_CODE_CREDITS_PER_SECOND`: explicit finite nonnegative rendering rate; use `0` only when the operator intends free rendering
+- `VISUAL_CODE_RENDER_CREDITS_PER_SECOND`: explicit finite nonnegative rendering rate; use `0` only when the operator intends free rendering
 
 Run the API and workflow workers with the same configuration. Apply the additive visual project/revision migration through your normal reviewed deployment process. Model availability and pricing come from the existing registry. Local model routes use an already configured endpoint and never start a GPU instance.
 

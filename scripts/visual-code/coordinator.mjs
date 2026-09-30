@@ -304,7 +304,7 @@ export class Coordinator {
         ? 'cancelled_or_deadline'
         : error instanceof Error && /^[a-z_]+$/.test(error.message)
           ? error.message
-          : 'render_failed';
+          : 'renderer_output_invalid';
     } finally {
       clearTimeout(timer);
       await this.removeContainer(input.id);

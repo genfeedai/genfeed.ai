@@ -5,13 +5,52 @@ import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
   getVisualCodeActionContract,
   VISUAL_CODE_ACTION_ALIASES,
+  VISUAL_CODE_INPUT_SCHEMAS,
 } from './contracts/visual-code-action-contracts';
 import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('visual-code canonical actions', () => {
+  it.each(['constructor', 'toString', '__proto__', 'unknown'])(
+    'rejects inherited and unknown action %s',
+    (name) => {
+      expect(getVisualCodeActionContract(name)).toBeUndefined();
+      expect(
+        getVisualCodeActionContract(`visual-code.${name}`),
+      ).toBeUndefined();
+    },
+  );
+  it('preserves all own alias/canonical contracts and the private executor shape', () => {
+    for (const [alias, operation] of Object.entries(
+      VISUAL_CODE_ACTION_ALIASES,
+    )) {
+      const contract = getVisualCodeActionContract(alias);
+      expect(contract?.inputSchema).toBe(VISUAL_CODE_INPUT_SCHEMAS[operation]);
+      expect(getVisualCodeActionContract(`visual-code.${operation}`)).toEqual(
+        contract,
+      );
+    }
+    const internal = getVisualCodeActionContract(
+      'visual-code.execute-internal',
+    );
+    expect(internal?.inputSchema).toMatchObject({
+      required: ['job'],
+      properties: {
+        job: {
+          required: ['revisionId', 'organizationId', 'brandId', 'userId'],
+          additionalProperties: false,
+        },
+      },
+      additionalProperties: false,
+    });
+    expect(internal?.outputSchema).toMatchObject({
+      required: ['revisionId', 'status'],
+      additionalProperties: false,
+    });
+  });
   it('exposes all valid aliases on agent and workflow without extending MCP', () => {
     for (const [alias, operation] of Object.entries(
       VISUAL_CODE_ACTION_ALIASES,
+      VISUAL_CODE_INPUT_SCHEMAS,
     )) {
       expect(alias).toMatch(/^[a-z_]+$/);
       const tool = getToolByName(alias);

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   parseCreate,
@@ -101,6 +102,22 @@ describe('visual-code application request boundary', () => {
         create.settings,
       ).outputs,
     ).toHaveLength(2);
+  });
+  it('uses code-unit key order for nested mixed-case and accented keys', () => {
+    const canonical =
+      '{"A":{"Z":1,"a":2,"é":3},"a":[{"B":4,"b":5,"É":6}],"é":7}';
+    const expected = createHash('sha256').update(canonical).digest('hex');
+    const first = {
+      é: 7,
+      a: [{ É: 6, b: 5, B: 4 }],
+      A: { é: 3, a: 2, Z: 1, omitted: undefined },
+    };
+    const second = { A: { Z: 1, a: 2, é: 3 }, a: [{ B: 4, b: 5, É: 6 }], é: 7 };
+    expect(visualInputHash(first)).toBe(expected);
+    expect(visualInputHash(second)).toBe(expected);
+    expect(visualInputHash({ a: [2, 1] })).not.toBe(
+      visualInputHash({ a: [1, 2] }),
+    );
   });
   it('hashes normalized object order consistently without normalizing source bytes', () => {
     expect(visualInputHash({ b: 2, a: { y: 1, x: 0 } })).toBe(

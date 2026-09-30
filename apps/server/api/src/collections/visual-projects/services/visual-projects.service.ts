@@ -60,7 +60,7 @@ export class VisualProjectsService implements OnModuleInit {
               id: context.userId,
               userId: context.userId,
               organizationId: context.organizationId,
-              brandId: z.string().min(1).parse(context.brandId),
+              brandId: this.requireBrandContext(context.brandId),
             };
             const execution =
               await this.prisma.workflowExecution.findFirstOrThrow({
@@ -106,6 +106,14 @@ export class VisualProjectsService implements OnModuleInit {
       }
     }
   }
+  private requireBrandContext(value: unknown): string {
+    if (value === undefined || value === null)
+      throw new BadRequestException('brand_context_required');
+    const brandId = z.string().parse(value);
+    if (!brandId.trim())
+      throw new BadRequestException('brand_context_required');
+    return brandId;
+  }
   handlesAction(name: string): boolean {
     return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, name);
   }
@@ -129,7 +137,7 @@ export class VisualProjectsService implements OnModuleInit {
       id: context.userId,
       userId: context.userId,
       organizationId: context.organizationId,
-      brandId: z.string().min(1).parse(context.brandId),
+      brandId: this.requireBrandContext(context.brandId),
     };
     const data = await this.action(
       operation,
@@ -383,6 +391,13 @@ export class VisualProjectsService implements OnModuleInit {
         });
       });
     } catch (error) {
+      if (
+        typeof error !== 'object' ||
+        error === null ||
+        !('code' in error) ||
+        error.code !== 'P2002'
+      )
+        throw error;
       const replay = await this.prisma.visualProject.findFirst({
         where: {
           organizationId: user.organizationId,
@@ -391,7 +406,7 @@ export class VisualProjectsService implements OnModuleInit {
           isDeleted: false,
         },
       });
-      if (!replay) throw error;
+      if (!replay) throw new ConflictException('request_identity_conflict');
       if (replay.inputHash !== inputHash)
         throw new ConflictException('request_identity_conflict');
       const initial = await this.authorization.revision(user, replay.id, 1);
@@ -640,7 +655,14 @@ export class VisualProjectsService implements OnModuleInit {
       await this.dispatcher.dispatch(revision, dispatchClass);
       return this.get(user, id);
     } catch (error) {
-      if (dispatchAttempted) throw error;
+      if (
+        dispatchAttempted ||
+        typeof error !== 'object' ||
+        error === null ||
+        !('code' in error) ||
+        error.code !== 'P2002'
+      )
+        throw error;
       const replay = await this.prisma.visualRevision.findFirst({
         where: {
           projectId: id,
@@ -650,7 +672,7 @@ export class VisualProjectsService implements OnModuleInit {
           requestId,
         },
       });
-      if (!replay) throw error;
+      if (!replay) throw new ConflictException('request_identity_conflict');
       if (replay.inputHash !== inputHash)
         throw new ConflictException('request_identity_conflict');
       if (

@@ -375,11 +375,17 @@ export function getVisualCodeActionContract(
         ['revisionId', 'status'],
       ),
     };
+  if (
+    !actionId.startsWith('visual-code.') &&
+    !Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, actionId)
+  )
+    return undefined;
   const operation = actionId.startsWith('visual-code.')
     ? actionId.slice(12)
     : VISUAL_CODE_ACTION_ALIASES[
         actionId as keyof typeof VISUAL_CODE_ACTION_ALIASES
       ];
+  if (!Object.hasOwn(VISUAL_CODE_INPUT_SCHEMAS, operation)) return undefined;
   const inputSchema = VISUAL_CODE_INPUT_SCHEMAS[operation];
   if (!inputSchema) return undefined;
   return {
