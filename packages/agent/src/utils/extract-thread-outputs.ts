@@ -143,7 +143,12 @@ function buildMediaVariants(
         (action.images?.length === 1 ? action.assetId : undefined),
       kind: 'image',
       messageId,
-      title: action.title,
+      thumbnailUrl: action.ingredients?.find(
+        (ingredient) => ingredient.url === url,
+      )?.thumbnailUrl,
+      title:
+        action.ingredients?.find((ingredient) => ingredient.url === url)
+          ?.title ?? action.title,
       url,
     });
   });
@@ -158,7 +163,12 @@ function buildMediaVariants(
       id: `${messageId}:${action.id}:video:${index}`,
       kind: 'video',
       messageId,
-      title: action.title,
+      thumbnailUrl: action.ingredients?.find(
+        (ingredient) => ingredient.url === url,
+      )?.thumbnailUrl,
+      title:
+        action.ingredients?.find((ingredient) => ingredient.url === url)
+          ?.title ?? action.title,
       url,
     });
   });
@@ -173,7 +183,12 @@ function buildMediaVariants(
       id: `${messageId}:${action.id}:audio:${index}`,
       kind: 'audio',
       messageId,
-      title: action.title,
+      thumbnailUrl: action.ingredients?.find(
+        (ingredient) => ingredient.url === url,
+      )?.thumbnailUrl,
+      title:
+        action.ingredients?.find((ingredient) => ingredient.url === url)
+          ?.title ?? action.title,
       url,
     });
   });

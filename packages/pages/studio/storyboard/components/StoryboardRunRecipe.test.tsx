@@ -2,6 +2,10 @@ import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
+  useStoryboardAssets: () => ({}),
+}));
+
 const mocks = vi.hoisted(() => ({
   openGallery: vi.fn(),
 }));
@@ -58,6 +62,7 @@ const run = {
     reviewRequired: true,
     target: { kind: 'organic', platform: 'tiktok' },
   },
+  brandId: 'brand-1',
   id: 'run-1',
   phase: 'prefilled',
   revision: 1,
@@ -109,11 +114,22 @@ describe('StoryboardRunRecipe', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add references' }));
     const [{ onSelect }] = mocks.openGallery.mock.calls[0] as [
-      { onSelect: (items: Array<{ id: string }>) => void },
+      {
+        onSelect: (
+          items: Array<{ id: string; brandId: string; metadataLabel: string }>,
+        ) => void;
+      },
     ];
-    act(() => onSelect([{ id: 'library-1' }, { id: 'style-ref' }]));
+    act(() =>
+      onSelect([
+        { id: 'library-1', brandId: 'brand-1', metadataLabel: 'Product photo' },
+        { id: 'style-ref', brandId: 'brand-1', metadataLabel: 'Style photo' },
+      ]),
+    );
+    expect(screen.getByText('Product photo')).toBeVisible();
+    expect(screen.queryByText('library-1')).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Remove reference style-ref' }),
+      screen.getByRole('button', { name: 'Remove reference Style photo' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 

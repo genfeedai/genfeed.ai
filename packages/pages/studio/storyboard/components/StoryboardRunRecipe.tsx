@@ -7,8 +7,10 @@ import {
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type { StoryboardRunRecipe as StoryboardRunRecipeValue } from '@genfeedai/contracts/interfaces';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import type { StoryboardRunRecipeProps } from '@genfeedai/props/studio/storyboard.props';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import {
   clampRunDurationSeconds,
   getStoryboardRunAspectRatioOptions,
@@ -22,7 +24,9 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
+import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { ImagePlus, Sparkles, X } from 'lucide-react';
+import NextImage from 'next/image';
 import { useTranslations } from 'next-intl';
 import { type ReactElement, useState } from 'react';
 
@@ -49,6 +53,16 @@ export default function StoryboardRunRecipe({
   const [recipe, setRecipe] = useState<StoryboardRunRecipeValue>(() =>
     getStoryboardRunRecipe(run),
   );
+  const referenceScope = `${run.id}:${run.brandId}:${run.revision}`;
+  const [pickedReferences, setPickedReferences] = useState<{
+    scope: string;
+    assets: Record<string, GallerySelectItem>;
+  }>({ scope: referenceScope, assets: {} });
+  const references = useStoryboardAssets(
+    `${run.id}:${run.revision}`,
+    run.brandId,
+    recipe.referenceAssetIds.map((id) => ({ id, kind: 'image' })),
+  );
   const outputKind = run.draft.output.kind;
   const isImmutable =
     Boolean(run.review || run.reviewClaim) || IMMUTABLE_PHASES.has(run.phase);
@@ -64,7 +78,20 @@ export default function StoryboardRunRecipe({
       category: IngredientCategory.IMAGE,
       maxSelectableItems: MAX_REFERENCES - recipe.referenceAssetIds.length,
       onSelect: (selected) => {
-        const picked = (selected ?? []).map((item) => item.id);
+        setPickedReferences((current) => ({
+          scope: referenceScope,
+          assets: {
+            ...(current.scope === referenceScope ? current.assets : {}),
+            ...Object.fromEntries(
+              (selected ?? [])
+                .filter((item) => item.brandId === run.brandId)
+                .map((item) => [item.id, item]),
+            ),
+          },
+        }));
+        const picked = (selected ?? [])
+          .filter((item) => item.brandId === run.brandId)
+          .map((item) => item.id);
         setRecipe((current) => ({
           ...current,
           referenceAssetIds: Array.from(
@@ -155,25 +182,58 @@ export default function StoryboardRunRecipe({
             {translate('referencesHelp')}
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            {recipe.referenceAssetIds.map((assetId) => (
-              <Badge key={assetId} variant="ghost">
-                <span className="max-w-40 truncate">{assetId}</span>
-                <Button
-                  ariaLabel={translate('removeReference', { id: assetId })}
-                  icon={<X className="size-3" />}
-                  isDisabled={isDisabled}
-                  onClick={() =>
-                    patch({
-                      referenceAssetIds: recipe.referenceAssetIds.filter(
-                        (candidate) => candidate !== assetId,
-                      ),
-                    })
-                  }
-                  size={ButtonSize.XS}
-                  variant={ButtonVariant.GHOST}
-                />
-              </Badge>
-            ))}
+            {recipe.referenceAssetIds.map((assetId, index) => {
+              const reference =
+                references[`image:${assetId}`] ??
+                (pickedReferences.scope === referenceScope
+                  ? pickedReferences.assets[assetId]
+                  : undefined);
+              const label = reference
+                ? getIngredientDisplayLabel(reference)
+                : undefined;
+              const name =
+                label && label !== assetId
+                  ? label
+                  : reference
+                    ? translate.has?.('referenceLabel')
+                      ? translate('referenceLabel', { ordinal: index + 1 })
+                      : `Reference ${index + 1}`
+                    : translate.has?.('referenceUnavailable')
+                      ? translate('referenceUnavailable', {
+                          ordinal: index + 1,
+                        })
+                      : `Reference ${index + 1} unavailable`;
+              return (
+                <Badge key={assetId} variant="ghost">
+                  {reference?.thumbnailUrl || reference?.cdnUrl ? (
+                    <NextImage
+                      width={40}
+                      height={40}
+                      unoptimized
+                      src={reference.thumbnailUrl || reference.cdnUrl || ''}
+                      alt=""
+                      className="size-10 rounded-md object-cover"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <span className="max-w-40 truncate">{name}</span>
+                  <Button
+                    ariaLabel={translate('removeReference', { id: name })}
+                    icon={<X className="size-3" />}
+                    isDisabled={isDisabled}
+                    onClick={() =>
+                      patch({
+                        referenceAssetIds: recipe.referenceAssetIds.filter(
+                          (candidate) => candidate !== assetId,
+                        ),
+                      })
+                    }
+                    size={ButtonSize.XS}
+                    variant={ButtonVariant.GHOST}
+                  />
+                </Badge>
+              );
+            })}
             <Button
               icon={<ImagePlus className="size-3.5" />}
               isDisabled={

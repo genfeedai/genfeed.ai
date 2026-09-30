@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -7,13 +8,18 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { StoryboardRunPanelProps } from '@genfeedai/props/studio/storyboard.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import StoryboardRunScenes from '@pages/studio/storyboard/components/StoryboardRunScenes';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { resolvePairedRunIdentity } from '@pages/studio/storyboard/utils/storyboard-run';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
+import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Copy, GitBranch, Megaphone, Send, Sparkles } from 'lucide-react';
+import NextImage from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
@@ -33,6 +39,22 @@ export default function StoryboardRunPanel({
   onVary,
   run,
 }: StoryboardRunPanelProps): ReactElement {
+  const { organizationId } = useBrand();
+  const { avatars } = useAvatarImages(organizationId);
+  const { voices } = useVoiceCatalog({ isActive: true });
+  const assets = useStoryboardAssets(
+    `${run.id}:${run.revision}`,
+    run.brandId,
+    (run.execution?.variants ?? []).flatMap((variant) =>
+      variant.assetIds.map((id) => ({
+        id,
+        kind:
+          run.draft.output.kind === 'image'
+            ? ('image' as const)
+            : ('video' as const),
+      })),
+    ),
+  );
   const translate = useTranslations('pages.studioStoryboard');
   const { activeHref } = useOrgUrl();
   const readyVariantIds =
@@ -187,12 +209,22 @@ export default function StoryboardRunPanel({
         >
           <Badge variant="secondary">
             {translate('run.identity.avatar', {
-              id: canonicalIdentity.avatarAssetId,
+              id:
+                avatars.find(
+                  (item) =>
+                    item.id === canonicalIdentity.avatarAssetId &&
+                    item.brandId === run.brandId,
+                )?.metadataLabel || '—',
             })}
           </Badge>
           <Badge variant="secondary">
             {translate('run.identity.voice', {
-              id: canonicalIdentity.speechVoiceId,
+              id:
+                voices.find(
+                  (item) =>
+                    item.id === canonicalIdentity.speechVoiceId &&
+                    item.brandId === run.brandId,
+                )?.metadataLabel || '—',
             })}
           </Badge>
         </div>
@@ -220,18 +252,71 @@ export default function StoryboardRunPanel({
             </Alert>
           ) : null}
           <div className="divide-y divide-border border-y border-border">
-            {run.execution.variants.map((variant) => (
+            {run.execution.variants.map((variant, index) => (
               <div
-                className="flex items-center justify-between gap-3 py-2 text-xs"
+                className="flex flex-wrap items-center justify-between gap-3 py-3 text-xs"
                 key={variant.id}
               >
                 <div className="min-w-0">
-                  <p className="font-medium text-foreground">{variant.id}</p>
-                  <p className="truncate text-muted-foreground">
-                    {variant.assetIds.length
-                      ? variant.assetIds.join(', ')
-                      : translate('run.waitingForAssetIds')}
+                  <p className="font-medium text-foreground">
+                    {translate.has?.('run.outputLabel')
+                      ? translate('run.outputLabel', { ordinal: index + 1 })
+                      : `Output ${index + 1}`}
                   </p>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {variant.assetIds.length ? (
+                      variant.assetIds.map((id, assetIndex) => {
+                        const asset =
+                          assets[
+                            `${run.draft.output.kind === 'image' ? 'image' : 'video'}:${id}`
+                          ];
+                        const thumbnail =
+                          asset?.thumbnailUrl ||
+                          (run.draft.output.kind === 'image'
+                            ? asset?.cdnUrl
+                            : undefined);
+                        return (
+                          <div
+                            key={id}
+                            className="flex min-w-0 items-center gap-2"
+                          >
+                            {thumbnail ? (
+                              <NextImage
+                                width={64}
+                                height={64}
+                                unoptimized
+                                src={thumbnail}
+                                alt=""
+                                className="size-16 rounded-md object-cover"
+                                loading="lazy"
+                              />
+                            ) : null}
+                            <span className="max-w-60 break-words text-muted-foreground">
+                              {asset
+                                ? getIngredientDisplayLabel(asset) !== id
+                                  ? getIngredientDisplayLabel(asset)
+                                  : translate.has?.('run.outputAssetLabel')
+                                    ? translate('run.outputAssetLabel', {
+                                        ordinal: index + 1,
+                                        asset: assetIndex + 1,
+                                      })
+                                    : `Output ${index + 1} · Asset ${assetIndex + 1}`
+                                : translate.has?.('run.outputAssetUnavailable')
+                                  ? translate('run.outputAssetUnavailable', {
+                                      ordinal: index + 1,
+                                      asset: assetIndex + 1,
+                                    })
+                                  : `Output ${index + 1} · Asset ${assetIndex + 1} unavailable`}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-muted-foreground">
+                        {translate('run.waitingForAssetIds')}
+                      </p>
+                    )}
+                  </div>
                   {variant.content ? (
                     <p className="mt-1 whitespace-pre-wrap text-foreground">
                       {variant.content}
