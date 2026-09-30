@@ -178,9 +178,9 @@ describe('operator model pricing projection', () => {
       .mockResolvedValue([{ ...model, providerContracts: [] }]);
     const findFirst = vi
       .fn<
-        (
-          args: unknown,
-        ) => Promise<{ marginMultiplierGeneration: number } | null>
+        (args: {
+          where: { key: string; isDeleted: boolean };
+        }) => Promise<{ marginMultiplierGeneration: number } | null>
       >()
       .mockResolvedValue(null);
     const transaction = { model: { findMany }, platformSetting: { findFirst } };
