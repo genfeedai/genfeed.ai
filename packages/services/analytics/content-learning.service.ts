@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import type {
   LearningAccountView,
   LearningConsentInput,
@@ -6,8 +7,7 @@ import type {
   LearningOperationView,
   LearningReceivingInput,
   LearningResourceView,
-} from '@genfeedai/contracts';
-import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {

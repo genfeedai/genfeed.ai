@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { YouTubeAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
   attributionFailureFor,
@@ -62,6 +63,8 @@ export class AnalyticsYouTubeCollectionService {
 
       const videoIds = posts.map((post) => post.externalId);
       const resolution = await this.resolveCollectionCredential(data);
+      const sourceAttemptId = randomUUID(),
+        requestStartedAt = new Date();
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
         organizationId,
         brandId,
@@ -69,6 +72,7 @@ export class AnalyticsYouTubeCollectionService {
         resolution.credentialId,
       );
 
+      const receivedAt = new Date();
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
       const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
       const failedTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -103,6 +107,11 @@ export class AnalyticsYouTubeCollectionService {
             post.id,
             analytics,
             {
+              learningObservation: {
+                sourceAttemptId,
+                requestStartedAt,
+                receivedAt,
+              },
               organizationId: post.organizationId,
               brandId: post.brandId,
               credentialId: resolution.credentialId,

@@ -3,7 +3,7 @@ import type {
   LearningEvaluationReportV1,
   LearningExperimentGroupV1,
   LearningExperimentSpecV1,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { learningSeededRandom } from './evaluation';
 export interface LearningExperimentObservation {
   id: string;

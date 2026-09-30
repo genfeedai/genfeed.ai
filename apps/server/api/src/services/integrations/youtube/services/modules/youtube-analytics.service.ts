@@ -4,6 +4,10 @@ import {
 } from '@api/services/integrations/youtube/services/modules/youtube-api-auth.util';
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import type { IYouTubeVideoStats } from '@genfeedai/contracts/interfaces';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -150,11 +154,16 @@ export class YoutubeAnalyticsService {
     brandId: string,
     videoIds: string[],
     credentialId: string,
-  ): Promise<Map<string, IYouTubeVideoStats>> {
+  ): Promise<
+    Map<string, IYouTubeVideoStats & { learningMetrics?: LearningMetrics }>
+  > {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     if (videoIds.length === 0) {
-      return new Map<string, IYouTubeVideoStats>();
+      return new Map<
+        string,
+        IYouTubeVideoStats & { learningMetrics?: LearningMetrics }
+      >();
     }
 
     if (videoIds.length > 50) {
@@ -176,7 +185,10 @@ export class YoutubeAnalyticsService {
         part: ['id', 'statistics', 'contentDetails', 'snippet'],
       });
 
-      const results = new Map<string, IYouTubeVideoStats>();
+      const results = new Map<
+        string,
+        IYouTubeVideoStats & { learningMetrics?: LearningMetrics }
+      >();
 
       for (const item of videoData.data.items || []) {
         if (!item?.id || !item?.statistics) {
@@ -195,7 +207,18 @@ export class YoutubeAnalyticsService {
           Number(item.statistics.favoriteCount || 0);
         const engagementRate = views > 0 ? (totalEngagements / views) * 100 : 0;
 
+        const observed = Object.fromEntries(
+          Object.entries(item.statistics).map(([key, value]) => [
+            key,
+            value == null ? undefined : Number(value),
+          ]),
+        );
         results.set(item.id, {
+          learningMetrics: captureLearningMetrics(observed, {
+            videoViews: 'viewCount',
+            likes: 'likeCount',
+            comments: 'commentCount',
+          }),
           comments: Number(item.statistics.commentCount || 0),
           dislikes: item.statistics.dislikeCount
             ? Number(item.statistics.dislikeCount)

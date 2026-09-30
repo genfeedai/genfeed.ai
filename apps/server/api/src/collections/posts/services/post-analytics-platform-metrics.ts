@@ -1,4 +1,6 @@
+import type { LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 export interface UpdateTodayAnalyticsMetrics {
+  learningMetrics?: LearningMetrics;
   averageWatchTimeSeconds?: number | null;
   clicks?: number | null;
   credentialId?: string | null;
@@ -17,6 +19,7 @@ export interface UpdateTodayAnalyticsMetrics {
 }
 
 export interface YouTubePostMetrics {
+  learningMetrics?: LearningMetrics;
   isPinned?: boolean | null;
   isPromoted?: boolean | null;
   averageViewDuration?: number;
@@ -38,6 +41,7 @@ export interface YouTubePostMetrics {
 }
 
 export interface TikTokPostMetrics {
+  learningMetrics?: LearningMetrics;
   isPinned?: boolean | null;
   isPromoted?: boolean | null;
   averagePlayTime?: number;
@@ -65,6 +69,7 @@ export function mapYouTubePostMetrics(
       ? null
       : analytics.estimatedMinutesWatched * 60;
   return {
+    learningMetrics: analytics.learningMetrics,
     isPinned: analytics.isPinned ?? null,
     isPromoted: analytics.isPromoted ?? null,
     averageWatchTimeSeconds,
@@ -92,6 +97,7 @@ export function mapTikTokPostMetrics(
   const reach = analytics.reach ?? null;
   const watchTimeSeconds = analytics.totalPlayTime ?? null;
   return {
+    learningMetrics: analytics.learningMetrics,
     isPinned: analytics.isPinned ?? null,
     isPromoted: analytics.isPromoted ?? null,
     averageWatchTimeSeconds,

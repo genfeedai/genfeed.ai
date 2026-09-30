@@ -1,4 +1,8 @@
 import { InstagramMediaType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { InstagramCredentialResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -7,6 +11,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
 export interface InstagramMediaAnalytics {
+  learningMetrics?: LearningMetrics;
   comments: number;
   engagementRate?: number;
   impressions?: number;
@@ -87,7 +92,26 @@ export class InstagramAnalyticsService {
         mediaType = data.media_type as InstagramMediaType;
       }
 
+      const rawInsights = Object.fromEntries(
+        (
+          insights as Array<{
+            name: string;
+            values?: Array<{ value: unknown }>;
+          }>
+        ).map((insight) => [insight.name, insight.values?.[0]?.value]),
+      );
       return {
+        learningMetrics: captureLearningMetrics(
+          { ...data, ...rawInsights },
+          {
+            impressions: 'impressions',
+            reach: 'reach',
+            likes: 'like_count',
+            comments: 'comments_count',
+            shares: 'shares',
+            saves: 'saved',
+          },
+        ),
         comments: data.comments_count || 0,
         engagementRate:
           engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,

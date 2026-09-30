@@ -5,7 +5,7 @@ import {
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { LearningNumericRow } from '@genfeedai/contracts';
+import type { LearningNumericRow } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { assertLearningFeatures, LEARNING_ARMS } from '@genfeedai/harness';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {

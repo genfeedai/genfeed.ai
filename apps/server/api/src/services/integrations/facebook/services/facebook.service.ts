@@ -4,6 +4,10 @@ import {
 } from '@api/server.dependencies';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type {
   FacebookInsight,
   FacebookPage,
@@ -704,6 +708,7 @@ export class FacebookService {
     postId: string,
     accessToken: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     views: number;
     likes: number;
     comments: number;
@@ -761,7 +766,27 @@ export class FacebookService {
         });
       }
 
+      const rawInsights = Object.fromEntries(
+        (insights as FacebookInsight[]).map((insight) => [
+          insight.name,
+          insight.values?.[0]?.value,
+        ]),
+      );
       return {
+        learningMetrics: captureLearningMetrics(
+          {
+            impressions: rawInsights.post_impressions,
+            likes: data.reactions?.summary?.total_count,
+            comments: data.comments?.summary?.total_count,
+            shares: data.shares?.count,
+          },
+          {
+            impressions: 'impressions',
+            likes: 'likes',
+            comments: 'comments',
+            shares: 'shares',
+          },
+        ),
         comments: data.comments?.summary?.total_count || 0,
         engagementRate:
           engagementRate > 0 ? Number(engagementRate.toFixed(2)) : undefined,
@@ -775,6 +800,14 @@ export class FacebookService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       return {
+        learningMetrics: {
+          metrics: {
+            impressions: { availability: 'failed', source: 'post_impressions' },
+            likes: { availability: 'failed', source: 'reactions.summary' },
+            comments: { availability: 'failed', source: 'comments.summary' },
+            shares: { availability: 'failed', source: 'shares.count' },
+          },
+        },
         comments: 0,
         likes: 0,
         shares: 0,

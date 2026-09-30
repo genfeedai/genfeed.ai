@@ -2,7 +2,7 @@ import type {
   LearningCellDescriptor,
   LearningFormat,
   LearningMetricName,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 export type RewardObjective =
   | 'awareness'
   | 'engagement'

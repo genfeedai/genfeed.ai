@@ -94,6 +94,11 @@ export interface OutlierConfigurationResponse
   organizationId: string;
 }
 export interface AnalyticsPersistenceContext {
+  learningObservation?: {
+    sourceAttemptId: string;
+    requestStartedAt: Date;
+    receivedAt: Date;
+  };
   organizationId: string;
   brandId: string;
   credentialId: string;

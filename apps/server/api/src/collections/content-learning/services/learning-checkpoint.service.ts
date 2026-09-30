@@ -5,7 +5,10 @@ import {
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { LearningMetrics, LearningScope } from '@genfeedai/contracts';
+import type {
+  LearningMetrics,
+  LearningScope,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
   checkpointValidity,
   type LearningMeasurement,
@@ -102,7 +105,11 @@ export class LearningCheckpointService {
       ]),
     );
     const measurement = capability
-      ? weightedMeasurement(values.exposure, values, capability)
+      ? weightedMeasurement(
+          values[capability.exposureSource],
+          values,
+          capability,
+        )
       : null;
     const providerAsOf = input.learningMetrics.providerAsOf
       ? new Date(input.learningMetrics.providerAsOf)

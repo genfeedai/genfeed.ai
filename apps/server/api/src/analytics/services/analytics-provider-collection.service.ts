@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { SocialAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
   attributionFailureFor,
@@ -81,6 +82,8 @@ export class AnalyticsProviderCollectionService {
           { status: 401 },
         );
       }
+      const sourceAttemptId = randomUUID(),
+        requestStartedAt = new Date();
       const analytics = await this.facebookService.getPostAnalytics(
         post.externalId,
         EncryptionUtil.decrypt(credential.accessToken),
@@ -88,6 +91,7 @@ export class AnalyticsProviderCollectionService {
       await this.postAnalyticsService.processFacebookAnalytics(
         post.id,
         {
+          learningMetrics: analytics.learningMetrics,
           comments: analytics.comments,
           engagementRate: analytics.engagementRate,
           impressions: analytics.impressions,
@@ -97,6 +101,11 @@ export class AnalyticsProviderCollectionService {
           views: analytics.views,
         },
         {
+          learningObservation: {
+            sourceAttemptId,
+            requestStartedAt,
+            receivedAt: new Date(),
+          },
           organizationId: post.organizationId,
           brandId: post.brandId,
           credentialId: resolution.credentialId,
@@ -142,6 +151,8 @@ export class AnalyticsProviderCollectionService {
         );
       }
 
+      const sourceAttemptId = randomUUID(),
+        requestStartedAt = new Date();
       const analytics = await this.threadsService.getThreadInsights(
         post.organizationId,
         post.brandId,
@@ -152,6 +163,11 @@ export class AnalyticsProviderCollectionService {
         post.id,
         analytics,
         {
+          learningObservation: {
+            sourceAttemptId,
+            requestStartedAt,
+            receivedAt: new Date(),
+          },
           organizationId: post.organizationId,
           brandId: post.brandId,
           credentialId: resolution.credentialId,

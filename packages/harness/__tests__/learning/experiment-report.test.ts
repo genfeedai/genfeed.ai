@@ -1,4 +1,4 @@
-import type { LearningExperimentSpecV1 } from '@genfeedai/contracts';
+import type { LearningExperimentSpecV1 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { describe, expect, it } from 'vitest';
 import {
   buildLearningExperimentReport,

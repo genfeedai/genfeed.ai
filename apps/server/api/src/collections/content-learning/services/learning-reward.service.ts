@@ -2,7 +2,7 @@ import { parseLearningMeasurement } from '@api/collections/content-learning/serv
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { LearningObjective } from '@genfeedai/contracts';
+import type { LearningObjective } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { computeLearningReward } from '@genfeedai/harness';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';

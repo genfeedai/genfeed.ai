@@ -5,7 +5,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   LearningCostAttributionV1,
   LearningExperimentPayloadV1,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,

@@ -16,6 +16,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
+import { type LearningMetrics } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -135,8 +136,10 @@ export class PostAnalyticsService extends BaseService<
       accountId: credentialId,
     };
     await this.outliersService.authorize(account);
+    const dailyMetrics = { ...metrics };
+    delete dailyMetrics.learningMetrics;
     const attributedMetrics = {
-      ...metrics,
+      ...dailyMetrics,
       credentialId,
       isPinned: metrics.isPinned ?? null,
       isPromoted: metrics.isPromoted ?? null,
@@ -374,6 +377,7 @@ export class PostAnalyticsService extends BaseService<
   async processTwitterAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -393,6 +397,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.TWITTER,
         {
+          learningMetrics: analytics.learningMetrics,
           totalComments: analytics.comments,
           totalLikes: analytics.likes,
           totalShares: analytics.retweets || 0,
@@ -443,6 +448,7 @@ export class PostAnalyticsService extends BaseService<
   async processInstagramAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views?: number;
@@ -462,6 +468,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.INSTAGRAM,
         {
+          learningMetrics: analytics.learningMetrics,
           impressions: analytics.impressions ?? null,
           metricAvailability: {
             impressions:
@@ -522,6 +529,7 @@ export class PostAnalyticsService extends BaseService<
   async processPinterestAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views?: number;
@@ -539,6 +547,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.PINTEREST,
         {
+          learningMetrics: analytics.learningMetrics,
           clicks: analytics.clicks ?? null,
           impressions: analytics.impressions ?? null,
           metricAvailability: {
@@ -572,6 +581,7 @@ export class PostAnalyticsService extends BaseService<
   async processLinkedInAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -591,6 +601,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.LINKEDIN,
         {
+          learningMetrics: analytics.learningMetrics,
           clicks: analytics.clicks ?? null,
           impressions: analytics.impressions ?? null,
           metricAvailability: {
@@ -626,6 +637,7 @@ export class PostAnalyticsService extends BaseService<
   async processMastodonAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -640,6 +652,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.MASTODON,
         {
+          learningMetrics: analytics.learningMetrics,
           totalComments: analytics.comments,
           totalLikes: analytics.likes,
           totalShares: analytics.boosts,
@@ -665,6 +678,7 @@ export class PostAnalyticsService extends BaseService<
   async processFacebookAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -682,6 +696,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.FACEBOOK,
         {
+          learningMetrics: analytics.learningMetrics,
           impressions: analytics.impressions ?? null,
           metricAvailability: {
             impressions:
@@ -714,6 +729,7 @@ export class PostAnalyticsService extends BaseService<
   async processThreadsAnalytics(
     postId: string,
     analytics: {
+      learningMetrics?: LearningMetrics;
       isPinned?: boolean | null;
       isPromoted?: boolean | null;
       views: number;
@@ -729,6 +745,7 @@ export class PostAnalyticsService extends BaseService<
         postId,
         CREDENTIAL_PLATFORM.THREADS,
         {
+          learningMetrics: analytics.learningMetrics,
           totalComments: analytics.replies,
           totalLikes: analytics.likes,
           totalShares: analytics.reposts + analytics.quotes,

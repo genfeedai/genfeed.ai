@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type {
   AnalyticsCollectionPost,
   SocialAnalyticsCollectionInput,
@@ -95,6 +96,8 @@ export class AnalyticsSocialCollectionService {
   ): Promise<AnalyticsPersistenceContext> {
     const resolution = await this.resolveCollectionCredential(post);
     const credentialId = resolution.credentialId;
+    const sourceAttemptId = randomUUID(),
+      requestStartedAt = new Date();
     const context = {
       organizationId: post.organizationId,
       brandId: post.brandId,
@@ -124,6 +127,11 @@ export class AnalyticsSocialCollectionService {
               : undefined,
           },
           {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt: new Date(),
+            },
             organizationId: post.organizationId,
             brandId: post.brandId,
             credentialId: credentialId,
@@ -146,6 +154,11 @@ export class AnalyticsSocialCollectionService {
             shares: analytics.shares ?? 0,
           },
           {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt: new Date(),
+            },
             organizationId: post.organizationId,
             brandId: post.brandId,
             credentialId: credentialId,
@@ -165,6 +178,11 @@ export class AnalyticsSocialCollectionService {
           post.id,
           analytics,
           {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt: new Date(),
+            },
             organizationId: post.organizationId,
             brandId: post.brandId,
             credentialId: credentialId,
@@ -184,6 +202,7 @@ export class AnalyticsSocialCollectionService {
           post.id,
           {
             clicks: analytics.clicks,
+            learningMetrics: analytics.learningMetrics,
             comments: analytics.comments,
             engagementRate: analytics.engagementRate,
             impressions: analytics.impressions,
@@ -194,6 +213,11 @@ export class AnalyticsSocialCollectionService {
             views: analytics.views,
           },
           {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt: new Date(),
+            },
             organizationId: post.organizationId,
             brandId: post.brandId,
             credentialId: credentialId,
@@ -213,6 +237,11 @@ export class AnalyticsSocialCollectionService {
           post.id,
           analytics,
           {
+            learningObservation: {
+              sourceAttemptId,
+              requestStartedAt,
+              receivedAt: new Date(),
+            },
             organizationId: post.organizationId,
             brandId: post.brandId,
             credentialId: credentialId,

@@ -4,6 +4,10 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -807,6 +811,7 @@ export class ThreadsService {
     threadId: string,
     credentialId?: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     views: number;
     likes: number;
     replies: number;
@@ -868,7 +873,35 @@ export class ThreadsService {
 
       this.loggerService.log(`${url} succeeded`, response.data);
 
+      const observed = Object.fromEntries(
+        (Array.isArray(metrics) ? metrics : []).flatMap((entry) => {
+          if (
+            !entry ||
+            typeof entry !== 'object' ||
+            !('name' in entry) ||
+            typeof entry.name !== 'string' ||
+            !('values' in entry) ||
+            !Array.isArray(entry.values)
+          )
+            return [];
+          const value = entry.values[0];
+          return [
+            [
+              entry.name,
+              value && typeof value === 'object' && 'value' in value
+                ? value.value
+                : undefined,
+            ],
+          ];
+        }),
+      );
       return {
+        learningMetrics: captureLearningMetrics(observed, {
+          views: 'views',
+          likes: 'likes',
+          comments: 'replies',
+          shares: 'reposts',
+        }),
         likes: getMetricValue('likes'),
         quotes: getMetricValue('quotes'),
         replies: getMetricValue('replies'),

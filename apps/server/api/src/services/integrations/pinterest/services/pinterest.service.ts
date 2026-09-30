@@ -5,6 +5,10 @@ import {
   type ServerCredentialStore,
 } from '@api/server.dependencies';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -306,6 +310,7 @@ export class PinterestService {
     externalId: string,
     credentialId?: string,
   ): Promise<{
+    learningMetrics?: LearningMetrics;
     views: number;
     likes: number;
     comments: number;
@@ -361,6 +366,20 @@ export class PinterestService {
       }
 
       return {
+        learningMetrics: captureLearningMetrics(
+          {
+            impressions: impressions.found ? impressions.value : undefined,
+            saves: saves.found ? saves.value : undefined,
+            outboundClicks: outboundClicks.found
+              ? outboundClicks.value
+              : undefined,
+          },
+          {
+            impressions: 'impressions',
+            saves: 'saves',
+            clicks: 'outboundClicks',
+          },
+        ),
         clicks: pinClicks.value + outboundClicks.value,
         comments: 0,
         impressions: impressions.value,

@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { LearningCostAttributionV1 } from '@genfeedai/contracts';
+import type { LearningCostAttributionV1 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 
 const storage = new AsyncLocalStorage<Readonly<LearningCostAttributionV1>>();
 export function learningCostContext(

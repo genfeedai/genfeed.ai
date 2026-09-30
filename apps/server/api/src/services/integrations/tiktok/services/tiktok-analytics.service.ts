@@ -1,5 +1,9 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import type { ITikTokMediaAnalytics } from '@genfeedai/contracts/interfaces';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -31,7 +35,7 @@ export class TiktokAnalyticsService {
     brandId: string,
     mediaId: string,
     credentialId: string,
-  ): Promise<ITikTokMediaAnalytics> {
+  ): Promise<ITikTokMediaAnalytics & { learningMetrics?: LearningMetrics }> {
     const url = `TiktokService ${CallerUtil.getCallerName()}`;
     let credential: CredentialDocument | null = null;
 
@@ -65,6 +69,13 @@ export class TiktokAnalyticsService {
         item.view_count > 0 ? (totalEngagements / item.view_count) * 100 : 0;
 
       return {
+        learningMetrics: captureLearningMetrics(item, {
+          videoViews: 'view_count',
+          likes: 'like_count',
+          comments: 'comment_count',
+          shares: 'share_count',
+          averageWatchTimeSeconds: 'average_watch_time',
+        }),
         averageWatchTime: item.average_watch_time || undefined,
         comments: item.comment_count || 0,
         completionRate: item.full_video_watched_rate

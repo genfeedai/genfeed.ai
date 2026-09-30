@@ -13,10 +13,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ContentLearningMode,
   fromPrismaCredentialPlatform,
+} from '@genfeedai/contracts';
+import {
   type LearningGenerationContext,
   type LearningGenerationReceipt,
   type LearningScope,
-} from '@genfeedai/contracts';
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
   type ContentHarnessContribution,
   initializeLearningPolicy,
