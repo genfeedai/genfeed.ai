@@ -341,12 +341,30 @@ export abstract class HTTPBaseService {
       const isSurfaceHandledStatus =
         typeof status === 'number' &&
         requestOptions?.handledErrorStatuses?.includes(status) === true;
+      let isSurfaceHandledResponse = false;
+      if (
+        typeof status === 'number' &&
+        Number.isFinite(status) &&
+        status >= 400 &&
+        typeof requestOptions?.handlesErrorResponse === 'function'
+      ) {
+        try {
+          isSurfaceHandledResponse =
+            requestOptions.handlesErrorResponse({
+              status,
+              data: response?.data,
+            }) === true;
+        } catch {
+          // Presentation policy must not replace the original request rejection.
+        }
+      }
       const shouldShowDebugModal =
         typeof window !== 'undefined' &&
         typeof status === 'number' &&
         status >= 400 &&
         !isExpectedClientStatus &&
-        !isSurfaceHandledStatus;
+        !isSurfaceHandledStatus &&
+        !isSurfaceHandledResponse;
 
       if (shouldShowDebugModal) {
         openModal(ModalEnum.ERROR_DEBUG);

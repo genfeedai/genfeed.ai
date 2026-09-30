@@ -1,3 +1,4 @@
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
 import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -742,6 +743,273 @@ describe('HTTPBaseService (InterceptorService)', () => {
         else expect(openModal).not.toHaveBeenCalled();
       },
     );
+
+    it.each([true, false, undefined, 1, 'true', {}])(
+      'only literal true from a response predicate suppresses the modal (%s)',
+      async (value) => {
+        const { openModal } = await import(
+          '@genfeedai/helpers/ui/modal/modal.helper'
+        );
+        const { setErrorDebugInfo } = await import(
+          '@services/core/error-debug-store'
+        );
+        const predicate = vi.fn(() => value);
+        const config = {
+          url: '/test',
+          headers: {},
+          handlesErrorResponse: predicate,
+        } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
+        const data = {
+          errors: [{ status: '409', detail: 'Conflict fixture' }],
+        };
+        const error = {
+          config,
+          message: 'Request failed',
+          response: { status: 409, data },
+        } as AxiosError;
+        await expect(service.handleError(error)).rejects.toBe(data);
+        expect(predicate).toHaveBeenCalledOnce();
+        expect(predicate).toHaveBeenCalledWith({ status: 409, data });
+        expect(setErrorDebugInfo).toHaveBeenCalledWith(
+          expect.objectContaining({ response: { data }, status: 409 }),
+        );
+        expect(openModal).toHaveBeenCalledTimes(value === true ? 0 : 1);
+      },
+    );
+    it.each([undefined, null, 'malformed', 42, {}])(
+      'fails closed for a missing/nonfunction response policy (%s)',
+      async (policy) => {
+        const { openModal } = await import(
+          '@genfeedai/helpers/ui/modal/modal.helper'
+        );
+        const data = { errors: [{ detail: 'Conflict fixture' }] };
+        const config = {
+          headers: {},
+          handlesErrorResponse: policy,
+        } as unknown as InternalAxiosRequestConfig & IHttpRequestOptions;
+        const error = {
+          config,
+          message: 'Request failed',
+          response: { status: 409, data },
+        } as AxiosError;
+        await expect(service.handleError(error)).rejects.toBe(data);
+        expect(openModal).toHaveBeenCalledOnce();
+      },
+    );
+    it('contains a throwing presentation predicate without replacing rejection or debug capture', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { setErrorDebugInfo } = await import(
+        '@services/core/error-debug-store'
+      );
+      const data = { errors: [{ detail: 'Original failure' }] };
+      const config = {
+        headers: {},
+        handlesErrorResponse: () => {
+          throw new Error('policy failed');
+        },
+      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      await expect(
+        service.handleError({
+          config,
+          message: 'Request failed',
+          response: { status: 409, data },
+        } as AxiosError),
+      ).rejects.toBe(data);
+      expect(openModal).toHaveBeenCalledOnce();
+      expect(setErrorDebugInfo).toHaveBeenCalledWith(
+        expect.objectContaining({ response: { data } }),
+      );
+    });
+    it('retains handled-status policy when the response predicate rejects the presentation exemption', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const data = { errors: [{ detail: 'Unavailable' }] };
+      const config = {
+        headers: {},
+        handledErrorStatuses: [503],
+        handlesErrorResponse: () => false,
+      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      await expect(
+        service.handleError({
+          config,
+          message: 'Request failed',
+          response: { status: 503, data },
+        } as AxiosError),
+      ).rejects.toBe(data);
+      expect(openModal).not.toHaveBeenCalled();
+    });
+    it('cancels before invoking policy, capturing debug data or opening a modal', async () => {
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { setErrorDebugInfo } = await import(
+        '@services/core/error-debug-store'
+      );
+      const predicate = vi.fn(() => true);
+      const config = {
+        handlesErrorResponse: predicate,
+      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      await expect(
+        service.handleError({
+          code: 'ERR_CANCELED',
+          config,
+          message: 'canceled',
+        } as AxiosError),
+      ).rejects.toEqual({ isCancelled: true, silent: true });
+      expect(predicate).not.toHaveBeenCalled();
+      expect(setErrorDebugInfo).not.toHaveBeenCalled();
+      expect(openModal).not.toHaveBeenCalled();
+    });
+    it.each([undefined, '409', Number.NaN, Number.POSITIVE_INFINITY])(
+      'does not invoke response policy for an unknown HTTP status (%s)',
+      async (status) => {
+        const predicate = vi.fn(() => true);
+        const data = { errors: [{ detail: 'Original failure' }] };
+        const config = {
+          handlesErrorResponse: predicate,
+        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        await expect(
+          service.handleError({
+            config,
+            message: 'Request failed',
+            response: { status, data },
+          } as unknown as AxiosError),
+        ).rejects.toBe(data);
+        expect(predicate).not.toHaveBeenCalled();
+      },
+    );
+    it.each([true, false])(
+      'keeps production safe pass-through/sanitization equivalent (safe=%s)',
+      async (safe) => {
+        const { openModal } = await import(
+          '@genfeedai/helpers/ui/modal/modal.helper'
+        );
+        const { setErrorDebugInfo } = await import(
+          '@services/core/error-debug-store'
+        );
+        Object.defineProperty(EnvironmentService, 'isProduction', {
+          configurable: true,
+          value: true,
+        });
+        const predicate = vi.fn(() => true);
+        const data = {
+          errors: [
+            {
+              status: '409',
+              detail: safe
+                ? 'Safe conflict'
+                : 'Internal stack\nprivate diagnostic',
+            },
+          ],
+        };
+        const config = {
+          handlesErrorResponse: predicate,
+        } as InternalAxiosRequestConfig & IHttpRequestOptions;
+        const error = {
+          config,
+          message: 'Request failed',
+          response: { status: 409, statusText: 'Conflict', data },
+        } as AxiosError;
+        if (safe) await expect(service.handleError(error)).rejects.toBe(data);
+        else
+          await expect(service.handleError(error)).rejects.toMatchObject({
+            message: 'Request failed with status 409 (Conflict)',
+            status: 409,
+            statusText: 'Conflict',
+          });
+        expect(predicate).not.toHaveBeenCalled();
+        expect(openModal).not.toHaveBeenCalled();
+        expect(setErrorDebugInfo).toHaveBeenCalledWith(
+          expect.objectContaining({ response: { data } }),
+        );
+      },
+    );
+    it('keeps auth rejection under a response presentation policy', async () => {
+      const data = { errors: [{ detail: 'Unauthorized' }] };
+      const config = {
+        handlesErrorResponse: () => true,
+      } as InternalAxiosRequestConfig & IHttpRequestOptions;
+      await expect(
+        service.handleError({
+          config,
+          message: 'Request failed',
+          response: { status: 401, data },
+        } as AxiosError),
+      ).rejects.toMatchObject({ isAuthError: true });
+    });
+    it('preserves predicate metadata through real Axios merging without request/default leakage', async () => {
+      const realAxios = await vi.importActual<typeof import('axios')>('axios');
+      const { openModal } = await import(
+        '@genfeedai/helpers/ui/modal/modal.helper'
+      );
+      const { setErrorDebugInfo } = await import(
+        '@services/core/error-debug-store'
+      );
+      const mockedFactory = vi.mocked(axios.create).getMockImplementation();
+      const configs: Array<InternalAxiosRequestConfig & IHttpRequestOptions> =
+        [];
+      const data = { errors: [{ status: '409', detail: 'Conflict fixture' }] };
+      vi.mocked(axios.create).mockImplementation((config) =>
+        realAxios.default.create({
+          ...config,
+          adapter: async (request) => {
+            configs.push(request);
+            throw new realAxios.AxiosError(
+              'Request failed',
+              'ERR_BAD_RESPONSE',
+              request,
+              undefined,
+              {
+                config: request,
+                data,
+                headers: {},
+                status: 409,
+                statusText: 'Conflict',
+              },
+            );
+          },
+        }),
+      );
+      try {
+        setRequestOrganizationId('org-policy');
+        const realService = new TestHTTPService(mockBaseURL, mockToken);
+        const predicate = vi.fn(() => true);
+        const signal = new AbortController().signal;
+        const params = { revision: 2 };
+        await expect(
+          realService.requestForTest({
+            handlesErrorResponse: predicate,
+            params,
+            signal,
+            headers: { 'X-Fixture': 'preserved' },
+          }),
+        ).rejects.toBe(data);
+        expect(openModal).not.toHaveBeenCalled();
+        await expect(realService.requestForTest({})).rejects.toBe(data);
+        expect(openModal).toHaveBeenCalledOnce();
+        expect(setErrorDebugInfo).toHaveBeenCalledTimes(2);
+        expect(configs[0]?.handlesErrorResponse).toBe(predicate);
+        expect(configs[1]?.handlesErrorResponse).toBeUndefined();
+        expect(configs[0]?.params).toEqual(params);
+        expect(configs[0]?.data).toBeUndefined();
+        expect(configs[0]?.headers).toMatchObject({
+          Authorization: `Bearer ${mockToken}`,
+          'X-Fixture': 'preserved',
+          [ORGANIZATION_CONTEXT_HEADER]: 'org-policy',
+        });
+        expect(configs[0]?.headers).not.toHaveProperty('handlesErrorResponse');
+        expect(configs[0]?.params).not.toHaveProperty('handlesErrorResponse');
+        expect(configs[0]?.timeout).toBe(HTTP_REQUEST_TIMEOUT_MS);
+        expect(configs[0]?.signal).not.toBe(signal);
+        expect(configs[0]?.signal?.aborted).toBe(false);
+      } finally {
+        if (mockedFactory)
+          vi.mocked(axios.create).mockImplementation(mockedFactory);
+      }
+    });
 
     it('preserves custom config through real Axios merging without leaking it between requests', async () => {
       const realAxios = await vi.importActual<typeof import('axios')>('axios');

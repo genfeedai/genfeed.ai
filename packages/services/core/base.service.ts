@@ -385,6 +385,9 @@ export abstract class BaseService<
       ...(options?.handledErrorStatuses !== undefined
         ? { handledErrorStatuses: options.handledErrorStatuses }
         : {}),
+      ...(options?.handlesErrorResponse !== undefined
+        ? { handlesErrorResponse: options.handlesErrorResponse }
+        : {}),
     };
     return this.executeWithErrorHandling(
       `GET ${this.baseURL}`,

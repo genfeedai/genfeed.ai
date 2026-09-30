@@ -578,6 +578,38 @@ describe('BaseService', () => {
       });
     });
 
+    it('explicitly forwards the response predicate without leaking arbitrary options or affecting subsequent calls', async () => {
+      service
+        .getInstanceForTest()
+        .get.mockResolvedValue({ data: { data: [] } });
+      const predicate = vi.fn(() => true);
+      const query = { page: 2 };
+      const signal = new AbortController().signal;
+      const options = {
+        handlesErrorResponse: predicate,
+        handledErrorStatuses: [503],
+        unrecognized: 'must-not-forward',
+      };
+      await service.findAllPage(query, signal, options);
+      const config = service.getInstanceForTest().get.mock.calls[0][1];
+      expect(config).toEqual({
+        params: query,
+        signal,
+        handlesErrorResponse: predicate,
+        handledErrorStatuses: [503],
+      });
+      expect(config.params).toBe(query);
+      expect(config.signal).toBe(signal);
+      expect(config.params).not.toHaveProperty('handlesErrorResponse');
+      expect(config).not.toHaveProperty('headers');
+      expect(predicate).not.toHaveBeenCalled();
+      await service.findAllPage({ page: 3 });
+      expect(service.getInstanceForTest().get).toHaveBeenNthCalledWith(2, '', {
+        params: { page: 3 },
+        signal: undefined,
+      });
+    });
+
     it('keeps handled failures normalized and rejected instead of returning empty items', async () => {
       service.getInstanceForTest().get.mockRejectedValue({
         response: {
