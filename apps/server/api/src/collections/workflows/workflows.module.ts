@@ -1,5 +1,10 @@
 import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
+import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
+import { WorkflowMediaBillingPlanService } from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
 /**
@@ -161,6 +166,7 @@ import { Module } from '@nestjs/common';
     FeaturedWorkflowsModule,
     MediaLocalizationModule,
     ByokModule,
+    ModelsModule,
     AdOptimizationAuditLogsModule,
     AdOptimizationConfigsModule,
     AdOptimizationRecommendationsModule,
@@ -223,6 +229,10 @@ import { Module } from '@nestjs/common';
     WorkflowCoreExecutorRegistrarService,
     WorkflowSocialExecutorRegistrarService,
     WorkflowMediaProcessingExecutorRegistrarService,
+    WorkflowMediaCredentialRouteService,
+    WorkflowMediaProviderPlanService,
+    WorkflowMediaBillingPlanService,
+    WorkflowGenerationAdmissionPlanService,
     WorkflowMediaGenerationExecutorRegistrarService,
     WorkflowKnowledgeGroundingService,
     WorkflowContentExecutorRegistrarService,

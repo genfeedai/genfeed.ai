@@ -221,6 +221,25 @@ describe('GenerationQuoteGroupService', () => {
     expect(state.credits.settleReservation).not.toHaveBeenCalled();
   });
 
+  it('enlists placeholder and group binding in the caller transaction without opening another transaction', async () => {
+    const state = fixture();
+    state.hold.metadata.boundOutputIds = [];
+    state.hold.metadata.dispatchClosed = false;
+    const tx = state.prisma as unknown as Prisma.TransactionClient;
+    await state.service.bindOutputInTransaction(
+      tx,
+      {
+        creditsConfig: { reservationId: 'hold-1', description: 'test' },
+        user: { organizationId: 'org-1' } as never,
+      },
+      'image-0',
+    );
+    expect(state.prisma.$transaction).not.toHaveBeenCalled();
+    expect(state.prisma.ingredient.updateMany).toHaveBeenCalledTimes(1);
+    expect(state.hold.metadata.boundOutputIds).toEqual(['image-0']);
+    expect(state.credits.settleReservation).not.toHaveBeenCalled();
+    expect(state.credits.releaseReservation).not.toHaveBeenCalled();
+  });
   it('refuses new or replayed dispatch admission after the group is closed', async () => {
     const state = fixture();
     await expect(

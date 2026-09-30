@@ -1,33 +1,31 @@
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
+import {
+  currentWorkflowGenerationDispatch,
+  runWithWorkflowGenerationDispatch,
+} from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
+import {
+  type ValidatedWorkflowMediaDispatch,
+  WorkflowMediaBillingPlanService,
+} from '@api/collections/workflows/services/workflow-media-billing-plan.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { workflowExecutionGenerationBillingSchema } from '@api/helpers/utils/credits/workflow-generation-billing.schema';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import {
-  resolveVideoIdentityReferencePlan,
-  runImageGenerationBrief,
-  runVideoGenerationBrief,
-  toRedactedGenerationBriefProviderData,
-  toRedactedVideoGenerationBriefProviderData,
-} from '@api/services/generation-brief';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaLocalizationService } from '@api/services/media-localization/media-localization.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ByokProvider,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  ModelCategory,
   TransformationCategory,
 } from '@genfeedai/contracts';
-import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import type {
-  ClipChainIdentityReference,
-  VideoGenerationIdentityLock,
-} from '@genfeedai/contracts/interfaces';
 import {
   type ExecutableNode,
   type ExecutionContext,
@@ -43,76 +41,12 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
-const IDENTITY_REFERENCE_ROLES = new Set<ClipChainIdentityReference['role']>([
-  'character',
-  'product',
-  'subject',
-]);
-
-const IDENTITY_REFERENCE_CATEGORIES: readonly IngredientCategory[] = [
-  IngredientCategory.IMAGE,
-  IngredientCategory.AVATAR,
-];
-
-/**
- * An identity lock is explicit: a malformed entry fails the segment instead
- * of being dropped, so a run never silently degrades to last-frame identity.
- */
-function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
-  if (value === undefined || value === null) {
-    return [];
-  }
-  if (!Array.isArray(value)) {
-    throw new Error('videoGen identityReferences must be an array');
-  }
-  return value.map((entry, index) => {
-    const record =
-      entry && typeof entry === 'object'
-        ? (entry as Record<string, unknown>)
-        : undefined;
-    const assetId =
-      typeof record?.assetId === 'string' ? record.assetId.trim() : '';
-    const role = record?.role;
-    if (
-      assetId.length === 0 ||
-      typeof role !== 'string' ||
-      !IDENTITY_REFERENCE_ROLES.has(role as ClipChainIdentityReference['role'])
-    ) {
-      throw new Error(
-        `videoGen identityReferences[${index}] must be { assetId, role: character | product | subject }`,
-      );
-    }
-    return { assetId, role: role as ClipChainIdentityReference['role'] };
-  });
-}
-
-function replaceReferenceTokens(
-  value: unknown,
-  replacements: ReadonlyMap<string, string>,
-): unknown {
-  if (typeof value === 'string') {
-    return replacements.get(value) ?? value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((entry) => replaceReferenceTokens(entry, replacements));
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [
-        key,
-        replaceReferenceTokens(entry, replacements),
-      ]),
-    );
-  }
-  return value;
-}
-
 @Injectable()
 export class WorkflowMediaGenerationExecutorRegistrarService {
   constructor(
     private readonly helper: WorkflowEngineExecutorHelperService,
     private readonly loggerService: LoggerService,
-    @Optional() private readonly promptBuilderService?: PromptBuilderService,
+    private readonly providerPlan: WorkflowMediaProviderPlanService,
     @Optional() private readonly heyGenService?: HeyGenService,
     @Optional() private readonly elevenLabsService?: ElevenLabsService,
     @Optional() private readonly replicateService?: ReplicateService,
@@ -120,6 +54,8 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     @Optional() private readonly byokService?: ByokService,
     @Optional()
     private readonly mediaLocalizationService?: MediaLocalizationService,
+    @Optional() private readonly billingPlan?: WorkflowMediaBillingPlanService,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   register(engine: WorkflowEngine): void {
@@ -133,110 +69,55 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
   }
 
   private registerImageGenExecutor(engine: WorkflowEngine): void {
-    if (!this.promptBuilderService || !this.replicateService) {
+    if (!this.providerPlan.canPrepareImage || !this.replicateService) {
       return;
     }
 
     const imageGenExecutor = new ImageGenExecutor();
-    const promptBuilderService = this.promptBuilderService;
     const replicateService = this.replicateService;
 
     imageGenExecutor.setResolver(async (model, params, context, node) => {
-      const references = Array.isArray(params.references)
-        ? params.references.filter(
-            (reference): reference is string => typeof reference === 'string',
-          )
-        : undefined;
-      const prompt = typeof params.prompt === 'string' ? params.prompt : '';
-      const height = typeof params.height === 'number' ? params.height : 1080;
-      const width = typeof params.width === 'number' ? params.width : 1920;
-      const negativePrompt =
-        typeof params.negativePrompt === 'string'
-          ? params.negativePrompt
-          : undefined;
-      const compiled = runImageGenerationBrief({
-        avoid: negativePrompt ? [negativePrompt] : undefined,
-        height,
-        model: model as string,
-        objective: prompt,
-        referenceIds: [],
-        seed: typeof params.seed === 'number' ? params.seed : undefined,
-        surface: 'workflow',
-        visualDirection:
-          typeof params.style === 'string' ? params.style : undefined,
-        width,
-      });
-      const compiledInput = compiled.dispatch
-        ? {
-            ...compiled.dispatch,
-            ...(references?.[0] ? { image: references[0] } : {}),
-            ...(typeof params.strength === 'number'
-              ? { strength: params.strength }
-              : {}),
-          }
-        : undefined;
-      const { input } = compiledInput
-        ? { input: compiledInput }
-        : await promptBuilderService.buildPrompt(
-            model as string,
-            {
-              height,
-              modelCategory: ModelCategory.IMAGE,
-              negativePrompt,
-              prompt,
-              references,
-              seed: typeof params.seed === 'number' ? params.seed : undefined,
-              strength:
-                typeof params.strength === 'number'
-                  ? params.strength
-                  : undefined,
-              style:
-                typeof params.style === 'string' ? params.style : undefined,
-              width,
-            },
-            undefined,
+      const funded = await this.authorizeMediaDispatch(node, context);
+      const prepared =
+        funded?.prepared.actionId === 'imageGen'
+          ? funded.prepared
+          : await this.providerPlan.prepareImage({
+              model,
+              params,
+              context,
+              node,
+            });
+      const byok = funded
+        ? funded.credential
+        : await this.byokService?.resolveApiKey(
+            context.organizationId,
+            ByokProvider.REPLICATE,
           );
-      const brandId = this.helper.requireBrandId(params.brandId, 'imageGen');
-      // #5294 resolve the org's Replicate key once, the same way the
-      // lip-sync/TTS executors below do, so a BYOK credit bypass on this
-      // node's generation charge (VideoGenerationCreditsService et al.)
-      // can never disagree with which key actually pays for dispatch.
-      const byok = await this.byokService?.resolveApiKey(
-        context.organizationId,
-        ByokProvider.REPLICATE,
+      const pendingOutput = await this.dispatchFundedMedia(funded, () =>
+        this.helper.createAndLinkProcessingOutput({
+          continuation: {
+            actionId: 'imageGen',
+            context,
+            isByok: Boolean(byok),
+            node,
+            provider: 'replicate',
+          },
+          output: prepared.output,
+          resultUrl: (ingredientId) =>
+            this.helper.buildImageIngredientUrl(ingredientId),
+          runProvider: (_ingredientId, continuationId) =>
+            replicateService.runModel(
+              model,
+              prepared.input,
+              byok?.apiKey,
+              continuationId,
+            ),
+        }),
       );
-      const pendingOutput = await this.helper.createAndLinkProcessingOutput({
-        continuation: {
-          actionId: 'imageGen',
-          context,
-          isByok: Boolean(byok),
-          node,
-          provider: 'replicate',
-        },
-        output: {
-          brandId,
-          category: IngredientCategory.IMAGE,
-          extension: MetadataExtension.JPG,
-          externalId: null,
-          generationPrompt: prompt,
-          generationSource: compiled.generationSource,
-          model: model as string,
-          negativePrompt,
-          organizationId: context.organizationId,
-          providerData: toRedactedGenerationBriefProviderData(
-            compiled.evidence,
-          ),
-          userId: context.userId,
-        },
-        resultUrl: (ingredientId) =>
-          this.helper.buildImageIngredientUrl(ingredientId),
-        runProvider: (_ingredientId, continuationId) =>
-          replicateService.runModel(model, input, byok?.apiKey, continuationId),
-      });
 
       return {
-        generationBriefEvidence: compiled.evidence,
-        generationSource: compiled.generationSource,
+        generationBriefEvidence: prepared.generationBriefEvidence,
+        generationSource: prepared.generationSource,
         id: pendingOutput.ingredientId,
         imageUrl: this.helper.buildImageIngredientUrl(
           pendingOutput.ingredientId,
@@ -262,129 +143,51 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const replicateService = this.replicateService;
 
     videoGenExecutor.setResolver(async (model, params, context, node) => {
-      const {
-        endFrameId,
-        referenceAssetIds,
-        referenceReplacements,
-        videoReferenceAssetIds,
-      } = await this.resolveVideoReferenceInputs(params);
-      const prompt = typeof params.prompt === 'string' ? params.prompt : '';
-      const height = typeof params.height === 'number' ? params.height : 1080;
-      const width = typeof params.width === 'number' ? params.width : 1920;
-      const duration =
-        typeof params.duration === 'number' ? params.duration : undefined;
-      const negativePrompt =
-        typeof params.negativePrompt === 'string'
-          ? params.negativePrompt
-          : undefined;
-      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
-      // Run-level identity stills (#4653). Tenancy preflight runs before the
-      // brief compiles and before any output or provider dispatch exists, so
-      // a deleted or foreign id fails without consuming credits.
-      const identityReferences = readIdentityReferences(
-        params.identityReferences,
-      );
-      const identityPlan =
-        identityReferences.length > 0
-          ? await this.resolveIdentityReferencePlan({
-              brandId,
-              firstFrameAssetId: referenceAssetIds?.[0],
-              identityReferences,
-              lastFrameAssetId: endFrameId,
-              model: model as string,
+      const funded = await this.authorizeMediaDispatch(node, context);
+      const prepared =
+        funded?.prepared.actionId === 'videoGen'
+          ? funded.prepared
+          : await this.providerPlan.prepareVideo({
+              model,
+              params,
+              context,
               node,
-              organizationId: context.organizationId,
-              referenceReplacements,
-            })
-          : undefined;
-      const briefReferences: readonly GenerationBriefReference[] | undefined =
-        identityPlan?.references ??
-        referenceAssetIds?.map((assetId) => ({
-          assetId,
-          role: 'first_frame' as const,
-        }));
-      const compiled = runVideoGenerationBrief({
-        actionVerb:
-          params.actionVerb === 'extend' ? params.actionVerb : undefined,
-        avoid: negativePrompt ? [negativePrompt] : undefined,
-        durationSeconds: duration,
-        endFrameId: identityPlan ? identityPlan.endFrameId : endFrameId,
-        height,
-        model: model as string,
-        objective: prompt,
-        referenceIds: [],
-        references: briefReferences,
-        seed: typeof params.seed === 'number' ? params.seed : undefined,
-        surface: 'workflow',
-        videoReferenceIds: videoReferenceAssetIds,
-        width,
-      });
-      if (identityPlan && !compiled.dispatch) {
-        throw new Error(
-          `Model "${String(model)}" is exempt from generation-brief compilation and cannot honor an identity lock`,
-        );
-      }
-      const input = compiled.dispatch
-        ? (replaceReferenceTokens(
-            compiled.dispatch,
-            referenceReplacements,
-          ) as Record<string, unknown>)
-        : { prompt };
-      const lineageReferences = [
-        ...(typeof params.parentIngredientId === 'string'
-          ? [params.parentIngredientId]
-          : []),
-        ...(identityPlan?.identityLock.references.map(
-          (reference) => reference.assetId,
-        ) ?? []),
-      ];
-      // #5294 resolve the org's Replicate key once, the same way the
-      // lip-sync/TTS executors below do, so a BYOK credit bypass on this
-      // node's generation charge (VideoGenerationCreditsService et al.)
-      // can never disagree with which key actually pays for dispatch.
-      const byok = await this.byokService?.resolveApiKey(
-        context.organizationId,
-        ByokProvider.REPLICATE,
+            });
+      const byok = funded
+        ? funded.credential
+        : await this.byokService?.resolveApiKey(
+            context.organizationId,
+            ByokProvider.REPLICATE,
+          );
+      const pendingOutput = await this.dispatchFundedMedia(funded, () =>
+        this.helper.createAndLinkProcessingOutput({
+          continuation: {
+            actionId: 'videoGen',
+            context,
+            isByok: Boolean(byok),
+            node,
+            provider: 'replicate',
+          },
+          output: prepared.output,
+          resultUrl: (ingredientId) =>
+            this.helper.buildVideoIngredientUrl(ingredientId),
+          runProvider: (_ingredientId, continuationId) =>
+            replicateService.runModel(
+              model,
+              prepared.input,
+              byok?.apiKey,
+              continuationId,
+            ),
+        }),
       );
-      const pendingOutput = await this.helper.createAndLinkProcessingOutput({
-        continuation: {
-          actionId: 'videoGen',
-          context,
-          isByok: Boolean(byok),
-          node,
-          provider: 'replicate',
-        },
-        output: {
-          brandId,
-          category: IngredientCategory.VIDEO,
-          extension: MetadataExtension.MP4,
-          externalId: null,
-          generationPrompt: prompt,
-          generationSource: compiled.generationSource,
-          model: model as string,
-          organizationId: context.organizationId,
-          parentIngredientId:
-            typeof params.parentIngredientId === 'string'
-              ? params.parentIngredientId
-              : undefined,
-          providerData: toRedactedVideoGenerationBriefProviderData(
-            compiled.evidence,
-          ),
-          references:
-            lineageReferences.length > 0 ? lineageReferences : undefined,
-          userId: context.userId,
-        },
-        resultUrl: (ingredientId) =>
-          this.helper.buildVideoIngredientUrl(ingredientId),
-        runProvider: (_ingredientId, continuationId) =>
-          replicateService.runModel(model, input, byok?.apiKey, continuationId),
-      });
 
       return {
-        generationBriefEvidence: compiled.evidence,
-        generationSource: compiled.generationSource,
+        generationBriefEvidence: prepared.generationBriefEvidence,
+        generationSource: prepared.generationSource,
         id: pendingOutput.ingredientId,
-        ...(identityPlan ? { identityLock: identityPlan.identityLock } : {}),
+        ...(prepared.identityLock
+          ? { identityLock: prepared.identityLock }
+          : {}),
         model,
         provider: 'replicate',
         status: IngredientStatus.PROCESSING,
@@ -398,141 +201,6 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
-  }
-
-  /**
-   * Maps the executor's reference inputs (start frame, last frame, reference
-   * videos) to brief asset ids and the provider URL each id resolves to.
-   */
-  private async resolveVideoReferenceInputs(
-    params: Record<string, unknown>,
-  ): Promise<{
-    endFrameId?: string;
-    referenceAssetIds?: string[];
-    referenceReplacements: Map<string, string>;
-    videoReferenceAssetIds: string[];
-  }> {
-    const references = Array.isArray(params.references)
-      ? params.references.filter(
-          (reference): reference is string => typeof reference === 'string',
-        )
-      : undefined;
-    const videoReferences = Array.isArray(params.videoReferences)
-      ? params.videoReferences.filter(
-          (reference): reference is string => typeof reference === 'string',
-        )
-      : undefined;
-    const lastFrame =
-      typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
-    const referenceReplacements = new Map<string, string>();
-    const referenceAssetIds = references?.map((reference, index) => {
-      const assetId =
-        this.helper.extractIngredientId(reference) ??
-        `workflow-image-reference-${index + 1}`;
-      referenceReplacements.set(assetId, reference);
-      return assetId;
-    });
-    const endFrameId = lastFrame
-      ? (this.helper.extractIngredientId(lastFrame) ??
-        'workflow-last-frame-reference')
-      : undefined;
-    if (endFrameId && lastFrame) {
-      referenceReplacements.set(endFrameId, lastFrame);
-    }
-    const videoReferenceAssetIds = await Promise.all(
-      (videoReferences ?? []).map(async (reference, index) => {
-        const ingredientId = this.helper.extractIngredientId(reference);
-        const assetId = ingredientId ?? `workflow-video-reference-${index + 1}`;
-        const providerUrl =
-          ingredientId && this.filesClientService
-            ? await this.filesClientService.getPresignedDownloadUrl(
-                ingredientId,
-                'videos',
-              )
-            : reference;
-        referenceReplacements.set(assetId, providerUrl);
-        return assetId;
-      }),
-    );
-
-    return {
-      endFrameId,
-      referenceAssetIds,
-      referenceReplacements,
-      videoReferenceAssetIds,
-    };
-  }
-
-  /**
-   * Preflights the run's identity stills against the tenant and brand, maps
-   * each id to a provider-reachable URL, and applies the capability-profile
-   * conflict rule (identity stills win over a conflicting frame role).
-   */
-  private async resolveIdentityReferencePlan(args: {
-    brandId: string;
-    firstFrameAssetId?: string;
-    identityReferences: readonly ClipChainIdentityReference[];
-    lastFrameAssetId?: string;
-    model: string;
-    node: ExecutableNode;
-    organizationId: string;
-    referenceReplacements: Map<string, string>;
-  }): Promise<{
-    endFrameId?: string;
-    identityLock: VideoGenerationIdentityLock;
-    references: GenerationBriefReference[];
-  }> {
-    for (const reference of args.identityReferences) {
-      let asset: Awaited<
-        ReturnType<WorkflowEngineExecutorHelperService['requireMediaAsset']>
-      >;
-      try {
-        asset = await this.helper.requireMediaAsset(
-          reference.assetId,
-          args.organizationId,
-          IDENTITY_REFERENCE_CATEGORIES,
-        );
-      } catch {
-        throw new Error(
-          `Identity ${reference.role} reference ${reference.assetId} is unavailable for this organization`,
-        );
-      }
-      if (asset.brandId !== args.brandId) {
-        throw new Error(
-          `Identity ${reference.role} reference ${reference.assetId} does not belong to the run brand`,
-        );
-      }
-      args.referenceReplacements.set(
-        reference.assetId,
-        this.helper.buildMediaIngredientUrl(asset.id, asset.category),
-      );
-    }
-
-    const plan = resolveVideoIdentityReferencePlan({
-      firstFrameAssetId: args.firstFrameAssetId,
-      identityReferences: args.identityReferences,
-      lastFrameAssetId: args.lastFrameAssetId,
-      modelKey: args.model,
-    });
-    if (
-      plan.identityLock.omittedFrameRoles.length > 0 ||
-      plan.identityLock.omittedReferences.length > 0
-    ) {
-      this.loggerService.warn(
-        'WorkflowMediaGenerationExecutorRegistrarService identity lock omitted conflicting inputs',
-        {
-          model: args.model,
-          nodeId: args.node.id,
-          omittedFrameRoles: plan.identityLock.omittedFrameRoles,
-          omittedReferences: plan.identityLock.omittedReferences.map(
-            (reference) => reference.assetId,
-          ),
-          reason: plan.identityLock.reason,
-        },
-      );
-    }
-
-    return plan;
   }
 
   private registerLipSyncExecutor(engine: WorkflowEngine): void {
@@ -940,5 +608,82 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     });
 
     return params.buildReturn(pendingOutput.ingredientId, outputCategory);
+  }
+
+  private async authorizeMediaDispatch(
+    node: ExecutableNode,
+    context: ExecutionContext,
+  ): Promise<ValidatedWorkflowMediaDispatch | undefined> {
+    if (!context.executionId || !this.billingPlan || !this.prisma) {
+      return undefined;
+    }
+    const execution = await this.prisma.workflowExecution.findFirst({
+      select: {
+        generationAdmissionSource: true,
+        generationBilling: true,
+      },
+      where: {
+        id: context.executionId,
+        isDeleted: false,
+        organizationId: context.organizationId,
+      },
+    });
+    if (!execution) {
+      throw new BusinessLogicException('Workflow execution is unavailable');
+    }
+    if (!execution.generationAdmissionSource && !execution.generationBilling) {
+      return undefined;
+    }
+    if (!execution.generationBilling) {
+      throw new BusinessLogicException(
+        'Workflow funded dispatch is unavailable',
+      );
+    }
+    const dispatch = currentWorkflowGenerationDispatch();
+    if (
+      !dispatch ||
+      dispatch.executionId !== context.executionId ||
+      dispatch.organizationId !== context.organizationId
+    ) {
+      throw new BusinessLogicException(
+        'Workflow dispatch context is unavailable',
+      );
+    }
+    return this.billingPlan.validateDispatch({
+      context: { ...context, executionId: context.executionId },
+      executionId: context.executionId,
+      funding: workflowExecutionGenerationBillingSchema.parse(
+        execution.generationBilling,
+      ),
+      inputs: dispatch.inputs,
+      node,
+      operationId: dispatch.operationId,
+    });
+  }
+
+  private async dispatchFundedMedia<T>(
+    funded: ValidatedWorkflowMediaDispatch | undefined,
+    callback: () => Promise<T>,
+  ): Promise<T> {
+    if (!funded) {
+      return callback();
+    }
+    const current = currentWorkflowGenerationDispatch();
+    if (
+      !current ||
+      current.executionId !== funded.executionId ||
+      current.operationId !== funded.operationId
+    ) {
+      throw new BusinessLogicException(
+        'Workflow dispatch context is unavailable',
+      );
+    }
+    return runWithWorkflowGenerationDispatch(
+      {
+        ...current,
+        dispatchFingerprint: funded.dispatchFingerprint,
+      },
+      callback,
+    );
   }
 }

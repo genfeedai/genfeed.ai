@@ -1,4 +1,5 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
@@ -31,7 +32,13 @@ import {
   readWorkflowExecutionStats,
   readWorkflowExecutionSummary,
 } from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
+import { runSerializableWithRetry } from '@api/collections/workflows/utils/serializable-retry.util';
+import {
+  assertWorkflowAdmissionRequestMatch,
+  captureWorkflowGenerationAdmissionSource,
+} from '@api/collections/workflows/utils/workflow-generation-admission-capture.util';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
+import type { WorkflowGenerationSelection } from '@api/collections/workflows/workflow-generation-admission.interface';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -52,11 +59,12 @@ import type {
 import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
+  toPrismaJson,
 } from '@genfeedai/prisma';
 import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 type WorkflowExecutionRuntimeStateRow = {
   creditsUsed: number | null;
@@ -74,6 +82,14 @@ type WorkflowExecutionRuntimeStateRow = {
 };
 
 type WorkflowExecutionCreateInput = CreateWorkflowExecutionDto & {
+  admission?: {
+    selection: WorkflowGenerationSelection;
+    trigger: {
+      data: Record<string, unknown>;
+      platform: string;
+      type: string;
+    };
+  };
   costEstimate?: WorkflowCostEstimate;
   estimatedDurationMs?: number;
   etaConfidence?: string;
@@ -137,6 +153,8 @@ export class WorkflowExecutionsService extends BaseService<
     private readonly workflowEventWebhookService: WorkflowEventWebhookService,
     private readonly activityRecorder: ActivityRecorderService,
     private readonly agentStrategiesService: AgentStrategiesService,
+    @Optional()
+    private readonly generationBilling?: WorkflowGenerationBillingService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -377,18 +395,60 @@ export class WorkflowExecutionsService extends BaseService<
       workflowVersionId: dto.workflowVersionId,
     } satisfies Prisma.WorkflowExecutionUncheckedCreateInput;
 
-    const result = dto.idempotencyKey
-      ? await this.prisma.workflowExecution.upsert({
-          create: data,
-          update: {},
-          where: {
-            organizationId_idempotencyKey: {
-              idempotencyKey: dto.idempotencyKey,
-              organizationId,
+    if (!dto.admission) {
+      const result = dto.idempotencyKey
+        ? await this.prisma.workflowExecution.upsert({
+            create: data,
+            update: {},
+            where: {
+              organizationId_idempotencyKey: {
+                idempotencyKey: dto.idempotencyKey,
+                organizationId,
+              },
             },
+          })
+        : await this.prisma.workflowExecution.create({ data });
+      return this.normalizeDocument(result);
+    }
+
+    const admissionInput = {
+      actorUserId: userId,
+      organizationId,
+      selection: dto.admission.selection,
+      trigger: dto.admission.trigger,
+      workflowId: dto.workflowId,
+      workflowVersionId: dto.workflowVersionId,
+    };
+    const result = await runSerializableWithRetry(this.prisma, async (tx) => {
+      if (dto.idempotencyKey) {
+        const existing = await tx.workflowExecution.findFirst({
+          where: {
+            idempotencyKey: dto.idempotencyKey,
+            isDeleted: false,
+            organizationId,
           },
-        })
-      : await this.prisma.workflowExecution.create({ data });
+        });
+        if (existing) {
+          assertWorkflowAdmissionRequestMatch(
+            existing.generationAdmissionSource,
+            admissionInput,
+          );
+          return existing;
+        }
+      }
+      const source = await captureWorkflowGenerationAdmissionSource(
+        tx,
+        admissionInput,
+      );
+      return tx.workflowExecution.create({
+        data: {
+          ...data,
+          ...(source
+            ? { generationAdmissionSource: toPrismaJson(source) }
+            : {}),
+        },
+      });
+    });
 
     return this.normalizeDocument(result);
   }
@@ -524,6 +584,11 @@ export class WorkflowExecutionsService extends BaseService<
       return null;
     }
 
+    await this.generationBilling?.closeExecution(
+      executionId,
+      execution.organizationId,
+    );
+
     const { commit, result } = terminalTransition;
     if (commit) {
       await this.activityRecorder.afterCommit(commit);
@@ -616,6 +681,11 @@ export class WorkflowExecutionsService extends BaseService<
     if (transition.count !== 1) {
       return this.normalizeDocument(existing);
     }
+
+    await this.generationBilling?.closeExecution(
+      executionId,
+      existing.organizationId,
+    );
 
     // tenant-scope-ignore: primary-key read after the non-terminal cancel transition
     const updated = await this.prisma.workflowExecution.findUnique({

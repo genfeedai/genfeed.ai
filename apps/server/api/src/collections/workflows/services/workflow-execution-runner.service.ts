@@ -15,7 +15,9 @@ import {
   RetiredWorkflowExecutionError,
   WorkflowExecutorDocumentService,
 } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
+import type { WorkflowGenerationSelection } from '@api/collections/workflows/workflow-generation-admission.interface';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -62,6 +64,7 @@ export class WorkflowExecutionRunnerService {
     private readonly finalizer: WorkflowExecutionFinalizerService,
     private readonly graphRunner: WorkflowNodeGraphRunnerService,
     private readonly agentScopeContextService?: AgentScopeContextService,
+    private readonly admissionPlan?: WorkflowGenerationAdmissionPlanService,
   ) {}
 
   async resumeAfterDelay(
@@ -176,10 +179,11 @@ export class WorkflowExecutionRunnerService {
   ): Promise<WorkflowExecutionResult> {
     const prepared = await this.prepareExecution({
       event,
-      selectedNodeIds: graphOptions?.selectedNodeIds,
       existingExecutionId,
       idempotencyKey,
       metadata,
+      respectLocks: graphOptions?.respectLocks,
+      selectedNodeIds: graphOptions?.selectedNodeIds,
       trigger,
       workflowDoc,
     });
@@ -213,10 +217,11 @@ export class WorkflowExecutionRunnerService {
 
   private async prepareExecution(input: {
     event: TriggerEvent;
-    selectedNodeIds?: string[];
     existingExecutionId?: string;
     idempotencyKey?: string;
     metadata?: Record<string, unknown>;
+    respectLocks?: boolean;
+    selectedNodeIds?: string[];
     trigger: WorkflowExecutionTrigger;
     workflowDoc: WorkflowDocument;
   }): Promise<PreparedWorkflowExecution> {
@@ -261,6 +266,13 @@ export class WorkflowExecutionRunnerService {
       currentPhase: input.existingExecutionId ? 'Resuming' : 'Queued',
       startedAt,
     });
+    const selection: WorkflowGenerationSelection = input.selectedNodeIds?.length
+      ? {
+          mode: 'partial',
+          requestedNodeIds: input.selectedNodeIds,
+          respectLocks: input.respectLocks === true,
+        }
+      : { mode: 'full', respectLocks: input.respectLocks === true };
     const executionId =
       input.existingExecutionId ??
       (
@@ -268,6 +280,14 @@ export class WorkflowExecutionRunnerService {
           input.event.userId,
           input.event.organizationId,
           {
+            admission: {
+              selection,
+              trigger: {
+                data: input.event.data,
+                platform: input.event.platform,
+                type: input.event.type,
+              },
+            },
             costEstimate: await captureWorkflowCostEstimate(
               this.prisma,
               input.event.organizationId,
@@ -310,6 +330,10 @@ export class WorkflowExecutionRunnerService {
         input.workflowDoc.brandId,
       );
     }
+    await this.admissionPlan?.fundExecution(
+      executionId,
+      input.event.organizationId,
+    );
     return {
       etaPlan,
       executableWorkflow,

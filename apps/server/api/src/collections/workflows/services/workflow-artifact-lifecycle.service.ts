@@ -8,6 +8,7 @@ import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
 } from '@api/collections/workflows/system-workflow-runner.service';
+import { redactWorkflowGenerationAdmissionSource } from '@api/collections/workflows/utils/workflow-generation-admission-source.util';
 import { WORKFLOW_EXECUTION_RETENTION_METADATA_KEY } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -387,6 +388,13 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
               purgeAt: { lte: now },
             },
             {
+              payloadScrubbedAt: { not: null },
+              generationAdmissionSource: {
+                path: ['state'],
+                equals: 'available',
+              },
+            },
+            {
               payloadScrubbedAt: null,
               OR: [
                 { purgeAfterHours: { not: null } },
@@ -420,6 +428,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
   async applyTerminalRetention(input: CleanupScope): Promise<boolean> {
     const execution = await this.prisma.workflowExecution.findFirst({
       select: {
+        generationAdmissionSource: true,
         payloadScrubbedAt: true,
         purgeAfterHours: true,
         result: true,
@@ -428,18 +437,36 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       },
       where: scopedWhere(input.organizationId, { id: input.executionId }),
     });
-    if (
-      !execution ||
-      execution.payloadScrubbedAt ||
-      (!execution.scrubAllNodePayloads && execution.scrubNodeIds.length === 0)
-    ) {
-      return false;
+    if (!execution) return false;
+    const source = execution.generationAdmissionSource;
+    const redacted = redactWorkflowGenerationAdmissionSource(source);
+    if (execution.payloadScrubbedAt) {
+      if (
+        source == null ||
+        (redacted &&
+          typeof source === 'object' &&
+          !Array.isArray(source) &&
+          source.state === 'redacted')
+      )
+        return false;
+      const [repaired] = await this.prisma.$transaction([
+        this.prisma.workflowExecution.updateMany({
+          data: { generationAdmissionSource: redacted ?? Prisma.DbNull },
+          where: scopedWhere(input.organizationId, {
+            id: input.executionId,
+            payloadScrubbedAt: execution.payloadScrubbedAt,
+          }),
+        }),
+      ]);
+      return repaired?.count === 1;
     }
+    if (!execution.scrubAllNodePayloads && execution.scrubNodeIds.length === 0)
+      return false;
 
     const now = new Date();
     const result = this.readRecord(execution.result);
     const metadata = this.readRecord(result.metadata);
-    await this.prisma.$transaction([
+    const [, scrubbed] = await this.prisma.$transaction([
       this.prisma.workflowExecutionNodeResult.updateMany({
         data: {
           input: { scrubbed: true },
@@ -455,6 +482,7 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
       }),
       this.prisma.workflowExecution.updateMany({
         data: {
+          generationAdmissionSource: redacted ?? Prisma.DbNull,
           payloadScrubbedAt: now,
           purgeAt:
             execution.scrubAllNodePayloads && execution.purgeAfterHours
@@ -468,10 +496,13 @@ export class WorkflowArtifactLifecycleService implements OnModuleInit {
             scrubbed: true,
           } as Prisma.InputJsonValue,
         },
-        where: scopedWhere(input.organizationId, { id: input.executionId }),
+        where: scopedWhere(input.organizationId, {
+          id: input.executionId,
+          payloadScrubbedAt: null,
+        }),
       }),
     ]);
-    return true;
+    return scrubbed?.count === 1;
   }
 
   async scheduleTerminalCleanup(input: CleanupScope): Promise<boolean> {

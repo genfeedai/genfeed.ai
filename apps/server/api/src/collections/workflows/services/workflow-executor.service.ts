@@ -1,3 +1,4 @@
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import {
   type PendingReviewGateExecution,
@@ -26,6 +27,7 @@ import {
   RetiredWorkflowExecutionError,
   WorkflowExecutorDocumentService,
 } from '@api/collections/workflows/services/workflow-executor-document.service';
+import { WorkflowGenerationAdmissionPlanService } from '@api/collections/workflows/services/workflow-generation-admission-plan.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeGraphRunnerService } from '@api/collections/workflows/services/workflow-node-graph-runner.service';
@@ -100,6 +102,10 @@ export class WorkflowExecutorService {
     private readonly nodeContinuationService?: WorkflowNodeContinuationService,
     @Optional()
     private readonly videoGenerationCreditsService?: VideoGenerationCreditsService,
+    @Optional()
+    private readonly generationBilling?: WorkflowGenerationBillingService,
+    @Optional()
+    private readonly admissionPlan?: WorkflowGenerationAdmissionPlanService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -154,6 +160,7 @@ export class WorkflowExecutorService {
       this.executionsService,
       durableClaims,
       this.nodeContinuationService,
+      this.generationBilling,
     );
     this.executionRunner = new WorkflowExecutionRunnerService(
       this.prisma,
@@ -166,6 +173,7 @@ export class WorkflowExecutorService {
       this.finalizer,
       this.graphRunner,
       this.agentScopeContextService,
+      this.admissionPlan,
     );
   }
 

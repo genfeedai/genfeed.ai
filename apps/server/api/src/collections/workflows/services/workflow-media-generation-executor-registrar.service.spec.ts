@@ -1,5 +1,6 @@
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import * as imageGenerationBriefRegistry from '@api/services/generation-brief/image-generation-brief-registry';
 import { ByokProvider, IngredientStatus } from '@genfeedai/contracts';
 import { QWEN_IMAGE_MODEL_KEY } from '@genfeedai/contracts/api-types/contracts/generation-capability-profile.contract';
@@ -110,7 +111,18 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      { buildPrompt: vi.fn() } as never,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[2],
+        filesClientService as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[3],
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -198,7 +210,16 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      promptBuilderService as never,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        promptBuilderService as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[2],
+        undefined,
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -294,7 +315,16 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      promptBuilderService as never,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        promptBuilderService as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[2],
+        undefined,
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -372,7 +402,16 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      { buildPrompt: vi.fn() } as never,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[2],
+        undefined,
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -448,7 +487,16 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      { buildPrompt: vi.fn() } as never,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        { buildPrompt: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[2],
+        undefined,
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -516,7 +564,14 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      undefined,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        undefined,
+        undefined,
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -614,7 +669,14 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       new WorkflowMediaGenerationExecutorRegistrarService(
         helper,
         logger as never,
-        undefined,
+        new WorkflowMediaProviderPlanService(
+          helper,
+          logger as unknown as ConstructorParameters<
+            typeof WorkflowMediaProviderPlanService
+          >[1],
+          undefined,
+          undefined,
+        ),
         undefined,
         undefined,
         replicateService as never,
@@ -870,7 +932,16 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      undefined,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        undefined,
+        filesClientService as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[3],
+      ),
       undefined,
       undefined,
       replicateService as never,
@@ -927,7 +998,14 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper,
       { log: vi.fn() } as never,
-      undefined,
+      new WorkflowMediaProviderPlanService(
+        helper,
+        { log: vi.fn() } as unknown as ConstructorParameters<
+          typeof WorkflowMediaProviderPlanService
+        >[1],
+        undefined,
+        undefined,
+      ),
       undefined,
       elevenLabsService as never,
       undefined,

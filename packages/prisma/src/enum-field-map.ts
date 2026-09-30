@@ -7353,6 +7353,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'failedNodeId',
       'failure',
       'failureReason',
+      'generationAdmissionSource',
+      'generationBilling',
       'id',
       'idempotencyKey',
       'isDeleted',

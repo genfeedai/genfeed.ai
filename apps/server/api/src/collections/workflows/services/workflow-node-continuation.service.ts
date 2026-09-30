@@ -1,3 +1,5 @@
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
+import { currentWorkflowGenerationDispatch } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { createWorkflowMediaCostIntent } from '@api/collections/workflows/services/workflow-media-cost-intent';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -15,7 +17,7 @@ import {
 } from '@genfeedai/workflows/engine';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 const RESUME_LEASE_MS = 5 * 60 * 1000;
 
@@ -100,6 +102,8 @@ export class WorkflowNodeContinuationService {
     private readonly logger: LoggerService,
     private readonly configService?: ConfigService,
     private readonly heygenPollQueueService?: HeygenPollQueueService,
+    @Optional()
+    private readonly generationBilling?: WorkflowGenerationBillingService,
   ) {}
 
   async createBeforeProviderSubmission(input: {
@@ -117,7 +121,7 @@ export class WorkflowNodeContinuationService {
 
     const row = await this.prisma.$transaction(async (transaction) => {
       const execution = await transaction.workflowExecution.findFirst({
-        select: { id: true },
+        select: { generationBilling: true, id: true },
         where: {
           id: input.executionId,
           isDeleted: false,
@@ -174,6 +178,13 @@ export class WorkflowNodeContinuationService {
         },
       })) as ContinuationRow;
       await createWorkflowMediaCostIntent(transaction, input, continuation.id);
+      if (execution.generationBilling) {
+        await this.recordFundedSubmissionIntent(
+          transaction,
+          input.executionId,
+          input.organizationId,
+        );
+      }
       return continuation;
     });
 
@@ -226,6 +237,11 @@ export class WorkflowNodeContinuationService {
         },
         where: { id: continuation.id },
       });
+      await this.generationBilling?.recordContinuationProof(
+        transaction,
+        continuation,
+        { kind: 'accepted', providerJobId: input.externalId },
+      );
     });
 
     if (requiresPoll) {
@@ -508,6 +524,16 @@ export class WorkflowNodeContinuationService {
           },
         }),
       ]);
+      if (
+        continuation.status ===
+        WorkflowNodeContinuationStatus.PENDING_SUBMISSION
+      ) {
+        await this.generationBilling?.recordContinuationProof(
+          transaction,
+          continuation,
+          { kind: 'submission-rejected' },
+        );
+      }
     });
   }
 
@@ -848,20 +874,77 @@ export class WorkflowNodeContinuationService {
     organizationId: string;
     succeeded: boolean;
   }): Promise<void> {
-    await this.prisma.workflowNodeContinuation.updateMany({
-      data: {
-        completedAt: new Date(),
-        resumeClaimedAt: null,
-        status: input.succeeded
-          ? WorkflowNodeContinuationStatus.COMPLETED
-          : WorkflowNodeContinuationStatus.FAILED,
-      },
-      where: {
-        id: input.continuationId,
-        organizationId: input.organizationId,
-        status: WorkflowNodeContinuationStatus.RESUMING,
-      },
+    await this.prisma.$transaction(async (transaction) => {
+      const continuation =
+        (await transaction.workflowNodeContinuation.findFirst({
+          where: {
+            id: input.continuationId,
+            organizationId: input.organizationId,
+            status: WorkflowNodeContinuationStatus.RESUMING,
+          },
+        })) as ContinuationRow | null;
+      if (!continuation) {
+        return;
+      }
+      const finished = await transaction.workflowNodeContinuation.updateMany({
+        data: {
+          completedAt: new Date(),
+          resumeClaimedAt: null,
+          status: input.succeeded
+            ? WorkflowNodeContinuationStatus.COMPLETED
+            : WorkflowNodeContinuationStatus.FAILED,
+        },
+        where: {
+          id: continuation.id,
+          organizationId: input.organizationId,
+          status: WorkflowNodeContinuationStatus.RESUMING,
+        },
+      });
+      if (finished.count !== 1) {
+        return;
+      }
+      await this.generationBilling?.recordContinuationProof(
+        transaction,
+        continuation,
+        input.succeeded
+          ? {
+              kind: 'completed',
+              ...(continuation.externalId
+                ? { providerJobId: continuation.externalId }
+                : {}),
+            }
+          : {
+              kind: 'provider-terminal',
+              ...(continuation.externalId
+                ? { providerJobId: continuation.externalId }
+                : {}),
+            },
+      );
     });
+  }
+
+  private async recordFundedSubmissionIntent(
+    transaction: Prisma.TransactionClient,
+    executionId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const dispatch = currentWorkflowGenerationDispatch();
+    if (
+      !this.generationBilling ||
+      !dispatch?.dispatchFingerprint ||
+      dispatch.executionId !== executionId ||
+      dispatch.organizationId !== organizationId
+    ) {
+      throw new Error('Workflow dispatch context is unavailable');
+    }
+    await this.generationBilling.recordSubmissionIntent(
+      transaction,
+      executionId,
+      organizationId,
+      dispatch.operationId,
+      dispatch.dispatchFingerprint,
+      dispatch.claimId,
+    );
   }
 
   private assertProviderCallbackAction(actionId: string): void {

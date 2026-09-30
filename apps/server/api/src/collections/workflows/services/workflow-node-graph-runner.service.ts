@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto';
+import { WorkflowGenerationBillingService } from '@api/collections/credits/services/workflow-generation-billing.service';
 import { runWithWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { runWithWorkflowGenerationDispatch } from '@api/collections/workflow-executions/services/workflow-generation-dispatch.context';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionProgressService } from '@api/collections/workflows/services/workflow-execution-progress.service';
@@ -15,10 +16,12 @@ import { WorkflowNodeContinuationService } from '@api/collections/workflows/serv
 import { WorkflowNodeGraphRuntimeService } from '@api/collections/workflows/services/workflow-node-graph-runtime.service';
 import { WorkflowNodeProgressTrackerService } from '@api/collections/workflows/services/workflow-node-progress-tracker.service';
 import { WorkflowReviewGateService } from '@api/collections/workflows/services/workflow-review-gate.service';
+import { prepopulateInitialWorkflowLockedNodes } from '@api/collections/workflows/utils/workflow-initial-node-state.util';
 import {
   claimNodeOnce,
   completeNodeClaim,
 } from '@api/collections/workflows/utils/workflow-node-idempotency.util';
+import { workflowGenerationOperationId } from '@api/helpers/utils/credits/workflow-generation-evidence.util';
 import { getActionDefinition } from '@genfeedai/actions';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
@@ -95,6 +98,7 @@ export class WorkflowNodeGraphRunnerService {
     private readonly executionsService?: WorkflowExecutionsService,
     private readonly nodeClaimService?: WorkflowNodeClaimService,
     private readonly nodeContinuationService?: WorkflowNodeContinuationService,
+    private readonly generationBilling?: WorkflowGenerationBillingService,
   ) {
     this.runtimeService = new WorkflowNodeGraphRuntimeService(
       this.engineAdapter,
@@ -214,19 +218,14 @@ export class WorkflowNodeGraphRunnerService {
       triggerEvent,
       workflow,
     });
-    this.prepopulateLockedNodes(
-      {
-        ...workflow,
-        nodes: workflow.nodes.filter(
-          (node) =>
-            options.respectLocks !== false ||
-            (options.selectedNodeIds
-              ? !options.selectedNodeIds.includes(node.id)
-              : node.type === 'workflowInput'),
-        ),
-      },
+    prepopulateInitialWorkflowLockedNodes(
+      workflow,
       state.nodeCache,
       state.completedNodes,
+      {
+        respectLocks: options.respectLocks,
+        selectedNodeIds: options.selectedNodeIds,
+      },
     );
     if (options.selectedNodeIds && options.selectedNodeIds.length > 0) {
       const partialPlan = planPartialExecution(
@@ -421,13 +420,26 @@ export class WorkflowNodeGraphRunnerService {
     }
     const actionId = getExecutableNodeOperationId(node);
     const action = getActionDefinition(actionId);
-    const durable = await this.nodeClaimService.tryClaim({
-      executionId: state.executionId,
-      nodeId: node.id,
-      organizationId: state.workflow.organizationId,
-      isStaleRunningReclaimEnabled:
-        action?.completionMode !== 'provider-callback',
-    });
+    const billing = this.generationBilling;
+    const durable = await this.nodeClaimService.tryClaim(
+      {
+        executionId: state.executionId,
+        nodeId: node.id,
+        organizationId: state.workflow.organizationId,
+        isStaleRunningReclaimEnabled:
+          action?.completionMode !== 'provider-callback',
+      },
+      billing
+        ? (tx, lease) =>
+            billing.admitClaimedNode(
+              tx,
+              state.executionId,
+              state.workflow.organizationId,
+              node.id,
+              lease.leaseOwnerId,
+            )
+        : undefined,
+    );
     if (durable.action !== 'skip') {
       return { lease: durable.lease };
     }
@@ -500,21 +512,36 @@ export class WorkflowNodeGraphRunnerService {
     claimed: ClaimedGraphNode,
   ): Promise<GraphNodeStep> {
     try {
+      const operationId = workflowGenerationOperationId(
+        state.executionId,
+        node.id,
+        getExecutableNodeOperationId(node),
+      );
       const executeNode = (signal?: AbortSignal) =>
         runWithWorkflowAccounting(
           {
             organizationId: state.workflow.organizationId,
             workflowExecutionId: state.executionId,
             workflowNodeId: node.id,
-            workflowOperationId: randomUUID(),
+            workflowOperationId: operationId,
           },
           () =>
-            this.runtimeService.executeSingleNode(
-              node,
-              inputs,
-              state.workflow,
-              state.executionId,
-              signal,
+            runWithWorkflowGenerationDispatch(
+              {
+                claimId: claimed.durableLease?.leaseOwnerId ?? operationId,
+                executionId: state.executionId,
+                inputs,
+                operationId,
+                organizationId: state.workflow.organizationId,
+              },
+              () =>
+                this.runtimeService.executeSingleNode(
+                  node,
+                  inputs,
+                  state.workflow,
+                  state.executionId,
+                  signal,
+                ),
             ),
         );
       const initialResult =
@@ -854,23 +881,6 @@ export class WorkflowNodeGraphRunnerService {
   private releaseOwnedClaims(ownedClaimKeys: Set<string>): void {
     for (const key of ownedClaimKeys) {
       this.nodeClaims.delete(key);
-    }
-  }
-
-  private prepopulateLockedNodes(
-    workflow: ExecutableWorkflow,
-    nodeCache: Map<string, unknown>,
-    completedNodes: Set<string>,
-  ): void {
-    for (const node of workflow.nodes) {
-      if (
-        node.isLocked &&
-        node.cachedOutput !== undefined &&
-        workflow.lockedNodeIds.includes(node.id)
-      ) {
-        nodeCache.set(node.id, node.cachedOutput);
-        completedNodes.add(node.id);
-      }
     }
   }
 

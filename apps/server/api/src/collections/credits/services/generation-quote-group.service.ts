@@ -3,6 +3,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { GenerationCreditReservationRequest } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import { hasGenerationLineProtocol } from '@api/helpers/utils/credits/generation-line-reservation.util';
 import {
   generationQuoteGroupMetadataSchema as metadataSchema,
   generationQuoteGroupReceiptSchema as receiptSchema,
@@ -30,70 +31,83 @@ export class GenerationQuoteGroupService {
     request: GenerationCreditReservationRequest,
     ingredientId: string,
   ): Promise<void> {
+    await this.serializable((tx) =>
+      this.bindOutputInTransaction(tx, request, ingredientId),
+    );
+  }
+
+  /** Caller must hold its operation admission fence in this same serializable transaction. */
+  async bindOutputInTransaction(
+    tx: Prisma.TransactionClient,
+    request: GenerationCreditReservationRequest,
+    ingredientId: string,
+  ): Promise<void> {
     const reservationId = request.creditsConfig?.reservationId;
     const organizationId = request.user?.organizationId;
     if (!reservationId || !organizationId)
       throw new BusinessLogicException(
         'Generation quote group identity is missing',
       );
-    await this.serializable(async (tx) => {
-      const hold = await tx.creditReservation.findFirst({
-        where: {
-          id: reservationId,
-          organizationId,
-          isDeleted: false,
-          workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
-        },
-      });
-      if (!hold || hold.status !== CreditReservationStatus.RESERVED)
-        throw new BusinessLogicException('Generation quote hold has ended');
-      const metadata = metadataSchema.parse(hold.metadata);
-      if (hold.expiresAt <= new Date())
-        throw new BusinessLogicException(
-          'Generation quote admission has expired',
-        );
-      if (metadata.dispatchClosed)
-        throw new BusinessLogicException('Generation dispatch is closed');
-      if (metadata.boundOutputIds.includes(ingredientId)) return;
-      if (
-        metadata.boundOutputIds.length >=
-        (metadata.modelQuote.quantities.outputs ?? 1)
-      )
-        throw new BusinessLogicException(
-          'Generation output exceeds its frozen authorization',
-        );
-      const receipt = {
-        kind: 'quote-group' as const,
-        reservationId,
-        outputIndex: metadata.boundOutputIds.length,
-      };
-      const bound = await tx.ingredient.updateMany({
-        data: { generationBilling: toPrismaJson(receipt) },
-        where: {
-          id: ingredientId,
-          organizationId,
-          isDeleted: false,
-          generationBilling: { equals: Prisma.DbNull },
-        },
-      });
-      if (bound.count !== 1)
-        throw new BusinessLogicException(
-          'Generation output already has another billing owner',
-        );
-      await tx.creditReservation.updateMany({
-        where: {
-          id: reservationId,
-          organizationId,
-          isDeleted: false,
-          status: CreditReservationStatus.RESERVED,
-        },
-        data: {
-          metadata: toPrismaJson({
-            ...metadata,
-            boundOutputIds: [...metadata.boundOutputIds, ingredientId],
-          }),
-        },
-      });
+    const hold = await tx.creditReservation.findFirst({
+      where: {
+        id: reservationId,
+        organizationId,
+        isDeleted: false,
+        workloadType: MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+      },
+    });
+    if (!hold || hold.status !== CreditReservationStatus.RESERVED)
+      throw new BusinessLogicException('Generation quote hold has ended');
+    if (hasGenerationLineProtocol(hold.metadata))
+      throw new BusinessLogicException(
+        'Fenced Storyboard submission is unavailable',
+      );
+    const metadata = metadataSchema.parse(hold.metadata);
+    if (hold.expiresAt <= new Date())
+      throw new BusinessLogicException(
+        'Generation quote admission has expired',
+      );
+    if (metadata.dispatchClosed)
+      throw new BusinessLogicException('Generation dispatch is closed');
+    if (metadata.boundOutputIds.includes(ingredientId)) return;
+    if (
+      metadata.boundOutputIds.length >=
+      (metadata.modelQuote.quantities.outputs ?? 1)
+    )
+      throw new BusinessLogicException(
+        'Generation output exceeds its frozen authorization',
+      );
+    const receipt = {
+      kind: 'quote-group' as const,
+      reservationId,
+      outputIndex: metadata.boundOutputIds.length,
+    };
+    const bound = await tx.ingredient.updateMany({
+      data: { generationBilling: toPrismaJson(receipt) },
+      where: {
+        id: ingredientId,
+        organizationId,
+        isDeleted: false,
+        generationBilling: { equals: Prisma.DbNull },
+      },
+    });
+    if (bound.count !== 1)
+      throw new BusinessLogicException(
+        'Generation output already has another billing owner',
+      );
+    await tx.creditReservation.updateMany({
+      where: {
+        id: reservationId,
+        organizationId,
+        isDeleted: false,
+        status: CreditReservationStatus.RESERVED,
+      },
+      data: {
+        metadata: toPrismaJson({
+          ...metadata,
+          boundOutputIds: [...metadata.boundOutputIds, ingredientId],
+        }),
+      },
     });
   }
 
@@ -178,6 +192,13 @@ export class GenerationQuoteGroupService {
       .parse(hold.metadata);
     const metadata = metadataSchema.parse(expectedMetadata);
     if (!metadata.dispatchClosed) return;
+    // This checkpoint cannot prove a Storyboard line was never submitted.
+    // Retain every empty protocol group until the owner-fenced proof/release API exists.
+    if (
+      hasGenerationLineProtocol(expectedMetadata) &&
+      metadata.boundOutputIds.length === 0
+    )
+      return;
     const completedIds = new Set(
       metadata.completedArtifacts.map((artifact) => artifact.ingredientId),
     );

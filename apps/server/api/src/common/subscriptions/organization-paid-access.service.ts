@@ -73,47 +73,17 @@ export class OrganizationPaidAccessService {
     return !(await this.hasPaidSubscription(organizationId));
   }
 
+  /** Financial route selection must distinguish confirmed lack of entitlement from read failure. */
+  async isSubscriptionGatedStrict(organizationId: string): Promise<boolean> {
+    if (!hasOrganizationBilling()) return false;
+    return !(await this.hasPaidSubscriptionStrict(organizationId));
+  }
+
   async hasPaidSubscription(organizationId: string): Promise<boolean> {
-    const cached = this.paidGrantCache.get(organizationId);
-    const now = Date.now();
-    if (cached && cached.expiresAt > now) {
-      return cached.isPaid;
-    }
-
-    let isPaid = false;
     try {
-      const [subscriptions, settings] = await Promise.all([
-        this.prisma.subscription.findMany({
-          select: SUBSCRIPTION_SELECT,
-          take: SUBSCRIPTION_READ_LIMIT,
-          where: { isDeleted: false, organizationId },
-        }),
-        this.prisma.organizationSetting.findFirst({
-          select: { subscriptionTier: true },
-          where: { organizationId },
-        }),
-      ]);
-
-      const ownGrant = resolveOrganizationPaidGrant(
-        subscriptions,
-        settings?.subscriptionTier ?? null,
-        new Date(now),
-      );
-
-      // The organization's own read already grants access — skip the
-      // billing-account round trip entirely.
-      const billingAccountGrant =
-        ownGrant !== null
-          ? null
-          : await this.resolveBillingAccountGrant(
-              organizationId,
-              new Date(now),
-            );
-
-      isPaid = ownGrant !== null || billingAccountGrant !== null;
+      return await this.hasPaidSubscriptionStrict(organizationId);
     } catch (error: unknown) {
-      // Fail closed: an unverifiable subscription must not unlock paid
-      // features. Not cached, so the next request retries the read.
+      // Legacy feature gates fail closed without caching an uncertain result.
       this.logger.warn('Organization paid access: subscription read failed', {
         ...this.context,
         error: error instanceof Error ? error.message : String(error),
@@ -121,7 +91,41 @@ export class OrganizationPaidAccessService {
       });
       return false;
     }
+  }
 
+  async hasPaidSubscriptionStrict(organizationId: string): Promise<boolean> {
+    const cached = this.paidGrantCache.get(organizationId);
+    const now = Date.now();
+    if (cached && cached.expiresAt > now) {
+      return cached.isPaid;
+    }
+
+    const [subscriptions, settings] = await Promise.all([
+      this.prisma.subscription.findMany({
+        select: SUBSCRIPTION_SELECT,
+        take: SUBSCRIPTION_READ_LIMIT,
+        where: { isDeleted: false, organizationId },
+      }),
+      this.prisma.organizationSetting.findFirst({
+        select: { subscriptionTier: true },
+        where: { organizationId },
+      }),
+    ]);
+
+    const ownGrant = resolveOrganizationPaidGrant(
+      subscriptions,
+      settings?.subscriptionTier ?? null,
+      new Date(now),
+    );
+
+    // The organization's own read already grants access — skip the
+    // billing-account round trip entirely.
+    const billingAccountGrant =
+      ownGrant !== null
+        ? null
+        : await this.resolveBillingAccountGrant(organizationId, new Date(now));
+
+    const isPaid = ownGrant !== null || billingAccountGrant !== null;
     this.paidGrantCache.set(organizationId, {
       expiresAt: now + PAID_GRANT_CACHE_TTL_MS,
       isPaid,
