@@ -17,6 +17,7 @@ import {
 } from '@ui/primitives/table';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { ArrowRight, RefreshCw } from 'lucide-react';
@@ -191,6 +192,9 @@ export default function BenchmarkContent({ data }: BenchmarkContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/benchmark" isCompact kind="research" />
+        }
         compact
         description="An independent benchmark for image and video generation models. Public tasks, blind judging, and a match journal anyone can re-run. Genfeed competes; it does not score itself."
         heroActions={

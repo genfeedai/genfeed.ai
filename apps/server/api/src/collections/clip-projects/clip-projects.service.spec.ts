@@ -482,6 +482,43 @@ describe('ClipProjectsService', () => {
     expect(prisma.clipProject.update).not.toHaveBeenCalled();
   });
 
+  it('persists an explicit key clear when replacing stored source media with keyless media', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({
+      config: {
+        sourceVideoS3Key: 'ingredients/videos/previous',
+        sourceVideoUrl: 'https://cdn.example.com/previous',
+      },
+      id: 'project-1',
+      organizationId: 'org-1',
+      progress: 0,
+      status: 'analyzed',
+    });
+    prisma.clipProject.update.mockResolvedValue({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+    });
+    await service.patch(
+      'project-1',
+      {
+        sourceVideoS3Key: null,
+        sourceVideoUrl: 'https://provider.example.com/owned.mp4',
+      },
+      [],
+      'org-1',
+    );
+    expect(prisma.clipProject.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({
+            sourceVideoS3Key: null,
+            sourceVideoUrl: 'https://provider.example.com/owned.mp4',
+          }),
+        }),
+      }),
+    );
+  });
+
   it('merges patch config and adds terminal readiness for completed projects', async () => {
     prisma.clipProject.findFirst.mockResolvedValue({
       config: {

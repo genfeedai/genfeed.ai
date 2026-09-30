@@ -22,6 +22,9 @@ async function openLibrary(page: Page): Promise<void> {
     waitUntil: 'domcontentloaded',
   });
   await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();
+  // The server-rendered toggle is visible before the shell registers its
+  // dock. Keyboard presses do not auto-wait for that hydration boundary.
+  await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeEnabled();
 }
 
 test.describe('Agent dock', () => {
@@ -35,48 +38,53 @@ test.describe('Agent dock', () => {
     await mockLibraryData(authenticatedPage);
   });
 
-  test('opens with ⌘J, shows the conversation and closes with Esc', async ({
-    authenticatedPage: page,
-  }) => {
-    await page.setViewportSize({ height: 900, width: 1440 });
-    await openLibrary(page);
+  for (const shortcut of ['Meta+j', 'Control+j']) {
+    test(`opens with ${shortcut}, shows the conversation and closes with Esc`, async ({
+      authenticatedPage: page,
+    }) => {
+      await page.setViewportSize({ height: 900, width: 1440 });
+      await openLibrary(page);
 
-    const dock = page.getByRole('region', { name: 'Agent' });
-    const toggle = page.getByTestId('topbar-agent-dock-toggle');
-    await expect(dock).toHaveCount(0);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      const dock = page.getByRole('region', { name: 'Agent' });
+      const toggle = page.getByTestId('topbar-agent-dock-toggle');
+      await expect(dock).toHaveCount(0);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
-    await page.keyboard.press('ControlOrMeta+j');
+      await page.keyboard.press(shortcut);
 
-    await expect(dock).toBeVisible();
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    // The conversation and its composer render in the dock. (The mocked agent
-    // stream is offline in E2E, so the composer is disabled and cannot take
-    // focus; the unit tests cover focusing it.)
-    await expect(
-      dock.getByRole('textbox', { name: 'Conversation prompt' }),
-    ).toBeVisible();
-    // The dock sits under the canvas, not over it.
-    const canvas = page.getByRole('region', {
-      name: 'Primary workspace canvas',
+      await expect(dock).toBeVisible();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      // The conversation and its composer render in the dock. (The mocked agent
+      // stream is offline in E2E, so the composer is disabled and cannot take
+      // focus; the unit tests cover focusing it.)
+      await expect(
+        dock.getByRole('textbox', { name: 'Conversation prompt' }),
+      ).toBeVisible();
+      // The dock sits under the canvas, not over it.
+      const canvas = page.getByRole('region', {
+        name: 'Primary workspace canvas',
+      });
+      const [canvasBox, dockBox] = await Promise.all([
+        canvas.boundingBox(),
+        dock.boundingBox(),
+      ]);
+      expect(dockBox?.y ?? 0).toBeGreaterThanOrEqual(
+        (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) - 1,
+      );
+
+      await dock.getByRole('button', { name: 'Open full page' }).focus();
+      await page.keyboard.press('Escape');
+      await expect(dock).toHaveCount(0);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+      await toggle.click();
+      await expect(dock).toBeVisible();
+      await page.keyboard.press(shortcut);
+      await expect(dock).toHaveCount(0);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expectNoErrorOverlay(page);
     });
-    const [canvasBox, dockBox] = await Promise.all([
-      canvas.boundingBox(),
-      dock.boundingBox(),
-    ]);
-    expect(dockBox?.y ?? 0).toBeGreaterThanOrEqual(
-      (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) - 1,
-    );
-
-    await dock.getByRole('button', { name: 'Open full page' }).focus();
-    await page.keyboard.press('Escape');
-    await expect(dock).toHaveCount(0);
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-
-    await toggle.click();
-    await expect(dock).toBeVisible();
-    await expectNoErrorOverlay(page);
-  });
+  }
 
   test('keeps its open state across product pages', async ({
     authenticatedPage: page,

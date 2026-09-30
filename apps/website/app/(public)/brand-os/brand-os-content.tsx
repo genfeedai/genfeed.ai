@@ -3,6 +3,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import HomeFooter from '@web-components/home/_footer';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import { Layers } from 'lucide-react';
@@ -206,29 +207,32 @@ export default function BrandOSContent(): React.ReactElement {
         {/* Hero */}
         <section className="border-b border-edge/5 bg-background py-16 sm:py-20 lg:py-24">
           <div className="container mx-auto px-6">
-            <div className="flex flex-col max-w-4xl gap-6">
-              <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-2xs font-black uppercase tracking-[0.15em] text-surface/45">
-                <Layers className="size-3.5" />
-                <Text>Brand OS</Text>
-                <span className="text-surface/45">/</span>
-                <Text className="text-surface/55">version alpha</Text>
+            <div className="grid items-center gap-10 lg:grid-cols-2">
+              <div className="flex flex-col max-w-4xl gap-6">
+                <div className="flex flex-row w-fit items-center gap-2 border border-edge/10 bg-fill/[0.02] px-3 py-1.5 text-2xs font-black uppercase tracking-[0.15em] text-surface/45">
+                  <Layers className="size-3.5" />
+                  <Text>Brand OS</Text>
+                  <span className="text-surface/45">/</span>
+                  <Text className="text-surface/55">version alpha</Text>
+                </div>
+
+                <Heading
+                  as="h1"
+                  className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-surface sm:text-6xl lg:text-7xl"
+                >
+                  Turn your website into an AI-readable Brand OS.
+                </Heading>
+
+                <Text className="max-w-2xl text-base leading-7 text-surface/55 sm:text-lg">
+                  Build a reviewable system for voice, visual direction, content
+                  pillars, and generation rules. Every recommendation shows its
+                  source, confidence, and gaps before anything reaches your
+                  brand workspace.
+                </Text>
+
+                <BrandOSPreviewAction />
               </div>
-
-              <Heading
-                as="h1"
-                className="max-w-3xl font-semibold tracking-[-0.02em] text-5xl leading-none text-surface sm:text-6xl lg:text-7xl"
-              >
-                Turn your website into an AI-readable Brand OS.
-              </Heading>
-
-              <Text className="max-w-2xl text-base leading-7 text-surface/55 sm:text-lg">
-                Build a reviewable system for voice, visual direction, content
-                pillars, and generation rules. Every recommendation shows its
-                source, confidence, and gaps before anything reaches your brand
-                workspace.
-              </Text>
-
-              <BrandOSPreviewAction />
+              <MarketingArtwork page="/brand-os" kind="campaign" />
             </div>
           </div>
         </section>

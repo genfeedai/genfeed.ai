@@ -1,4 +1,5 @@
 import YoutubeLongFormContent from '@public/tools/youtube-long-form/youtube-long-form-content';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 import { FileText } from 'lucide-react';
@@ -13,6 +14,13 @@ export default function YoutubeLongFormPage(): React.ReactElement {
   // The hero, footer and copy render on the server; only the tool hydrates.
   return (
     <PageLayout
+      heroMedia={
+        <MarketingArtwork
+          page="/tools/youtube-long-form"
+          isCompact
+          kind="creator"
+        />
+      }
       badge="Free AI tool"
       badgeIcon={FileText}
       compact

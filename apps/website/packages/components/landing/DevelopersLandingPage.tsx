@@ -8,6 +8,7 @@ import { Pre } from '@ui/primitives/pre';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import FaqGrid from '@web-components/content/FaqGrid';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import LandingFooter from '@web-components/landing/LandingFooter';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
@@ -114,6 +115,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork page="/developers" />}
         badge="Genfeed for Developers"
         badgeIcon={Terminal}
         title="Content infrastructure for developers"

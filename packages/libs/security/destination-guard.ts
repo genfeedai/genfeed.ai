@@ -616,6 +616,28 @@ async function parseRedirectLocation(
   }
 }
 
+async function resolveAbortableDestination(
+  url: URL,
+  options: DestinationGuardOptions,
+  signal: AbortSignal | null | undefined,
+): Promise<ResolvedDestination> {
+  if (!signal) {
+    return resolveSafeDestination(url, options);
+  }
+  signal.throwIfAborted();
+  return new Promise<ResolvedDestination>((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    void resolveSafeDestination(url, options)
+      .then((destination) => {
+        signal.throwIfAborted();
+        resolve(destination);
+      })
+      .catch(reject)
+      .finally(() => signal.removeEventListener('abort', onAbort));
+  });
+}
+
 /**
  * Fetch through the shared outbound destination boundary.
  *
@@ -635,7 +657,11 @@ export async function safeFetch(
   let currentInit = { ...init };
 
   for (let redirectCount = 0; ; redirectCount++) {
-    const destination = await resolveSafeDestination(currentUrl, options);
+    const destination = await resolveAbortableDestination(
+      currentUrl,
+      options,
+      currentInit.signal,
+    );
     const response = await requestPinnedDestination(destination, currentInit);
     const location = response.headers.get('location');
     if (
