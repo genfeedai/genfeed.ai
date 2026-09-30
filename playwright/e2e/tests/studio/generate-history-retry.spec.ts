@@ -156,7 +156,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.keyboard.press('Enter');
       await expect(retry).toBeDisabled();
       await expect(retry).toHaveAttribute('aria-busy', 'true');
-      await expect(retry).toHaveText('Retry history', { useInnerText: true });
+      await expect(retry).toHaveText('Retry History', { useInnerText: true });
       await expect(retry).toBeVisible();
       await expect(
         page.getByRole('status').filter({ hasText: 'Retrying history…' }),
