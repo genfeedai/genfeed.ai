@@ -3,8 +3,8 @@ import { MARKETING_OG_CARDS } from '@data/marketing-og.data';
 import { renderMarketingOg } from '@web-components/og/marketing-og';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const WEBP = Buffer.from(
-  'UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAgA0JaQAA3AA/vuUAAA=',
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12P4DwQACfsD/WMmxY8AAAAASUVORK5CYII=',
   'base64',
 );
 
@@ -17,7 +17,7 @@ describe('marketing OG images', () => {
       const fetchArtwork = vi
         .fn()
         .mockResolvedValue(
-          new Response(WEBP, { headers: { 'Content-Type': 'image/webp' } }),
+          new Response(PNG, { headers: { 'Content-Type': 'image/png' } }),
         );
       vi.stubGlobal('fetch', fetchArtwork);
 

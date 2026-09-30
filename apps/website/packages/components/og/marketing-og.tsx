@@ -12,8 +12,12 @@ async function loadArtwork(url: string): Promise<string | null> {
 
     if (!response.ok) return null;
 
+    const contentType = response.headers.get('content-type')?.split(';')[0];
+    if (contentType !== 'image/jpeg' && contentType !== 'image/png')
+      return null;
+
     const data = Buffer.from(await response.arrayBuffer());
-    return `data:image/webp;base64,${data.toString('base64')}`;
+    return `data:${contentType};base64,${data.toString('base64')}`;
   } catch {
     return null;
   }

@@ -6,12 +6,12 @@ export const MARKETING_OG_SIZE = { height: 630, width: 1200 };
 export const MARKETING_OG_CARDS = {
   default: {
     artwork: cdnAsset(
-      '/assets/cards/marketing/founder-distribution-20260930.webp',
+      '/assets/cards/marketing/founder-distribution-20260930.jpg',
     ),
     headline: ['You build.', 'We distribute.'],
   },
   x: {
-    artwork: cdnAsset('/assets/cards/marketing/x-growth-20260930.webp'),
+    artwork: cdnAsset('/assets/cards/marketing/x-growth-20260930.jpg'),
     headline: ['Grow your', 'X audience'],
   },
 } as const;
