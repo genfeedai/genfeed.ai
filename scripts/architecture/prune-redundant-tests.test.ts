@@ -121,6 +121,9 @@ describe('conservative smoke pruning', () => {
       'service = ++counter === 1 ? undefined : buildService();',
       'service = enabled && buildService();',
       'service = buildService(); counter++;',
+      'counter += 1; service = fixtures[counter];',
+      'counter = counter + 1; service = fixtures[counter];',
+      'state.count = state.count + 1; service = fixtures[state.count];',
     ])
       expect(
         analyzeSmokeTests(

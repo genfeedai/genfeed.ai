@@ -188,6 +188,24 @@ function conditionalExecution(node: ts.Node): boolean {
   );
 }
 
+function mutatesExistingState(node: ts.Node): boolean {
+  if (
+    !ts.isBinaryExpression(node) ||
+    node.operatorToken.kind < ts.SyntaxKind.FirstAssignment ||
+    node.operatorToken.kind > ts.SyntaxKind.LastAssignment
+  )
+    return false;
+  if (node.operatorToken.kind !== ts.SyntaxKind.EqualsToken) return true;
+  const target = node.left.getText();
+  let selfReference = false;
+  function inspect(value: ts.Node): void {
+    if (value.getText() === target) selfReference = true;
+    ts.forEachChild(value, inspect);
+  }
+  inspect(node.right);
+  return selfReference;
+}
+
 function fixtureResets(
   block: ts.Block,
   subject: string,
@@ -210,7 +228,7 @@ function fixtureResets(
         (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
         !ts.isBlock(callback.body) ||
         (ts.isFunctionExpression(callback) &&
-          Boolean(callback.asteriskToken)) ||
+          Boolean(callback.asteriskToken || callback.name)) ||
         callback.parameters.length > 0 ||
         call.questionDotToken
       )
@@ -219,7 +237,8 @@ function fixtureResets(
       function inspectSetup(node: ts.Node): void {
         if (declaresSubject(node, subject)) unsafe = true;
         if (ts.isFunctionLike(node)) return;
-        if (conditionalExecution(node)) unsafe = true;
+        if (conditionalExecution(node) || mutatesExistingState(node))
+          unsafe = true;
         ts.forEachChild(node, inspectSetup);
       }
       inspectSetup(callback.body);

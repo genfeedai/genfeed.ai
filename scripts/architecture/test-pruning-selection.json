@@ -528,26 +528,10 @@
           "witnessLine": 101
         }
       ]
-    },
-    {
-      "afterHash": "2104f65b7c41c6984e3b0b4fcfa9e9a4ab3ad21731a103077cbb3e10a4d2b566",
-      "beforeHash": "f3f5e2d6ea98118507ce81e8c305a525cd2bcd08cc53b9fb3bb33ef8b3b0e58a",
-      "file": "packages/services/editor/editor-projects.service.spec.ts",
-      "removed": [
-        {
-          "end": 2380,
-          "line": 81,
-          "start": 2311,
-          "subject": "service",
-          "title": "is defined",
-          "witness": "create POSTs with defaults when no dto provided",
-          "witnessLine": 97
-        }
-      ]
     }
   ],
   "lockHash": "9e642def6b866dcd1d58e3a03861e3433469a67df7964d410c069522d082965e",
   "parser": "6.0.3",
   "rule": "same-suite-reset-fixture-method-witness-v1",
-  "selectorHash": "f99e27c00113b9c0c3fa3b0f889c12c9e165bfb0ad24c0ec31fb5d31f71981ce"
+  "selectorHash": "61aac8b591b6b48a6ad02c34500b03e62e3aff3e9585a83d3e2064d46f13f08c"
 }
