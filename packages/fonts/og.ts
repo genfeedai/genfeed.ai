@@ -30,6 +30,7 @@ export interface SatoriFont {
 }
 
 let cached: Promise<SatoriFont[]> | undefined;
+let marketingFonts: Promise<SatoriFont[]> | undefined;
 
 async function readFonts(): Promise<SatoriFont[]> {
   return await Promise.all(
@@ -55,4 +56,17 @@ export async function loadSatoshiSatoriFonts(): Promise<SatoriFont[]> {
   cached ??= readFonts();
 
   return await cached;
+}
+
+/** Zodiak's existing browser font, decompressed to OTF for editorial cards. */
+export async function loadMarketingSatoriFonts(): Promise<SatoriFont[]> {
+  marketingFonts ??= Promise.all([
+    loadSatoshiSatoriFonts(),
+    readFile(new URL('./files/Zodiak-Regular.otf', import.meta.url)),
+  ]).then(([fonts, data]) => [
+    ...fonts,
+    { data, name: 'Zodiak', style: 'normal', weight: 400 },
+  ]);
+
+  return await marketingFonts;
 }

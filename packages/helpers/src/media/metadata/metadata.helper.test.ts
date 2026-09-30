@@ -21,7 +21,7 @@ describe('metadata', () => {
     expect(metadata.keywords.length).toBeGreaterThan(0);
   });
 
-  it('has cards.default pointing to an image path', () => {
-    expect(metadata.cards.default).toMatch(/\.(jpg|jpeg|png|webp|gif)$/i);
+  it('shares the composed website card across consumers with different bases', () => {
+    expect(metadata.cards.default).toBe(`${metadata.url}/og`);
   });
 });
