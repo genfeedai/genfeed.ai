@@ -13,6 +13,7 @@ import type { StoryboardRunScenesProps } from '@genfeedai/props/studio/storyboar
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { getStoryboardScenePreview } from '@pages/studio/storyboard/utils/storyboard-scene-preview';
@@ -349,6 +350,24 @@ export default function StoryboardRunScenes({
           />
         </div>
       ) : null}
+      <StoryboardAnimatic
+        scope={`${run.id}:${run.revision}:${JSON.stringify(storyboard)}`}
+        shots={storyboard.map((scene) => {
+          const image = scene.id
+            ? pipeline?.scenes[scene.id]?.image
+            : undefined;
+          return {
+            id: scene.id ?? `shot-${scene.ordinal}`,
+            ordinal: scene.ordinal,
+            durationSeconds: scene.durationSeconds ?? null,
+            dialogue: scene.narration,
+            stillUrl:
+              image?.state === 'ready' && image.assetId
+                ? (sceneAssets[`image:${image.assetId}`]?.cdnUrl ?? undefined)
+                : undefined,
+          };
+        })}
+      />
       {storyboard.map((scene, index) => {
         const progress = scene.id ? pipeline?.scenes[scene.id] : undefined;
         const media = getStoryboardScenePreview(scene, pipeline, sceneAssets);

@@ -120,3 +120,55 @@ export interface StoryboardSelectProps {
 export interface StoryboardRunPageProps {
   readonly runId: string;
 }
+
+export interface StoryboardAnimaticShot {
+  readonly id: string;
+  readonly ordinal: number;
+  readonly durationSeconds: number | null;
+  readonly stillUrl?: string;
+  readonly dialogue?: string;
+}
+
+export interface StoryboardAnimaticProps {
+  readonly scope: string;
+  readonly shots: readonly StoryboardAnimaticShot[];
+}
+
+export interface StoryboardSaveSnapshot<T> {
+  readonly revision: number;
+  readonly value: T;
+}
+
+export interface StoryboardAutosaveOptions<T> {
+  readonly scope: string;
+  readonly initial: StoryboardSaveSnapshot<T>;
+  readonly save: (
+    snapshot: StoryboardSaveSnapshot<T>,
+    signal: AbortSignal,
+  ) => Promise<StoryboardSaveSnapshot<T>>;
+}
+
+export interface StoryboardEditorSeedInput {
+  readonly isReady: boolean;
+  readonly shotIds: readonly string[];
+  readonly videos: Readonly<
+    Record<string, { readonly state: string; readonly assetId?: string }>
+  >;
+  readonly assembly?: { readonly state: string; readonly assetId?: string };
+}
+
+export interface StoryboardRuntimeRailProps {
+  readonly budgetSeconds: number | null;
+  readonly shots: readonly Pick<
+    StoryboardAnimaticShot,
+    'id' | 'ordinal' | 'durationSeconds'
+  >[];
+  readonly selectedShotId?: string;
+  readonly onSelectShot: (shotId: string) => void;
+}
+
+export interface StoryboardSaveIndicatorProps {
+  readonly status: 'saved' | 'saving' | 'failed' | 'dirty';
+  readonly error?: string;
+  readonly onRetry: () => void;
+}

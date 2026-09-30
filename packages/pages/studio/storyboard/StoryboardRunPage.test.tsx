@@ -173,4 +173,63 @@ describe('StoryboardRunPage', () => {
       destination: { adAccountId: 'act_1', credentialId: 'credential-1' },
     });
   });
+  it('links ready shot videos to the existing scoped Editor creation route in order', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: {
+          state: 'ready',
+          scenes: {
+            a: { video: { state: 'ready', assetId: 'clip-a' } },
+            b: { video: { state: 'ready', assetId: 'clip-b' } },
+          },
+          assembly: { state: 'ready', assetId: 'assembled' },
+        },
+      } as unknown as BrandRemixRunView,
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    const href = screen
+      .getByRole('link', { name: 'Open in Editor' })
+      .getAttribute('href');
+    expect(href?.startsWith('/acme/northstar/studio/editor/new?')).toBe(true);
+    expect(
+      new URL(href ?? '', 'https://example.test').searchParams.getAll('video'),
+    ).toEqual(['clip-b', 'clip-a']);
+  });
+  it('blocks incomplete individual clips even when assembly is ready', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: {
+          state: 'ready',
+          scenes: {
+            a: { video: { state: 'failed' } },
+            b: { video: { state: 'ready', assetId: 'clip-b' } },
+          },
+          assembly: { state: 'ready', assetId: 'assembled' },
+        },
+      } as unknown as BrandRemixRunView,
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    expect(screen.queryByRole('link', { name: 'Open in Editor' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('incomplete');
+  });
 });
