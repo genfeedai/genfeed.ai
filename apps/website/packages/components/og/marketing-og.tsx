@@ -74,14 +74,14 @@ export async function renderMarketingOg(
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'Zodiak',
-          fontSize: 64,
+          fontSize: 58,
           fontWeight: 400,
-          left: 48,
+          left: 40,
           letterSpacing: '-0.04em',
           lineHeight: 1.16,
           position: 'absolute',
-          top: 224,
-          width: 458,
+          top: 230,
+          width: 400,
         }}
       >
         {card.headline.map((line) => (
