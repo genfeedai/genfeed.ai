@@ -49,13 +49,17 @@ function checkpoint(
 function fixture(rows: ContentLearningCheckpoint[]) {
   const row = checkpoint();
   const prisma = {
-    $queryRaw: vi.fn().mockResolvedValue([]),
+    $queryRaw: vi.fn().mockResolvedValue([{ id: 'post' }]),
     $transaction: vi.fn(),
     post: {
       findFirst: vi
         .fn()
         .mockResolvedValue({ id: 'post', publishedAt: row.publishedAt }),
     },
+    contentLearningAccount: {
+      findFirst: vi.fn().mockResolvedValue({ mode: 'shadow' }),
+    },
+    credential: { findFirst: vi.fn().mockResolvedValue({ id: 'credential' }) },
     contentLearningCheckpoint: {
       findMany: vi.fn().mockResolvedValue(rows),
       findFirst: vi.fn(),
@@ -214,4 +218,51 @@ describe('fixed physical provider observation fulfillment', () => {
     expect(f.prisma.$queryRaw).toHaveBeenCalledTimes(2);
     expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
   });
+  it.each([
+    'deleted',
+    'retargeted',
+    'publication_changed',
+    'disabled',
+    'credential_deleted',
+    'lock_missing',
+  ])(
+    'rechecks %s under the fence before writing a receipt',
+    async (mutation) => {
+      const original = checkpoint(),
+        f = fixture([]);
+      if (['deleted', 'retargeted', 'publication_changed'].includes(mutation))
+        f.prisma.post.findFirst
+          .mockResolvedValueOnce({
+            id: 'post',
+            publishedAt: original.publishedAt,
+          })
+          .mockResolvedValueOnce(null);
+      if (mutation === 'disabled')
+        f.prisma.contentLearningAccount.findFirst.mockResolvedValue({
+          mode: 'disabled',
+        });
+      if (mutation === 'credential_deleted')
+        f.prisma.credential.findFirst.mockResolvedValue(null);
+      if (mutation === 'lock_missing')
+        f.prisma.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+      expect(
+        await f.service.capture({
+          organizationId: 'org',
+          postId: 'post',
+          credentialId: 'credential',
+          format: 'text',
+          objective: 'awareness',
+          publishedAt: original.publishedAt,
+          requestStartedAt: original.requestStartedAt,
+          receivedAt: original.receivedAt,
+          sourceAttemptId: 'attempt',
+          learningMetrics: captureLearningMetrics(
+            { views: 10 },
+            { views: 'views' },
+          ),
+        }),
+      ).toBeNull();
+      expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
+    },
+  );
 });

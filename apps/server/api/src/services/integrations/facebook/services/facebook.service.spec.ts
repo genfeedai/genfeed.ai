@@ -85,6 +85,7 @@ describe('FacebookService', () => {
     mockHttpService.get.mockReturnValue(
       of({
         data: {
+          id: 'post',
           reactions: { summary: { total_count: 0 } },
           comments: { summary: { total_count: 2 } },
           shares: { count: 3 },
@@ -134,6 +135,25 @@ describe('FacebookService', () => {
       ).toBe(true);
     },
   );
+  it('rejects malformed or wrong-resource HTTP200 instead of marking observation', async () => {
+    for (const data of [undefined, {}, { id: 'foreign' }]) {
+      mockHttpService.get.mockReturnValue(of({ data }));
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection?.outcome).toBe(
+        'retryable_failure',
+      );
+      expect(
+        Object.values(result.learningMetrics?.metrics ?? {}).some(
+          (metric) => metric?.availability === 'observed',
+        ),
+      ).toBe(false);
+    }
+    mockHttpService.get.mockReturnValue(of({ data: { id: 'post' } }));
+    expect(
+      (await service.getPostAnalytics('post', 'token')).learningMetrics
+        ?.collection?.outcome,
+    ).toBe('observed');
+  });
   afterEach(() => {
     vi.clearAllMocks();
   });

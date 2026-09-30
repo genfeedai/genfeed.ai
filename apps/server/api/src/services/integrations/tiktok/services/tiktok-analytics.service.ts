@@ -54,12 +54,22 @@ export class TiktokAnalyticsService {
           headers: { Authorization: `Bearer ${accessToken}` },
           params: {
             fields:
-              'like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
+              'id,like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
             video_ids: mediaId,
           },
         }),
       );
-      const item = response.data?.data?.videos?.[0] || {};
+      const videos = response.data?.data?.videos;
+      if (
+        !Array.isArray(videos) ||
+        videos.length !== 1 ||
+        !videos[0] ||
+        typeof videos[0] !== 'object' ||
+        Array.isArray(videos[0]) ||
+        videos[0].id !== mediaId
+      )
+        throw new Error('malformed_provider_response');
+      const item = videos[0];
       const totalEngagements =
         (item.like_count || 0) +
         (item.comment_count || 0) +

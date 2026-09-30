@@ -62,7 +62,15 @@ export class InstagramAnalyticsService {
           },
         }),
       );
-      const data = response.data || {};
+      const data = response.data;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data) ||
+        typeof data.id !== 'string' ||
+        data.id !== mediaId
+      )
+        throw new Error('malformed_provider_response');
       const insights = data.insights?.data || [];
       const getInsightValue = (metricName: string): number => {
         const insight = (

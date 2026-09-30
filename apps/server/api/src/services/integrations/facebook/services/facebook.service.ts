@@ -738,7 +738,15 @@ export class FacebookService {
         }),
       );
 
-      const data = response.data || {};
+      const data = response.data;
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        Array.isArray(data) ||
+        typeof data.id !== 'string' ||
+        data.id !== postId
+      )
+        throw new Error('malformed_provider_response');
       const insights = data.insights?.data || [];
 
       // Extract insights metrics

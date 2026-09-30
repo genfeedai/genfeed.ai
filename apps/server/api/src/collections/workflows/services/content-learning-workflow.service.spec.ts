@@ -40,7 +40,10 @@ function fixture() {
   const queue = { queueSystemWorkflow: vi.fn().mockResolvedValue('job') },
     runner = { registerWorkflow: vi.fn(), runWorkflow: vi.fn() },
     runs = { execute: vi.fn().mockResolvedValue({}) },
-    checkpoints = { fulfilledWindow: vi.fn().mockResolvedValue(null) };
+    checkpoints = {
+      fulfilledWindow: vi.fn().mockResolvedValue(null),
+      latestAttempt: vi.fn().mockResolvedValue(null),
+    };
   return {
     prisma,
     queue,
@@ -102,6 +105,35 @@ describe('durable scoped content learning workflow dispatch', () => {
     ).toMatchObject({
       status: 'pending',
       reason: 'observation_receipt_missing',
+    });
+  });
+  it('retains the actual persisted retryable attempt reason and identity', async () => {
+    const f = fixture(),
+      publishedAt = new Date(Date.now() - 48 * 3600000);
+    f.checkpoints.latestAttempt.mockResolvedValue({
+      id: 'failed-attempt',
+      sourceAttemptId: 'actual-attempt',
+      publishedAt,
+      requestStartedAt: new Date(),
+      receivedAt: new Date(),
+      providerAsOf: null,
+      validity: 'rate_limited',
+      measurement: {
+        collection: {
+          version: 1,
+          outcome: 'retryable_failure',
+          reasonCode: 'rate_limited',
+        },
+      },
+    });
+    expect(
+      await f.service.execute(CONTENT_LEARNING_ACTION_IDS.CHECKPOINT, 'org', {
+        postId: 'post',
+      }),
+    ).toMatchObject({
+      status: 'pending',
+      checkpointId: 'failed-attempt',
+      reason: 'rate_limited',
     });
   });
   it('loads the authorized operation in the executing organization rather than trusting run payload', async () => {

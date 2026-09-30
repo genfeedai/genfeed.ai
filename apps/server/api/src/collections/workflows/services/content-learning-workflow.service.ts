@@ -181,7 +181,15 @@ export class ContentLearningWorkflowService implements OnModuleInit {
         post.credentialId,
         post.publishedAt,
       );
-      const collection = receipt ? learningCheckpointCollection(receipt) : null;
+      const attempt =
+        receipt ??
+        (await this.checkpoints.latestAttempt(
+          organizationId,
+          post.id,
+          post.credentialId,
+          post.publishedAt,
+        ));
+      const collection = attempt ? learningCheckpointCollection(attempt) : null;
       return {
         status:
           collection?.outcome === 'observed'
@@ -189,10 +197,10 @@ export class ContentLearningWorkflowService implements OnModuleInit {
             : collection?.outcome === 'terminal_unavailable'
               ? 'unavailable'
               : 'pending',
-        checkpointId: receipt?.id ?? null,
+        checkpointId: attempt?.id ?? null,
         reason:
           collection?.reasonCode ??
-          (receipt ? null : 'observation_receipt_missing'),
+          (attempt ? attempt.validity : 'observation_receipt_missing'),
       };
     }
     if (action === CONTENT_LEARNING_ACTION_IDS.ACCOUNT_REBUILD) {

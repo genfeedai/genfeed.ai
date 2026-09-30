@@ -144,6 +144,25 @@ export class LearningCheckpointService {
       }) ?? null
     );
   }
+  async latestAttempt(
+    organizationId: string,
+    postId: string,
+    credentialId: string,
+    publishedAt: Date,
+    windowId = '48h-v1',
+  ) {
+    return this.prisma.contentLearningCheckpoint.findFirst({
+      where: {
+        organizationId,
+        postId,
+        credentialId,
+        publishedAt,
+        windowId,
+        isDeleted: false,
+      },
+      orderBy: [{ revision: 'desc' }, { id: 'desc' }],
+    });
+  }
   async capture(input: {
     organizationId: string;
     postId: string;
@@ -255,7 +274,44 @@ export class LearningCheckpointService {
     ]);
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, input.supersedesId ? 'exclusive' : 'shared');
-      await tx.$queryRaw`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`;
+      const locked = await tx.$queryRaw<
+        Array<{ id: string }>
+      >`SELECT id FROM posts WHERE id = ${input.postId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`;
+      if (locked.length !== 1) return null;
+      const currentPost = await tx.post.findFirst({
+        where: {
+          id: input.postId,
+          organizationId: input.organizationId,
+          brandId: credential.brandId,
+          credentialId: input.credentialId,
+          publishedAt: input.publishedAt,
+          isDeleted: false,
+        },
+      });
+      const currentAccount = await tx.contentLearningAccount.findFirst({
+        where: {
+          id: account.id,
+          organizationId: input.organizationId,
+          brandId: credential.brandId,
+          credentialId: input.credentialId,
+          isDeleted: false,
+        },
+      });
+      const currentCredential = await tx.credential.findFirst({
+        where: {
+          id: input.credentialId,
+          organizationId: input.organizationId,
+          brandId: credential.brandId,
+          isDeleted: false,
+        },
+      });
+      if (
+        !currentPost ||
+        !currentAccount ||
+        currentAccount.mode === 'disabled' ||
+        !currentCredential
+      )
+        return null;
       if (!input.supersedesId) {
         const fulfilled = await this.fulfilledWindow(
           input.organizationId,
