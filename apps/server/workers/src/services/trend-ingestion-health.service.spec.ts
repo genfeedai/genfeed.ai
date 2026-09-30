@@ -8,9 +8,13 @@ function setup() {
     { deduplicationKey: string; occurredAt: Date; sourceId: string }
   >();
   const prisma = {
+    $transaction: vi.fn(
+      async (work: (transaction: unknown) => Promise<unknown>) => work(prisma),
+    ),
     credential: { findMany: vi.fn().mockResolvedValue([]) },
     notificationEvent: {
-      upsert: vi.fn().mockResolvedValue({ occurredAt: enrollment }),
+      upsert: vi.fn().mockResolvedValue({ id: 'enrollment' }),
+      findFirstOrThrow: vi.fn().mockResolvedValue({ occurredAt: enrollment }),
       findFirst: vi
         .fn()
         .mockImplementation((input: { where: { sourceId: string } }) =>
@@ -62,8 +66,25 @@ function setup() {
 
 describe('TrendIngestionHealthService', () => {
   it('waits for two closed scheduled windows, emits actionable alerts once, and deduplicates continued failure', async () => {
-    const { service, recorder, events } = setup();
+    const { service, recorder, events, prisma } = setup();
     await service.checkMissedWindows(new Date('2026-09-28T12:15:00.000Z'));
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.notificationEvent.upsert).toHaveBeenCalledWith({
+      create: expect.objectContaining({
+        deduplicationKey: 'trend-ingestion-health/enrollment-v1',
+        organizationId: null,
+      }),
+      update: {},
+      where: {
+        deduplicationKey: 'trend-ingestion-health/enrollment-v1',
+        isDeleted: false,
+        organizationId: null,
+      },
+    });
+    expect(prisma.notificationEvent.findFirstOrThrow).toHaveBeenCalledWith({
+      select: { occurredAt: true },
+      where: { id: 'enrollment', isDeleted: false, organizationId: null },
+    });
     await service.checkMissedWindows(new Date('2026-09-29T00:14:59.999Z'));
     expect(recorder.dispatch).not.toHaveBeenCalled();
     await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));

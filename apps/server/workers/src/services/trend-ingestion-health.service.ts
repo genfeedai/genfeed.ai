@@ -5,6 +5,7 @@ import {
   TrendRefreshHealthService,
 } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
+import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
@@ -23,19 +24,24 @@ export class TrendIngestionHealthService {
 
   async checkMissedWindows(now: Date): Promise<void> {
     // A durable rollout baseline prevents treating old count-only executions as failures.
-    const enrollment = await this.prisma.notificationEvent.upsert({
-      create: {
-        deduplicationKey: ENROLLMENT_KEY,
-        eventKey: 'trend.ingestion-health.enrolled',
-        occurredAt: now,
-        organizationId: null,
-        payload: { version: 1 },
-        sourceId: 'enrollment',
-        sourceType: 'trend_ingestion_health',
-      },
-      select: { occurredAt: true },
-      update: {},
-      where: { deduplicationKey: ENROLLMENT_KEY },
+    const enrollment = await this.prisma.$transaction(async (transaction) => {
+      const { eventId } = await writeNotificationOutbox(
+        transaction,
+        {
+          deduplicationKey: ENROLLMENT_KEY,
+          eventKey: 'trend.ingestion-health.enrolled',
+          occurredAt: now,
+          organizationId: null,
+          payload: { version: 1 },
+          sourceId: 'enrollment',
+          sourceType: 'trend_ingestion_health',
+        },
+        [],
+      );
+      return transaction.notificationEvent.findFirstOrThrow({
+        select: { occurredAt: true },
+        where: { id: eventId, isDeleted: false, organizationId: null },
+      });
     });
     const globalHealth = await this.refreshHealth.getHealth();
     // Platform maintenance intentionally discovers connected scopes across tenants.

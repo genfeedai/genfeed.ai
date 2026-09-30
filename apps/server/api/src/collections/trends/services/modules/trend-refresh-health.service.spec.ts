@@ -21,22 +21,34 @@ describe('TrendRefreshHealthService', () => {
     const failed = receipt('native_failed', '2026-09-30T00:15:00.000Z');
     const journal = {
       findFirst: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockResolvedValue({}),
+      upsert: vi.fn().mockResolvedValue({ id: 'receipt' }),
     };
-    const service = new TrendRefreshHealthService({
+    const prisma = {
+      $transaction: vi.fn(
+        async (work: (transaction: unknown) => Promise<unknown>) =>
+          work({ notificationEvent: journal }),
+      ),
       notificationEvent: journal,
-    } as never);
+    };
+    const service = new TrendRefreshHealthService(prisma as never);
     await service.record(null, [empty]);
-    expect(journal.create).toHaveBeenLastCalledWith({
-      data: expect.objectContaining({
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(journal.upsert).toHaveBeenLastCalledWith({
+      create: expect.objectContaining({
         organizationId: null,
         payload: empty,
         sourceType: 'trend_refresh_health',
       }),
+      update: {},
+      where: {
+        deduplicationKey: expect.stringMatching(/^trend-refresh-health\//),
+        isDeleted: false,
+        organizationId: null,
+      },
     });
     journal.findFirst.mockResolvedValue({ payload: empty });
     await service.record(null, [failed]);
-    expect(journal.create.mock.calls.at(-1)?.[0].data.payload).toEqual({
+    expect(journal.upsert.mock.calls.at(-1)?.[0].create.payload).toEqual({
       ...failed,
       lastSuccessfulRefreshAt: empty.completedAt,
     });
@@ -52,12 +64,14 @@ describe('TrendRefreshHealthService', () => {
             : null,
         ),
     );
-    journal.create.mockClear();
+    journal.upsert.mockClear();
+    prisma.$transaction.mockClear();
     const health = await service.getHealth({ platform: 'youtube' });
     expect(health).toEqual([
       { ...failed, lastSuccessfulRefreshAt: empty.completedAt, reason: null },
     ]);
-    expect(journal.create).not.toHaveBeenCalled();
+    expect(journal.upsert).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('keeps successful concurrent evidence even when a later failure receipt could not carry it forward', async () => {

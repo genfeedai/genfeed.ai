@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { writeNotificationOutbox } from '@api/services/activity-recording/notification-outbox.writer';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
-import { toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 
 export const TREND_REFRESH_EVENT_TYPE = 'trend_refresh_health';
@@ -99,17 +99,21 @@ export class TrendRefreshHealthService {
           .filter((value): value is string => Boolean(value))
           .sort()
           .at(-1) ?? null;
-      await this.prisma.notificationEvent.create({
-        data: {
-          deduplicationKey: `trend-refresh-health/${randomUUID()}`,
-          eventKey: 'trend.refresh.completed',
-          occurredAt: new Date(attempt.completedAt),
-          organizationId,
-          payload: toPrismaJson({ ...attempt, lastSuccessfulRefreshAt }),
-          sourceId: sourceId(attempt),
-          sourceType: TREND_REFRESH_EVENT_TYPE,
-        },
-      });
+      await this.prisma.$transaction((transaction) =>
+        writeNotificationOutbox(
+          transaction,
+          {
+            deduplicationKey: `trend-refresh-health/${randomUUID()}`,
+            eventKey: 'trend.refresh.completed',
+            occurredAt: new Date(attempt.completedAt),
+            organizationId,
+            payload: { ...attempt, lastSuccessfulRefreshAt },
+            sourceId: sourceId(attempt),
+            sourceType: TREND_REFRESH_EVENT_TYPE,
+          },
+          [],
+        ),
+      );
     }
   }
 
