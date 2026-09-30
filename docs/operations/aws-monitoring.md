@@ -21,7 +21,8 @@ Read-only CloudWatch/ECS/Redis inspection on 2026-09-30 established:
 | September 11 | Four events in the evaluated 10:51 window; ALARM 10:56:55.676, OK 11:01:55.677 after zero events in the 10:56 window | `workflow-execution`; retained per-queue metric sums to four | Worker/files log retention was seven days, so detailed logs had expired. Retained ECS events did not cover the workers incident window. Processing-worker identity, lease timing, job attempts, terminal outcomes and side-effect evidence are unavailable. |
 | September 30 | Two events in the evaluated 01:46 window; ALARM 01:51:59.177, OK 01:56:59.178 after zero events in the 01:51 window | `onboarding-starter-assets`; per-queue sample at 01:50 sums to two | Worker logs show renewal failures at 01:47:09.126 and 01:48:16.037, followed by missing-lock errors for `moveToDelayed` at 01:47:15.734 and 01:48:20.442. The collector logged both stalls at 01:50:00.849 with the same job ID; two events affected one identifiable job. This establishes lease loss, not its underlying cause or terminal job outcome. |
 
-CloudWatch retains metric aggregates longer than raw five-minute samples. The
+CloudWatch [retains and rolls up metric samples](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/cloudwatch_concepts.html#Metric)
+from one-minute resolution after 15 days to five-minute resolution through 63 days. The
 September 11 per-queue sample is timestamped 10:55 after aggregation; that timestamp
 is not the exact stall time. Alarm evaluation windows also differ from the
 collector's rolling five-minute Redis event window.
@@ -82,7 +83,7 @@ new evidence identifies the failure mode.
    processor; `observerWorkerId` on `stalled` identifies only the stall detector.
    They may differ across replicas. Repeated `active` events indicate redelivery,
    not necessarily duplicated side effects. `failed` can precede a configured retry;
-   `failureKind=stall-limit` identifies exhausted stall recovery. A failed event can
+   `failureKind=stall-limit` identifies [exhausted stall recovery](https://docs.bullmq.io/guide/jobs/stalled). A failed event can
    lack job ID when BullMQ already removed the failed job.
 5. Match `started`, `closing`, `closed` and final job events with deployment/task
    stop timestamps and the incident image/task definition. A missing `closed` line
