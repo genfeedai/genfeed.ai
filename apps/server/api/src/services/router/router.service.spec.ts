@@ -1190,6 +1190,23 @@ describe('RouterService', () => {
   });
 
   describe('resolveModelKey', () => {
+    it('restricts candidate and default selection to the supplied eligible keys', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'ineligible-default', isDefault: true }),
+        createMockModel({ key: 'eligible-default', isDefault: true }),
+      ]);
+      const result = await service.resolveModelKey({
+        category: ModelCategory.VIDEO,
+        candidates: ['ineligible-default'],
+        eligibleModelKeys: ['eligible-default'],
+      });
+      expect(result).toEqual({
+        key: 'eligible-default',
+        source: 'registry-default',
+      });
+      expect(modelsService.findOne).not.toHaveBeenCalled();
+    });
+
     it('should honour the first candidate the registry carries', async () => {
       modelsService.findAllActive.mockResolvedValue([
         createMockModel({ key: 'brand-default' }),

@@ -8,7 +8,12 @@ import {
 import { getVideoResolutionLabel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import type { StudioGenerationSummaryProps } from '@genfeedai/props/studio/studio-generate.props';
+import {
+  canSubmitStudioGeneration,
+  getDesktopCreditsVisibility,
+} from '@genfeedai/services/core/desktop-runtime.service';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import { resolveStudioGenerateCapabilities } from '@pages/studio/generate/utils/studio-generate-types';
 import { isAutoGenerationModelKey } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -25,7 +30,10 @@ export default function StudioGenerationSummary({
   const translate = useTranslations('pages.studioGenerate');
   const { orgHref } = useOrgUrl();
   const { genfeedBalance, isLoaded, isLoading } = useTopbarBalances();
-  const showCredits = shouldShowCreditsNav();
+  const runtime = useDesktopRuntimeContext();
+  const showCredits = shouldShowCreditsNav(
+    getDesktopCreditsVisibility(runtime),
+  );
   const capabilities = resolveStudioGenerateCapabilities(
     type,
     settings.modelKey,
@@ -73,8 +81,15 @@ export default function StudioGenerationSummary({
       : isLoading
         ? translate('summary.balanceLoading')
         : translate('summary.balanceUnavailable');
-  const estimateLabel =
-    estimate.status === 'estimated' && estimate.credits !== null
+  const estimateLabel = !canSubmitStudioGeneration(runtime)
+    ? translate(
+        runtime.status === 'loading' || runtime.status === 'switching'
+          ? 'summary.costContextLoading'
+          : 'summary.costContextUnavailable',
+      )
+    : estimate.status === 'estimated' &&
+        estimate.credits !== null &&
+        canSubmitStudioGeneration(runtime)
       ? translate('estimatedCredits', {
           credits: formatCreditBalanceExact(estimate.credits),
         })
@@ -110,6 +125,15 @@ export default function StudioGenerationSummary({
             {balanceLabel}
           </Link>
         </div>
+      ) : runtime.status !== 'web' ? (
+        <span role="status">
+          {runtime.status === 'ready' &&
+          runtime.context?.runtimeMode === 'local'
+            ? translate('summary.serverRequired')
+            : runtime.status === 'loading' || runtime.status === 'switching'
+              ? translate('summary.costContextLoading')
+              : translate('summary.costContextUnavailable')}
+        </span>
       ) : null}
     </div>
   );

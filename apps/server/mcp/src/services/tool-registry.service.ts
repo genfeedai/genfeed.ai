@@ -8,12 +8,7 @@ import {
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
-import {
-  type AgentToolResult,
-  isAgentUntrustedContentSource,
-  MCP_TOOL_RESULT_MAX_JSON_BYTES,
-  readAgentUntrustedContentSource,
-} from '@genfeedai/contracts/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
   serializeMediaArtifact,
   toMcpMediaToolResult,
@@ -32,6 +27,7 @@ import {
   agentGuideResource,
   jsonResource,
 } from '@mcp/services/mcp-resource-contents.util';
+import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
@@ -61,6 +57,7 @@ import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
+import { handleStoryboardTool } from '@mcp/tools/storyboard.tool';
 import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
 import {
   handleToolDiscoveryTool,
@@ -68,11 +65,7 @@ import {
 } from '@mcp/tools/tool-discovery.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { cardResource } from '@mcp/ui/card-app';
-import {
-  MCP_CARD_RESOURCE_URI,
-  withCardMetadata,
-  withCardResult,
-} from '@mcp/ui/card-data';
+import { MCP_CARD_RESOURCE_URI, withCardMetadata } from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -184,6 +177,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
   | 'skills-pro'
@@ -405,6 +399,8 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (name === 'storyboard_run_capabilities')
+      return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
@@ -421,47 +417,13 @@ export class ToolRegistryService implements OnModuleInit {
     approvedApprovalId?: string,
   ) {
     const result = await this.dispatchTool(name, args, approvedApprovalId);
-    if (
-      ToolRegistryService.classify(name) !== 'agent-executor' &&
-      isAgentUntrustedContentSource(readAgentUntrustedContentSource(name))
-    ) {
-      let contentLength = 0;
-      try {
-        const content = JSON.stringify(result);
-        contentLength = Buffer.byteLength(JSON.stringify(content), 'utf8');
-        if (contentLength > MCP_TOOL_RESULT_MAX_JSON_BYTES) {
-          this.logger.warn('MCP result gate failed open', {
-            toolName: name,
-            category: 'oversize',
-            contentLength,
-          });
-        } else {
-          const gated = await this.clientService.evaluateMcpToolResult(
-            name,
-            content,
-          );
-          if (gated.outcome === 'withheld') {
-            // Do not card-wrap: resource/structured/card payloads must not survive.
-            return {
-              content: [
-                {
-                  type: 'text' as const,
-                  text: 'tool result withheld: suspected instruction injection',
-                },
-              ],
-              isError: true,
-            };
-          }
-        }
-      } catch {
-        this.logger.warn('MCP result gate failed open', {
-          toolName: name,
-          category: 'adapter',
-          contentLength,
-        });
-      }
-    }
-    return withCardResult(name, result);
+    return finalizeMcpToolResult(
+      name,
+      result,
+      ToolRegistryService.classify(name) === 'agent-executor',
+      this.clientService,
+      this.logger,
+    );
   }
 
   private async dispatchTool(
@@ -500,6 +462,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'storyboard-capabilities':
+        return handleStoryboardTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':

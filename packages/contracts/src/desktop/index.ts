@@ -97,6 +97,8 @@ export const DESKTOP_IPC_CHANNELS = {
   agentRuntimeEvent: 'desktop:agentRuntime:event',
   agentRuntimeStartTurn: 'desktop:agentRuntime:startTurn',
   appBootstrap: 'desktop:app:bootstrap',
+  appRuntimeContext: 'desktop:app:runtimeContext',
+  runtimeContextChanged: 'desktop:app:runtimeContextChanged',
   appDetectLocalTools: 'desktop:app:detectLocalTools',
   appEnableOfflineMode: 'desktop:app:enableOfflineMode',
   appGetDiagnostics: 'desktop:app:getDiagnostics',
@@ -196,6 +198,25 @@ export interface IDesktopEnvironment {
   sentryEnvironment?: string;
   sentryRelease?: string;
   wsEndpoint: string;
+}
+
+export interface IDesktopRuntimeLocalProvider {
+  provider: DesktopGenerationProviderKind;
+  networkAccess: 'local' | 'remote' | 'unknown';
+}
+
+/** Nonsecret, authoritative selected-account and generation execution context. */
+export interface IDesktopRuntimeContext {
+  version: 1;
+  runtimeId: string;
+  revision: number;
+  status: 'ready' | 'switching' | 'unavailable';
+  selectedServerId: string;
+  selectedServerKind: 'cloud' | 'self-hosted';
+  selectedApiEndpoint: string;
+  runtimeMode: 'cloud' | 'local';
+  generationExecution: 'remote' | 'local-byok' | 'unknown';
+  localProvider: IDesktopRuntimeLocalProvider | null;
 }
 
 /* ─── Server selection ─── */
@@ -1119,6 +1140,10 @@ export interface IGenfeedDesktopBridge {
     ) => Promise<IDesktopCliAgentTurnHandle>;
   };
   app: {
+    getRuntimeContext: () => Promise<IDesktopRuntimeContext>;
+    onDidChangeRuntimeContext: (
+      callback: (context: IDesktopRuntimeContext) => void,
+    ) => () => void;
     detectLocalTools: () => Promise<IDesktopLocalToolReadiness>;
     enableOfflineMode: () => Promise<IDesktopBootstrap>;
     getDiagnostics: () => Promise<{

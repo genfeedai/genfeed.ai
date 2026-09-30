@@ -1,3 +1,10 @@
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({
+    useDesktopRuntimeContext: () => ({ status: 'web', context: null }),
+  }),
+);
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
@@ -26,6 +33,16 @@ vi.mock('@genfeedai/config/license', async (importOriginal) => {
     shouldShowCreditsNav: () => true,
   };
 });
+
+vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    isLoaded: true,
+    isSignedIn: true,
+    orgId: 'org-1',
+    sessionId: 'session_1',
+    userId: 'user_1',
+  }),
+}));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({

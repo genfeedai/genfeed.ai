@@ -56,7 +56,8 @@ describe('AgentOutputsPanel', () => {
     expect(
       screen.getByRole('heading', { name: 'Launch variants' }),
     ).toBeInTheDocument();
-    expect(screen.getAllByText('2 variants')).toHaveLength(2);
+    expect(screen.getByText('2 variants')).toBeInTheDocument();
+    expect(screen.getByText('image · 2 variants')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Use in chat' }));
 

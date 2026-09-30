@@ -38,6 +38,43 @@ describe('extractThreadOutputs', () => {
     ]);
   });
 
+  it('preserves ingredient title and thumbnail on direct video outputs', () => {
+    const outputs = extractThreadOutputs([
+      {
+        id: 'message',
+        content: 'Assistant',
+        role: 'assistant',
+        threadId: 'thread',
+        createdAt: '2026-09-30T00:00:00Z',
+        metadata: {
+          uiActions: [
+            {
+              id: 'action',
+              type: 'content_preview_card',
+              title: 'Group',
+              videos: ['https://cdn.test/clip.mp4'],
+              ingredients: [
+                {
+                  id: 'clip',
+                  type: 'video',
+                  url: 'https://cdn.test/clip.mp4',
+                  thumbnailUrl: 'https://cdn.test/poster.png',
+                  title: 'Product reveal',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ]);
+    expect(outputs[0].variants[0]).toMatchObject({
+      kind: 'video',
+      url: 'https://cdn.test/clip.mp4',
+      thumbnailUrl: 'https://cdn.test/poster.png',
+      title: 'Product reveal',
+    });
+  });
+
   it('creates a fallback output group from message-level media URLs', () => {
     const outputs = extractThreadOutputs([
       {

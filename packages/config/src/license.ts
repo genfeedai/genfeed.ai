@@ -1,6 +1,13 @@
 import { isDesktopClient, isSaaS, isSelfHostedDeployment } from './deployment';
 import { getLicenseVerificationVerdict } from './license-state';
 
+export interface CreditsVisibilityContext {
+  clientSurface?: 'web' | 'desktop';
+  runtimeMode?: 'cloud' | 'local' | 'unknown';
+  selectedServerKind?: 'cloud' | 'self-hosted' | null;
+  generationExecution?: 'remote' | 'local-byok' | 'unknown';
+}
+
 /**
  * Enterprise Edition (EE) feature gating for **self-hosted** commercial builds.
  *
@@ -54,11 +61,19 @@ export function usesMeteredCredits(): boolean {
  *
  * - SaaS / EE: yes (metered Genfeed credits).
  * - Community self-host: yes (buy managed Cloud credits; not pure local BYOK).
- * - Desktop: no — local BYOK only; no Genfeed credit wallet in-shell.
+ * - Desktop: only a verified selected cloud server may expose its wallet.
+ *   Generation execution does not determine which account owns that wallet.
  */
-export function shouldShowCreditsNav(): boolean {
-  if (isDesktopClient()) {
-    return false;
+export function shouldShowCreditsNav(
+  context?: CreditsVisibilityContext,
+): boolean {
+  if (
+    (context?.clientSurface ?? (isDesktopClient() ? 'desktop' : 'web')) ===
+    'desktop'
+  ) {
+    return (
+      context?.runtimeMode === 'cloud' && context.selectedServerKind === 'cloud'
+    );
   }
   if (hasOrganizationBilling()) {
     return true;

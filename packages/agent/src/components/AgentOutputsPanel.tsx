@@ -18,6 +18,7 @@ import {
   Music,
   Video,
 } from 'lucide-react';
+import NextImage from 'next/image';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -49,7 +50,8 @@ function getVariantLabel(
     return variant.title ?? `Text ${index + 1}`;
   }
 
-  return group.variants.length > 1 ? `Variant ${index + 1}` : 'Preview';
+  const label = group.variants.length > 1 ? `Variant ${index + 1}` : 'Preview';
+  return variant.title?.trim() ? `${label} · ${variant.title}` : label;
 }
 
 function renderVariantPreview(
@@ -91,7 +93,7 @@ function renderVariantPreview(
   }
 
   return (
-    <div className="gen-shell-empty-state rounded-[1.25rem] p-8 text-center text-sm text-foreground/55">
+    <div className="gen-shell-empty-state rounded-[1.25rem] p-8 text-center text-sm text-muted-foreground">
       No preview available.
     </div>
   );
@@ -195,14 +197,14 @@ export function AgentOutputsPanel({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-foreground/35">
+            <p className="text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               Outputs
             </p>
             <h2 className="mt-1 truncate text-base font-semibold text-foreground">
               {selectedGroup?.title}
             </h2>
             {selectedGroup?.description ? (
-              <p className="mt-1 line-clamp-2 text-xs text-foreground/55">
+              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                 {selectedGroup.description}
               </p>
             ) : null}
@@ -315,12 +317,29 @@ export function AgentOutputsPanel({
                 className="gen-shell-surface flex w-full items-start gap-3 rounded-2xl p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                 data-active={group.id === selectedGroupId ? 'true' : 'false'}
               >
-                <div className="mt-0.5 shrink-0">
+                <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border">
                   <VariantIcon kind={previewVariant.kind} />
+                  {previewVariant.thumbnailUrl ||
+                  (previewVariant.kind === 'image' && previewVariant.url) ? (
+                    <NextImage
+                      width={64}
+                      height={64}
+                      unoptimized
+                      src={
+                        previewVariant.thumbnailUrl || previewVariant.url || ''
+                      }
+                      alt=""
+                      className="absolute inset-0 size-full object-cover"
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="min-w-0 break-words text-sm font-semibold tracking-[-0.01em] text-foreground">
                       {group.title}
                     </p>
                     {group.status ? (
@@ -333,12 +352,12 @@ export function AgentOutputsPanel({
                     ) : null}
                   </div>
                   {group.description ? (
-                    <p className="mt-1 line-clamp-2 text-xs text-foreground/50">
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
                       {group.description}
                     </p>
                   ) : null}
-                  <p className="mt-2 text-2xs text-foreground/40">
-                    {group.variants.length} variant
+                  <p className="mt-2 text-2xs text-muted-foreground">
+                    {previewVariant.kind} · {group.variants.length} variant
                     {group.variants.length === 1 ? '' : 's'}
                   </p>
                 </div>

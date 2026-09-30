@@ -729,6 +729,12 @@
     "workflowRun": "Workflow run"
   },
   "desktop": {
+    "generationCost": {
+      "local": "Local generation · no Genfeed credits",
+      "remote": "Your provider · no Genfeed credits. Provider fees may apply",
+      "unknown": "Provider cost unavailable",
+      "missing": "Choose a local provider"
+    },
     "local": {
       "description": "PGlite and local generation run only while local mode is selected. Genfeed Cloud, Redis, and a system PostgreSQL install are not required.",
       "errors": {

@@ -239,7 +239,7 @@ export class LearningDatasetService {
           isDeleted: false,
         },
       });
-      if (!account) throw new NotFoundException('Source account not found');
+      if (!account) throw new NotFoundException('Source account');
       if (!account.sharingConsentVersion)
         throw new BadRequestException(
           'Current owner contribution consent required',
