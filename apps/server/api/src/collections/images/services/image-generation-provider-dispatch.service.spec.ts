@@ -8,8 +8,15 @@ import { KlingAiImageGenerationProviderAdapter } from '@api/collections/images/s
 import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/services/providers/leonardo-image-generation-provider.adapter';
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
-import { IngredientStatus, ModelProvider } from '@genfeedai/contracts';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
+import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  AgentFailureReason,
+  IngredientStatus,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -21,7 +28,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     generateImage: vi.fn(),
   };
   const failedGenerationService = {
-    handleFailedImageGeneration: vi.fn(),
+    notifyFailedImageGeneration: vi.fn(),
   };
   const filesClientService = {
     uploadToS3: vi.fn().mockResolvedValue({
@@ -38,6 +45,7 @@ describe('ImageGenerationProviderDispatchService', () => {
   const imagesService = {
     findOne: vi.fn().mockResolvedValue({ status: IngredientStatus.PROCESSING }),
     patch: vi.fn(),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
   const klingAIService = {
     queueGenerateImage: vi.fn(),
@@ -88,10 +96,20 @@ describe('ImageGenerationProviderDispatchService', () => {
   const mediaGenerationCostService = {
     recordGenerationCost: vi.fn().mockResolvedValue(undefined),
   };
+  const generationBilling = {
+    bindOutput: vi.fn().mockResolvedValue(undefined),
+    deferPoolRelease: vi.fn(),
+    hasPool: vi.fn().mockReturnValue(false),
+    releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+    releasePool: vi.fn().mockResolvedValue(undefined),
+    rememberAcceptedOutput: vi.fn().mockResolvedValue(undefined),
+    settleOutput: vi.fn().mockResolvedValue('no-hold'),
+  };
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
+    generationBilling as never,
     generationEventWebhookService as never,
     mediaGenerationCostService as never,
     imagesService as never,
@@ -208,8 +226,13 @@ describe('ImageGenerationProviderDispatchService', () => {
         width: 1920,
       },
     );
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
@@ -340,7 +363,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     );
 
     expect(
-      failedGenerationService.handleFailedImageGeneration,
+      failedGenerationService.notifyFailedImageGeneration,
     ).toHaveBeenCalled();
     expect(
       generationEventWebhookService.emitGenerationFailed,
@@ -353,6 +376,147 @@ describe('ImageGenerationProviderDispatchService', () => {
       organizationId: 'organization-1',
     });
   });
+
+  it('preserves completion when failure loses the terminal claim', async () => {
+    const failure = new Error('provider rejected');
+    comfyUIService.generateImage.mockRejectedValueOnce(failure);
+    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    const plan = await service.dispatch(
+      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+    );
+    await expect(plan?.generationPromise).rejects.toBe(failure);
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      }),
+      expect.objectContaining({ status: IngredientStatus.FAILED }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).not.toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationFailed,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('does not publish completion when expiry wins the terminal claim', async () => {
+    comfyUIService.generateImage.mockResolvedValueOnce({
+      imageBuffer: Buffer.from('image'),
+    });
+    imagesService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    const plan = await service.dispatch(
+      buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV }),
+    );
+    await plan?.generationPromise;
+    expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
+    expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('recovers a provider ID after metadata failure and keeps its hold', async () => {
+    klingAIService.queueGenerateImage.mockResolvedValueOnce('accepted-image');
+    metadataService.patch.mockImplementation(async (_id, metadata) => {
+      if (metadata.externalId) throw new Error('metadata unavailable');
+    });
+    const plan = await service.dispatch(buildContext());
+    await plan?.generationPromise;
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+      ingredientId: 'ingredient-1',
+      externalId: 'accepted-image',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.notifyFailedImageGeneration,
+    ).not.toHaveBeenCalled();
+    metadataService.patch.mockReset();
+  });
+
+  it.each(['network-outage', 'confirmed-failure'])(
+    'uses the second output identity for early acceptance and handles %s after polling',
+    async (outcome) => {
+      replicateService.generateTextToImage
+        .mockReset()
+        .mockResolvedValueOnce('first-job')
+        .mockResolvedValueOnce('second-job');
+      replicateService.getPrediction.mockReset().mockResolvedValueOnce({
+        status: 'succeeded',
+        output: ['https://provider.example/first.png'],
+      });
+      if (outcome === 'network-outage')
+        replicateService.getPrediction.mockRejectedValueOnce(
+          new Error('poll network outage'),
+        );
+      else
+        replicateService.getPrediction.mockResolvedValueOnce({
+          status: 'failed',
+          error: 'provider confirmed failure',
+        });
+      sharedService.createMediaDocuments.mockResolvedValueOnce({
+        ingredientData: { id: 'ingredient-2' },
+        metadataData: { id: 'metadata-2' },
+      });
+      const identities = new Map<string, string>();
+      metadataService.patch.mockImplementation(async (id, metadata) => {
+        if (metadata.externalId) identities.set(id, metadata.externalId);
+      });
+      const context = buildContext({
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        outputs: 2,
+        request: {
+          creditsConfig: {
+            amount: 6,
+            isByokBypass: true,
+            byokApiKeyOverride: 'org-key',
+          },
+        } as never,
+      });
+      const plan = await service.dispatch(context);
+      await expect(plan?.generationPromise).rejects.toThrow(
+        outcome === 'network-outage'
+          ? 'poll network outage'
+          : 'provider confirmed failure',
+      );
+      expect(identities.get('metadata-1')).toBe('first-job');
+      expect(identities.get('metadata-2')).toBe('second-job');
+      expect(
+        generationBilling.bindOutput.mock.calls.map(
+          ([, output]) => output.ingredientId,
+        ),
+      ).toEqual(['ingredient-1', 'ingredient-2']);
+      if (outcome === 'network-outage') {
+        expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+        expect(
+          failedGenerationService.notifyFailedImageGeneration,
+        ).not.toHaveBeenCalled();
+      } else {
+        expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+          'ingredient-2',
+          'organization-1',
+        );
+        expect(imagesService.patchAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'ingredient-2',
+            status: IngredientStatus.PROCESSING,
+            organizationId: 'organization-1',
+            isDeleted: false,
+          }),
+          expect.objectContaining({ status: IngredientStatus.FAILED }),
+        );
+      }
+      metadataService.patch.mockReset();
+      replicateService.getPrediction.mockReset().mockResolvedValue({
+        status: 'succeeded',
+        output: ['https://provider.example/generated.png'],
+      });
+    },
+  );
 
   it('fans out Fal outputs and tracks each placeholder', async () => {
     falService.generateImage
@@ -380,6 +544,7 @@ describe('ImageGenerationProviderDispatchService', () => {
         seed: 42,
       },
       undefined,
+      expect.any(Function),
     );
     expect(context.pendingIngredientIds).toEqual([
       'ingredient-1',
@@ -406,6 +571,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       'google/nano-banana-2-lite',
       expect.objectContaining({ prompt: 'A cinematic sunrise' }),
       undefined,
+      expect.any(Function),
     );
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
   });
@@ -425,6 +591,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       'google/nano-banana-2-lite',
       expect.any(Object),
       undefined,
+      expect.any(Function),
     );
     expect(falService.generateImage).not.toHaveBeenCalled();
   });
@@ -480,6 +647,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(higgsFieldService.generateTextToImage).toHaveBeenCalledWith({
       aspectRatio: '16:9',
       batchSize: 1,
+      onProviderSubmissionStarted: expect.any(Function),
       organizationId: 'organization-1',
       prompt: 'A cinematic sunrise',
     });
@@ -487,8 +655,13 @@ describe('ImageGenerationProviderDispatchService', () => {
       'higgsfield-req-1',
       { organizationId: 'organization-1' },
     );
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
@@ -526,6 +699,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       model,
       context.providerInput,
       undefined,
+      expect.any(Function),
     );
     expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
     expect(metadataService.patch.mock.calls).toEqual(
@@ -550,8 +724,13 @@ describe('ImageGenerationProviderDispatchService', () => {
       'ingredient-3',
     ]);
     expect(filesClientService.uploadToS3).toHaveBeenCalledTimes(3);
-    expect(imagesService.patch).toHaveBeenCalledWith(
-      'ingredient-1',
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'ingredient-1',
+        organizationId: 'organization-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
       expect.objectContaining({ status: IngredientStatus.GENERATED }),
     );
   });
@@ -604,6 +783,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
       compiledDispatch,
       undefined,
+      expect.any(Function),
     );
   });
 
@@ -634,6 +814,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       model,
       context.providerInput,
       'org-replicate-key',
+      expect.any(Function),
     );
     expect(replicateService.getPrediction).toHaveBeenCalledWith(
       'replicate-byok-job',
@@ -654,4 +835,193 @@ describe('ImageGenerationProviderDispatchService', () => {
 
     expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
   });
+  it.each(['placeholder', 'binding'])(
+    'records proven non-submission when native batch %s creation fails',
+    async (failurePoint) => {
+      const quote = quoteModelBillablePricing(
+        billableProfile(),
+        {
+          modelKey: 'test/model',
+          provider: 'replicate',
+          outputs: 2,
+          requests: 1,
+        },
+        1,
+        '2026-09-30T00:00:00.000Z',
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      const context = buildContext({
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE,
+        outputs: 2,
+        request: {
+          creditsConfig: {
+            modelQuote: quote.snapshot,
+            amount: quote.snapshot.credits,
+            reservationId: 'hold-1',
+            settlement: 'completion',
+          },
+        } as never,
+      });
+      const error = new Error('batch preparation failed');
+      if (failurePoint === 'placeholder')
+        sharedService.createMediaDocuments.mockRejectedValueOnce(error);
+      else {
+        sharedService.createMediaDocuments.mockResolvedValueOnce({
+          ingredientData: { id: 'ingredient-2' },
+          metadataData: { id: 'metadata-2' },
+        });
+        generationBilling.bindOutput
+          .mockResolvedValueOnce(undefined)
+          .mockRejectedValueOnce(error);
+      }
+      const plan = await service.dispatch(context);
+      await expect(plan?.generationPromise).rejects.toBe(error);
+      expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+      expect(imagesService.patchAll).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'ingredient-1' }),
+        expect.objectContaining({
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+        }),
+      );
+      expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+        'ingredient-1',
+        'organization-1',
+      );
+    },
+  );
+
+  it('persists every surplus output URL and stops sequential fanout without charging beyond the quote', async () => {
+    replicateService.generateTextToImage.mockResolvedValue('job-surplus');
+    const urls = Array.from(
+      { length: 4 },
+      (_, index) => `https://replicate.delivery/image-${index}.png`,
+    );
+    replicateService.getPrediction.mockResolvedValue({
+      status: 'succeeded',
+      output: urls,
+    });
+    const context = buildContext({
+      model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      outputs: 2,
+    });
+    const plan = await service.dispatch(context);
+    await expect(plan?.generationPromise).rejects.toThrow(
+      'cardinality exceeds',
+    );
+    expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
+    expect(metadataService.patch).toHaveBeenCalledWith(
+      'metadata-1',
+      expect.objectContaining({
+        result: JSON.stringify(urls),
+        error: expect.stringContaining('recovery'),
+      }),
+    );
+    expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+  });
+  it('records confirmed failure and releases group funding after a Replicate create credit rejection', async () => {
+    const quote = quoteModelBillablePricing(
+      billableProfile(),
+      {
+        modelKey: 'test/model',
+        provider: 'replicate',
+        outputs: 1,
+        requests: 1,
+      },
+      1,
+      '2026-09-30T00:00:00.000Z',
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    const error = new ReplicateProviderError(
+      AgentFailureReason.INSUFFICIENT_CREDITS,
+      'rejected',
+      { statusCode: 402, isRetryable: false },
+    );
+    replicateService.generateTextToImage.mockRejectedValueOnce(error);
+    const context = buildContext({
+      model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      request: {
+        creditsConfig: {
+          modelQuote: quote.snapshot,
+          amount: quote.snapshot.credits,
+          settlement: 'completion',
+          reservationId: 'hold-1',
+        },
+      } as never,
+    });
+    const plan = await service.dispatch(context);
+    await expect(plan?.generationPromise).rejects.toBe(error);
+    expect(imagesService.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ingredient-1',
+        status: IngredientStatus.PROCESSING,
+      }),
+      expect.objectContaining({
+        status: IngredientStatus.FAILED,
+        isGenerationFailureConfirmed: true,
+      }),
+    );
+    expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+      'ingredient-1',
+      'organization-1',
+    );
+  });
+  it.each([false, true])(
+    'retains group funding only after the image remote submission boundary (%s)',
+    async (submitted) => {
+      const quote = quoteModelBillablePricing(
+        billableProfile(),
+        {
+          modelKey: 'test/model',
+          provider: 'replicate',
+          outputs: 1,
+          requests: 1,
+        },
+        1,
+        '2026-09-30T00:00:00.000Z',
+      );
+      if (quote.status !== 'priced') throw new Error(quote.reason);
+      const error = new Error(
+        submitted
+          ? 'ambiguous create network failure'
+          : 'local credentials unavailable',
+      );
+      replicateService.generateTextToImage.mockImplementationOnce(
+        async (_model, _input, _key, onSubmissionStarted) => {
+          if (submitted) onSubmissionStarted();
+          throw error;
+        },
+      );
+      const context = buildContext({
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        request: {
+          creditsConfig: {
+            modelQuote: quote.snapshot,
+            amount: quote.snapshot.credits,
+            reservationId: 'hold-1',
+            settlement: 'completion',
+          },
+        } as never,
+      });
+      const plan = await service.dispatch(context);
+      await expect(plan?.generationPromise).rejects.toBe(error);
+      if (submitted) {
+        expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+        expect(imagesService.patchAll).not.toHaveBeenCalled();
+      } else {
+        expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+          'ingredient-1',
+          'organization-1',
+        );
+        expect(imagesService.patchAll).toHaveBeenCalledWith(
+          expect.objectContaining({ id: 'ingredient-1' }),
+          expect.objectContaining({
+            isGenerationFailureConfirmed: true,
+            status: IngredientStatus.FAILED,
+          }),
+        );
+      }
+    },
+  );
 });

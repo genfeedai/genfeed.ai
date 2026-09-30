@@ -5,6 +5,7 @@ export * from './cost-report.interface';
 export * from './credits.interface';
 export * from './credits-utils.contract';
 export * from './generation-credit-calculation.interface';
+export * from './generation-usage-receipt.interface';
 export * from './isubscription-attributions-service.contract';
 export * from './iuser-subscriptions-service.contract';
 export * from './llm-vendor-cost.interface';

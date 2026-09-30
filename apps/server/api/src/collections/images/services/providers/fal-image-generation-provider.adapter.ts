@@ -52,6 +52,7 @@ export class FalImageGenerationProviderAdapter
         : legacyInput;
 
     return {
+      tracksSubmissionStarted: true,
       additionalActivityFailure: 'ignore',
       additionalFailureLabel: 'FalService generateImage (additional output)',
       additionalPlaceholderFailureLabel: 'Fal',
@@ -62,6 +63,7 @@ export class FalImageGenerationProviderAdapter
           request.modelEndpoint ?? getFalEndpointFromModelKey(request.model),
           input,
           request.apiKeyOverride,
+          request.onProviderSubmissionStarted,
         );
         return {
           externalId: result.url,

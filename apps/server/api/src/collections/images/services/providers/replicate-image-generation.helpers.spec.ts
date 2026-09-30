@@ -24,12 +24,15 @@ describe('replicateImageOutputStrategy', () => {
 });
 
 describe('extractReplicateOutputUrls', () => {
-  it('accepts a string or string array and ignores other shapes', () => {
+  it('accepts only a string or an entire string array', () => {
     expect(extractReplicateOutputUrls('https://cdn.example/a.png')).toEqual([
       'https://cdn.example/a.png',
     ]);
     expect(
       extractReplicateOutputUrls(['https://cdn.example/a.png', 12, 'b']),
+    ).toEqual([]);
+    expect(
+      extractReplicateOutputUrls(['https://cdn.example/a.png', 'b']),
     ).toEqual(['https://cdn.example/a.png', 'b']);
     expect(extractReplicateOutputUrls({ url: 'x' })).toEqual([]);
   });

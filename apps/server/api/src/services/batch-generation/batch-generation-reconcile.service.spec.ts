@@ -1,4 +1,5 @@
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { BATCH_MAX_RESUME_ATTEMPTS } from '@api/services/batch-generation/batch-generation.constants';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
@@ -36,6 +37,7 @@ describe('BatchGenerationReconcileService', () => {
     settleBatchCredits: ReturnType<typeof vi.fn>;
   };
   let reservationService: CreditReservationServiceMock;
+  let generationBilling: { reconcile: ReturnType<typeof vi.fn> };
 
   const pendingItem = {
     format: ContentFormat.IMAGE,
@@ -72,6 +74,7 @@ describe('BatchGenerationReconcileService', () => {
       }),
     };
     reservationService = { expireDue: vi.fn().mockResolvedValue(0) };
+    generationBilling = { reconcile: vi.fn().mockResolvedValue(0) };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -101,6 +104,10 @@ describe('BatchGenerationReconcileService', () => {
         {
           provide: CreditReservationService,
           useValue: reservationService,
+        },
+        {
+          provide: GenerationBillingService,
+          useValue: generationBilling,
         },
       ],
     }).compile();
@@ -324,5 +331,21 @@ describe('BatchGenerationReconcileService', () => {
     await service.reconcileSettlementShortfalls();
 
     expect(reservationService.expireDue).toHaveBeenCalledOnce();
+  });
+
+  it('settles or releases ended generation holds before the generic expiry sweep', async () => {
+    const order: string[] = [];
+    generationBilling.reconcile.mockImplementation(async () => {
+      order.push('generation');
+      return 2;
+    });
+    reservationService.expireDue.mockImplementation(async () => {
+      order.push('expiry');
+      return 0;
+    });
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(order).toEqual(['generation', 'expiry']);
   });
 });

@@ -69,6 +69,11 @@ describe('ImageUpscaleService', () => {
     upscaleFactor: UpscaleFactor._2X,
   };
 
+  let generationBilling: {
+    bindOutput: ReturnType<typeof vi.fn>;
+    releaseOutput: ReturnType<typeof vi.fn>;
+    rememberAcceptedOutput: ReturnType<typeof vi.fn>;
+  };
   let service: ImageUpscaleService;
   let activitiesService: { record: ReturnType<typeof vi.fn> };
   let failedGenerationService: {
@@ -91,6 +96,11 @@ describe('ImageUpscaleService', () => {
   };
 
   beforeEach(() => {
+    generationBilling = {
+      bindOutput: vi.fn(),
+      releaseOutput: vi.fn(),
+      rememberAcceptedOutput: vi.fn(),
+    };
     activitiesService = {
       record: vi.fn().mockResolvedValue({ id: activityId }),
     };
@@ -140,7 +150,27 @@ describe('ImageUpscaleService', () => {
       routerService as unknown as RouterService,
       sharedService as unknown as SharedService,
       websocketService as unknown as NotificationsPublisherService,
+      generationBilling as never,
     );
+  });
+
+  it('keeps an accepted transformation funded when its provider ID cannot be persisted', async () => {
+    metadataService.patch.mockRejectedValueOnce(
+      new Error('metadata unavailable'),
+    );
+    await expect(
+      service.upscaleImage(request, imageId, user, body),
+    ).resolves.toBe(ingredientData);
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+      ingredientId: upscaledImageId,
+      externalId: generationId,
+      organizationId: user.organizationId,
+      userId: user.userId,
+    });
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      failedGenerationService.handleFailedImageGeneration,
+    ).not.toHaveBeenCalled();
   });
 
   it('preserves caller-model upscale orchestration and returns the processing ingredient', async () => {

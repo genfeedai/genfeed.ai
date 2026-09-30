@@ -1,7 +1,12 @@
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type {
   CreateVideoPlaceholderActivityParams,
+  DispatchVideoGenerationParams,
   VideoGenerationContext,
   VideoGenerationProviderResult,
   VideoGenerationSaveDocumentsResult,
@@ -13,13 +18,17 @@ import {
 } from '@api/collections/videos/services/video-generation-output.util';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { toRedactedVideoGenerationBriefProviderData } from '@api/services/generation-brief';
-import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  isReplicateSubmissionRejected,
+  ReplicateProviderError,
+} from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -42,9 +51,24 @@ type StartedVideoGeneration = VideoGenerationProviderResult & {
 
 @Injectable()
 export class VideoGenerationExecutionService {
+  private readonly submissionStarted = new WeakMap<
+    VideoGenerationContext,
+    Set<string>
+  >();
+
+  private beginSubmission(
+    context: VideoGenerationContext,
+    ids: readonly string[],
+  ): void {
+    const started = this.submissionStarted.get(context) ?? new Set<string>();
+    for (const id of ids) started.add(id);
+    this.submissionStarted.set(context, started);
+  }
+
   constructor(
     private readonly activityRecorder: ActivityRecorderService,
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly generationBilling: GenerationBillingService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
     private readonly providerDispatchService: VideoGenerationProviderDispatchService,
@@ -52,9 +76,11 @@ export class VideoGenerationExecutionService {
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   async execute(context: VideoGenerationContext): Promise<void> {
+    const accepted = new Set<string>();
     await this.createPlaceholderActivity({
       brandId: context.brand.id,
       ingredientId: context.ingredientData.id,
@@ -70,28 +96,35 @@ export class VideoGenerationExecutionService {
     });
 
     try {
-      const generation = await this.dispatch(context);
-
       const isBatchSupported =
         MODEL_OUTPUT_CAPABILITIES[context.model]?.isBatchSupported ?? false;
       const placement = resolveVideoOutputPlacement(isBatchSupported, outputs);
       if (placement === 'batch') {
-        await this.createBatchOutputs(context, generation, outputs);
+        await this.createBatchOutputs(context, outputs, accepted);
       } else if (placement === 'sequential') {
-        await this.createSequentialOutputs(context, generation, outputs);
+        await this.createSequentialOutputs(context, outputs, accepted);
       } else {
-        await this.metadataService.patch(
-          context.metadataData.id,
-          new MetadataEntity({ externalId: generation.externalId }),
+        await this.bindOutputCredits(
+          context,
+          context.ingredientData.id.toString(),
+          outputs,
         );
-        await this.scheduleReplicatePoll(
+        const generation = await this.dispatch(context);
+        accepted.add(context.ingredientData.id.toString());
+        await this.persistAcceptedOutput(
+          context,
+          context.ingredientData.id.toString(),
+          context.metadataData.id,
+          generation,
+        );
+        await this.completeOrScheduleOutput(
           context,
           context.ingredientData.id.toString(),
           generation,
         );
       }
     } catch (error: unknown) {
-      await this.failPendingOutputs(context, error);
+      await this.failPendingOutputs(context, error, accepted);
       throw this.toDispatchException(error);
     }
   }
@@ -128,32 +161,53 @@ export class VideoGenerationExecutionService {
 
   private async createBatchOutputs(
     context: VideoGenerationContext,
-    generation: StartedVideoGeneration,
     outputs: number,
+    accepted: Set<string>,
   ): Promise<void> {
-    const generationId = generation.externalId;
-    await this.metadataService.patch(
-      context.metadataData.id,
-      new MetadataEntity({ externalId: `${generationId}_0` }),
+    await this.bindOutputCredits(
+      context,
+      context.ingredientData.id.toString(),
+      outputs,
     );
-    const additionalDocuments = await Promise.all(
-      Array.from({ length: outputs - 1 }, () =>
-        this.createAdditionalDocuments(context),
-      ),
+    const additionalDocuments: VideoGenerationSaveDocumentsResult[] = [];
+    for (let index = 1; index < outputs; index += 1) {
+      const documents = await this.createAdditionalDocuments(context);
+      const id = documents.ingredientData.id.toString();
+      context.pendingIngredientIds.push(id);
+      additionalDocuments.push(documents);
+      await this.bindOutputCredits(context, id, outputs);
+    }
+    const generation = await this.dispatch(
+      context,
+      undefined,
+      context.pendingIngredientIds,
     );
-    context.pendingIngredientIds.push(
-      ...additionalDocuments.map(({ ingredientData }) =>
-        ingredientData.id.toString(),
+    const documents = [
+      {
+        ingredientData: context.ingredientData,
+        metadataData: context.metadataData,
+      },
+      ...additionalDocuments,
+    ];
+    for (const { ingredientData } of documents)
+      accepted.add(ingredientData.id.toString());
+    await Promise.all(
+      documents.map(({ ingredientData, metadataData }, index) =>
+        this.persistAcceptedOutput(
+          context,
+          ingredientData.id.toString(),
+          metadataData.id,
+          { ...generation, externalId: `${generation.externalId}_${index}` },
+        ),
       ),
     );
     await Promise.all(
-      additionalDocuments.map(({ metadataData }, index) =>
-        this.metadataService.patch(
-          metadataData.id,
-          new MetadataEntity({
-            externalId: `${generationId}_${index + 1}`,
-            externalProvider: generation.provider,
-          }),
+      documents.map(({ ingredientData }, index) =>
+        this.completeOrScheduleOutput(
+          context,
+          ingredientData.id.toString(),
+          generation,
+          index,
         ),
       ),
     );
@@ -168,83 +222,79 @@ export class VideoGenerationExecutionService {
         }),
       ),
     );
-    await Promise.all(
-      context.pendingIngredientIds.map((ingredientId, outputIndex) =>
-        this.scheduleReplicatePoll(
-          context,
-          ingredientId,
-          generation,
-          outputIndex,
-        ),
-      ),
-    );
-    this.loggerService.log(
-      'Created multiple placeholders for batch-capable model multi-output',
-      {
-        generationId,
-        isBatchSupported: true,
-        model: context.model,
-        outputs,
-        pendingIngredientIds: context.pendingIngredientIds,
-      },
-    );
   }
 
   private async createSequentialOutputs(
     context: VideoGenerationContext,
-    generation: StartedVideoGeneration,
     outputs: number,
+    accepted: Set<string>,
   ): Promise<void> {
-    const generationId = generation.externalId;
-    await this.metadataService.patch(
-      context.metadataData.id,
-      new MetadataEntity({ externalId: generationId }),
-    );
-    await this.scheduleReplicatePoll(
-      context,
-      context.ingredientData.id.toString(),
-      generation,
-    );
-
-    for (let index = 1; index < outputs; index += 1) {
-      const documents = await this.createAdditionalDocuments(context);
-      context.pendingIngredientIds.push(documents.ingredientData.id.toString());
-      const additionalGeneration = await this.dispatch(context, index + 1);
-      await Promise.all([
-        this.metadataService.patch(
-          documents.metadataData.id,
-          new MetadataEntity({
-            externalId: additionalGeneration.externalId,
-            externalProvider: additionalGeneration.provider,
-          }),
-        ),
-        this.videosService.patch(documents.ingredientData.id, {
-          promptId: context.promptData.id,
-        }),
-      ]);
-      await this.createPlaceholderActivity({
-        brandId: context.brand.id,
-        ingredientId: documents.ingredientData.id,
-        model: context.model,
-        organizationId: context.user.organizationId,
-        userId: context.user.userId ?? context.user.id,
-      });
-      await this.scheduleReplicatePoll(
+    for (let index = 0; index < outputs; index += 1) {
+      const documents =
+        index === 0
+          ? {
+              ingredientData: context.ingredientData,
+              metadataData: context.metadataData,
+            }
+          : await this.createAdditionalDocuments(context);
+      const id = documents.ingredientData.id.toString();
+      if (index > 0) context.pendingIngredientIds.push(id);
+      await this.bindOutputCredits(context, id, outputs);
+      const generation = await this.dispatch(context, index + 1, [id]);
+      accepted.add(id);
+      await this.persistAcceptedOutput(
         context,
-        documents.ingredientData.id.toString(),
-        additionalGeneration,
+        id,
+        documents.metadataData.id,
+        generation,
       );
+      await this.completeOrScheduleOutput(context, id, generation);
+      if (index > 0)
+        await this.createPlaceholderActivity({
+          brandId: context.brand.id,
+          ingredientId: documents.ingredientData.id,
+          model: context.model,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId ?? context.user.id,
+        });
     }
+  }
 
-    this.loggerService.log(
-      'Created multiple API calls for non-batch model multi-output',
-      {
-        isBatchSupported: false,
-        model: context.model,
-        outputs,
-        pendingIngredientIds: context.pendingIngredientIds,
-      },
-    );
+  private async persistAcceptedOutput(
+    context: VideoGenerationContext,
+    ingredientId: string,
+    metadataId: string,
+    generation: StartedVideoGeneration,
+  ): Promise<void> {
+    try {
+      await this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          externalId: generation.externalId,
+          externalProvider: generation.provider,
+        }),
+      );
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Accepted video metadata persistence failed',
+        error,
+        { ingredientId },
+      );
+      try {
+        await this.generationBilling.rememberAcceptedOutput({
+          ingredientId,
+          externalId: generation.externalId,
+          organizationId: context.user.organizationId,
+          userId: context.user.userId,
+        });
+      } catch (recoveryError: unknown) {
+        this.loggerService.error(
+          'Accepted video attachment recovery failed; retain its funding',
+          recoveryError,
+          { ingredientId, externalId: generation.externalId },
+        );
+      }
+    }
   }
 
   private createAdditionalDocuments(
@@ -297,21 +347,18 @@ export class VideoGenerationExecutionService {
     });
   }
 
-  private async dispatch(
-    context: VideoGenerationContext,
-    output?: number,
-  ): Promise<StartedVideoGeneration> {
-    const externalProvider = this.providerDispatchService.providerFor(
-      context.model,
-      context.modelProvider,
-    );
-    if (externalProvider) {
-      await this.metadataService.patch(
-        context.metadataData.id,
-        new MetadataEntity({ externalProvider }),
+  prepareProviderDispatch(context: VideoGenerationContext): void {
+    context.preparedFalDispatch =
+      this.providerDispatchService.prepareFalDispatch(
+        this.dispatchParams(context),
       );
-    }
-    const result = await this.providerDispatchService.dispatch({
+  }
+
+  private dispatchParams(
+    context: VideoGenerationContext,
+  ): DispatchVideoGenerationParams {
+    return {
+      preparedFalDispatch: context.preparedFalDispatch,
       apiKeyOverride: this.resolveByokApiKeyOverride(context),
       duration: context.createVideoDto.duration,
       height: context.height,
@@ -325,6 +372,28 @@ export class VideoGenerationExecutionService {
       prompt: context.promptInput.prompt || '',
       promptParams: context.promptParams,
       width: context.width,
+    };
+  }
+
+  private async dispatch(
+    context: VideoGenerationContext,
+    output?: number,
+    ingredientIds: readonly string[] = [context.ingredientData.id.toString()],
+  ): Promise<StartedVideoGeneration> {
+    const externalProvider = this.providerDispatchService.providerFor(
+      context.model,
+      context.modelProvider,
+    );
+    if (externalProvider) {
+      await this.metadataService.patch(
+        context.metadataData.id,
+        new MetadataEntity({ externalProvider }),
+      );
+    }
+    const result = await this.providerDispatchService.dispatch({
+      ...this.dispatchParams(context),
+      onProviderSubmissionStarted: () =>
+        this.beginSubmission(context, ingredientIds),
     });
     if (!result.externalId) {
       throw this.generationStartError(output);
@@ -332,12 +401,21 @@ export class VideoGenerationExecutionService {
     return { ...result, externalId: result.externalId };
   }
 
-  private async scheduleReplicatePoll(
+  private async completeOrScheduleOutput(
     context: VideoGenerationContext,
     ingredientId: string,
     generation: StartedVideoGeneration,
     outputIndex?: number,
   ): Promise<void> {
+    if (generation.completion === 'remote-output') {
+      await this.webhooksService.processMediaForIngredient(
+        ingredientId,
+        IngredientCategory.VIDEO,
+        generation.externalId,
+        generation.externalId,
+      );
+      return;
+    }
     if (
       generation.completion !== 'polling' ||
       generation.provider !== 'replicate'
@@ -374,10 +452,63 @@ export class VideoGenerationExecutionService {
   private async failPendingOutputs(
     context: VideoGenerationContext,
     error: unknown,
+    accepted = new Set<string>(),
   ): Promise<void> {
     this.loggerService.error('VideoGenerationService create failed', error);
+    const failedIds = context.pendingIngredientIds.filter(
+      (id) => !accepted.has(id),
+    );
+    if (
+      (context.request as unknown as DeferredCreditsRequest | undefined)
+        ?.creditsConfig?.modelQuote
+    ) {
+      await Promise.all(
+        failedIds.map(async (pendingId) => {
+          if (
+            this.submissionStarted.get(context)?.has(pendingId) &&
+            !isReplicateSubmissionRejected(error)
+          ) {
+            this.loggerService.error(
+              'Video provider submission outcome is unknown; retain funding',
+              error,
+              { ingredientId: pendingId },
+            );
+            return;
+          }
+          const claimed = await this.videosService.patchAll(
+            {
+              id: pendingId,
+              organizationId: context.user.organizationId,
+              isDeleted: false,
+              status: IngredientStatus.PROCESSING,
+            },
+            {
+              status: IngredientStatus.FAILED,
+              isGenerationFailureConfirmed: true,
+              generationError: 'Generation failed before provider submission',
+            },
+          );
+          if (claimed.modifiedCount !== 1) return;
+          await this.releaseOutputCredits(context, pendingId);
+          await this.failedGenerationService.notifyFailedGeneration({
+            ingredientId: pendingId,
+            organizationId: context.user.organizationId,
+            userId: context.user.userId,
+            websocketMethod: 'publishMediaFailed',
+            websocketUrl: WebSocketPaths.video(pendingId),
+            websocketMessage: 'Generation failed before provider submission',
+          });
+        }),
+      );
+      return;
+    }
     await Promise.all(
-      context.pendingIngredientIds.map((pendingId) =>
+      failedIds.map((pendingId) =>
+        this.releaseOutputCredits(context, pendingId),
+      ),
+    );
+    await Promise.all(
+      failedIds.map((pendingId) =>
         this.failedGenerationService.handleFailedVideoGeneration(
           this.videosService,
           pendingId,
@@ -398,6 +529,42 @@ export class VideoGenerationExecutionService {
         ),
       ),
     );
+  }
+
+  /**
+   * Binds one output to an even share of the request's credit hold,
+   * before dispatch so a fast webhook finds the hold.
+   */
+  private async bindOutputCredits(
+    context: VideoGenerationContext,
+    ingredientId: string,
+    outputs: number,
+  ): Promise<void> {
+    const request = context.request as unknown as GenerationBillingRequest;
+    const amount = request?.creditsConfig?.amount;
+    if (amount === undefined) {
+      return;
+    }
+    await this.generationBilling.bindOutput(request, {
+      credits: amount / Math.max(outputs, 1),
+      ingredientId,
+    });
+  }
+
+  private async releaseOutputCredits(
+    context: VideoGenerationContext,
+    ingredientId: string,
+  ): Promise<void> {
+    try {
+      await this.generationBilling.releaseOutput(
+        ingredientId,
+        context.user.organizationId,
+      );
+    } catch (error: unknown) {
+      this.loggerService.error('Video credit release failed', error, {
+        ingredientId,
+      });
+    }
   }
 
   private async createPlaceholderActivity(

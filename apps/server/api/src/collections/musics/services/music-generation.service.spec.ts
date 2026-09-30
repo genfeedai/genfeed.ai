@@ -5,6 +5,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
@@ -70,6 +71,12 @@ describe('MusicGenerationService', () => {
       }),
     };
     const creditsUtilsService = {
+      bindReservationOutput: vi
+        .fn()
+        .mockImplementation(async ({ amount, workloadId }) => ({
+          amount,
+          id: `hold-${workloadId}`,
+        })),
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       releaseReservation: vi.fn().mockResolvedValue(undefined),
     };
@@ -90,6 +97,7 @@ describe('MusicGenerationService', () => {
       debug: vi.fn(),
       error: vi.fn(),
       log: vi.fn(),
+      warn: vi.fn(),
     };
     const metadataService = {
       patch: vi.fn().mockResolvedValue(undefined),
@@ -149,6 +157,7 @@ describe('MusicGenerationService', () => {
       creditDeductionQueueService as never,
       creditsUtilsService as never,
       loggerService as never,
+      { closeDispatch: vi.fn() } as never,
     );
     // Real facade wired onto the same mocks — MusicGenerationService no
     // longer injects activitiesService/failedGenerationService/musicsService/
@@ -162,8 +171,21 @@ describe('MusicGenerationService', () => {
         musicsService as never,
         websocketService as never,
       );
+    const generationBilling = new GenerationBillingService(
+      creditsUtilsService as never,
+      creditDeductionQueueService as never,
+      {} as never,
+      loggerService as never,
+      {
+        reconcileOutput: vi.fn().mockResolvedValue(false),
+        reconcile: vi.fn().mockResolvedValue(0),
+        closeDispatch: vi.fn(),
+        bindOutput: vi.fn(),
+      } as never,
+    );
     const service = new MusicGenerationService(
       brandsService as never,
+      generationBilling,
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
@@ -715,13 +737,14 @@ describe('MusicGenerationService', () => {
         description: 'Music generation',
         modelKey: 'explicit-model',
         reservationId: 'reservation-1',
+        settlement: 'completion',
       },
       originalUrl: '/api/musics',
       selectedModel: { category: ModelCategory.MUSIC },
       user,
     }) as unknown as Request;
 
-  it('bills a multi-output generation exactly once, through the request pipeline', async () => {
+  it('binds each accepted output to its own share and queues nothing on the response', async () => {
     const created = createService();
     const billedRequest = buildBilledRequest(21);
 
@@ -733,23 +756,50 @@ describe('MusicGenerationService', () => {
     await created.creditsInterceptor.settle(billedRequest as never, response);
 
     expect(
-      created.creditDeductionQueueService.queueDeduction,
-    ).toHaveBeenCalledOnce();
+      created.creditsUtilsService.bindReservationOutput,
+    ).toHaveBeenCalledTimes(3);
+    expect(
+      created.creditsUtilsService.bindReservationOutput.mock.calls.map(
+        ([input]) => [input.workloadId, input.amount, input.reservationId],
+      ),
+    ).toEqual([
+      ['music-1', 7, 'reservation-1'],
+      ['music-2', 7, 'reservation-1'],
+      ['music-3', 7, 'reservation-1'],
+    ]);
     expect(
       created.creditDeductionQueueService.queueDeduction,
-    ).toHaveBeenCalledWith(
-      expect.objectContaining({
-        amount: 21,
-        organizationId: 'org-1',
-        reservationId: 'reservation-1',
-      }),
-    );
+    ).not.toHaveBeenCalled();
     expect(
       created.creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
   });
 
-  it('releases the reservation instead of billing when the primary generation cannot start', async () => {
+  it('binds the hold before the provider id is persisted so a fast webhook finds it', async () => {
+    const created = createService();
+    const order: string[] = [];
+    created.creditsUtilsService.bindReservationOutput.mockImplementation(
+      async ({ amount, workloadId }) => {
+        order.push(`bind:${workloadId}`);
+        return { amount, id: `hold-${workloadId}` };
+      },
+    );
+    created.metadataService.patch.mockImplementation(async (_id, patch) => {
+      if (patch?.externalId) order.push(`external:${patch.externalId}`);
+    });
+
+    await created.service.generateMusic(
+      user,
+      buildDto({ outputs: 1 }),
+      buildBilledRequest(7),
+    );
+
+    expect(order.indexOf('bind:music-1')).toBeLessThan(
+      order.findIndex((entry) => entry.startsWith('external:')),
+    );
+  });
+
+  it('releases the request hold and charges nothing when no output was accepted', async () => {
     const created = createService();
     created.musicProviderRegistry.generate.mockResolvedValue({
       externalId: '',
@@ -763,6 +813,9 @@ describe('MusicGenerationService', () => {
     );
     await created.creditsInterceptor.settle(billedRequest as never, response);
 
+    expect(
+      created.creditsUtilsService.bindReservationOutput,
+    ).not.toHaveBeenCalled();
     expect(
       created.creditDeductionQueueService.queueDeduction,
     ).not.toHaveBeenCalled();

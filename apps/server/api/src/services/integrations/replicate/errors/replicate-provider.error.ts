@@ -66,3 +66,12 @@ export function toReplicateProviderError(error: unknown): Error {
 
   return error instanceof Error ? error : new Error(String(error));
 }
+
+export function isReplicateSubmissionRejected(error: unknown): boolean {
+  return (
+    error instanceof ReplicateProviderError &&
+    error.reason === AgentFailureReason.INSUFFICIENT_CREDITS &&
+    error.statusCode === 402 &&
+    !error.isRetryable
+  );
+}

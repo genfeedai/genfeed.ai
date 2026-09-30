@@ -1,5 +1,6 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   ByokProvider,
   ModelCategory,
@@ -42,6 +43,7 @@ describe('ImageGenerationCreditsService', () => {
       (input: IReserveCreditsInput) =>
         Promise.resolve({
           amount: input.amount,
+          metadata: input.metadata,
           id: 'reservation-1',
           status: 'RESERVED',
         }),
@@ -51,6 +53,7 @@ describe('ImageGenerationCreditsService', () => {
       modelsService as never,
       providerRegistry as never,
       byokService as never,
+      testModelCreditQuote(modelsService as never, 'fal'),
     );
   });
 
@@ -70,7 +73,6 @@ describe('ImageGenerationCreditsService', () => {
       modelsService.findOne.mockResolvedValue(registered);
       const quote = await service.quoteCredits(dto as never, model, 'org-1');
       expect(quote).toMatchObject({ unitCredits: 10, billingMode: 'credits' });
-      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).not.toHaveBeenCalled();
@@ -124,7 +126,6 @@ describe('ImageGenerationCreditsService', () => {
         ).rejects.toThrow('changed');
         expect(request.creditsConfig.deferred).toBe(true);
         expect(request.creditsConfig).not.toHaveProperty('amount');
-        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       },
     );
 
@@ -154,7 +155,6 @@ describe('ImageGenerationCreditsService', () => {
         byokApiKeyOverride: 'fal-key',
         isByokBypass: true,
       });
-      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
     });
   });
 
@@ -206,7 +206,7 @@ describe('ImageGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(request.creditsConfig).toEqual({
+    expect(request.creditsConfig).toMatchObject({
       amount: 20,
       deferred: false,
       modelKey: 'fal/model',
@@ -232,15 +232,17 @@ describe('ImageGenerationCreditsService', () => {
       request as never,
     );
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
-      actorUserId: 'user-1',
-      amount: 20,
-      expiresAt: expect.any(Date),
-      idempotencyKey: 'generation:image-action-1',
-      organizationId: 'org-1',
-      workloadId: 'image-action-1',
-      workloadType: 'generation',
-    });
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 20,
+        expiresAt: expect.any(Date),
+        idempotencyKey: 'generation:image-action-1',
+        organizationId: 'org-1',
+        workloadId: 'image-action-1',
+        workloadType: 'generation',
+      }),
+    );
     expect(request.creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
@@ -309,9 +311,10 @@ describe('ImageGenerationCreditsService', () => {
   });
 
   it('charges credits when only Replicate BYOK is active for Higgsfield Soul', async () => {
+    providerRegistry.providerFor.mockReturnValue('higgsfield');
     modelsService.findOne.mockResolvedValue({
       cost: 10,
-      provider: ModelProvider.REPLICATE,
+      provider: 'higgsfield',
     });
     byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
@@ -342,9 +345,10 @@ describe('ImageGenerationCreditsService', () => {
   });
 
   it('uses Higgsfield BYOK for Soul without charging platform credits', async () => {
+    providerRegistry.providerFor.mockReturnValue('higgsfield');
     modelsService.findOne.mockResolvedValue({
       cost: 10,
-      provider: ModelProvider.REPLICATE,
+      provider: 'higgsfield',
     });
     byokService.resolveApiKey.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
@@ -413,6 +417,11 @@ describe('ImageGenerationCreditsService', () => {
       byokService.resolveApiKey.mockResolvedValue({
         apiKey: 'org-replicate-key',
       });
+      providerRegistry.providerFor.mockReturnValue('genfeedai');
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        provider: ModelProvider.GENFEED_AI,
+      });
       const request = { creditsConfig: { deferred: true } };
 
       await service.ensureDeferredCredits(
@@ -469,7 +478,6 @@ describe('ImageGenerationCreditsService', () => {
         request as never,
       );
 
-      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       expect(request.creditsConfig).toMatchObject({
         amount: 10,
         byokApiKeyOverride: 'fal-org-key',
@@ -478,4 +486,25 @@ describe('ImageGenerationCreditsService', () => {
       });
     });
   });
+  it.each([2, 3, 4])(
+    'rejects unfunded Higgsfield native batch requests before holding credits (%s)',
+    async (outputs) => {
+      providerRegistry.providerFor.mockReturnValue('higgsfield');
+      modelsService.findOne.mockResolvedValue({
+        cost: 10,
+        provider: 'higgsfield',
+      });
+      await expect(
+        service.ensureDeferredCredits(
+          { outputs } as never,
+          MODEL_KEYS.HIGGSFIELD_SOUL,
+          'org-1',
+          { creditsConfig: { deferred: true } } as never,
+        ),
+      ).rejects.toThrow('one funded output');
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+    },
+  );
 });

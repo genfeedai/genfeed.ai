@@ -1634,66 +1634,10 @@
     },
     {
       "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "17deca0c67ebf7246f2d",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 14,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "267e088eb128730c11ad",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "36739c11410c77770aba",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
       "fingerprint": "412134ee062bffb5e275",
       "message": "Argument of type '{ cost: number; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ cost: number; key: string; }' is missing the following properties from type '{ description: string | null; id: string; organizationId: string | null; isDeleted: boolean; createdAt: Date; updatedAt: Date; label: string; isActive: boolean; isDefault: boolean; ... 65 more ...; providerSyncFailureCode: string | null; }': description, id, organizationId, isDeleted, and 69 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "83b5bc07e140c53f72be",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 7,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "b65e278534b2f5654fad",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 11,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "d23eb50a9bfebb79c4f7",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "e04c4e97d63a77d29e73",
-      "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Type 'User' is missing the following properties from type 'AuthenticatedUser': id, userId, organizationId, brandId",
       "workspace": "api"
     },
     {

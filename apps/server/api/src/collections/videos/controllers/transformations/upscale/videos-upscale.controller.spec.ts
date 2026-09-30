@@ -1,3 +1,5 @@
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -107,6 +109,11 @@ const activityId = testId('activity');
 describe('VideosUpscaleController', () => {
   let controller: VideosUpscaleController;
 
+  const generationBilling = {
+    bindOutput: vi.fn(),
+    releaseOutput: vi.fn(),
+    rememberAcceptedOutput: vi.fn(),
+  };
   const mockServices = {
     activitiesService: {
       record: vi.fn().mockResolvedValue({ id: activityId }),
@@ -155,6 +162,10 @@ describe('VideosUpscaleController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosUpscaleController],
       providers: [
+        {
+          provide: GenerationBillingService,
+          useValue: generationBilling,
+        },
         {
           provide: ActivityRecorderService,
           useValue: mockServices.activitiesService,
@@ -367,9 +378,34 @@ describe('VideosUpscaleController', () => {
       ),
     ).toEqual({
       description: 'Video upscaling',
+      settlement: 'completion',
       modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       source: ActivitySource.VIDEO_UPSCALE,
     });
+  });
+
+  it('recovers an accepted upscale identity without releasing its funding after a metadata outage', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    mockServices.metadataService.patch.mockImplementationOnce(
+      async (_id, metadata) => {
+        if (metadata.externalId) throw new Error('metadata unavailable');
+      },
+    );
+    mockServices.metadataService.patch.mockRejectedValueOnce(
+      new Error('metadata unavailable'),
+    );
+    await controller.upscaleVideo(mockReq, mockUser, videoId, {});
+    expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredientId,
+        organizationId: mockUser.organizationId,
+        userId: mockUser.userId,
+      }),
+    );
+    expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+    expect(
+      mockServices.failedGenerationService.handleFailedVideoGeneration,
+    ).not.toHaveBeenCalled();
   });
 
   it('should handle failed generation when runModel returns null', async () => {

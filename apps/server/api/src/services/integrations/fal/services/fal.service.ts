@@ -82,6 +82,7 @@ export class FalService {
     modelId: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<FalImageResult> {
     this.loggerService.log(`${this.logContext} generateImage started`, {
       modelId,
@@ -92,9 +93,15 @@ export class FalService {
       let data: FalResponseData;
 
       if (apiKeyOverride) {
-        data = await this.runWithOverride(modelId, input, apiKeyOverride);
+        data = await this.runWithOverride(
+          modelId,
+          input,
+          apiKeyOverride,
+          onProviderSubmissionStarted,
+        );
       } else {
         this.ensureConfigured();
+        onProviderSubmissionStarted?.();
         const result = await this.withSubscribeTimeout(
           modelId,
           fal.subscribe(modelId, {
@@ -145,6 +152,7 @@ export class FalService {
     modelId: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<FalVideoResult> {
     this.loggerService.log(`${this.logContext} generateVideo started`, {
       modelId,
@@ -155,9 +163,15 @@ export class FalService {
       let data: FalResponseData;
 
       if (apiKeyOverride) {
-        data = await this.runWithOverride(modelId, input, apiKeyOverride);
+        data = await this.runWithOverride(
+          modelId,
+          input,
+          apiKeyOverride,
+          onProviderSubmissionStarted,
+        );
       } else {
         this.ensureConfigured();
+        onProviderSubmissionStarted?.();
         const result = await this.withSubscribeTimeout(
           modelId,
           fal.subscribe(modelId, {
@@ -223,7 +237,9 @@ export class FalService {
     modelId: string,
     input: Record<string, unknown>,
     apiKey: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<Record<string, unknown>> {
+    onProviderSubmissionStarted?.();
     const submitRes = await firstValueFrom(
       this.httpService.post(
         `https://queue.fal.run/${modelId}`,

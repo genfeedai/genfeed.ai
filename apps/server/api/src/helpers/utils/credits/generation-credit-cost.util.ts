@@ -1,5 +1,8 @@
 import type { ByokProvider } from '@genfeedai/contracts';
-import type { CreditsPricingMetadata } from '@genfeedai/contracts/interfaces';
+import type {
+  CreditsPricingMetadata,
+  ModelBillableQuoteSnapshot,
+} from '@genfeedai/contracts/interfaces';
 
 /**
  * Deferred-credit request plumbing. The pricing arithmetic itself lives in
@@ -29,6 +32,7 @@ export type DeferredCreditsConfig = {
   isByokBypass?: boolean;
   modelKey?: string;
   pricingMetadata?: CreditsPricingMetadata;
+  modelQuote?: ModelBillableQuoteSnapshot;
   provider?: ByokProvider;
   reservationId?: string;
 };

@@ -46,23 +46,26 @@ export class FailedGenerationService {
     },
     options: FailedGenerationOptions,
   ): Promise<void> {
+    await service.patch(options.ingredientId, {
+      generationError: options.websocketMessage ?? 'Generation failed',
+      status: options.status ?? IngredientStatus.FAILED,
+    });
+    await this.notifyFailedGeneration(options);
+  }
+
+  /** Publish failure side effects after the caller has claimed terminal status. */
+  async notifyFailedGeneration(
+    options: FailedGenerationOptions,
+  ): Promise<void> {
     const {
-      ingredientId,
       websocketUrl,
       userId,
       room,
       activityMetadata,
-      status = IngredientStatus.FAILED,
       websocketMethod = 'emit',
       websocketMessage = 'Generation failed',
       delay = 500,
     } = options;
-
-    // Update the ingredient status
-    await service.patch(ingredientId, {
-      generationError: websocketMessage,
-      status,
-    });
 
     // Update existing activity if metadata provided
     if (activityMetadata) {
@@ -248,10 +251,30 @@ export class FailedGenerationService {
   /**
    * Handle failed image generation
    */
-  handleFailedImageGeneration(
+  async handleFailedImageGeneration(
     imagesService: {
       patch: (id: string, data: Record<string, unknown>) => Promise<unknown>;
     },
+    ingredientId: string,
+    websocketUrl: string,
+    metadata?: { userId: string; organizationId: string },
+    room?: string,
+    errorMessage?: string,
+  ): Promise<void> {
+    await imagesService.patch(ingredientId, {
+      generationError: errorMessage ?? 'Generation failed',
+      status: IngredientStatus.FAILED,
+    });
+    await this.notifyFailedImageGeneration(
+      ingredientId,
+      websocketUrl,
+      metadata,
+      room,
+      errorMessage,
+    );
+  }
+
+  async notifyFailedImageGeneration(
     ingredientId: string,
     websocketUrl: string,
     metadata?: { userId: string; organizationId: string },
@@ -271,7 +294,7 @@ export class FailedGenerationService {
         }
       : undefined;
 
-    return this.handleFailedGeneration(imagesService, {
+    return this.notifyFailedGeneration({
       activityMetadata,
       ingredientId,
       organizationId: metadata?.organizationId,

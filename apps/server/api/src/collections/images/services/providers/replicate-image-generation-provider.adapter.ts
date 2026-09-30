@@ -12,6 +12,7 @@ import {
   shouldPollReplicatePrediction,
 } from '@api/collections/images/services/providers/replicate-image-generation.helpers';
 import { GenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
+import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import {
   canReceiveProviderWebhooks,
@@ -41,6 +42,7 @@ export class ReplicateImageGenerationProviderAdapter
     predictionId: string,
     signal?: AbortSignal,
     apiKeyOverride?: string,
+    onProviderOutput?: (output: unknown) => Promise<void>,
   ): Promise<string[]> {
     const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
 
@@ -59,6 +61,9 @@ export class ReplicateImageGenerationProviderAdapter
         signal,
         apiKeyOverride,
       );
+      if (prediction.status === 'succeeded') {
+        await onProviderOutput?.(prediction.output);
+      }
       const outputUrls = this.resolveLocalPredictionResult(
         prediction,
         predictionId,
@@ -98,10 +103,14 @@ export class ReplicateImageGenerationProviderAdapter
       return requireReplicateOutputUrls(prediction.output, predictionId);
     }
     if (status === 'canceled') {
-      throw new GenerationCancelledError();
+      throw new ProviderGenerationFailedError(
+        predictionId,
+        `Replicate prediction ${predictionId} was canceled`,
+      );
     }
     if (status === 'failed') {
-      throw new Error(
+      throw new ProviderGenerationFailedError(
+        predictionId,
         replicatePredictionFailureMessage(
           predictionId,
           prediction.status,
@@ -153,6 +162,7 @@ export class ReplicateImageGenerationProviderAdapter
     }
 
     return {
+      tracksSubmissionStarted: true,
       additionalActivityFailure: 'fail',
       additionalFailureLabel:
         'ReplicateService generateImage (additional output)',
@@ -164,6 +174,7 @@ export class ReplicateImageGenerationProviderAdapter
           request.modelEndpoint ?? request.model,
           input,
           request.apiKeyOverride,
+          request.onProviderSubmissionStarted,
         );
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
@@ -186,6 +197,7 @@ export class ReplicateImageGenerationProviderAdapter
               generationId,
               request.abortSignal,
               request.apiKeyOverride,
+              request.onProviderOutput,
             )
           : undefined;
 

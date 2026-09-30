@@ -28,10 +28,7 @@ import {
   type BrandRemixRunConfig,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  sourcePostVariationCredits,
-} from '@genfeedai/contracts/constants';
+import { sourcePostVariationCredits } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -218,16 +215,21 @@ export class BrandRemixRunProviderDispatchService {
     return lines.join('\n');
   }
 
-  resolveVariantCredits(params: {
+  /** The avatar unit price, from the same `heygen/avatar` row the guard uses. */
+  quoteAvatarCredits(): Promise<number> {
+    return this.avatarVideoGenerationService.quotePlatformCredits();
+  }
+
+  async resolveVariantCredits(params: {
     avatarByokBypass: boolean;
     config: BrandRemixRunConfig;
     request: Request;
     variant: BrandRemixExecution['variants'][number];
-  }): {
+  }): Promise<{
     amount: number;
     isByokBypass: boolean;
     variantId: string;
-  } {
+  }> {
     const requested = (params.request as RemixCreditsRequest).creditsConfig;
     if (params.config.draft.output.kind === 'copy') {
       return {
@@ -242,7 +244,7 @@ export class BrandRemixRunProviderDispatchService {
         Number.isFinite(requested.amount) &&
         requested.amount > 0
           ? requested.amount
-          : AVATAR_GENERATION_CREDIT_COST;
+          : await this.quoteAvatarCredits();
       return {
         amount: params.avatarByokBypass ? 0 : amount,
         isByokBypass: params.avatarByokBypass,

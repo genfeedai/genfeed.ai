@@ -6,6 +6,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
+import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -20,7 +21,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
   let handler: ReplicateGenerationWebhookHandler;
   let assetsService: { findOne: vi.Mock; patch: vi.Mock };
   let ingredientsService: { findOne: vi.Mock };
-  let metadataService: { findOne: vi.Mock };
+  let metadataService: { findOne: vi.Mock; findAll: vi.Mock; patch: vi.Mock };
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
   let webhooksService: {
     handleFailedGeneration: vi.Mock;
@@ -47,7 +48,11 @@ describe('ReplicateGenerationWebhookHandler', () => {
     // model-registry guess so the pre-existing IMAGE-default tests keep
     // passing unchanged.
     ingredientsService = { findOne: vi.fn().mockResolvedValue(null) };
-    metadataService = { findOne: vi.fn().mockResolvedValue(null) };
+    metadataService = {
+      findOne: vi.fn().mockResolvedValue(null),
+      findAll: vi.fn().mockResolvedValue({ docs: [] }),
+      patch: vi.fn(),
+    };
     loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     webhooksService = {
       handleFailedGeneration: vi.fn(),
@@ -136,20 +141,63 @@ describe('ReplicateGenerationWebhookHandler', () => {
       );
     });
 
-    it('drops only the foreign entries of a mixed output array', async () => {
-      await handler.handleCompleted(payloadWith([FOREIGN_URL, ALLOWED_URL]));
+    it.each([
+      [FOREIGN_URL, ALLOWED_URL],
+      [ALLOWED_URL, ALLOWED_URL],
+      [ALLOWED_URL, { url: ALLOWED_URL }],
+      { images: [ALLOWED_URL] },
+      [],
+    ])(
+      'preserves unexpected single-dispatch output for recovery (%s)',
+      async (output) => {
+        metadataService.findOne.mockImplementation(
+          ({ externalId }: { externalId: string }) =>
+            Promise.resolve(
+              externalId === 'pred_123' ? { id: 'metadata-1' } : null,
+            ),
+        );
+        await expect(
+          handler.handleCompleted(payloadWith(output)),
+        ).rejects.toThrow('requires recovery');
+        expect(metadataService.patch).toHaveBeenCalledWith(
+          'metadata-1',
+          expect.objectContaining({
+            result: JSON.stringify(output),
+            error: expect.stringContaining('recovery'),
+          }),
+        );
+        expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
+        expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
+      },
+    );
 
-      expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledTimes(1);
-      expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
-        'replicate',
-        expect.anything(),
-        'pred_123_1',
-        ALLOWED_URL,
+    it('does not complete a workflow continuation from one arbitrarily selected output', async () => {
+      const continuations = (
+        handler as never as { continuations: { findCallbackTarget: vi.Mock } }
+      ).continuations;
+      const coordinator = (
+        handler as never as {
+          continuationCoordinator: { completeProviderAction: vi.Mock };
+        }
+      ).continuationCoordinator;
+      continuations.findCallbackTarget.mockResolvedValue({
+        ingredientId: 'ingredient-1',
+        organizationId: 'org-1',
+      });
+      ingredientsService.findOne.mockResolvedValue({
+        id: 'ingredient-1',
+        metadataId: 'metadata-1',
+      });
+      const returned = [ALLOWED_URL, ALLOWED_URL];
+      await expect(
+        handler.handleCompleted(payloadWith(returned), 'continuation-1'),
+      ).rejects.toThrow('requires recovery');
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-1',
+        expect.objectContaining({ result: JSON.stringify(returned) }),
       );
-      expect(loggerService.error).toHaveBeenCalledWith(
-        expect.stringContaining('rejected by host allowlist'),
-        { index: 0, predictionId: 'pred_123' },
-      );
+      expect(webhooksService.processMediaForIngredient).not.toHaveBeenCalled();
+      expect(coordinator.completeProviderAction).not.toHaveBeenCalled();
     });
 
     it('warns when an array carries no usable URL at all', async () => {
@@ -166,7 +214,12 @@ describe('ReplicateGenerationWebhookHandler', () => {
       // The model registry lookup (mocked to IMAGE in beforeEach) is a stale
       // or missing row here — the persisted ingredient is MUSIC and must win,
       // so a music job is never misfiled as an image (#4679).
-      metadataService.findOne.mockResolvedValue({ id: 'metadata-1' });
+      metadataService.findOne.mockImplementation(
+        ({ externalId }: { externalId: string }) =>
+          Promise.resolve(
+            externalId === 'pred_123' ? { id: 'metadata-1' } : null,
+          ),
+      );
       ingredientsService.findOne.mockResolvedValue({
         category: 'MUSIC',
         id: 'ingredient-1',
@@ -246,6 +299,210 @@ describe('ReplicateGenerationWebhookHandler', () => {
         ALLOWED_URL,
         'pred_123',
       );
+    });
+  });
+
+  describe('persisted native output manifest', () => {
+    beforeEach(() => {
+      ingredientsService.findOne.mockResolvedValue({ organizationId: 'org-1' });
+      metadataService.findOne.mockImplementation(
+        ({ externalId }: { externalId: string }) =>
+          Promise.resolve(
+            externalId === 'pred_123_0'
+              ? { id: 'metadata-0', externalId, organizationId: 'org-1' }
+              : null,
+          ),
+      );
+      metadataService.findAll.mockResolvedValue({
+        docs: [
+          {
+            id: 'metadata-0',
+            externalId: 'pred_123_0',
+            organizationId: 'org-1',
+          },
+          {
+            id: 'metadata-1',
+            externalId: 'pred_123_1',
+            organizationId: 'org-1',
+          },
+        ],
+      });
+    });
+    it.each([ALLOWED_URL, [ALLOWED_URL]])(
+      'finalizes the produced index zero and closes unproduced slots when the cap returned one (%s)',
+      async (output) => {
+        await handler.handleCompleted(payloadWith(output));
+        expect(
+          webhooksService.processMediaFromWebhook,
+        ).toHaveBeenCalledExactlyOnceWith(
+          'replicate',
+          expect.anything(),
+          'pred_123_0',
+          ALLOWED_URL,
+        );
+        expect(
+          webhooksService.handleFailedGeneration,
+        ).toHaveBeenCalledExactlyOnceWith(
+          'pred_123_1',
+          'Provider completed without producing this requested output',
+        );
+        expect(metadataService.findAll).toHaveBeenCalledWith(
+          {
+            where: {
+              externalId: { startsWith: 'pred_123_' },
+              externalProvider: 'replicate',
+              ingredients: {
+                some: {
+                  organizationId: 'org-1',
+                  OR: [{ isDeleted: false }, { isDeleted: true }],
+                },
+              },
+              isDeleted: false,
+            },
+          },
+          { pagination: false },
+          false,
+        );
+      },
+    );
+    it.each([0, 1])(
+      'keeps deleted slot %s in the authorized manifest and completes only its surviving target',
+      async (deletedIndex) => {
+        ingredientsService.findOne.mockImplementation(
+          ({
+            metadataId,
+            isDeleted,
+          }: {
+            metadataId?: string;
+            isDeleted?: boolean;
+          }) => {
+            const index =
+              metadataId === 'metadata-0'
+                ? 0
+                : metadataId === 'metadata-1'
+                  ? 1
+                  : undefined;
+            return Promise.resolve(
+              index !== undefined &&
+                Boolean(isDeleted) === (index === deletedIndex)
+                ? { id: `ingredient-${index}`, organizationId: 'org-1' }
+                : null,
+            );
+          },
+        );
+        metadataService.findOne.mockImplementation(
+          ({
+            externalId,
+            isDeleted,
+          }: {
+            externalId: string;
+            isDeleted?: boolean;
+          }) => {
+            const index =
+              externalId === 'pred_123_0'
+                ? 0
+                : externalId === 'pred_123_1'
+                  ? 1
+                  : undefined;
+            return Promise.resolve(
+              index !== undefined &&
+                Boolean(isDeleted) === (index === deletedIndex)
+                ? {
+                    id: `metadata-${index}`,
+                    externalId,
+                    isDeleted: index === deletedIndex,
+                  }
+                : null,
+            );
+          },
+        );
+        metadataService.findAll.mockImplementation(
+          ({ where }: { where: { isDeleted: boolean } }) =>
+            Promise.resolve({
+              docs: [0, 1]
+                .filter((i) => where.isDeleted === (i === deletedIndex))
+                .map((i) => ({
+                  id: `metadata-${i}`,
+                  externalId: `pred_123_${i}`,
+                  isDeleted: i === deletedIndex,
+                })),
+            }),
+        );
+        const lookup = new MetadataLookupService(
+          metadataService as never,
+          ingredientsService as never,
+          {} as never,
+          loggerService as never,
+        );
+        webhooksService.processMediaFromWebhook.mockImplementation(
+          async (integration, category, externalId, url) =>
+            lookup.lookupMetadataAndIngredient(
+              externalId,
+              category,
+              url,
+              integration,
+            ),
+        );
+        await handler.handleCompleted(payloadWith([ALLOWED_URL, ALLOWED_URL]));
+        expect(
+          webhooksService.processMediaFromWebhook,
+        ).toHaveBeenCalledExactlyOnceWith(
+          'replicate',
+          expect.anything(),
+          `pred_123_${1 - deletedIndex}`,
+          ALLOWED_URL,
+        );
+        expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
+      },
+    );
+
+    it('preserves all unexpected provider URLs for recovery and retains funding instead of silently selecting the first', async () => {
+      const returned = [ALLOWED_URL, ALLOWED_URL, ALLOWED_URL, ALLOWED_URL];
+      await expect(
+        handler.handleCompleted(payloadWith(returned)),
+      ).rejects.toThrow('cardinality exceeds');
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        'metadata-0',
+        expect.objectContaining({
+          result: JSON.stringify(returned),
+          error: expect.stringContaining('recovery'),
+        }),
+      );
+      expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
+      expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
+    });
+    it.each([
+      { images: [ALLOWED_URL] },
+      [{ url: ALLOWED_URL }],
+      [[ALLOWED_URL]],
+    ])(
+      'retains funding and raw artifacts when a succeeded callback has an unsupported representation (%s)',
+      async (returned) => {
+        await expect(
+          handler.handleCompleted(payloadWith(returned)),
+        ).rejects.toThrow('representation requires recovery');
+        expect(metadataService.patch).toHaveBeenCalledWith(
+          'metadata-0',
+          expect.objectContaining({
+            result: JSON.stringify(returned),
+            error: expect.stringContaining('recovery'),
+          }),
+        );
+        expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
+        expect(webhooksService.processMediaFromWebhook).not.toHaveBeenCalled();
+      },
+    );
+    it('does not turn invalid or ambiguous artifact URLs into completed output charges', async () => {
+      await handler.handleCompleted(payloadWith([FOREIGN_URL, ALLOWED_URL]));
+      expect(
+        webhooksService.processMediaFromWebhook,
+      ).toHaveBeenCalledExactlyOnceWith(
+        'replicate',
+        expect.anything(),
+        'pred_123_1',
+        ALLOWED_URL,
+      );
+      expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
     });
   });
 

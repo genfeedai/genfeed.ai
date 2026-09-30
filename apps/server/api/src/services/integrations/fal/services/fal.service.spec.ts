@@ -77,6 +77,33 @@ describe('FalService', () => {
   });
 
   describe('generateImage', () => {
+    it('marks submission only after platform configuration succeeds', async () => {
+      const onSubmissionStarted = vi.fn();
+      const missing = createHarness(null).service;
+      await expect(
+        missing.generateImage(
+          'fal-ai/flux',
+          {},
+          undefined,
+          onSubmissionStarted,
+        ),
+      ).rejects.toThrow('not configured');
+      expect(onSubmissionStarted).not.toHaveBeenCalled();
+      const configured = createHarness().service;
+      falSubscribe.mockImplementationOnce(async () => {
+        expect(onSubmissionStarted).toHaveBeenCalledTimes(1);
+        throw new Error('uncertain remote response');
+      });
+      await expect(
+        configured.generateImage(
+          'fal-ai/flux',
+          {},
+          undefined,
+          onSubmissionStarted,
+        ),
+      ).rejects.toThrow('uncertain remote response');
+    });
+
     it('reads the first entry of an images array', async () => {
       const { service } = createHarness();
       falSubscribe.mockResolvedValue({
@@ -157,6 +184,25 @@ describe('FalService', () => {
   });
 
   describe('generateVideo', () => {
+    it('does not mark remote submission when platform credentials are missing', async () => {
+      const { service, post } = createHarness(null);
+      const started = vi.fn();
+      await expect(
+        service.generateVideo('fal-ai/kling', {}, undefined, started),
+      ).rejects.toThrow('fal.ai is not configured');
+      expect(started).not.toHaveBeenCalled();
+      expect(post).not.toHaveBeenCalled();
+      expect(falSubscribe).not.toHaveBeenCalled();
+    });
+    it('marks submission after configuration and before calling the SDK', async () => {
+      const { service } = createHarness();
+      const started = vi.fn();
+      falSubscribe.mockImplementationOnce(async () => {
+        expect(started).toHaveBeenCalledExactlyOnceWith();
+        return { data: { video: { url: 'https://cdn.test/video.mp4' } } };
+      });
+      await service.generateVideo('fal-ai/kling', {}, undefined, started);
+    });
     it('reads a singular video field', async () => {
       const { service } = createHarness();
       falSubscribe.mockResolvedValue({

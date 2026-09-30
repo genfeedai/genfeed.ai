@@ -1,4 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -47,6 +51,7 @@ export class ImageUpscaleService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly generationBilling: GenerationBillingService,
   ) {}
 
   async upscaleImage(
@@ -55,7 +60,7 @@ export class ImageUpscaleService {
     user: User,
     imageEditDto: ImageEditDto,
   ): Promise<IngredientDocument> {
-    let url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
+    const url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
     this.loggerService.log(url, { body: imageEditDto, params: { imageId } });
 
     const parent = await this.imagesService.findOne(
@@ -104,8 +109,6 @@ export class ImageUpscaleService {
         transformations: [TransformationCategory.UPSCALED],
       });
 
-    const websocketUrl = `/images/${ingredientData.id}`;
-
     const activity = await this.activityRecorder.record({
       brandId: parent.brandId ?? user.brandId,
       entityId: ingredientData.id,
@@ -132,8 +135,29 @@ export class ImageUpscaleService {
       userId: user.id,
     });
 
-    url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
+    await this.dispatchUpscale(
+      request,
+      user,
+      imageEditDto,
+      imageUrl,
+      ingredientData,
+      metadataData.id,
+    );
+    return ingredientData;
+  }
 
+  private async dispatchUpscale(
+    request: RequestWithSelectedModel,
+    user: User,
+    imageEditDto: ImageEditDto,
+    imageUrl: string,
+    ingredientData: IngredientDocument,
+    metadataId: string,
+  ): Promise<void> {
+    const websocketUrl = `/images/${ingredientData.id}`;
+    const url = `${LEGACY_CONTROLLER_NAME} upscaleImage`;
+
+    let acceptedExternalId: string | undefined;
     try {
       const promptResult = await this.promptBuilderService.buildPrompt(
         MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
@@ -158,19 +182,31 @@ export class ImageUpscaleService {
         user.organizationId,
       );
 
+      const billingRequest = request as unknown as GenerationBillingRequest;
+      const credits = billingRequest.creditsConfig?.amount;
+      if (credits !== undefined)
+        await this.generationBilling.bindOutput(billingRequest, {
+          credits,
+          ingredientId: String(ingredientData.id),
+        });
       const generationId = await this.replicateService.runModel(
         MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         promptResult.input,
       );
 
       if (generationId) {
+        acceptedExternalId = generationId;
         await this.metadataService.patch(
-          metadataData.id,
+          metadataId,
           new MetadataEntity({
             externalId: generationId,
           }),
         );
       } else {
+        await this.generationBilling.releaseOutput(
+          String(ingredientData.id),
+          user.organizationId,
+        );
         await this.failedGenerationService.handleFailedImageGeneration(
           this.imagesService,
           ingredientData.id,
@@ -180,8 +216,36 @@ export class ImageUpscaleService {
         );
       }
     } catch (error: unknown) {
+      if (acceptedExternalId) {
+        this.loggerService.error(
+          'Accepted transformation metadata persistence failed',
+          error,
+        );
+        try {
+          await this.generationBilling.rememberAcceptedOutput({
+            ingredientId: String(ingredientData.id),
+            externalId: acceptedExternalId,
+            organizationId: user.organizationId,
+            userId: user.userId,
+          });
+        } catch (recoveryError: unknown) {
+          this.loggerService.error(
+            'Accepted transformation recovery failed; retain its funding',
+            recoveryError,
+            {
+              ingredientId: String(ingredientData.id),
+              externalId: acceptedExternalId,
+            },
+          );
+        }
+        return;
+      }
       this.loggerService.error(`${url} failed`, error);
       const errorMessage = getErrorMessage(error);
+      await this.generationBilling.releaseOutput(
+        String(ingredientData.id),
+        user.organizationId,
+      );
 
       await this.failedGenerationService.handleFailedImageGeneration(
         this.imagesService,
@@ -192,7 +256,5 @@ export class ImageUpscaleService {
         errorMessage,
       );
     }
-
-    return ingredientData;
   }
 }

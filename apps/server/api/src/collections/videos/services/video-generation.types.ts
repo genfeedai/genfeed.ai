@@ -9,7 +9,14 @@ export type PromptInput = Record<string, unknown> & {
  * reused for the first output and every additional output, so provider routing
  * lives in exactly one place.
  */
+export interface PreparedFalVideoDispatch {
+  endpoint: string;
+  input: Record<string, unknown>;
+}
+
 export interface DispatchVideoGenerationParams {
+  preparedFalDispatch?: PreparedFalVideoDispatch;
+  onProviderSubmissionStarted?: () => void;
   duration?: number;
   height: number;
   imageUrl?: string;
@@ -83,6 +90,7 @@ export interface ResolvedVideoGenerationRequest {
 }
 
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
+  preparedFalDispatch?: PreparedFalVideoDispatch;
   generationHarness?: GenerationHarnessReceipt;
   abortSignal: AbortSignal;
   briefEvidence?: VideoGenerationBriefPersistedEvidence;

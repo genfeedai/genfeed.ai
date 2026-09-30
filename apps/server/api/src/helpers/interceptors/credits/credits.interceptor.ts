@@ -1,5 +1,6 @@
 import { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
@@ -31,6 +32,7 @@ export class CreditsInterceptor implements NestInterceptor {
     private creditDeductionQueueService: CreditDeductionQueueService,
     private creditsUtilsService: CreditsUtilsService,
     private loggerService: LoggerService,
+    private readonly quoteGroups: GenerationQuoteGroupService,
   ) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
@@ -93,6 +95,7 @@ export class CreditsInterceptor implements NestInterceptor {
     }
 
     if (currentCreditsConfig.isByokBypass) {
+      if (currentCreditsConfig.settlement === 'completion') return response;
       await this.creditDeductionQueueService.queueByokUsage({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
@@ -101,43 +104,22 @@ export class CreditsInterceptor implements NestInterceptor {
         type: 'record-byok-usage',
       });
     } else {
-      const sourceActionId = this.readSourceActionId(request.body);
-      const settlementAssetId = this.readResponseAssetId(response);
-      if (sourceActionId && !settlementAssetId) {
-        if (currentCreditsConfig.reservationId) {
-          await this.releaseReservation(
-            currentCreditsConfig.reservationId,
-            identity.organizationId,
-          );
-        }
-        this.loggerService.warn(
-          'Confirmed media returned no persisted asset; credits not queued',
-          {
-            organizationId: identity.organizationId,
-            sourceActionId,
-          },
-        );
+      if (currentCreditsConfig.settlement === 'completion') {
+        await this.releaseUnboundPool(currentCreditsConfig, identity);
         return response;
       }
+      const assetId = this.readResponseAssetId(response);
       await this.creditDeductionQueueService.queueDeduction({
         amount: currentCreditsConfig.amount || 0,
         description: currentCreditsConfig.description,
         maxOverdraftCredits: currentCreditsConfig.maxOverdraftCredits,
         metadata:
-          currentCreditsConfig.pricingMetadata || settlementAssetId
+          currentCreditsConfig.pricingMetadata || assetId
             ? {
                 ...currentCreditsConfig.pricingMetadata,
-                ...(settlementAssetId ? { assetId: settlementAssetId } : {}),
+                ...(assetId ? { assetId } : {}),
               }
             : undefined,
-        ...(sourceActionId
-          ? {
-              idempotencyKey: `agent-media-${sourceActionId}-${settlementAssetId}`,
-              referenceId: settlementAssetId,
-              referenceType: 'agent-media:generation',
-              settlementAssetId,
-            }
-          : {}),
         ...(currentCreditsConfig.reservationId
           ? { reservationId: currentCreditsConfig.reservationId }
           : {}),
@@ -172,27 +154,51 @@ export class CreditsInterceptor implements NestInterceptor {
     );
   }
 
+  /**
+   * A completion-settled route keeps nothing open on the response: each accepted
+   * output already owns its hold, so only credits no output claimed (a dispatch
+   * that never reached the provider) are given back.
+   */
   private readResponseAssetId(response: unknown): string | undefined {
-    if (!response || typeof response !== 'object') {
+    if (!response || typeof response !== 'object' || !('data' in response))
       return undefined;
-    }
-    const data = (response as { data?: unknown }).data;
-    if (!data || typeof data !== 'object') {
-      return undefined;
-    }
-    const id = (data as { id?: unknown }).id;
-    return typeof id === 'string' && id.trim() ? id.trim() : undefined;
+    const data = response.data;
+    return data &&
+      typeof data === 'object' &&
+      'id' in data &&
+      typeof data.id === 'string'
+      ? data.id
+      : undefined;
   }
 
-  private readSourceActionId(body: unknown): string | undefined {
-    if (!body || typeof body !== 'object') return undefined;
-    const bodyRecord = body as Record<string, unknown>;
-    const data = bodyRecord.data as Record<string, unknown> | undefined;
-    const attributes =
-      (data?.attributes as Record<string, unknown> | undefined) ??
-      (bodyRecord.attributes as Record<string, unknown> | undefined);
-    const raw = bodyRecord.sourceActionId ?? attributes?.sourceActionId;
-    return typeof raw === 'string' && raw.trim() ? raw.trim() : undefined;
+  private async releaseUnboundPool(
+    config: DeferredCreditsConfig,
+    identity: NonNullable<CreditsInterceptorRequest['user']>,
+  ): Promise<void> {
+    if (!config.reservationId || config.isPoolReleaseDeferred) {
+      return;
+    }
+    if (config.modelQuote) {
+      await this.quoteGroups.closeDispatch(
+        config.reservationId,
+        identity.organizationId,
+      );
+      return;
+    }
+    if (!config.boundOutputCount) {
+      this.loggerService.warn(
+        'Completion-settled request bound no output; releasing its hold',
+        {
+          amount: config.amount,
+          organizationId: identity.organizationId,
+          reservationId: config.reservationId,
+        },
+      );
+    }
+    await this.releaseReservation(
+      config.reservationId,
+      identity.organizationId,
+    );
   }
 
   private async releaseFailedReservation(
@@ -203,7 +209,14 @@ export class CreditsInterceptor implements NestInterceptor {
       amount: config?.amount,
       organizationId,
     });
-    if (config?.reservationId) {
+    if (config?.reservationId && !config.isPoolReleaseDeferred) {
+      if (config.settlement === 'completion' && config.modelQuote) {
+        await this.quoteGroups.closeDispatch(
+          config.reservationId,
+          organizationId,
+        );
+        return;
+      }
       await this.releaseReservation(config.reservationId, organizationId);
     }
   }

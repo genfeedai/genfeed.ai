@@ -1,7 +1,9 @@
 import type { ActivitySource } from '@genfeedai/contracts';
 import { CreditReservationStatus } from '@genfeedai/contracts';
+import { MEDIA_GENERATION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type {
   IAddCreditsOptions,
+  IBindCreditReservationOutputInput,
   ICreditReservation,
   ICreditsUtilsService,
   ICreditWalletSnapshot,
@@ -122,6 +124,9 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
       settledAmount: null,
       status: CreditReservationStatus.RESERVED,
       updatedAt: new Date().toISOString(),
+      description: input.description ?? null,
+      metadata: input.metadata ?? null,
+      source: input.source ?? null,
       workloadId: input.workloadId ?? null,
       workloadType: input.workloadType ?? null,
     };
@@ -137,5 +142,27 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot> {
     return this.getWalletSnapshot(input.organizationId);
+  }
+
+  async bindReservationOutput(
+    input: IBindCreditReservationOutputInput,
+  ): Promise<ICreditReservation> {
+    return this.reserveCredits({
+      actorUserId: 'oss',
+      amount: input.amount,
+      expiresAt: input.expiresAt,
+      idempotencyKey: input.reservationId,
+      organizationId: input.organizationId,
+      workloadId: input.workloadId,
+      workloadType: MEDIA_GENERATION_WORKLOAD_TYPE,
+    });
+  }
+
+  async findReservationForWorkload(_input: {
+    organizationId: string;
+    workloadId: string;
+    workloadType: string;
+  }): Promise<ICreditReservation | null> {
+    return null;
   }
 }

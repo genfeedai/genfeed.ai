@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 const id = z.string().trim().min(1).max(200);
 export const brandRemixGenerationQuoteSchema = z
   .object({

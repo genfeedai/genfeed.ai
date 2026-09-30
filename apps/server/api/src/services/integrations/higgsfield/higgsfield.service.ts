@@ -35,6 +35,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 interface HiggsFieldRequestOptions {
+  onProviderSubmissionStarted?: () => void;
   organizationId?: string;
   webhook?: HiggsFieldWebhook;
 }
@@ -158,12 +159,13 @@ export class HiggsFieldService {
     const credentials = await this.resolveCredentials(options.organizationId);
 
     try {
+      const submitUrl = this.buildSubmitUrl(endpointId, options.webhook);
+      const headers = this.getHeaders(credentials);
+      options.onProviderSubmissionStarted?.();
       const response = await firstValueFrom(
-        this.httpService.post<HiggsFieldResponse>(
-          this.buildSubmitUrl(endpointId, options.webhook),
-          input,
-          { headers: this.getHeaders(credentials) },
-        ),
+        this.httpService.post<HiggsFieldResponse>(submitUrl, input, {
+          headers,
+        }),
       );
 
       const submitted = response.data;
@@ -279,6 +281,7 @@ export class HiggsFieldService {
    */
   async generateTextToImage(params: {
     prompt: string;
+    onProviderSubmissionStarted?: () => void;
     aspectRatio?: string;
     quality?: HiggsFieldSoulQuality;
     batchSize?: number;
@@ -296,6 +299,7 @@ export class HiggsFieldService {
 
     const submitted = await this.submit(HIGGSFIELD_SOUL_ENDPOINT, input, {
       organizationId: params.organizationId,
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       webhook: params.webhook,
     });
 
@@ -331,6 +335,7 @@ export class HiggsFieldService {
    * documented body is `{ prompt, image_url }` on the model endpoint id.
    */
   async generateImageToVideo(params: {
+    onProviderSubmissionStarted?: () => void;
     modelKey: string;
     imageUrl: string;
     prompt: string;
@@ -350,6 +355,7 @@ export class HiggsFieldService {
     };
 
     const submitted = await this.submit(endpointId, input, {
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       organizationId: params.organizationId,
       webhook: params.webhook,
     });

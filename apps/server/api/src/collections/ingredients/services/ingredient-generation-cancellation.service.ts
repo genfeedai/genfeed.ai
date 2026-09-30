@@ -2,6 +2,8 @@ import { GENERATION_CANCELLED_BY_USER } from '@api/collections/ingredients/const
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { generationQuoteGroupReceiptSchema } from '@api/helpers/utils/credits/generation-quote-group.schema';
+import { persistQuoteGroupFailure } from '@api/helpers/utils/credits/persist-quote-group-failure.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -64,7 +66,50 @@ export class IngredientGenerationCancellationService {
       return ingredient;
     }
 
-    await this.cancelProviderJob(ingredient);
+    const isQuoteGroup = generationQuoteGroupReceiptSchema.safeParse(
+      ingredient.generationBilling,
+    ).success;
+    const confirmedCancellation = await this.cancelProviderJob(
+      ingredient,
+      isQuoteGroup,
+    );
+    if (isQuoteGroup) {
+      if (!confirmedCancellation) return ingredient;
+      const claimed = await this.ingredientsService.patchAll(
+        {
+          id: ingredient.id,
+          organizationId: input.organizationId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+        {
+          generationError: GENERATION_CANCELLED_BY_USER,
+          status: IngredientStatus.FAILED,
+          isGenerationFailureConfirmed: true,
+        },
+      );
+      if (claimed.modifiedCount === 1) {
+        await persistQuoteGroupFailure(
+          this.ingredientsService.prisma,
+          ingredient.id,
+          input.organizationId,
+        );
+        await this.failedGenerationService.notifyFailedGeneration({
+          ingredientId: ingredient.id,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          websocketMessage: GENERATION_CANCELLED_BY_USER,
+          websocketMethod: 'publishMediaFailed',
+          websocketUrl: this.websocketPathFor(ingredient),
+        });
+      }
+      return (
+        (await this.ingredientsService.findOne(
+          scopedWhere(input.organizationId, { id: input.id }),
+          [PopulatePatterns.metadataFull],
+        )) ?? ingredient
+      );
+    }
 
     await this.failedGenerationService.handleFailedGeneration(
       this.ingredientsService,
@@ -88,7 +133,8 @@ export class IngredientGenerationCancellationService {
 
   private async cancelProviderJob(
     ingredient: IngredientDocument,
-  ): Promise<void> {
+    requireConfirmation: boolean,
+  ): Promise<boolean> {
     const metadata = ingredient.metadata;
     const externalId =
       typeof metadata?.externalId === 'string' ? metadata.externalId : null;
@@ -98,7 +144,7 @@ export class IngredientGenerationCancellationService {
         : null;
 
     if (!externalId) {
-      return;
+      return false;
     }
 
     const isReplicateJob =
@@ -106,22 +152,31 @@ export class IngredientGenerationCancellationService {
       (!externalProvider && !externalId.includes('://'));
 
     if (!isReplicateJob) {
-      return;
+      return false;
     }
 
     try {
-      await this.replicateService.cancelPrediction(
-        this.replicatePredictionId(externalId),
+      const predictionId = this.replicatePredictionId(externalId);
+      await this.replicateService.cancelPrediction(predictionId);
+      if (!requireConfirmation) return true;
+      const prediction =
+        await this.replicateService.getPrediction(predictionId);
+      return Boolean(
+        prediction &&
+          typeof prediction === 'object' &&
+          'status' in prediction &&
+          (prediction.status === 'canceled' || prediction.status === 'failed'),
       );
     } catch (error: unknown) {
       this.loggerService.warn(
-        'Failed to cancel Replicate prediction; marking ingredient cancelled anyway',
+        'Provider cancellation is unconfirmed; retain funded generation for completion',
         {
           error: (error as Error)?.message,
           externalId,
           ingredientId: ingredient.id,
         },
       );
+      return false;
     }
   }
 

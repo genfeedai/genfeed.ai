@@ -1,8 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { billableProfile } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
@@ -17,9 +20,9 @@ describe('CreditsInterceptor', () => {
   let creditDeductionQueueService: CreditDeductionQueueService;
   let creditsUtilsService: { releaseReservation: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
+  const quoteGroups = { closeDispatch: vi.fn().mockResolvedValue(undefined) };
 
   const mockRequest: {
-    body?: { sourceActionId?: string };
     creditsConfig?: CreditsConfig & {
       deferred?: boolean;
       reservationId?: string;
@@ -53,7 +56,7 @@ describe('CreditsInterceptor', () => {
   } as CallHandler;
 
   beforeEach(async () => {
-    delete mockRequest.body;
+    quoteGroups.closeDispatch.mockClear();
     mockRequest.creditsConfig = {
       amount: 10,
       description: 'Test operation',
@@ -82,6 +85,7 @@ describe('CreditsInterceptor', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CreditsInterceptor,
+        { provide: GenerationQuoteGroupService, useValue: quoteGroups },
         {
           provide: CreditDeductionQueueService,
           useValue: mockCreditDeductionQueueService,
@@ -193,96 +197,149 @@ describe('CreditsInterceptor', () => {
       });
     });
 
-    it('queues confirmed media settlement against the persisted asset identity', async () => {
-      mockRequest.body = { sourceActionId: 'action-123' };
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
+    describe('completion-settled routes', () => {
+      const asCompletion = (
+        overrides: Partial<NonNullable<typeof mockRequest.creditsConfig>> = {},
+      ) => {
+        mockRequest.creditsConfig = {
+          amount: 10,
+          description: 'Image generation',
+          reservationId: 'pool-1',
+          settlement: 'completion',
+          source: ActivitySource.IMAGE_GENERATION,
+          ...overrides,
+        };
       };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-123' } }),
-      } as CallHandler;
+      const run = (handler: CallHandler) =>
+        new Promise<unknown>((resolve, reject) => {
+          interceptor.intercept(mockContext, handler).subscribe({
+            error: reject,
+            next: resolve,
+          });
+        });
 
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() =>
-        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            idempotencyKey: 'agent-media-action-123-asset-123',
-            referenceId: 'asset-123',
-            referenceType: 'agent-media:generation',
-            reservationId: 'reservation-1',
-            settlementAssetId: 'asset-123',
-          }),
-        ),
-      );
-    });
-
-    it('recognizes a JSON:API source action before deferring media settlement', async () => {
-      mockRequest.body = {
-        data: {
-          attributes: { sourceActionId: 'json-api-action' },
+      it.each(['success', 'failure'])(
+        'closes frozen group dispatch on HTTP %s without releasing accepted funding',
+        async (outcome) => {
+          const quote = quoteModelBillablePricing(
+            billableProfile(),
+            {
+              modelKey: 'test/model',
+              provider: 'replicate',
+              outputs: 2,
+              requests: 2,
+            },
+            1,
+            '2026-09-30T00:00:00.000Z',
+          );
+          if (quote.status !== 'priced') throw new Error(quote.reason);
+          asCompletion({ boundOutputCount: 1, modelQuote: quote.snapshot });
+          if (outcome === 'success') await run(mockHandler);
+          else
+            await expect(
+              run({
+                handle: () =>
+                  throwError(() => new Error('second submission failed')),
+              }),
+            ).rejects.toThrow('second submission failed');
+          expect(quoteGroups.closeDispatch).toHaveBeenCalledExactlyOnceWith(
+            'pool-1',
+            organizationId,
+          );
+          expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+          expect(
+            creditDeductionQueueService.queueDeduction,
+          ).not.toHaveBeenCalled();
         },
-      } as never;
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-json-api',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      const handler = {
-        handle: () => of({ data: { id: 'asset-json-api' } }),
-      } as CallHandler;
-
-      interceptor.intercept(mockContext, handler).subscribe();
-
-      await vi.waitFor(() =>
-        expect(creditDeductionQueueService.queueDeduction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            idempotencyKey: 'agent-media-json-api-action-asset-json-api',
-            reservationId: 'reservation-json-api',
-            settlementAssetId: 'asset-json-api',
-          }),
-        ),
       );
-    });
 
-    it('does not charge confirmed media when acceptance returned no persisted asset', async () => {
-      mockRequest.body = { sourceActionId: 'action-without-asset' };
-      mockRequest.creditsConfig = {
-        amount: 10,
-        description: 'Image generation',
-        reservationId: 'reservation-1',
-        source: ActivitySource.IMAGE_GENERATION,
-      };
-      mockRequest.user = {
-        id: 'user_123',
-        organizationId,
-        userId,
-      };
+      it('queues no settlement on the response; bound outputs settle on completion', async () => {
+        asCompletion({ boundOutputCount: 1 });
 
-      interceptor.intercept(mockContext, mockHandler).subscribe();
+        await run(mockHandler);
 
-      await vi.waitFor(() =>
         expect(
           creditDeductionQueueService.queueDeduction,
-        ).not.toHaveBeenCalled(),
-      );
-      expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
-        organizationId,
-        reservationId: 'reservation-1',
+        ).not.toHaveBeenCalled();
+      });
+
+      it('releases only what no output claimed', async () => {
+        asCompletion({ boundOutputCount: 1 });
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+      });
+
+      it('releases the whole hold and warns when no output was accepted', async () => {
+        asCompletion();
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+        expect(loggerService.warn).toHaveBeenCalledWith(
+          expect.stringContaining('bound no output'),
+          expect.objectContaining({ reservationId: 'pool-1' }),
+        );
+      });
+
+      it('leaves the hold open while the service is still binding outputs', async () => {
+        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
+
+        await run(mockHandler);
+
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+        expect(
+          creditDeductionQueueService.queueDeduction,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('keeps a deferred hold open when the request later fails', async () => {
+        asCompletion({ boundOutputCount: 1, isPoolReleaseDeferred: true });
+        const failing = {
+          handle: () => throwError(() => new Error('gateway timeout')),
+        } as CallHandler;
+
+        await expect(run(failing)).rejects.toThrow('gateway timeout');
+
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+      });
+
+      it('releases the request hold when the request fails before any deferral', async () => {
+        asCompletion();
+        const failing = {
+          handle: () => throwError(() => new Error('provider rejected')),
+        } as CallHandler;
+
+        await expect(run(failing)).rejects.toThrow('provider rejected');
+
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledWith({
+          organizationId,
+          reservationId: 'pool-1',
+        });
+      });
+
+      it('leaves BYOK completion usage to the linked output receipt', async () => {
+        asCompletion({ isByokBypass: true, reservationId: undefined });
+
+        await run(mockHandler);
+
+        expect(
+          creditDeductionQueueService.queueByokUsage,
+        ).not.toHaveBeenCalled();
+        expect(
+          creditDeductionQueueService.queueDeduction,
+        ).not.toHaveBeenCalled();
       });
     });
 
-    it('fails media acceptance when its durable settlement job cannot be persisted', async () => {
-      mockRequest.body = { sourceActionId: 'action-queue-failure' };
+    it('releases the reservation when its settlement job cannot be persisted', async () => {
       mockRequest.creditsConfig = {
         amount: 10,
         description: 'Image generation',

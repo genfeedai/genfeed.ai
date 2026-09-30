@@ -45,10 +45,7 @@ import {
   brandRemixRunConfigSchema,
   type StartBrandRemixRun,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import {
   ConflictException,
   Inject,
@@ -320,7 +317,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
 
   private resolveVariantCreditsAction(
     request: SystemWorkflowActionRequest,
-  ): BrandRemixVariantCredit {
+  ): Promise<BrandRemixVariantCredit> {
     const item = this.readRecord(request.input.item) as BrandRemixVariantItem;
     const { request: httpRequest } = this.runtimeOf(request);
     return this.dispatch.resolveVariantCredits({
@@ -869,7 +866,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
           Number.isFinite(requestedAmount) &&
           requestedAmount > 0
             ? requestedAmount
-            : AVATAR_GENERATION_CREDIT_COST,
+            : await this.dispatch.quoteAvatarCredits(),
         deferred: true,
       };
     } else {

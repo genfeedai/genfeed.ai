@@ -1,4 +1,9 @@
-import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
+import {
+  isNativeImageBatch,
+  resolveImageBillableOutputs,
+  resolveImageGenerationProvider,
+} from '@api/collections/images/services/image-generation-provider.util';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -13,10 +18,6 @@ import type {
   AgentGenerationQuote,
   AgentGenerationQuoteInput,
 } from '@genfeedai/contracts/interfaces';
-import {
-  calculateImageGenerationCredits,
-  calculateVideoGenerationCredits,
-} from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -32,9 +33,8 @@ const UNAVAILABLE_QUOTE: AgentGenerationQuote = {
  * (the same `RouterService.selectModel` auto-selection the real generation
  * call makes) and prices it through the very calculator
  * `ImageGenerationCreditsService` / `VideoGenerationCreditsService` reserve
- * with: effective execution dimensions from the aspect ratio, per-megapixel
- * and minimum-cost rules, quality/resolution/duration multipliers, and the
- * provider fan-out or native-batch output semantics.
+ * with: actual execution dimensions, exact reviewed selectors, request/output
+ * quantities and the same frozen tariff admission uses.
  *
  * Invalid output counts reject. An unresolvable model, missing pricing, or
  * any registry error surfaces as `isAvailable: false` so the review card
@@ -47,6 +47,7 @@ export class AgentGenerationEstimateService {
     private readonly routerService: RouterService,
     private readonly modelRegistrationService: ModelRegistrationService,
     private readonly logger: LoggerService,
+    private readonly modelCreditQuote: ModelCreditQuoteService,
   ) {}
 
   async estimate(
@@ -82,18 +83,13 @@ export class AgentGenerationEstimateService {
         modelKey,
         input.organizationId,
       );
-      const baseCost = model?.cost;
       if (
         !model ||
         model.key !== modelKey ||
         model.category !== category ||
         !model.isActive ||
         model.isDeleted ||
-        (model.organizationId &&
-          model.organizationId !== input.organizationId) ||
-        typeof baseCost !== 'number' ||
-        !Number.isFinite(baseCost) ||
-        baseCost < 0
+        (model.organizationId && model.organizationId !== input.organizationId)
       ) {
         return UNAVAILABLE_QUOTE;
       }
@@ -106,36 +102,31 @@ export class AgentGenerationEstimateService {
             ? DEFAULT_AGENT_VIDEO_ASPECT_RATIO
             : DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
         );
-      const pricing = {
-        cost: baseCost,
-        costPerUnit: model.costPerUnit,
-        minCost: model.minCost,
-        pricingType: model.pricingType,
-      };
-      const isBatchSupported =
-        MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported ?? false;
-      const { credits } = isVideo
-        ? calculateVideoGenerationCredits({
-            ...dimensions,
-            duration: input.duration || DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
-            isBatchSupported,
-            modelKey,
-            outputs: input.outputs,
-            pricing,
-            resolution: input.resolution,
-          })
-        : calculateImageGenerationCredits({
-            ...dimensions,
-            imageProvider: resolveImageGenerationProvider(
-              modelKey,
-              model.provider,
-            ),
-            isBatchSupported,
-            modelKey,
-            outputs: input.outputs,
-            pricing,
-            quality: input.quality,
-          });
+      const provider = isVideo
+        ? model.provider
+        : resolveImageGenerationProvider(modelKey, model.provider);
+      if (!provider) return UNAVAILABLE_QUOTE;
+      const outputs = isVideo
+        ? (input.outputs ?? 1)
+        : resolveImageBillableOutputs(provider, input.outputs ?? 1);
+      const isBatchSupported = isVideo
+        ? Boolean(MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported)
+        : isNativeImageBatch(modelKey, provider);
+      const selected = isVideo ? input.resolution : input.quality;
+      const quote = await this.modelCreditQuote.quoteSnapshotByKey(modelKey, {
+        ...dimensions,
+        organizationId: input.organizationId,
+        provider,
+        outputs,
+        requests: isBatchSupported ? 1 : outputs,
+        ...(isVideo
+          ? { duration: input.duration ?? DEFAULT_AGENT_VIDEO_DURATION_SECONDS }
+          : {}),
+        ...(selected !== undefined
+          ? { selectors: { [isVideo ? 'resolution' : 'quality']: selected } }
+          : {}),
+      });
+      const credits = quote.credits;
 
       return Number.isFinite(credits) && credits >= 0
         ? { credits, isAvailable: true, modelKey }

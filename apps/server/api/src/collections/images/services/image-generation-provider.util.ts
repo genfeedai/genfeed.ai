@@ -5,7 +5,11 @@ import {
   isReplicateDestination,
 } from '@api/collections/models/utils/model-key.util';
 import type { ModelProvider } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  MODEL_KEYS,
+  MODEL_OUTPUT_CAPABILITIES,
+} from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 /** Replicate image endpoints that do not match the generic `owner/model` key shape. */
 export const REPLICATE_IMAGE_MODELS: readonly string[] = [
@@ -63,4 +67,27 @@ export function resolveImageGenerationProvider(
     IMAGE_PROVIDER_MATCHERS.find((matcher) => matcher.matches(model, provider))
       ?.provider ?? null
   );
+}
+
+/** Match the adapter that executes a native batch, rather than only its key. */
+export function isNativeImageBatch(
+  model: string,
+  provider: string | null | undefined,
+): boolean {
+  return Boolean(
+    MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported &&
+      (provider === 'replicate' || provider === 'higgsfield'),
+  );
+}
+
+export function resolveImageBillableOutputs(
+  provider: string | null | undefined,
+  requested = 1,
+): number {
+  if (provider === 'higgsfield' && requested !== 1) {
+    throw new BadRequestException(
+      'Higgsfield image generation currently supports one funded output per request.',
+    );
+  }
+  return provider === 'fal' || provider === 'replicate' ? requested : 1;
 }

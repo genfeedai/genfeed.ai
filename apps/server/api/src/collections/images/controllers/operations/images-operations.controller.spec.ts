@@ -1,3 +1,5 @@
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
@@ -45,6 +47,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
@@ -74,6 +77,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -111,7 +115,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('ImagesOperationsController', () => {
   let controller: ImagesOperationsController;
@@ -241,6 +244,12 @@ describe('ImagesOperationsController', () => {
       controllers: [ImagesOperationsController],
       providers: [
         {
+          provide: ModelCreditQuoteService,
+          inject: [ModelsService],
+          useFactory: (models: ModelsService) =>
+            testModelCreditQuote(models, 'leonardo'),
+        },
+        {
           provide: MediaPromptEnhancementService,
           useValue: {
             enhance: vi
@@ -264,6 +273,17 @@ describe('ImagesOperationsController', () => {
         ImageGenerationAdmissionService,
         ImageGenerationCreditsService,
         ImageGenerationProviderDispatchService,
+        {
+          provide: GenerationBillingService,
+          useValue: {
+            bindOutput: vi.fn().mockResolvedValue(undefined),
+            deferPoolRelease: vi.fn(),
+            hasPool: vi.fn().mockReturnValue(false),
+            releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+            releasePool: vi.fn().mockResolvedValue(undefined),
+            settleOutput: vi.fn().mockResolvedValue('no-hold'),
+          },
+        },
         ImageGenerationProviderRegistryService,
         ImageGenerationService,
         {
@@ -312,15 +332,18 @@ describe('ImagesOperationsController', () => {
           useValue: {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-            reserveCredits: vi.fn().mockResolvedValue({
+            reserveCredits: vi.fn().mockImplementation(async (input) => ({
               id: 'image-controller-reservation',
-            }),
+              amount: input.amount,
+              metadata: input.metadata,
+              status: 'RESERVED',
+            })),
           },
         },
         {
           provide: FailedGenerationService,
           useValue: {
-            handleFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
+            notifyFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -387,6 +410,7 @@ describe('ImagesOperationsController', () => {
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockImage),
             patch: vi.fn().mockResolvedValue(mockImage),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
           },
         },
         {
@@ -857,7 +881,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Generation failed');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -877,7 +901,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Generation failed');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -897,7 +921,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow();
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
 
@@ -1029,7 +1053,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should use fallback cost when model not found in DB during deferred check', async () => {
+    it('rejects a missing exact model tariff before reserving deferred funding', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
         autoSelectModel: true,
@@ -1050,17 +1074,14 @@ describe('ImagesOperationsController', () => {
         true,
       );
 
-      const result = await controller.create(
-        requestWithDeferred,
-        dto,
-        mockUser,
-      );
-
-      // Should use fallback cost of 5
+      await expect(
+        controller.create(requestWithDeferred, dto, mockUser),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'PRICING_UNAVAILABLE' }),
+      });
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(mockOrgId.toString(), 5);
-      expect(result).toBeDefined();
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -1292,7 +1313,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow('Replicate error');
 
       expect(
-        failedGenerationService.handleFailedImageGeneration,
+        failedGenerationService.notifyFailedImageGeneration,
       ).toHaveBeenCalled();
     });
   });

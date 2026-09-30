@@ -7,6 +7,7 @@ import {
   assertSupportedSceneFidelity,
   sceneInputHash,
 } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { ByokProvider, ModelCategory } from '@genfeedai/contracts';
@@ -29,11 +30,7 @@ type SceneQuoteItem = (
   isByok?: boolean,
 ) => void;
 
-import {
-  AVATAR_GENERATION_CREDIT_COST,
-  LLM_DEFAULTS,
-  MODEL_KEYS,
-} from '@genfeedai/contracts/constants';
+import { LLM_DEFAULTS, MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { ConflictException, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -43,6 +40,7 @@ export class BrandRemixSceneQuoteService {
     private readonly source: BrandRemixSceneSourceService,
     private readonly estimate: AgentGenerationEstimateService,
     private readonly byok: ByokService,
+    private readonly avatars: AvatarVideoGenerationService,
   ) {}
   async build(
     organizationId: string,
@@ -272,7 +270,7 @@ export class BrandRemixSceneQuoteService {
       item(
         'video',
         MODEL_KEYS.HEYGEN_AVATAR,
-        AVATAR_GENERATION_CREDIT_COST,
+        await this.avatars.quotePlatformCredits(),
         (saved?.video.attempt ?? 0) + 1,
         scene.id,
         videoByok,
