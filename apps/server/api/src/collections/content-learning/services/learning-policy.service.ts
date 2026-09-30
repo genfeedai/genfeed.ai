@@ -76,7 +76,15 @@ export class LearningPolicyService {
         synthetic: false,
       },
     });
-    if (!policy || !(await this.dependencies.valid('policy', policy.id)))
+    if (
+      !policy ||
+      !(await this.dependencies.valid(
+        'policy',
+        policy.id,
+        this.prisma,
+        organizationId,
+      ))
+    )
       return null;
     const latest = await this.prisma.contentLearningReward.findFirst({
       where: {
@@ -126,7 +134,12 @@ export class LearningPolicyService {
       if (
         reward?.status !== 'valid' ||
         reward.composite == null ||
-        !(await this.dependencies.valid('reward', reward.id))
+        !(await this.dependencies.valid(
+          'reward',
+          reward.id,
+          this.prisma,
+          organizationId,
+        ))
       )
         continue;
       if (
@@ -207,11 +220,13 @@ export class LearningPolicyService {
       for (const id of evidenceIds)
         await this.dependencies.link(
           tx,
-          'reward',
-          id,
-          'current',
-          'policy',
-          policy.id,
+          await this.dependencies.resolve('reward', id, organizationId, tx),
+          await this.dependencies.resolve(
+            'policy',
+            policy.id,
+            organizationId,
+            tx,
+          ),
         );
       if (active)
         await tx.contentLearningAccount.updateMany({

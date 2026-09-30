@@ -2,9 +2,12 @@ import { randomUUID } from 'node:crypto';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type {
-  LearningCostAttributionV1,
-  LearningExperimentPayloadV1,
+import {
+  isLearningGlobalDependencyKind,
+  type LearningCostAttributionV1,
+  type LearningDependencyKindV1,
+  type LearningExperimentPayloadV1,
+  validLearningDependencyKind,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -12,6 +15,18 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
+
+function learningEvidenceSourceKind(kind: string): LearningDependencyKindV1 {
+  const mapped =
+    kind === 'llm-ledger'
+      ? 'llm_vendor_cost'
+      : kind === 'media-ledger'
+        ? 'media_vendor_cost'
+        : kind;
+  if (!validLearningDependencyKind(mapped))
+    throw new ConflictException('Invalid dependency identity');
+  return mapped;
+}
 @Injectable()
 export class LearningExperimentEvidenceService {
   constructor(
@@ -93,13 +108,23 @@ export class LearningExperimentEvidenceService {
           fingerprint,
         },
       });
+      const sourceKind = learningEvidenceSourceKind(input.sourceKind);
       await this.dependencies.link(
         tx,
-        input.sourceKind,
-        input.sourceId,
-        input.sourceRevision,
-        'experiment-event',
-        event.id,
+        await this.dependencies.resolve(
+          sourceKind,
+          input.sourceId,
+          isLearningGlobalDependencyKind(sourceKind)
+            ? null
+            : input.organizationId,
+          tx,
+        ),
+        await this.dependencies.resolve(
+          'experiment-event',
+          event.id,
+          input.organizationId,
+          tx,
+        ),
       );
       return event;
     });
@@ -216,7 +241,9 @@ export class LearningExperimentEvidenceService {
           opportunityId: attempt.opportunityId,
           eventKey: `cost_settlement:${input.attemptId}:${attempt.opportunityId}:${ledgerFingerprint}`,
           sourceKind:
-            input.ledgerKind === 'llm' ? 'llm-ledger' : 'media-ledger',
+            input.ledgerKind === 'llm'
+              ? 'llm_vendor_cost'
+              : 'media_vendor_cost',
           sourceId: ledger.id,
           sourceRevision: ledgerFingerprint,
           occurredAt: ledger.updatedAt,

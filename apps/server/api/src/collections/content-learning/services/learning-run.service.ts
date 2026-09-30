@@ -12,9 +12,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { PlatformRole } from '@genfeedai/contracts';
 import {
   type LearningRunDispatchReceiptV1,
-  type LearningRunDispatchTerminalResultV1,
+  learningRunTerminalResult,
   validLearningRunDispatchReceipt,
-  validLearningRunTerminalResult,
 } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import {
   evaluateLearningPolicy,
@@ -72,45 +71,6 @@ export function learningRunOperationStatus(status: string): string | null {
       ? 'completed'
       : status
     : null;
-}
-interface LearningRunTerminalSource {
-  status: string;
-  error: string | null;
-  report: unknown;
-  resultArtifactId: unknown;
-}
-function terminalResult(
-  run: LearningRunTerminalSource,
-  completedAt: Date,
-): LearningRunDispatchTerminalResultV1 | null {
-  const report =
-    run.report && typeof run.report === 'object' && !Array.isArray(run.report)
-      ? run.report
-      : null;
-  const count = report && 'count' in report ? report.count : null;
-  const result = {
-    runStatus: run.status,
-    reasonCode:
-      run.status === 'insufficient_data'
-        ? 'minimum_training_30'
-        : run.status === 'cancelled'
-          ? 'cancelled'
-          : run.status === 'completed'
-            ? null
-            : run.error,
-    resultArtifactId: run.status === 'completed' ? run.resultArtifactId : null,
-    completedAt: completedAt.toISOString(),
-    trainingCount: run.status === 'insufficient_data' ? count : null,
-    requiredTrainingCount: run.status === 'insufficient_data' ? 30 : null,
-  };
-  if (
-    run.status === 'insufficient_data' &&
-    (!report ||
-      !('reason' in report) ||
-      report.reason !== 'minimum_training_30')
-  )
-    return null;
-  return validLearningRunTerminalResult(result) ? result : null;
 }
 @Injectable()
 export class LearningRunService {
@@ -181,8 +141,14 @@ export class LearningRunService {
     nextAttemptAt: Date | null = null,
   ) {
     const mappedStatus = learningRunOperationStatus(status);
+    const writeAt = error === 'run_lease_expired' ? now : await this.clock(tx);
+    if (
+      error !== 'run_lease_expired' &&
+      writeAt.getTime() >= claim.token.getTime() + 300000
+    )
+      throw new ConflictException('run_lease_expired');
     const result = terminalStatuses.has(status)
-      ? terminalResult(
+      ? learningRunTerminalResult(
           {
             status,
             error,
@@ -190,7 +156,7 @@ export class LearningRunService {
             resultArtifactId:
               data.resultArtifactId ?? claim.run.resultArtifactId,
           },
-          now,
+          writeAt,
         )
       : null;
     if (!mappedStatus || (terminalStatuses.has(status) && !result))
@@ -206,7 +172,7 @@ export class LearningRunService {
         ...data,
         status,
         error,
-        completedAt: terminalStatuses.has(status) ? now : null,
+        completedAt: terminalStatuses.has(status) ? writeAt : null,
       },
     });
     const operation = await tx.contentLearningOperation.updateMany({
@@ -309,13 +275,30 @@ export class LearningRunService {
           };
         }
       }
-      if (receipt.datasetId !== run.datasetId || receipt.runId !== run.id)
-        throw new ConflictException('Dispatch manifest mismatch');
+      if (receipt.datasetId !== run.datasetId || receipt.runId !== run.id) {
+        await tx.contentLearningOperation.updateMany({
+          where: {
+            id: operation.id,
+            organizationId: input.organizationId,
+            isDeleted: false,
+            status: operation.status,
+          },
+          data: { status: 'failed', error: 'dispatch_receipt_invalid' },
+        });
+        return {
+          operation: {
+            ...operation,
+            status: 'failed',
+            error: 'dispatch_receipt_invalid',
+          },
+          dispatchable: false,
+        };
+      }
       if (terminalStatuses.has(run.status)) {
         const result =
           run.completedAt &&
           receipt.claimedStartedAt === run.startedAt?.toISOString()
-            ? terminalResult(run, run.completedAt)
+            ? learningRunTerminalResult(run, run.completedAt)
             : null;
         const status = result
           ? learningRunOperationStatus(run.status)
@@ -347,7 +330,7 @@ export class LearningRunService {
       }
       if (
         !(await this.actorActive(tx, operation.actorId)) ||
-        !(await this.dependencies.valid('run', run.id, tx))
+        !(await this.dependencies.valid('run', run.id, tx, null))
       ) {
         await tx.contentLearningRun.updateMany({
           where: {
@@ -375,7 +358,7 @@ export class LearningRunService {
             error: 'authorization_or_source_withdrawn',
             resultReferences: toPrismaJson({
               ...receipt,
-              terminalResult: terminalResult(
+              terminalResult: learningRunTerminalResult(
                 {
                   ...run,
                   status: 'invalidated',
@@ -525,7 +508,7 @@ export class LearningRunService {
         throw new ConflictException('Another active run dispatch exists');
       if (
         !(await this.actorActive(tx, operation.actorId)) ||
-        !(await this.dependencies.valid('run', run.id, tx))
+        !(await this.dependencies.valid('run', run.id, tx, null))
       )
         return null;
       const token = new Date(
@@ -599,7 +582,7 @@ export class LearningRunService {
         return null;
       if (
         !(await this.actorActive(tx, operation.actorId)) ||
-        !(await this.dependencies.valid('run', run.id, tx))
+        !(await this.dependencies.valid('run', run.id, tx, null))
       ) {
         await this.writePair(
           tx,
@@ -648,6 +631,14 @@ export class LearningRunService {
         nextAttemptAt,
       );
       return true;
+    }).catch(async (failure: unknown) => {
+      if (
+        !(failure instanceof ConflictException) ||
+        failure.message !== 'run_lease_expired'
+      )
+        throw failure;
+      await this.reconcileDispatch(input);
+      return null;
     });
     if (!result) await this.reconcileDispatch(input);
   }
@@ -662,7 +653,10 @@ export class LearningRunService {
     const dataset = await this.prisma.contentLearningDataset.findFirst({
       where: { id: input.datasetId, isDeleted: false },
     });
-    if (!dataset || !(await this.dependencies.valid('dataset', dataset.id)))
+    if (
+      !dataset ||
+      !(await this.dependencies.valid('dataset', dataset.id, this.prisma, null))
+    )
       throw new BadRequestException('Dataset unavailable or revoked');
     const key = learningHash([
         input.organizationId,
@@ -680,7 +674,7 @@ export class LearningRunService {
       await learningFence(tx, 'shared');
       if (
         !(await this.actorActive(tx, input.actorId)) ||
-        !(await this.dependencies.valid('dataset', dataset.id, tx))
+        !(await this.dependencies.valid('dataset', dataset.id, tx, null))
       )
         throw new ConflictException(
           'Dataset or operator authorization changed',
@@ -706,11 +700,8 @@ export class LearningRunService {
       });
       await this.dependencies.link(
         tx,
-        'dataset',
-        dataset.id,
-        dataset.manifestHash,
-        'run',
-        run.id,
+        await this.dependencies.resolve('dataset', dataset.id, null, tx),
+        await this.dependencies.resolve('run', run.id, null, tx),
       );
       await tx.contentLearningOperation.create({
         data: {
@@ -885,11 +876,13 @@ export class LearningRunService {
           });
           await this.dependencies.link(
             tx,
-            'run',
-            runId,
-            run.configHash,
-            'shared-policy',
-            artifact.id,
+            await this.dependencies.resolve('run', runId, null, tx),
+            await this.dependencies.resolve(
+              'shared-policy',
+              artifact.id,
+              null,
+              tx,
+            ),
           );
           await this.writePair(tx, claim, 'completed', now, {
             progress: 100,

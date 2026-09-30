@@ -86,6 +86,7 @@ export class LearningOperationService {
       );
       const previous = await tx.contentLearningOperation.findFirst({
         where: {
+          organizationId: input.actor.organizationId,
           actorId: input.actor.actorId,
           scope,
           requestId: input.requestId,

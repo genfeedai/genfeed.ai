@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -7,7 +8,13 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  MinLength,
+  ValidateNested,
 } from 'class-validator';
+export class LearningDatasetSourceAccountDto {
+  @IsString() @MinLength(1) @MaxLength(256) organizationId!: string;
+  @IsString() @MinLength(1) @MaxLength(256) accountId!: string;
+}
 export class LearningDatasetDto {
   @IsString() @MaxLength(2000) rightsStatement!: string;
   @IsIn([
@@ -25,7 +32,7 @@ export class LearningDatasetDto {
   @IsOptional()
   @IsArray()
   @ArrayMaxSize(100)
-  @IsString({ each: true })
-  @MaxLength(256, { each: true })
-  sourceAccountIds?: string[];
+  @ValidateNested({ each: true })
+  @Type(() => LearningDatasetSourceAccountDto)
+  sourceAccounts?: LearningDatasetSourceAccountDto[];
 }

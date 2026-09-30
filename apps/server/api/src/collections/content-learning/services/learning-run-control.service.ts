@@ -101,7 +101,7 @@ export class LearningRunControlService {
           cycles.some((cycle) =>
             ['pending', 'running'].includes(cycle.status),
           ) ||
-          !(await this.dependencies.valid('run', run.id, tx))
+          !(await this.dependencies.valid('run', run.id, tx, null))
         )
           throw new ConflictException('Run cannot retry');
         const changed = await tx.contentLearningRun.updateMany({

@@ -49,7 +49,7 @@ export class LearningReleaseService {
     if (
       artifacts.length !== input.artifactIds.length ||
       artifacts.some((row) => row.validity === 'invalid') ||
-      !(await this.dependencies.valid('run', report.id))
+      !(await this.dependencies.valid('run', report.id, this.prisma, null))
     )
       throw new BadRequestException('Invalid artifact manifest');
     const payloadHash = learningHash([
@@ -59,6 +59,7 @@ export class LearningReleaseService {
     return this.prisma.$transaction(async (tx) => {
       const prior = await tx.contentLearningOperation.findFirst({
         where: {
+          organizationId: input.organizationId,
           actorId: input.actorId,
           scope: 'global-admin',
           requestId: input.requestId,
@@ -87,20 +88,19 @@ export class LearningReleaseService {
       });
       await this.dependencies.link(
         tx,
-        'run',
-        report.id,
-        report.configHash,
-        'release',
-        release.id,
+        await this.dependencies.resolve('run', report.id, null, tx),
+        await this.dependencies.resolve('release', release.id, null, tx),
       );
       for (const artifact of artifacts)
         await this.dependencies.link(
           tx,
-          'shared-policy',
-          artifact.id,
-          String(artifact.version),
-          'release',
-          release.id,
+          await this.dependencies.resolve(
+            'shared-policy',
+            artifact.id,
+            null,
+            tx,
+          ),
+          await this.dependencies.resolve('release', release.id, null, tx),
         );
       return tx.contentLearningOperation.create({
         data: {
@@ -131,6 +131,7 @@ export class LearningReleaseService {
         await tx.$queryRaw`SELECT id FROM content_learning_releases WHERE "isDeleted" = false ORDER BY id FOR UPDATE`;
         const prior = await tx.contentLearningOperation.findFirst({
           where: {
+            organizationId: input.organizationId,
             actorId: input.actorId,
             scope: 'global-admin',
             requestId: input.requestId,
@@ -168,7 +169,7 @@ export class LearningReleaseService {
           if (
             release.synthetic ||
             !passedReport(report?.report) ||
-            !(await this.dependencies.valid('release', release.id, tx))
+            !(await this.dependencies.valid('release', release.id, tx, null))
           )
             throw new ConflictException(
               'Promotion requires passed real evaluation and valid consent dependencies',
@@ -246,7 +247,12 @@ export class LearningReleaseService {
         if (
           input.action === 'rollback' &&
           release.priorReleaseId &&
-          (await this.dependencies.valid('release', release.priorReleaseId, tx))
+          (await this.dependencies.valid(
+            'release',
+            release.priorReleaseId,
+            tx,
+            null,
+          ))
         )
           await tx.contentLearningRelease.updateMany({
             where: {
@@ -303,7 +309,15 @@ export class LearningReleaseService {
       orderBy: { createdAt: 'desc' },
     });
     for (const release of releases) {
-      if (!(await this.dependencies.valid('release', release.id))) continue;
+      if (
+        !(await this.dependencies.valid(
+          'release',
+          release.id,
+          this.prisma,
+          null,
+        ))
+      )
+        continue;
       const bucket =
         Number.parseInt(
           learningHash([account.id, release.recipientSalt]).slice(0, 8),

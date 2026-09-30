@@ -75,7 +75,16 @@ function fixture(status = 'running', attempts = 1) {
     ...tx,
     $transaction: vi.fn().mockImplementation(async (apply) => apply(tx)),
   };
-  const dependencies = { valid: vi.fn().mockResolvedValue(true) };
+  const dependencies = {
+    valid: vi.fn().mockResolvedValue(true),
+    link: vi.fn(),
+    resolve: vi.fn().mockImplementation(async (kind, id, organizationId) => ({
+      kind,
+      id,
+      organizationId,
+      version: 'pinned',
+    })),
+  };
   return {
     run,
     operation,
@@ -223,5 +232,26 @@ describe('paired durable run recovery', () => {
         claimedStartedAt: '2026-09-30T12:00:00Z',
       }),
     ).toBeNull();
+  });
+  it('samples the write-time clock before committing a terminal pair', async () => {
+    const f = fixture('pending', 0);
+    f.run.startedAt = null as unknown as Date;
+    f.operation.resultReferences.claimedStartedAt = null as unknown as string;
+    f.tx.$queryRaw.mockImplementation(async (query: unknown) => {
+      if (String(query).includes('clock_timestamp')) {
+        const calls = f.tx.$queryRaw.mock.calls.filter((call) =>
+          String(call[0]).includes('clock_timestamp'),
+        ).length;
+        if (calls > 4) return [{ now: new Date(now.getTime() + 306000) }];
+        return [{ now }];
+      }
+      return [];
+    });
+    await f.service.execute(dispatch);
+    expect(
+      f.tx.contentLearningRun.updateMany.mock.calls.some(
+        (call) => call[0]?.data?.status === 'insufficient_data',
+      ),
+    ).toBe(false);
   });
 });

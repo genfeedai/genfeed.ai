@@ -9,6 +9,7 @@ import {
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LEARNING_ARMS } from '@genfeedai/harness';
 import { toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -29,12 +30,10 @@ export class LearningAccountService {
     brandId?: string,
   ) {
     const credential = await this.prisma.credential.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: credentialId,
-        organizationId,
-        isDeleted: false,
         ...(brandId ? { brandId } : {}),
-      },
+      }),
     });
     if (!credential?.brandId) throw new NotFoundException('Account not found');
     const brand = await this.prisma.brand.findFirst({
@@ -45,6 +44,7 @@ export class LearningAccountService {
   }
   async ensure(organizationId: string, credentialId: string) {
     const credential = await this.credential(organizationId, credentialId);
+    // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
     return this.prisma.contentLearningAccount.upsert({
       where: { organizationId_credentialId: { organizationId, credentialId } },
       create: { organizationId, credentialId, brandId: credential.brandId },
@@ -152,7 +152,12 @@ export class LearningAccountService {
           });
           if (
             !policy ||
-            !(await this.dependencies.valid('policy', policy.id, tx))
+            !(await this.dependencies.valid(
+              'policy',
+              policy.id,
+              tx,
+              actor.organizationId,
+            ))
           )
             throw new ConflictException('No valid in-epoch predecessor');
         }
@@ -281,7 +286,15 @@ export class LearningAccountService {
           isDeleted: false,
         },
       });
-      if (!release || !(await this.dependencies.valid('release', release.id)))
+      if (
+        !release ||
+        !(await this.dependencies.valid(
+          'release',
+          release.id,
+          this.prisma,
+          null,
+        ))
+      )
         throw new ConflictException(
           'Pinned release must be valid real evidence',
         );
@@ -418,7 +431,15 @@ export class LearningAccountService {
           isDeleted: false,
         },
       });
-      if (!release || !(await this.dependencies.valid('release', release.id)))
+      if (
+        !release ||
+        !(await this.dependencies.valid(
+          'release',
+          release.id,
+          this.prisma,
+          null,
+        ))
+      )
         throw new ConflictException('Valid pinned release required');
     }
     const scope = learningHash([
@@ -434,6 +455,7 @@ export class LearningAccountService {
       ]);
     return this.prisma.$transaction(async (tx) => {
       await learningFence(tx, 'exclusive');
+      // tenant-scope-ignore: unique-key upsert; organizationId is part of the key
       await tx.contentLearningBrandPreference.upsert({
         where: {
           organizationId_brandId: {
@@ -446,12 +468,11 @@ export class LearningAccountService {
       });
       await tx.$queryRaw`SELECT id FROM content_learning_brand_preferences WHERE "organizationId" = ${actor.organizationId} AND "brandId" = ${brandId} ORDER BY id FOR UPDATE`;
       const previous = await tx.contentLearningOperation.findFirst({
-        where: {
+        where: scopedWhere(actor.organizationId, {
           actorId: actor.actorId,
           scope,
           requestId: body.requestId,
-          isDeleted: false,
-        },
+        }),
       });
       if (previous) {
         if (previous.payloadHash !== payloadHash)
@@ -507,6 +528,7 @@ export class LearningAccountService {
     accountId: string,
     body: { expectedRevision: number; requestId: string; reason: string },
   ) {
+    // tenant-scope-ignore: platform emergency pause locates the account then mutates through its organization
     const account = await this.prisma.contentLearningAccount.findFirst({
       where: { id: accountId, isDeleted: false },
     });

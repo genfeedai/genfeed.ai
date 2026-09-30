@@ -181,6 +181,10 @@ export interface LearningResourceView {
   synthetic?: boolean;
   [field: string]: unknown;
 }
+export interface LearningDatasetSourceAccount {
+  organizationId: string;
+  accountId: string;
+}
 export interface LearningDatasetInput {
   rightsStatement: string;
   profile: LearningObjective;
@@ -188,7 +192,7 @@ export interface LearningDatasetInput {
   cutoff: string;
   requestId: string;
   rows?: LearningNumericRow[];
-  sourceAccountIds?: string[];
+  sourceAccounts?: LearningDatasetSourceAccount[];
 }
 
 export function captureLearningMetrics(
@@ -427,38 +431,112 @@ export interface LearningCostAttributionV1 {
   ingredientId?: string;
 }
 
+export const LEARNING_GLOBAL_DEPENDENCY_KINDS = [
+  'dataset',
+  'run',
+  'shared-policy',
+  'release',
+  'config',
+] as const;
+export const LEARNING_TENANT_DEPENDENCY_KINDS = [
+  'organization',
+  'brand',
+  'credential',
+  'post',
+  'account',
+  'checkpoint',
+  'baseline',
+  'decision',
+  'reward',
+  'policy',
+  'consent',
+  'experiment',
+  'enrollment',
+  'opportunity',
+  'experiment-event',
+  'provider_attempt',
+  'llm_vendor_cost',
+  'media_vendor_cost',
+  'publish_approval',
+  'post_publish_finalization',
+  'content_version_pin',
+] as const;
+export const LEARNING_DEPENDENCY_KINDS = [
+  ...LEARNING_GLOBAL_DEPENDENCY_KINDS,
+  ...LEARNING_TENANT_DEPENDENCY_KINDS,
+] as const;
+export const LEARNING_REGISTERED_CONFIG_VERSIONS = [
+  'rl-reward-v1-experimental',
+  'numeric-nine-v1',
+  'ridge-epsilon-v1',
+  'rl-experiment-v1',
+] as const;
+export const LEARNING_DERIVED_DEPENDENCY_KINDS = [
+  'dataset',
+  'run',
+  'shared-policy',
+  'release',
+  'checkpoint',
+  'baseline',
+  'decision',
+  'reward',
+  'policy',
+  'experiment',
+  'enrollment',
+  'opportunity',
+  'experiment-event',
+] as const;
 export type LearningDependencyKindV1 =
-  | 'dataset'
-  | 'run'
-  | 'shared-policy'
-  | 'release'
-  | 'config'
-  | 'organization'
-  | 'brand'
-  | 'credential'
-  | 'post'
-  | 'account'
-  | 'checkpoint'
-  | 'baseline'
-  | 'decision'
-  | 'reward'
-  | 'policy'
-  | 'consent'
-  | 'experiment'
-  | 'enrollment'
-  | 'opportunity'
-  | 'experiment-event'
-  | 'provider_attempt'
-  | 'llm_vendor_cost'
-  | 'media_vendor_cost'
-  | 'publish_approval'
-  | 'post_publish_finalization'
-  | 'content_version_pin';
+  (typeof LEARNING_DEPENDENCY_KINDS)[number];
 export interface LearningDependencyRefV1 {
   kind: LearningDependencyKindV1;
   id: string;
   organizationId: string | null;
   version: string;
+}
+export function isLearningGlobalDependencyKind(
+  kind: string,
+): kind is (typeof LEARNING_GLOBAL_DEPENDENCY_KINDS)[number] {
+  return (LEARNING_GLOBAL_DEPENDENCY_KINDS as readonly string[]).includes(kind);
+}
+export function isLearningDerivedDependencyKind(
+  kind: string,
+): kind is (typeof LEARNING_DERIVED_DEPENDENCY_KINDS)[number] {
+  return (LEARNING_DERIVED_DEPENDENCY_KINDS as readonly string[]).includes(
+    kind,
+  );
+}
+export function validLearningDependencyKind(
+  kind: unknown,
+): kind is LearningDependencyKindV1 {
+  return (
+    typeof kind === 'string' &&
+    (LEARNING_DEPENDENCY_KINDS as readonly string[]).includes(kind)
+  );
+}
+export function validLearningDependencyRef(
+  value: unknown,
+): value is LearningDependencyRefV1 {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const raw = value as Record<string, unknown>;
+  if (
+    !validLearningDependencyKind(raw.kind) ||
+    typeof raw.id !== 'string' ||
+    raw.id.length < 1 ||
+    raw.id.length > 256 ||
+    typeof raw.version !== 'string' ||
+    raw.version.length < 1 ||
+    raw.version.length > 256 ||
+    raw.version === 'current'
+  )
+    return false;
+  if (isLearningGlobalDependencyKind(raw.kind))
+    return raw.organizationId === null;
+  return (
+    typeof raw.organizationId === 'string' &&
+    raw.organizationId.trim().length > 0 &&
+    raw.organizationId.length <= 256
+  );
 }
 
 export interface LearningAllocatedCostV1 {
@@ -502,13 +580,14 @@ export function validLearningRunTerminalResult(
   const nullableCode = (v: unknown) =>
     v === null || (typeof v === 'string' && v.length > 0 && v.length <= 256);
   if (
+    typeof raw.runStatus !== 'string' ||
     ![
       'completed',
       'insufficient_data',
       'failed',
       'cancelled',
       'invalidated',
-    ].includes(String(raw.runStatus)) ||
+    ].includes(raw.runStatus) ||
     !nullableCode(raw.reasonCode) ||
     !nullableCode(raw.resultArtifactId) ||
     typeof raw.completedAt !== 'string' ||
@@ -563,4 +642,44 @@ export function validLearningRunDispatchReceipt(
   )
     return false;
   return true;
+}
+
+export interface LearningRunTerminalSource {
+  status: string;
+  error: string | null;
+  report: unknown;
+  resultArtifactId: unknown;
+}
+export function learningRunTerminalResult(
+  run: LearningRunTerminalSource,
+  completedAt: Date,
+): LearningRunDispatchTerminalResultV1 | null {
+  const report =
+    run.report && typeof run.report === 'object' && !Array.isArray(run.report)
+      ? run.report
+      : null;
+  const count = report && 'count' in report ? report.count : null;
+  const result = {
+    runStatus: run.status,
+    reasonCode:
+      run.status === 'insufficient_data'
+        ? 'minimum_training_30'
+        : run.status === 'cancelled'
+          ? 'cancelled'
+          : run.status === 'completed'
+            ? null
+            : run.error,
+    resultArtifactId: run.status === 'completed' ? run.resultArtifactId : null,
+    completedAt: completedAt.toISOString(),
+    trainingCount: run.status === 'insufficient_data' ? count : null,
+    requiredTrainingCount: run.status === 'insufficient_data' ? 30 : null,
+  };
+  if (
+    run.status === 'insufficient_data' &&
+    (!report ||
+      !('reason' in report) ||
+      report.reason !== 'minimum_training_30')
+  )
+    return null;
+  return validLearningRunTerminalResult(result) ? result : null;
 }

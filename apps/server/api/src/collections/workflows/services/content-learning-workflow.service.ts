@@ -17,7 +17,9 @@ import {
   type ContentLearningActionId,
 } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import type { WorkflowDefinitionInput } from '@api/collections/workflows/workflow-version-definition';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
@@ -68,12 +70,10 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     postId: string,
   ): Promise<string | null> {
     const post = await this.prisma.post.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: postId,
-        organizationId,
-        isDeleted: false,
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-      },
+      }),
     });
     if (!post?.credentialId || !post.publishedAt) return null;
     const account = await this.prisma.contentLearningAccount.findFirst({
@@ -124,12 +124,10 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     if (action === CONTENT_LEARNING_ACTION_IDS.CHECKPOINT) {
       const postId = this.id(input.postId, 'postId');
       const post = await this.prisma.post.findFirst({
-        where: {
+        where: scopedWhere(organizationId, {
           id: postId,
-          organizationId,
-          isDeleted: false,
           ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-        },
+        }),
       });
       if (!post?.credentialId || !post.publishedAt)
         return { status: 'unavailable', reason: 'publication_unavailable' };
@@ -239,9 +237,18 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       !refs ||
       typeof refs !== 'object' ||
       Array.isArray(refs) ||
-      typeof refs.runId !== 'string'
-    )
-      throw new BadRequestException('Stored run receipt required');
+      typeof refs.runId !== 'string' ||
+      refs.runId.length === 0 ||
+      refs.runId.length > 256
+    ) {
+      await this.disposeInvalidDispatch(organizationId, operation.id);
+      return {
+        operationId: operation.id,
+        status: 'failed',
+        runStatus: null,
+        reason: 'dispatch_receipt_invalid',
+      };
+    }
     await this.runs.execute({
       runId: refs.runId,
       operationId: operation.id,
@@ -261,19 +268,36 @@ export class ContentLearningWorkflowService implements OnModuleInit {
     };
   }
 
+  private async disposeInvalidDispatch(
+    organizationId: string,
+    operationId: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'shared');
+      await tx.$queryRaw`SELECT id FROM content_learning_operations WHERE id=${operationId} AND "organizationId"=${organizationId} AND "isDeleted"=false FOR UPDATE`;
+      return tx.contentLearningOperation.updateMany({
+        where: {
+          id: operationId,
+          organizationId,
+          isDeleted: false,
+          status: { in: ['pending', 'running'] },
+        },
+        data: { status: 'failed', error: 'dispatch_receipt_invalid' },
+      });
+    });
+  }
   async reconcile(organizationId: string) {
     const posts = await this.prisma.post.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
+      where: scopedWhere(organizationId, {
         credentialId: { not: null },
         publishedAt: { gte: new Date(Date.now() - 49 * 3600000) },
         ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-      },
+      }),
       select: { id: true },
       orderBy: { id: 'asc' },
     });
-    let queued = 0;
+    let queued = 0,
+      failed = 0;
     for (const post of posts)
       if (await this.queueCheckpoint(organizationId, post.id)) queued++;
     const operations = await this.prisma.contentLearningOperation.findMany({
@@ -286,38 +310,54 @@ export class ContentLearningWorkflowService implements OnModuleInit {
       orderBy: { createdAt: 'asc' },
     });
     for (const operation of operations) {
-      const refs = operation.resultReferences;
-      if (
-        !refs ||
-        typeof refs !== 'object' ||
-        Array.isArray(refs) ||
-        typeof refs.runId !== 'string'
-      )
-        continue;
-      const repaired = await this.runs.reconcileDispatch({
-        runId: refs.runId,
-        operationId: operation.id,
-        organizationId,
-      });
-      if (!repaired.dispatchable) continue;
-      const action =
-        operation.type === 'dataset-train'
-          ? CONTENT_LEARNING_ACTION_IDS.DATASET_TRAIN
-          : CONTENT_LEARNING_ACTION_IDS.EVALUATE;
-      await this.queue.queueSystemWorkflow(
-        {
-          canonicalId: action,
-          actionType: action,
+      try {
+        const refs = operation.resultReferences;
+        if (
+          !refs ||
+          typeof refs !== 'object' ||
+          Array.isArray(refs) ||
+          typeof refs.runId !== 'string' ||
+          refs.runId.length === 0 ||
+          refs.runId.length > 256
+        ) {
+          await this.disposeInvalidDispatch(organizationId, operation.id);
+          continue;
+        }
+        const repaired = await this.runs.reconcileDispatch({
+          runId: refs.runId,
+          operationId: operation.id,
           organizationId,
-          inputValues: { operationId: operation.id },
-          source: 'content-learning-reconcile',
-        },
-        `learning-operation-${operation.id}`,
-        { attempts: 3, dispatchClass: SystemWorkflowDispatchClass.BACKGROUND },
-      );
-      queued++;
+        });
+        if (!repaired.dispatchable) continue;
+        const action =
+          operation.type === 'dataset-train'
+            ? CONTENT_LEARNING_ACTION_IDS.DATASET_TRAIN
+            : CONTENT_LEARNING_ACTION_IDS.EVALUATE;
+        await this.queue.queueSystemWorkflow(
+          {
+            canonicalId: action,
+            actionType: action,
+            organizationId,
+            inputValues: { operationId: operation.id },
+            source: 'content-learning-reconcile',
+          },
+          `learning-operation-${operation.id}`,
+          {
+            attempts: 3,
+            dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+          },
+        );
+        queued++;
+      } catch (error) {
+        if (
+          error instanceof NotFoundException &&
+          error.message === 'Run dispatch not found'
+        )
+          await this.disposeInvalidDispatch(organizationId, operation.id);
+        failed++;
+      }
     }
-    return { status: 'completed', queued };
+    return { status: 'completed', queued, failed };
   }
   async retention(organizationId: string) {
     const cutoff = new Date(Date.now() - 365 * 86400000);

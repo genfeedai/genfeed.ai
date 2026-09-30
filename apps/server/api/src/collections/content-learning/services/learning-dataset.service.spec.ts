@@ -110,3 +110,78 @@ describe('immutable dataset operation retries', () => {
     expect(createDataset).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('consented source account identities', () => {
+  function service() {
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      contentLearningOperation: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({ id: 'operation' }),
+      },
+      contentLearningAccount: { findFirst: vi.fn().mockResolvedValue(null) },
+      contentLearningConsent: { findFirst: vi.fn() },
+      contentLearningReward: { findMany: vi.fn(), findFirst: vi.fn() },
+      contentLearningDecision: { findFirst: vi.fn() },
+      contentLearningDataset: { create: vi.fn() },
+      contentLearningDatasetEntry: { create: vi.fn() },
+    };
+    const prisma = {
+      $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
+    };
+    return {
+      tx,
+      service: new LearningDatasetService(
+        prisma as unknown as PrismaService,
+        {
+          valid: vi.fn().mockResolvedValue(true),
+          link: vi.fn(),
+          resolve: vi.fn(),
+        } as unknown as LearningDependencyService,
+      ),
+    };
+  }
+  const input = {
+    organizationId: 'operator-org',
+    actorId: 'actor',
+    requestId: 'req',
+    rightsStatement: 'Owned synthetic fixture rights',
+    profile: 'awareness',
+    cell: 'cell',
+    cutoff: '2026-09-29T00:00:00Z',
+  };
+  it('rejects duplicate and bare source account identities', async () => {
+    const f = service();
+    await expect(
+      f.service.create({
+        ...input,
+        sourceAccounts: [
+          { organizationId: 'org', accountId: 'account' },
+          { organizationId: 'org', accountId: 'account' },
+        ],
+      }),
+    ).rejects.toThrow('Duplicate source account');
+    await expect(
+      f.service.create({
+        ...input,
+        sourceAccounts: [{ organizationId: '', accountId: 'account' } as never],
+      }),
+    ).rejects.toThrow('Source account identity required');
+  });
+  it('returns 404 when the account is not in the claimed organization', async () => {
+    const f = service();
+    await expect(
+      f.service.create({
+        ...input,
+        sourceAccounts: [{ organizationId: 'org', accountId: 'foreign' }],
+      }),
+    ).rejects.toThrow('Source account not found');
+    expect(f.tx.contentLearningAccount.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'foreign',
+        organizationId: 'org',
+        isDeleted: false,
+      },
+    });
+  });
+});

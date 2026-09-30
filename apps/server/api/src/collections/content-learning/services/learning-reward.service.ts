@@ -59,7 +59,12 @@ export class LearningRewardService {
     const status =
       checkpoint.validity !== 'valid'
         ? checkpoint.validity
-        : !(await this.dependencies.valid('baseline', baseline.id))
+        : !(await this.dependencies.valid(
+              'baseline',
+              baseline.id,
+              this.prisma,
+              organizationId,
+            ))
           ? 'invalid_baseline'
           : result.status;
     const sourceFingerprint = learningHash([
@@ -111,19 +116,33 @@ export class LearningRewardService {
       if (prior) await this.dependencies.invalidate('reward', prior.id, tx);
       await this.dependencies.link(
         tx,
-        'checkpoint',
-        checkpoint.id,
-        String(checkpoint.revision),
-        'reward',
-        reward.id,
+        await this.dependencies.resolve(
+          'checkpoint',
+          checkpoint.id,
+          organizationId,
+          tx,
+        ),
+        await this.dependencies.resolve(
+          'reward',
+          reward.id,
+          organizationId,
+          tx,
+        ),
       );
       await this.dependencies.link(
         tx,
-        'baseline',
-        baseline.id,
-        baseline.fingerprint,
-        'reward',
-        reward.id,
+        await this.dependencies.resolve(
+          'baseline',
+          baseline.id,
+          organizationId,
+          tx,
+        ),
+        await this.dependencies.resolve(
+          'reward',
+          reward.id,
+          organizationId,
+          tx,
+        ),
       );
       await tx.contentLearningAccount.updateMany({
         where: {

@@ -23,12 +23,16 @@ function fixture() {
         platform: 'twitter',
         publishedAt: new Date(Date.now() - 48 * 3600000),
       }),
+      findMany: vi.fn().mockResolvedValue([]),
     },
+    $queryRaw: vi.fn().mockResolvedValue([]),
+    $transaction: vi.fn(),
     contentLearningAccount: {
       findFirst: vi.fn().mockResolvedValue({ mode: 'shadow' }),
     },
     contentLearningOperation: {
       findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     contentLearningRun: {
@@ -177,5 +181,42 @@ describe('durable scoped content learning workflow dispatch', () => {
     const f = fixture();
     f.service.onModuleInit();
     expect(f.runner.registerWorkflow).toHaveBeenCalledTimes(6);
+  });
+  it('disposes poisoned dispatch receipts and continues the remaining sweep', async () => {
+    const f = fixture();
+    f.prisma.$transaction.mockImplementation(
+      async (apply: (tx: unknown) => unknown) => apply(f.prisma),
+    );
+    f.prisma.contentLearningOperation.findMany.mockResolvedValue([
+      {
+        id: 'poisoned',
+        type: 'dataset-train',
+        resultReferences: { runId: ['array'] },
+      },
+      {
+        id: 'healthy',
+        type: 'dataset-evaluate',
+        resultReferences: { runId: 'run' },
+      },
+    ]);
+    f.runs.reconcileDispatch = vi
+      .fn()
+      .mockResolvedValue({ dispatchable: true });
+    const result = await f.service.reconcile('org');
+    expect(f.prisma.contentLearningOperation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ id: 'poisoned' }),
+        data: expect.objectContaining({
+          status: 'failed',
+          error: 'dispatch_receipt_invalid',
+        }),
+      }),
+    );
+    expect(f.runs.reconcileDispatch).toHaveBeenCalledWith({
+      runId: 'run',
+      operationId: 'healthy',
+      organizationId: 'org',
+    });
+    expect(result.queued).toBe(1);
   });
 });

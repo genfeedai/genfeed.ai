@@ -424,6 +424,7 @@ export class LearningDecisionService {
           organizationId,
           learningDecisionId: decisionId,
           id: { not: postId },
+          isDeleted: false,
         },
       });
       const hash = learningHash({

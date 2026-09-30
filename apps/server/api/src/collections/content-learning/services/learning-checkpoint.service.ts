@@ -535,6 +535,7 @@ export class LearningCheckpointService {
       selected.map((row) => [row.id, row.revision]),
     ]);
     return this.prisma.$transaction(async (tx) => {
+      // tenant-scope-ignore: unique-key upsert cannot carry scopedWhere
       const baseline = await tx.contentLearningBaseline.upsert({
         where: { fingerprint },
         create: {
@@ -557,11 +558,18 @@ export class LearningCheckpointService {
       for (const row of selected)
         await this.dependencies.link(
           tx,
-          'checkpoint',
-          row.id,
-          String(row.revision),
-          'baseline',
-          baseline.id,
+          await this.dependencies.resolve(
+            'checkpoint',
+            row.id,
+            scope.organizationId,
+            tx,
+          ),
+          await this.dependencies.resolve(
+            'baseline',
+            baseline.id,
+            scope.organizationId,
+            tx,
+          ),
         );
       return baseline;
     });

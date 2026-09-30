@@ -4,8 +4,12 @@ import {
   learningFence,
 } from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { LearningNumericRow } from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
+import type {
+  LearningDatasetSourceAccount,
+  LearningNumericRow,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { assertLearningFeatures, LEARNING_ARMS } from '@genfeedai/harness';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -131,7 +135,7 @@ export interface LearningDatasetCreationInput {
   cell: string;
   cutoff: string;
   rows?: unknown;
-  sourceAccountIds?: string[];
+  sourceAccounts?: LearningDatasetSourceAccount[];
 }
 @Injectable()
 export class LearningDatasetService {
@@ -147,6 +151,7 @@ export class LearningDatasetService {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))::text`;
       const previous = await tx.contentLearningOperation.findFirst({
         where: {
+          organizationId: input.organizationId,
           actorId: input.actorId,
           scope,
           requestId: input.requestId,
@@ -210,20 +215,39 @@ export class LearningDatasetService {
       fingerprint: string;
       rewardId: string;
       consentId: string;
+      organizationId: string;
     }> = [];
     if (input.rows) rows = validateLearningRows(input.rows, cutoff);
-    for (const id of input.sourceAccountIds ?? []) {
+    const sources = input.sourceAccounts ?? [];
+    const seenAccounts = new Set<string>();
+    for (const source of sources) {
+      if (
+        !source ||
+        typeof source.organizationId !== 'string' ||
+        typeof source.accountId !== 'string' ||
+        !source.organizationId.trim() ||
+        !source.accountId.trim()
+      )
+        throw new BadRequestException('Source account identity required');
+      if (seenAccounts.has(source.accountId))
+        throw new BadRequestException('Duplicate source account');
+      seenAccounts.add(source.accountId);
       const account = await tx.contentLearningAccount.findFirst({
-        where: { id, isDeleted: false },
+        where: {
+          id: source.accountId,
+          organizationId: source.organizationId,
+          isDeleted: false,
+        },
       });
-      if (!account?.sharingConsentVersion)
+      if (!account) throw new NotFoundException('Source account not found');
+      if (!account.sharingConsentVersion)
         throw new BadRequestException(
           'Current owner contribution consent required',
         );
       const consent = await tx.contentLearningConsent.findFirst({
         where: {
           organizationId: account.organizationId,
-          accountId: id,
+          accountId: account.id,
           version: account.sharingConsentVersion,
           granted: true,
           revokedAt: null,
@@ -245,7 +269,12 @@ export class LearningDatasetService {
       for (const reward of rewards) {
         if (
           reward.composite == null ||
-          !(await this.dependencies.valid('reward', reward.id, tx))
+          !(await this.dependencies.valid(
+            'reward',
+            reward.id,
+            tx,
+            account.organizationId,
+          ))
         )
           continue;
         const latest = await tx.contentLearningReward.findFirst({
@@ -292,6 +321,7 @@ export class LearningDatasetService {
           fingerprint: row.sourceFingerprint,
           rewardId: reward.id,
           consentId: consent.id,
+          organizationId: account.organizationId,
         });
       }
     }
@@ -340,10 +370,16 @@ export class LearningDatasetService {
 
     for (const source of provenance)
       if (
-        !(await this.dependencies.valid('reward', source.rewardId, tx)) ||
+        !(await this.dependencies.valid(
+          'reward',
+          source.rewardId,
+          tx,
+          source.organizationId,
+        )) ||
         !(await tx.contentLearningConsent.findFirst({
           where: {
             id: source.consentId,
+            organizationId: source.organizationId,
             granted: true,
             revokedAt: null,
             isDeleted: false,
@@ -412,19 +448,23 @@ export class LearningDatasetService {
       if (source) {
         await this.dependencies.link(
           tx,
-          'reward',
-          source.rewardId,
-          'current',
-          'dataset',
-          dataset.id,
+          await this.dependencies.resolve(
+            'reward',
+            source.rewardId,
+            source.organizationId,
+            tx,
+          ),
+          await this.dependencies.resolve('dataset', dataset.id, null, tx),
         );
         await this.dependencies.link(
           tx,
-          'consent',
-          source.consentId,
-          'current',
-          'dataset',
-          dataset.id,
+          await this.dependencies.resolve(
+            'consent',
+            source.consentId,
+            source.organizationId,
+            tx,
+          ),
+          await this.dependencies.resolve('dataset', dataset.id, null, tx),
         );
       }
     }

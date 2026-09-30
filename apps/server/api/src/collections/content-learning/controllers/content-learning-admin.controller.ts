@@ -65,6 +65,7 @@ export class ContentLearningAdminController {
     @Query() query: LearningQueryDto,
   ) {
     return serializeCollection(request, ContentLearningAccountSerializer, {
+      // tenant-scope-ignore: superadmin inventory is platform-wide
       docs: await this.prisma.contentLearningAccount.findMany({
         where: { isDeleted: false },
         take: query.limit,
