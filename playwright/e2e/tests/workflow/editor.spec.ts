@@ -293,10 +293,12 @@ test.describe('Workflow Editor', () => {
       authenticatedPage.getByText('Review Gate').first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Approve' }),
+      authenticatedPage.getByRole('button', { exact: true, name: 'Approve' }),
     ).toBeVisible();
 
-    await authenticatedPage.getByRole('button', { name: 'Approve' }).click();
+    await authenticatedPage
+      .getByRole('button', { exact: true, name: 'Approve' })
+      .click();
 
     await expect.poll(() => executionState).toBe('approved');
 
