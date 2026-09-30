@@ -1,7 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  EditorProjectStatus,
+  EditorTrackType,
+  IngredientFormat,
+} from '@genfeedai/contracts';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+import type { IEditorProject } from '@genfeedai/contracts/interfaces';
 import { expect, test } from '../../fixtures/auth.fixture';
 
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
@@ -363,21 +369,70 @@ test('edits and approves a persisted draft through the actual route with loaded 
       },
     },
   };
+  const editorProject: Pick<
+    IEditorProject,
+    'name' | 'settings' | 'status' | 'tracks' | 'totalDurationFrames'
+  > = {
+    name: 'Coffee storyboard edit',
+    settings: {
+      backgroundColor: '#000000',
+      format: IngredientFormat.PORTRAIT,
+      fps: 30,
+      width: 1080,
+      height: 1920,
+    },
+    status: EditorProjectStatus.DRAFT,
+    totalDurationFrames: 300,
+    tracks: [
+      {
+        id: 'coffee-track',
+        type: EditorTrackType.VIDEO,
+        name: 'Storyboard shots',
+        isMuted: false,
+        isLocked: false,
+        volume: 100,
+        clips: ['coffee-clip-1', 'coffee-clip-2'].map((id, index) => ({
+          id: `editor-shot-${index + 1}`,
+          ingredientId: id,
+          // This fixture proves timeline loading/timing, not generated video playback.
+          ingredientUrl: '',
+          startFrame: index * 150,
+          durationFrames: 150,
+          sourceStartFrame: 0,
+          sourceEndFrame: 150,
+          effects: [],
+          volume: 100,
+        })),
+      },
+    ],
+  };
   let editorSources: string[] | undefined;
-  await page.route('**/editor-projects', async (route) => {
-    if (route.request().method() !== 'POST') {
+  let editorRead = false;
+  await page.route('**/editor-projects**', async (route) => {
+    const url = new URL(route.request().url());
+    if (
+      route.request().method() === 'POST' &&
+      url.pathname.endsWith('/editor-projects')
+    ) {
+      editorSources = route.request().postDataJSON().sourceVideoIds;
+    } else if (
+      route.request().method() === 'GET' &&
+      url.pathname.endsWith('/editor-projects/coffee-editor')
+    ) {
+      editorRead = true;
+    } else {
       await route.fallback();
       return;
     }
-    editorSources = route.request().postDataJSON().sourceVideoIds;
     await route.fulfill({
       json: {
         data: {
           id: 'coffee-editor',
-          type: 'editor-projects',
+          type: 'editor-project',
           attributes: {
-            name: 'Video Edit',
+            ...editorProject,
             isDeleted: false,
+            isLocked: false,
             createdAt: time,
             updatedAt: time,
           },
@@ -399,6 +454,19 @@ test('edits and approves a persisted draft through the actual route with loaded 
   await expect
     .poll(() => editorSources)
     .toEqual(['coffee-clip-1', 'coffee-clip-2']);
+  await expect.poll(() => editorRead).toBe(true);
+  await expect(page).toHaveURL(/\/studio\/editor\/coffee-editor$/);
+  const timelineClips = page.getByRole('button', {
+    name: 'Timeline clip',
+    exact: true,
+  });
+  await expect(timelineClips).toHaveCount(2);
+  // The actual Editor renders both five-second clips back to back at its default
+  // two-pixels-per-frame zoom; duration is supplied by the persisted server fixture.
+  await expect(timelineClips.nth(0)).toHaveCSS('left', '0px');
+  await expect(timelineClips.nth(0)).toHaveCSS('width', '300px');
+  await expect(timelineClips.nth(1)).toHaveCSS('left', '300px');
+  await expect(timelineClips.nth(1)).toHaveCSS('width', '300px');
   expect(pageErrors).toEqual([]);
 });
 
