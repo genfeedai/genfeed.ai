@@ -8,7 +8,12 @@ import {
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
-import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
+import {
+  type AgentToolResult,
+  isAgentUntrustedContentSource,
+  MCP_TOOL_RESULT_MAX_JSON_BYTES,
+  readAgentUntrustedContentSource,
+} from '@genfeedai/contracts/interfaces';
 import {
   serializeMediaArtifact,
   toMcpMediaToolResult,
@@ -415,10 +420,48 @@ export class ToolRegistryService implements OnModuleInit {
     args: Record<string, unknown>,
     approvedApprovalId?: string,
   ) {
-    return withCardResult(
-      name,
-      await this.dispatchTool(name, args, approvedApprovalId),
-    );
+    const result = await this.dispatchTool(name, args, approvedApprovalId);
+    if (
+      ToolRegistryService.classify(name) !== 'agent-executor' &&
+      isAgentUntrustedContentSource(readAgentUntrustedContentSource(name))
+    ) {
+      let contentLength = 0;
+      try {
+        const content = JSON.stringify(result);
+        contentLength = Buffer.byteLength(JSON.stringify(content), 'utf8');
+        if (contentLength > MCP_TOOL_RESULT_MAX_JSON_BYTES) {
+          this.logger.warn('MCP result gate failed open', {
+            toolName: name,
+            category: 'oversize',
+            contentLength,
+          });
+        } else {
+          const gated = await this.clientService.evaluateMcpToolResult(
+            name,
+            content,
+          );
+          if (gated.outcome === 'withheld') {
+            // Do not card-wrap: resource/structured/card payloads must not survive.
+            return {
+              content: [
+                {
+                  type: 'text' as const,
+                  text: 'tool result withheld: suspected instruction injection',
+                },
+              ],
+              isError: true,
+            };
+          }
+        }
+      } catch {
+        this.logger.warn('MCP result gate failed open', {
+          toolName: name,
+          category: 'adapter',
+          contentLength,
+        });
+      }
+    }
+    return withCardResult(name, result);
   }
 
   private async dispatchTool(

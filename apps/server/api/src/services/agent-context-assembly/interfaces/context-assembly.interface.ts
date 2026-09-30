@@ -196,3 +196,11 @@ export interface RenderedBrandSystemPrompt {
   basePrompt: string;
   brandContext: BrandContextBudgetResult;
 }
+
+/** Headers and instructions are code-owned; content is never parsed as sections. */
+export interface BrandContextContribution {
+  header: string;
+  content: string;
+  instructions?: string;
+  untrusted: boolean;
+}
