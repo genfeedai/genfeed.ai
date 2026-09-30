@@ -40,7 +40,10 @@ describe('ResearchCollectionRunner', () => {
     attachReservation: vi.fn().mockResolvedValue(true),
     attachRun: vi.fn().mockResolvedValue(true),
     claim: vi.fn(),
-    finish: vi.fn(),
+    findInflight: vi.fn().mockResolvedValue(null),
+    confirmSubmission: vi.fn().mockResolvedValue(true),
+    markNoStart: vi.fn().mockResolvedValue(true),
+    finish: vi.fn().mockResolvedValue(true),
     finishExpiredUnrecorded: vi.fn(),
     finishUnreconciledStart: vi.fn(),
     markAmbiguous: vi.fn(),
@@ -48,10 +51,12 @@ describe('ResearchCollectionRunner', () => {
   };
   const budget = {
     consumeRun: vi.fn(),
-    reconcileRun: vi.fn(),
+    reconcileRunWithResult: vi.fn().mockResolvedValue('settled'),
   };
   const baseService = {
     assertRegisteredHostedActor: vi.fn(),
+    assertCollectionAdmission: vi.fn(),
+    recordCollectionFailure: vi.fn(),
     buildActorRunUrl: vi
       .fn()
       .mockReturnValue('https://api.apify.com/v2/acts/run'),
@@ -71,11 +76,27 @@ describe('ResearchCollectionRunner', () => {
   );
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    for (const group of [access, jobs, budget, baseService, http, logger]) {
+      for (const mock of Object.values(group)) {
+        mock.mockReset();
+      }
+    }
     access.decide.mockResolvedValue({
       isAllowed: true,
       reason: 'active_paid',
     });
+    jobs.attachReservation.mockResolvedValue(true);
+    jobs.attachRun.mockResolvedValue(true);
+    jobs.findInflight.mockResolvedValue(null);
+    jobs.confirmSubmission.mockResolvedValue(true);
+    jobs.markNoStart.mockResolvedValue(true);
+    jobs.finish.mockResolvedValue(true);
+    jobs.markStarting.mockResolvedValue(true);
+    budget.reconcileRunWithResult.mockResolvedValue('settled');
+    baseService.buildActorRunUrl.mockReturnValue(
+      'https://api.apify.com/v2/acts/run',
+    );
+    baseService.normalizeActorId.mockReturnValue('apify~facebook-ads-scraper');
   });
 
   it('does not start a run when paid access is missing', async () => {
@@ -116,7 +137,7 @@ describe('ResearchCollectionRunner', () => {
       runner.run('org-1', job.actorId, { query: 'acme' }),
     ).resolves.toEqual([{ id: 'ad-1' }]);
     expect(http.post).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-1' }),
       0.02,
     );
@@ -160,7 +181,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.get).toHaveBeenCalledTimes(1);
     expect(jobs.finish).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -186,7 +207,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.get).not.toHaveBeenCalled();
     expect(jobs.finish).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -222,7 +243,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.get).not.toHaveBeenCalled();
     expect(jobs.finish).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
   });
 
   it('does not post when the start fence has already moved', async () => {
@@ -268,7 +289,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-1' }),
       0,
     );
@@ -317,7 +338,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-1' }),
       0,
     );
@@ -372,7 +393,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(jobs.finishUnreconciledStart).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -469,7 +490,7 @@ describe('ResearchCollectionRunner', () => {
     expect(http.get).toHaveBeenCalledTimes(5);
     expect(jobs.finishUnreconciledStart).not.toHaveBeenCalled();
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
     vi.useRealTimers();
   });
 
@@ -509,11 +530,14 @@ describe('ResearchCollectionRunner', () => {
       runner.run('org-1', job.actorId, { query: 'acme' }),
     ).rejects.toThrow('research_collection_recovery_pending');
     expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
     vi.useRealTimers();
   });
 
-  it('does not release an empty delayed list when the unreconciled fence moved', async () => {
+  it('acknowledges zero settlement but cannot clear an empty delayed list after the fence moved', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-09-24T12:16:00.000Z'));
     jobs.claim.mockResolvedValue({
@@ -537,8 +561,448 @@ describe('ResearchCollectionRunner', () => {
     expect(http.post).not.toHaveBeenCalled();
     expect(jobs.finishUnreconciledStart).toHaveBeenCalledTimes(1);
     expect(jobs.finishExpiredUnrecorded).not.toHaveBeenCalled();
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
     vi.useRealTimers();
+  });
+  function recordedRun() {
+    jobs.claim.mockResolvedValue({ ...job, isRecovered: true });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    http.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            id: 'run-1',
+            defaultDatasetId: 'dataset-1',
+            status: 'SUCCEEDED',
+            usageTotalUsd: 0.02,
+          },
+        },
+      }),
+    );
+  }
+  function newRun() {
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: false,
+      upstreamRunId: null,
+      datasetId: null,
+      startAttemptedAt: null,
+      scope: 'pending',
+      reservationKey: null,
+      reservedMicroUsd: null,
+      usageKey: null,
+      status: 'requested',
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+    });
+    baseService.resolveCollectionToken.mockResolvedValue({
+      source: 'hosted',
+      token: 'token',
+    });
+    budget.consumeRun.mockResolvedValue({
+      isAllowed: true,
+      reservation: {
+        reservationKey: 'reservation-1',
+        usageKey: 'usage-1',
+        reservedMicroUsd: 100_000,
+      },
+    });
+  }
+  it('denied entry recovers accounting only for the exact scoped existing run', async () => {
+    recordedRun();
+    access.decide.mockResolvedValue({
+      isAllowed: false,
+      reason: 'research_paid_access_required',
+    });
+    jobs.findInflight.mockResolvedValueOnce(job);
+    await expect(
+      runner.run(
+        'org-1',
+        job.actorId,
+        { query: 'acme' },
+        { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+      ),
+    ).rejects.toThrow('research_paid_access_required');
+    expect(jobs.findInflight).toHaveBeenCalledWith(
+      'org-1',
+      buildResearchCollectionRequestKey({
+        actorId: job.actorId,
+        input: { query: 'acme' },
+        organizationId: 'org-1',
+        requestScope: 'social-source-hosted',
+      }),
+    );
+    expect(jobs.claim).not.toHaveBeenCalled();
+    expect(budget.consumeRun).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(budget.reconcileRunWithResult).toHaveBeenCalled();
+  });
+  it('retains recorded run and hold when settlement is pending', async () => {
+    recordedRun();
+    budget.reconcileRunWithResult.mockResolvedValueOnce('pending');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it('never reports a hosted run without a reservation as zero-cost success', async () => {
+    recordedRun();
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      reservationKey: null,
+    });
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_cost_unverified',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+  it('revocation before POST acknowledges zero settlement before durable finish', async () => {
+    newRun();
+    access.decide
+      .mockResolvedValueOnce({ isAllowed: true, reason: 'active_paid' })
+      .mockResolvedValueOnce({
+        isAllowed: false,
+        reason: 'research_paid_access_required',
+      });
+    await expect(
+      runner.run('org-1', job.actorId, {}, { tokenMode: 'hosted-only' }),
+    ).rejects.toThrow('research_paid_access_required');
+    expect(baseService.resolveCollectionToken).toHaveBeenCalledWith(
+      'org-1',
+      'hosted-only',
+    );
+    expect(http.post).not.toHaveBeenCalled();
+    expect(jobs.markNoStart).toHaveBeenCalledWith(
+      expect.any(Object),
+      'access_denied',
+    );
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
+    expect(
+      budget.reconcileRunWithResult.mock.invocationCallOrder[0],
+    ).toBeLessThan(jobs.finish.mock.invocationCallOrder[0]);
+  });
+  it('keeps a confirmed no-start attempt recoverable until settlement succeeds', async () => {
+    newRun();
+    access.decide
+      .mockResolvedValueOnce({ isAllowed: true })
+      .mockResolvedValueOnce({
+        isAllowed: false,
+        reason: 'research_paid_access_required',
+      });
+    budget.reconcileRunWithResult.mockResolvedValueOnce('pending');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+    jobs.claim.mockResolvedValue({
+      ...job,
+      upstreamRunId: null,
+      isRecovered: true,
+      terminalReason: 'no_start:access_denied',
+    });
+    access.decide.mockResolvedValue({ isAllowed: true });
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_start_unconfirmed',
+    );
+    expect(jobs.finish).toHaveBeenCalled();
+    expect(http.get).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it('stale submission owner never posts or finishes a replacement lease', async () => {
+    newRun();
+    jobs.confirmSubmission.mockResolvedValueOnce(false);
+    jobs.markNoStart.mockResolvedValueOnce(false);
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it('revoked recorded-run access settles without a dataset read', async () => {
+    recordedRun();
+    access.decide
+      .mockResolvedValueOnce({ isAllowed: true })
+      .mockResolvedValueOnce({
+        isAllowed: false,
+        reason: 'research_paid_access_required',
+      });
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_paid_access_required',
+    );
+    expect(jobs.finish).toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+  it('dataset failure retains the same recorded identity for retry', async () => {
+    recordedRun();
+    http.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd: 0.02,
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(throwError(() => new Error('dataset unavailable')));
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'dataset unavailable',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it('recorded scope never switches accounts when the original token is missing', async () => {
+    recordedRun();
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      scope: 'byok:org-1',
+    });
+    baseService.resolveCollectionToken.mockResolvedValueOnce(null);
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(baseService.resolveCollectionToken).toHaveBeenCalledWith(
+      'org-1',
+      'byok-only',
+    );
+    expect(http.get).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+    expect(budget.consumeRun).not.toHaveBeenCalled();
+  });
+  it('does not read a dataset when a hosted receipt is not acknowledged', async () => {
+    recordedRun();
+    budget.reconcileRunWithResult.mockResolvedValueOnce('not_required');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_cost_unverified',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.get).toHaveBeenCalledTimes(1);
+  });
+  it('account suspension only blocks new admission and never recorded accounting', async () => {
+    newRun();
+    baseService.assertCollectionAdmission.mockImplementationOnce(() => {
+      throw new ServiceUnavailableException('account suspended');
+    });
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'account suspended',
+    );
+    expect(budget.consumeRun).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+    vi.clearAllMocks();
+    recordedRun();
+    http.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd: 0.02,
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(of({ data: [] }));
+    await expect(runner.run('org-1', job.actorId, {})).resolves.toEqual([]);
+    expect(baseService.assertCollectionAdmission).not.toHaveBeenCalled();
+    expect(budget.consumeRun).not.toHaveBeenCalled();
+  });
+  it('takes the confirmed submission timestamp after admission latency', async () => {
+    newRun();
+    http.post.mockReturnValueOnce(
+      of({
+        data: {
+          data: {
+            id: 'run-1',
+            defaultDatasetId: 'dataset-1',
+            status: 'RUNNING',
+          },
+        },
+      }),
+    );
+    http.get
+      .mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd: 0.02,
+            },
+          },
+        }),
+      )
+      .mockReturnValueOnce(of({ data: [] }));
+    await expect(runner.run('org-1', job.actorId, {})).resolves.toEqual([]);
+    expect(budget.consumeRun.mock.invocationCallOrder[0]).toBeLessThan(
+      jobs.confirmSubmission.mock.invocationCallOrder[0],
+    );
+    expect(jobs.confirmSubmission.mock.invocationCallOrder[0]).toBeLessThan(
+      http.post.mock.invocationCallOrder[0],
+    );
+  });
+  it('retains incomplete persisted no-start receipts instead of treating them as unreserved', async () => {
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      upstreamRunId: null,
+      usageKey: null,
+      terminalReason: 'no_start:start_rejected',
+    });
+    budget.reconcileRunWithResult.mockResolvedValueOnce('not_required');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_cost_unverified',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    expect(http.get).not.toHaveBeenCalled();
+    expect(http.post).not.toHaveBeenCalled();
+  });
+  it.each([undefined, NaN, -1])(
+    'retains the known run when actual usage is unverified (%s)',
+    async (usageTotalUsd) => {
+      recordedRun();
+      http.get.mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'SUCCEEDED',
+              usageTotalUsd,
+            },
+          },
+        }),
+      );
+      await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+        'research_collection_cost_unverified',
+      );
+      expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
+      expect(jobs.finish).not.toHaveBeenCalled();
+      expect(http.get).toHaveBeenCalledTimes(1);
+    },
+  );
+  it.each(['FAILED', 'TIMED-OUT'])(
+    'settles terminal %s usage before recording failure without dataset reads',
+    async (status) => {
+      recordedRun();
+      http.get.mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status,
+              usageTotalUsd: 0.02,
+            },
+          },
+        }),
+      );
+      await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+        `ended with status: ${status}`,
+      );
+      expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
+        expect.objectContaining({ reservationKey: 'reservation-1' }),
+        0.02,
+      );
+      expect(jobs.finish).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          status: 'failed',
+          terminalReason: `run_${status.toLowerCase()}`,
+        }),
+      );
+      expect(
+        budget.reconcileRunWithResult.mock.invocationCallOrder[0],
+      ).toBeLessThan(jobs.finish.mock.invocationCallOrder[0]);
+      expect(http.get).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('a definitely rejected POST retains the no-start reason until zero settlement succeeds', async () => {
+    newRun();
+    const rejected = { response: { status: 400 } };
+    http.post.mockReturnValueOnce(throwError(() => rejected));
+    budget.reconcileRunWithResult.mockResolvedValueOnce('pending');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(jobs.markNoStart).toHaveBeenCalledWith(
+      expect.any(Object),
+      'start_rejected',
+    );
+    expect(jobs.finish).not.toHaveBeenCalled();
+    jobs.claim.mockResolvedValue({
+      ...job,
+      isRecovered: true,
+      upstreamRunId: null,
+      terminalReason: 'no_start:start_rejected',
+    });
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_start_unconfirmed',
+    );
+    expect(http.post).toHaveBeenCalledTimes(1);
+    expect(http.get).not.toHaveBeenCalled();
+    expect(jobs.finish).toHaveBeenCalled();
+  });
+  it('failed reservation attachment retains an unacknowledged Redis hold without posting', async () => {
+    newRun();
+    jobs.attachReservation.mockResolvedValueOnce(false);
+    budget.reconcileRunWithResult.mockResolvedValueOnce('pending');
+    await expect(runner.run('org-1', job.actorId, {})).rejects.toThrow(
+      'research_collection_recovery_pending',
+    );
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationKey: 'reservation-1' }),
+      0,
+    );
+    expect(http.post).not.toHaveBeenCalled();
+    expect(jobs.finish).not.toHaveBeenCalled();
+  });
+  it('a recorded polling timeout keeps the hold and identity recoverable', async () => {
+    vi.useFakeTimers();
+    try {
+      recordedRun();
+      http.get.mockReturnValue(
+        of({
+          data: {
+            data: {
+              id: 'run-1',
+              defaultDatasetId: 'dataset-1',
+              status: 'RUNNING',
+            },
+          },
+        }),
+      );
+      const pending = expect(
+        runner.run('org-1', job.actorId, {}),
+      ).rejects.toThrow('research_collection_recovery_pending');
+      await vi.advanceTimersByTimeAsync(125_000);
+      await pending;
+      expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
+      expect(jobs.finish).not.toHaveBeenCalled();
+      expect(http.post).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -592,6 +1056,7 @@ describe('deferred collection start', () => {
             reservationKey: null,
             reservedMicroUsd: null,
             startAttemptedAt: null,
+            terminalReason: null,
             upstreamRunId: null,
             ...data,
             id: 'job-1',
@@ -654,7 +1119,7 @@ describe('deferred collection start', () => {
           usageKey: 'usage-1',
         },
       }),
-      reconcileRun: vi.fn(),
+      reconcileRunWithResult: vi.fn().mockResolvedValue('settled'),
     };
     const runner = new ResearchCollectionRunner(
       {
@@ -667,6 +1132,8 @@ describe('deferred collection start', () => {
       budget as unknown as ApifyRunBudgetService,
       {
         assertRegisteredHostedActor: vi.fn(),
+        assertCollectionAdmission: vi.fn(),
+        recordCollectionFailure: vi.fn(),
         buildActorRunUrl: vi
           .fn()
           .mockReturnValue('https://api.apify.com/v2/runs'),
@@ -687,7 +1154,7 @@ describe('deferred collection start', () => {
       runner.run('org-1', 'apify/facebook-ads-scraper', { query: 'acme' }),
     ).rejects.toThrow('research_collection_recovery_pending');
     expect(http.post).toHaveBeenCalledTimes(1);
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
     // Closures assign `row`. Read its declared type; control flow otherwise
     // keeps the null initializer and treats this property as `never`.
     const readRow = (): Record<string, unknown> | null => row;
@@ -767,6 +1234,7 @@ describe('pre-migration collection rows', () => {
             reservationKey: null,
             reservedMicroUsd: null,
             startAttemptedAt: null,
+            terminalReason: null,
             upstreamRunId: null,
             ...data,
             id: `job-${nextId}`,
@@ -800,7 +1268,7 @@ describe('pre-migration collection rows', () => {
           usageKey: 'usage-next',
         },
       }),
-      reconcileRun: vi.fn(),
+      reconcileRunWithResult: vi.fn().mockResolvedValue('settled'),
     };
     const runner = new ResearchCollectionRunner(
       {
@@ -813,6 +1281,8 @@ describe('pre-migration collection rows', () => {
       budget as unknown as ApifyRunBudgetService,
       {
         assertRegisteredHostedActor: vi.fn(),
+        assertCollectionAdmission: vi.fn(),
+        recordCollectionFailure: vi.fn(),
         buildActorRunUrl: vi
           .fn()
           .mockReturnValue('https://api.apify.com/v2/runs'),
@@ -906,7 +1376,7 @@ describe('pre-migration collection rows', () => {
     ]);
     expect(read()?.inflightRequestKey).toBeNull();
     expect(read()?.leaseToken).toEqual(expect.any(String));
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-legacy' }),
       0.02,
     );
@@ -948,7 +1418,7 @@ describe('pre-migration collection rows', () => {
       'research_collection_recovery_pending',
     );
     expect(read()?.inflightRequestKey).toBe(requestKey);
-    expect(budget.reconcileRun).not.toHaveBeenCalled();
+    expect(budget.reconcileRunWithResult).not.toHaveBeenCalled();
 
     http.get.mockReturnValueOnce(of({ data: { data: { items: [] } } }));
     await expect(runner.run('org-1', actorId, input)).rejects.toThrow(
@@ -956,7 +1426,7 @@ describe('pre-migration collection rows', () => {
     );
     expect(read()?.inflightRequestKey).toBeNull();
     expect(read()?.leaseToken).toEqual(expect.any(String));
-    expect(budget.reconcileRun).toHaveBeenCalledWith(
+    expect(budget.reconcileRunWithResult).toHaveBeenCalledWith(
       expect.objectContaining({ reservationKey: 'reservation-legacy' }),
       0,
     );

@@ -1,8 +1,18 @@
+import { isSaaS } from '@genfeedai/config';
+
+vi.mock('@genfeedai/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/config')>()),
+  isSaaS: vi.fn(() => false),
+}));
+
 import { ApifySocialProvider } from '@api/services/source-collector/providers/apify-social.provider';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 
 describe('ApifySocialProvider', () => {
   const apifyService = {
+    getInstagramPostByUrl: vi.fn(),
+    getTweetByUrl: vi.fn(),
+    getTikTokVideoByUrl: vi.fn(),
     getInstagramUserPosts: vi.fn(),
     getLinkedInProfilePosts: vi.fn(),
     getTikTokUserVideos: vi.fn(),
@@ -14,6 +24,7 @@ describe('ApifySocialProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(isSaaS).mockReturnValue(false);
     provider = new ApifySocialProvider(apifyService as never);
   });
 
@@ -55,6 +66,7 @@ describe('ApifySocialProvider', () => {
       expect(apifyService.getYouTubeChannelUploads).toHaveBeenCalledWith(
         'https://www.youtube.com/@creator',
         { limit: 10 },
+        undefined,
       );
       expect(result.provider).toBe('apify');
       expect(result.posts).toEqual([
@@ -87,6 +99,7 @@ describe('ApifySocialProvider', () => {
       expect(apifyService.getYouTubeChannelUploads).toHaveBeenCalledWith(
         'https://www.youtube.com/channel/UC1234567890123456789012',
         { limit: 25 },
+        undefined,
       );
     });
 
@@ -129,6 +142,7 @@ describe('ApifySocialProvider', () => {
       expect(apifyService.getLinkedInProfilePosts).toHaveBeenCalledWith(
         'https://www.linkedin.com/in/acme',
         { limit: 10 },
+        undefined,
       );
       expect(result.provider).toBe('apify');
       expect(result.posts).toEqual([
@@ -185,4 +199,63 @@ describe('ApifySocialProvider', () => {
       expect(result.posts).toEqual([]);
     });
   });
+  it.each([
+    [SocialSourcePlatform.TWITTER, 'getTwitterUserTimeline'],
+    [SocialSourcePlatform.INSTAGRAM, 'getInstagramUserPosts'],
+    [SocialSourcePlatform.TIKTOK, 'getTikTokUserVideos'],
+    [SocialSourcePlatform.YOUTUBE, 'getYouTubeChannelUploads'],
+    [SocialSourcePlatform.LINKEDIN, 'getLinkedInProfilePosts'],
+  ] as const)(
+    'passes canonical scope to hosted %s fallback',
+    async (platform, method) => {
+      vi.mocked(isSaaS).mockReturnValue(true);
+      apifyService[method].mockResolvedValue([]);
+      await provider.collectTimeline(platform, 'creator', {
+        organizationId: 'org-1',
+      });
+      expect(apifyService[method]).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        { organizationId: 'org-1', origin: 'social-source' },
+      );
+    },
+  );
+  it('passes missing hosted organization explicitly rather than raw execution', async () => {
+    vi.mocked(isSaaS).mockReturnValue(true);
+    apifyService.getInstagramUserPosts.mockResolvedValue([]);
+    await provider.collectTimeline(
+      SocialSourcePlatform.INSTAGRAM,
+      'creator',
+      {},
+    );
+    expect(apifyService.getInstagramUserPosts).toHaveBeenCalledWith(
+      'creator',
+      { limit: 25 },
+      { organizationId: undefined, origin: 'social-source' },
+    );
+  });
+  it.each([
+    [SocialSourcePlatform.TWITTER, 'getTweetByUrl'],
+    [SocialSourcePlatform.INSTAGRAM, 'getInstagramPostByUrl'],
+    [SocialSourcePlatform.TIKTOK, 'getTikTokVideoByUrl'],
+  ] as const)(
+    'passes canonical scope to hosted %s post import',
+    async (platform, method) => {
+      vi.mocked(isSaaS).mockReturnValue(true);
+      apifyService[method].mockResolvedValue({ id: '123' });
+      await provider.collectPost(
+        {
+          platform,
+          postId: '123',
+          authorHandle: null,
+          url: 'https://example.com/post',
+        },
+        { organizationId: 'org-1' },
+      );
+      expect(apifyService[method].mock.calls[0].at(-1)).toEqual({
+        organizationId: 'org-1',
+        origin: 'social-source',
+      });
+    },
+  );
 });

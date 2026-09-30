@@ -1,3 +1,5 @@
+import { ServiceUnavailableException } from '@nestjs/common';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -610,6 +612,7 @@ describe('SocialSourcesService', () => {
       service.validateSource(
         SocialSourcePlatform.TIKTOK,
         'https://www.tiktok.com/@user/video/7000000001',
+        { organizationId: 'org-1', brandId: 'brand-1' },
       ),
     ).rejects.toThrow(/points to a specific post/);
     expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
@@ -673,4 +676,90 @@ describe('SocialSourcesService', () => {
       },
     });
   });
+  it('validates canonical brand ownership before collecting', async () => {
+    brand.findFirst.mockResolvedValue(null);
+    await expect(
+      service.validateSource('twitter', 'creator', {
+        organizationId: 'org-1',
+        brandId: 'foreign',
+      }),
+    ).resolves.toMatchObject({
+      valid: false,
+      error: 'Brand is not available in this organization',
+    });
+    expect(sourceCollector.collectTimeline).not.toHaveBeenCalled();
+    expect(brand.findFirst).toHaveBeenCalledWith({
+      where: { id: 'foreign', organizationId: 'org-1', isDeleted: false },
+    });
+  });
+  it('passes canonical validation scope and preserves governance denial', async () => {
+    brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+    sourceCollector.collectTimeline.mockRejectedValue(
+      new ServiceUnavailableException('research_paid_access_required'),
+    );
+    await expect(
+      service.validateSource('twitter', 'creator', {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+      }),
+    ).resolves.toMatchObject({
+      valid: false,
+      error: 'research_paid_access_required',
+    });
+    expect(sourceCollector.collectTimeline).toHaveBeenCalledWith(
+      SocialSourcePlatform.TWITTER,
+      'creator',
+      expect.objectContaining({ organizationId: 'org-1', brandId: 'brand-1' }),
+    );
+  });
+  it('preserves import governance failure before generic mapping or source writes', async () => {
+    brand.findFirst.mockResolvedValue({ id: 'brand-1' });
+    const denied = new ServiceUnavailableException(
+      'research_collection_recovery_pending',
+    );
+    sourceCollector.collectPost.mockRejectedValue(denied);
+    await expect(
+      service.importPostScoped(
+        { url: 'https://x.com/a/status/123' },
+        { organizationId: 'org-1', brandId: 'brand-1', userId: 'user-1' },
+      ),
+    ).rejects.toBe(denied);
+    expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+    expect(socialSource.create).not.toHaveBeenCalled();
+  });
+  it.each([
+    'research_paid_access_required',
+    'research_collection_recovery_pending',
+  ])(
+    'persists %s sync failure without post writes or success metadata',
+    async (reason) => {
+      socialSource.findFirst.mockResolvedValue({
+        id: 'source-1',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        platform: SocialSourcePlatform.TWITTER,
+        handle: 'creator',
+        userId: 'user-1',
+      });
+      sourceCollector.collectTimeline.mockRejectedValue(
+        new ServiceUnavailableException(reason),
+      );
+      socialSource.update.mockResolvedValue({ id: 'source-1' });
+      await expect(
+        service.syncSource('source-1', {
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+        }),
+      ).rejects.toThrow(reason);
+      expect(sourcePostsService.upsertCollectedPosts).not.toHaveBeenCalled();
+      expect(socialSource.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            lastSyncStatus: 'failed',
+            lastSyncError: reason,
+          }),
+        }),
+      );
+    },
+  );
 });

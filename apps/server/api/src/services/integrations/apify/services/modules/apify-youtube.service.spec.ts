@@ -1,3 +1,4 @@
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 /**
  * @fileoverview Tests for ApifyYouTubeService
  */
@@ -11,6 +12,7 @@ import { ApifyYouTubeService } from '@api/services/integrations/apify/services/m
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyYouTubeService', () => {
+  const researchRunner = { run: vi.fn() };
   let service: ApifyYouTubeService;
   let baseService: vi.Mocked<ApifyBaseService>;
 
@@ -52,6 +54,7 @@ describe('ApifyYouTubeService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: ResearchCollectionRunner, useValue: researchRunner },
         ApifyYouTubeService,
         {
           provide: ApifyBaseService,
@@ -318,5 +321,24 @@ describe('ApifyYouTubeService', () => {
 
       expect(result).toEqual([]);
     });
+  });
+  it('governs hosted timelines before legacy token admission with unchanged input', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    researchRunner.run.mockResolvedValue([]);
+    await expect(
+      service.getYouTubeChannelUploads(
+        'https://youtube.com/@creator',
+        { limit: 7 },
+        { organizationId: 'org-1', origin: 'social-source' },
+      ),
+    ).resolves.toEqual([]);
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.YOUTUBE_CHANNEL_SCRAPER,
+      { startUrls: [{ url: 'https://youtube.com/@creator' }], maxResults: 7 },
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
+    expect(baseService.getApiToken).not.toHaveBeenCalled();
   });
 });
