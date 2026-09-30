@@ -117,6 +117,18 @@ describe('ContentRunsService with real response deserialization', () => {
         plan: fixture.data.attributes.config.plan,
       }),
       service.resetStoryboardPlan('brand-1', 'run-org-1', input),
+      service.executeStoryboardRun('brand-1', 'run-org-1', {
+        ...input,
+        quoteId: 'quote:original',
+      }),
+      service.cancelStoryboardRun('brand-1', 'run-org-1', {
+        ...input,
+        operationId: 'operation:original',
+      }),
+      service.resumeStoryboardRun('brand-1', 'run-org-1', {
+        ...input,
+        operationId: 'operation:original',
+      }),
       service.approveStoryboardPlan('brand-1', 'run-org-1', input),
       service.updateStoryboardSource('brand-1', 'run-org-1', {
         ...input,
@@ -158,5 +170,75 @@ describe('ContentRunsService with real response deserialization', () => {
       '/brands/brand-B/storyboard-runs/run-org-2',
       { signal: undefined },
     );
+  });
+  it('validates raw bounded quote responses and preserves scoped accepted identities', async () => {
+    const service = new ContentRunsService('token');
+    const quote = {
+      id: 'quote:Mixed',
+      revision: 1,
+      operation: 'video',
+      inputHash: 'hash:Mixed',
+      capabilityVersion: 'a'.repeat(64),
+      maximumShotCount: null,
+      amountKind: 'exact',
+      createdAt: '2026-09-30T12:00:00.000Z',
+      expiresAt: '2026-09-30T12:15:00.000Z',
+      total: 2,
+      items: [
+        {
+          key: 'line:Coffee-shot_1',
+          shotId: 'coffee-shot_1',
+          slotOrdinal: null,
+          stage: 'video',
+          model: 'provider/model',
+          credits: 2,
+          billingMode: 'platform',
+          attempt: 1,
+        },
+      ],
+    };
+    const input = { expectedRevision: 1, operation: 'video' as const };
+    http.post.mockResolvedValueOnce({ data: quote });
+    expect(await service.quoteStoryboardRun('brand:A', 'run:A', input)).toEqual(
+      quote,
+    );
+    expect(http.post).toHaveBeenCalledWith(
+      '/brands/brand%3AA/storyboard-runs/run%3AA/quotes',
+      input,
+    );
+    http.post.mockResolvedValueOnce({
+      data: { ...quote, privateSnapshot: { tariff: 1 } },
+    });
+    await expect(
+      service.quoteStoryboardRun('brand:A', 'run:A', input),
+    ).rejects.toThrow();
+    for (const [suffix, payload] of [
+      ['execute', { expectedRevision: 1, quoteId: 'quote:original' }],
+      ['cancel', { expectedRevision: 1, operationId: 'operation:original' }],
+      ['resume', { expectedRevision: 1, operationId: 'operation:original' }],
+    ] as const) {
+      if (suffix === 'execute')
+        await service.executeStoryboardRun(
+          'brand:A',
+          'run:A',
+          payload as { expectedRevision: number; quoteId: string },
+        );
+      else if (suffix === 'cancel')
+        await service.cancelStoryboardRun(
+          'brand:A',
+          'run:A',
+          payload as { expectedRevision: number; operationId: string },
+        );
+      else
+        await service.resumeStoryboardRun(
+          'brand:A',
+          'run:A',
+          payload as { expectedRevision: number; operationId: string },
+        );
+      expect(http.post).toHaveBeenCalledWith(
+        `/brands/brand%3AA/storyboard-runs/run%3AA/${suffix}`,
+        payload,
+      );
+    }
   });
 });

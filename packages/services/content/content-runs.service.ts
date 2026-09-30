@@ -30,6 +30,14 @@ import {
   storyboardRunCapabilitiesSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import {
+  type CancelStoryboardRun,
+  type CreateStoryboardRunQuote,
+  type ExecuteStoryboardRun,
+  type ResumeStoryboardRun,
+  type StoryboardRunQuote,
+  storyboardRunQuoteSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
+import {
   type ListStoryboardRuns,
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
@@ -124,6 +132,51 @@ export class ContentRunsService extends HTTPBaseService {
       { signal },
     );
     return storyboardRunCapabilitiesSchema.parse(response.data);
+  }
+
+  async quoteStoryboardRun(
+    brandId: string,
+    runId: string,
+    input: CreateStoryboardRunQuote,
+  ): Promise<StoryboardRunQuote> {
+    const response = await this.instance.post<StoryboardRunQuote>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/quotes`,
+      input,
+    );
+    return storyboardRunQuoteSchema.parse(response.data);
+  }
+  async executeStoryboardRun(
+    brandId: string,
+    runId: string,
+    input: ExecuteStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/execute`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+  async cancelStoryboardRun(
+    brandId: string,
+    runId: string,
+    input: CancelStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/cancel`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
+  }
+  async resumeStoryboardRun(
+    brandId: string,
+    runId: string,
+    input: ResumeStoryboardRun,
+  ): Promise<StoryboardRun> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/resume`,
+      input,
+    );
+    return deserializeStoryboardRunDocument(response.data);
   }
 
   async createStoryboardRun(

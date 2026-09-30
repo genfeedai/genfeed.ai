@@ -5,6 +5,7 @@ import {
   updateStoryboardSourceSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
+  controlStoryboardOperationSchema,
   createStoryboardRunQuoteSchema,
   executeStoryboardRunSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-quote.contract';
@@ -26,8 +27,8 @@ export const storyboardToolSchemas = {
   storyboard_source_update: updateStoryboardSourceSchema.extend(run).strict(),
   storyboard_run_quote: createStoryboardRunQuoteSchema.safeExtend(run).strict(),
   storyboard_run_execute: executeStoryboardRunSchema.extend(run).strict(),
-  storyboard_run_cancel: controlStoryboardRunSchema.extend(run).strict(),
-  storyboard_run_resume: controlStoryboardRunSchema.extend(run).strict(),
+  storyboard_run_cancel: controlStoryboardOperationSchema.extend(run).strict(),
+  storyboard_run_resume: controlStoryboardOperationSchema.extend(run).strict(),
 };
 export type StoryboardToolName = keyof typeof storyboardToolSchemas;
 export type StoryboardToolInput<Name extends StoryboardToolName> = z.infer<

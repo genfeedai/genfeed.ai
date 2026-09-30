@@ -124,13 +124,61 @@ export function storyboardPublicConfig(config: StoryboardStoredRunConfig) {
   } = config;
   return storyboardRunConfigSchema.parse(publicValue);
 }
+export function parseStoryboardLegacyConfig(
+  value: unknown,
+): StoryboardLegacyConfig {
+  const parsed = storyboardLegacyConfigSchema.parse(value);
+  const raw = structuredClone(value) as StoryboardLegacyConfig;
+  return {
+    ...parsed,
+    ...raw,
+    draft: {
+      ...parsed.draft,
+      ...raw.draft,
+      references: raw.draft.references ?? parsed.draft.references,
+    },
+    sourceSnapshot: {
+      ...parsed.sourceSnapshot,
+      ...raw.sourceSnapshot,
+      evidence: raw.sourceSnapshot.evidence ?? parsed.sourceSnapshot.evidence,
+    },
+  };
+}
 export function storyboardLegacyState(
   config: Pick<StoryboardStoredRunConfig, 'importedState'>,
 ): StoryboardLegacyConfig | null {
   return config.importedState
-    ? storyboardLegacyConfigSchema.parse(
+    ? parseStoryboardLegacyConfig(
         config.importedState.activeConfig ??
           config.importedState.originalConfig,
       )
     : null;
+}
+
+export function storyboardLegacyStages(
+  pipeline: StoryboardLegacyConfig['scenePipeline'],
+) {
+  const stages = Object.entries(pipeline?.scenes ?? {}).flatMap(
+    ([id, scene]) => [
+      { path: `scenePipeline.scenes.${id}.image`, stage: scene.image },
+      { path: `scenePipeline.scenes.${id}.video`, stage: scene.video },
+    ],
+  );
+  if (pipeline?.analysis)
+    stages.push(
+      {
+        path: 'scenePipeline.analysis.transcription',
+        stage: pipeline.analysis.transcription,
+      },
+      {
+        path: 'scenePipeline.analysis.rewrite',
+        stage: pipeline.analysis.rewrite,
+      },
+    );
+  if (pipeline?.assembly)
+    stages.push({
+      path: 'scenePipeline.assembly.transcription',
+      stage: pipeline.assembly.transcription,
+    });
+  return stages;
 }

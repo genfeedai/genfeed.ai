@@ -7,4 +7,5 @@ export const storyboardRunAttributes = [
   'importedPresentation',
 
   'config',
+  'operation',
 ];

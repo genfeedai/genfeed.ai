@@ -108,6 +108,9 @@ function fixture(organizationId = 'org-1') {
       id: 'quote:UNCHANGED',
       revision: 1,
       operation: 'video',
+      capabilityVersion: 'a'.repeat(64),
+      maximumShotCount: null,
+      amountKind: 'exact',
       inputHash: 'hash:Mixed-ID',
       createdAt: '2026-09-30T12:00:00.000Z',
       expiresAt: '2026-09-30T12:15:00.000Z',
@@ -115,6 +118,7 @@ function fixture(organizationId = 'org-1') {
       items: ids.map((id) => ({
         key: `line:${id}`,
         shotId: id,
+        slotOrdinal: null,
         stage: 'video',
         model: 'video-model',
         credits: 2,
@@ -139,6 +143,70 @@ function fixture(organizationId = 'org-1') {
   return { document, config, ids, scenePipeline };
 }
 describe('Versioned content-run response documents', () => {
+  it('decodes read-only imported recovery with original legacy reference bytes and no native-ID weakening', () => {
+    const { document, config } = fixture();
+    if (
+      !document.data ||
+      Array.isArray(document.data) ||
+      !document.data.attributes
+    )
+      throw new Error('fixture');
+    const presentation = {
+      title: 'Legacy',
+      outputKind: 'video',
+      shots: [
+        {
+          id: ' scene:Old ',
+          ordinal: 1,
+          action: 'Old action',
+          dialogue: null,
+          durationSeconds: 6,
+          stillAssetId: ' asset/old key ',
+        },
+      ],
+      outputAssetIds: [' asset/old key '],
+    };
+    document.data.attributes.config = {
+      ...config,
+      origin: 'migrated',
+      plan: null,
+      quote: undefined,
+      scenePipeline: undefined,
+      createdByUserId: null,
+      clientRequestId: null,
+      submittedInputHash: null,
+      sourceSnapshot: {
+        selector: { kind: 'source_post', sourcePostId: 'source-1' },
+        sourceId: 'source-1',
+        capturedAt: '2026-09-30T12:00:00.000Z',
+        platform: 'tiktok',
+        title: 'Legacy',
+        metrics: {},
+        pattern: {},
+        evidence: [],
+      },
+      migration: {
+        version: 1,
+        sourceContract: 'brand-remix-run',
+        sourceVersion: 1,
+        sourceConfigHash: 'a'.repeat(64),
+        migratedAt: '2026-09-30T12:00:00.000Z',
+        converterVersion: 1,
+      },
+      migrationReview: {
+        status: 'required',
+        issues: [
+          { code: 'LEGACY_PLAN_UNREPRESENTABLE', path: 'plan.identifiers' },
+        ],
+      },
+      importedPresentation: presentation,
+    };
+    const decoded = deserializeStoryboardRunDocument(document);
+    expect(decoded.config.plan).toBeNull();
+    expect(decoded.config.importedPresentation).toEqual(presentation);
+    expect(decoded.config.clientRequestId).toBeNull();
+    expect(JSON.stringify(decoded)).not.toContain('originalConfig');
+  });
   it('preserves colliding, mixed-case and UUID record keys while normalizing ordinary outer attributes', () => {
     const { document, config, ids } = fixture();
     const before = structuredClone(document);

@@ -1,5 +1,6 @@
 import {
   type StoryboardStoredRunConfig,
+  storyboardLegacyStages,
   storyboardLegacyState,
   storyboardStoredRunConfigSchema,
 } from '@api/collections/content-runs/services/storyboard-imported-run-state.schema';
@@ -57,12 +58,7 @@ export function assertStoryboardEditable(
 ): void {
   const legacy = storyboardLegacyState(config);
   const pipeline = config.scenePipeline ?? legacy?.scenePipeline;
-  const stages = Object.values(pipeline?.scenes ?? {}).flatMap((scene) => [
-    scene.image,
-    scene.video,
-  ]);
-  const analysis = pipeline?.analysis;
-  if (analysis) stages.push(analysis.transcription, analysis.rewrite);
+  const stages = storyboardLegacyStages(pipeline).map(({ stage }) => stage);
   if (
     ['analysing', 'generating', 'assembling'].includes(config.state) ||
     legacy?.generationClaim ||
@@ -71,8 +67,10 @@ export function assertStoryboardEditable(
     legacy?.execution?.variants.some((variant) =>
       ['queued', 'processing'].includes(variant.status),
     ) ||
-    stages.some((stage) =>
-      ['claimed', 'submitted', 'uncertain'].includes(stage.state),
+    stages.some(
+      (stage) =>
+        ['claimed', 'submitted', 'uncertain'].includes(stage.state) ||
+        Boolean(stage.groupId && !stage.assetId && stage.state !== 'ready'),
     ) ||
     pipeline?.receipts.some((receipt) =>
       ['reserved', 'uncertain'].includes(receipt.state),

@@ -10,7 +10,10 @@ import {
   storyboardPlanSchema,
   storyboardPlanSettingsSchema,
 } from './storyboard-plan.contract';
-import { storyboardRunQuoteSchema } from './storyboard-run-quote.contract';
+import {
+  storyboardOperationProjectionSchema,
+  storyboardRunQuoteSchema,
+} from './storyboard-run-quote.contract';
 import {
   storyboardIdSchema,
   storyboardSourceSelectorSchema,
@@ -97,6 +100,7 @@ export const storyboardRunSchema = z
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
     config: storyboardRunConfigSchema,
+    operation: storyboardOperationProjectionSchema.nullable().optional(),
     migrationReview: storyboardMigrationReviewSchema.nullable().optional(),
     importedPresentation: storyboardImportedPresentationSchema
       .nullable()

@@ -36,6 +36,10 @@ describe('Canonical Storyboard MCP boundary', () => {
           brandId: 'brand-1',
           runId: 'run-1',
           expectedRevision: 1,
+          ...(name === 'storyboard_run_cancel' ||
+          name === 'storyboard_run_resume'
+            ? { operationId: 'operation:original' }
+            : {}),
         }).success,
       ).toBe(true);
       expect(
@@ -44,6 +48,28 @@ describe('Canonical Storyboard MCP boundary', () => {
           expectedRevision: 1,
         }).success,
       ).toBe(false);
+    }
+  });
+  it('requires accepted operation identity for cancel and resume independently of approval/reset', () => {
+    for (const name of [
+      'storyboard_run_cancel',
+      'storyboard_run_resume',
+    ] as const) {
+      expect(
+        storyboardToolSchemas[name].safeParse({
+          brandId: 'brand-1',
+          runId: 'run-1',
+          expectedRevision: 2,
+        }).success,
+      ).toBe(false);
+      expect(
+        storyboardToolSchemas[name].safeParse({
+          brandId: 'brand-1',
+          runId: 'run-1',
+          expectedRevision: 2,
+          operationId: 'operation:Mixed-ID',
+        }).success,
+      ).toBe(true);
     }
   });
   it('quotes reject ambiguous stages and execute requires an accepted quote identity', () => {

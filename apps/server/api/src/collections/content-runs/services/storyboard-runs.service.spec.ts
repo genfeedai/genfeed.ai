@@ -66,6 +66,9 @@ describe('Durable storyboard creation', () => {
   it('saves a seeded image shell without paid work or invented action/duration', async () => {
     const { service, prisma } = setup();
     const run = await service.create('org-1', 'brand-1', 'user-1', input);
+    expect(run.config.origin).toBe('native');
+    if (run.config.origin !== 'native')
+      throw new Error('Expected native draft');
     expect(run.config.plan.runtimeBudgetSeconds).toBeNull();
     expect(run.config.plan.shots[0]).toMatchObject({
       action: '',
