@@ -18,6 +18,16 @@ describe('resolveToolKnowledgeSelection', () => {
     });
   });
 
+  it("never lets tool parameters replace the user's selection", () => {
+    const selection = { sourceIds: ['user-picked'] };
+    expect(
+      resolveToolKnowledgeSelection(
+        { knowledgePurposes: ['BRAND_TRUTH'], knowledgeSourceIds: ['other'] },
+        { knowledgeSelection: selection },
+      ),
+    ).toBe(selection);
+  });
+
   it('falls back to the turn selection from the composer', () => {
     const selection = { spaceIds: ['space'] };
     expect(

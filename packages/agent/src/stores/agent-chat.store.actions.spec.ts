@@ -134,6 +134,98 @@ describe('agent-chat.store messages and plans', () => {
       expect(state.messages).toHaveLength(3);
     });
 
+    it('does not let a late finalized run replace a newer plan', () => {
+      const store = useAgentChatStore.getState();
+      store.addMessage(
+        makeMessage('m-b', { metadata: { proposedPlan: planB } }),
+      );
+
+      store.finalizeStream(
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      );
+
+      expect(useAgentChatStore.getState().latestProposedPlan).toEqual(planB);
+    });
+
+    it('applies the approval of the current plan', () => {
+      const store = useAgentChatStore.getState();
+      store.addMessage(
+        makeMessage('m-a', { metadata: { proposedPlan: planA } }),
+      );
+
+      store.finalizeStream(
+        makeMessage('m-a-approved', {
+          metadata: { proposedPlan: staleApprovedA },
+        }),
+      );
+
+      expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+        staleApprovedA,
+      );
+    });
+
+    describe('plans as the agent drafts them (no timestamps)', () => {
+      const draftedB = {
+        awaitingApproval: true,
+        content: 'Plan B',
+        id: 'plan-1790000500000',
+        status: 'awaiting_approval',
+      } as AgentProposedPlan;
+      const approvedA = makeDatedPlan('plan-1790000000000', planA.createdAt, {
+        approvedAt: '2026-09-28T10:06:00.000Z',
+        status: 'approved',
+        updatedAt: '2026-09-28T10:06:00.000Z',
+      });
+
+      it('does not let a late timestamped approval of an older plan replace it', () => {
+        const store = useAgentChatStore.getState();
+        store.addMessage(
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+        );
+        store.addMessage(
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        );
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+
+      it('does not let a late finalized run replace it', () => {
+        const store = useAgentChatStore.getState();
+        store.addMessage(
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+        );
+
+        store.finalizeStream(
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        );
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+
+      it('derives it when hydrating messages listed out of plan order', () => {
+        useAgentChatStore.getState().setMessages([
+          makeMessage('m-b', { metadata: { proposedPlan: draftedB } }),
+          makeMessage('m-a-approved', {
+            metadata: { proposedPlan: approvedA },
+          }),
+        ]);
+
+        expect(useAgentChatStore.getState().latestProposedPlan).toEqual(
+          draftedB,
+        );
+      });
+    });
+
     it('derives the newest plan when hydrating messages listed out of plan order', () => {
       useAgentChatStore.getState().setMessages([
         makeMessage('m-b', { metadata: { proposedPlan: planB } }),
@@ -223,6 +315,13 @@ describe('agent-chat.store messages and plans', () => {
       ]);
 
     expect(useAgentChatStore.getState().latestProposedPlan).toEqual(newer);
+  });
+
+  it('setMessages clears the plan when no message carries one', () => {
+    useAgentChatStore.getState().setLatestProposedPlan(makePlan('plan-x'));
+    useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+
+    expect(useAgentChatStore.getState().latestProposedPlan).toBeNull();
   });
 
   it('setMessages clears stale pagination state from a prior page', () => {
@@ -364,6 +463,13 @@ describe('agent-chat.store stream state', () => {
     expect(state.activeRunStatus).toBe('cancelling');
     expect(state.workEvents).toEqual([]);
   });
+
+  it('resetStreamState returns to idle for non-cancelling statuses', () => {
+    useAgentChatStore.getState().setActiveRunStatus('running');
+    useAgentChatStore.getState().resetStreamState();
+
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+  });
 });
 
 describe('agent-chat.store run lifecycle', () => {
@@ -419,6 +525,21 @@ describe('agent-chat.store run lifecycle', () => {
     expect(state.runStartedAt).toBe('2026-03-26T10:00:00.000Z');
   });
 
+  it('setActiveRun with null run id goes idle', () => {
+    useAgentChatStore.getState().setActiveRun('run-1');
+    useAgentChatStore.getState().setActiveRun(null);
+
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('idle');
+  });
+
+  it('setRunStartedAt stores the timestamp', () => {
+    useAgentChatStore.getState().setRunStartedAt('2026-03-26T11:00:00.000Z');
+
+    expect(useAgentChatStore.getState().runStartedAt).toBe(
+      '2026-03-26T11:00:00.000Z',
+    );
+  });
+
   it('setError while running marks the run failed and stops generating', () => {
     useAgentChatStore.getState().setActiveRun('run-1');
     useAgentChatStore.getState().setIsGenerating(true);
@@ -431,6 +552,13 @@ describe('agent-chat.store run lifecycle', () => {
     expect(state.isGenerating).toBe(false);
   });
 
+  it('setError leaves a completed run status untouched', () => {
+    useAgentChatStore.getState().setActiveRunStatus('completed');
+    useAgentChatStore.getState().setError('late error');
+
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('completed');
+  });
+
   it('setError(null) clears the error without status changes', () => {
     useAgentChatStore.getState().setActiveRun('run-1');
     useAgentChatStore.getState().setError(null);
@@ -438,6 +566,17 @@ describe('agent-chat.store run lifecycle', () => {
     const state = useAgentChatStore.getState();
     expect(state.error).toBeNull();
     expect(state.activeRunStatus).toBe('running');
+  });
+
+  it('pending input requests can be set and cleared', () => {
+    useAgentChatStore.getState().setPendingInputRequest({
+      id: 'req-1',
+      prompt: 'Pick one',
+    } as never);
+    expect(useAgentChatStore.getState().pendingInputRequest).not.toBeNull();
+
+    useAgentChatStore.getState().clearPendingInputRequest();
+    expect(useAgentChatStore.getState().pendingInputRequest).toBeNull();
   });
 });
 
@@ -457,6 +596,23 @@ describe('agent-chat.store simple setters', () => {
 
     expect(useAgentChatStore.getState().activeThreadId).toBe('thread-video');
     expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([]);
+  });
+
+  it('keeps a live stream when the first thread id lands after /agent/new', () => {
+    const store = useAgentChatStore.getState();
+    store.addPendingUiActions([
+      {
+        generationType: 'video',
+        id: 'generation-new',
+        title: 'Configure video',
+        type: 'generation_action_card',
+      },
+    ]);
+    store.setActiveThread('thread-created');
+
+    expect(useAgentChatStore.getState().stream.pendingUiActions).toEqual([
+      expect.objectContaining({ id: 'generation-new' }),
+    ]);
   });
 
   it('covers scalar setters', () => {
@@ -523,6 +679,15 @@ describe('agent-chat.store panel open state', () => {
 
     useAgentChatStore.getState().toggleOpen();
     expect(useAgentChatStore.getState().isOpen).toBe(false);
+  });
+
+  it('marks user-changed when toggled during an overlay session', () => {
+    useAgentChatStore.getState().beginOverlaySession('overlay-1');
+    useAgentChatStore.getState().setIsOpen(true);
+
+    expect(useAgentChatStore.getState().userChangedAgentDuringOverlay).toBe(
+      true,
+    );
   });
 });
 
@@ -685,6 +850,12 @@ describe('agent-chat.store composer seed', () => {
     useAgentChatStore.getState().clearComposerSeed();
     expect(useAgentChatStore.getState().composerSeed).toBeNull();
   });
+
+  it('seedComposer defaults the thread to null', () => {
+    useAgentChatStore.getState().seedComposer('Quick idea');
+
+    expect(useAgentChatStore.getState().composerSeed?.threadId).toBeNull();
+  });
 });
 
 describe('agent-chat.store terminal sessions', () => {
@@ -702,6 +873,24 @@ describe('agent-chat.store terminal sessions', () => {
     const map = useAgentChatStore.getState().terminalSessionsByThread;
     expect(map.get('thread-1')).toHaveLength(1);
     expect(map.get('global')).toHaveLength(1);
+  });
+
+  it('persists sessions to localStorage', () => {
+    useAgentChatStore
+      .getState()
+      .addTerminalSession('thread-1', makeSession('sess-1', 'thread-1'));
+
+    const raw = window.localStorage.getItem('genfeed:terminal:sessions');
+    expect(raw).toContain('sess-1');
+  });
+
+  it('setTerminalSessionsByThread bulk-replaces the map', () => {
+    const map = new Map([['global', [makeSession('sess-9')]]]);
+    useAgentChatStore.getState().setTerminalSessionsByThread(map);
+
+    expect(
+      useAgentChatStore.getState().terminalSessionsByThread.get('global'),
+    ).toHaveLength(1);
   });
 
   it('removeTerminalSession drops the session and falls back the active id', () => {
@@ -974,6 +1163,32 @@ describe('agent-chat.store conversation cache', () => {
       vi.useRealTimers();
     });
 
+    it('returns false for a thread with no cache entry', () => {
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-none'),
+      ).toBe(false);
+    });
+
+    it('returns true immediately after caching', () => {
+      useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+      useAgentChatStore.getState().cacheConversation('thread-1');
+
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-1'),
+      ).toBe(true);
+    });
+
+    it('stays fresh just under the freshness window', () => {
+      useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
+      useAgentChatStore.getState().cacheConversation('thread-1');
+
+      vi.advanceTimersByTime(CONVERSATION_CACHE_FRESHNESS_MS - 1);
+
+      expect(
+        useAgentChatStore.getState().isConversationCacheFresh('thread-1'),
+      ).toBe(true);
+    });
+
     it('expires once the freshness window elapses, forcing a real refetch', () => {
       useAgentChatStore.getState().setMessages([makeMessage('m-1')]);
       useAgentChatStore.getState().cacheConversation('thread-1');
@@ -1051,6 +1266,20 @@ describe('agent-chat.store stream token buffering (#2517)', () => {
     );
   });
 
+  it('preserves exact token order across many rapid appends', () => {
+    const store = useAgentChatStore.getState();
+    const tokens = Array.from({ length: 25 }, (_, index) => `t${index}-`);
+    for (const token of tokens) {
+      store.appendStreamToken(token);
+    }
+
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      tokens.join(''),
+    );
+  });
+
   it('falls back to the timer flush when rAF never fires (e.g. a hidden tab)', () => {
     useAgentChatStore.getState().appendStreamToken('fallback');
 
@@ -1061,6 +1290,15 @@ describe('agent-chat.store stream token buffering (#2517)', () => {
     expect(useAgentChatStore.getState().stream.streamingContent).toBe(
       'fallback',
     );
+  });
+
+  it('does not double-flush when both rAF and the timer fallback fire', () => {
+    useAgentChatStore.getState().appendStreamToken('once');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('once');
   });
 
   it('tokens appended after a flush start a fresh buffer instead of being dropped', () => {
@@ -1075,6 +1313,20 @@ describe('agent-chat.store stream token buffering (#2517)', () => {
     expect(useAgentChatStore.getState().stream.streamingContent).toBe(
       'first second',
     );
+  });
+
+  it('a reset while tokens are buffered discards them instead of flushing stale content', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('half a sen');
+
+    store.resetStreamState();
+
+    // Neither the rAF nor the timer fallback should resurrect the discarded
+    // buffer even if a callback was already queued at reset time.
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
   });
 
   it('finalizeStream discards buffered tokens and uses the server-authoritative message content', () => {
@@ -1092,6 +1344,31 @@ describe('agent-chat.store stream token buffering (#2517)', () => {
     expect(state.stream.streamingContent).toBe('');
     expect(state.messages.at(-1)?.content).toBe('server final content');
   });
+
+  it('resetActiveConversationState discards buffered tokens instead of flushing them', () => {
+    useAgentChatStore.getState().appendStreamToken('half a sentence');
+
+    useAgentChatStore.getState().resetActiveConversationState();
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+
+  it('restoreCachedConversation discards buffered tokens instead of flushing them', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1')]);
+    store.cacheConversation('thread-1');
+    store.appendStreamToken('half a sentence');
+
+    store.restoreCachedConversation('thread-1');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
 });
 
 // #2517 — a `requestAnimationFrame` per streamed token forced every
@@ -1102,3 +1379,163 @@ describe('agent-chat.store stream token buffering (#2517)', () => {
 // it is stubbed here to queue (not synchronously invoke) callbacks — that is
 // the only way to observe the "buffered, not yet flushed" intermediate state
 // the rest of these tests depend on.
+describe('agent-chat.store stream token buffering (#2517)', () => {
+  let rafCallbacks: FrameRequestCallback[];
+  let rafHandleCounter: number;
+
+  function flushRaf(): void {
+    const callbacks = rafCallbacks;
+    rafCallbacks = [];
+    for (const callback of callbacks) {
+      callback(0);
+    }
+  }
+
+  beforeEach(() => {
+    rafCallbacks = [];
+    rafHandleCounter = 0;
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      'requestAnimationFrame',
+      (callback: FrameRequestCallback): number => {
+        rafHandleCounter += 1;
+        rafCallbacks.push(callback);
+        return rafHandleCounter;
+      },
+    );
+    vi.stubGlobal('cancelAnimationFrame', (): void => {
+      // Handles are not individually tracked — `schedulePendingStreamFlush`'s
+      // own `hasRun` guard is what actually prevents a cancelled flush from
+      // running, so a no-op stub still exercises the real safety property.
+    });
+  });
+
+  afterEach(() => {
+    // Discard while the fake clock/rAF stub are still installed so a flush
+    // left pending by a test cannot leak a scheduled callback — and its
+    // buffered tokens — into the next test.
+    useAgentChatStore.getState().resetStreamState();
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('buffers multiple tokens and flushes them as one concatenated update', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('Hel');
+    store.appendStreamToken('lo ');
+    store.appendStreamToken('world');
+
+    // Still buffered — no flush has run yet.
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'Hello world',
+    );
+  });
+
+  it('preserves exact token order across many rapid appends', () => {
+    const store = useAgentChatStore.getState();
+    const tokens = Array.from({ length: 25 }, (_, index) => `t${index}-`);
+    for (const token of tokens) {
+      store.appendStreamToken(token);
+    }
+
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      tokens.join(''),
+    );
+  });
+
+  it('falls back to the timer flush when rAF never fires (e.g. a hidden tab)', () => {
+    useAgentChatStore.getState().appendStreamToken('fallback');
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'fallback',
+    );
+  });
+
+  it('does not double-flush when both rAF and the timer fallback fire', () => {
+    useAgentChatStore.getState().appendStreamToken('once');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('once');
+  });
+
+  it('tokens appended after a flush start a fresh buffer instead of being dropped', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('first ');
+    flushRaf();
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('first ');
+
+    store.appendStreamToken('second');
+    flushRaf();
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+      'first second',
+    );
+  });
+
+  it('a reset while tokens are buffered discards them instead of flushing stale content', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('half a sen');
+
+    store.resetStreamState();
+
+    // Neither the rAF nor the timer fallback should resurrect the discarded
+    // buffer even if a callback was already queued at reset time.
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+
+  it('finalizeStream discards buffered tokens and uses the server-authoritative message content', () => {
+    const store = useAgentChatStore.getState();
+    store.appendStreamToken('stale locally-buffered text');
+
+    store.finalizeStream(
+      makeMessage('m-final', { content: 'server final content' }),
+    );
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    const state = useAgentChatStore.getState();
+    expect(state.stream.streamingContent).toBe('');
+    expect(state.messages.at(-1)?.content).toBe('server final content');
+  });
+
+  it('resetActiveConversationState discards buffered tokens instead of flushing them', () => {
+    useAgentChatStore.getState().appendStreamToken('half a sentence');
+
+    useAgentChatStore.getState().resetActiveConversationState();
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+
+  it('restoreCachedConversation discards buffered tokens instead of flushing them', () => {
+    const store = useAgentChatStore.getState();
+    store.setMessages([makeMessage('m-1')]);
+    store.cacheConversation('thread-1');
+    store.appendStreamToken('half a sentence');
+
+    store.restoreCachedConversation('thread-1');
+
+    flushRaf();
+    vi.advanceTimersByTime(50);
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+  });
+});

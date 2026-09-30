@@ -117,6 +117,7 @@ describe('ImagesOperationsController', () => {
   let controller: ImagesOperationsController;
   let brandsService: vi.Mocked<BrandsService>;
   let imagesService: vi.Mocked<ImagesService>;
+  let _promptsService: vi.Mocked<PromptsService>;
   let sharedService: vi.Mocked<SharedService>;
   let metadataService: vi.Mocked<MetadataService>;
   let activitiesService: vi.Mocked<ActivityRecorderService>;
@@ -128,6 +129,7 @@ describe('ImagesOperationsController', () => {
   let filesClientService: vi.Mocked<FilesClientService>;
   let comfyUIService: vi.Mocked<ComfyUIService>;
   let tagsService: vi.Mocked<TagsService>;
+  let _websocketService: vi.Mocked<NotificationsPublisherService>;
   let failedGenerationService: vi.Mocked<FailedGenerationService>;
   let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
   let modelsService: vi.Mocked<ModelsService>;
@@ -589,6 +591,7 @@ describe('ImagesOperationsController', () => {
     );
     brandsService = module.get(BrandsService);
     imagesService = module.get(ImagesService);
+    _promptsService = module.get(PromptsService);
     sharedService = module.get(SharedService);
     metadataService = module.get(MetadataService);
     activitiesService = module.get(ActivityRecorderService);
@@ -600,6 +603,7 @@ describe('ImagesOperationsController', () => {
     filesClientService = module.get(FilesClientService);
     comfyUIService = module.get(ComfyUIService);
     tagsService = module.get(TagsService);
+    _websocketService = module.get(NotificationsPublisherService);
     failedGenerationService = module.get(FailedGenerationService);
     creditsUtilsService = module.get(CreditsUtilsService);
     modelsService = module.get(ModelsService);
@@ -607,6 +611,10 @@ describe('ImagesOperationsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
   describe('create', () => {
@@ -659,6 +667,18 @@ describe('ImagesOperationsController', () => {
       expect(result).toBeDefined();
     });
 
+    it('should create an image with Replicate model', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      };
+
+      const result = await controller.create(mockRequest, dto, mockUser);
+
+      expect(replicateService.generateTextToImage).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should handle Replicate model by destination string', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
@@ -690,6 +710,17 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('should fall back to default model when model is invalid', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        model: 'invalid-model' as string,
+      };
+
+      const result = await controller.create(mockRequest, dto, mockUser);
+
+      expect(result).toBeDefined();
+    });
+
     it('should handle auto model selection', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
@@ -704,6 +735,17 @@ describe('ImagesOperationsController', () => {
           category: ModelCategory.IMAGE,
         }),
       );
+      expect(result).toBeDefined();
+    });
+
+    it('should use brand default model when no model specified', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        model: undefined,
+      };
+
+      const result = await controller.create(mockRequest, dto, mockUser);
+
       expect(result).toBeDefined();
     });
 
@@ -876,6 +918,19 @@ describe('ImagesOperationsController', () => {
       expect(result).toBeDefined();
     });
 
+    it('should handle prompt template option', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        model: MODEL_KEYS.LEONARDOAI,
+        promptTemplate: 'image.product.default',
+        useTemplate: true,
+      };
+
+      const result = await controller.create(mockRequest, dto, mockUser);
+
+      expect(result).toBeDefined();
+    });
+
     it('should use default dimensions if not provided', async () => {
       const dto: CreateImageDto = {
         model: MODEL_KEYS.LEONARDOAI,
@@ -891,6 +946,25 @@ describe('ImagesOperationsController', () => {
           width: 1920,
         }),
       );
+      expect(result).toBeDefined();
+    });
+
+    it('should handle waitForCompletion for Replicate', async () => {
+      const dto: CreateImageDto = {
+        ...baseCreateDto,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+        waitForCompletion: true,
+      };
+
+      pollingService.waitForMultipleIngredientsCompletion.mockResolvedValue([
+        mockImage,
+      ] as unknown as IngredientEntity[]);
+
+      const result = await controller.create(mockRequest, dto, mockUser);
+
+      expect(
+        pollingService.waitForMultipleIngredientsCompletion,
+      ).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -1058,6 +1132,19 @@ describe('ImagesOperationsController', () => {
           label: 'Splitted',
         }),
       );
+    });
+
+    it('should use existing splitted tag if exists', async () => {
+      tagsService.findOne.mockResolvedValue(mockTag as unknown as TagEntity);
+
+      await controller.splitContactSheet(
+        mockRequest,
+        mockImageId.toString(),
+        splitDto,
+        mockUser,
+      );
+
+      expect(tagsService.create).not.toHaveBeenCalled();
     });
 
     it('should create activity for split operation', async () => {

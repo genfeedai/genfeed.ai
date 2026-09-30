@@ -10,6 +10,10 @@ import {
 
 describe('reply-bot.enum', () => {
   describe('ReplyBotType', () => {
+    it('should have 3 members', () => {
+      expect(Object.values(ReplyBotType)).toHaveLength(3);
+    });
+
     it('should have correct values', () => {
       expect(ReplyBotType.REPLY_GUY).toBe('reply_guy');
       expect(ReplyBotType.ACCOUNT_MONITOR).toBe('account_monitor');
@@ -18,6 +22,10 @@ describe('reply-bot.enum', () => {
   });
 
   describe('ReplyBotPlatform', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(ReplyBotPlatform)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(ReplyBotPlatform.TWITTER).toBe('twitter');
       expect(ReplyBotPlatform.INSTAGRAM).toBe('instagram');
@@ -28,6 +36,10 @@ describe('reply-bot.enum', () => {
   });
 
   describe('SocialContentType', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(SocialContentType)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(SocialContentType.TWEET).toBe('tweet');
       expect(SocialContentType.POST).toBe('post');
@@ -39,6 +51,10 @@ describe('reply-bot.enum', () => {
   });
 
   describe('ReplyBotActionType', () => {
+    it('should have 3 members', () => {
+      expect(Object.values(ReplyBotActionType)).toHaveLength(3);
+    });
+
     it('should have correct values', () => {
       expect(ReplyBotActionType.REPLY_ONLY).toBe('reply_only');
       expect(ReplyBotActionType.DM_ONLY).toBe('dm_only');
@@ -47,6 +63,10 @@ describe('reply-bot.enum', () => {
   });
 
   describe('BotActivityStatus', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(BotActivityStatus)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(BotActivityStatus.PENDING).toBe('pending');
       expect(BotActivityStatus.PROCESSING).toBe('processing');
@@ -57,6 +77,10 @@ describe('reply-bot.enum', () => {
   });
 
   describe('BotActivitySkipReason', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(BotActivitySkipReason)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(BotActivitySkipReason.RATE_LIMITED).toBe('rate_limited');
       expect(BotActivitySkipReason.FILTERED_OUT).toBe('filtered_out');

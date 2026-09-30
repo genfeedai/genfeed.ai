@@ -198,6 +198,14 @@ describe('useStudioGenerateDraft', () => {
     expect(mocks.saveCurrent).not.toHaveBeenCalled();
   });
 
+  it('does not create a draft for an untouched, empty composer', async () => {
+    renderDraft();
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+
+    expect(mocks.saveCurrent).not.toHaveBeenCalled();
+  });
+
   it('saves again when the composer returns to the stored draft mid-save', async () => {
     mocks.getCurrent.mockResolvedValueOnce(buildDraft('A'));
     const view = renderDraft({ payload: buildPayload('A') });
@@ -295,6 +303,17 @@ describe('useStudioGenerateDraft', () => {
       mocks.getCurrent.mock.invocationCallOrder[0] ?? 0,
     );
     await waitFor(() => expect(view.onRestore).toHaveBeenCalled());
+  });
+
+  it("never replays another user's unsent draft", async () => {
+    window.localStorage.setItem(
+      `${STUDIO_GENERATE_DRAFT_OUTBOX_STORAGE_PREFIX}:brand-1`,
+      JSON.stringify({ ownerId: 'user-2', payload: buildPayload('not mine') }),
+    );
+    renderDraft();
+
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+    expect(mocks.saveCurrent).not.toHaveBeenCalled();
   });
 
   it('waits for a write still retrying before reading the draft back', async () => {
@@ -404,6 +423,21 @@ describe('useStudioGenerateDraft', () => {
       timeout: 4000,
     });
     await waitFor(() => expect(savedPrompts()).toEqual(['typed']));
+  });
+
+  it('does not save while autosave is paused', async () => {
+    const view = renderDraft({ isAutosaveEnabled: false });
+    await waitFor(() => expect(mocks.getCurrent).toHaveBeenCalled());
+
+    view.rerender({
+      ...baseProps(view),
+      isAutosaveEnabled: false,
+      payload: buildPayload('remix objective'),
+    });
+    await new Promise((resolve) => setTimeout(resolve, QUIET_PERIOD));
+    view.unmount();
+
+    expect(mocks.saveCurrent).not.toHaveBeenCalled();
   });
 });
 

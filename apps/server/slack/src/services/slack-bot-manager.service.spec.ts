@@ -161,6 +161,31 @@ describe('SlackBotManager', () => {
   });
 
   describe('initialize', () => {
+    it('should subscribe to Redis integration events', async () => {
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
+
+      await service.initialize();
+
+      expect(mockRedisService.subscribe).toHaveBeenCalledTimes(3);
+    });
+
+    it('should log initialization message', async () => {
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
+
+      await service.initialize();
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Initializing Slack Bot Manager',
+      );
+    });
+
+    it('should handle API errors gracefully without throwing', async () => {
+      mockFirstValueFrom.mockRejectedValue(new Error('ECONNREFUSED'));
+
+      // Should not throw — error is caught and logged internally
+      await expect(service.initialize()).resolves.toBeUndefined();
+    });
+
     it('should not resubscribe to Redis on second initialize call', async () => {
       mockFirstValueFrom.mockResolvedValue({ data: [] });
 
@@ -173,6 +198,18 @@ describe('SlackBotManager', () => {
   });
 
   describe('shutdown', () => {
+    it('should NOT unsubscribe shared Redis channels (starves other bots)', async () => {
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
+      await service.initialize();
+
+      await service.shutdown();
+
+      // Shared integration channels are intentionally not unsubscribed on
+      // shutdown because RedisService has no per-handler granularity.
+      // Unsubscribing would starve Discord and Telegram managers.
+      expect(mockRedisService.unsubscribe).not.toHaveBeenCalled();
+    });
+
     it('should clear sessions and userSettings maps', async () => {
       mockFirstValueFrom.mockResolvedValue({ data: [] });
       await service.initialize();
@@ -181,6 +218,14 @@ describe('SlackBotManager', () => {
 
       expect(service['sessions'].size).toBe(0);
       expect(service['userSettings'].size).toBe(0);
+    });
+
+    it('should log shutdown message', async () => {
+      await service.shutdown();
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Shutting down Slack Bot Manager',
+      );
     });
   });
 
@@ -193,6 +238,39 @@ describe('SlackBotManager', () => {
       expect(botInstance.id).toBe('integration-1');
       expect(botInstance.orgId).toBe('org-1');
       expect(botInstance.app.start).toHaveBeenCalled();
+    });
+
+    it('should return bot instance with correct integration reference', async () => {
+      const integration = makeIntegration({ id: 'my-integration' });
+
+      const botInstance = await service.createBotInstance(integration);
+
+      expect(botInstance.integration).toBe(integration);
+    });
+  });
+
+  describe('destroyBotInstance', () => {
+    it('should call stop on the Slack App', async () => {
+      const integration = makeIntegration();
+      const botInstance = await service.createBotInstance(integration);
+
+      await service.destroyBotInstance(botInstance);
+
+      expect(botInstance.app.stop).toHaveBeenCalled();
+    });
+
+    it('should handle stop errors gracefully', async () => {
+      const integration = makeIntegration();
+      const botInstance = await service.createBotInstance(integration);
+      botInstance.app.stop = vi
+        .fn()
+        .mockRejectedValue(new Error('Stop failed'));
+
+      await expect(
+        service.destroyBotInstance(botInstance),
+      ).resolves.toBeUndefined();
+
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 

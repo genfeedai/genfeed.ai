@@ -279,4 +279,35 @@ describe('IngredientsList', () => {
 
     expect(mockOpenPostBatchModal).toHaveBeenCalledWith(selectedIngredients);
   });
+
+  it('disables campaign publish when assets are from different campaigns', () => {
+    mockUseBrand.mockReturnValue({
+      selectedBrand: { isFleetEnabled: true },
+    });
+    mockUseIngredientsList.mockReturnValue(
+      buildIngredientsListReturn({
+        filteredIngredients: [
+          {
+            campaign: 'spring-drop',
+            category: IngredientCategory.IMAGE,
+            id: 'img-1',
+            reviewStatus: FleetReviewStatus.APPROVED,
+          },
+          {
+            campaign: 'summer-drop',
+            category: IngredientCategory.IMAGE,
+            id: 'img-2',
+            reviewStatus: FleetReviewStatus.APPROVED,
+          },
+        ],
+        selectedIngredientIds: ['img-1', 'img-2'],
+      }),
+    );
+
+    render(<IngredientsList />);
+
+    expect(screen.getByTestId('publish-campaign-state')).toHaveTextContent(
+      'disabled',
+    );
+  });
 });

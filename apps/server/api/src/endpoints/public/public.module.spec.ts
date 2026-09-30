@@ -5,6 +5,10 @@ import { PublicModule } from '@api/endpoints/public/public.module';
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('PublicModule', () => {
+  it('should be defined', () => {
+    expect(PublicModule).toBeDefined();
+  });
+
   it('registers Brand OS on the leaf brand module rather than the fat collection graph', () => {
     const controllers = Reflect.getMetadata(
       MODULE_METADATA.CONTROLLERS,

@@ -197,6 +197,22 @@ describe('ArticlesService publish-state transition', () => {
     expect(notificationsService.dispatch).not.toHaveBeenCalled();
   });
 
+  it('leaves publication side effects untouched when no status is supplied', async () => {
+    const { delegate, notificationsService, service } = buildService();
+
+    await service.update(
+      articleId,
+      { label: 'Renamed' } as UpdateArticleDto,
+      userId,
+      organizationId,
+      brandId,
+    );
+
+    const data = readPatchedData(delegate);
+    expect(data.scope).toBeUndefined();
+    expect(data.publishedAt).toBeUndefined();
+    expect(notificationsService.dispatch).not.toHaveBeenCalled();
+  });
   it('allows editing an organization-shared draft without changing its operator author', async () => {
     const { delegate, service } = buildService();
     delegate.findFirst.mockResolvedValue({

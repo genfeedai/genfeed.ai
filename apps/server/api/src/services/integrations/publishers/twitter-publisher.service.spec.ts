@@ -45,6 +45,7 @@ import { of } from 'rxjs';
 
 describe('TwitterPublisherService', () => {
   let service: TwitterPublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let httpService: vi.Mocked<HttpService>;
   let twitterService: vi.Mocked<TwitterService>;
@@ -222,6 +223,7 @@ describe('TwitterPublisherService', () => {
     ).mockResolvedValue({ v2: { tweet: mockTweet } } as unknown as Awaited<
       ReturnType<TwitterPublisherService['getTwitterClientFromCredential']>
     >);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     httpService = module.get(HttpService) as vi.Mocked<HttpService>;
     twitterService = module.get(TwitterService) as vi.Mocked<TwitterService>;

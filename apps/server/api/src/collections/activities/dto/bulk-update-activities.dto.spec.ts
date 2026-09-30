@@ -11,7 +11,16 @@ function buildIds(count: number): string[] {
 }
 
 describe('BulkUpdateActivitiesDto', () => {
+  it('should be defined', () => {
+    expect(BulkUpdateActivitiesDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new BulkUpdateActivitiesDto();
+      expect(dto).toBeInstanceOf(BulkUpdateActivitiesDto);
+    });
+
     it('accepts an id list at the maximum size', async () => {
       const dto = Object.assign(new BulkUpdateActivitiesDto(), {
         ids: buildIds(BULK_UPDATE_ACTIVITIES_MAX_IDS),

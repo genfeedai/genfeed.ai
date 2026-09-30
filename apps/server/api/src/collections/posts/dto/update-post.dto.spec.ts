@@ -1,8 +1,19 @@
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { BadRequestException } from '@nestjs/common';
 import { validate } from 'class-validator';
 
 describe('UpdatePostDto', () => {
+  it('should be defined', () => {
+    expect(UpdatePostDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new UpdatePostDto();
+      expect(dto).toBeInstanceOf(UpdatePostDto);
+    });
+
     it('accepts partial publish attribution updates', async () => {
       const dto = Object.assign(new UpdatePostDto(), {
         contentRunId: 'ckz1234567890abcdefghi',
@@ -46,6 +57,17 @@ describe('UpdatePostDto', () => {
       expect(errors.map((error) => error.property)).toEqual(
         expect.arrayContaining(['credential', 'parent']),
       );
+    });
+
+    it('rejects leftover Post.status through the request pipe', async () => {
+      const pipe = new ValidationPipe();
+
+      await expect(
+        pipe.transform(
+          { status: 'draft' },
+          { metatype: UpdatePostDto, type: 'body' },
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
     });
   });
 });

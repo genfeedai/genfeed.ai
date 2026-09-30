@@ -1,5 +1,9 @@
 import { readFileSync } from 'node:fs';
+import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
+import { PromptsOperationsController } from '@api/collections/prompts/controllers/prompts-operations.controller';
 import { PromptsTransformationsController } from '@api/collections/prompts/controllers/prompts-transformations.controller';
+import { PromptsModule } from '@api/collections/prompts/prompts.module';
+import { PromptTransformationService } from '@api/collections/prompts/services/prompt-transformation.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
@@ -15,6 +19,7 @@ import {
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
   METHOD_METADATA,
+  MODULE_METADATA,
   PATH_METADATA,
 } from '@nestjs/common/constants';
 
@@ -98,6 +103,43 @@ describe('Prompts split controllers', () => {
       expect(
         Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
       ).toBe(true);
+    },
+  );
+
+  it('preserves LogMethod on every moved transport', () => {
+    const source = readFileSync(
+      new URL('./prompts-transformations.controller.ts', import.meta.url),
+      'utf8',
+    );
+    const decorators = source.match(
+      /@LogMethod\(\{ logEnd: false, logError: true, logStart: true \}\)/g,
+    );
+
+    expect(decorators).toHaveLength(3);
+  });
+
+  it('registers transformation and operation siblings before wildcard CRUD', () => {
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PromptsModule),
+    ).toEqual([
+      PromptsTransformationsController,
+      PromptsOperationsController,
+      PromptsController,
+    ]);
+  });
+
+  it('registers transformation orchestration in the owning module', () => {
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.PROVIDERS, PromptsModule),
+    ).toContain(PromptTransformationService);
+  });
+
+  it.each(['parse', 'createRemix', 'enhanceExisting'] as const)(
+    'removes moved handler %s from the operations controller',
+    (methodName) => {
+      expect(
+        Reflect.get(PromptsOperationsController.prototype, methodName),
+      ).toBeUndefined();
     },
   );
 

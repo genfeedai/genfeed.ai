@@ -103,6 +103,18 @@ describe('ActivityValueUtil', () => {
       expect(result.customField).toBe('kept');
       expect(result.type).toBe('remix');
     });
+
+    it('should not include progress or resultId', () => {
+      const result = JSON.parse(
+        buildFailureValue({
+          activityKey: ActivityKey.VIDEO_FAILED,
+          ingredientId: 'test',
+        }),
+      );
+
+      expect(result.progress).toBeUndefined();
+      expect(result.resultId).toBeUndefined();
+    });
   });
 
   describe('parseActivityValue', () => {

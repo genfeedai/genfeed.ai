@@ -12,6 +12,17 @@ const ctx: ExecutionContext = {
 
 describe('SoundOverlayExecutor', () => {
   describe('validate', () => {
+    it('valid defaults', () => {
+      expect(
+        createSoundOverlayExecutor().validate({
+          config: {},
+          id: '1',
+          inputs: [],
+          label: 'SO',
+          type: 'soundOverlay',
+        }).valid,
+      ).toBe(true);
+    });
     it('invalid mixMode', () => {
       expect(
         createSoundOverlayExecutor().validate({

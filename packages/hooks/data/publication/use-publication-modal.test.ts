@@ -29,6 +29,16 @@ describe('usePostModal', () => {
     expect(result.current).toHaveProperty('publication');
   });
 
+  it('initializes with isOpen as false', () => {
+    const { result } = renderHook(() => usePostModal());
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it('initializes with null publication', () => {
+    const { result } = renderHook(() => usePostModal());
+    expect(result.current.publication).toBeNull();
+  });
+
   it('has open and close functions', () => {
     const { result } = renderHook(() => usePostModal());
     expect(typeof result.current.open).toBe('function');

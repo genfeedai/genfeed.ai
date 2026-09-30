@@ -204,4 +204,14 @@ describe('SettingsNotificationsPage', () => {
     await waitFor(() => expect(mocks.errorNotification).toHaveBeenCalled());
     expect(toggle).not.toBeChecked();
   });
+
+  it('aborts the agent preference request on unmount', async () => {
+    const { unmount } = render(<SettingsNotificationsPage />);
+    await waitFor(() =>
+      expect(mocks.findAgentEmailPreference).toHaveBeenCalled(),
+    );
+    const signal = mocks.findAgentEmailPreference.mock.calls[0]?.[0];
+    unmount();
+    expect(signal.aborted).toBe(true);
+  });
 });

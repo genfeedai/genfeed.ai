@@ -8,6 +8,10 @@ import {
 
 describe('crm.enum', () => {
   describe('LeadStatus', () => {
+    it('should have 5 members matching Prisma', () => {
+      expect(Object.values(LeadStatus)).toHaveLength(5);
+    });
+
     it('should match Prisma SCREAMING_SNAKE', () => {
       expect(LeadStatus.NEW).toBe('NEW');
       expect(LeadStatus.CONTACTED).toBe('CONTACTED');
@@ -18,6 +22,10 @@ describe('crm.enum', () => {
   });
 
   describe('LeadSource', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(LeadSource)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(LeadSource.INBOUND).toBe('inbound');
       expect(LeadSource.OUTBOUND).toBe('outbound');
@@ -29,6 +37,10 @@ describe('crm.enum', () => {
   });
 
   describe('CrmTaskStatus', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(CrmTaskStatus)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(CrmTaskStatus.TODO).toBe('todo');
       expect(CrmTaskStatus.IN_PROGRESS).toBe('in-progress');
@@ -38,6 +50,10 @@ describe('crm.enum', () => {
   });
 
   describe('CrmTaskPriority', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(CrmTaskPriority)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(CrmTaskPriority.LOW).toBe('low');
       expect(CrmTaskPriority.MEDIUM).toBe('medium');

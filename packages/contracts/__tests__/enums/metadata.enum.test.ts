@@ -6,6 +6,10 @@ import {
 
 describe('metadata.enum', () => {
   describe('MetadataStyle', () => {
+    it('should have 41 members', () => {
+      expect(Object.values(MetadataStyle)).toHaveLength(41);
+    });
+
     it('should have correct values', () => {
       expect(MetadataStyle._3D_MODEL).toBe('3d-model');
       expect(MetadataStyle.ANALOG_FILM).toBe('analog-film');
@@ -52,6 +56,10 @@ describe('metadata.enum', () => {
   });
 
   describe('MetadataExtension', () => {
+    it('should have 11 members', () => {
+      expect(Object.values(MetadataExtension)).toHaveLength(11);
+    });
+
     it('should have correct values', () => {
       expect(MetadataExtension.JPEG).toBe('JPEG');
       expect(MetadataExtension.JPG).toBe('JPG');

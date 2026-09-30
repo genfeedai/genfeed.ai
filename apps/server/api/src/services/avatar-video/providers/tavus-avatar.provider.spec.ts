@@ -18,6 +18,10 @@ describe('TavusAvatarProvider', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(provider).toBeDefined();
+  });
+
   it('should expose providerName as "tavus"', () => {
     expect(provider.providerName).toBe('tavus');
   });

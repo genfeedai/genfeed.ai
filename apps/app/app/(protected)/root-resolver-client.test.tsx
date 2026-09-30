@@ -91,6 +91,43 @@ describe('ProtectedRootResolver', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
+  it('opens workspace overview when a returning user has an active brand', async () => {
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brandId = 'brand_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
+    });
+  });
+
+  it('opens workspace overview from the first brand in the active organization', async () => {
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brands = [
+      {
+        organization: { slug: 'acme' },
+        organizationId: 'org_1',
+        slug: 'moonrise',
+      },
+    ];
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/moonrise/workspace/overview',
+      );
+    });
+  });
+
   it('preserves task handoff state while removing withdrawn shell query state', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
@@ -112,6 +149,81 @@ describe('ProtectedRootResolver', () => {
         '/acme/moonrise/workspace/overview?taskId=task-42&taskSource=workspace',
       );
     });
+  });
+
+  it('resumes onboarding before opening a seeded workspace', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brandId = 'brand_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent/onboarding');
+    });
+  });
+
+  it('routes incomplete Community users to the shared brand step', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
+  it('keeps self-hosted desktop users on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: ['brand'],
+    };
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/providers');
+    });
+  });
+
+  it('fails closed when organization scope has no routable slug', async () => {
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brands = [];
+
+    render(<ProtectedRootResolver />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Workspace setup needs attention',
+      }),
+    ).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('does not widen root bootstrap into a brand from another organization', async () => {

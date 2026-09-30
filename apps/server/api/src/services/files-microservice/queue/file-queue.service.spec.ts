@@ -91,6 +91,10 @@ describe('FileQueueService', () => {
     loggerService = module.get<LoggerService>(LoggerService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('processVideo', () => {
     it('should process video job successfully', async () => {
       const mockResponse = { data: mockJobResponse };
@@ -214,6 +218,24 @@ describe('FileQueueService', () => {
   });
 
   describe('findJobStatus', () => {
+    it('returns the status of a job the files service holds', async () => {
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        httpResponse({ jobId: 'job_123', state: 'active' }),
+      );
+      await expect(service.findJobStatus('job_123')).resolves.toEqual({
+        jobId: 'job_123',
+        state: 'active',
+      });
+    });
+
+    it('returns null when the files service no longer holds the job', async () => {
+      vi.spyOn(httpService, 'get').mockReturnValue(
+        throwError(() => ({ response: { status: 404 } })),
+      );
+      await expect(service.findJobStatus('job_123')).resolves.toBeNull();
+      expect(loggerService.error).not.toHaveBeenCalled();
+    });
+
     it('propagates other upstream failures', async () => {
       const error = { response: { status: 503 } };
       vi.spyOn(httpService, 'get').mockReturnValue(throwError(() => error));

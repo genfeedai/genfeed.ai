@@ -75,6 +75,40 @@ describe('PerformanceSummaryService', () => {
       expect(where.date.lte).toBeInstanceOf(Date);
     });
 
+    it('sorts descending by engagement rate and honours the limit', async () => {
+      await service.getTopPerformers('org-1', 'brand-1', 3);
+
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { engagementRate: 'desc' },
+          take: 3,
+        }),
+      );
+    });
+
+    it('joins analytics rows with their post title, description and publish date', async () => {
+      analyticsFindMany.mockResolvedValueOnce([makeAnalytics()]);
+      postFindMany.mockResolvedValueOnce([makePost()]);
+
+      const [item] = await service.getTopPerformers('org-1', 'brand-1');
+
+      expect(item).toEqual({
+        comments: 5,
+        description: 'A great description. Second sentence.',
+        engagementRate: 5,
+        id: 'analytics-1',
+        likes: 10,
+        origin: 'genfeed',
+        platform: 'instagram',
+        postId: 'post-1',
+        publishDate: '2026-07-20T14:00:00.000Z',
+        saves: 2,
+        shares: 3,
+        title: 'A great title',
+        views: 1000,
+      });
+    });
+
     it('falls back to empty strings and zeros when the post is missing', async () => {
       analyticsFindMany.mockResolvedValueOnce([
         makeAnalytics({
@@ -97,6 +131,33 @@ describe('PerformanceSummaryService', () => {
       expect(item.views).toBe(0);
       expect(item.engagementRate).toBe(0);
       expect(item.publishDate).toBeUndefined();
+    });
+
+    it('skips the post lookup entirely when there are no analytics rows', async () => {
+      await service.getTopPerformers('org-1', 'brand-1');
+
+      expect(postFindMany).not.toHaveBeenCalled();
+    });
+
+    it('de-duplicates post ids before fetching posts', async () => {
+      analyticsFindMany.mockResolvedValueOnce([
+        makeAnalytics({ postId: 'post-1' }),
+        makeAnalytics({ postId: 'post-1' }),
+        makeAnalytics({ postId: 'post-2' }),
+      ]);
+
+      await service.getTopPerformers('org-1', 'brand-1');
+
+      expect(postFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 2,
+          where: {
+            id: { in: ['post-1', 'post-2'] },
+            isDeleted: false,
+            organizationId: 'org-1',
+          },
+        }),
+      );
     });
   });
 
@@ -242,6 +303,23 @@ describe('PerformanceSummaryService', () => {
       );
     });
 
+    it('applies the post soft-delete filter on the analytics query before take', async () => {
+      await service.getWorstPerformers('org-1', 'brand-1', 2);
+
+      expect(analyticsFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { engagementRate: 'asc' },
+          take: 2,
+          where: expect.objectContaining({
+            brandId: 'brand-1',
+            organizationId: 'org-1',
+            post: { is: { isDeleted: false, organizationId: 'org-1' } },
+            totalViews: { gte: DEFAULT_WORST_PERFORMER_MIN_VIEWS },
+          }),
+        }),
+      );
+    });
+
     it('excludes soft-deleted posts from mixed fixtures and keeps active ranking order', async () => {
       const deletedLowest = makeAnalytics({
         engagementRate: 0.05,
@@ -353,6 +431,12 @@ describe('PerformanceSummaryService', () => {
       });
     });
 
+    it('returns an empty list when no analytics exist', async () => {
+      await expect(
+        service.getPromptPerformance('org-1', 'brand-1'),
+      ).resolves.toEqual([]);
+    });
+
     it('groups rows by the first 100 characters of the description', async () => {
       analyticsFindMany.mockResolvedValueOnce([
         makeAnalytics({ engagementRate: 10, postId: 'post-1' }),
@@ -373,6 +457,16 @@ describe('PerformanceSummaryService', () => {
           totalViews: 2000,
         },
       ]);
+    });
+
+    it('truncates the grouping key to 100 characters', async () => {
+      const long = 'x'.repeat(150);
+      analyticsFindMany.mockResolvedValueOnce([makeAnalytics()]);
+      postFindMany.mockResolvedValueOnce([makePost({ description: long })]);
+
+      const [item] = await service.getPromptPerformance('org-1', 'brand-1');
+
+      expect(item.promptSnippet).toHaveLength(100);
     });
 
     it('falls back to the post label when there is no description', async () => {
@@ -492,6 +586,28 @@ describe('PerformanceSummaryService', () => {
       );
     });
 
+    it('reports an upward trend when engagement grew more than 5%', async () => {
+      analyticsAggregate
+        .mockResolvedValueOnce({
+          _sum: { totalComments: 10, totalLikes: 100, totalShares: 10 },
+        })
+        .mockResolvedValueOnce({
+          _sum: { totalComments: 5, totalLikes: 50, totalShares: 5 },
+        });
+
+      const { weekOverWeekTrend } = await service.getWeeklySummary(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(weekOverWeekTrend).toEqual({
+        currentEngagement: 120,
+        direction: 'up',
+        percentageChange: 100,
+        previousEngagement: 60,
+      });
+    });
+
     it('reports a downward trend when engagement fell more than 5%', async () => {
       analyticsAggregate
         .mockResolvedValueOnce({ _sum: { totalLikes: 50 } })
@@ -504,6 +620,51 @@ describe('PerformanceSummaryService', () => {
 
       expect(weekOverWeekTrend.direction).toBe('down');
       expect(weekOverWeekTrend.percentageChange).toBe(-50);
+    });
+
+    it('reports a stable trend for movement inside the 5% band', async () => {
+      analyticsAggregate
+        .mockResolvedValueOnce({ _sum: { totalLikes: 102 } })
+        .mockResolvedValueOnce({ _sum: { totalLikes: 100 } });
+
+      const { weekOverWeekTrend } = await service.getWeeklySummary(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(weekOverWeekTrend.direction).toBe('stable');
+    });
+
+    it('treats growth from a zero baseline as a 100% increase', async () => {
+      analyticsAggregate
+        .mockResolvedValueOnce({ _sum: { totalLikes: 10 } })
+        .mockResolvedValueOnce({ _sum: {} });
+
+      const { weekOverWeekTrend } = await service.getWeeklySummary(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(weekOverWeekTrend).toEqual({
+        currentEngagement: 10,
+        direction: 'up',
+        percentageChange: 100,
+        previousEngagement: 0,
+      });
+    });
+
+    it('stays flat when both periods have no engagement', async () => {
+      const { weekOverWeekTrend } = await service.getWeeklySummary(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(weekOverWeekTrend).toEqual({
+        currentEngagement: 0,
+        direction: 'stable',
+        percentageChange: 0,
+        previousEngagement: 0,
+      });
     });
 
     it('tolerates an aggregate response with no _sum key', async () => {
@@ -527,9 +688,26 @@ describe('PerformanceSummaryService', () => {
 
       expect(topHooks).toEqual([]);
     });
+
+    it('falls back to the title when a hook has no description', async () => {
+      analyticsFindMany.mockResolvedValue([makeAnalytics()]);
+      postFindMany.mockResolvedValue([
+        makePost({ description: '', label: 'Title hook' }),
+      ]);
+
+      const { topHooks } = await service.getWeeklySummary('org-1', 'brand-1');
+
+      expect(topHooks).toEqual(['Title hook']);
+    });
   });
 
   describe('generatePerformanceContext', () => {
+    it('returns the empty-state sentence when nothing is available', async () => {
+      await expect(
+        service.generatePerformanceContext('org-1', 'brand-1'),
+      ).resolves.toBe('Engagement trending STABLE 0%.');
+    });
+
     it('summarises hooks, best time, best platform and trend', async () => {
       analyticsFindMany.mockResolvedValue([makeAnalytics()]);
       postFindMany.mockResolvedValue([makePost()]);
@@ -571,6 +749,36 @@ describe('PerformanceSummaryService', () => {
       );
 
       expect(context).toContain('Best posting time: 12AM.');
+    });
+
+    it('renders a morning hour with the AM suffix', async () => {
+      queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { avg_engagement_rate: 1, hour: 9, post_count: 1 },
+        ]);
+
+      const context = await service.generatePerformanceContext(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(context).toContain('Best posting time: 9AM.');
+    });
+
+    it('renders noon as 12PM', async () => {
+      queryRaw
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          { avg_engagement_rate: 1, hour: 12, post_count: 1 },
+        ]);
+
+      const context = await service.generatePerformanceContext(
+        'org-1',
+        'brand-1',
+      );
+
+      expect(context).toContain('Best posting time: 12PM.');
     });
 
     it('omits the hook sentence when every top performer is blank', async () => {

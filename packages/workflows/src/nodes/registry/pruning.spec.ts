@@ -32,6 +32,24 @@ const REMOVED_TYPES = [
   'personaVideoContent',
 ] as const;
 
+const RETAINED_CATALOG_TYPES = [
+  'brand',
+  'brandAsset',
+  'brandContext',
+  'analyticsFeedback',
+  'musicSource',
+  'soundOverlay',
+  'hookGenerator',
+  'trendHashtagInspiration',
+  'trendSoundInspiration',
+  'trendVideoInspiration',
+  'postReply',
+  'publish',
+  'reportDelivery',
+  'sendDm',
+  'socialRead',
+] as const;
+
 describe('#481 SaaS node pruning', () => {
   it('removes every dead SaaS node type from the merged registry', () => {
     for (const type of REMOVED_TYPES) {
@@ -39,6 +57,19 @@ describe('#481 SaaS node pruning', () => {
         false,
       );
       expect(type in NODE_DEFINITIONS, `${type} in merged defs`).toBe(false);
+    }
+  });
+
+  it('does not revive the deleted SaaS videoInput shadow', () => {
+    expect(ACTION_NODE_DEFINITIONS.videoInput).toBeUndefined();
+  });
+
+  it('retains live product types from the action catalog', () => {
+    for (const type of RETAINED_CATALOG_TYPES) {
+      expect(
+        ACTION_NODE_DEFINITIONS[type],
+        `${type} missing from catalog`,
+      ).toBeDefined();
     }
   });
 });

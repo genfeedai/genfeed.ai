@@ -3,6 +3,7 @@ import {
   ASPECT_RATIOS,
   DEFAULT_VIDEO_DURATION,
   getImageGenerationQualityCreditMultiplier,
+  getVideoGenerationResolutionCreditMultiplier,
   IMAGE_NODE_TYPES,
   LUMA_ASPECT_RATIOS,
   LUMA_NODE_TYPES,
@@ -21,10 +22,24 @@ import {
 } from './provider-pricing';
 
 describe('PRICING constants', () => {
+  it('should have nano-banana pricing', () => {
+    expect(PRICING['nano-banana']).toBe(0.039);
+  });
+
   it('should have nano-banana-pro with resolution tiers', () => {
     expect(PRICING['nano-banana-pro']['1K']).toBe(0.15);
     expect(PRICING['nano-banana-pro']['2K']).toBe(0.15);
     expect(PRICING['nano-banana-pro']['4K']).toBe(0.3);
+  });
+
+  it('should have veo video pricing with audio options', () => {
+    expect(PRICING['veo-3.1-fast'].withAudio).toBe(0.15);
+    expect(PRICING['veo-3.1-fast'].withoutAudio).toBe(0.1);
+  });
+
+  it('should have luma reframe pricing', () => {
+    expect(PRICING['luma-reframe-image']['photon-flash-1']).toBe(0.01);
+    expect(PRICING['luma-reframe-video']).toBe(0.06);
   });
 
   it('should have topaz upscale pricing tiers', () => {
@@ -33,10 +48,41 @@ describe('PRICING constants', () => {
     expect(PRICING['topaz-image-upscale'][0]).toHaveProperty('price');
   });
 
+  it('should have topaz video upscale pricing', () => {
+    expect(PRICING['topaz-video-upscale']['720p-15']).toBe(0.014);
+    expect(PRICING['topaz-video-upscale']['1080p-30']).toBe(0.101);
+  });
+
   it('quotes 4K higher than 1080p for the same video', () => {
     expect(quoteTopazVideoUpscaleCredits(100, '4k', 30)).toBeGreaterThan(
       quoteTopazVideoUpscaleCredits(100, '1080p', 30),
     );
+  });
+
+  it('prices every provider-valid Topaz FPS instead of falling back', () => {
+    expect(quoteTopazVideoUpscaleCredits(100, '1080p', 60)).toBeGreaterThan(
+      quoteTopazVideoUpscaleCredits(100, '1080p', 30),
+    );
+    expect(quoteTopazVideoUpscaleCredits(100, '1080p', 16)).toBeGreaterThan(0);
+  });
+
+  it('quotes generation resolution before dispatch using provider bands', () => {
+    expect(
+      getVideoGenerationResolutionCreditMultiplier(
+        'kwaivgi/kling-v3-omni-video',
+        '4k',
+      ),
+    ).toBe(2.5);
+    expect(
+      quoteVideoGenerationCredits({
+        cost: 10,
+        costPerUnit: 10,
+        duration: 5,
+        modelKey: 'bytedance/seedance-2.5',
+        pricingType: 'per-second',
+        resolution: '4k',
+      }),
+    ).toBe(200);
   });
 
   it('bills missing or auto GPT Image 2.5 quality at the max catalog band', () => {
@@ -79,6 +125,21 @@ describe('PRICING constants', () => {
     expect(quote('2K')).toBeGreaterThan(quote('768P'));
   });
 
+  it('quotes MiniMax H3 Max 1080P above its published 768P band', () => {
+    const quote = (resolution: string) =>
+      quoteVideoGenerationCredits({
+        cost: 134,
+        costPerUnit: 27,
+        duration: 5,
+        modelKey: 'fal/minimax/h3-max/text-to-video',
+        pricingType: 'per-second',
+        resolution,
+      });
+
+    expect(quote('1080P')).toBeGreaterThan(quote('768P'));
+    expect(quote('1080P')).toBe(quote('768P') * 2);
+  });
+
   it('charges a fabricated extension for the continuation and stitch only', () => {
     const input = {
       cost: 10,
@@ -92,6 +153,15 @@ describe('PRICING constants', () => {
     expect(
       quoteVideoExtensionCredits({ ...input, dispatchMode: 'native' }),
     ).toBe(10);
+  });
+
+  it('should have legacy aliases', () => {
+    expect(PRICING['imagen-4-fast']).toBe(0.039);
+    expect(PRICING['imagen-4']).toBe(0.15);
+  });
+
+  it('should have llama pricing', () => {
+    expect(PRICING.llama).toBe(0.0000095);
   });
 });
 

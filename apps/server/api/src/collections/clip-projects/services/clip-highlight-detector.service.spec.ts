@@ -84,6 +84,26 @@ describe('ClipHighlightDetector', () => {
       expect(userPrompt).toContain('[0:00 - 0:10] Hello world');
       expect(userPrompt).toContain('[1:05 - 1:15] Amazing hook right here');
     });
+
+    it('reads the OpenRouter API key from config', async () => {
+      httpService.post.mockReturnValue(of(llmResponse('[]')));
+
+      await detector.detectHighlights('full text', segments, 5);
+
+      expect(configService.get).toHaveBeenCalledWith('OPENROUTER_API_KEY');
+    });
+
+    it('uses a per-job model override without changing the shared default', async () => {
+      httpService.post.mockReturnValue(of(llmResponse('[]')));
+
+      await detector.detectHighlights('full text', segments, 3, {
+        model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      });
+
+      expect(httpService.post.mock.calls[0][1].model).toBe(
+        AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+      );
+    });
   });
 
   describe('parsing and filtering', () => {
@@ -152,6 +172,80 @@ describe('ClipHighlightDetector', () => {
       const result = await detector.detectHighlights('t', segments, 5);
 
       expect(result.map((h) => h.title)).toEqual(['just right']);
+    });
+
+    it('drops clips with out-of-range virality scores', async () => {
+      const content = JSON.stringify([
+        {
+          clip_type: 'a',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'zero',
+          virality_score: 0,
+        },
+        {
+          clip_type: 'b',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'over',
+          virality_score: 101,
+        },
+        {
+          clip_type: 'c',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'ok',
+          virality_score: 55,
+        },
+      ]);
+      httpService.post.mockReturnValue(of(llmResponse(content)));
+
+      const result = await detector.detectHighlights('t', segments, 5);
+
+      expect(result.map((h) => h.title)).toEqual(['ok']);
+    });
+
+    it('sorts by virality_score descending', async () => {
+      const content = JSON.stringify([
+        {
+          clip_type: 'a',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'low',
+          virality_score: 40,
+        },
+        {
+          clip_type: 'b',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'high',
+          virality_score: 95,
+        },
+        {
+          clip_type: 'c',
+          end_time: 45,
+          start_time: 15,
+          summary: 's',
+          tags: [],
+          title: 'mid',
+          virality_score: 70,
+        },
+      ]);
+      httpService.post.mockReturnValue(of(llmResponse(content)));
+
+      const result = await detector.detectHighlights('t', segments, 5);
+
+      expect(result.map((h) => h.title)).toEqual(['high', 'mid', 'low']);
     });
 
     it('caps the result at maxClips', async () => {

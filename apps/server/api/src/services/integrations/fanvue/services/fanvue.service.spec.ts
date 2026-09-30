@@ -81,6 +81,10 @@ describe('FanvueService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('reports configured OAuth without exposing configuration values', () => {
     expect(() => service.requireConfigured()).not.toThrow();
 
@@ -392,6 +396,24 @@ describe('FanvueService', () => {
           refreshToken: 'new-refresh-token',
         }),
       );
+    });
+
+    it('does not disconnect an account when server OAuth config is unavailable', async () => {
+      configValues.FANVUE_CLIENT_SECRET = 'PLACEHOLDER_NOT_CONFIGURED';
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted-access-token',
+        accessTokenExpiry: new Date(Date.now() + 5 * 60 * 1000),
+        id: 'credential-1',
+        platform: CredentialPlatform.FANVUE,
+        refreshToken: 'encrypted-refresh-token',
+      } as never);
+
+      await expect(service.refreshToken(orgId, brandId)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+
+      expect(httpService.post).not.toHaveBeenCalled();
+      expect(credentialsService.patch).not.toHaveBeenCalled();
     });
 
     it('should throw when credential is not found', async () => {
@@ -830,6 +852,42 @@ describe('FanvueService', () => {
         unknown
       >;
       expect(postBody.mediaUuids).toEqual(['media-1', 'media-2']);
+    });
+
+    it('should not include mediaUuids when not provided', async () => {
+      const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+      const mockCredential = {
+        id: 'test-object-id',
+        accessToken: 'encrypted-token',
+        accessTokenExpiry: futureDate,
+        platform: CredentialPlatform.FANVUE,
+        refreshToken: 'encrypted-refresh',
+      };
+
+      credentialsService.findOne.mockResolvedValue(mockCredential as never);
+
+      httpService.post.mockReturnValue(
+        of({
+          config: {} as never,
+          data: {
+            content: 'Text only',
+            createdAt: '',
+            uuid: 'uuid',
+            visibility: 'public',
+          },
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        }),
+      );
+
+      await service.createPost(orgId, brandId, 'Text only');
+
+      const postBody = httpService.post.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(postBody.mediaUuids).toBeUndefined();
     });
 
     it('should throw when refreshToken fails (credential not found)', async () => {

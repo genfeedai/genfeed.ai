@@ -35,4 +35,10 @@ describe('getExecutionProviderHeaders', () => {
     expect(getProviderHeader).toHaveBeenCalledWith('fal');
     expect(getProviderHeader).toHaveBeenCalledWith('openrouter');
   });
+
+  it('returns an empty record when no local keys are set', () => {
+    getProviderHeader.mockReturnValue({});
+
+    expect(getExecutionProviderHeaders()).toEqual({});
+  });
 });

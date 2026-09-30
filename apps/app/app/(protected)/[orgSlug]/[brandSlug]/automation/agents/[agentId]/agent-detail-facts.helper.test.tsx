@@ -26,6 +26,20 @@ function buildStrategy(overrides: Partial<AgentStrategy> = {}): AgentStrategy {
 }
 
 describe('buildAgentDetailFacts', () => {
+  it('omits the brand, next run and last run when unknown', () => {
+    const facts = buildAgentDetailFacts(
+      buildStrategy(),
+      'General',
+      'Supervised',
+      LABELS,
+    );
+    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
+
+    expect(byId.get('brand')).toBeUndefined();
+    expect(byId.get('nextRun')).toBeUndefined();
+    expect(byId.get('lastRun')).toBeUndefined();
+  });
+
   it('includes the caller-provided type and autonomy labels', () => {
     const facts = buildAgentDetailFacts(
       buildStrategy(),

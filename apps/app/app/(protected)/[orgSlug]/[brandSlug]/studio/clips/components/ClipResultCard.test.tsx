@@ -111,6 +111,18 @@ describe('ClipResultCard', () => {
     expect(screen.getByText('1:01 → 61:01')).toBeInTheDocument();
   });
 
+  it('should display the correct status badge', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({ status: 'extracting' })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getByText('Generating')).toBeInTheDocument();
+  });
+
   it('previews a completed raw cut', () => {
     render(
       <ClipResultCard
@@ -269,6 +281,18 @@ describe('ClipResultCard', () => {
     );
   });
 
+  it('should display virality score', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({ viralityScore: 92 })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getByText('92')).toBeInTheDocument();
+  });
+
   it('should display tags with a maximum of 3 visible', () => {
     render(
       <ClipResultCard
@@ -283,6 +307,24 @@ describe('ClipResultCard', () => {
     expect(screen.getByText('#startup')).toBeInTheDocument();
     expect(screen.getByText('+2')).toBeInTheDocument();
     expect(screen.queryByText('#viral')).not.toBeInTheDocument();
+  });
+
+  it('shows an In Library badge when the clip is linked', () => {
+    render(
+      <ClipResultCard
+        clip={makeClip({
+          ingredientId: 'ingredient-1',
+          libraryLinkStatus: 'linked',
+          status: 'completed',
+          videoUrl: 'https://cdn.example.com/video.mp4',
+        })}
+        clipsService={clipsService as never}
+        projectId="project-1"
+      />,
+    );
+
+    expect(screen.getByText('In Library')).toBeInTheDocument();
+    expect(screen.queryByText('Retry Library link')).not.toBeInTheDocument();
   });
 
   it('retries Library linking without treating the clip as a new render', async () => {

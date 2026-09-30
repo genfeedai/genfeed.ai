@@ -102,6 +102,10 @@ describe('PublicImagesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findPublicImages', () => {
     it('should return public images', async () => {
       const mockImages = createPaginatedFixture(
@@ -201,6 +205,21 @@ describe('PublicImagesController', () => {
         }),
         expect.any(Object),
       );
+    });
+
+    it('should handle empty results', async () => {
+      const mockImages = createPaginatedFixture([]);
+
+      imagesService.findAll.mockResolvedValue(mockImages);
+
+      const query: BaseQueryDto = {
+        limit: 10,
+        page: 1,
+      };
+
+      const result = await controller.findPublicImages(mockRequest, query);
+
+      expect(result).toBeDefined();
     });
   });
 

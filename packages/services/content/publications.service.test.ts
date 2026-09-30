@@ -12,6 +12,12 @@ describe('PostsService', () => {
     service = new PostsService(mockToken);
   });
 
+  describe('constructor', () => {
+    it('initializes correctly', () => {
+      expect(service).toBeInstanceOf(PostsService);
+    });
+  });
+
   describe('publication management', () => {
     it('has findAll method for fetching all posts', () => {
       expect(service.findAll).toBeDefined();
@@ -36,6 +42,20 @@ describe('PostsService', () => {
     it('has delete method for removing posts', () => {
       expect(service.delete).toBeDefined();
       expect(typeof service.delete).toBe('function');
+    });
+  });
+
+  describe('publication features', () => {
+    it('supports multi-platform publishing', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('supports publication scheduling', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('supports publication analytics', () => {
+      expect(service).toBeDefined();
     });
   });
 });

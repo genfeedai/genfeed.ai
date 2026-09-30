@@ -12,6 +12,33 @@ describe('evaluateAgentPublishPolicy', () => {
     expect(result.decision).toBe(AgentPublishDecision.DENIED);
     expect(result.policyName).toBe('autonomy-brand-channel');
   });
+
+  it('denies AUTO_PUBLISH when the brand has not opted in', () => {
+    const result = evaluateAgentPublishPolicy({
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+      brandAllowsAutoPublish: false,
+      channelAllowsAutoPublish: true,
+    });
+    expect(result.decision).toBe(AgentPublishDecision.DENIED);
+  });
+
+  it('denies AUTO_PUBLISH when the channel has not opted in', () => {
+    const result = evaluateAgentPublishPolicy({
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+      brandAllowsAutoPublish: true,
+      channelAllowsAutoPublish: false,
+    });
+    expect(result.decision).toBe(AgentPublishDecision.DENIED);
+  });
+
+  it('permits AUTO_PUBLISH when brand and channel both opt in', () => {
+    const result = evaluateAgentPublishPolicy({
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+      brandAllowsAutoPublish: true,
+      channelAllowsAutoPublish: true,
+    });
+    expect(result.decision).toBe(AgentPublishDecision.PERMITTED);
+  });
 });
 
 describe('evaluateAgentPublishPolicy with a media assessment (#4881)', () => {

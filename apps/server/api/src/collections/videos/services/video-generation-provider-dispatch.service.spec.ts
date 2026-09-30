@@ -96,6 +96,44 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
   });
 
+  it('forwards a resolved BYOK apiKeyOverride to the Fal dispatch call (#5294)', async () => {
+    falService.generateVideo.mockResolvedValue({
+      url: 'https://fal.example.com/video.mp4',
+    });
+    const params = buildParams({
+      apiKeyOverride: 'org-fal-key',
+      model: MODEL_KEYS.FAL_VEO_3_1,
+    });
+
+    await service.dispatch(params);
+
+    expect(falService.generateVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.FAL_VEO_3_1,
+      expect.anything(),
+      'org-fal-key',
+    );
+  });
+
+  it('omits absent optional FAL inputs', async () => {
+    falService.generateVideo.mockResolvedValue({ url: 'fal-job' });
+
+    await service.dispatch(
+      buildParams({
+        duration: undefined,
+        imageUrl: undefined,
+        model: MODEL_KEYS.FAL_PIXVERSE_V6,
+      }),
+    );
+
+    expect(falService.generateVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.FAL_PIXVERSE_V6,
+      {
+        prompt: 'A cinematic sunrise',
+      },
+      undefined,
+    );
+  });
+
   it('routes a non-prefix Fal partner endpoint by provider identity', async () => {
     falService.generateVideo.mockResolvedValue({
       url: 'https://fal.example.com/h3.mp4',

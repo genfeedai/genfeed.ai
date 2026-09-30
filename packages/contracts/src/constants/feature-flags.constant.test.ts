@@ -28,6 +28,13 @@ describe('platform flags (#5468)', () => {
     expect(flags).not.toHaveProperty('retired_flag');
   });
 
+  it.each([null, undefined, 'studio', [false]])(
+    'keeps the defaults for a malformed column (%j)',
+    (value) => {
+      expect(parsePlatformFlags(value)).toEqual(DEFAULT_PLATFORM_FLAGS);
+    },
+  );
+
   it('gates every app-rail entry with a module flag', () => {
     for (const key of Object.values(APP_RAIL_FEATURE_FLAGS)) {
       expect(PLATFORM_MODULE_FLAG_KEYS).toContain(key);

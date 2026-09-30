@@ -54,4 +54,17 @@ describe('BrandCreateCard', () => {
     // Form remains available for retry.
     expect(screen.getByPlaceholderText('Enter brand name...')).toBeVisible();
   });
+
+  it('disables the create action when the name is empty', () => {
+    render(
+      <BrandCreateCard
+        action={makeAction({ brandName: '' })}
+        onCreate={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: /create brand/i }),
+    ).toBeDisabled();
+  });
 });

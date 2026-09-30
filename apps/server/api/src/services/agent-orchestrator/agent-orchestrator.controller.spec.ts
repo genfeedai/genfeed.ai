@@ -91,7 +91,40 @@ describe('AgentOrchestratorController', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('turns', () => {
+    it('should call orchestrator service with correct params', async () => {
+      const user = {
+        id: 'authProvider_123',
+        organizationId: 'org',
+        userId: 'usr',
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: identity.organizationId,
+      });
+      service.chat.mockResolvedValue({} as never);
+      const body: AgentChatBodyDto = {
+        content: 'hello',
+        source: 'onboarding',
+        threadId: 'conv-1',
+      };
+
+      await controller.createTurn(body, user);
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: 'hello',
+          source: 'onboarding',
+        }),
+        expect.objectContaining({
+          userId: expect.any(String),
+        }),
+      );
+    });
+
     it('uses the metadata organization and canonical database user for a scoped turn', async () => {
       const user = {
         id: 'authProvider_123',
@@ -148,6 +181,32 @@ describe('AgentOrchestratorController', () => {
       expect(service.chat).toHaveBeenCalledWith(
         expect.any(Object),
         expect.objectContaining({ userId: identity.metadataUserId }),
+      );
+    });
+
+    it('should pass threadId through to service', async () => {
+      const user = {
+        id: 'authProvider_000',
+        organizationId: 'org',
+        userId: 'usr',
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: identity.organizationId,
+      });
+      service.chat.mockResolvedValue({} as never);
+
+      await controller.createTurn(
+        {
+          content: 'test',
+          source: 'agent',
+          threadId: 'conv-unique',
+        } as AgentChatBodyDto,
+        user,
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'conv-unique' }),
+        expect.any(Object),
       );
     });
 
@@ -440,6 +499,66 @@ describe('AgentOrchestratorController', () => {
         'Research references require the current authorized brand context.',
       );
       expect(service.chat).not.toHaveBeenCalled();
+    });
+
+    it('preserves typed canonical artifact references for server authorization', async () => {
+      const user = {
+        id: 'authProvider_000',
+        organizationId: 'org',
+        userId: 'usr',
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: identity.organizationId,
+      });
+      service.chat.mockResolvedValue({} as never);
+      const artifactReference = {
+        brandId: 'brand-1',
+        kind: 'ingredient' as const,
+        organizationId: identity.organizationId,
+        recordId: 'ingredient-1',
+        serializer: 'ingredient' as const,
+      };
+
+      await controller.createTurn(
+        {
+          artifactReferences: [artifactReference],
+          content: 'Use the selected asset',
+          source: 'agent' as const,
+          threadId: 'conv-reference',
+        },
+        user,
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          artifactReferences: [artifactReference],
+          threadId: 'conv-reference',
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('starts a thread-scoped turn using the route thread id', async () => {
+      const user = {
+        id: 'authProvider_000',
+        organizationId: 'org',
+        userId: 'usr',
+      } as unknown as User;
+      usersService.findOne.mockResolvedValue({
+        id: identity.organizationId,
+      });
+      service.chat.mockResolvedValue({} as never);
+
+      await controller.createThreadTurn(
+        'thread-route',
+        { content: 'test', source: 'agent' } as AgentChatBodyDto,
+        user,
+      );
+
+      expect(service.chat).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-route' }),
+        expect.any(Object),
+      );
     });
 
     it('rejects mismatched route and body thread ids', async () => {

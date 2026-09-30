@@ -30,4 +30,9 @@ describe('ChatNewPage', () => {
     expect(setActiveThread).toHaveBeenCalledWith(null);
     expect(resetActiveConversationState).toHaveBeenCalledTimes(1);
   });
+
+  it('renders nothing itself — the agent layout hosts the conversation', () => {
+    const { container } = render(<ChatNewPage />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

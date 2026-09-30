@@ -105,6 +105,20 @@ describe('UserSubscriptionsService', () => {
         where: { userId: 'user_1' },
       });
     });
+
+    it('treats a soft-deleted row as missing', async () => {
+      delegate.findUnique.mockResolvedValue(
+        buildSubscription({ isDeleted: true }),
+      );
+
+      await expect(service.findByUser('user_1')).resolves.toBeNull();
+    });
+
+    it('returns null when no row exists', async () => {
+      delegate.findUnique.mockResolvedValue(null);
+
+      await expect(service.findByUser('user_1')).resolves.toBeNull();
+    });
   });
 
   describe('getOrCreateSubscription', () => {

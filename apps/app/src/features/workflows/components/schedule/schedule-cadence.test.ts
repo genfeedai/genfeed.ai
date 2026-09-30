@@ -24,6 +24,12 @@ describe('resolveCadencePresetValue', () => {
 });
 
 describe('formatNextRunAt', () => {
+  it('formats a 9:00 AM UTC instant in the workflow timezone, not the viewer zone', () => {
+    expect(formatNextRunAt('2026-08-19T09:00:00.000Z', 'UTC')).toBe(
+      '9:00 AM UTC',
+    );
+  });
+
   it('formats the same instant in Europe/Malta as 11:00 AM', () => {
     expect(formatNextRunAt('2026-08-19T09:00:00.000Z', 'Europe/Malta')).toMatch(
       /^11:00 AM/,

@@ -69,4 +69,10 @@ describe('useCollectionScope', () => {
     expect(isCollectionFetchReady(result.current)).toBe(false);
     expect(isBrandResourceReady(result.current)).toBe(false);
   });
+
+  it('is brand-resource ready only when a brand is selected', () => {
+    const { result } = renderHook(() => useCollectionScope());
+
+    expect(isBrandResourceReady(result.current)).toBe(true);
+  });
 });

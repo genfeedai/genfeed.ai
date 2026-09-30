@@ -27,6 +27,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('PinterestPublisherService', () => {
   let service: PinterestPublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let pinterestService: vi.Mocked<PinterestService>;
 
@@ -60,6 +61,17 @@ describe('PinterestPublisherService', () => {
   } as unknown as OrganizationDocument;
 
   // Mock post for text-only (not supported on Pinterest)
+  const _mockTextPost = {
+    id: mockPostId,
+    brandId: mockBrandId,
+    category: PostCategory.TEXT,
+    description: '<p>Test Pinterest content</p>',
+    ingredients: [],
+    isDeleted: false,
+    organizationId: mockOrganizationId,
+    status: PostStatus.DRAFT,
+    userId: mockUserId,
+  } as unknown as PostEntity;
 
   // Mock post with image
   const mockImagePost = {
@@ -153,6 +165,7 @@ describe('PinterestPublisherService', () => {
     }).compile();
 
     service = module.get<PinterestPublisherService>(PinterestPublisherService);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     pinterestService = module.get(
       PinterestService,
@@ -161,6 +174,36 @@ describe('PinterestPublisherService', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should have correct platform', () => {
+      expect(service.platform).toBe(CredentialPlatform.PINTEREST);
+    });
+
+    it('should NOT support text-only posts', () => {
+      expect(service.supportsTextOnly).toBe(false);
+    });
+
+    it('should support images', () => {
+      expect(service.supportsImages).toBe(true);
+    });
+
+    it('should NOT support videos', () => {
+      expect(service.supportsVideos).toBe(false);
+    });
+
+    it('should NOT support carousel', () => {
+      expect(service.supportsCarousel).toBe(false);
+    });
+
+    it('should NOT support threads', () => {
+      expect(service.supportsThreads).toBe(false);
+    });
   });
 
   describe('validatePost', () => {
@@ -198,6 +241,21 @@ describe('PinterestPublisherService', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toBe('Pinterest does not support carousel posts');
     });
+
+    it('should pass validation for single image posts', () => {
+      const context = createPublishContext(mockImagePost);
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['https://api.test.com/ingredients/images/123'],
+      };
+
+      const result = service.validatePost(context, mediaInfo);
+
+      expect(result.valid).toBe(true);
+    });
   });
 
   describe('validatePost caption length', () => {
@@ -210,6 +268,15 @@ describe('PinterestPublisherService', () => {
         `https://api.test.com/ingredients/images/${mockIngredientId}`,
       ],
     };
+
+    it('should pass a description exactly at the 500-character Pinterest limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(500),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
 
     it('should fail an over-limit description with a structured caption_too_long error', () => {
       const context = createPublishContext({
@@ -310,6 +377,22 @@ describe('PinterestPublisherService', () => {
           undefined,
         );
       });
+
+      it('should fall back to the credential board when unset', async () => {
+        // Releases scheduled before the setting existed carry no settings.
+        pinterestService.createPin.mockResolvedValue('pin-1');
+
+        await service.publish(createPublishContext(mockImagePost));
+
+        expect(pinterestService.createPin).toHaveBeenCalledWith(
+          expect.any(String),
+          mockBoardId,
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+        );
+      });
     });
 
     describe('video posts (not supported)', () => {
@@ -336,6 +419,32 @@ describe('PinterestPublisherService', () => {
     });
 
     describe('credential handling', () => {
+      it('should pin as the account on the context, not a sibling account', async () => {
+        // A brand with two Pinterest accounts must pin to the board of the
+        // account the post was scheduled for.
+        const secondAccount = {
+          ...mockCredential,
+          id: testId('credential-2'),
+          accessToken: 'encrypted-access-token-2',
+          externalId: 'board-987654321',
+        } as unknown as CredentialDocument;
+
+        pinterestService.createPin.mockResolvedValue('pin-1');
+
+        await service.publish(
+          createPublishContext(mockImagePost, {}, secondAccount),
+        );
+
+        expect(pinterestService.createPin).toHaveBeenCalledWith(
+          'decrypted-encrypted-access-token-2',
+          'board-987654321',
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+        );
+      });
+
       it('should return failed result when credential not found', async () => {
         const context = {
           ...createPublishContext(mockImagePost),
@@ -399,7 +508,36 @@ describe('PinterestPublisherService', () => {
     });
   });
 
+  describe('buildPostUrl', () => {
+    it('should build correct Pinterest URL', () => {
+      const externalId = 'pin-123456789';
+
+      const result = service.buildPostUrl(
+        externalId,
+        mockCredential as unknown as CredentialDocument,
+      );
+
+      expect(result).toBe(`https://www.pinterest.com/pin/${externalId}`);
+    });
+  });
+
   describe('logging', () => {
+    it('should log publish attempt', async () => {
+      const context = createPublishContext(mockImagePost);
+
+      pinterestService.createPin.mockResolvedValue('pin-123');
+
+      await service.publish(context);
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('publishing to'),
+        expect.objectContaining({
+          category: mockImagePost.category,
+          postId: context.postId,
+        }),
+      );
+    });
+
     it('should log error on publish failure', async () => {
       const context = createPublishContext(mockImagePost);
       const error = new Error('API failure');

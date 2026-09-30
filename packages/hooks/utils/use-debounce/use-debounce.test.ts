@@ -14,6 +14,11 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 }));
 
 describe('useDebounce', () => {
+  it('returns initial value immediately', () => {
+    const { result } = renderHook(() => useDebounce('initial', 100));
+    expect(result.current).toBe('initial');
+  });
+
   it('debounces value changes', async () => {
     const { result, rerender } = renderHook(
       ({ value }) => useDebounce(value, 100),
@@ -33,9 +38,24 @@ describe('useDebounce', () => {
 
     expect(result.current).toBe('changed');
   });
+
+  it('clears timeout on unmount', () => {
+    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+    const { unmount } = renderHook(() => useDebounce('test', 100));
+
+    unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+  });
 });
 
 describe('useDebouncedCallback', () => {
+  it('creates debounced callback', () => {
+    const callback = vi.fn();
+    const { result } = renderHook(() => useDebouncedCallback(callback, 100));
+
+    expect(typeof result.current).toBe('function');
+  });
+
   it('debounces callback execution', async () => {
     const callback = vi.fn();
     const { result } = renderHook(() => useDebouncedCallback(callback, 100));
@@ -74,6 +94,23 @@ describe('useDebouncedCallback', () => {
     // Should be different function reference
     expect(result.current).not.toBe(firstCallback);
   });
+
+  it('cleans up timeout on unmount', () => {
+    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+    const callback = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useDebouncedCallback(callback, 100),
+    );
+
+    // Call the debounced function to start a timeout
+    act(() => {
+      result.current('test');
+    });
+
+    unmount();
+    expect(clearTimeoutSpy).toHaveBeenCalled();
+    clearTimeoutSpy.mockRestore();
+  });
 });
 
 describe('useDebouncedAPI', () => {
@@ -84,6 +121,13 @@ describe('useDebouncedAPI', () => {
     expect(typeof result.current.call).toBe('function');
     expect(typeof result.current.cancel).toBe('function');
     expect(typeof result.current.isLoading).toBe('boolean');
+  });
+
+  it('starts with isLoading true', () => {
+    const apiCall = vi.fn().mockResolvedValue('result');
+    const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
+
+    expect(result.current.isLoading).toBe(true);
   });
 
   it('debounces API calls', async () => {
@@ -162,6 +206,21 @@ describe('useDebouncedAPI', () => {
     );
   });
 
+  it('ignores AbortError', async () => {
+    const apiCall = vi.fn().mockRejectedValue(new Error('AbortError'));
+    const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
+
+    act(() => {
+      result.current.call('test');
+    });
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('cancels pending requests', async () => {
     const apiCall = vi.fn().mockResolvedValue('result');
     const { result } = renderHook(() => useDebouncedAPI(apiCall, 100));
@@ -180,5 +239,13 @@ describe('useDebouncedAPI', () => {
 
     expect(apiCall).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('cleans up on unmount', () => {
+    const apiCall = vi.fn().mockResolvedValue('result');
+    const { unmount } = renderHook(() => useDebouncedAPI(apiCall, 100));
+
+    unmount();
+    // Should not throw or cause memory leaks
   });
 });

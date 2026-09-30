@@ -1,3 +1,4 @@
+import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
   IntegrationsService,
   ORG_INTEGRATION_PLATFORMS,
@@ -15,8 +16,20 @@ describe('IntegrationsService', () => {
     service = new IntegrationsService(mockToken);
   });
 
+  it('keeps the org integration platform list explicit and stable', () => {
+    expect(ORG_INTEGRATION_PLATFORMS).toEqual([
+      IntegrationPlatform.DISCORD,
+      IntegrationPlatform.SLACK,
+      IntegrationPlatform.TELEGRAM,
+    ]);
+  });
+
   it('speaks the SCREAMING_SNAKE labels the API enum column emits', () => {
     expect(ORG_INTEGRATION_PLATFORMS).toEqual(['DISCORD', 'SLACK', 'TELEGRAM']);
+  });
+
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(IntegrationsService);
   });
 
   it('exposes the expected CRUD methods', () => {

@@ -99,6 +99,10 @@ describe('SkillCheckoutService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('createCheckoutSession', () => {
     it('should create a checkout session with env price ID', async () => {
       configService.get.mockImplementation(
@@ -312,6 +316,38 @@ describe('SkillCheckoutService', () => {
       ).not.toHaveBeenCalled();
     });
 
+    it('should use default success and cancel URLs when not provided in DTO', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      const mockSession = {
+        id: 'cs_test_789',
+        url: 'https://checkout.stripe.com/session/cs_test_789',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      const dto: CreateSkillCheckoutDto = {};
+
+      await service.createCheckoutSession(dto);
+
+      expect(
+        stripeService.stripe.checkout.sessions.create,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cancel_url: 'https://app.genfeed.ai/skills-pro',
+          success_url:
+            'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
+        }),
+      );
+    });
+
     it('should use custom success and cancel URLs from configured origins', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
@@ -383,6 +419,32 @@ describe('SkillCheckoutService', () => {
             'https://app.genfeed.ai/skills-pro/success?session_id={CHECKOUT_SESSION_ID}',
         }),
       );
+    });
+
+    it('should not set customer_email when email is not provided', async () => {
+      configService.get.mockImplementation(
+        buildConfigGetMock({
+          GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
+          STRIPE_PRICE_SKILLS_PRO: 'price_env_123',
+        }),
+      );
+
+      const mockSession = {
+        id: 'cs_test_no_email',
+        url: 'https://checkout.stripe.com/session/cs_test_no_email',
+      } as unknown as Stripe.Checkout.Session;
+
+      stripeService.stripe.checkout.sessions.create.mockResolvedValue(
+        mockSession,
+      );
+
+      const dto: CreateSkillCheckoutDto = {};
+
+      await service.createCheckoutSession(dto);
+
+      const callArgs = stripeService.stripe.checkout.sessions.create.mock
+        .calls[0][0] as Stripe.Checkout.SessionCreateParams;
+      expect(callArgs.customer_email).toBeUndefined();
     });
 
     it('should keep the promo field open even when STRIPE_PROMOTION_CODE_SKILLS_PRO is set', async () => {

@@ -40,6 +40,16 @@ describe('useCredentialMentions', () => {
     expect(result.current.mentions).toEqual([]);
   });
 
+  it('stops loading when the service lacks the mentions method', async () => {
+    const { result } = renderHook(() =>
+      useCredentialMentions({} as unknown as AgentApiService),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+  });
+
   it('swallows failures and leaves mentions empty', async () => {
     const getMentions = vi.fn().mockRejectedValue(new Error('nope'));
 

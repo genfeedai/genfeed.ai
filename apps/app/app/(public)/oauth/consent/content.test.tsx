@@ -268,6 +268,20 @@ describe('OAuthConsentPage', () => {
     });
   });
 
+  it('forwards a supplied state unchanged', async () => {
+    const state = 'short:state/with?reserved=chars';
+    useSearchParamsMock.mockReturnValue(oauthParams({ state }));
+    mockDecisionResponse();
+
+    render(<OAuthConsentPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Deny' }));
+
+    await waitFor(() => {
+      expect(redirectMock).toHaveBeenCalled();
+    });
+    expect(lastDecisionBody()).toMatchObject({ approved: false, state });
+  });
+
   it('still rejects a request missing a PKCE challenge', () => {
     const params = oauthParams();
     params.delete('code_challenge');

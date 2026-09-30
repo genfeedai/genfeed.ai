@@ -97,6 +97,10 @@ describe('SchedulesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('channel capabilities', () => {
     it('should list channel capabilities with discovery flags', async () => {
       const capabilities = [{ label: 'YouTube', platform: 'youtube' }];

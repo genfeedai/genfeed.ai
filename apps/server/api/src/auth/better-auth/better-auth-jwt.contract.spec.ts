@@ -1,3 +1,4 @@
+import { UnauthorizedException } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';
 import { jwt } from 'better-auth/plugins';
@@ -155,5 +156,16 @@ describe('Better Auth JWT mint/verify contract (authed E2E helper)', () => {
     const claims = await service.verifyToken(token as string);
 
     expect(claims.sub).toEqual(expect.any(String));
+  });
+
+  it('rejects a non-JWT bearer the same way PATCH /users/me does', async () => {
+    const harness = createJwtContractHarness();
+    const service = new BetterAuthService(
+      harness.auth as unknown as BetterAuthInstance,
+    );
+
+    await expect(service.verifyToken('not-a-jwt')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
   });
 });

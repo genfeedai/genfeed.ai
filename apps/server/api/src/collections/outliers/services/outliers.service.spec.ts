@@ -168,6 +168,17 @@ describe('immutable outlier persistence', () => {
       expect(h.measurements.every((p) => p.outlierRatio === null)).toBe(true);
     },
   );
+  it('keeps 2M/4M at ratio0.5 and no tier', async () => {
+    const h = harness(
+      [1, 2, 3, 4, 5]
+        .map((i) => observation(String(i), 4000000))
+        .concat(observation('small', 2000000)),
+    );
+    await h.service.refresh(scope);
+    expect(
+      h.measurements.find((p) => p.logicalPostId === 'small'),
+    ).toMatchObject({ outlierRatio: 0.5, outlierTier: null });
+  });
   it('retries unchanged metrics despite new observation timestamps and preserves old rows after A B A', async () => {
     const input = [1, 2, 3, 4, 5].map((i) => observation(String(i), 30000));
     const h = harness(input);
@@ -184,6 +195,15 @@ describe('immutable outlier persistence', () => {
     expect(last.id).not.toBe(a.id);
     expect(h.snapshots).toHaveLength(3);
     expect(h.measurements.slice(0, 5)).toEqual(historical);
+  });
+  it('changes window 20 to10 without mutating historical ratios', async () => {
+    const h = harness(
+      Array.from({ length: 25 }, (_, i) => observation(String(i), 100 + i)),
+    );
+    await h.service.refresh(scope);
+    h.config.windowSize = 10;
+    await h.service.refresh(scope);
+    expect(h.snapshots.map((s) => s.sampleSize)).toEqual([20, 10]);
   });
   it('records deleted history in now-empty buckets and never gives deleted rows ratios', async () => {
     const h = harness(
@@ -479,5 +499,19 @@ describe('outlier history read authorization', () => {
       'account deleted',
     );
     expect(h.performanceFind).not.toHaveBeenCalled();
+  });
+  it('scopes measurements to the authorized snapshot with stable ordering', async () => {
+    const h = readHarness();
+    await h.service.posts('org', 'snapshot', 2, 10);
+    expect(h.performanceFind).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org',
+        isDeleted: false,
+        baselineSnapshotId: 'snapshot',
+      },
+      orderBy: { logicalPostId: 'asc' },
+      skip: 10,
+      take: 10,
+    });
   });
 });

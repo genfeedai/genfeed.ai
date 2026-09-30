@@ -41,4 +41,12 @@ describe('BRAND_FIDELITY_HARNESS_PACK', () => {
       'Audience sharpening hint: technical founders.',
     ]);
   });
+
+  it('adds no style directive without an audience hint', () => {
+    const contribution = contribute({
+      intent: { contentType: 'post', objective: 'engagement', platform: 'x' },
+    });
+
+    expect(contribution.styleDirectives).toEqual([]);
+  });
 });

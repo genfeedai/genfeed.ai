@@ -59,6 +59,15 @@ describe('article column contract (Sentry 71/72)', () => {
     expect(getRetiredArticleClientFields(migratedColumns)).toEqual([]);
   });
 
+  it('fails closed on the production Sentry shape: DB migrated, client still selects title', () => {
+    expect(() =>
+      assertArticleColumnContract({
+        clientFields: ['id', 'title', 'excerpt', 'content', 'slug'],
+        presentColumns: migratedColumns,
+      }),
+    ).toThrow(/articles\.title does not exist/);
+  });
+
   it('fails closed when the live table has not been renamed yet', () => {
     expect(() =>
       assertArticleColumnContract({

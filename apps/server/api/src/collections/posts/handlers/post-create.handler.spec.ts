@@ -129,4 +129,13 @@ describe('createPost draft boundary', () => {
       expect.objectContaining({ brandId: 'brand-2' }),
     );
   });
+  it('does not start an upload for a YouTube draft', async () => {
+    const { mocks, dependencies } = setup();
+    await createPost({
+      createPostDto: { ...draft, platform: CredentialPlatform.YOUTUBE },
+      dependencies,
+      identity,
+    });
+    expect(mocks.postsService.handleYoutubePost).not.toHaveBeenCalled();
+  });
 });

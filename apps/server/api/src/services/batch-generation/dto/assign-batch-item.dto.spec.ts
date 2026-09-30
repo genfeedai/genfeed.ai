@@ -12,6 +12,12 @@ const metadata: ArgumentMetadata = {
 describe('AssignBatchItemDto', () => {
   const pipe = new ValidationPipe();
 
+  it('accepts a canonical user id', async () => {
+    await expect(
+      pipe.transform({ assigneeId: 'user-1' }, metadata),
+    ).resolves.toBeInstanceOf(AssignBatchItemDto);
+  });
+
   it('rejects a missing assigneeId', async () => {
     const error = await pipe.transform({}, metadata).then(
       () => null,

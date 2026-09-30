@@ -6,7 +6,10 @@ import {
   type ReactNode,
 } from 'react';
 import { describe, expect, it } from 'vitest';
-import { formatCompetitorSlug } from './competitor-loader';
+import {
+  formatCompetitorSlug,
+  getCompetitorBySlugCached,
+} from './competitor-loader';
 import Page, { generateMetadata, generateStaticParams } from './page';
 
 const EMPTY_PARENT = Promise.resolve({}) as unknown as Parameters<
@@ -27,6 +30,19 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
     )
     .map((script) => JSON.parse(String(script.props.children)));
 }
+
+describe('formatCompetitorSlug', () => {
+  it('title-cases every dash-separated word', () => {
+    expect(formatCompetitorSlug('opus-clip')).toBe('Opus Clip');
+  });
+});
+
+describe('getCompetitorBySlugCached', () => {
+  it('resolves a known slug and returns undefined for an unknown one', async () => {
+    await expect(getCompetitorBySlugCached(KNOWN_SLUG)).resolves.toBeTruthy();
+    await expect(getCompetitorBySlugCached('nope')).resolves.toBeUndefined();
+  });
+});
 
 describe('generateStaticParams', () => {
   it('emits one param entry per competitor slug', () => {

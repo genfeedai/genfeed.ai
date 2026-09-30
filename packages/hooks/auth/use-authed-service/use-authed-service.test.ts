@@ -44,6 +44,12 @@ describe('useAuthedService', () => {
     });
   });
 
+  it('returns service instance with auth token', () => {
+    const mockService = vi.fn();
+    const { result } = renderHook(() => useAuthedService(mockService));
+    expect(result.current).toBeDefined();
+  });
+
   it('uses the standard session token when no template is provided', async () => {
     const mockService = vi.fn();
     getTokenMock.mockResolvedValue('jwt-token');

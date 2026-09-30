@@ -55,6 +55,30 @@ describe('ClipsInputForm', () => {
     expect(props.onAnalyze).not.toHaveBeenCalled();
   });
 
+  it('keeps the highlight review path available as a secondary action', () => {
+    const { props } = renderForm();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /review highlights first/i }),
+    );
+
+    expect(props.onAnalyze).toHaveBeenCalledTimes(1);
+    expect(props.onStartQuick).not.toHaveBeenCalled();
+  });
+
+  it('shows the saved-defaults readiness hint', () => {
+    renderForm({
+      quickStartHint:
+        'No saved HeyGen defaults. Review highlights first to enter IDs manually.',
+    });
+
+    expect(
+      screen.getByText(
+        'No saved HeyGen defaults. Review highlights first to enter IDs manually.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('lets the user select raw-cut before starting a project', () => {
     const { props } = renderForm();
 
@@ -108,5 +132,13 @@ describe('ClipsInputForm', () => {
     expect(screen.getByTestId('clips-draft-save-state')).toHaveTextContent(
       copy,
     );
+  });
+
+  it('stays quiet about drafts before the first autosave', () => {
+    renderForm();
+
+    expect(
+      screen.queryByTestId('clips-draft-save-state'),
+    ).not.toBeInTheDocument();
   });
 });

@@ -32,6 +32,12 @@ describe('RepliesFeatureGate (#5468)', () => {
     state.isSuperAdmin = false;
   });
 
+  it('shows Replies while the Admin flag is on', () => {
+    renderGate();
+
+    expect(screen.getByText('Replies content')).toBeInTheDocument();
+  });
+
   it('hides Replies from members while the flag is off', () => {
     state.isReplyBotOn = false;
 

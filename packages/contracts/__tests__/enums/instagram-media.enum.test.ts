@@ -6,6 +6,10 @@ import {
 
 describe('instagram-media.enum', () => {
   describe('InstagramMediaStatus', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(InstagramMediaStatus)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(InstagramMediaStatus.EXPIRED).toBe('EXPIRED');
       expect(InstagramMediaStatus.ERROR).toBe('ERROR');
@@ -15,6 +19,10 @@ describe('instagram-media.enum', () => {
   });
 
   describe('InstagramMediaType', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(InstagramMediaType)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(InstagramMediaType.IMAGE).toBe('IMAGE');
       expect(InstagramMediaType.VIDEO).toBe('VIDEO');

@@ -467,6 +467,34 @@ describe('TrendSourcePreviewService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
+    it('re-fetches a forced preview once it is older than the refresh floor', async () => {
+      const fetchSpy = vi
+        .spyOn(sourceItems, 'fetchTrendSourceItems')
+        .mockResolvedValue([]);
+      const trend = makeTrend({
+        metadata: {
+          sourcePreviewCache: [
+            {
+              contentType: 'post',
+              id: 'cached-1',
+              platform: 'instagram',
+              sourceUrl: 'https://cached',
+            },
+          ],
+          sourcePreviewCachedAt: new Date(
+            Date.now() - 48 * 60 * 60 * 1000,
+          ).toISOString(),
+        },
+      });
+
+      await service.precomputeTrendSourcePreview([trend], {
+        force: true,
+        writeScope: { organizationId: null },
+      });
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
     it('caps how many trends can trigger a live Apify run in one batch', async () => {
       const fetchSpy = vi
         .spyOn(sourceItems, 'fetchTrendSourceItems')
@@ -480,6 +508,17 @@ describe('TrendSourcePreviewService', () => {
 
       expect(results).toHaveLength(trends.length);
       expect(fetchSpy.mock.calls.length).toBeLessThan(trends.length);
+    });
+
+    it('logs the trends it skipped instead of silently truncating the batch', async () => {
+      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
+
+      await service.precomputeTrendSourcePreview(makeUncachedTrends(40), {
+        force: true,
+        writeScope: { organizationId: null },
+      });
+
+      expect(logger.warn).toHaveBeenCalled();
     });
 
     it('never runs the capped fetches all at once', async () => {
@@ -552,6 +591,39 @@ describe('TrendSourcePreviewService', () => {
       const [key, ttl] = cache.claimOnce.mock.calls[0];
       expect(key).toContain('org-1');
       expect(ttl).toBeGreaterThan(0);
+    });
+
+    it('does not claim a cooldown for a plain read', async () => {
+      await service.getTrendContent(
+        { organizationId: 'org-1' },
+        {},
+        vi.fn().mockResolvedValue({
+          connectedPlatforms: [],
+          lockedPlatforms: [],
+          trends: [],
+        }),
+      );
+
+      expect(cache.claimOnce).not.toHaveBeenCalled();
+    });
+
+    it('refreshes saved reads without collection when Redis is down', async () => {
+      cache.claimOnce.mockResolvedValue('unavailable');
+      const fetchSpy = vi
+        .spyOn(sourceItems, 'fetchTrendSourceItems')
+        .mockResolvedValue([]);
+
+      await service.getTrendContent(
+        { organizationId: 'org-1' },
+        { refresh: true },
+        vi.fn().mockResolvedValue({
+          connectedPlatforms: [],
+          lockedPlatforms: [],
+          trends: [uncachedTrend()],
+        }),
+      );
+
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 });

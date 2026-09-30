@@ -33,6 +33,30 @@ function execution(status: WorkflowExecution['status'] = 'PENDING') {
   };
 }
 describe('durable workflow snapshot recovery', () => {
+  it('restores a queued accepted run before the worker emits its first event', () => {
+    expect(
+      reconcileThreadWorkflowSnapshot(snapshot(), execution()).activeRun,
+    ).toEqual({
+      runId: 'current-execution',
+      startedAt: createdAt.toISOString(),
+      status: 'running',
+    });
+  });
+  it('does not let an older terminal snapshot hide a newly accepted turn', () => {
+    const current = snapshot();
+    current.activeRun = {
+      runId: 'old-execution',
+      status: 'failed',
+      model: 'old-model',
+    };
+    expect(
+      reconcileThreadWorkflowSnapshot(current, execution()).activeRun,
+    ).toEqual({
+      runId: 'current-execution',
+      startedAt: createdAt.toISOString(),
+      status: 'running',
+    });
+  });
   it.each(['FAILED', 'CANCELLED', 'COMPLETED'] as const)(
     'reconciles a stale running snapshot to %s',
     (status) => {
@@ -190,6 +214,16 @@ describe('durable workflow snapshot recovery', () => {
         status: 'completed',
       });
     });
+
+    it('lets a started run take over even when the owner recorded no end', () => {
+      const result = reconcileThreadWorkflowSnapshot(
+        laneSnapshot(),
+        { ...queued, status: 'RUNNING' },
+        [running],
+      );
+
+      expect(result.activeRun?.runId).toBe('run-b');
+    });
   });
 
   it('preserves interrupted classification when its outer workflow fails', () => {
@@ -234,6 +268,10 @@ describe('durable workflow snapshot recovery', () => {
     expect(result.activeRun?.status).toBe('cancelled');
     expect(result.pendingInputRequests).toEqual([]);
     expect(current.pendingInputRequests).toHaveLength(1);
+  });
+  it('keeps existing state when no governed workflow exists', () => {
+    const current = snapshot();
+    expect(reconcileThreadWorkflowSnapshot(current, null)).toBe(current);
   });
   it.each(['thread', `thread'"; DROP TABLE workflow_executions; -- 雪`])(
     'binds all identities and bounds each conversation branch for %s',

@@ -1,4 +1,5 @@
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
@@ -86,7 +87,60 @@ describe('XaiService', () => {
     vi.clearAllMocks();
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   describe('chat', () => {
+    it('should call openRouterService.chatCompletion with x-ai prefixed model', async () => {
+      const mockResponse = createMockChatResponse('Hello!');
+      mockOpenRouterService.chatCompletion.mockResolvedValue(mockResponse);
+
+      const request = {
+        messages: [{ content: 'Hello', role: 'user' as const }],
+        model: 'grok-beta',
+      };
+
+      await service.chat(request);
+
+      expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith({
+        max_tokens: undefined,
+        messages: request.messages,
+        model: 'x-ai/grok-beta',
+        temperature: undefined,
+      });
+    });
+
+    it('should return chat response data', async () => {
+      const mockResponse = createMockChatResponse('Response content');
+      mockOpenRouterService.chatCompletion.mockResolvedValue(mockResponse);
+
+      const result = await service.chat({
+        messages: [{ content: 'Test', role: 'user' }],
+        model: 'grok-beta',
+      });
+
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should not double-prefix model already starting with x-ai/', async () => {
+      const mockResponse = createMockChatResponse('Hello!');
+      mockOpenRouterService.chatCompletion.mockResolvedValue(mockResponse);
+
+      await service.chat({
+        messages: [{ content: 'Test', role: 'user' }],
+        model: 'x-ai/grok-beta',
+      });
+
+      expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'x-ai/grok-beta',
+        }),
+      );
+    });
+
     it('should log and rethrow errors', async () => {
       const error = new Error('OpenRouter API error');
       mockOpenRouterService.chatCompletion.mockRejectedValue(error);
@@ -172,6 +226,48 @@ describe('XaiService', () => {
       );
     });
 
+    it('stops asking the model for a bare JSON array', async () => {
+      mockLlmDispatcherService.completeStructured.mockResolvedValue({ trends });
+
+      await service.getTrends();
+
+      const [params] = mockLlmDispatcherService.completeStructured.mock
+        .calls[0] as [{ messages: Array<{ content: string }> }];
+      expect(params.messages[0].content).not.toContain('ONLY the JSON');
+    });
+
+    it('should use default limit of 10', async () => {
+      mockLlmDispatcherService.completeStructured.mockResolvedValue({ trends });
+
+      await service.getTrends();
+
+      expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              content: expect.stringContaining('top 10'),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('should use custom limit', async () => {
+      mockLlmDispatcherService.completeStructured.mockResolvedValue({ trends });
+
+      await service.getTrends({ limit: 5 });
+
+      expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              content: expect.stringContaining('top 5'),
+            }),
+          ]),
+        }),
+      );
+    });
+
     it('includes the current date, region, and freshness instructions in the prompt', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-10T12:00:00.000Z'));
@@ -186,6 +282,40 @@ describe('XaiService', () => {
       expect(params.messages[0].content).toContain('why it is trending today');
 
       vi.useRealTimers();
+    });
+
+    it('should use configured model', async () => {
+      const configuredModule: TestingModule = await Test.createTestingModule({
+        providers: [
+          XaiService,
+          {
+            provide: ConfigService,
+            useValue: {
+              get: vi.fn().mockImplementation((key: string) => {
+                if (key === 'XAI_MODEL') {
+                  return 'grok-3';
+                }
+                return undefined;
+              }),
+            },
+          },
+          { provide: LoggerService, useValue: mockLogger },
+          { provide: OpenRouterService, useValue: mockOpenRouterService },
+          {
+            provide: LlmDispatcherService,
+            useValue: mockLlmDispatcherService,
+          },
+        ],
+      }).compile();
+
+      const configuredService = configuredModule.get<XaiService>(XaiService);
+      mockLlmDispatcherService.completeStructured.mockResolvedValue({ trends });
+
+      await configuredService.getTrends();
+
+      expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'x-ai/grok-3' }),
+      );
     });
 
     it('should use default model when not configured', async () => {
@@ -225,6 +355,19 @@ describe('XaiService', () => {
         'XaiService.getTrends failed',
         error,
       );
+    });
+
+    it('surfaces the typed error instead of returning an empty trend list', async () => {
+      const error = new LlmStructuredOutputError('grok_trend_extraction', [
+        {
+          code: 'too_big',
+          message: 'expected <= 100',
+          path: 'trends.0.growthRate',
+        },
+      ]);
+      mockLlmDispatcherService.completeStructured.mockRejectedValue(error);
+
+      await expect(service.getTrends()).rejects.toBe(error);
     });
   });
 });

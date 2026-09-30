@@ -123,6 +123,17 @@ describe('ContentPlanSeedsService', () => {
     ]);
   });
 
+  it('reports the pattern count without listing the patterns', async () => {
+    patternMatcherService.getTopPatternsForBrand.mockResolvedValue([
+      { label: 'A' },
+      { label: 'B' },
+    ]);
+
+    const preview = await service.buildPreview('org-1', 'brand-1');
+
+    expect(preview.patternCount).toBe(2);
+  });
+
   it('degrades to safe defaults when every source fails', async () => {
     performanceSummaryService.getWeeklySummary.mockRejectedValue(
       new Error('summary down'),

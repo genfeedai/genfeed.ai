@@ -20,6 +20,14 @@ describe('batch-status-prisma.mapper', () => {
     }
   });
 
+  it('round-trips every Prisma label', () => {
+    for (const prismaStatus of Object.values(PrismaBatchStatus)) {
+      expect(toPrismaBatchStatus(fromPrismaBatchStatus(prismaStatus))).toBe(
+        prismaStatus,
+      );
+    }
+  });
+
   it('accepts legacy lowercase domain spellings on write and read', () => {
     expect(toPrismaBatchStatus('pending')).toBe(PrismaBatchStatus.PENDING);
     expect(toPrismaBatchStatus('generating')).toBe(

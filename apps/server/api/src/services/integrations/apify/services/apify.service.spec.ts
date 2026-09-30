@@ -176,6 +176,10 @@ describe('ApifyService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('runActor', () => {
     it('should delegate to baseService.runActor', async () => {
       const mockResult = [{ id: '1' }];

@@ -45,6 +45,19 @@ describe('buildAgentWorkflowRunInput', () => {
     expect(result.topic).toBe('Visual pack');
   });
 
+  it('falls back to free-text URL when no ingredient is selected', () => {
+    const result = buildAgentWorkflowRunInput({
+      referenceImageUrl: 'https://example.com/paste.png',
+      topic: 'Paste path',
+    });
+
+    expect(result.referenceImage).toBe('https://example.com/paste.png');
+    expect(result.inputs).toEqual({
+      photoUrl: 'https://example.com/paste.png',
+      referenceImage: 'https://example.com/paste.png',
+    });
+  });
+
   it('merges extra workflow slot inputs', () => {
     const result = buildAgentWorkflowRunInput({
       extraInputs: {
@@ -56,6 +69,22 @@ describe('buildAgentWorkflowRunInput', () => {
 
     expect(result.inputs).toEqual({
       customHook: 'open with a question',
+    });
+  });
+
+  it('omits empty strings', () => {
+    expect(
+      buildAgentWorkflowRunInput({
+        cta: '   ',
+        prompt: '',
+        referenceImageUrl: '  ',
+        topic: '',
+      }),
+    ).toEqual({
+      cta: undefined,
+      prompt: undefined,
+      referenceImage: undefined,
+      topic: undefined,
     });
   });
 });

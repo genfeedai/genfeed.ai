@@ -458,6 +458,35 @@ describe('SubscriptionsService', () => {
       expect(stripeService.createOrganizationCustomer).toHaveBeenCalledTimes(1);
     });
 
+    it('provisions an existing customer row that carries no Stripe customer id', async () => {
+      customersService.findByOrganizationId.mockResolvedValue({
+        id: 'cust_row_1',
+        stripeCustomerId: null,
+      });
+      stripeService.createOrganizationCustomer.mockResolvedValue({
+        id: 'cus_new',
+      } as unknown as StripeCustomer);
+      customersService.patch.mockResolvedValue({
+        id: 'cust_row_1',
+        stripeCustomerId: 'cus_new',
+      });
+      subscriptionDelegate.create.mockResolvedValue(buildSubscription());
+
+      await service.createForOrganization(
+        organization,
+        'billing@acme.test',
+        'user_1',
+      );
+
+      expect(stripeService.createOrganizationCustomer).toHaveBeenCalledWith(
+        'Acme Inc',
+        'billing@acme.test',
+        ORGANIZATION_ID,
+        'user_1',
+        null,
+      );
+    });
+
     it('returns the winning row when a concurrent checkout wins the subscription insert race', async () => {
       // Partial unique index `subscriptions_organizationId_active_key`
       // guarantees one active subscription row per org; the losing insert
@@ -548,6 +577,14 @@ describe('SubscriptionsService', () => {
         },
       });
       expect(result?.stripeCustomerId).toBe('cus_1');
+    });
+
+    it('returns null when the organization has no subscription', async () => {
+      subscriptionDelegate.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findByOrganizationId(ORGANIZATION_ID),
+      ).resolves.toBeNull();
     });
   });
 
@@ -759,6 +796,66 @@ describe('SubscriptionsService', () => {
         'change_to_monthly',
         expect.any(String),
       );
+    });
+
+    it('resets credits when a monthly Pro price changes to monthly Scale', async () => {
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({ priceId: 'price_scale_monthly' }),
+      );
+      subscriptionDelegate.update.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_scale_monthly' }),
+      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
+
+      await service.changeSubscriptionPlan(
+        ORGANIZATION_ID,
+        'price_scale_monthly',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        60_000,
+        'change_to_monthly',
+        expect.stringContaining('price'),
+      );
+    });
+
+    it('resets credits when a monthly Scale price changes to monthly Pro', async () => {
+      subscriptionDelegate.findFirst.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_scale_monthly' }),
+      );
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({ priceId: 'price_pro_monthly' }),
+      );
+      subscriptionDelegate.update.mockResolvedValue(
+        buildSubscription({ stripePriceId: 'price_pro_monthly' }),
+      );
+      creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
+
+      await service.changeSubscriptionPlan(
+        ORGANIZATION_ID,
+        'price_pro_monthly',
+      );
+
+      expect(creditsUtilsService.resetOrganizationCredits).toHaveBeenCalledWith(
+        ORGANIZATION_ID,
+        5_900,
+        'change_to_monthly',
+        expect.stringContaining('price'),
+      );
+    });
+
+    it('does not reset credits when the Stripe price is unchanged', async () => {
+      stripeService.changeSubscriptionPlan.mockResolvedValue(
+        buildStripeSubscription({}),
+      );
+      subscriptionDelegate.update.mockResolvedValue(buildSubscription());
+
+      await service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_monthly');
+
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
     });
 
     it('persists yearly cadence for an opaque yearly Stripe price id', async () => {
@@ -1407,6 +1504,40 @@ describe('SubscriptionsService', () => {
       expectNoStateMutation();
     });
 
+    it('classifies Stripe items that no longer carry the recorded price as out of sync', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
+          'No subscription item found for current Stripe price',
+        ),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_OUT_OF_SYNC,
+      );
+      expectNoStateMutation();
+    });
+
+    it('classifies a Stripe subscription deleted upstream as stripe_subscription_missing', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        Object.assign(new Error('No such subscription: sub_stripe_1'), {
+          code: 'resource_missing',
+          param: 'subscription',
+          statusCode: 404,
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
+      );
+      expectNoStateMutation();
+    });
+
     it('classifies a price Stripe no longer knows as price_not_found', async () => {
       stripeService.getPrice.mockImplementation((priceId: string) =>
         priceId === 'price_new'
@@ -1520,6 +1651,12 @@ describe('SubscriptionsService', () => {
           errorName: 'TypeError',
         }),
       );
+      expectNoStateMutation();
+    });
+
+    it('never writes local or Stripe state even on success', async () => {
+      await service.previewSubscriptionChange(ORGANIZATION_ID, 'price_scale');
+
       expectNoStateMutation();
     });
   });

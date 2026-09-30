@@ -63,7 +63,23 @@ describe('AvatarVideoService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getProvider', () => {
+    it('should return heygen provider when name is heygen', () => {
+      expect(service.getProvider('heygen')).toBe(heygenProvider);
+    });
+
+    it('should return argil provider when name is argil', () => {
+      expect(service.getProvider('argil')).toBe(argilProvider);
+    });
+
+    it('should return genfeedai provider when name is genfeedai', () => {
+      expect(service.getProvider('genfeedai')).toBe(genfeedaiProvider);
+    });
+
     it('should default to heygen when no name supplied', () => {
       expect(service.getProvider()).toBe(heygenProvider);
     });
@@ -89,9 +105,21 @@ describe('AvatarVideoService', () => {
         expect.stringContaining('unknown'),
       );
     });
+
+    it('should not log a warning for known providers', () => {
+      service.getProvider('heygen');
+      service.getProvider('argil');
+      service.getProvider('genfeedai');
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
   });
 
   describe('getSupportedProviders', () => {
+    it('should return only production-ready provider names', () => {
+      const providers = service.getSupportedProviders();
+      expect(providers).toEqual(['heygen', 'argil', 'genfeedai']);
+    });
+
     it('should return an array of strings', () => {
       const providers = service.getSupportedProviders();
       providers.forEach((p) => {

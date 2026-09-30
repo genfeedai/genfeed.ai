@@ -51,6 +51,11 @@ describe('InsightsService', () => {
     expect(typeof InsightsService.clearInstance).toBe('function');
   });
 
+  it('returns an instance via getInstance', () => {
+    const instance = InsightsService.getInstance(mockToken);
+    expect(instance).toBeDefined();
+  });
+
   it('returns the same instance for the same token (singleton)', () => {
     const inst1 = InsightsService.getInstance(mockToken);
     const inst2 = InsightsService.getInstance(mockToken);
@@ -62,6 +67,13 @@ describe('InsightsService', () => {
     expect(typeof instance.getInsights).toBe('function');
     expect(typeof instance.markAsRead).toBe('function');
     expect(typeof instance.markAsDismissed).toBe('function');
+  });
+
+  it('clearInstance removes the cached instance', () => {
+    const inst1 = InsightsService.getInstance(mockToken);
+    InsightsService.clearInstance(mockToken);
+    const inst2 = InsightsService.getInstance(mockToken);
+    expect(inst1).not.toBe(inst2);
   });
 
   it('returns a successful insights collection and forwards cancellation', async () => {
@@ -95,5 +107,12 @@ describe('InsightsService', () => {
     expect(getHttpClient(service).get).toHaveBeenCalledWith('?limit=15', {
       signal: controller.signal,
     });
+  });
+
+  it('returns an empty insights collection without treating it as an error', async () => {
+    const service = InsightsService.getInstance(mockToken);
+    getHttpClient(service).get.mockResolvedValue({ data: { data: [] } });
+
+    await expect(service.getInsights()).resolves.toEqual([]);
   });
 });

@@ -16,7 +16,16 @@ function buildItems(count: number): Record<string, string>[] {
 }
 
 describe('PostsBatchDto', () => {
+  it('should be defined', () => {
+    expect(PostsBatchDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new PostsBatchDto();
+      expect(dto).toBeInstanceOf(PostsBatchDto);
+    });
+
     it('accepts an item list at the maximum size', async () => {
       const dto = plainToInstance(PostsBatchDto, {
         credentialId: VALID_ENTITY_ID,

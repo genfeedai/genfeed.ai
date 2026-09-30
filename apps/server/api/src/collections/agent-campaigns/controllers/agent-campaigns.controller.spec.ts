@@ -91,6 +91,10 @@ describe('AgentCampaignsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('patch', () => {
     const mockReq = {
       headers: {},

@@ -22,6 +22,22 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('BrandPlatformHomeRoute', () => {
+  it('renders a valid credential platform route', async () => {
+    const element = await BrandPlatformHomeRoute({
+      params: Promise.resolve({
+        brandSlug: 'moonrise',
+        orgSlug: 'acme',
+        platform: 'instagram',
+      }),
+    });
+
+    render(element);
+
+    expect(
+      screen.getByText('Mocked platform home: instagram'),
+    ).toBeInTheDocument();
+  });
+
   it('normalizes aliases onto the canonical platform', async () => {
     const element = await BrandPlatformHomeRoute({
       params: Promise.resolve({

@@ -84,6 +84,14 @@ describe('generation-setup.store', () => {
       expect(setup.sources).toEqual({});
       expect(setup.presetId).toBeUndefined();
     });
+
+    it('does not create a store entry as a side effect of reading', () => {
+      getGenerationSetup(SCOPE, DEFAULTS);
+
+      expect(
+        useGenerationSetupStore.getState().setupByScope[SCOPE],
+      ).toBeUndefined();
+    });
   });
 
   describe('setField', () => {
@@ -203,6 +211,26 @@ describe('generation-setup.store', () => {
       expect(setup.values.outputs).toBe(DEFAULTS.outputs);
       expect(setup.sources.outputs).toBeUndefined();
       expect(getGenerationSetupReasons(SCOPE).outputs).toBeUndefined();
+    });
+
+    it('replaces stale reasons from a prior recommendation pass instead of merging them', () => {
+      applyGenerationSetupRecommendation(
+        SCOPE,
+        recommendation(
+          { aspectRatio: '9:16' },
+          { aspectRatio: 'first reason' },
+        ),
+        DEFAULTS,
+      );
+      applyGenerationSetupRecommendation(
+        SCOPE,
+        recommendation({ outputs: 4 }, { outputs: 'second reason' }),
+        DEFAULTS,
+      );
+
+      expect(getGenerationSetupReasons(SCOPE)).toEqual({
+        outputs: 'second reason',
+      });
     });
 
     it('ignores undefined values in the recommendation payload', () => {
@@ -393,6 +421,29 @@ describe('generation-setup.store', () => {
   });
 
   describe('persistence', () => {
+    it('drops persisted __new__ placeholders when migrating older state', async () => {
+      const setup: GenerationSetup = {
+        sources: { modelKey: 'user' },
+        values: DEFAULTS,
+      };
+      const migrate = useGenerationSetupStore.persist.getOptions().migrate;
+
+      expect(
+        await migrate?.(
+          {
+            setupByScope: {
+              'agent:__new__:image': setup,
+              'agent:thread-1:image': setup,
+              [SCOPE]: setup,
+            },
+          },
+          1,
+        ),
+      ).toEqual({
+        setupByScope: { 'agent:thread-1:image': setup, [SCOPE]: setup },
+      });
+    });
+
     it('backfills brandingMode to off for a scope that relied on enhance-off to suppress branding (#4676)', async () => {
       const staleBrandOn: GenerationSetup = {
         sources: {},

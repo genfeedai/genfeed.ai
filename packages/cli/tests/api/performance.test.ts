@@ -79,6 +79,21 @@ describe('api/performance', () => {
       expect(query.get('endDate')).toBe('2026-01-07');
     });
 
+    it('never sends the legacy parameter names that returned 400', async () => {
+      await getWeeklySummary({
+        brandId: 'brand-1',
+        endDate: '2026-01-07',
+        startDate: '2026-01-01',
+        topN: 3,
+        worstN: 2,
+      });
+
+      const query = requestedQuery();
+      for (const legacy of ['brand', 'top', 'worst', 'start', 'end']) {
+        expect(query.has(legacy)).toBe(false);
+      }
+    });
+
     it('omits optional parameters but always sends brandId', async () => {
       await getWeeklySummary({ brandId: 'brand-1' });
 

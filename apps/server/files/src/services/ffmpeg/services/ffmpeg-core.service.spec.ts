@@ -108,6 +108,10 @@ describe('FFmpegCoreService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('onModuleInit', () => {
     it('validates binaries during initialization', async () => {
       await service.onModuleInit();
@@ -116,6 +120,22 @@ describe('FFmpegCoreService', () => {
   });
 
   describe('executeFFmpeg', () => {
+    it('resolves when ffmpeg exits with code 0', async () => {
+      (spawn as ReturnType<typeof vi.fn>).mockReturnValue(makeMockProcess(0));
+      await expect(
+        service.executeFFmpeg(['-version']),
+      ).resolves.toBeUndefined();
+    });
+
+    it('rejects when ffmpeg exits with non-zero code', async () => {
+      (spawn as ReturnType<typeof vi.fn>).mockReturnValue(
+        makeMockProcess(1, '', 'Invalid argument'),
+      );
+      await expect(service.executeFFmpeg(['-i', 'bad.mp4'])).rejects.toThrow(
+        'FFmpeg exited with code 1',
+      );
+    });
+
     it('calls spawn with the correct ffmpeg binary path', async () => {
       (spawn as ReturnType<typeof vi.fn>).mockReturnValue(makeMockProcess(0));
       await service.executeFFmpeg(['-version']);
@@ -139,6 +159,16 @@ describe('FFmpegCoreService', () => {
   });
 
   describe('getTempPath', () => {
+    it('returns a path containing the type', () => {
+      const result = service.getTempPath('video');
+      expect(result).toContain('video');
+    });
+
+    it('includes ingredientId in path when provided', () => {
+      const result = service.getTempPath('audio', 'ingredient-123');
+      expect(result).toContain('ingredient-123');
+    });
+
     it('returns a string path', () => {
       const result = service.getTempPath('image');
       expect(typeof result).toBe('string');
@@ -159,6 +189,21 @@ describe('FFmpegCoreService', () => {
   });
 
   describe('cleanupTempFiles', () => {
+    it('calls unlink for each existing file', async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
+      await service.cleanupTempFiles(
+        path.join(FILES_TMP_ROOT, 'a.mp4'),
+        path.join(FILES_TMP_ROOT, 'nested', 'b.mp4'),
+      );
+      expect(fsp.unlink).toHaveBeenCalledTimes(2);
+    });
+
+    it('skips unlink when file does not exist', async () => {
+      (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+      await service.cleanupTempFiles(path.join(FILES_TMP_ROOT, 'missing.mp4'));
+      expect(fsp.unlink).not.toHaveBeenCalled();
+    });
+
     it('logs a warning on unlink failure', async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
       (fsp.unlink as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
@@ -424,4 +469,11 @@ describe('FifoSemaphore', () => {
   ])('rejects invalid construction limit %p', (limit) => {
     expect(() => new FifoSemaphore(limit)).toThrow(RangeError);
   });
+
+  it.each([1, 4, Number.MAX_SAFE_INTEGER])(
+    'accepts positive safe integer construction limit %p',
+    (limit) => {
+      expect(() => new FifoSemaphore(limit)).not.toThrow();
+    },
+  );
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractPagination, flattenCollection } from '../../src/api/json-api';
+import { extractPagination, flattenCollection, flattenSingle } from '../../src/api/json-api';
 
 describe('json-api', () => {
   describe('flattenCollection', () => {
@@ -16,10 +16,30 @@ describe('json-api', () => {
       expect(result[1]).toEqual({ id: '2', label: 'B' });
     });
 
+    it('returns empty array for empty data', () => {
+      const result = flattenCollection({ data: [] });
+
+      expect(result).toEqual([]);
+    });
+
     it('returns empty array for missing data', () => {
       const result = flattenCollection({ data: undefined as never });
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('flattenSingle', () => {
+    it('flattens a single resource', () => {
+      const result = flattenSingle<{ id: string; label: string; status: string }>({
+        data: {
+          attributes: { label: 'My Brand', status: 'active' },
+          id: 'brand-1',
+          type: 'brand',
+        },
+      });
+
+      expect(result).toEqual({ id: 'brand-1', label: 'My Brand', status: 'active' });
     });
   });
 
@@ -35,6 +55,15 @@ describe('json-api', () => {
 
     it('returns undefined when no links are present', () => {
       expect(extractPagination({ data: [] })).toBeUndefined();
+    });
+
+    it('returns undefined when the pagination block is malformed', () => {
+      expect(
+        extractPagination({
+          data: [],
+          links: { pagination: { limit: 100 } },
+        } as never)
+      ).toBeUndefined();
     });
   });
 });

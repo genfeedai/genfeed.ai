@@ -86,6 +86,23 @@ afterEach(() => {
 });
 
 describe('isAnalyticsEnabled', () => {
+  it('is enabled in cloud, non-desktop builds with a key present', async () => {
+    const client = await loadClient();
+    expect(client.isAnalyticsEnabled()).toBe(true);
+  });
+
+  it('is disabled in self-hosted (non-cloud) builds', async () => {
+    mocks.isSaaS.mockReturnValue(false);
+    const client = await loadClient();
+    expect(client.isAnalyticsEnabled()).toBe(false);
+  });
+
+  it('is disabled in desktop builds even when cloud-connected', async () => {
+    mocks.isSaaS.mockReturnValue(false);
+    const client = await loadClient();
+    expect(client.isAnalyticsEnabled()).toBe(false);
+  });
+
   it.each([
     ['a placeholder', '-'],
     ['an empty value', ''],
@@ -98,6 +115,32 @@ describe('isAnalyticsEnabled', () => {
 });
 
 describe('initAnalytics', () => {
+  it('constructs the PostHog client in cloud mode', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
+    expect(mocks.posthogInit).toHaveBeenCalledWith(
+      'phc_testkey',
+      expect.objectContaining({
+        api_host: 'https://eu.i.posthog.com',
+        autocapture: false,
+      }),
+    );
+  });
+
+  it('uses the default ingestion host when configuration is empty', async () => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_HOST', '');
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogInit).toHaveBeenCalledWith(
+      'phc_testkey',
+      expect.objectContaining({ api_host: 'https://eu.i.posthog.com' }),
+    );
+  });
+
   it('disables SDK pageview capture until app scope is synchronized', async () => {
     const client = await loadClient();
     client.initAnalytics();
@@ -285,6 +328,22 @@ describe('initAnalytics', () => {
     expect(scrubbed.properties.$session_entry_utm_term).toBeUndefined();
   });
 
+  it('never constructs the client in self-hosted mode', async () => {
+    mocks.isSaaS.mockReturnValue(false);
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    expect(mocks.posthogInit).not.toHaveBeenCalled();
+  });
+
+  it('never constructs the client in desktop mode', async () => {
+    mocks.isSaaS.mockReturnValue(false);
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    expect(mocks.posthogInit).not.toHaveBeenCalled();
+  });
+
   it.each([
     ['a placeholder', '-'],
     ['empty', ''],
@@ -330,6 +389,55 @@ describe('captureAnalyticsEvent', () => {
     ).toHaveLength(1);
   });
 
+  it('buffers the ordered canonical funnel before the deferred client is initialised', async () => {
+    const client = await loadClient();
+
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+      hasCloudHandoff: true,
+      hasCreditsIntent: true,
+      hasPlanIntent: false,
+      method: 'magic_link',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+      handoffSource: 'post_signup',
+      hasCloudHandoff: true,
+      hasCreditsIntent: true,
+      hasPlanIntent: false,
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_STARTED, {
+      checkoutKind: 'credits',
+      handoffSource: 'post_signup',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.CHECKOUT_COMPLETED, {
+      checkoutKind: 'credits',
+      handoffSource: 'stripe_return',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_CREDIT_PURCHASED, {
+      checkoutKind: 'credits',
+      handoffSource: 'stripe_return',
+    });
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.FIRST_SUCCESSFUL_PUBLISH, {
+      platform: 'newsletter',
+      surface: 'newsletter',
+    });
+
+    expect(mocks.posthogCapture).not.toHaveBeenCalled();
+
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogCapture.mock.calls.map(([event]) => event)).toEqual([
+      'signup_started',
+      'signup_completed',
+      'checkout_started',
+      'checkout_completed',
+      'first_credit_purchase',
+      'onboarding_completed',
+      'first_successful_publish',
+    ]);
+  });
+
   it('restores a signup event after a full-page authentication redirect', async () => {
     const firstPage = await loadClient();
     firstPage.captureAnalyticsEvent(ANALYTICS_EVENTS.SIGNUP_STARTED, {
@@ -350,6 +458,41 @@ describe('captureAnalyticsEvent', () => {
       hasPlanIntent: true,
       method: 'google',
     });
+  });
+
+  it('forwards the event and its bounded properties once initialised', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.GENERATION_COMPLETED, {
+      generationType: GenerationType.IMAGE,
+      outcome: 'success',
+    });
+
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('generation_completed', {
+      generationType: 'image',
+      outcome: 'success',
+    });
+  });
+
+  it('forwards bounded workflow outcome properties', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+      outcome: 'failure',
+      workflowType: 'batch',
+    });
+
+    expect(mocks.posthogCapture).toHaveBeenCalledWith(
+      'workflow_run_completed',
+      {
+        outcome: 'failure',
+        workflowType: 'batch',
+      },
+    );
   });
 
   it('swallows capture errors so a tracked action is never blocked', async () => {
@@ -459,7 +602,36 @@ describe('delivery observability', () => {
   });
 });
 
+describe('authenticated feature flags', () => {
+  it('identifies with the canonical user id and a non-PII internal marker', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({
+      id: 'user-123',
+      isInternal: true,
+    });
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogIdentify).toHaveBeenCalledWith('user-123', {
+      is_internal: true,
+    });
+  });
+});
+
 describe('analytics identity lifecycle', () => {
+  it('applies an organization identified before the SDK finishes loading', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsOrganization('org-123');
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-123');
+  });
+
   it('clears an active organization without resetting the user identity', async () => {
     const client = await loadClient();
     client.initAnalytics();
@@ -512,6 +684,20 @@ describe('analytics identity lifecycle', () => {
     });
   });
 
+  it('clears persisted and pending identity after logout during SDK loading', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.initAnalytics();
+    client.resetAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+    expect(mocks.posthogIdentify).not.toHaveBeenCalled();
+    expect(mocks.posthogGroup).not.toHaveBeenCalled();
+  });
+
   it('defers an organization-only reset until the SDK finishes loading', async () => {
     const client = await loadClient();
 
@@ -521,6 +707,38 @@ describe('analytics identity lifecycle', () => {
 
     expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
     expect(mocks.posthogReset).not.toHaveBeenCalled();
+  });
+
+  it('resets persisted state before applying a newer queued identity', async () => {
+    const client = await loadClient();
+
+    client.resetAnalytics();
+    client.identifyAnalyticsUser({ id: 'user-456', isInternal: false });
+    client.identifyAnalyticsOrganization('org-456');
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogInit.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogReset.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogReset.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogIdentify.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogReset.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogGroup.mock.invocationCallOrder[0] as number,
+    );
+  });
+
+  it('uses the latest organization instruction queued during SDK loading', async () => {
+    const client = await loadClient();
+
+    client.clearAnalyticsOrganization();
+    client.identifyAnalyticsOrganization('org-789');
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogResetGroups).not.toHaveBeenCalled();
+    expect(mocks.posthogGroup).toHaveBeenCalledWith('organization', 'org-789');
   });
 
   it('honors an organization clear queued after identification', async () => {
@@ -533,6 +751,17 @@ describe('analytics identity lifecycle', () => {
 
     expect(mocks.posthogGroup).not.toHaveBeenCalled();
     expect(mocks.posthogResetGroups).toHaveBeenCalledOnce();
+  });
+
+  it('clears persisted identified state on a resolved anonymous boot', async () => {
+    mocks.posthogGetProperty.mockReturnValue('persisted-user');
+    const client = await loadClient();
+
+    client.ensureAnalyticsAnonymous();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
   });
 
   it('preserves an existing anonymous identity when no group is persisted', async () => {
@@ -575,6 +804,35 @@ describe('analytics identity lifecycle', () => {
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });
 
+  it('captures a queued pageview only after identity and organization sync', async () => {
+    const client = await loadClient();
+
+    client.identifyAnalyticsUser({ id: 'user-123', isInternal: false });
+    client.identifyAnalyticsOrganization('org-123');
+    client.captureAnalyticsPageview();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogGroup.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.posthogCapture.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.posthogCapture).toHaveBeenCalledWith('$pageview', {
+      $current_url: window.location.href,
+    });
+  });
+
+  it('drops a protected pageview queued before logout', async () => {
+    const client = await loadClient();
+
+    client.captureAnalyticsPageview();
+    client.resetAnalytics();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogReset).toHaveBeenCalledOnce();
+    expect(mocks.posthogCapture).not.toHaveBeenCalled();
+  });
+
   it('deduplicates repeated renders of the same scoped route', async () => {
     const client = await loadClient();
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
@@ -588,5 +846,53 @@ describe('analytics identity lifecycle', () => {
     client.captureAnalyticsPageview('user-1:org-1:/publishing');
 
     expect(mocks.posthogCapture).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('event taxonomy', () => {
+  it('exposes the declared events as unique snake_case slugs', () => {
+    const values = Object.values(ANALYTICS_EVENTS);
+    expect(new Set(values).size).toBe(values.length);
+    for (const name of values) {
+      expect(name).toMatch(/^[a-z][a-z_]*[a-z]$/);
+    }
+    expect(new Set(values)).toEqual(
+      new Set([
+        'agent_thread_created',
+        'app_rail_navigated',
+        'brand_os_draft_accepted',
+        'brand_os_draft_saved',
+        'brand_os_first_generation',
+        'checkout_completed',
+        'checkout_started',
+        'connect_genfeed_step',
+        'content_write_blank_draft_started',
+        'content_write_opened',
+        'content_write_prompt_generated',
+        'conversation_shell_approval',
+        'conversation_shell_error',
+        'conversation_shell_overlay_abandonment',
+        'conversation_shell_performance',
+        'conversation_shell_restoration_failure',
+        'conversation_shell_scope_correction',
+        'conversation_shell_session',
+        'conversation_shell_transition',
+        'expert_first_system_generated',
+        'expert_first_system_item_reviewed',
+        'expert_onboarding_step',
+        'first_credit_purchase',
+        'first_successful_publish',
+        'generation_completed',
+        'generation_started',
+        'onboarding_completed',
+        'post_published',
+        'public_youtube_clip_project_claimed',
+        'signup_completed',
+        'signup_started',
+        'studio_editor_opened',
+        'workflow_run_completed',
+        'workflow_run_started',
+      ]),
+    );
   });
 });

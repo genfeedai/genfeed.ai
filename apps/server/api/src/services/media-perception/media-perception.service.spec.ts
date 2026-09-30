@@ -241,6 +241,23 @@ describe('MediaPerceptionService.process', () => {
     });
   });
 
+  it('records transcription spend in the media vendor-cost ledger', async () => {
+    const h = makeHarness();
+
+    await h.service.process(JOB);
+
+    expect(h.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        category: 'media-perception-transcription',
+        model: 'openai/whisper',
+        organizationId: 'org-1',
+        provider: 'replicate',
+        units: 11.5,
+      }),
+    );
+  });
+
   it('keeps frames, OCR and transcript when the vision model is unavailable', async () => {
     const h = makeHarness();
     h.describe.mockRejectedValueOnce(new Error('vision provider down'));

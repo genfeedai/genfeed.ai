@@ -2,6 +2,18 @@ import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { describe, expect, it } from 'vitest';
 
 describe('htmlToText', () => {
+  it('returns empty string for null', () => {
+    expect(htmlToText(null)).toBe('');
+  });
+
+  it('returns empty string for undefined', () => {
+    expect(htmlToText(undefined)).toBe('');
+  });
+
+  it('returns empty string for empty string', () => {
+    expect(htmlToText('')).toBe('');
+  });
+
   it('converts paragraph tags to double newlines', () => {
     const result = htmlToText('<p>Hello</p><p>World</p>');
     expect(result).toContain('Hello');
@@ -9,9 +21,29 @@ describe('htmlToText', () => {
     expect(result).toContain('\n');
   });
 
+  it('converts br tags to newlines', () => {
+    const result = htmlToText('Line 1<br>Line 2');
+    expect(result).toBe('Line 1\nLine 2');
+  });
+
   it('converts self-closing br tags', () => {
     const result = htmlToText('Line 1<br/>Line 2');
     expect(result).toBe('Line 1\nLine 2');
+  });
+
+  it('strips HTML tags', () => {
+    const result = htmlToText('<strong>bold</strong> text');
+    expect(result).toBe('bold text');
+  });
+
+  it('preserves plain text content', () => {
+    const result = htmlToText('Hello World');
+    expect(result).toBe('Hello World');
+  });
+
+  it('handles nested HTML', () => {
+    const result = htmlToText('<p>Text with <strong>bold</strong> content</p>');
+    expect(result).toContain('Text with bold content');
   });
 
   it('handles heading tags', () => {
@@ -32,6 +64,10 @@ describe('htmlToText', () => {
     expect(htmlToText('it&#39;s')).toBe("it's");
   });
 
+  it('collapses a non-breaking space into a regular space', () => {
+    expect(htmlToText('a&nbsp;b')).toBe('a b');
+  });
+
   // A chain of sequential entity replacements lets one rule consume the output
   // of another, so text that was deliberately escaped upstream decodes twice
   // and becomes live markup again.
@@ -43,6 +79,13 @@ describe('htmlToText', () => {
 
   // A pattern that ends a tag at the first `>` stops inside the attribute value
   // and spills the remainder of the tag into the output as text.
+  it('does not leak markup when a quoted attribute contains a close bracket', () => {
+    const result = htmlToText(
+      '<a href="https://example.com" title="a>b">x</a>',
+    );
+
+    expect(result).toBe('x');
+  });
 
   it('drops HTML comments rather than leaking their contents', () => {
     const result = htmlToText(
@@ -60,5 +103,11 @@ describe('htmlToText', () => {
     );
 
     expect(result).toBe('Caption');
+  });
+
+  it('strips an unterminated tag', () => {
+    const result = htmlToText('<p>Visible</p><div class="x');
+
+    expect(result).toBe('Visible');
   });
 });

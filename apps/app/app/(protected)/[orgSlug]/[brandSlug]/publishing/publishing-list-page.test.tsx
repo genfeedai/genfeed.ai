@@ -25,4 +25,11 @@ describe('publishing-list-page', () => {
     expect(source).not.toContain('PublishingPostsList');
     expect(source).not.toContain('loadPostsPageData');
   });
+
+  it('maps pending and processing statuses onto the publishing execution state', () => {
+    expect(source).toMatch(
+      /normalizedStatus === PostStatus\.PENDING \|\|\s+normalizedStatus === PostStatus\.PROCESSING/,
+    );
+    expect(source).toContain('TargetExecutionState.PUBLISHING');
+  });
 });

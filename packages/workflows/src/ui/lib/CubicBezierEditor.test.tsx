@@ -98,6 +98,13 @@ describe('CubicBezierEditor', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('pointer leave also ends the drag', () => {
+    const { control1, onCommit, svg } = renderEditor();
+    fireEvent.pointerDown(control1, { pointerId: 1 });
+    fireEvent.pointerLeave(svg);
+    expect(onCommit).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores interaction when disabled', () => {
     const { control1, onChange, svg } = renderEditor({ disabled: true });
     fireEvent.pointerDown(control1, { pointerId: 1 });

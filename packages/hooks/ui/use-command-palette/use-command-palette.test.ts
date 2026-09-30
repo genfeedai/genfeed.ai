@@ -47,6 +47,13 @@ describe('useCommandPalette', () => {
   });
 
   describe('Context Access', () => {
+    it('returns context when used within provider', () => {
+      const { result } = renderHook(() => useCommandPalette());
+
+      expect(result.current).toBeDefined();
+      expect(result.current.state).toBeDefined();
+    });
+
     it('throws error when used outside provider', () => {
       mockContextValue = null;
 

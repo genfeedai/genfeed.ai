@@ -7,6 +7,7 @@ import type {
   TriggerEvent,
 } from '@api/collections/workflows/services/workflow-executor.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { runWithActionOrigin } from '@api/index';
 import {
   ActionOrigin,
   WorkflowExecutionStatus,
@@ -65,6 +66,12 @@ function createDelayResumeData(): DelayResumeJobData {
   };
 }
 
+describe('workflowSchedulerId', () => {
+  it('keeps the shipped colon scheduler id so production leases are not forked', () => {
+    expect(workflowSchedulerId('wf-1')).toBe('workflow-schedule:wf-1');
+  });
+});
+
 describe('WorkflowExecutionQueueService', () => {
   let service: WorkflowExecutionQueueService;
   let mockQueue: ReturnType<typeof createMockQueue>;
@@ -110,6 +117,41 @@ describe('WorkflowExecutionQueueService', () => {
         expect.objectContaining({
           attempts: 1,
           removeOnComplete: 200,
+        }),
+      );
+    });
+
+    it('propagates MCP action context with a trigger job', async () => {
+      await runWithActionOrigin(
+        {
+          actorUserId: 'user-1',
+          apiKeyId: 'key-1',
+          origin: ActionOrigin.MCP,
+        },
+        () => service.queueTriggerEvent(createTriggerEvent()),
+      );
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'trigger',
+        expect.objectContaining({
+          actionContext: {
+            actorUserId: 'user-1',
+            apiKeyId: 'key-1',
+            origin: ActionOrigin.MCP,
+          },
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('should log the queued event', async () => {
+      await service.queueTriggerEvent(createTriggerEvent());
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('queued trigger event'),
+        expect.objectContaining({
+          jobId: 'job-123',
+          triggerType: 'mentionTrigger',
         }),
       );
     });
@@ -417,6 +459,29 @@ describe('WorkflowExecutionQueueService', () => {
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 
+    it('reserves the jobId on the platform queue too, not just the interactive one', async () => {
+      const staleJob = {
+        getState: vi.fn().mockResolvedValue('completed'),
+        remove: vi.fn().mockResolvedValue(undefined),
+      };
+      mockPlatformQueue.getJob.mockResolvedValueOnce(staleJob);
+      const input = {
+        actionType: 'agent.autopilot.proactive',
+        canonicalId: 'agent.autopilot.proactive',
+        organizationId: 'org-1',
+        source: 'PlatformWorkflowSchedulesService',
+        userId: 'user-1',
+      };
+
+      await service.queueSystemWorkflow(input, 'system-workflow-exec-7', {
+        dispatchClass: SystemWorkflowDispatchClass.BACKGROUND,
+        usePlatformQueue: true,
+      });
+
+      expect(mockQueue.getJob).not.toHaveBeenCalled();
+      expect(staleJob.remove).toHaveBeenCalled();
+    });
+
     it('reports success when a worker already finished the freshly added job', async () => {
       mockQueue.add.mockResolvedValueOnce({
         getState: vi.fn().mockResolvedValue('completed'),
@@ -517,9 +582,56 @@ describe('WorkflowExecutionQueueService', () => {
         }),
       );
     });
+
+    it('should use exponential backoff for retries', async () => {
+      await service.queueDelayedResume(createDelayResumeData(), 5000);
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'delay-resume',
+        expect.anything(),
+        expect.objectContaining({
+          backoff: { delay: 5000, type: 'exponential' },
+        }),
+      );
+    });
+
+    it('should log the queued delay resume', async () => {
+      await service.queueDelayedResume(createDelayResumeData(), 60000);
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('queued delay resume'),
+        expect.objectContaining({
+          delayMs: 60000,
+          executionId: 'exec-1',
+          workflowId: 'wf-1',
+        }),
+      );
+    });
   });
 
   describe('upsertWorkflowScheduler', () => {
+    it('should upsert a job scheduler keyed on the workflow id', async () => {
+      await service.upsertWorkflowScheduler({
+        cronExpression: '0 7 * * *',
+        timezone: 'Europe/Amsterdam',
+        workflowId: 'wf-1',
+      });
+
+      expect(mockQueue.upsertJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-1',
+        { pattern: '0 7 * * *', tz: 'Europe/Amsterdam' },
+        {
+          data: {
+            actionContext: { origin: ActionOrigin.WORKFLOW },
+            type: 'scheduled-fire',
+            workflowId: 'wf-1',
+          },
+          name: 'scheduled-fire',
+          opts: expect.objectContaining({ attempts: 1 }),
+        },
+      );
+    });
+
     it('should use the same scheduler id when two producers upsert the same workflow', async () => {
       // Two API replicas sharing the queue converge on ONE scheduler id, which
       // is what makes BullMQ dedupe fires across replicas.
@@ -564,6 +676,16 @@ describe('WorkflowExecutionQueueService', () => {
         workflowSchedulerId('wf-1'),
         workflowSchedulerId('wf-1'),
       ]);
+    });
+  });
+
+  describe('removeWorkflowScheduler', () => {
+    it('should remove the job scheduler for the workflow', async () => {
+      await service.removeWorkflowScheduler('wf-1');
+
+      expect(mockQueue.removeJobScheduler).toHaveBeenCalledWith(
+        'workflow-schedule:wf-1',
+      );
     });
   });
 
@@ -665,9 +787,37 @@ describe('WorkflowExecutionQueueService', () => {
       expect(jobs[0].id).toBe('job-1');
       expect(jobs[0].type).toBe('delay-resume');
     });
+
+    it('should return empty array when no matching jobs', async () => {
+      mockQueue.getJobs.mockResolvedValue([]);
+
+      const jobs = await service.getPendingJobs('wf-nonexistent');
+
+      expect(jobs).toEqual([]);
+    });
+
+    it('should query waiting, delayed, and active jobs', async () => {
+      await service.getPendingJobs('wf-1');
+
+      expect(mockQueue.getJobs).toHaveBeenCalledWith([
+        'waiting',
+        'delayed',
+        'active',
+      ]);
+    });
   });
 
   describe('hasClaimableSystemWorkflowJob', () => {
+    it('returns false when no queue has the job (#5162)', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+      mockPlatformQueue.getJob.mockResolvedValue(undefined);
+      mockBackgroundQueue.getJob.mockResolvedValue(undefined);
+
+      await expect(
+        service.hasClaimableSystemWorkflowJob('system-workflow-exec-8'),
+      ).resolves.toBe(false);
+    });
+
     it('returns true when the interactive queue has a claimable job', async () => {
       mockQueue.getJob.mockResolvedValue({
         getState: vi.fn().mockResolvedValue('waiting'),

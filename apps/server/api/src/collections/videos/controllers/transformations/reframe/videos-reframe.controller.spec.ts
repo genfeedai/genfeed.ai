@@ -195,6 +195,10 @@ describe('VideosReframeController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('should reframe video and return ingredient data', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
     const result = await controller.reframeVideo(mockReq, videoId, mockUser, {
@@ -236,6 +240,16 @@ describe('VideosReframeController', () => {
       modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
       source: ActivitySource.VIDEO_REFRAME,
     });
+  });
+
+  it('should leave credit deduction to the interceptor', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    await controller.reframeVideo(mockReq, videoId, mockUser, {
+      format: 'portrait',
+    });
+    expect(
+      mockServices.creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('should handle failed generation when generateTextToVideo returns null', async () => {

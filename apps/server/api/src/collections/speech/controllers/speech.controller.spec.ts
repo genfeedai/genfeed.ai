@@ -138,6 +138,10 @@ describe('SpeechController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('transcribeAudio', () => {
     it('should transcribe audio file successfully', async () => {
       const result = await controller.transcribeAudio(
@@ -151,6 +155,28 @@ describe('SpeechController', () => {
       expect(result).toBeDefined();
       expect(result.confidence).toBe(mockTranscriptionResult.confidence);
       expect(result.text).toBe(mockTranscriptionResult.text);
+    });
+
+    it('should transcribe with custom language', async () => {
+      const result = await controller.transcribeAudio(
+        mockReq,
+        mockUser,
+        mockFile,
+        { language: 'es' },
+      );
+
+      expect(result).toBeDefined();
+    });
+
+    it('should transcribe with prompt', async () => {
+      const result = await controller.transcribeAudio(
+        mockReq,
+        mockUser,
+        mockFile,
+        { prompt: 'This is about technology' },
+      );
+
+      expect(result).toBeDefined();
     });
 
     it('should throw HttpException when transcription service fails', async () => {

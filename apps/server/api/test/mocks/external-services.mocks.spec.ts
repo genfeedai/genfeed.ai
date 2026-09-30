@@ -25,7 +25,7 @@ import {
   createMockTwitterService,
   createMockYoutubeService,
 } from '@api-test/mocks/external-services.mocks';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('External Services Mocks', () => {
   describe('Replicate Service Mock', () => {
@@ -55,6 +55,13 @@ describe('External Services Mocks', () => {
       expect(mock).toHaveProperty('textToSpeech');
       expect(mock).toHaveProperty('getVoices');
       expect(mock).toHaveProperty('getVoice');
+    });
+
+    it('should return audio buffer for text-to-speech', async () => {
+      const mock = createMockElevenLabsService();
+      const result = await mock.textToSpeech('test text');
+
+      expect(Buffer.isBuffer(result)).toBe(true);
     });
 
     it('should return voices list', async () => {
@@ -207,6 +214,13 @@ describe('External Services Mocks', () => {
       expect(mock).toHaveProperty('clear');
       expect(mock).toHaveProperty('generateKey');
     });
+
+    it('should generate cache key from arguments', () => {
+      const mock = createMockCacheService();
+      const key = mock.generateKey('prefix', 'resource', 'id');
+
+      expect(key).toBe('prefix:resource:id');
+    });
   });
 
   describe('Logger Service Mock', () => {
@@ -243,6 +257,12 @@ describe('External Services Mocks', () => {
       expect(mock.get('NODE_ENV')).toBe('test');
       expect(mock.get('PORT')).toBe(3001);
       expect(mock.get('JWT_SECRET')).toBe('test-jwt-secret');
+    });
+
+    it('should allow custom config overrides', () => {
+      const mock = createMockConfigService({ CUSTOM_KEY: 'custom_value' });
+
+      expect(mock.get('CUSTOM_KEY')).toBe('custom_value');
     });
   });
 
@@ -296,6 +316,51 @@ describe('External Services Mocks', () => {
       expect(mocks).toHaveProperty('cacheService');
       expect(mocks).toHaveProperty('loggerService');
       expect(mocks).toHaveProperty('configService');
+    });
+
+    it('should return unique mock instances', () => {
+      const mocks1 = createAllExternalServiceMocks();
+      const mocks2 = createAllExternalServiceMocks();
+
+      // Each call should create new mock instances
+      expect(mocks1.replicateService).not.toBe(mocks2.replicateService);
+    });
+  });
+
+  describe('Mock Function Calls', () => {
+    it('should track mock function calls', async () => {
+      const mock = createMockReplicateService();
+
+      await mock.runModel('version', { input: 'test' });
+      await mock.runModel('version', { input: 'test2' });
+
+      expect(mock.runModel).toHaveBeenCalledTimes(2);
+    });
+
+    it('should allow overriding mock return values', async () => {
+      const mock = createMockReplicateService();
+
+      // Override the mock implementation
+      mock.generateTextCompletionSync = vi
+        .fn()
+        .mockResolvedValue('Custom response');
+
+      const result = await mock.generateTextCompletionSync({});
+
+      expect(result).toBe('Custom response');
+    });
+
+    it('should allow mocking errors', async () => {
+      const mock = createMockStripeService();
+
+      // Override to throw error
+      mock.createOrganizationCustomer = vi
+        .fn()
+        .mockRejectedValue(new Error('Stripe API error'));
+
+      await expect(
+        mock.createOrganizationCustomer('org', 'email', 'orgId', 'userId'),
+      ).rejects.toThrow('Stripe API error');
     });
   });
 });

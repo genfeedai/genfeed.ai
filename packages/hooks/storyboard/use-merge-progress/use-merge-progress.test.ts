@@ -181,4 +181,18 @@ describe('useMergeProgress', () => {
     expect(result.current.steps[0].status).toBe('failed');
     expect(onError).toHaveBeenCalledWith('Merge failed');
   });
+
+  it('cleans up subscriptions on unmount', () => {
+    const { unmount } = renderHook(() =>
+      useMergeProgress({
+        ingredientId: 'video-1',
+      }),
+    );
+
+    unmount();
+
+    expect(unsubscribeMap.get('/videos/video-1')).toHaveBeenCalled();
+    expect(unsubscribeMap.get('video-progress')).toHaveBeenCalled();
+    expect(unsubscribeMap.get('video-complete')).toHaveBeenCalled();
+  });
 });

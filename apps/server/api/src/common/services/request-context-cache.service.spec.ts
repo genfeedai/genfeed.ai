@@ -50,6 +50,10 @@ describe('RequestContextCacheService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('invalidateForUser', () => {
     it('should do nothing when publisher is unavailable', async () => {
       mockRedisService.getPublisher.mockReturnValueOnce(null);

@@ -22,6 +22,10 @@ describe('machine', () => {
       expect(getNextPhase('implementing')).toBe('verifying');
       expect(getNextPhase('verifying')).toBe('complete');
     });
+
+    it('returns null for complete phase', () => {
+      expect(getNextPhase('complete')).toBeNull();
+    });
   });
 
   describe('getPhaseIndex', () => {
@@ -36,9 +40,56 @@ describe('machine', () => {
       expect(isValidRollback('proposing', 'exploring')).toBe(true);
       expect(isValidRollback('verifying', 'clarifying')).toBe(true);
     });
+
+    it('rejects forward transitions', () => {
+      expect(isValidRollback('exploring', 'clarifying')).toBe(false);
+    });
+
+    it('rejects same phase', () => {
+      expect(isValidRollback('exploring', 'exploring')).toBe(false);
+    });
   });
 
   describe('isGateMet', () => {
+    it('exploring gate is always met', () => {
+      expect(isGateMet(stateWith({ phase: 'exploring' }))).toBe(true);
+    });
+
+    it('clarifying gate requires all questions answered', () => {
+      expect(
+        isGateMet(
+          stateWith({
+            phase: 'clarifying',
+            questions: [
+              {
+                answer: 'A1',
+                id: '1',
+                text: 'Q1',
+                type: 'free_text',
+              },
+            ],
+          }),
+        ),
+      ).toBe(true);
+    });
+
+    it('clarifying gate fails with unanswered questions', () => {
+      expect(
+        isGateMet(
+          stateWith({
+            phase: 'clarifying',
+            questions: [{ id: '1', text: 'Q1', type: 'free_text' }],
+          }),
+        ),
+      ).toBe(false);
+    });
+
+    it('clarifying gate fails with no questions', () => {
+      expect(isGateMet(stateWith({ phase: 'clarifying', questions: [] }))).toBe(
+        false,
+      );
+    });
+
     it('proposing gate requires at least 2 approaches', () => {
       const approach = {
         description: 'D',
@@ -86,6 +137,10 @@ describe('machine', () => {
       ).toBe(true);
     });
 
+    it('implementing gate is always met', () => {
+      expect(isGateMet(stateWith({ phase: 'implementing' }))).toBe(true);
+    });
+
     it('verifying gate requires all evidence passing', () => {
       expect(
         isGateMet(
@@ -120,6 +175,22 @@ describe('machine', () => {
           }),
         ),
       ).toBe(false);
+    });
+
+    it('verifying gate fails with no evidence', () => {
+      expect(
+        isGateMet(stateWith({ phase: 'verifying', verificationEvidence: [] })),
+      ).toBe(false);
+    });
+
+    it('complete gate is never met', () => {
+      expect(isGateMet(stateWith({ phase: 'complete' }))).toBe(false);
+    });
+
+    it('locked state blocks all gates', () => {
+      expect(isGateMet(stateWith({ isLocked: true, phase: 'exploring' }))).toBe(
+        false,
+      );
     });
   });
 });

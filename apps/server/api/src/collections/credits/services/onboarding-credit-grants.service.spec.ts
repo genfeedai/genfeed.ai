@@ -267,6 +267,12 @@ describe('OnboardingCreditGrantsService', () => {
     expect(ledger).toEqual([]);
     expect(effects).not.toHaveBeenCalled();
   });
+  it('does not regrant legacy claimed missions', async () => {
+    missions[0].rewardClaimed = true;
+    missions[0].isCompleted = true;
+    await service.completeMissions('org', []);
+    expect(grants).not.toHaveBeenCalled();
+  });
   it('preserves the 25 signup and 175 mission reward amounts', async () => {
     await service.grantSignupGift('org', 'user');
     expect(balance).toBe(25);

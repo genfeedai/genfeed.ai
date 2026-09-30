@@ -158,6 +158,16 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);
   });
 
+  it('does not invent an enabledSkills value when the caller omits it', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send(inlineAutosavePayload)
+      .expect(200);
+
+    const [, , dto] = updateAgentConfig.mock.calls[0];
+    expect(dto.enabledSkills).toBeUndefined();
+  });
+
   it('accepts the publishing settings payload (autoPublish + schedule only)', async () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config`)
@@ -168,6 +178,18 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
           enabled: true,
           timezone: 'UTC',
         },
+      })
+      .expect(200);
+
+    expect(updateAgentConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts the brand identity defaults payload', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({
+        defaultAvatarIngredientId: 'cmingredient000000000000001',
+        defaultVoiceId: 'cmvoice0000000000000000001',
       })
       .expect(200);
 
@@ -192,6 +214,97 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);
   });
 
+  it('accepts the workspace composer facecam defaults payload', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ heygenAvatarId: 'avatar-abc', heygenVoiceId: 'voice-abc' })
+      .expect(200);
+
+    expect(updateAgentConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts the agent configuration page payload (model + persona only)', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ defaultModel: 'gpt-5', persona: 'Ops copilot' })
+      .expect(200);
+
+    expect(updateAgentConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a partial voice patch from the manual brand kit card', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ voice: { style: 'punchy', tone: 'warm' } })
+      .expect(200);
+
+    expect(updateAgentConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('still rejects payloads that violate a declared field type', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ enabledSkills: 'content-writing' })
+      .expect(400);
+
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects null enabledSkills instead of reaching the service', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ enabledSkills: null })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({ enabledSkills: ['content-writing', 'content-writing'] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('also rejects duplicate enabled skill slugs on the general agent-config endpoint', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ enabledSkills: ['content-writing', 'content-writing'] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects more than 100 enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({
+        enabledSkills: Array.from(
+          { length: 101 },
+          (_, index) => `skill-${index}`,
+        ),
+      })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  it('rejects blank enabled skill slugs', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config/enabled-skills`)
+      .send({ enabledSkills: ['   '] })
+      .expect(400);
+
+    expect(assertAccessibleSkillSlugs).not.toHaveBeenCalled();
+    expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
   it('accepts an empty enabled skill list', async () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config/enabled-skills`)
@@ -200,6 +313,15 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
     expect(assertAccessibleSkillSlugs).toHaveBeenCalledWith(orgId, []);
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);
+  });
+
+  it('still rejects a nested voice field of the wrong type', async () => {
+    await request(app.getHttpServer())
+      .patch(`/brands/${brandId}/agent-config`)
+      .send({ voice: { tone: 42 } })
+      .expect(400);
+
+    expect(updateAgentConfig).not.toHaveBeenCalled();
   });
 
   describe('POST /brands/:id/agent-config/generate-voice', () => {
@@ -232,6 +354,36 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
       );
     });
 
+    it('scopes the voice corpus to the path brand and accepts pasted samples', async () => {
+      generateBrandVoice.mockResolvedValue(generatedProfile);
+
+      await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({
+          samples: ['nah, ship it friday', 'docs later'],
+          url: 'https://acme.example',
+        })
+        .expect(201);
+
+      expect(generateBrandVoice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId,
+          samples: ['nah, ship it friday', 'docs later'],
+          url: 'https://acme.example',
+        }),
+        orgId,
+      );
+    });
+
+    it('rejects non-string pasted samples', async () => {
+      await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({ samples: [42] })
+        .expect(400);
+
+      expect(generateBrandVoice).not.toHaveBeenCalled();
+    });
+
     it('returns the classified 422 for invalid provider output without persisting', async () => {
       generateBrandVoice.mockRejectedValue(
         new BrandVoiceGenerationException({
@@ -260,6 +412,25 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
         ],
       });
       expect(updateAgentConfig).not.toHaveBeenCalled();
+    });
+
+    it('returns a rejected input as a 400 with its own code', async () => {
+      generateBrandVoice.mockRejectedValue(
+        new BrandVoiceGenerationException({
+          code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.errors[0]).toMatchObject({
+        code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
+        meta: { isRetryable: false },
+        status: '400',
+      });
     });
 
     it('never puts the redacted diagnostics on the wire', async () => {

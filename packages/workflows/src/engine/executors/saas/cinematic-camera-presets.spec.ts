@@ -16,6 +16,10 @@ describe('cinematic-camera-presets', () => {
     expect(preset?.camera).toBe('ARRI Alexa Mini LF');
   });
 
+  it('returns undefined for unknown id', () => {
+    expect(getCinematicCameraPreset('nonexistent')).toBeUndefined();
+  });
+
   it('each preset has required fields', () => {
     for (const [id, preset] of Object.entries(CINEMATIC_CAMERA_PRESETS)) {
       expect(preset.id).toBe(id);

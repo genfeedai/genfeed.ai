@@ -69,6 +69,17 @@ describe('convertToUTC', () => {
     expect(result.getUTCHours()).toBe(12);
     expect(result.getUTCMinutes()).toBe(0);
   });
+
+  it('returns a Date object', () => {
+    const date = new Date('2024-01-01T00:00:00Z');
+    expect(convertToUTC(date, 'America/New_York')).toBeInstanceOf(Date);
+  });
+
+  it('defaults to UTC when no timezone supplied', () => {
+    const date = new Date('2024-03-10T15:30:00Z');
+    const result = convertToUTC(date);
+    expect(result).toBeInstanceOf(Date);
+  });
 });
 
 describe('convertFromUTC', () => {
@@ -119,6 +130,11 @@ describe('createDateFromTimezone', () => {
     expect(result.getUTCDate()).toBe(15);
     expect(result.getUTCHours()).toBe(12);
     expect(result.getUTCMinutes()).toBe(0);
+  });
+
+  it('returns a Date instance for any valid timezone', () => {
+    const result = createDateFromTimezone(2024, 1, 1, 9, 0, 'Asia/Tokyo');
+    expect(result).toBeInstanceOf(Date);
   });
 });
 

@@ -6,6 +6,25 @@ import {
 } from './extract-last-generated-asset.util';
 
 describe('extractLastGeneratedAssetFromMetadata', () => {
+  it('prefers the last image on a ui action over earlier text', () => {
+    expect(
+      extractLastGeneratedAssetFromMetadata({
+        uiActions: [
+          {
+            id: 'action-1',
+            images: ['https://cdn.test/first.png', 'https://cdn.test/last.png'],
+            title: 'Variants',
+            tweets: ['caption'],
+            type: 'content_preview_card',
+          },
+        ],
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/last.png',
+    });
+  });
+
   it('uses an ingredient thumbnail when the generated file is video', () => {
     expect(
       extractLastGeneratedAssetFromMetadata({
@@ -29,6 +48,32 @@ describe('extractLastGeneratedAssetFromMetadata', () => {
       kind: 'video',
       url: 'https://cdn.test/poster.jpg',
     });
+  });
+
+  it('falls back to message-level mediaUrl', () => {
+    expect(
+      extractLastGeneratedAssetFromMetadata({
+        mediaUrl: 'https://cdn.test/output.webp',
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/output.webp',
+    });
+  });
+
+  it('returns null when there is no generated media', () => {
+    expect(
+      extractLastGeneratedAssetFromMetadata({
+        uiActions: [
+          {
+            id: 'text-only',
+            textContent: 'Draft caption',
+            title: 'Caption',
+            type: 'ai_text_action_card',
+          },
+        ],
+      }),
+    ).toBeNull();
   });
 });
 
@@ -83,6 +128,51 @@ describe('resolveLastGeneratedAsset', () => {
     ).toEqual({
       kind: 'image',
       url: 'https://cdn.test/ingredient.png',
+    });
+  });
+
+  it('uses later message media over an older ingredient', () => {
+    expect(
+      resolveLastGeneratedAsset({
+        ingredient: {
+          createdAt: '2026-08-01T10:00:00.000Z',
+          kind: 'image',
+          url: 'https://cdn.test/ingredient.png',
+        },
+        metadata: {
+          uiActions: [
+            {
+              id: 'later',
+              images: ['https://cdn.test/later.png'],
+              title: 'Later',
+              type: 'content_preview_card',
+            },
+          ],
+        },
+        metadataCreatedAt: '2026-08-02T10:00:00.000Z',
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/later.png',
+    });
+  });
+
+  it('normalizes timezone offsets before choosing the latest asset', () => {
+    expect(
+      resolveLastGeneratedAsset({
+        ingredient: {
+          createdAt: '2026-08-02T04:45:00.000Z',
+          kind: 'image',
+          url: 'https://cdn.test/ingredient.png',
+        },
+        metadata: {
+          mediaUrl: 'https://cdn.test/metadata.png',
+        },
+        metadataCreatedAt: '2026-08-02T00:30:00.000-05:00',
+      }),
+    ).toEqual({
+      kind: 'image',
+      url: 'https://cdn.test/metadata.png',
     });
   });
 

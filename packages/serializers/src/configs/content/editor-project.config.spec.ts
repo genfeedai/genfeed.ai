@@ -8,6 +8,20 @@ describe('editor project serializer lock contract', () => {
     editorProjectSerializerConfig,
   );
 
+  it('marks a composition-backed project as locked', () => {
+    const output = EditorProjectSerializer.serialize({
+      config: { composition: { id: 'product-story' }, name: 'Launch' },
+      id: 'project-1',
+      name: 'Launch',
+    });
+
+    expect(output.data).toMatchObject({
+      attributes: { isLocked: true, name: 'Launch' },
+      id: 'project-1',
+      type: 'editor-project',
+    });
+  });
+
   it('marks a project without a composition record as unlocked', () => {
     const output = EditorProjectSerializer.serialize({
       config: { name: 'Draft' },

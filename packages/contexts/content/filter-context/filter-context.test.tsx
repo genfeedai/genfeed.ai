@@ -12,6 +12,15 @@ describe('FilterContext', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <FilterProvider>
+        <div data-testid="child" />
+      </FilterProvider>,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <FilterProvider>

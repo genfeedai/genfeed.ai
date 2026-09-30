@@ -85,6 +85,25 @@ describe('TaskActionsService', () => {
     vi.clearAllMocks();
   });
 
+  it('captures approval feedback memory with the reviewer user id', async () => {
+    await service.approve(taskId, organizationId, reviewerUserId);
+
+    expect(
+      taskFeedbackMemoryAdapter.captureFromTaskReview,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        decision: 'approved',
+        organizationId,
+        task: expect.objectContaining({
+          completedAt: expect.any(Date),
+          reviewState: 'approved',
+          status: 'done',
+        }),
+        userId: reviewerUserId,
+      }),
+    );
+  });
+
   it('captures requested-change feedback memory with the reviewer note', async () => {
     await service.requestChanges(
       taskId,

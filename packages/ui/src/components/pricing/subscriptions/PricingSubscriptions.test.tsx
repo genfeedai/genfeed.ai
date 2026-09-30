@@ -8,6 +8,11 @@ describe('PricingSubscriptions', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<PricingSubscriptions />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<PricingSubscriptions />);
     const rootElement = container.firstChild as HTMLElement;

@@ -40,9 +40,29 @@ describe('auth-client config', () => {
     }
   });
 
+  it('carries the full /v1/auth prefix (basePath, not baseURL)', () => {
+    // Critical: Better Auth drops basePath when baseURL already has a path, so
+    // the whole prefix must live here and baseURL must be the bare origin.
+    expect(BETTER_AUTH_BASE_PATH).toBe('/v1/auth');
+  });
+
   describe('getApiOrigin', () => {
     it('strips the /v1 path to a bare origin (default)', () => {
       expect(getApiOrigin()).toBe('https://api.genfeed.ai');
+    });
+
+    it('strips the path from a custom endpoint', () => {
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://genfeed.localhost:3010/v1';
+      expect(getApiOrigin()).toBe('http://genfeed.localhost:3010');
+    });
+
+    it('prefers the runtime endpoint injected by the app shell', () => {
+      process.env.NEXT_PUBLIC_API_ENDPOINT = 'https://build.example/v1';
+      globalThis.__GENFEED_RUNTIME_CONFIG__ = {
+        apiEndpoint: 'http://runtime.local:3010/v1',
+      };
+
+      expect(getApiOrigin()).toBe('http://runtime.local:3010');
     });
 
     it('produces the correct effective auth base URL', () => {
@@ -55,6 +75,20 @@ describe('auth-client config', () => {
   });
 
   describe('isBetterAuthEnabled', () => {
+    it('is true by default (Better Auth is the active session source)', () => {
+      expect(isBetterAuthEnabled()).toBe(true);
+    });
+
+    it('is true for the exact string "true"', () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'true';
+      expect(isBetterAuthEnabled()).toBe(true);
+    });
+
+    it('is false only for the exact string "false"', () => {
+      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'false';
+      expect(isBetterAuthEnabled()).toBe(false);
+    });
+
     it('prefers the runtime auth mode injected by the app shell', () => {
       process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'true';
       globalThis.__GENFEED_RUNTIME_CONFIG__ = {

@@ -151,6 +151,12 @@ describe('UploadService', () => {
     expect(mockStorage.delete).toHaveBeenCalledWith('videos/source.mp4');
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   describe('uploadToS3 - file source', () => {
     it('rejects a file source outside the files temp root before reading it', async () => {
       await expect(
@@ -299,6 +305,20 @@ describe('UploadService', () => {
       );
     });
 
+    it('should handle video without audio stream', async () => {
+      mockFfmpegService.getVideoMetadata.mockResolvedValue({
+        format: { duration: 30 },
+        streams: [{ codec_type: 'video', height: 1080, width: 1920 }],
+      });
+
+      const result = await service.uploadToS3('test-key', 'videos', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
+        type: 'file',
+      });
+
+      expect(result.hasAudio).toBe(false);
+    });
+
     it('should upload ZIP file without image processing', async () => {
       const zipPath = path.join(FILES_TMP_ROOT, 'fixtures', 'archive.zip');
       const result = await service.uploadToS3('test-key', 'archives', {
@@ -313,6 +333,21 @@ describe('UploadService', () => {
         zipPath,
         FILES_TMP_ROOT,
         'application/zip',
+      );
+    });
+
+    it('should handle unknown file types as octet-stream', async () => {
+      const unknownPath = path.join(FILES_TMP_ROOT, 'fixtures', 'file.unknown');
+      await service.uploadToS3('test-key', 'files', {
+        path: unknownPath,
+        type: 'file',
+      });
+
+      expect(mockStorage.uploadFromFile).toHaveBeenCalledWith(
+        'ingredients/files/test-key',
+        unknownPath,
+        FILES_TMP_ROOT,
+        'application/octet-stream',
       );
     });
   });
@@ -365,6 +400,19 @@ describe('UploadService', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('should handle download errors', async () => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => new Error('Download failed')),
+      );
+
+      await expect(
+        service.uploadToS3('test-key', 'images', {
+          type: 'url',
+          url: 'https://example.com/image.jpg',
+        }),
+      ).rejects.toThrow(HttpException);
+    });
+
     it('should handle file size exceeded error', async () => {
       mockHttpService.get.mockReturnValue(
         throwError(() => ({ code: 'ERR_FR_MAX_BODY_LENGTH_EXCEEDED' })),
@@ -376,6 +424,23 @@ describe('UploadService', () => {
           url: 'https://example.com/large-file.mp4',
         }),
       ).rejects.toThrow('File size exceeds 200MB limit');
+    });
+
+    it('should infer content type from URL extension', async () => {
+      mockHttpService.get.mockReturnValue(
+        of(axiosResponse(Buffer.from('video-content'))),
+      );
+
+      // Need to setup tmp dir mock
+      (fs.existsSync as Mock).mockReturnValue(true);
+
+      await service.uploadToS3('test-key', 'videos', {
+        type: 'url',
+        url: 'https://example.com/video.mp4',
+      });
+
+      // Video type should be detected from URL
+      expect(mockFfmpegService.getVideoMetadata).toHaveBeenCalled();
     });
 
     it('keeps the response content type for a gif and extracts dimensions', async () => {
@@ -488,6 +553,18 @@ describe('UploadService', () => {
       expect(result.height).toBe(1080);
     });
 
+    it('should strip data URL prefix from base64', async () => {
+      const base64Data = `data:image/jpeg;base64,${Buffer.from('test').toString('base64')}`;
+
+      await service.uploadToS3('test-key', 'images', {
+        contentType: 'image/jpeg',
+        data: base64Data,
+        type: 'base64',
+      });
+
+      expect(mockStorage.upload).toHaveBeenCalled();
+    });
+
     it('should handle base64 video and extract metadata', async () => {
       const base64Data = Buffer.from('video-content').toString('base64');
 
@@ -503,6 +580,31 @@ describe('UploadService', () => {
   });
 
   describe('uploadToS3 - buffer source', () => {
+    it('should upload buffer directly', async () => {
+      const buffer = Buffer.from('image-data');
+
+      const result = await service.uploadToS3('test-key', 'images', {
+        contentType: 'image/jpeg',
+        data: buffer,
+        type: 'buffer',
+      });
+
+      expect(result.publicUrl).toBe('https://s3.example.com/test-key');
+    });
+
+    it('should process image buffer', async () => {
+      const buffer = Buffer.from('image-data');
+
+      await service.uploadToS3('test-key', 'images', {
+        contentType: 'image/jpeg',
+        data: buffer,
+        type: 'buffer',
+      });
+
+      expect(mockSharpInstance.rotate).toHaveBeenCalled();
+      expect(mockSharpInstance.jpeg).toHaveBeenCalled();
+    });
+
     it('should extract video metadata from buffer', async () => {
       const buffer = Buffer.from('video-data');
 
@@ -547,6 +649,26 @@ describe('UploadService', () => {
   });
 
   describe('uploadToS3 - image processing', () => {
+    it('should auto-rotate images based on EXIF', async () => {
+      await service.uploadToS3('test-key', 'images', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
+        type: 'file',
+      });
+
+      expect(mockSharpInstance.rotate).toHaveBeenCalled();
+    });
+
+    it('should use configured compression quality', async () => {
+      mockConfigService.get.mockReturnValue('85');
+
+      await service.uploadToS3('test-key', 'images', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
+        type: 'file',
+      });
+
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 85 });
+    });
+
     it('should default to 90 quality if not configured', async () => {
       mockConfigService.get.mockReturnValue(undefined);
 
@@ -556,6 +678,75 @@ describe('UploadService', () => {
       });
 
       expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 90 });
+    });
+  });
+
+  describe('uploadToS3 - logging', () => {
+    it('should log upload start', async () => {
+      await service.uploadToS3('test-key', 'images', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
+        type: 'file',
+      });
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('starting upload'),
+        expect.objectContaining({
+          key: 'test-key',
+          sourceType: 'file',
+          type: 'images',
+        }),
+      );
+    });
+
+    it('should log upload completion with metrics', async () => {
+      await service.uploadToS3('test-key', 'images', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
+        type: 'file',
+      });
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('upload completed successfully'),
+        expect.objectContaining({
+          key: 'test-key',
+          publicUrl: 'https://s3.example.com/test-key',
+        }),
+      );
+    });
+  });
+
+  describe('uploadToS3 - return values', () => {
+    it('should return complete metadata for images', async () => {
+      const result = await service.uploadToS3('test-key', 'images', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'image.jpg'),
+        type: 'file',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          height: expect.any(Number),
+          publicUrl: expect.any(String),
+          size: expect.any(Number),
+          width: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should return complete metadata for videos', async () => {
+      const result = await service.uploadToS3('test-key', 'videos', {
+        path: path.join(FILES_TMP_ROOT, 'fixtures', 'video.mp4'),
+        type: 'file',
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          duration: expect.any(Number),
+          hasAudio: expect.any(Boolean),
+          height: expect.any(Number),
+          publicUrl: expect.any(String),
+          size: expect.any(Number),
+          width: expect.any(Number),
+        }),
+      );
     });
   });
 });

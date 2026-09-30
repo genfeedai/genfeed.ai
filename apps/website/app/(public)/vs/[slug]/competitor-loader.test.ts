@@ -20,4 +20,8 @@ describe('formatCompetitorSlug', () => {
     expect(formatCompetitorSlug('hootsuite')).toBe('Hootsuite');
     expect(formatCompetitorSlug('later-social')).toBe('Later Social');
   });
+
+  it('returns an empty string for an empty slug', () => {
+    expect(formatCompetitorSlug('')).toBe('');
+  });
 });

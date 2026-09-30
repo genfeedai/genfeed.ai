@@ -38,10 +38,39 @@ describe('PlatformModuleRouteGate (#5468)', () => {
     state.pathname = '/acme/brand/studio/generate';
   });
 
+  it('renders a module route while its flag is on', () => {
+    renderGate();
+
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
+  it('answers 404 on a module route whose flag is off', () => {
+    state.flags = { studio: false };
+
+    expect(renderGate).toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('lets a superadmin open a module that is off', () => {
+    state.flags = { studio: false };
+    state.isSuperAdmin = true;
+
+    renderGate();
+
+    expect(screen.getByText('module content')).toBeInTheDocument();
+  });
+
   it('blocks disabled Clips creation for regular users', () => {
     state.flags = { studio: false };
     state.pathname = '/acme/brand/studio/clips/new';
     expect(renderGate).toThrow('NEXT_NOT_FOUND');
+  });
+
+  it('preserves superadmin inspection of disabled Clips creation', () => {
+    state.flags = { studio: false };
+    state.isSuperAdmin = true;
+    state.pathname = '/acme/brand/studio/clips/new';
+    renderGate();
+    expect(screen.getByText('module content')).toBeInTheDocument();
   });
 
   it('never gates a route outside the flagged modules', () => {

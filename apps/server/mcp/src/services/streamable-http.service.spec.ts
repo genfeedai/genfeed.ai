@@ -100,6 +100,11 @@ function makeReq(overrides: Partial<Request> = {}): Request {
  * array-shaped argument (client service and logger are objects, role is a
  * string), so finding it by shape is a cleaner, reorder-safe assertion.
  */
+function getConstructedToolsets(callIndex = 0): unknown {
+  return toolRegistryConstructorCalls[callIndex]?.find((arg) =>
+    Array.isArray(arg),
+  );
+}
 
 function makeRes(): Response & {
   status: ReturnType<typeof vi.fn>;
@@ -161,6 +166,10 @@ describe('StreamableHttpService', () => {
     service = module.get<StreamableHttpService>(StreamableHttpService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('transport readiness', () => {
     it('is not ready until the bootstrap mounts the /mcp routes', () => {
       expect(service.isTransportReady()).toBe(false);
@@ -170,6 +179,12 @@ describe('StreamableHttpService', () => {
       service.markTransportMounted();
 
       expect(service.isTransportReady()).toBe(true);
+    });
+
+    it('does not become ready merely by serving a request', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(service.isTransportReady()).toBe(false);
     });
   });
 
@@ -190,6 +205,13 @@ describe('StreamableHttpService', () => {
       expect(mockHandleRequest).toHaveBeenCalledWith(req, res, undefined);
     });
 
+    it('tears down the transport and server after every request (finally)', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(transportInstances[0].close).toHaveBeenCalledOnce();
+      expect(serverInstances[0].close).toHaveBeenCalledOnce();
+    });
+
     it('creates an independent transport per request (no reuse)', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
       await service.handlePost(makeReq({ headers: {} }), makeRes());
@@ -197,6 +219,42 @@ describe('StreamableHttpService', () => {
       expect(transportInstances).toHaveLength(2);
       expect(serverInstances).toHaveLength(2);
       expect(transportInstances[0]).not.toBe(transportInstances[1]);
+    });
+
+    it('forwards a parsed body to the transport when present', async () => {
+      const body = { id: 1, jsonrpc: '2.0', method: 'initialize' };
+      const req = makeReq({ body } as unknown as Partial<Request>);
+      const res = makeRes();
+
+      await service.handlePost(req, res);
+
+      expect(mockHandleRequest).toHaveBeenCalledWith(req, res, body);
+    });
+
+    it('propagates the bearer token from authContext to the client', async () => {
+      const req = makeReq({
+        authContext: { token: 'bearer-xyz' },
+      } as unknown as Partial<Request>);
+
+      await service.handlePost(req, makeRes());
+
+      expect(mockSetBearerToken).toHaveBeenCalledWith('bearer-xyz');
+    });
+
+    it('threads the request-scoped toolset selection into the registry', async () => {
+      const req = makeReq({
+        toolsets: ['content'],
+      } as unknown as Partial<Request>);
+
+      await service.handlePost(req, makeRes());
+
+      expect(getConstructedToolsets()).toEqual(['content']);
+    });
+
+    it('defaults to an empty toolset selection ("every tool") when unset', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(getConstructedToolsets()).toEqual([]);
     });
 
     it('instruments the request server with the authenticated identity', async () => {

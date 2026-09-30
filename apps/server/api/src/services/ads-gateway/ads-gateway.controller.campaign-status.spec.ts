@@ -139,6 +139,18 @@ describe('AdsGatewayWriteController paused-only campaign writes', () => {
     );
   });
 
+  it('accepts an omitted status on create', async () => {
+    await expect(
+      controller.createCampaign(mockUser, 'meta', {
+        ...baseBody,
+        name: 'Launch',
+        objective: 'OUTCOME_TRAFFIC',
+      }),
+    ).resolves.toBeDefined();
+
+    expect(mockAdapter.createCampaign).toHaveBeenCalled();
+  });
+
   it('accepts a budget-only update with no status', async () => {
     await expect(
       controller.updateCampaign(mockUser, 'meta', 'campaign-1', {

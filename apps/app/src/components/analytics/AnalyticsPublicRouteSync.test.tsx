@@ -68,6 +68,16 @@ describe('AnalyticsPublicRouteSync', () => {
     expect(mocks.capturePageview).not.toHaveBeenCalled();
   });
 
+  it('ensures anonymous scope before a signed-out public pageview', () => {
+    render(<AnalyticsPublicRouteSync />);
+
+    expect(mocks.ensureAnonymous).toHaveBeenCalledOnce();
+    expect(mocks.ensureAnonymous.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.capturePageview.mock.invocationCallOrder[0] as number,
+    );
+    expect(mocks.resetAnalytics).not.toHaveBeenCalled();
+  });
+
   it('preserves authenticated attribution for signed-in public callbacks', () => {
     mocks.authUser = {
       id: 'user-1',
@@ -85,6 +95,20 @@ describe('AnalyticsPublicRouteSync', () => {
       mocks.capturePageview.mock.invocationCallOrder[0] as number,
     );
     expect(mocks.ensureAnonymous).not.toHaveBeenCalled();
+  });
+
+  it('leaves explicit logout lifecycle ownership to the logout page', () => {
+    mocks.authUser = {
+      id: 'user-1',
+      primaryEmailAddress: { emailAddress: 'user@example.com' },
+    };
+    mocks.pathname = '/logout';
+
+    render(<AnalyticsPublicRouteSync />);
+
+    expect(mocks.resetAnalytics).not.toHaveBeenCalled();
+    expect(mocks.identifyUser).not.toHaveBeenCalled();
+    expect(mocks.capturePageview).not.toHaveBeenCalled();
   });
 
   it('captures later public routes without rotating anonymous identity again', () => {

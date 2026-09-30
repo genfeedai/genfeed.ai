@@ -14,6 +14,15 @@ describe('CollectionFilterUtil', () => {
     const orgB = '550e8400-e29b-41d4-a716-446655440002';
     const brandA = '550e8400-e29b-41d4-a716-446655440003';
 
+    it('allows superadmin arbitrary organization and brand filters', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { brandId: brandA, organizationId: orgB },
+          { brandId: brandA, isSuperAdmin: true, organizationId: orgA },
+        ),
+      ).toEqual({ brandId: brandA, organizationId: orgB });
+    });
+
     it('rejects a member organization filter outside the session org', () => {
       const call = () =>
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
@@ -32,6 +41,71 @@ describe('CollectionFilterUtil', () => {
           title: 'Forbidden',
         });
       }
+    });
+
+    it('allows member brand filters but forces the session organization boundary', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { brandId: '550e8400-e29b-41d4-a716-446655440004' },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+        ),
+      ).toEqual({
+        brandId: '550e8400-e29b-41d4-a716-446655440004',
+        organizationId: orgA,
+      });
+    });
+
+    it('allows member organization filter equal to the session org', () => {
+      expect(
+        CollectionFilterUtil.resolveAuthorizedTenantQuery(
+          { organizationId: orgA },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+        ),
+      ).toEqual({ organizationId: orgA });
+    });
+  });
+
+  describe('applyAuthorizedTenantMatch', () => {
+    const orgA = '550e8400-e29b-41d4-a716-446655440001';
+    const orgB = '550e8400-e29b-41d4-a716-446655440002';
+    const brandA = '550e8400-e29b-41d4-a716-446655440003';
+
+    it('binds members to the session organization even when query asks for another', () => {
+      expect(() =>
+        CollectionFilterUtil.applyAuthorizedTenantMatch(
+          {},
+          { organizationId: orgB },
+          { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+        ),
+      ).toThrow(ForbiddenException);
+    });
+
+    it('writes session organization and brand onto the match for members', () => {
+      const match: Record<string, unknown> = { isDeleted: false };
+
+      CollectionFilterUtil.applyAuthorizedTenantMatch(
+        match,
+        {},
+        { brandId: brandA, isSuperAdmin: false, organizationId: orgA },
+      );
+
+      expect(match).toEqual({
+        brandId: brandA,
+        isDeleted: false,
+        organizationId: orgA,
+      });
+    });
+
+    it('lets superadmins filter a different organization', () => {
+      const match: Record<string, unknown> = { isDeleted: false };
+
+      CollectionFilterUtil.applyAuthorizedTenantMatch(
+        match,
+        { organizationId: orgB },
+        { brandId: brandA, isSuperAdmin: true, organizationId: orgA },
+      );
+
+      expect(match.organizationId).toBe(orgB);
     });
   });
 
@@ -72,10 +146,55 @@ describe('CollectionFilterUtil', () => {
     });
   });
 
+  describe('buildAuthorizedBrandFilter', () => {
+    const activeBrandId = '550e8400-e29b-41d4-a716-446655440003';
+    const foreignBrandId = '550e8400-e29b-41d4-a716-446655440004';
+
+    it('allows a member to query the active authenticated brand', () => {
+      expect(
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          activeBrandId,
+          { brandId: activeBrandId },
+          false,
+        ),
+      ).toBe(activeBrandId);
+    });
+
+    it('rejects a member query override to another brand', () => {
+      expect(() =>
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          foreignBrandId,
+          { brandId: activeBrandId },
+          false,
+        ),
+      ).toThrow(ForbiddenException);
+    });
+
+    it('allows a superadmin to query another brand', () => {
+      expect(
+        CollectionFilterUtil.buildAuthorizedBrandFilter(
+          foreignBrandId,
+          { brandId: activeBrandId },
+          true,
+        ),
+      ).toBe(foreignBrandId);
+    });
+  });
+
   describe('buildScopeFilter', () => {
     it('returns provided scope value', () => {
       const result = CollectionFilterUtil.buildScopeFilter(AssetScope.PUBLIC);
       expect(result).toBe(AssetScope.PUBLIC);
+    });
+
+    it('omits the scope filter when scope missing', () => {
+      const result = CollectionFilterUtil.buildScopeFilter(undefined);
+      expect(result).toBeUndefined();
+    });
+
+    it('omits malformed scope filter objects', () => {
+      const result = CollectionFilterUtil.buildScopeFilter({ not: null });
+      expect(result).toBeUndefined();
     });
 
     it('omits unknown scope strings', () => {
@@ -85,6 +204,13 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildSearchFilter', () => {
+    it('returns empty where filter when no search term', () => {
+      const result = CollectionFilterUtil.buildSearchFilter(undefined, [
+        'metadata.label',
+      ]);
+      expect(result).toEqual({ where: {} });
+    });
+
     it('creates OR where filter for provided fields', () => {
       const result = CollectionFilterUtil.buildSearchFilter('hello', [
         'metadata.label',
@@ -161,6 +287,10 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildArrayFilter', () => {
+    it('returns empty when values undefined', () => {
+      expect(CollectionFilterUtil.buildArrayFilter(undefined)).toEqual({});
+    });
+
     it('wraps single string in array', () => {
       const result = CollectionFilterUtil.buildArrayFilter('tech', 'tags');
       expect(result).toEqual({ tags: { in: ['tech'] } });
@@ -177,10 +307,20 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildStatusFilter', () => {
+    it('returns empty when status undefined', () => {
+      expect(CollectionFilterUtil.buildStatusFilter()).toEqual({});
+    });
+
     it('handles array of statuses', () => {
       expect(
         CollectionFilterUtil.buildStatusFilter(['completed', 'failed']),
       ).toEqual({ status: { in: ['completed', 'failed'] } });
+    });
+
+    it('treats comma separated string as a single literal value', () => {
+      expect(
+        CollectionFilterUtil.buildStatusFilter('completed,processing'),
+      ).toEqual({ status: 'completed,processing' });
     });
 
     it('returns trimmed status for single value', () => {
@@ -191,6 +331,16 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildCategoryFilter', () => {
+    it('returns empty when category undefined', () => {
+      expect(CollectionFilterUtil.buildCategoryFilter()).toEqual({});
+    });
+
+    it('wraps arrays with in operator', () => {
+      expect(
+        CollectionFilterUtil.buildCategoryFilter(['video', 'image']),
+      ).toEqual({ category: { in: ['video', 'image'] } });
+    });
+
     it('returns direct category for single value', () => {
       expect(CollectionFilterUtil.buildCategoryFilter('video')).toEqual({
         category: 'video',
@@ -213,6 +363,12 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildBooleanFilter', () => {
+    it('returns default when value undefined', () => {
+      expect(CollectionFilterUtil.buildBooleanFilter(undefined)).toEqual({
+        not: null,
+      });
+    });
+
     it('parses string booleans correctly', () => {
       expect(CollectionFilterUtil.buildBooleanFilter('false')).toBe(false);
       expect(CollectionFilterUtil.buildBooleanFilter('true')).toBe(true);

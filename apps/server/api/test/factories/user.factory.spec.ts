@@ -3,14 +3,19 @@ import {
   createMockExecutionContext,
   createMockGuard,
   createMockInterceptor,
+  createTestingModule,
   mockAuthRequest,
 } from '@test/mocks/controller.mocks';
 import {
   createMockObjectId,
   mockAsyncIterator,
+  mockAuthProviderService,
   mockCacheService,
   mockConfigService,
+  mockCreditTransactionsService,
   mockFile,
+  mockFileQueueService,
+  mockHttpService,
   mockLoggerService,
   mockModel,
   mockNext,
@@ -55,6 +60,16 @@ describe('Controller mocks', () => {
     expect(request.headers.authorization).toBe('Bearer x');
     expect(request.organizationId).toBeDefined();
   });
+
+  it('builds testing modules with logger disabled', async () => {
+    const moduleRef = await createTestingModule({
+      controllers: [],
+      imports: [],
+      providers: [],
+    });
+
+    expect(moduleRef).toBeDefined();
+  });
 });
 
 describe('Service mocks', () => {
@@ -79,6 +94,28 @@ describe('Service mocks', () => {
     const model = mockModel<{ name: string }>();
     const paginated = await model.aggregatePaginate();
     expect(paginated.totalDocs).toBe(0);
+  });
+
+  it('mocks external services', () => {
+    const authProvider = mockAuthProviderService();
+    const queue = mockFileQueueService();
+    const credit = mockCreditTransactionsService();
+
+    expect(authProvider.getUser).toBeDefined();
+    expect(queue.processVideo).toBeDefined();
+    expect(credit.createTransactionEntry).toBeDefined();
+  });
+
+  it('mocks HTTP service responses', async () => {
+    const http = mockHttpService();
+
+    const response = await new Promise<{ status: number }>(
+      (resolve, reject) => {
+        http.get?.('/').subscribe({ error: reject, next: resolve });
+      },
+    );
+
+    expect(response.status).toBe(200);
   });
 
   it('provides metadata and pagination helpers', () => {

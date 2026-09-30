@@ -333,6 +333,38 @@ describe('BrandSettingsPublishingPage', () => {
     );
   });
 
+  it('shows the approval gate note when auto-publish is off and the gate is required', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {
+          autoPublish: { enabled: false, isApprovalRequired: true },
+        },
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'You have the final say',
+    );
+  });
+
+  it('hides the approval gate note when auto-publish is on or the gate is not required', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {
+          autoPublish: { enabled: true, isApprovalRequired: true },
+        },
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('sends isApprovalRequired: false when enabling auto-publish', async () => {
     mocks.brandDetail = {
       ...mocks.brandDetail,
@@ -617,6 +649,23 @@ describe('BrandSettingsPublishingPage', () => {
         timezone: 'Europe/Malta',
       });
     });
+  });
+
+  it('renders the no-connected-account state', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {},
+        credentials: [],
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(
+      screen.getByText('No connected accounts are available for this brand.'),
+    ).toBeVisible();
+    expect(mocks.getPublishingContext).not.toHaveBeenCalled();
   });
 
   it('preserves successful readiness when another account fails', async () => {

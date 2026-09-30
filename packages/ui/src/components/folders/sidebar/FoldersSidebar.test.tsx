@@ -27,6 +27,13 @@ vi.mock('@ui/drag-drop/zone-folder/DropZoneFolder', () => ({
 }));
 
 describe('FoldersSidebar', () => {
+  it('should render without crashing', () => {
+    const { container } = render(
+      <FoldersSidebar folders={[]} onSelectFolder={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should render the All folder zone', () => {
     render(<FoldersSidebar folders={[]} onSelectFolder={vi.fn()} />);
     expect(screen.getByTestId('all-folder')).toBeInTheDocument();
@@ -73,6 +80,33 @@ describe('FoldersSidebar navigation tree', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Expand Campaigns' }));
 
     expect(screen.getByText('Spring')).toBeInTheDocument();
+  });
+
+  it('should open the branch holding the selected folder', () => {
+    render(
+      <FoldersSidebar
+        folders={nestedFolders}
+        onSelectFolder={vi.fn()}
+        selectedFolderId="2"
+        variant="navigation"
+      />,
+    );
+
+    expect(screen.getByText('Spring')).toBeInTheDocument();
+  });
+
+  it('should not offer a disclosure for a folder without children', () => {
+    render(
+      <FoldersSidebar
+        folders={[{ id: '1', label: 'Campaigns' }] as IFolder[]}
+        onSelectFolder={vi.fn()}
+        variant="navigation"
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Expand|Collapse/ }),
+    ).not.toBeInTheDocument();
   });
 
   it('uses the canonical navigation row geometry without a root spacer', () => {

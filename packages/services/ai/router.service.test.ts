@@ -36,6 +36,10 @@ describe('RouterService', () => {
     service = new RouterService(mockToken);
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(RouterService);
+  });
+
   it('has model selection methods', () => {
     expect(typeof service.selectModel).toBe('function');
     expect(typeof service.selectImageModel).toBe('function');

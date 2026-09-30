@@ -70,4 +70,18 @@ describe('CalendarRepublishDialog', () => {
     expect(onChooseRepublish).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
+
+  it('hides the choice while closed', () => {
+    render(
+      <CalendarRepublishDialog
+        isOpen={false}
+        onCancel={vi.fn()}
+        onChooseCardOnly={vi.fn()}
+        onChooseRepublish={vi.fn()}
+        pendingAction={null}
+      />,
+    );
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

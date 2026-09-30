@@ -84,6 +84,10 @@ describe('LinkedInModule', () => {
     }
   });
 
+  it('should be defined', () => {
+    expect(_module).toBeDefined();
+  });
+
   it('binds the server trend resolver port to the API resolver singleton', () => {
     expect(_module.get(SERVER_TOKENS.linkedInTrends)).toBe(
       _module.get(LinkedInTrendResolverService),

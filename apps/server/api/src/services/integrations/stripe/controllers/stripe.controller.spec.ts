@@ -225,6 +225,10 @@ describe('StripeController', () => {
     controller = moduleRef.get<StripeController>(StripeController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createCheckoutSession', () => {
     const dto = { quantity: 1, stripePriceId: 'price_abc123' };
 
@@ -359,6 +363,27 @@ describe('StripeController', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('should use custom redirect URLs when provided', async () => {
+      const dtoWithUrls = {
+        ...dto,
+        cancelUrl: 'https://cancel.url',
+        successUrl: 'https://success.url',
+      };
+      await controller.createCheckoutSession(
+        mockUser,
+        dtoWithUrls,
+        mockRequest,
+      );
+      expect(stripeService.createPaymentSession).toHaveBeenCalledWith(
+        'cus_test123',
+        'price_abc123',
+        'https://app.genfeed.ai',
+        1,
+        { cancel: 'https://cancel.url', success: 'https://success.url' },
+        { organizationId: orgId },
+      );
+    });
+
     it('should re-throw HttpExceptions from stripe service', async () => {
       stripeService.createPaymentSession.mockRejectedValueOnce(
         new HttpException('Stripe error', HttpStatus.PAYMENT_REQUIRED),
@@ -469,6 +494,34 @@ describe('StripeController', () => {
         await app.close();
       });
 
+      it('accepts a valid origin-relative returnPath', async () => {
+        await request(app.getHttpServer())
+          .get('/services/stripe/portal')
+          .set('Origin', 'https://app.genfeed.ai')
+          .query({
+            returnPath: '/acme/~/settings/organization/subscription',
+          })
+          .expect(HttpStatus.OK);
+
+        expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+          'cus_test123',
+          'https://app.genfeed.ai/acme/~/settings/organization/subscription',
+        );
+      });
+
+      it('rejects a repeated type-confused returnPath before billing work', async () => {
+        await request(app.getHttpServer())
+          .get('/services/stripe/portal')
+          .set('Origin', 'https://app.genfeed.ai')
+          .query({ returnPath: ['/acme/~/settings', '/admin'] })
+          .expect(HttpStatus.BAD_REQUEST);
+
+        expect(
+          subscriptionsService.findByOrganizationId,
+        ).not.toHaveBeenCalled();
+        expect(stripeService.getBillingPortalUrl).not.toHaveBeenCalled();
+      });
+
       it('rejects an off-origin returnPath before billing work', async () => {
         await request(app.getHttpServer())
           .get('/services/stripe/portal')
@@ -483,6 +536,24 @@ describe('StripeController', () => {
       });
     });
 
+    it('should return billing portal URL', async () => {
+      const result = await controller.getBillingPortalUrl(
+        mockUser,
+        mockRequest,
+        {},
+      );
+      expect(result).toEqual({ url: 'https://billing.stripe.com/portal' });
+    });
+
+    it('should return to the origin root when no returnPath is given', async () => {
+      await controller.getBillingPortalUrl(mockUser, mockRequest, {});
+
+      expect(stripeService.getBillingPortalUrl).toHaveBeenCalledWith(
+        'cus_test123',
+        'https://app.genfeed.ai',
+      );
+    });
+
     it('should append a relative returnPath to the request origin', async () => {
       await controller.getBillingPortalUrl(mockUser, mockRequest, {
         returnPath: '/acme/~/settings/organization/subscription',
@@ -492,6 +563,12 @@ describe('StripeController', () => {
         'cus_test123',
         'https://app.genfeed.ai/acme/~/settings/organization/subscription',
       );
+    });
+
+    it('should throw BAD_REQUEST when origin missing', async () => {
+      await expect(
+        controller.getBillingPortalUrl(mockUser, mockRequestNoOrigin, {}),
+      ).rejects.toThrow(HttpException);
     });
 
     it('rejects a type-confused Origin header before billing work', async () => {

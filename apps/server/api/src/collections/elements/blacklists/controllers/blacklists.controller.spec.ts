@@ -51,8 +51,16 @@ describe('ElementsBlacklistsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('should have blacklistsService injected', () => {
     expect(controller.blacklistsService).toBeDefined();
     expect(controller.blacklistsService).toBe(service);
+  });
+
+  it('should have loggerService injected', () => {
+    expect(controller.loggerService).toBeDefined();
   });
 });

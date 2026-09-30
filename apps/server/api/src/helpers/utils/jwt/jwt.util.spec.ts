@@ -32,4 +32,10 @@ describe('encodeJwtToken', () => {
     expect(decoded.exp).toBe(now + 1800);
     expect(decoded.nbf).toBe(now - 5);
   });
+
+  it('produces a token that fails verification under a different secret', () => {
+    const token = encodeJwtToken('access-key', secret);
+
+    expect(() => jwt.verify(token, 'other-secret')).toThrowError();
+  });
 });

@@ -58,6 +58,10 @@ describe('RolesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
     it('should create a role successfully', async () => {
       const createRoleDto: CreateRoleDto = {

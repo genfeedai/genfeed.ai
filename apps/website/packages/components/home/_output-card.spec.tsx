@@ -141,6 +141,13 @@ describe('HomeOutputCard', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('never fetches the clip when the visitor asked to save data', () => {
+    stubEnvironment({ isSavingData: true });
+    render(<HomeOutputCard asset={ASSET} isPreloaded={false} />);
+
+    expect(intersect).toBeUndefined();
+  });
+
   it('preloads the poster only for the card that asks for it', () => {
     stubEnvironment();
     const { rerender } = render(

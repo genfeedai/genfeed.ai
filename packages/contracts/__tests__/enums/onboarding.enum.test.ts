@@ -7,6 +7,10 @@ import {
 
 describe('onboarding.enum', () => {
   describe('OnboardingStep', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(OnboardingStep)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(OnboardingStep.WELCOME).toBe('welcome');
       expect(OnboardingStep.BRAND_URL).toBe('brand_url');
@@ -17,6 +21,10 @@ describe('onboarding.enum', () => {
   });
 
   describe('OnboardingStatus', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(OnboardingStatus)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(OnboardingStatus.NOT_STARTED).toBe('not_started');
       expect(OnboardingStatus.IN_PROGRESS).toBe('in_progress');
@@ -26,6 +34,10 @@ describe('onboarding.enum', () => {
   });
 
   describe('BrandExtractionStatus', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(BrandExtractionStatus)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(BrandExtractionStatus.PENDING).toBe('pending');
       expect(BrandExtractionStatus.SCRAPING).toBe('scraping');

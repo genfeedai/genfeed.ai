@@ -62,6 +62,25 @@ describe('tenant context', () => {
 });
 
 describe('billing account scope registration', () => {
+  it('is empty outside a tenant context', () => {
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
+  });
+
+  it('is a no-op outside a tenant context (nothing to register into)', () => {
+    registerBillingAccountScope('billing-1');
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
+  });
+
+  it('registers a billingAccountId as active for the current tenant context', () => {
+    const seen = runWithTenantContext({ organizationId: 'org-1' }, () => {
+      registerBillingAccountScope('billing-1');
+      return getActiveBillingAccountScopes();
+    });
+
+    expectActiveScopes(seen, ['billing-1']);
+    expectActiveScopes(getActiveBillingAccountScopes(), []);
+  });
+
   it('accumulates multiple registered scopes in the same context', () => {
     const seen = runWithTenantContext({ organizationId: 'org-1' }, () => {
       registerBillingAccountScope('billing-1');
@@ -71,6 +90,26 @@ describe('billing account scope registration', () => {
     });
 
     expectActiveScopes(seen, ['billing-1', 'billing-2']);
+  });
+
+  it('does not carry a registered scope into a nested runWithTenantContext', () => {
+    const seen = runWithTenantContext({ organizationId: 'org-1' }, () => {
+      registerBillingAccountScope('billing-1');
+      return runWithTenantContext({ organizationId: 'org-2' }, () =>
+        getActiveBillingAccountScopes(),
+      );
+    });
+
+    expectActiveScopes(seen, []);
+  });
+
+  it('is visible inside the crossOrgUnsafe escape hatch', () => {
+    const seen = runWithTenantContext({ organizationId: 'org-1' }, () => {
+      registerBillingAccountScope('billing-1');
+      return crossOrgUnsafe(() => getActiveBillingAccountScopes());
+    });
+
+    expectActiveScopes(seen, ['billing-1']);
   });
 
   it('does not expose a mutable Set through the returned view', () => {

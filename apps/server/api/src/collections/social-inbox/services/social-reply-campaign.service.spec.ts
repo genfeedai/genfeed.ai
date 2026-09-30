@@ -349,6 +349,21 @@ describe('SocialReplyCampaignService', () => {
       ).rejects.toThrow(BadRequestException);
       expect(context.recipients).toHaveLength(0);
     });
+
+    it('rejects a conversation belonging to another tenant', async () => {
+      const context = createContext();
+      context.conversations.push({
+        brandId: 'brand-9',
+        id: 'conversation-foreign',
+        isDeleted: false,
+        organizationId: 'org-2',
+        platform: 'youtube',
+      });
+
+      await expect(
+        seedCampaign(context, ['conversation-foreign']),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 
   describe('transition', () => {

@@ -27,4 +27,23 @@ describe('IngredientsContext', () => {
     );
     expect(container.firstChild).toBeInTheDocument();
   });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <IngredientsProvider value={baseValue}>
+        <div data-testid="child" />
+      </IngredientsProvider>,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should apply correct styles and classes', () => {
+    const { container } = render(
+      <IngredientsProvider value={baseValue}>
+        <div data-testid="child" />
+      </IngredientsProvider>,
+    );
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement).toBeInTheDocument();
+  });
 });

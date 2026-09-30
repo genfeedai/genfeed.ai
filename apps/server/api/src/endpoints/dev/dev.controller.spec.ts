@@ -41,6 +41,10 @@ describe('DevController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('throws FORBIDDEN when in production mode', async () => {
     configService.isProduction = true;
     controller = new DevController(
@@ -160,5 +164,16 @@ describe('DevController', () => {
       HttpException,
     );
     expect(loggerService.error).toHaveBeenCalled();
+  });
+
+  it('warns on construction when in production', () => {
+    configService.isProduction = true;
+    new DevController(
+      configService as unknown as ConfigService,
+      loggerService as unknown as LoggerService,
+      notificationsService as unknown as ActivityRecorderService,
+      ingredientsService as unknown as IngredientsService,
+    );
+    expect(loggerService.warn).toHaveBeenCalled();
   });
 });

@@ -190,6 +190,23 @@ describe('ModelSelectorModelItem', () => {
     expect(onToggle).toHaveBeenCalledWith('google/veo-3');
   });
 
+  it('does not select the model when pointer down starts on favorite', () => {
+    const onToggle = vi.fn();
+    const onFavoriteToggle = vi.fn();
+
+    renderRow(createOption({ key: 'google/veo-3', label: 'Veo 3' }), {
+      onFavoriteToggle,
+      onToggle,
+    });
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Add Veo 3 to favorites' }),
+      { button: 0 },
+    );
+
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
   it('labels the favorite control by what the click will do', () => {
     renderRow(
       createOption({ key: 'google/veo-3', label: 'Veo 3' }, ['google/veo-3']),

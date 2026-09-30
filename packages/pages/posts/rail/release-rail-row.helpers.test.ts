@@ -11,6 +11,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
+  releaseContentPreview,
   releaseDisplayTitle,
   releaseNextInstant,
   releaseOutcomeSummary,
@@ -83,9 +84,21 @@ describe('release-rail-row.helpers', () => {
       });
       expect(releaseNextInstant(release)).toBe('2020-06-01T00:00:00.000Z');
     });
+
+    it('returns null when there is neither a schedule nor a publish time', () => {
+      expect(releaseNextInstant(buildRelease())).toBeNull();
+    });
   });
 
   describe('targetTone', () => {
+    it('maps published to success', () => {
+      expect(
+        targetTone(
+          buildTarget({ executionState: TargetExecutionState.PUBLISHED }),
+        ),
+      ).toBe('success');
+    });
+
     it('maps failed to destructive', () => {
       expect(
         targetTone(
@@ -170,9 +183,25 @@ describe('release-rail-row.helpers', () => {
         published: 2,
       });
     });
+
+    it('returns zeros for a release with no targets', () => {
+      expect(releaseOutcomeSummary(buildRelease())).toEqual({
+        failed: 0,
+        pending: 0,
+        published: 0,
+      });
+    });
   });
 
   describe('visibleTargets', () => {
+    it('returns every target with no overflow under the cap', () => {
+      const targets = [buildTarget({ id: 't1' }), buildTarget({ id: 't2' })];
+      expect(visibleTargets(targets, 6)).toEqual({
+        overflow: 0,
+        visible: targets,
+      });
+    });
+
     it('caps the visible list and reports the overflow count', () => {
       const targets = Array.from({ length: 8 }, (_unused, index) =>
         buildTarget({ id: `t${index}` }),
@@ -195,6 +224,27 @@ describe('release-rail-row.helpers', () => {
       expect(releaseDisplayTitle(release)).toBe(
         'AI content is taking over! Manual content...',
       );
+    });
+
+    it('returns an empty string when the title is missing', () => {
+      expect(releaseDisplayTitle(buildRelease({ title: undefined }))).toBe('');
+    });
+  });
+
+  describe('releaseContentPreview', () => {
+    it('returns the first plain-text line of HTML content', () => {
+      const release = buildRelease({
+        baseContent:
+          '<p>AI content is <strong>taking over</strong>!</p><p>Second paragraph</p>',
+      });
+      expect(releaseContentPreview(release)).toBe('AI content is taking over!');
+    });
+
+    it('returns the first line of plain-text content', () => {
+      const release = buildRelease({
+        baseContent: 'First line of copy\nSecond line',
+      });
+      expect(releaseContentPreview(release)).toBe('First line of copy');
     });
   });
 });

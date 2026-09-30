@@ -58,6 +58,16 @@ describe('LocalStorageProvider', () => {
       );
       expect(written).toBe('video-bytes');
     });
+
+    it('throws when the source file does not exist', async () => {
+      await expect(
+        provider.uploadFromFile(
+          'videos/clip.mp4',
+          path.join(scratchDir, 'missing.mp4'),
+          scratchDir,
+        ),
+      ).rejects.toThrow();
+    });
   });
 
   describe('download', () => {
@@ -68,6 +78,16 @@ describe('LocalStorageProvider', () => {
       await provider.download('datasets/d1/img.png', target, scratchDir);
 
       expect(await fs.readFile(target, 'utf8')).toBe('stored');
+    });
+
+    it('throws when the stored file does not exist', async () => {
+      await expect(
+        provider.download(
+          'missing/file.png',
+          path.join(scratchDir, 'x.png'),
+          scratchDir,
+        ),
+      ).rejects.toThrow();
     });
   });
 

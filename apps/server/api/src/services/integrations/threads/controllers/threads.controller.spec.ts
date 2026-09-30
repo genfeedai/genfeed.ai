@@ -110,6 +110,10 @@ describe('ThreadsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getConnectReadiness', () => {
     it('reports available when the same OAuth configuration used by connect is ready', () => {
       expect(controller.getConnectReadiness()).toEqual({
@@ -224,6 +228,34 @@ describe('ThreadsController', () => {
         'Threads OAuth is not configured for this deployment.',
       );
       expect((failure as Error).message).not.toContain('THREADS_CLIENT_SECRET');
+    });
+
+    it('trims configured values before building the provider URL', async () => {
+      configValues.THREADS_CLIENT_ID = '  threads-client-id  ';
+      configValues.THREADS_CLIENT_SECRET = '  threads-client-secret  ';
+      configValues.THREADS_REDIRECT_URI =
+        '  https://app.genfeed.ai/oauth/threads  ';
+      mockBrandsService.findOne.mockResolvedValue({
+        id: mockBrandId,
+        organizationId: mockOrganizationId,
+        userId: mockUserId,
+      });
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        state: 'opaque-oauth-state',
+      });
+
+      const result = await controller.connect(mockRequest, mockUser, {
+        brandId: mockBrandId,
+      });
+
+      expect(result).toEqual({
+        url:
+          'https://threads.net/oauth/authorize' +
+          '?client_id=threads-client-id' +
+          '&redirect_uri=https%3A%2F%2Fapp.genfeed.ai%2Foauth%2Fthreads' +
+          '&scope=threads_basic%2Cthreads_content_publish%2Cthreads_manage_insights%2Cthreads_manage_replies%2Cthreads_read_replies' +
+          '&response_type=code&state=opaque-oauth-state',
+      });
     });
   });
 

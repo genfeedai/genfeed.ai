@@ -15,6 +15,10 @@ beforeEach(() => {
 });
 
 describe('website sitemap', () => {
+  it('is generated at request time so newly published articles do not await a deployment', () => {
+    expect(dynamic).toBe('force-dynamic');
+  });
+
   it('keeps every launch article discoverable when the article API is unavailable', async () => {
     findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
 
@@ -39,6 +43,25 @@ describe('website sitemap', () => {
     expect(urls.has('https://genfeed.ai/muse/instagram')).toBe(true);
     expect(urls.has('https://genfeed.ai/claude-code/discord')).toBe(false);
     expect(urls.size).toBe(routes.length);
+  });
+
+  it('lists the expert landing page', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/experts')).toBe(true);
+  });
+
+  it('keeps the developer landing page discoverable when the article API is unavailable', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+
+    expect(
+      routes.find((route) => route.url === 'https://genfeed.ai/developers'),
+    ).toMatchObject({ changeFrequency: 'weekly', priority: 0.8 });
   });
 
   it('merges API articles with launch fallbacks without duplicate URLs', async () => {

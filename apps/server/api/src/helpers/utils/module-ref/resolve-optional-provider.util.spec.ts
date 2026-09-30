@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 class OptionalService {}
 
 describe('resolveOptionalProvider', () => {
+  it('returns undefined when ModuleRef is absent', () => {
+    expect(resolveOptionalProvider(undefined, OptionalService)).toBeUndefined();
+  });
+
   it.each([OptionalService, 'optional-service', Symbol('optional-service')])(
     'resolves a registered class, string or symbol token',
     async (token) => {
@@ -22,4 +26,15 @@ describe('resolveOptionalProvider', () => {
       }
     },
   );
+
+  it('returns undefined when an optional provider is absent', async () => {
+    const module = await Test.createTestingModule({}).compile();
+    try {
+      expect(
+        resolveOptionalProvider(module.get(ModuleRef), OptionalService),
+      ).toBeUndefined();
+    } finally {
+      await module.close();
+    }
+  });
 });

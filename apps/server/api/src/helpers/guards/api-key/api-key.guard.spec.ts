@@ -97,6 +97,10 @@ describe('ApiKeyAuthGuard', () => {
     reflector = module.get<Reflector>(Reflector);
   });
 
+  it('should be defined', () => {
+    expect(guard).toBeDefined();
+  });
+
   describe('canActivate', () => {
     it('should throw UnauthorizedException when no authorization header', async () => {
       request = buildMockRequest({ ...request, headers: {} });
@@ -104,6 +108,18 @@ describe('ApiKeyAuthGuard', () => {
 
       await expect(guard.canActivate(mockContext)).rejects.toThrow(
         new UnauthorizedException('API key required'),
+      );
+    });
+
+    it('should throw UnauthorizedException for invalid authorization format', async () => {
+      request = buildMockRequest({
+        ...request,
+        headers: { authorization: 'InvalidFormat' },
+      });
+      mockContext = createMockExecutionContext({ request });
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(
+        new UnauthorizedException('Invalid authorization format'),
       );
     });
 
@@ -173,6 +189,16 @@ describe('ApiKeyAuthGuard', () => {
       expect(apiKeysService.findByKey).not.toHaveBeenCalled();
     });
 
+    it('should throw UnauthorizedException for invalid API key', async () => {
+      request = buildMockRequest({ ...request });
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(null);
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(
+        new UnauthorizedException('Invalid or expired API key'),
+      );
+    });
+
     it('rejects a revoked key because findByKey only returns active rows', async () => {
       request = buildMockRequest({ ...request });
       mockContext = createMockExecutionContext({ request });
@@ -228,6 +254,23 @@ describe('ApiKeyAuthGuard', () => {
         status: HttpStatus.TOO_MANY_REQUESTS,
       });
       expect(setHeader).toHaveBeenCalledWith('Retry-After', '30');
+    });
+
+    it('should throw UnauthorizedException for insufficient permissions', async () => {
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+      vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
+      vi.spyOn(reflector, 'get').mockReturnValue(['images:create']);
+      vi.spyOn(apiKeysService, 'hasScope').mockReturnValue(false);
+
+      await expect(guard.canActivate(mockContext)).rejects.toThrow(
+        new UnauthorizedException('Insufficient permissions'),
+      );
     });
 
     it('should return true for valid API key with required scopes', async () => {
@@ -319,6 +362,27 @@ describe('ApiKeyAuthGuard', () => {
 
       expect(result).toBe(true);
       expect(apiKeysService.hasScope).not.toHaveBeenCalled();
+    });
+
+    it('should handle ApiKey authorization type', async () => {
+      request = buildMockRequest({
+        ...request,
+        headers: { authorization: 'ApiKey gf_test_abc123' },
+      });
+      mockContext = createMockExecutionContext({ request });
+      vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
+      vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
+      vi.spyOn(reflector, 'get').mockReturnValue(null);
+      vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
+
+      const result = await guard.canActivate(mockContext);
+
+      expect(result).toBe(true);
     });
 
     it('should use connection.remoteAddress when ip is not available', async () => {

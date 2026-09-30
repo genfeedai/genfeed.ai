@@ -89,6 +89,15 @@ describe('ArticleTextGenerationService.runTextGenerationStep', () => {
     );
   });
 
+  it('never computes a charge when onBilling is omitted (enhance path)', async () => {
+    const { service, models } = makeService();
+
+    await service.runTextGenerationStep(baseParams);
+
+    // calculateTextGenerationCharge() is the only caller of modelsService.findOne
+    expect(models.findOne).not.toHaveBeenCalled();
+  });
+
   it('throws the caller-supplied failure message when the model returns no text', async () => {
     const { service, replicate } = makeService();
     replicate.generateTextCompletionSync.mockResolvedValueOnce('');

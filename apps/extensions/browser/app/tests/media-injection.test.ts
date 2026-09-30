@@ -95,6 +95,14 @@ describe('UI Helpers', () => {
       expect(styleEl?.tagName).toBe('STYLE');
     });
 
+    it('should not inject duplicate styles', () => {
+      injectGlobalStyles();
+      injectGlobalStyles();
+
+      const styleEls = document.querySelectorAll('#genfeed-extension-styles');
+      expect(styleEls).toHaveLength(1);
+    });
+
     it('should include button styles', () => {
       injectGlobalStyles();
 
@@ -102,6 +110,22 @@ describe('UI Helpers', () => {
       expect(styleEl?.textContent).toContain('.genfeed-btn');
       expect(styleEl?.textContent).toContain('.genfeed-dropdown');
       expect(styleEl?.textContent).toContain('.genfeed-menu-item');
+    });
+
+    it('should include toast styles', () => {
+      injectGlobalStyles();
+
+      const styleEl = document.getElementById('genfeed-extension-styles');
+      expect(styleEl?.textContent).toContain('.genfeed-toast');
+    });
+
+    it('should include dark mode styles', () => {
+      injectGlobalStyles();
+
+      const styleEl = document.getElementById('genfeed-extension-styles');
+      expect(styleEl?.textContent).toContain(
+        '.genfeed-dropdown[data-genfeed-theme="dark"]',
+      );
     });
   });
 
@@ -284,6 +308,16 @@ describe('UI Helpers', () => {
       expect(button.innerHTML).toContain('svg');
       expect(button.innerHTML).toContain(icons.bookmark);
     });
+
+    it('should have title tooltip', () => {
+      const button = createSaveButton(
+        '123',
+        'twitter',
+        'https://twitter.com/test/status/123',
+      );
+
+      expect(button.title).toBe('Import post');
+    });
   });
 
   describe('createAIReplyButton', () => {
@@ -337,6 +371,20 @@ describe('UI Helpers', () => {
 
       expect(dropdown).toBeInstanceOf(HTMLDivElement);
       expect(dropdown.className).toContain('genfeed-dropdown');
+    });
+
+    it('should have a dropdown button', () => {
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      const button = dropdown.querySelector('.genfeed-dropdown-btn');
+
+      expect(button).not.toBeNull();
+    });
+
+    it('should have a dropdown menu', () => {
+      const dropdown = createGenFeedDropdown('123', 'twitter');
+      const menu = dropdown.querySelector('.genfeed-dropdown-menu');
+
+      expect(menu).not.toBeNull();
     });
 
     it('should have menu items', () => {

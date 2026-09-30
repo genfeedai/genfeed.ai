@@ -72,6 +72,13 @@ describe('organizationWebhookPayloadSchema', () => {
 });
 
 describe('isOrganizationWebhookEventEnabled', () => {
+  test.each(ORGANIZATION_WEBHOOK_EVENT_TYPES)(
+    'delivers %s when no filter is configured',
+    (event) => {
+      expect(isOrganizationWebhookEventEnabled([], event)).toBe(true);
+    },
+  );
+
   test('narrows delivery to the configured events', () => {
     const configured = ['generation.completed', 'workflow.execution.failed'];
 

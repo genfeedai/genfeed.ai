@@ -107,6 +107,16 @@ describe('runDesktopPrismaMigrations', () => {
     }
   });
 
+  it('skips migrations that are already applied', async () => {
+    const applied = migrationNames.slice(0, 1);
+    const fake = buildFakePGlite(applied);
+
+    await runDesktopPrismaMigrations(fake.instance);
+
+    expect(fake.transactionCount).toBe(migrationNames.length - 1);
+    expect(fake.insertedMigrationNames).toEqual(migrationNames.slice(1));
+  });
+
   it('is a no-op when every migration is already applied', async () => {
     const fake = buildFakePGlite(migrationNames);
 

@@ -401,6 +401,17 @@ describe('OperationalHomeContent', () => {
     );
   });
 
+  it('uses the access-state organization fallback for connection status', () => {
+    mocks.brandState.organizationId = '';
+
+    render(<OperationalHomeContent />);
+
+    expect(mocks.connectionOrganizationId).toBe('org_1');
+    expect(
+      screen.getByRole('link', { name: /Connect Genfeed/ }),
+    ).toHaveAttribute('href', '/acme/~/connect');
+  });
+
   it('keeps operational summaries available when status resolution fails', () => {
     mocks.connectionState = {
       error: new Error('network unavailable'),
@@ -538,6 +549,14 @@ describe('OperationalHomeContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('offers a connection link in the empty Accounts panel', () => {
+    render(<OperationalHomeContent />);
+    const accounts = screen.getByTestId('operational-home-credentials');
+    expect(
+      within(accounts).getByRole('link', { name: 'catalog:connectAccount' }),
+    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+  });
+
   it('opens publication details from a publishing row', () => {
     mocks.publications = [
       {
@@ -672,6 +691,18 @@ describe('OperationalHomeContent', () => {
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 
+  it('shows the needs-you skeleton while overview data is loading', () => {
+    mocks.overviewIsLoading = true;
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).getByTestId(
+        'skeleton-card',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('renders one skeleton inside each loading KPI card', () => {
     mocks.overviewIsLoading = true;
 
@@ -694,6 +725,24 @@ describe('OperationalHomeContent', () => {
         'status',
       ),
     ).not.toBeInTheDocument();
+  });
+
+  it('keeps decided review items out of the attention queue', () => {
+    mocks.reviewInboxRecentItems = [
+      {
+        ...buildReviewItem('item_1'),
+        reviewDecision: 'approved',
+        status: 'approved',
+      },
+    ];
+
+    render(<OperationalHomeContent />);
+
+    const needsYou = screen.getByTestId('operational-home-needs-you');
+    expect(
+      within(needsYou).queryByRole('button', { name: 'Approve' }),
+    ).not.toBeInTheDocument();
+    expect(needsYou).toHaveTextContent('catalog:home.approvals.empty');
   });
 
   it('caps the attention queue at five rows and links to the rest', () => {

@@ -63,6 +63,42 @@ describe('temporalStateEquals', () => {
     expect(temporalStateEquals(state, state)).toBe(true);
   });
 
+  it('returns true for identical content with different references', () => {
+    const a = makeState(
+      [makeNode('n1')],
+      [makeEdge('e1', 'n1', 'n2')],
+      [makeGroup('g1')],
+    );
+    const b = makeState(
+      [makeNode('n1')],
+      [makeEdge('e1', 'n1', 'n2')],
+      [makeGroup('g1')],
+    );
+    expect(temporalStateEquals(a, b)).toBe(true);
+  });
+
+  it('returns true for empty arrays on all fields', () => {
+    const a = makeState([], [], []);
+    const b = makeState([], [], []);
+    expect(temporalStateEquals(a, b)).toBe(true);
+  });
+
+  it('returns false for different node count', () => {
+    const a = makeState([makeNode('n1')], [], []);
+    const b = makeState([makeNode('n1'), makeNode('n2')], [], []);
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
+  it('returns false when node position differs', () => {
+    const a = makeState([makeNode('n1', { position: { x: 0, y: 0 } })], [], []);
+    const b = makeState(
+      [makeNode('n1', { position: { x: 100, y: 50 } })],
+      [],
+      [],
+    );
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
   it('returns false when node data outputImage differs', () => {
     const a = makeState(
       [makeNode('n1', { data: { outputImage: 'a.jpg' } })],
@@ -125,15 +161,71 @@ describe('temporalStateEquals', () => {
     expect(temporalStateEquals(a, b)).toBe(false);
   });
 
+  it('returns false when edge target changes', () => {
+    const a = makeState([], [makeEdge('e1', 'n1', 'n2')], []);
+    const b = makeState([], [makeEdge('e1', 'n1', 'n3')], []);
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
+  it('returns false when edge sourceHandle changes', () => {
+    const a = makeState(
+      [],
+      [makeEdge('e1', 'n1', 'n2', { sourceHandle: 'out-a' })],
+      [],
+    );
+    const b = makeState(
+      [],
+      [makeEdge('e1', 'n1', 'n2', { sourceHandle: 'out-b' })],
+      [],
+    );
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
+  it('returns false when edge targetHandle changes', () => {
+    const a = makeState(
+      [],
+      [makeEdge('e1', 'n1', 'n2', { targetHandle: 'in-a' })],
+      [],
+    );
+    const b = makeState(
+      [],
+      [makeEdge('e1', 'n1', 'n2', { targetHandle: 'in-b' })],
+      [],
+    );
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
   it('returns false when group name changes', () => {
     const a = makeState([], [], [makeGroup('g1', { name: 'Alpha' })]);
     const b = makeState([], [], [makeGroup('g1', { name: 'Beta' })]);
     expect(temporalStateEquals(a, b)).toBe(false);
   });
 
+  it('returns false when group color changes', () => {
+    const a = makeState([], [], [makeGroup('g1', { color: '#ff0000' })]);
+    const b = makeState([], [], [makeGroup('g1', { color: '#00ff00' })]);
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
   it('returns false when group nodeIds change', () => {
     const a = makeState([], [], [makeGroup('g1', { nodeIds: ['n1', 'n2'] })]);
     const b = makeState([], [], [makeGroup('g1', { nodeIds: ['n1', 'n3'] })]);
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
+  it('returns false for different edge count', () => {
+    const a = makeState([], [makeEdge('e1', 'n1', 'n2')], []);
+    const b = makeState(
+      [],
+      [makeEdge('e1', 'n1', 'n2'), makeEdge('e2', 'n2', 'n3')],
+      [],
+    );
+    expect(temporalStateEquals(a, b)).toBe(false);
+  });
+
+  it('returns false for different group count', () => {
+    const a = makeState([], [], [makeGroup('g1')]);
+    const b = makeState([], [], [makeGroup('g1'), makeGroup('g2')]);
     expect(temporalStateEquals(a, b)).toBe(false);
   });
 

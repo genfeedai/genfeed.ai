@@ -24,7 +24,20 @@ async function referencesErrorsFor(referenceCount: number) {
 }
 
 describe('CreateVideoDto', () => {
+  it('should be defined', () => {
+    expect(CreateVideoDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new CreateVideoDto();
+      expect(dto).toBeInstanceOf(CreateVideoDto);
+    });
+
+    it('accepts a references array at the maximum size', async () => {
+      expect(await referencesErrorsFor(10)).toEqual([]);
+    });
+
     it('rejects a references array over the maximum size', async () => {
       const referencesErrors = await referencesErrorsFor(11);
 
@@ -71,6 +84,17 @@ describe('CreateVideoDto', () => {
 
       expect(resolved).not.toHaveProperty('muteVideoAudio');
       expect(resolved.text).toBe('a video');
+    });
+
+    it('no longer types backgroundMusic, musicVolume, or muteVideoAudio on the DTO', () => {
+      const dto: Partial<CreateVideoDto> = {
+        // @ts-expect-error backgroundMusic/musicVolume/muteVideoAudio were removed from CreateVideoDto (#4683) — excess-property checking reports the whole literal as one diagnostic, anchored on this first excess key.
+        backgroundMusic: { ingredientId: entityId(1) },
+        musicVolume: 50,
+        muteVideoAudio: true,
+      };
+
+      expect(dto).toBeDefined();
     });
   });
 

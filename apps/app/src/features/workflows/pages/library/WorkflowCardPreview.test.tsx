@@ -116,4 +116,20 @@ describe('WorkflowCardPreview', () => {
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
     expect(screen.queryByText('No steps yet')).not.toBeInTheDocument();
   });
+
+  it('keeps a supplied thumbnail URL as-is', () => {
+    render(
+      <WorkflowCardPreview
+        name="Daily digest"
+        thumbnail="https://cdn.genfeed.ai/assets/workflows/digest.jpg"
+      />,
+    );
+
+    expect(
+      screen.getByRole('img', { name: 'Daily digest thumbnail' }),
+    ).toHaveAttribute(
+      'src',
+      'https://cdn.genfeed.ai/assets/workflows/digest.jpg',
+    );
+  });
 });

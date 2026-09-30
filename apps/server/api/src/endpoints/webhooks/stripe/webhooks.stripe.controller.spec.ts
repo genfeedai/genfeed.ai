@@ -83,6 +83,10 @@ describe('StripeWebhookController', () => {
     systemEvents = module.get(SystemEventsService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('handleStripe', () => {
     const mockRequest = (body: unknown, signature?: string) =>
       ({

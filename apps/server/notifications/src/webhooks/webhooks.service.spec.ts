@@ -41,6 +41,10 @@ describe('WebhooksService (Notifications)', () => {
     eventsService = module.get<EventsService>(EventsService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('handleWebhookNotification', () => {
     it('should process webhook notification', async () => {
       const notification = {
@@ -63,6 +67,22 @@ describe('WebhooksService (Notifications)', () => {
           service: 'stripe',
           type: 'webhook.stripe.payment.success',
         }),
+      );
+    });
+
+    it('should emit user-specific event when userId is present', async () => {
+      const notification = {
+        data: { result: 'success' },
+        event: 'generation.complete',
+        metadata: { userId: 'user-456' },
+        service: 'replicate',
+      } satisfies WebhookNotification;
+
+      await service.handleWebhookNotification(notification);
+
+      expect(eventsService.emit).toHaveBeenCalledWith(
+        'user.user-456.webhook',
+        expect.any(Object),
       );
     });
 

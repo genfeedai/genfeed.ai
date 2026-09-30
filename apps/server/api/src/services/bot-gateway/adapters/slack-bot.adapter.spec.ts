@@ -46,6 +46,10 @@ describe('SlackBotAdapter', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(adapter).toBeDefined();
+  });
+
   it('exposes meta platform as SLACK', () => {
     expect(adapter.platform).toBe(CredentialPlatform.SLACK);
   });

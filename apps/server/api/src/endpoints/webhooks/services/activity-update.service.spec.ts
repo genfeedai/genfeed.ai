@@ -68,6 +68,88 @@ describe('ActivityUpdateService', () => {
       );
     });
 
+    it('should create new activity when no existing found', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity(baseParams);
+
+      expect(activitiesService.record).toHaveBeenCalled();
+    });
+
+    it('should publish background task update when userId available', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity(baseParams);
+
+      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          progress: 100,
+          status: 'completed',
+          userId: 'authProvider_abc',
+        }),
+      );
+    });
+
+    it('should handle reframe transformation', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity({
+        ...baseParams,
+        transformations: ['reframed'],
+      });
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.VIDEO_REFRAME_COMPLETED,
+        }),
+      );
+    });
+
+    it('should handle upscale transformation', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity({
+        ...baseParams,
+        transformations: ['upscaled'],
+      });
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.VIDEO_UPSCALE_COMPLETED,
+        }),
+      );
+    });
+
+    it('should handle image category', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity({
+        ...baseParams,
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.IMAGE_GENERATED,
+        }),
+      );
+    });
+
+    it('should handle music category', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateSuccessActivity({
+        ...baseParams,
+        category: IngredientCategory.MUSIC,
+      });
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.MUSIC_GENERATED,
+        }),
+      );
+    });
+
     it('should skip unsupported categories', async () => {
       await service.updateSuccessActivity({
         ...baseParams,
@@ -117,6 +199,46 @@ describe('ActivityUpdateService', () => {
         expect.objectContaining({ id: mockObjectId }),
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
+        }),
+      );
+    });
+
+    it('should create new failure activity when no existing found', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateFailureActivity(baseParams);
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.VIDEO_FAILED,
+        }),
+      );
+    });
+
+    it('should publish failure event', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateFailureActivity(baseParams);
+
+      expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: 'GPU timeout',
+          status: 'failed',
+        }),
+      );
+    });
+
+    it('should handle image failure', async () => {
+      activitiesService.findByActionValue.mockResolvedValue(null);
+
+      await service.updateFailureActivity({
+        ...baseParams,
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(activitiesService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          key: ActivityKey.IMAGE_FAILED,
         }),
       );
     });

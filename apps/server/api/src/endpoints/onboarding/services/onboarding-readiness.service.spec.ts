@@ -129,4 +129,19 @@ describe('OnboardingReadinessService local tool readiness', () => {
       detected: ['claude'],
     });
   });
+
+  it('treats a non-zero exit status as not detected', async () => {
+    spawnSyncMock.mockReturnValue({ status: 1 });
+
+    const service = await instantiateService(false);
+
+    const readiness = service.getLocalToolReadiness();
+
+    expect(readiness).toEqual({
+      anyDetected: false,
+      claude: false,
+      codex: false,
+      detected: [],
+    });
+  });
 });

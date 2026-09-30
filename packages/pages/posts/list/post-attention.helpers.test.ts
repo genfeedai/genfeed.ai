@@ -3,6 +3,9 @@ import { needsPostAttention } from './post-attention.helpers';
 
 describe('publishing attention window', () => {
   const now = Date.parse('2026-09-28T12:00:00Z');
+  it('includes failed posts without a scheduled time', () => {
+    expect(needsPostAttention('failed', null, now)).toBe(true);
+  });
   it('includes both boundaries but excludes overdue, later and malformed schedules', () => {
     expect(needsPostAttention('scheduled', new Date(now), now)).toBe(true);
     expect(needsPostAttention('scheduled', new Date(now + 86400000), now)).toBe(

@@ -359,6 +359,22 @@ describe('AgentHubPage', () => {
     ).toHaveLength(4);
   });
 
+  it('hides Needs you and Your agents when nothing belongs in them', () => {
+    mocks.strategies = [IDLE_AGENT];
+
+    render(<AgentHubPage />);
+
+    expect(
+      screen.queryByTestId('agent-hub-section-needs-you'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('agent-hub-section-yours'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['All1']);
+  });
+
   it('shows exactly one visible action per row, resolving Needs you inline', () => {
     mocks.strategies = [HEALTHY_AGENT, PAUSED_AGENT, FAILING_AGENT, IDLE_AGENT];
 

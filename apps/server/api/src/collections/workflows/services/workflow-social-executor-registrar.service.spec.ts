@@ -94,6 +94,16 @@ function executeAction(
 }
 
 describe('formatSocialReadProviderError', () => {
+  it('names twitter and includes reset timing for 429s', () => {
+    const error = formatSocialReadProviderError({
+      code: 429,
+      rateLimitReset: new Date('2026-08-13T08:00:00.000Z'),
+    });
+    expect(error.message).toBe(
+      'socialRead twitter rate limited; reset at 2026-08-13T08:00:00.000Z',
+    );
+  });
+
   it('wraps non-rate-limit failures with provider identity', () => {
     expect(
       formatSocialReadProviderError(new Error('upstream 503')).message,
@@ -110,6 +120,13 @@ describe('formatReportDeliveryError', () => {
 });
 
 describe('WorkflowSocialExecutorRegistrarService (#2664)', () => {
+  it('registers socialRead and reportDelivery even when providers are missing', () => {
+    const engine = register();
+    expect(engine.getRegisteredActionIds()).toEqual(
+      expect.arrayContaining(['socialRead', 'reportDelivery']),
+    );
+  });
+
   it('fails closed when TwitterService is not wired', async () => {
     const engine = register();
     await expect(

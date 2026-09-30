@@ -44,6 +44,11 @@ function makeNode(type: string): ExecutableNode {
 }
 
 describe('BaseExecutor', () => {
+  it('validates correct node type', () => {
+    const exec = new TestExecutor();
+    expect(exec.validate(makeNode('test')).valid).toBe(true);
+  });
+
   it('rejects wrong node type', () => {
     const exec = new TestExecutor();
     const result = exec.validate(makeNode('wrong'));
@@ -56,11 +61,30 @@ describe('BaseExecutor', () => {
     expect(exec.estimateCost(makeNode('test'))).toBe(0);
   });
 
+  it('getRequiredInput throws on missing key', () => {
+    const exec = new TestExecutor();
+    const inputs = new Map<string, unknown>();
+    expect(() => exec.requiredInput(inputs, 'missing')).toThrow(
+      'Missing required input',
+    );
+  });
+
+  it('getOptionalInput returns default on missing key', () => {
+    const exec = new TestExecutor();
+    const inputs = new Map<string, unknown>();
+    expect(exec.optionalInput(inputs, 'missing', 'default')).toBe('default');
+  });
+
   it('getRequiredConfig throws on missing key', () => {
     const exec = new TestExecutor();
     expect(() => exec.requiredConfig({}, 'missing')).toThrow(
       'Missing required config',
     );
+  });
+
+  it('getOptionalConfig returns default on missing key', () => {
+    const exec = new TestExecutor();
+    expect(exec.optionalConfig({}, 'missing', 42)).toBe(42);
   });
 });
 

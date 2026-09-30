@@ -12,6 +12,24 @@ import {
 } from '../../src/enums/billing-account.enum';
 
 describe('billing-account.enum', () => {
+  it('matches Prisma BillingAccountStatus labels', () => {
+    expect(Object.values(BillingAccountStatus)).toEqual([
+      'UNPROVISIONED',
+      'ACTIVE',
+      'PAST_DUE',
+      'CANCELLED',
+      'STALE',
+    ]);
+  });
+
+  it('matches Prisma BillingAccountMemberRole labels', () => {
+    expect(Object.values(BillingAccountMemberRole)).toEqual([
+      'OWNER',
+      'ADMINISTRATOR',
+      'VIEWER',
+    ]);
+  });
+
   it('matches Prisma organization-link and reservation labels', () => {
     expect(Object.values(BillingAccountOrganizationStatus)).toEqual([
       'LINKED',

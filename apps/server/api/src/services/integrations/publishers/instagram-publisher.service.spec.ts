@@ -28,6 +28,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('InstagramPublisherService', () => {
   let service: InstagramPublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let instagramService: vi.Mocked<InstagramService>;
   let postsService: vi.Mocked<PostsService>;
@@ -171,11 +172,42 @@ describe('InstagramPublisherService', () => {
     }).compile();
 
     service = module.get<InstagramPublisherService>(InstagramPublisherService);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     instagramService = module.get(
       InstagramService,
     ) as vi.Mocked<InstagramService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
+  });
+
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should have correct platform', () => {
+      expect(service.platform).toBe(CredentialPlatform.INSTAGRAM);
+    });
+
+    it('should NOT support text-only posts', () => {
+      expect(service.supportsTextOnly).toBe(false);
+    });
+
+    it('should support images', () => {
+      expect(service.supportsImages).toBe(true);
+    });
+
+    it('should support videos', () => {
+      expect(service.supportsVideos).toBe(true);
+    });
+
+    it('should support carousel', () => {
+      expect(service.supportsCarousel).toBe(true);
+    });
+
+    it('should support threads', () => {
+      expect(service.supportsThreads).toBe(true);
+    });
   });
 
   describe('validatePost caption length', () => {
@@ -188,6 +220,15 @@ describe('InstagramPublisherService', () => {
         `https://api.test.com/ingredients/images/${mockIngredientId}`,
       ],
     };
+
+    it('should pass a caption exactly at the 2200-character Instagram limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(2200),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
 
     it('should fail an over-limit caption with a structured caption_too_long error', () => {
       const context = createPublishContext({
@@ -317,6 +358,56 @@ describe('InstagramPublisherService', () => {
           mockCredential.id,
         );
       });
+
+      it('should keep the feed copy for the default feed placement', async () => {
+        const context = createPublishContext(mockVideoPost, {
+          placement: 'feed',
+        });
+
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'reel-123',
+          shortcode: 'REEL123',
+        });
+
+        await service.publish(context);
+
+        expect(instagramService.uploadReel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+          true,
+          mockCredential.id,
+        );
+      });
+
+      it('should respect isShareToFeedSelected flag', async () => {
+        const postNotSharedToFeed = {
+          ...mockVideoPost,
+          isShareToFeedSelected: false,
+        };
+        const context = createPublishContext(postNotSharedToFeed);
+
+        instagramService.uploadReel.mockResolvedValue({
+          mediaId: 'reel-123',
+          shortcode: 'REEL123',
+        });
+
+        await service.publish(context);
+
+        expect(instagramService.uploadReel).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          expect.any(String),
+          undefined,
+          undefined,
+          false,
+          mockCredential.id,
+        );
+      });
     });
 
     describe('carousel posts', () => {
@@ -372,6 +463,33 @@ describe('InstagramPublisherService', () => {
         );
         expect(logger.error).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('buildPostUrl', () => {
+    it('should build correct Instagram URL using shortcode', () => {
+      const externalId = 'media-123';
+      const shortcode = 'ABC123XYZ';
+
+      const result = service.buildPostUrl(
+        externalId,
+        mockCredential,
+        shortcode,
+      );
+
+      expect(result).toBe(`https://www.instagram.com/p/${shortcode}`);
+    });
+
+    it('should handle undefined shortcode', () => {
+      const externalId = 'media-123';
+
+      const result = service.buildPostUrl(
+        externalId,
+        mockCredential,
+        undefined,
+      );
+
+      expect(result).toBe('https://www.instagram.com/p/undefined');
     });
   });
 
@@ -453,6 +571,104 @@ describe('InstagramPublisherService', () => {
         expect.any(Object),
       );
     });
+
+    it('should sort children by order before posting', async () => {
+      const context = createPublishContext(mockImagePost);
+      const unorderedChildren = [
+        {
+          id: testId('child', 5),
+          category: PostCategory.TEXT,
+          description: '<p>Second</p>',
+          order: 2,
+        },
+        {
+          id: testId('child', 6),
+          category: PostCategory.TEXT,
+          description: '<p>First</p>',
+          order: 1,
+        },
+      ];
+
+      instagramService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        unorderedChildren,
+        mockParentExternalId,
+      );
+
+      // First call should be for order 1
+      expect(postsService.patch.mock.calls[0][0]).toBe(
+        unorderedChildren[1].id.toString(),
+      );
+    });
+
+    it('should mark child as failed when comment post fails', async () => {
+      const context = createPublishContext(mockImagePost);
+      const singleChild = [mockChildren[0]];
+
+      instagramService.postComment.mockResolvedValue({ commentId: '' });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        singleChild,
+        mockParentExternalId,
+      );
+
+      expect(postsService.patch).toHaveBeenCalledWith(
+        singleChild[0].id.toString(),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      );
+    });
+
+    it('should continue with other children when one fails', async () => {
+      const context = createPublishContext(mockImagePost);
+      const textChildren = mockChildren.filter(
+        (c) => c.category === PostCategory.TEXT,
+      );
+
+      instagramService.postComment
+        .mockRejectedValueOnce(new Error('API error'))
+        .mockResolvedValueOnce({ commentId: 'comment-2' });
+
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        textChildren,
+        mockParentExternalId,
+      );
+
+      // Both children should be patched
+      expect(postsService.patch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should log completion of comment posting', async () => {
+      const context = createPublishContext(mockImagePost);
+      const singleChild = [mockChildren[0]];
+
+      instagramService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        singleChild,
+        mockParentExternalId,
+      );
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('completed posting comments'),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('validation', () => {
@@ -470,6 +686,21 @@ describe('InstagramPublisherService', () => {
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not support text-only posts');
+    });
+
+    it('should pass validation for image posts', () => {
+      const context = createPublishContext(mockImagePost);
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['https://api.test.com/ingredients/images/123'],
+      };
+
+      const result = service['validatePost'](context, mediaInfo);
+
+      expect(result.valid).toBe(true);
     });
 
     it('should fail validation when a reel placement has an image', () => {
@@ -491,9 +722,62 @@ describe('InstagramPublisherService', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain('reels require a video');
     });
+
+    it('should pass validation when a reel placement has a video', () => {
+      const context = createPublishContext(mockVideoPost, {
+        placement: 'reel',
+      });
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: false,
+        mediaUrls: ['https://api.test.com/ingredients/videos/123'],
+      };
+
+      expect(service.validatePost(context, mediaInfo).valid).toBe(true);
+    });
+
+    it('should pass validation for carousel posts', () => {
+      const context = createPublishContext(mockCarouselPost);
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: ['1', '2', '3'],
+        isCarousel: true,
+        isImagePost: true,
+        mediaUrls: [
+          'https://api.test.com/ingredients/images/1',
+          'https://api.test.com/ingredients/images/2',
+          'https://api.test.com/ingredients/images/3',
+        ],
+      };
+
+      const result = service['validatePost'](context, mediaInfo);
+
+      expect(result.valid).toBe(true);
+    });
   });
 
   describe('logging', () => {
+    it('should log publish attempt', async () => {
+      const context = createPublishContext(mockImagePost);
+
+      instagramService.uploadImage.mockResolvedValue({
+        mediaId: 'media-123',
+        shortcode: 'ABC123',
+      });
+
+      await service.publish(context);
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('publishing to'),
+        expect.objectContaining({
+          category: mockImagePost.category,
+          postId: context.postId,
+        }),
+      );
+    });
+
     it('should log error on publish failure', async () => {
       const context = createPublishContext(mockImagePost);
       const error = new Error('API failure');

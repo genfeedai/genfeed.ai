@@ -4,6 +4,7 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { buildSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import { EXCLUDE_SYSTEM_WORKFLOW } from '@api/collections/workflows/utils/workflow-list-where.util';
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
@@ -556,6 +557,57 @@ describe('WorkflowsService system workflow guardrails', () => {
     expect(createInput.user).toBeUndefined();
   });
 
+  it('prefers an explicit body brandId over the session brand when cloning via create', async () => {
+    vi.spyOn(service, 'cloneWorkflow').mockResolvedValue({} as never);
+
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        brandId: 'body-brand',
+        edges: [],
+        nodes: [],
+        sourceWorkflowId: 'workflow-1',
+      } as never,
+      'session-brand',
+    );
+
+    expect(service.cloneWorkflow).toHaveBeenCalledWith(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      'body-brand',
+      'session-brand',
+    );
+  });
+
+  it('does not fall back to the session brand when cloning via create without a body brandId (#4664)', async () => {
+    // The session brand must never be applied at this call site: doing so
+    // would collapse "no explicit brandId" into the session brand before
+    // cloneWorkflow's own source-brand fallback ever runs, silently moving
+    // every duplicate off its source brand.
+    vi.spyOn(service, 'cloneWorkflow').mockResolvedValue({} as never);
+
+    await service.createWorkflow(
+      'user-1',
+      'org-1',
+      {
+        edges: [],
+        nodes: [],
+        sourceWorkflowId: 'workflow-1',
+      } as never,
+      'session-brand',
+    );
+
+    expect(service.cloneWorkflow).toHaveBeenCalledWith(
+      'workflow-1',
+      'user-1',
+      'org-1',
+      undefined,
+      'session-brand',
+    );
+  });
+
   it('lands a create-with-sourceWorkflowId clone on the source brand, not the session brand (#4664)', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       brandId: 'source-brand',
@@ -852,6 +904,37 @@ describe('WorkflowsService.findMostUsed', () => {
     );
   }
 
+  it('reads only run, non-deleted, non-system workflows of the caller org by usage', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await buildService(findMany).findMostUsed('org-1', 5);
+
+    expect(findMany).toHaveBeenCalledWith({
+      include: { currentVersion: true },
+      orderBy: [
+        { executionCount: 'desc' },
+        { lastExecutedAt: { nulls: 'last', sort: 'desc' } },
+      ],
+      take: 5,
+      where: {
+        ...EXCLUDE_SYSTEM_WORKFLOW,
+        executionCount: { gt: 0 },
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('applies the requested limit', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await buildService(findMany).findMostUsed('org-1', 12);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 12 }),
+    );
+  });
+
   it('returns the rows in database order with their usage fields', async () => {
     const findMany = vi
       .fn()
@@ -872,6 +955,14 @@ describe('WorkflowsService.findMostUsed', () => {
       nodes: [],
       versionId: 'workflow-busy-version',
     });
+  });
+
+  it('returns an empty list when nothing has run', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+
+    await expect(
+      buildService(findMany).findMostUsed('org-1', 5),
+    ).resolves.toEqual([]);
   });
 });
 

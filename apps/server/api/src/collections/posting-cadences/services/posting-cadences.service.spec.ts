@@ -881,6 +881,31 @@ describe('PostingCadencesService', () => {
     );
   });
 
+  it('passes the API-key context into post-group create', async () => {
+    slotReservation.findFirst.mockResolvedValue(null);
+    findFirst.mockResolvedValue(cadenceRow());
+    slotReservation.upsert.mockResolvedValue(missingReservation());
+    postGroupsService.create.mockResolvedValue({
+      id: 'release-3',
+      targets: [{ id: 'post-3' }],
+    });
+    const apiKeyContext = {
+      isApiKey: true,
+      scopes: [ApiKeyScope.POSTS_DRAFT],
+    };
+
+    await service.write(ORG_ID, USER_ID, IDENTITY_KEY, apiKeyContext);
+
+    expect(postGroupsService.create).toHaveBeenCalledWith(
+      ORG_ID,
+      USER_ID,
+      expect.objectContaining({ status: ReleaseStatus.DRAFT }),
+      IDENTITY_KEY,
+      { source: 'calendar-slot' },
+      apiKeyContext,
+    );
+  });
+
   it('collapses overlapping cadences onto the oldest cadence', async () => {
     const older = cadenceRow({
       createdAt: new Date('2026-08-18T00:00:00.000Z'),

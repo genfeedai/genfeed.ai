@@ -40,6 +40,22 @@ describe('handleWorkflowControlTool system workflow catalog', () => {
     expect(result.content[0].text).toContain('daily-trends-digest');
   });
 
+  it('forwards catalog filters', async () => {
+    const client = buildClient();
+
+    await call(client, 'list_system_workflow_catalog', {
+      family: 'reply-polling',
+      includeNonInstallable: true,
+      installedOnly: true,
+    });
+
+    expect(client.listSystemWorkflowCatalog).toHaveBeenCalledWith({
+      family: 'reply-polling',
+      includeNonInstallable: true,
+      installedOnly: true,
+    });
+  });
+
   it('installs a catalog entry with an optional brand', async () => {
     const client = buildClient();
 

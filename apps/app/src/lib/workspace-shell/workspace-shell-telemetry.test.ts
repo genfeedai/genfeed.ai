@@ -25,6 +25,17 @@ describe('workspace shell telemetry privacy contract', () => {
     vi.unstubAllEnvs();
   });
 
+  it('adds only bounded permanent-shell context to sessions', () => {
+    captureWorkspaceShellSession();
+
+    expect(analytics.capture).toHaveBeenCalledWith(
+      ANALYTICS_EVENTS.CONVERSATION_SHELL_SESSION,
+      {
+        deploymentMode: 'community',
+      },
+    );
+  });
+
   it('records the permanent SaaS shell deployment mode', () => {
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
 

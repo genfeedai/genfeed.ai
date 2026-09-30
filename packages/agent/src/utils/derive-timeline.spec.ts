@@ -49,6 +49,11 @@ function workEvent(
 }
 
 describe('deriveTimeline', () => {
+  it('returns empty array for empty state', () => {
+    const result = deriveTimeline([], [], idleStream, null);
+    expect(result).toEqual([]);
+  });
+
   it('returns user + assistant entries sorted by createdAt', () => {
     const messages = [
       msg('assistant', 'a1', '2026-01-01T00:00:02Z'),

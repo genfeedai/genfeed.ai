@@ -45,6 +45,22 @@ describe('FFmpegTransformService', () => {
   });
 
   describe('resizeVideo', () => {
+    it('should call core.executeFFmpeg with scale filter args', async () => {
+      await service.resizeVideo('/in/video.mp4', '/out/video.mp4', 1920, 1080);
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          '-i',
+          '/in/video.mp4',
+          '-vf',
+          expect.stringContaining('scale=1920:1080'),
+          '-y',
+          '/out/video.mp4',
+        ]),
+        undefined,
+      );
+    });
+
     it('should pass onProgress callback to executeFFmpeg', async () => {
       const onProgress = vi.fn();
       await service.resizeVideo(
@@ -63,6 +79,35 @@ describe('FFmpegTransformService', () => {
   });
 
   describe('scaleVideo', () => {
+    it('should call ensureOutputDir before executing', async () => {
+      await service.scaleVideo('/in/video.mp4', '/out/scaled.mp4', {
+        height: 720,
+        width: 1280,
+      });
+
+      expect(mockCore.ensureOutputDir).toHaveBeenCalledWith('/out/scaled.mp4');
+    });
+
+    it('should use default codec options when not provided', async () => {
+      await service.scaleVideo('/in/video.mp4', '/out/scaled.mp4', {
+        height: 720,
+        width: 1280,
+      });
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          '-c:v',
+          'libx264',
+          '-preset',
+          'ultrafast',
+          '-crf',
+          '23',
+          '-pix_fmt',
+          'yuv420p',
+        ]),
+      );
+    });
+
     it('should use custom codec options when provided', async () => {
       await service.scaleVideo(
         '/in/video.mp4',
@@ -109,9 +154,36 @@ describe('FFmpegTransformService', () => {
         service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 0, 0),
       ).rejects.toThrow('Duration must be positive');
     });
+
+    it('should accept durations outside the legacy 2-15s trim window', async () => {
+      await expect(
+        service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 0, 20),
+      ).resolves.toBeUndefined();
+
+      await expect(
+        service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 0, 1),
+      ).resolves.toBeUndefined();
+    });
+
+    it('should pass valid args to executeFFmpeg', async () => {
+      await service.trimVideo('/in/video.mp4', '/out/trimmed.mp4', 10, 5);
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-ss', '10', '-t', '5']),
+        undefined,
+      );
+    });
   });
 
   describe('compressVideo', () => {
+    it('should return output path on success', async () => {
+      const result = await service.compressVideo(
+        '/in/video.mp4',
+        '/out/compressed.mp4',
+      );
+      expect(result).toBe('/out/compressed.mp4');
+    });
+
     it('should use default compression options', async () => {
       await service.compressVideo('/in/video.mp4', '/out/compressed.mp4');
 
@@ -142,9 +214,25 @@ describe('FFmpegTransformService', () => {
         undefined,
       );
     });
+
+    it('should not include -b:v when videoBitrate not set', async () => {
+      await service.compressVideo('/in/video.mp4', '/out/compressed.mp4', {});
+
+      const args = mockCore.executeFFmpeg.mock.calls[0][0];
+      expect(args).not.toContain('-b:v');
+    });
   });
 
   describe('convertToPortrait', () => {
+    it('should use default 1080x1920 when dimensions not provided', async () => {
+      await service.convertToPortrait('/in/video.mp4', '/out/portrait.mp4');
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', expect.stringContaining('1080:1920')]),
+        undefined,
+      );
+    });
+
     it('should use custom dimensions when provided', async () => {
       await service.convertToPortrait('/in/video.mp4', '/out/portrait.mp4', {
         height: 2560,
@@ -169,6 +257,25 @@ describe('FFmpegTransformService', () => {
       expect(vf).toContain('if(lte(iw*16,ih*9)');
     });
 
+    it('should include scale filter with force_original_aspect_ratio', async () => {
+      await service.convertToPortrait('/in/video.mp4', '/out/portrait.mp4');
+
+      const args = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const vfIndex = args.indexOf('-vf');
+      const vf = args[vfIndex + 1];
+      expect(vf).toContain('force_original_aspect_ratio=decrease');
+    });
+
+    it('should include pad filter for letterbox (ultra-narrow path)', async () => {
+      await service.convertToPortrait('/in/video.mp4', '/out/portrait.mp4');
+
+      const args = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const vfIndex = args.indexOf('-vf');
+      const vf = args[vfIndex + 1];
+      // pad filter adds black bars when needed (letterbox)
+      expect(vf).toContain('pad=1080:1920');
+    });
+
     it('should preserve the complete source frame in the raw-cut safe framing mode', async () => {
       await service.convertToPortrait(
         '/in/video.mp4',
@@ -183,6 +290,21 @@ describe('FFmpegTransformService', () => {
       expect(filter).toContain('force_original_aspect_ratio=increase');
       expect(filter).toContain('force_original_aspect_ratio=decrease');
       expect(filter).toContain('overlay=(W-w)/2:(H-h)/2');
+    });
+
+    it('should pass progress callback to executeFFmpeg', async () => {
+      const onProgress = vi.fn();
+      await service.convertToPortrait(
+        '/in/video.mp4',
+        '/out/portrait.mp4',
+        undefined,
+        onProgress,
+      );
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.any(Array),
+        onProgress,
+      );
     });
   });
 
@@ -273,6 +395,14 @@ describe('FFmpegTransformService', () => {
         expect.arrayContaining(['-vf', 'boxblur=50:50']),
       );
     });
+
+    it('should apply a custom blur amount', async () => {
+      await service.applyPortraitBlur('/in/video.mp4', '/out/video.mp4', 10);
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', 'boxblur=10:10']),
+      );
+    });
   });
 
   describe('createPortraitWithBlur', () => {
@@ -305,6 +435,18 @@ describe('FFmpegTransformService', () => {
           '-f',
           'mp3',
         ]),
+      );
+    });
+
+    it('should use custom codec, bitrate, and format when provided', async () => {
+      await service.convertVideoToAudio('/in/video.mp4', '/out/audio.aac', {
+        audioBitrate: '192k',
+        audioCodec: 'aac',
+        format: 'adts',
+      });
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-acodec', 'aac', '-ab', '192k', '-f', 'adts']),
       );
     });
   });
@@ -341,6 +483,17 @@ describe('FFmpegTransformService', () => {
 
       const gifArgs = mockCore.executeFFmpeg.mock.calls[1][0] as string[];
       expect(gifArgs).toEqual(expect.arrayContaining(['-ss', '1', '-t', '3']));
+    });
+
+    it('should use custom width and fps', async () => {
+      await service.videoToGif('/in/video.mp4', '/out/video.gif', {
+        fps: 20,
+        width: 720,
+      });
+
+      const paletteArgs = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = paletteArgs.find((a) => a.includes('palettegen')) ?? '';
+      expect(filterArg).toContain('fps=20,scale=720');
     });
   });
 });

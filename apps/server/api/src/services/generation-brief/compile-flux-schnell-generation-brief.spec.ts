@@ -113,4 +113,15 @@ describe('compileFluxSchnellGenerationBrief', () => {
       GenerationBriefCompileError,
     );
   });
+
+  it('does not mutate the normalized brief', () => {
+    const brief = imageGenerationBriefSchema.parse(
+      readFixture('unbranded.input.json'),
+    );
+    const original = structuredClone(brief);
+
+    compileFluxSchnellGenerationBrief({ brief });
+
+    expect(brief).toEqual(original);
+  });
 });

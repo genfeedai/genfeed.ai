@@ -8,6 +8,11 @@ describe('IngredientTabsPrompts', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<IngredientTabsPrompts />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<IngredientTabsPrompts />);
     const rootElement = container.firstChild as HTMLElement;

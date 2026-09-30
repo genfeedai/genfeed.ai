@@ -79,6 +79,18 @@ describe('BotActivitiesService', () => {
     vi.clearAllMocks();
   });
 
+  describe('constructor', () => {
+    it('should initialize with correct endpoint', () => {
+      expect((service as unknown as { endpoint: string }).endpoint).toBe(
+        API_ENDPOINTS.BOT_ACTIVITIES,
+      );
+    });
+
+    it('should initialize with provided token', () => {
+      expect((service as unknown as { token: string }).token).toBe(mockToken);
+    });
+  });
+
   describe('getInstance', () => {
     it('should return BotActivitiesService instance', () => {
       const instance = BotActivitiesService.getInstance(mockToken);
@@ -88,6 +100,16 @@ describe('BotActivitiesService', () => {
   });
 
   describe('findWithFilters', () => {
+    it('should get activities with query params', async () => {
+      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
+
+      await service.findWithFilters({ organizationId: 'org-123' });
+
+      expect(mockInstance.get).toHaveBeenCalledWith('', {
+        params: { organizationId: 'org-123' },
+      });
+    });
+
     it('should return data and total', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
@@ -95,6 +117,25 @@ describe('BotActivitiesService', () => {
 
       expect(result.data).toHaveLength(2);
       expect(result.total).toBe(50);
+    });
+
+    it('should support all query params', async () => {
+      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
+
+      const query = {
+        fromDate: '2024-01-01',
+        limit: 20,
+        monitoredAccountId: 'account-123',
+        organizationId: 'org-123',
+        page: 1,
+        replyBotConfigId: 'config-123',
+        status: 'completed',
+        toDate: '2024-12-31',
+      };
+
+      await service.findWithFilters(query);
+
+      expect(mockInstance.get).toHaveBeenCalledWith('', { params: query });
     });
 
     it('should use data length as total when meta.total is missing', async () => {
@@ -107,6 +148,40 @@ describe('BotActivitiesService', () => {
   });
 
   describe('getStats', () => {
+    it('should get stats from summary endpoint', async () => {
+      const mockStats: IBotActivityStats = {
+        completedActivities: 80,
+        failedActivities: 5,
+        pendingActivities: 15,
+        totalActivities: 100,
+      };
+      mockInstance.get.mockResolvedValue({ data: mockStats });
+
+      await service.getStats();
+
+      expect(mockInstance.get).toHaveBeenCalledWith('/stats/summary', {
+        params: {
+          fromDate: undefined,
+          replyBotConfigId: undefined,
+          toDate: undefined,
+        },
+      });
+    });
+
+    it('should pass filters to stats endpoint', async () => {
+      mockInstance.get.mockResolvedValue({ data: {} });
+
+      await service.getStats('config-123', '2024-01-01', '2024-12-31');
+
+      expect(mockInstance.get).toHaveBeenCalledWith('/stats/summary', {
+        params: {
+          fromDate: '2024-01-01',
+          replyBotConfigId: 'config-123',
+          toDate: '2024-12-31',
+        },
+      });
+    });
+
     it('should return stats data', async () => {
       const mockStats = { totalActivities: 100 };
       mockInstance.get.mockResolvedValue({ data: mockStats });
@@ -118,6 +193,17 @@ describe('BotActivitiesService', () => {
   });
 
   describe('findByOrganization', () => {
+    it('should call findWithFilters with organizationId', async () => {
+      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
+
+      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
+      await service.findByOrganization('org-123');
+
+      expect(findWithFiltersSpy).toHaveBeenCalledWith({
+        organizationId: 'org-123',
+      });
+    });
+
     it('should pass options to findWithFilters', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
@@ -138,6 +224,17 @@ describe('BotActivitiesService', () => {
   });
 
   describe('findByBotConfig', () => {
+    it('should call findWithFilters with replyBotConfigId', async () => {
+      mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
+
+      const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
+      await service.findByBotConfig('config-123');
+
+      expect(findWithFiltersSpy).toHaveBeenCalledWith({
+        replyBotConfigId: 'config-123',
+      });
+    });
+
     it('should pass options to findWithFilters', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 

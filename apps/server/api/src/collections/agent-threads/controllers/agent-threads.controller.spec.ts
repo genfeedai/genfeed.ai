@@ -4,6 +4,7 @@ import { AgentThreadsController } from '@api/collections/agent-threads/controlle
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentScopeContextService } from '@api/index';
+import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -103,6 +104,43 @@ describe('AgentThreadsController', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('should have a user-scoped rate limit on createThread', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      AgentThreadsController.prototype.createThread,
+    );
+    expect(metadata).toEqual({
+      limit: 30,
+      scope: 'user',
+      windowMs: 60_000,
+    });
+  });
+
+  it('should have a user-scoped rate limit on addMessage', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      AgentThreadsController.prototype.addMessage,
+    );
+    expect(metadata).toEqual({
+      limit: 30,
+      scope: 'user',
+      windowMs: 60_000,
+    });
+  });
+
+  it('does not rate-limit listThreads', () => {
+    expect(
+      Reflect.getMetadata(
+        RATE_LIMIT_KEY,
+        AgentThreadsController.prototype.listThreads,
+      ),
+    ).toBeUndefined();
+  });
+
   describe('listThreads', () => {
     it('should return threads as JSON:API collection', async () => {
       service.getUserThreads.mockResolvedValue([]);
@@ -185,6 +223,29 @@ describe('AgentThreadsController', () => {
       );
     });
 
+    it('should not throw 401 when metadata user id is resolved from the canonical row id', async () => {
+      const resolvedUserId = 'resolved_user_id';
+      usersService.findOne.mockResolvedValueOnce({ id: resolvedUserId });
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        {
+          ...mockUser,
+          ...mockUser,
+          userId: '',
+        } as unknown as User,
+      );
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        resolvedUserId,
+        expect.any(String),
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
     it('should hard-filter threads by brand when brand query is set', async () => {
       service.getUserThreads.mockResolvedValue([]);
 
@@ -218,6 +279,26 @@ describe('AgentThreadsController', () => {
         'onboarding',
       );
     });
+
+    it('should ignore a blank source query', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        'active',
+        undefined,
+        '   ',
+      );
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.userId,
+        mockUser.organizationId,
+        'active',
+        undefined,
+        undefined,
+      );
+    });
   });
 
   describe('getThread', () => {
@@ -249,6 +330,50 @@ describe('AgentThreadsController', () => {
         'org_current',
         { cursor: 'opaque-cursor', limit: 25 },
       );
+    });
+
+    it('defaults the limit to 50 and passes no cursor when the query omits them', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      await controller.getMessages(
+        {} as never,
+        'thread-1',
+        mockUser,
+        undefined,
+        undefined,
+      );
+
+      expect(messagesService.getMessagesPage).toHaveBeenCalledWith(
+        'thread-1',
+        'org_current',
+        { cursor: undefined, limit: 50 },
+      );
+    });
+
+    it('reverses the newest-first service page into chronological order', async () => {
+      messagesService.getMessagesPage.mockResolvedValue({
+        docs: [
+          { id: 'msg-3', content: 'third' },
+          { id: 'msg-2', content: 'second' },
+          { id: 'msg-1', content: 'first' },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      });
+
+      const result = await controller.getMessages(
+        { originalUrl: '/v1/agent/threads/thread-1/messages' } as never,
+        'thread-1',
+        mockUser,
+      );
+
+      expect(
+        (result as { data: Array<{ id: string }> }).data.map((d) => d.id),
+      ).toEqual(['msg-1', 'msg-2', 'msg-3']);
     });
 
     it('surfaces hasMore and nextCursor via links.cursor', async () => {

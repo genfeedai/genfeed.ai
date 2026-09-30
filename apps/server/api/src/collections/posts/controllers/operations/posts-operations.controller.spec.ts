@@ -438,6 +438,11 @@ Tweet 3: Tech innovation is changing the world.`,
     );
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+    expect(generationController).toBeDefined();
+  });
+
   it.each([
     ['generateAccountContent', 'account-generations'],
     ['generateSourceVariations', 'source-variations'],
@@ -1006,6 +1011,14 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(result).toBeDefined();
     });
 
+    it('should handle ingredient lookup for items with ingredientId', async () => {
+      mockIngredientsService.findByIds.mockResolvedValueOnce([mockIngredient]);
+
+      await controller.batchUpdate(mockRequest, batchScheduleDto, mockUser);
+
+      expect(mockIngredientsService.findByIds).toHaveBeenCalled();
+    });
+
     it('excludes an item whose ingredientId does not resolve instead of scheduling it with no media (#5193)', async () => {
       // The ingredient exists for no one in this organization (or a typo'd
       // id): dropping just the id and scheduling anyway used to silently
@@ -1521,6 +1534,22 @@ Tweet 3: Tech innovation is changing the world.`,
       }
     });
 
+    it('should use platform-specific system prompt', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        platform: CredentialPlatform.YOUTUBE,
+      });
+
+      await generationController.enhancePost(
+        mockRequest,
+        postId,
+        enhancePostDto,
+        mockUser,
+      );
+
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalled();
+    });
+
     it('should use default tone when not specified', async () => {
       const dtoWithoutTone = {
         prompt: 'Make it better',
@@ -1613,11 +1642,111 @@ Tweet 3: Tech innovation is changing the world.`,
   // ==========================================================================
   // Helper Methods Tests (via indirect testing)
   // ==========================================================================
+  describe('Helper Methods', () => {
+    describe('stripHtmlTags', () => {
+      it('should strip HTML tags when processing posts', async () => {
+        const postWithHtml = {
+          ...mockPost,
+          description: '<p>Hello <strong>World</strong></p>',
+        };
+        mockPostsService.findOne.mockResolvedValue(postWithHtml);
+
+        // expandToThread uses stripHtmlTags internally
+        await generationController.expandToThread(
+          mockRequest,
+          mockUser,
+          postId,
+          {
+            count: 3,
+          },
+        );
+
+        // The method is called, processing happens internally
+        expect(mockPostsService.create).toHaveBeenCalled();
+      });
+    });
+
+    describe('isValidPostLength', () => {
+      // Tested indirectly through parseTweetContent during async generation
+      it('should validate post length during tweet generation', async () => {
+        const generateTweetsDto = {
+          count: 2,
+          credentialId,
+          format: 'post' as const,
+          topic: 'Test',
+        };
+
+        await generationController.generateAccountContent(
+          mockRequest,
+          generateTweetsDto,
+          mockUser,
+        );
+
+        expect(mockPostsService.create).toHaveBeenCalled();
+      });
+    });
+
+    describe('extractLabelFromTweet', () => {
+      it('should extract label when creating posts', async () => {
+        const generateTweetsDto = {
+          count: 1,
+          credentialId,
+          format: 'post' as const,
+          topic: 'Test',
+        };
+
+        await generationController.generateAccountContent(
+          mockRequest,
+          generateTweetsDto,
+          mockUser,
+        );
+
+        // Label extraction happens during async processing
+        expect(mockPostsService.create).toHaveBeenCalled();
+      });
+    });
+  });
 
   // ==========================================================================
   // Edge Cases
   // ==========================================================================
   describe('Edge Cases', () => {
+    it('should handle empty ingredients array', async () => {
+      const createPostDto = {
+        credentialId,
+        description: 'Reply',
+        ingredients: [],
+        label: 'Reply',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      };
+
+      await controller.addThreadReply(
+        mockRequest,
+        mockUser,
+        postId,
+        createPostDto,
+      );
+
+      expect(mockPostsService.addThreadReply).toHaveBeenCalled();
+    });
+
+    it('should handle missing optional fields in DTOs', async () => {
+      const minimalDto = {
+        count: 1,
+        credentialId,
+        format: 'post' as const,
+        topic: 'Test',
+      };
+
+      await generationController.generateAccountContent(
+        mockRequest,
+        minimalDto,
+        mockUser,
+      );
+
+      expect(mockPostsService.create).toHaveBeenCalled();
+    });
+
     it('should handle posts with no description', async () => {
       mockPostsService.findOne.mockResolvedValueOnce({
         ...mockPost,

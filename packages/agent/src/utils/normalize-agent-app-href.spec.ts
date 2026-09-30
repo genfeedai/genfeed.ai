@@ -63,6 +63,12 @@ describe('normalizeAgentAppHref', () => {
 });
 
 describe('normalizeAgentAssetHref', () => {
+  it('repairs a persisted bare Library CTA with its exact asset id', () => {
+    expect(
+      normalizeAgentAssetHref('/library/assets', 'generated image/1'),
+    ).toBe('/library/assets?asset=generated+image%2F1');
+  });
+
   it('preserves scope, filters, and hash while replacing a stale asset id', () => {
     expect(
       normalizeAgentAssetHref(
@@ -70,5 +76,11 @@ describe('normalizeAgentAssetHref', () => {
         IMAGE_ID,
       ),
     ).toBe(`/acme/launch/library/images?folder=hero&asset=${IMAGE_ID}#details`);
+  });
+
+  it('leaves non-Library CTAs unchanged', () => {
+    expect(normalizeAgentAssetHref('/publishing/review', IMAGE_ID)).toBe(
+      '/publishing/review',
+    );
   });
 });

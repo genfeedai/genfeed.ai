@@ -92,7 +92,28 @@ describe('AssetsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
+    it('should return paginated assets', async () => {
+      const mockData = {
+        docs: [mockAsset],
+        limit: 10,
+        page: 1,
+        totalDocs: 1,
+        totalPages: 1,
+      };
+
+      mockAssetsService.findAll.mockResolvedValue(mockData);
+
+      const result = await controller.findAll(mockUser, {}, mockRequest);
+
+      expect(service.findAll).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should return empty result when no assets found', async () => {
       const mockData = {
         docs: [],

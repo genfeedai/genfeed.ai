@@ -61,6 +61,37 @@ describe('MemberCreditsGuard', () => {
     vi.unstubAllEnvs();
   });
 
+  it('returns true when under the free solo seat limit', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      seatsLimit: FREE_SEAT_LIMIT,
+      subscriptionTier: SubscriptionTier.FREE,
+    });
+    membersService.count.mockResolvedValue(0);
+
+    await expect(guard.canActivate(createContext())).resolves.toBe(true);
+  });
+
+  it('throws a structured plan-limit error when a free org already has its solo member', async () => {
+    organizationSettingsService.findOne.mockResolvedValue({
+      seatsLimit: FREE_SEAT_LIMIT,
+      subscriptionTier: SubscriptionTier.FREE,
+    });
+    membersService.count.mockResolvedValue(FREE_SEAT_LIMIT);
+
+    await expect(guard.canActivate(createContext())).rejects.toMatchObject({
+      response: {
+        code: 'PLAN_LIMIT_EXCEEDED',
+        meta: {
+          currentCount: FREE_SEAT_LIMIT,
+          limit: FREE_SEAT_LIMIT,
+          resource: 'seats',
+          upgradeTier: SubscriptionTier.PRO,
+        },
+      },
+      status: 403,
+    });
+  });
+
   it.each([
     SubscriptionTier.PRO,
     SubscriptionTier.SCALE,

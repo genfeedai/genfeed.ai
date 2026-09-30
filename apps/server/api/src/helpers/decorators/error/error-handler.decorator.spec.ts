@@ -5,6 +5,17 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 describe('HandleErrors', () => {
+  it('returns the resolved value', async () => {
+    class Example {
+      @HandleErrors('load', 'widgets')
+      async load() {
+        return 7;
+      }
+    }
+
+    await expect(new Example().load()).resolves.toBe(7);
+  });
+
   it('logs and rethrows when a logger is present', async () => {
     const logger = { error: vi.fn() };
 

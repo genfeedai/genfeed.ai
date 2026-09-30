@@ -96,6 +96,18 @@ describe('AnnotationNode', () => {
   });
 
   describe('rendering without image', () => {
+    it('should render placeholder when no image', () => {
+      render(<AnnotationNode {...defaultProps} />);
+
+      expect(screen.getByText('Connect an image')).toBeInTheDocument();
+    });
+
+    it('should render add annotations button', () => {
+      render(<AnnotationNode {...defaultProps} />);
+
+      expect(screen.getByText('Add Annotations')).toBeInTheDocument();
+    });
+
     it('should disable button without image', () => {
       render(<AnnotationNode {...defaultProps} />);
 
@@ -104,7 +116,97 @@ describe('AnnotationNode', () => {
     });
   });
 
+  describe('rendering with image', () => {
+    it('should render image preview', () => {
+      const propsWithImage = {
+        ...defaultProps,
+        data: { ...defaultProps.data, inputImage: '/test.jpg' },
+      };
+      render(<AnnotationNode {...propsWithImage} />);
+
+      const img = screen.getByRole('img', { name: 'Input image' });
+      expect(img).toHaveAttribute('data-src', '/test.jpg');
+    });
+
+    it('should enable button with image', () => {
+      const propsWithImage = {
+        ...defaultProps,
+        data: { ...defaultProps.data, inputImage: '/test.jpg' },
+      };
+      render(<AnnotationNode {...propsWithImage} />);
+
+      const button = screen.getByText('Add Annotations');
+      expect(button).not.toBeDisabled();
+    });
+
+    it('should show placeholder removed when image is present', () => {
+      const propsWithImage = {
+        ...defaultProps,
+        data: { ...defaultProps.data, inputImage: '/test.jpg' },
+      };
+      render(<AnnotationNode {...propsWithImage} />);
+
+      expect(screen.queryByText('Connect an image')).not.toBeInTheDocument();
+    });
+  });
+
   describe('rendering with annotations', () => {
+    it('should show annotation count badge', () => {
+      const propsWithAnnotations = {
+        ...defaultProps,
+        data: {
+          ...defaultProps.data,
+          annotations: [
+            {
+              fillColor: null,
+              id: '1',
+              props: {},
+              strokeColor: '#fff',
+              strokeWidth: 2,
+              type: 'rectangle',
+            },
+            {
+              fillColor: null,
+              id: '2',
+              props: {},
+              strokeColor: '#fff',
+              strokeWidth: 2,
+              type: 'circle',
+            },
+          ],
+          hasAnnotations: true,
+          inputImage: '/test.jpg',
+        },
+      };
+      render(<AnnotationNode {...propsWithAnnotations} />);
+
+      expect(screen.getByText('2')).toBeInTheDocument();
+    });
+
+    it('should show edit annotations button text', () => {
+      const propsWithAnnotations = {
+        ...defaultProps,
+        data: {
+          ...defaultProps.data,
+          annotations: [
+            {
+              fillColor: null,
+              id: '1',
+              props: {},
+              strokeColor: '#fff',
+              strokeWidth: 2,
+              type: 'rectangle',
+            },
+          ],
+          hasAnnotations: true,
+          inputImage: '/test.jpg',
+        },
+      };
+      render(<AnnotationNode {...propsWithAnnotations} />);
+
+      expect(screen.getByText('Edit Annotations')).toBeInTheDocument();
+    });
+
     it('should show annotation count in footer', () => {
       const propsWithAnnotations = {
         ...defaultProps,
@@ -144,9 +246,44 @@ describe('AnnotationNode', () => {
 
       expect(screen.getByText('3 annotations')).toBeInTheDocument();
     });
+
+    it('should show singular annotation text for one item', () => {
+      const propsWithAnnotations = {
+        ...defaultProps,
+        data: {
+          ...defaultProps.data,
+          annotations: [
+            {
+              fillColor: null,
+              id: '1',
+              props: {},
+              strokeColor: '#fff',
+              strokeWidth: 2,
+              type: 'rectangle',
+            },
+          ],
+          hasAnnotations: true,
+          inputImage: '/test.jpg',
+        },
+      };
+      render(<AnnotationNode {...propsWithAnnotations} />);
+
+      expect(screen.getByText('1 annotation')).toBeInTheDocument();
+    });
   });
 
   describe('connected inputs', () => {
+    it('should use connected image input when available', () => {
+      mockGetConnectedInputs.mockReturnValue(
+        new Map([['image', '/connected-image.jpg']]),
+      );
+
+      render(<AnnotationNode {...defaultProps} />);
+
+      const img = screen.getByRole('img', { name: 'Input image' });
+      expect(img).toHaveAttribute('data-src', '/connected-image.jpg');
+    });
+
     it('should prefer connected image over data inputImage', () => {
       mockGetConnectedInputs.mockReturnValue(
         new Map([['image', '/connected-image.jpg']]),
@@ -164,6 +301,23 @@ describe('AnnotationNode', () => {
   });
 
   describe('interactions', () => {
+    it('should call openAnnotation on button click', () => {
+      const propsWithImage = {
+        ...defaultProps,
+        data: { ...defaultProps.data, inputImage: '/test.jpg' },
+      };
+      render(<AnnotationNode {...propsWithImage} />);
+
+      const button = screen.getByText('Add Annotations');
+      fireEvent.click(button);
+
+      expect(mockOpenAnnotation).toHaveBeenCalledWith(
+        'node-1',
+        '/test.jpg',
+        [],
+      );
+    });
+
     it('should pass existing annotations to openAnnotation', () => {
       const annotations = [
         {
@@ -203,6 +357,54 @@ describe('AnnotationNode', () => {
           y: 20,
         },
       ]);
+    });
+
+    it('should not call openAnnotation without image', () => {
+      render(<AnnotationNode {...defaultProps} />);
+
+      const button = screen.getByText('Add Annotations');
+      fireEvent.click(button);
+
+      expect(mockOpenAnnotation).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('button variant', () => {
+    it('should use secondary variant without annotations', () => {
+      const propsWithImage = {
+        ...defaultProps,
+        data: { ...defaultProps.data, inputImage: '/test.jpg' },
+      };
+      render(<AnnotationNode {...propsWithImage} />);
+
+      const button = screen.getByText('Add Annotations');
+      expect(button.closest('button')).toHaveClass('bg-secondary');
+    });
+
+    it('should use default variant with annotations', () => {
+      const propsWithAnnotations = {
+        ...defaultProps,
+        data: {
+          ...defaultProps.data,
+          annotations: [
+            {
+              fillColor: null,
+              id: '1',
+              props: {},
+              strokeColor: '#fff',
+              strokeWidth: 2,
+              type: 'rectangle',
+            },
+          ],
+          hasAnnotations: true,
+          inputImage: '/test.jpg',
+        },
+      };
+      render(<AnnotationNode {...propsWithAnnotations} />);
+
+      const button = screen.getByText('Edit Annotations');
+      // Default variant uses bg-primary
+      expect(button.closest('button')).toHaveClass('bg-primary');
     });
   });
 });

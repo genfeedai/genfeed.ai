@@ -11,6 +11,7 @@ import {
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('StepExecutorService', () => {
@@ -180,6 +181,26 @@ describe('StepExecutorService', () => {
           baseContext,
         ),
       ).rejects.toThrow('requires an imageUrl');
+    });
+
+    it('should route FAL video model', async () => {
+      mockFalService.generateVideo.mockResolvedValue({
+        url: 'https://fal.ai/video.mp4',
+      });
+
+      const result = await service.execute(
+        {
+          imageUrl: 'https://example.com/img.png',
+          model: VideoTaskModel.FAL,
+          type: 'image-to-video',
+        },
+        baseContext,
+      );
+
+      expect(result).toEqual({
+        contentType: 'video/mp4',
+        url: 'https://fal.ai/video.mp4',
+      });
     });
   });
 
@@ -444,6 +465,36 @@ describe('StepExecutorService', () => {
     });
   });
 
+  describe('image-to-video - configuration options', () => {
+    it('sends the DoP model key and ignores step sizing the endpoint cannot take', async () => {
+      mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
+        requestId: 'req-1',
+      });
+      mockHiggsFieldService.waitForVideoCompletion.mockResolvedValue({
+        videoUrl: 'https://hf.ai/video.mp4',
+      });
+
+      await service.execute(
+        {
+          aspectRatio: '16:9',
+          duration: 10,
+          imageUrl: 'https://example.com/img.png',
+          model: VideoTaskModel.HIGGSFIELD,
+          type: 'image-to-video',
+        },
+        baseContext,
+      );
+
+      // DoP sizes the clip from the source image, so neither value is sent.
+      expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith({
+        imageUrl: 'https://example.com/img.png',
+        modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
+        organizationId: 'org-123',
+        prompt: 'a beautiful sunset',
+      });
+    });
+  });
+
   describe('text-to-image - configuration options', () => {
     it('should use custom aspectRatio', async () => {
       mockFalService.generateImage.mockResolvedValue({
@@ -464,6 +515,72 @@ describe('StepExecutorService', () => {
         expect.objectContaining({
           image_size: '512x768',
         }),
+      );
+    });
+
+    it('should default to 1024x1024 when aspectRatio not specified', async () => {
+      mockFalService.generateImage.mockResolvedValue({
+        url: 'https://fal.ai/image.png',
+      });
+
+      await service.execute(
+        {
+          model: ImageTaskModel.FAL,
+          type: 'text-to-image',
+        },
+        baseContext,
+      );
+
+      expect(mockFalService.generateImage).toHaveBeenCalledWith(
+        'fal-ai/flux/dev',
+        expect.objectContaining({
+          image_size: '1024x1024',
+        }),
+      );
+    });
+  });
+
+  describe('text-to-speech - configuration options', () => {
+    it('should use step text over global prompt', async () => {
+      mockElevenLabsService.textToSpeech.mockResolvedValue({
+        audioBase64: 'dGVzdA==',
+      });
+
+      await service.execute(
+        {
+          model: MusicTaskModel.ELEVENLABS,
+          text: 'Step text',
+          type: 'text-to-speech',
+          voiceId: 'voice-1',
+        },
+        { ...baseContext, globalPrompt: 'Global prompt' },
+      );
+
+      expect(mockElevenLabsService.textToSpeech).toHaveBeenCalledWith(
+        'voice-1',
+        'Step text',
+        'org-123',
+      );
+    });
+
+    it('should use global prompt when step text is missing', async () => {
+      mockElevenLabsService.textToSpeech.mockResolvedValue({
+        audioBase64: 'dGVzdA==',
+      });
+
+      await service.execute(
+        {
+          model: MusicTaskModel.ELEVENLABS,
+          type: 'text-to-speech',
+          voiceId: 'voice-1',
+        },
+        { ...baseContext, globalPrompt: 'Global prompt' },
+      );
+
+      expect(mockElevenLabsService.textToSpeech).toHaveBeenCalledWith(
+        'voice-1',
+        'Global prompt',
+        'org-123',
       );
     });
   });

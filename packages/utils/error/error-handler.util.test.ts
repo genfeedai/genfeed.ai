@@ -86,6 +86,15 @@ describe('error-handler.util', () => {
       expect(getErrorStatus(error)).toBe(404);
     });
 
+    it('should return undefined for plain Error without status', () => {
+      expect(getErrorStatus(new Error('test'))).toBeUndefined();
+    });
+
+    it('should return undefined when response is missing', () => {
+      const error = { isAxiosError: true };
+      expect(getErrorStatus(error)).toBeUndefined();
+    });
+
     it('should read status from interceptor-sanitized Error objects', () => {
       const error = Object.assign(new Error('Request failed'), { status: 404 });
       expect(getErrorStatus(error)).toBe(404);

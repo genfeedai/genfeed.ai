@@ -351,6 +351,38 @@ describe('BatchGenerationReviewService harness review feedback', () => {
     });
   });
 
+  it('feeds a request-changes item back to the harness profile', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          id: 'item-2',
+          postId: 'post-2',
+          prompt: 'A generic stock-photo style render.',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+
+    await service.requestChanges(
+      'batch-1',
+      ['item-2'],
+      'org-1',
+      'Needs a more distinctive visual.',
+    );
+
+    expect(
+      harnessReviewFeedbackService.recordReviewDecision,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      content: 'A generic stock-photo style render.',
+      decision: ReviewDecision.REQUEST_CHANGES,
+      organizationId: 'org-1',
+      reason: 'Needs a more distinctive visual.',
+      sourceId: 'item-2',
+      sourceType: 'batch_item',
+    });
+  });
+
   it('skips items with no caption or prompt content', async () => {
     batch.findFirst.mockResolvedValue(
       createBatchRecord([
@@ -363,6 +395,62 @@ describe('BatchGenerationReviewService harness review feedback', () => {
     expect(
       harnessReviewFeedbackService.recordReviewDecision,
     ).not.toHaveBeenCalled();
+  });
+
+  it('never fails the review action when no harness feedback service is wired', async () => {
+    batch.findFirst.mockResolvedValue(
+      createBatchRecord([
+        {
+          caption: 'Rejected copy',
+          id: 'item-4',
+          postId: 'post-4',
+          status: BatchItemStatus.COMPLETED,
+        },
+      ]),
+    );
+    const bareService = new BatchGenerationReviewService(
+      {
+        batch,
+        batchItem,
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            batch,
+            batchItem,
+            $queryRaw: vi.fn(),
+            post: {
+              findFirst: vi.fn().mockResolvedValue({
+                id: 'post-1',
+                targetExecutionState: 'draft',
+              }),
+            },
+          }),
+      } as never,
+      { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
+      {} as never,
+      postLifecycleService as never,
+      publishApprovalsService as never,
+      summaryService as never,
+      {
+        assessPostMediaReasons: vi.fn().mockResolvedValue([]),
+        recordReviewDecision: vi.fn(),
+        resolveForPost: vi.fn(),
+      } as never,
+      { afterCommit: vi.fn(), recordInTransaction: vi.fn() } as never,
+      {
+        assertActive: vi.fn(),
+        run: vi.fn(
+          async (
+            _ids: string[],
+            _org: string,
+            operation: () => Promise<unknown>,
+          ) => operation(),
+        ),
+      } as never,
+    );
+
+    await expect(
+      bareService.rejectItems('batch-1', ['item-4'], 'org-1'),
+    ).resolves.toBeDefined();
   });
 });
 
@@ -522,12 +610,33 @@ describe('BatchGenerationReviewService assignment', () => {
     );
   });
 
+  it('rejects assignment when the user is outside the organization', async () => {
+    member.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.assignItem('batch-1', 'item-1', 'user-other-org', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(batch.updateMany).not.toHaveBeenCalled();
+  });
+
   it('rejects assignment when the member is inactive', async () => {
     member.findFirst.mockResolvedValue(null);
 
     await expect(
       service.assignItem('batch-1', 'item-1', 'user-inactive', 'org-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects assignment when the user is soft-deleted', async () => {
+    member.findFirst.mockResolvedValue({
+      id: 'member-1',
+      user: { id: 'user-deleted', isDeleted: true },
+    });
+
+    await expect(
+      service.assignItem('batch-1', 'item-1', 'user-deleted', 'org-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(batch.updateMany).not.toHaveBeenCalled();
   });
 
   it('fails closed when the item is missing from the tenant-scoped batch', async () => {

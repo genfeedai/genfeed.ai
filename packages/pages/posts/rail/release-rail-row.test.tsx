@@ -127,4 +127,18 @@ describe('ReleaseRailRow', () => {
     expect(row).toHaveAttribute('data-release-id', 'release-1');
     expect(row).toHaveAttribute('aria-selected', 'true');
   });
+
+  it('calls onActivate when the row is clicked', () => {
+    const onActivate = vi.fn();
+    render(
+      <ReleaseRailRow
+        browserTimezone="UTC"
+        isActive={false}
+        onActivate={onActivate}
+        release={buildRelease()}
+      />,
+    );
+    screen.getByRole('option').click();
+    expect(onActivate).toHaveBeenCalled();
+  });
 });

@@ -32,6 +32,28 @@ describe('assertWebhookToken', () => {
     vi.clearAllMocks();
   });
 
+  it('accepts the secret from the token query parameter', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({ query: { token: 'super-secret' } }),
+      }),
+    ).not.toThrow();
+  });
+
+  it('accepts the secret from the x-webhook-token header', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { 'x-webhook-token': 'super-secret' },
+        }),
+      }),
+    ).not.toThrow();
+  });
+
   it('fails closed and logs the variable to set when no secret is configured', () => {
     expect(() =>
       assertWebhookToken({
@@ -56,6 +78,138 @@ describe('assertWebhookToken', () => {
     ).toThrowError('Invalid webhook token');
     expect(loggerService.error).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects a request that carries no credential', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest(),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('rejects a credential of the wrong length without leaking timing', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({ query: { token: 'short' } }),
+      }),
+    ).toThrowError('Invalid webhook token');
+  });
+
+  it('rejects a same-length credential that does not match', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({ query: { token: 'super-secrez' } }),
+      }),
+    ).toThrowError('Invalid webhook token');
+  });
+
+  it('ignores the Authorization header unless the vendor opts in', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'Bearer super-secret' },
+        }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('accepts a bearer credential when the vendor opts in', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'Bearer super-secret' },
+        }),
+      }),
+    ).not.toThrow();
+  });
+
+  it('matches the bearer scheme case-insensitively and trims the token', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'bEaReR super-secret ' },
+        }),
+      }),
+    ).not.toThrow();
+  });
+
+  it('rejects a non-bearer Authorization scheme even when opted in', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'Basic super-secret' },
+        }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('rejects a bearer header with surplus fields even when opted in', () => {
+    // Regression coverage for #5206: `authorizationHeader.split(' ')`
+    // destructuring used to silently drop everything past the second field,
+    // so `Bearer super-secret extra` was accepted as `Bearer super-secret`.
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { authorization: 'Bearer super-secret extra' },
+        }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('rejects an empty Authorization header when opted in', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({ headers: { authorization: '' } }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('rejects a bearer scheme with a blank token when opted in', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        acceptBearerHeader: true,
+        configuredSecret: 'super-secret',
+        request: makeRequest({ headers: { authorization: 'Bearer    ' } }),
+      }),
+    ).toThrowError('Missing webhook token');
+  });
+
+  it('prefers the query parameter over the header', () => {
+    expect(() =>
+      assertWebhookToken({
+        ...baseOptions,
+        configuredSecret: 'super-secret',
+        request: makeRequest({
+          headers: { 'x-webhook-token': 'wrong-secret' },
+          query: { token: 'super-secret' },
+        }),
+      }),
+    ).not.toThrow();
+  });
 });
 
 describe('appendWebhookToken', () => {
@@ -68,9 +222,21 @@ describe('appendWebhookToken', () => {
     );
   });
 
+  it('appends the token with a ? on a bare URL', () => {
+    expect(appendWebhookToken('https://api.test/hook', 'abc')).toBe(
+      'https://api.test/hook?token=abc',
+    );
+  });
+
   it('appends the token with an & when the URL already has a query', () => {
     expect(appendWebhookToken('https://api.test/hook?a=1', 'abc')).toBe(
       'https://api.test/hook?a=1&token=abc',
+    );
+  });
+
+  it('URL-encodes secrets containing reserved characters', () => {
+    expect(appendWebhookToken('https://api.test/hook', 'a b&c=d')).toBe(
+      'https://api.test/hook?token=a%20b%26c%3Dd',
     );
   });
 });

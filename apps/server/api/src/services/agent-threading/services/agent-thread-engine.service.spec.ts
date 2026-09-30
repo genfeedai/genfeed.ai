@@ -191,6 +191,12 @@ describe('AgentThreadEngineService', () => {
       expect(result.commandId).toBe(commandId);
     });
 
+    it('throws BadRequestException for invalid threadId', async () => {
+      await expect(
+        service.appendEvent({ ...params, threadId: 'not-an-objectid' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('throws BadRequestException for invalid organizationId', async () => {
       await expect(
         service.appendEvent({ ...params, organizationId: 'bad-id' }),
@@ -209,6 +215,23 @@ describe('AgentThreadEngineService', () => {
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(null);
       await expect(service.appendEvent(params)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+
+    it('calls runtimeSessionService.upsertBinding for work.started event', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
+      mockPrisma.agentThreadSnapshot.findUnique.mockResolvedValue(
+        mockSnapshotRow,
+      );
+
+      await service.appendEvent({
+        ...params,
+        runId: 'run-2',
+        type: 'work.started',
+      });
+      expect(runtimeSessionService.upsertBinding).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'running', threadId }),
       );
     });
   });
@@ -277,6 +300,24 @@ describe('AgentThreadEngineService', () => {
   });
 
   describe('getSnapshot', () => {
+    it('accepts an opaque Better Auth user id when scoping thread access', async () => {
+      const legacyUserId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
+
+      await service.getSnapshot(threadId, orgId, legacyUserId);
+
+      expect(agentThreadsService.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: threadId,
+          isDeleted: false,
+          organizationId: orgId,
+          userId: legacyUserId,
+        }),
+      );
+    });
+
     it('creates snapshot when none exists', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
       mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);

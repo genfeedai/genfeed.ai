@@ -53,6 +53,10 @@ describe('WhatsappController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('sendMessage', () => {
     it('should send text message when no mediaUrl', async () => {
       brandsService.findOne.mockResolvedValue(mockBrand as never);

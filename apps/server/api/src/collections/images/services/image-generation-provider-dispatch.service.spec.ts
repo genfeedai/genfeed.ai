@@ -640,4 +640,18 @@ describe('ImageGenerationProviderDispatchService', () => {
       'org-replicate-key',
     );
   });
+
+  it('skips finalize when the ingredient is no longer processing', async () => {
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+    replicateService.generateTextToImage.mockResolvedValue('replicate-job');
+    imagesService.findOne.mockResolvedValue({
+      status: IngredientStatus.FAILED,
+    });
+    const context = buildContext({ model });
+
+    const plan = await service.dispatch(context);
+    await plan?.generationPromise;
+
+    expect(filesClientService.uploadToS3).not.toHaveBeenCalled();
+  });
 });

@@ -143,6 +143,15 @@ describe('YoutubeService — extended coverage', () => {
       );
       expect(result).toBe(expected);
     });
+
+    it('propagates rejection from metadataService.getVideoStatus', async () => {
+      const err = new Error('status fetch failed');
+      metadataService.getVideoStatus.mockRejectedValue(err);
+
+      await expect(
+        service.getVideoStatus('org', 'brand', 'vid'),
+      ).rejects.toThrow('status fetch failed');
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -162,6 +171,28 @@ describe('YoutubeService — extended coverage', () => {
         undefined,
       );
       expect(result).toBe(expected);
+    });
+
+    it('passes authOrSkipRefresh through to analyticsService', async () => {
+      analyticsService.getChannelDetails.mockResolvedValue({} as never);
+      const fakeAuth = { token: 'some-auth' };
+
+      await service.getChannelDetails('org-3', 'brand-3', fakeAuth);
+
+      expect(analyticsService.getChannelDetails).toHaveBeenCalledWith(
+        'org-3',
+        'brand-3',
+        fakeAuth,
+      );
+    });
+
+    it('propagates rejection from analyticsService.getChannelDetails', async () => {
+      const err = new Error('channel fetch failed');
+      analyticsService.getChannelDetails.mockRejectedValue(err);
+
+      await expect(service.getChannelDetails('org', 'brand')).rejects.toThrow(
+        'channel fetch failed',
+      );
     });
   });
 
@@ -191,11 +222,71 @@ describe('YoutubeService — extended coverage', () => {
       );
       expect(result).toBe(expected);
     });
+
+    it('delegates with empty array', async () => {
+      analyticsService.getMediaAnalyticsBatch.mockResolvedValue([] as never);
+
+      await service.getMediaAnalyticsBatch('org', 'brand', [], 'credential');
+
+      expect(analyticsService.getMediaAnalyticsBatch).toHaveBeenCalledWith(
+        'org',
+        'brand',
+        [],
+        'credential',
+      );
+    });
+
+    it('propagates rejection from analyticsService.getMediaAnalyticsBatch', async () => {
+      const err = new Error('batch analytics failed');
+      analyticsService.getMediaAnalyticsBatch.mockRejectedValue(err);
+
+      await expect(
+        service.getMediaAnalyticsBatch('org', 'brand', ['v1'], 'credential'),
+      ).rejects.toThrow('batch analytics failed');
+    });
   });
 
   // -------------------------------------------------------------------------
   // getTrends — YouTube Data API request options
   // -------------------------------------------------------------------------
+
+  describe('getTrends — request options', () => {
+    it('passes an explicit region code to videos.list', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
+
+      await service.getTrends('GB');
+
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ chart: 'mostPopular', regionCode: 'GB' }),
+      );
+    });
+
+    it('uses the US region and a 20-item limit by default', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
+
+      await service.getTrends();
+
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ maxResults: 20, regionCode: 'US' }),
+      );
+    });
+
+    it('clamps the requested limit to the API maximum', async () => {
+      const list = vi
+        .spyOn(service.youtubeDataAPI.videos, 'list')
+        .mockResolvedValue({ data: { items: [] } } as never);
+
+      await service.getTrends('JP', 100);
+
+      expect(list).toHaveBeenCalledWith(
+        expect.objectContaining({ maxResults: 50, regionCode: 'JP' }),
+      );
+    });
+  });
 
   // -------------------------------------------------------------------------
   // postComment
@@ -222,6 +313,15 @@ describe('YoutubeService — extended coverage', () => {
       );
       expect(result).toBe(expected);
     });
+
+    it('propagates rejection from commentsService.postComment', async () => {
+      const err = new Error('comment failed');
+      commentsService.postComment.mockRejectedValue(err);
+
+      await expect(
+        service.postComment('org', 'brand', 'vid', 'text'),
+      ).rejects.toThrow('comment failed');
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -229,8 +329,24 @@ describe('YoutubeService — extended coverage', () => {
   // -------------------------------------------------------------------------
 
   describe('parseDuration', () => {
+    it('returns 0 for a non-matching string', () => {
+      expect(service.parseDuration('invalid')).toBe(0);
+    });
+
     it('returns 0 for empty string', () => {
       expect(service.parseDuration('')).toBe(0);
+    });
+
+    it('parses seconds only', () => {
+      expect(service.parseDuration('PT45S')).toBe(45);
+    });
+
+    it('parses minutes only', () => {
+      expect(service.parseDuration('PT10M')).toBe(600);
+    });
+
+    it('parses hours only', () => {
+      expect(service.parseDuration('PT2H')).toBe(7200);
     });
 
     it('parses minutes and seconds', () => {
@@ -243,6 +359,14 @@ describe('YoutubeService — extended coverage', () => {
 
     it('parses hours and seconds without minutes', () => {
       expect(service.parseDuration('PT1H30S')).toBe(3630);
+    });
+
+    it('parses full H, M, S combination', () => {
+      expect(service.parseDuration('PT1H2M3S')).toBe(3723);
+    });
+
+    it('handles zero-valued components', () => {
+      expect(service.parseDuration('PT0H0M0S')).toBe(0);
     });
   });
 
@@ -278,6 +402,24 @@ describe('YoutubeService — extended coverage', () => {
         }),
       );
       expect(result).toBe('https://oauth.url');
+    });
+
+    it('defaults access_type to offline and prompt to consent when not provided', () => {
+      const mockClient = makeMockOAuth2Client();
+      mockCreateClient.mockReturnValue(mockClient);
+
+      service.generateAuthUrl({
+        scope: ['https://www.googleapis.com/auth/youtube'],
+        state: 'state-xyz',
+      });
+
+      expect(mockClient.generateAuthUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          access_type: 'offline',
+          include_granted_scopes: false,
+          prompt: 'consent',
+        }),
+      );
     });
 
     it('defaults include_granted_scopes to false when not provided', () => {
@@ -318,6 +460,18 @@ describe('YoutubeService — extended coverage', () => {
       );
       expect(mockClient.getToken).toHaveBeenCalledWith('auth-code-123');
       expect(result).toBe(tokenResponse);
+    });
+
+    it('propagates token exchange errors', async () => {
+      const err = new Error('invalid_grant');
+      const mockClient = makeMockOAuth2Client({
+        getToken: vi.fn().mockRejectedValue(err),
+      });
+      mockCreateClient.mockReturnValue(mockClient);
+
+      await expect(service.exchangeCodeForTokens('bad-code')).rejects.toThrow(
+        'invalid_grant',
+      );
     });
   });
 });

@@ -18,6 +18,12 @@ function withShell(contextLabel: string, children: ReactElement): ReactElement {
 }
 
 describe('AgentComposerContextRail', () => {
+  it('falls back to a generic label outside a shell', () => {
+    render(<AgentComposerContextRail attachmentCount={0} referenceCount={0} />);
+
+    expect(screen.getByText('Conversation')).toBeInTheDocument();
+  });
+
   it('shows the shell context label', () => {
     render(
       withShell(

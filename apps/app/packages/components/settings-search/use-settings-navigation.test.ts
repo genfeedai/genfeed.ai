@@ -62,6 +62,18 @@ describe('useSettingsNavigation', () => {
     },
   );
 
+  it('waits when the browser reaches the destination before the React pathname', async () => {
+    const { result, rerender } = renderHook(() => useSettingsNavigation());
+    act(() => result.current('/settings/personal#appearance'));
+    window.history.replaceState({}, '', '/settings/personal#appearance');
+    const target = mountAnchor('appearance');
+    await act(async () => {});
+    expect(target.scrollIntoView).not.toHaveBeenCalled();
+    navigation.pathname = '/settings/personal';
+    rerender();
+    expect(target.scrollIntoView).toHaveBeenCalledTimes(1);
+  });
+
   it('reveals an id added after mount and releases the observer and deadline on success', async () => {
     vi.useFakeTimers();
     moveTo('/settings/personal');
@@ -75,6 +87,33 @@ describe('useSettingsNavigation', () => {
     expect(disconnect).toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
     disconnect.mockRestore();
+  });
+
+  it('restarts repeated selections on the same route', () => {
+    moveTo('/settings/personal');
+    const target = mountAnchor('appearance');
+    const { result } = renderHook(() => useSettingsNavigation());
+    act(() => result.current('/settings/personal#appearance'));
+    act(() => result.current('/settings/personal#appearance'));
+    expect(target.scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(navigation.router.push).toHaveBeenCalledWith(
+      '/settings/personal#appearance',
+      { scroll: false },
+    );
+  });
+
+  it('replaces abandoned anchors and preserves ordinary router scrolling', async () => {
+    moveTo('/settings/personal');
+    const { result } = renderHook(() => useSettingsNavigation());
+    act(() => result.current('/settings/personal#appearance'));
+    act(() => result.current('/settings/personal#language'));
+    const old = mountAnchor('appearance');
+    const target = mountAnchor('language');
+    await act(async () => {});
+    expect(old.scrollIntoView).not.toHaveBeenCalled();
+    expect(target.scrollIntoView).toHaveBeenCalledTimes(1);
+    act(() => result.current('/settings/help'));
+    expect(navigation.router.push).toHaveBeenLastCalledWith('/settings/help');
   });
 
   it.each([

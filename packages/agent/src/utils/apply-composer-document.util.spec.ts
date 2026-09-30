@@ -8,6 +8,15 @@ import {
 } from './apply-composer-document.util';
 
 describe('areComposerDocumentsEqual', () => {
+  it('treats an empty string as an empty paragraph doc', () => {
+    expect(
+      areComposerDocumentsEqual(
+        { content: [{ type: 'paragraph' }], type: 'doc' },
+        '',
+      ),
+    ).toBe(true);
+  });
+
   it('compares JSON documents by value', () => {
     const document = {
       content: [

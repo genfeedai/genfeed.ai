@@ -57,4 +57,12 @@ describe('OfflineBanner', () => {
       ),
     ).toBeTruthy();
   });
+
+  it('renders a custom offline banner message', () => {
+    mockUseNetworkStatus.mockReturnValue({ isOnline: false });
+
+    render(<OfflineBanner message="Offline draft mode is active." />);
+
+    expect(screen.getByText('Offline draft mode is active.')).toBeTruthy();
+  });
 });

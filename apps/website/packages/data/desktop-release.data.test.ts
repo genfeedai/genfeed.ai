@@ -189,6 +189,12 @@ describe('getLatestDesktopBuild', () => {
     expect(await getLatestDesktopBuild()).toBeNull();
   });
 
+  it('returns null before the first desktop tag exists', async () => {
+    mockReleases([release('v2.4.0', ['genfeed-2.4.0.tar.gz'])]);
+
+    expect(await getLatestDesktopBuild()).toBeNull();
+  });
+
   it('returns null when GitHub errors or is unreachable', async () => {
     vi.stubGlobal(
       'fetch',

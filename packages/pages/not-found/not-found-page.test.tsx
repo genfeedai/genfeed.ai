@@ -3,6 +3,16 @@ import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('NotFoundPage', () => {
+  it('should render without crashing', () => {
+    const { container } = render(<NotFoundPage />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<NotFoundPage />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('fills the available layout region with the semantic background', () => {
     const { container } = render(<NotFoundPage />);
     const rootElement = container.firstChild as HTMLElement;

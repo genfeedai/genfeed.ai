@@ -139,6 +139,10 @@ describe('ReplicateWebhookController', () => {
     trainingsService = module.get(TrainingsService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('handleCallback', () => {
     it('should handle callback successfully and return webhook processed', async () => {
       const body = {

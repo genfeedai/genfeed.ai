@@ -41,6 +41,44 @@ describe('BaseNode', () => {
     selected: false,
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<BaseNode {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should display node label', () => {
+    const { getByText } = render(<BaseNode {...defaultProps} />);
+    expect(getByText('Test Node')).toBeInTheDocument();
+  });
+
+  it('should show selected state when selected is true', () => {
+    const { container } = render(
+      <BaseNode {...defaultProps} selected={true} />,
+    );
+    expect(container.querySelector('.ring-2')).toBeInTheDocument();
+  });
+
+  it('should render input handles when inputs exist', () => {
+    const { container } = render(<BaseNode {...defaultProps} />);
+    // Handles are rendered by React Flow
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should render output handles when outputs exist', () => {
+    const { container } = render(<BaseNode {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should display config values when config exists', () => {
+    const { getByText } = render(<BaseNode {...defaultProps} />);
+    expect(getByText(/aspectRatio/)).toBeInTheDocument();
+  });
+
+  it('should apply correct background color', () => {
+    const { container } = render(<BaseNode {...defaultProps} />);
+    expect(container.querySelector('.bg-green-50')).toBeInTheDocument();
+  });
+
   it('should apply correct border color', () => {
     const { container } = render(<BaseNode {...defaultProps} />);
     expect(container.querySelector('.border-green-500')).toBeInTheDocument();

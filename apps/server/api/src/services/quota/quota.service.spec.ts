@@ -65,6 +65,10 @@ describe('QuotaService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should throw NOT_FOUND when organization settings missing', async () => {
     mockOrganizationSettingsService.findOne.mockResolvedValue(null);
     const cred = makeCredential();
@@ -215,6 +219,40 @@ describe('QuotaService', () => {
     expect(blockedResult.currentCount).toBe(48);
   });
 
+  it('should not block publishing on unmapped platforms in verifyQuota', async () => {
+    const org = makeOrganization();
+    mockOrganizationsService.findOne.mockResolvedValueOnce(org);
+    mockOrganizationSettingsService.findOne.mockResolvedValueOnce({});
+
+    await expect(
+      service.verifyQuota(
+        makeCredential(CredentialPlatform.LINKEDIN),
+        org.id.toString(),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it('should map each platform to its settings field', async () => {
+    const platforms = [
+      { key: 'quotaYoutube', platform: CredentialPlatform.YOUTUBE },
+      { key: 'quotaTiktok', platform: CredentialPlatform.TIKTOK },
+      { key: 'quotaInstagram', platform: CredentialPlatform.INSTAGRAM },
+      { key: 'quotaTwitter', platform: CredentialPlatform.TWITTER },
+    ] as const;
+
+    for (const { key, platform } of platforms) {
+      mockOrganizationSettingsService.findOne.mockResolvedValueOnce({
+        [key]: 99,
+      });
+      mockPostsService.count.mockResolvedValueOnce(0);
+      const result = await service.checkQuota(
+        makeCredential(platform),
+        makeOrganization(),
+      );
+      expect(result.dailyLimit).toBe(99);
+    }
+  });
+
   it('should throw NOT_FOUND when organization does not exist in verifyQuota', async () => {
     mockOrganizationsService.findOne.mockResolvedValueOnce(null);
     const cred = makeCredential();
@@ -258,6 +296,17 @@ describe('QuotaService', () => {
   it('should return null when credential not found in getQuotaStatus', async () => {
     mockCredentialsService.findOne.mockResolvedValueOnce(null);
     mockOrganizationsService.findOne.mockResolvedValueOnce(makeOrganization());
+
+    const result = await service.getQuotaStatus(
+      objectId().toString(),
+      objectId().toString(),
+    );
+    expect(result).toBeNull();
+  });
+
+  it('should return null when organization not found in getQuotaStatus', async () => {
+    mockCredentialsService.findOne.mockResolvedValueOnce(makeCredential());
+    mockOrganizationsService.findOne.mockResolvedValueOnce(null);
 
     const result = await service.getQuotaStatus(
       objectId().toString(),

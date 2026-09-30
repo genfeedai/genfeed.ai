@@ -166,6 +166,19 @@ describe('AgentChatMessage', () => {
     expect(user.getByTestId('agent-user-prompt')).toBeTruthy();
   });
 
+  it('does not truncate long assistant content', () => {
+    const longAssistantContent = `${'A'.repeat(700)} tail-marker-assistant`;
+
+    render(
+      <AgentChatMessage
+        message={buildMessage('assistant', longAssistantContent)}
+      />,
+    );
+
+    expect(screen.queryByText('Show more')).toBeNull();
+    expect(screen.getByText(/tail-marker-assistant/)).toBeTruthy();
+  });
+
   it('keeps truncation behavior for long user content', () => {
     const longUserContent = `${'B'.repeat(700)} tail-marker-user`;
 
@@ -177,6 +190,25 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('Show more').previousElementSibling).toHaveClass(
       'max-h-24',
     );
+  });
+
+  it('does not collapse a user prompt at the 320-character cap', () => {
+    render(
+      <AgentChatMessage message={buildMessage('user', 'C'.repeat(320))} />,
+    );
+
+    expect(screen.queryByText('Show more')).toBeNull();
+  });
+
+  it('collapses a short user prompt that exceeds four lines', () => {
+    const fiveLinePrompt = Array.from(
+      { length: 5 },
+      (_, index) => `line ${index + 1}`,
+    ).join('\n');
+
+    render(<AgentChatMessage message={buildMessage('user', fiveLinePrompt)} />);
+
+    expect(screen.getByText('Show more')).toBeTruthy();
   });
 
   it('expands a collapsed user prompt with the Show more control', () => {
@@ -192,6 +224,23 @@ describe('AgentChatMessage', () => {
 
     expect(screen.getByText('Show less')).toBeTruthy();
     expect(screen.getByText(/tail-marker-expand/)).toBeTruthy();
+  });
+
+  it('does not render model controls in assistant runtime UI', () => {
+    render(
+      <AgentChatMessage
+        message={{
+          ...buildMessage('assistant', 'Model metadata response'),
+          metadata: {
+            model: 'deepseek/deepseek-v4-flash-0731',
+          },
+        }}
+      />,
+    );
+
+    expect(screen.queryByText('Use model')).toBeNull();
+    expect(screen.queryByText('DeepSeek')).toBeNull();
+    expect(screen.queryByText('1cr')).toBeNull();
   });
 
   it('reveals recent assistant content progressively', () => {
@@ -387,6 +436,33 @@ describe('AgentChatMessage', () => {
     ).toHaveAttribute('href', '/test-org/~/analytics/posts?postId=post-1');
   });
 
+  it('renders batch generation result cards inline with assistant messages', () => {
+    render(
+      <AgentChatMessage
+        message={{
+          ...buildMessage('assistant', 'Your batch is in progress.'),
+          metadata: {
+            uiActions: [
+              {
+                batchCount: 20,
+                creditsUsed: 5,
+                id: 'batch-result-1',
+                platforms: ['instagram', 'twitter'],
+                status: 'processing',
+                title: 'Batch generation started',
+                type: 'batch_generation_result_card',
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('batch-generation-result-card'),
+    ).toBeInTheDocument();
+  });
+
   it('renders generated images from content preview cards', () => {
     render(
       <AgentChatMessage
@@ -442,6 +518,33 @@ describe('AgentChatMessage', () => {
     );
 
     expect(screen.getAllByText(tweet)).toHaveLength(1);
+  });
+
+  it('renders a resolved generation_action_card in the transcript (#4672)', () => {
+    // GenerationActionCard is stubbed to null in this file (its own behavior
+    // is covered by GenerationActionCard.spec.tsx) — this only proves the
+    // action is no longer stripped before reaching UiActionRenderer, which
+    // it was pre-#4672 so a completed Manual-mode review stayed visible.
+    render(
+      <AgentChatMessage
+        apiService={{} as never}
+        message={{
+          ...buildMessage('assistant', 'Configure this image.'),
+          metadata: {
+            uiActions: [
+              {
+                generationType: 'image',
+                id: 'generation-action-1',
+                title: 'Generate image ingredient',
+                type: 'generation_action_card',
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Configure this image.')).toBeInTheDocument();
   });
 
   it('renders a completion summary card with quick actions and inline outputs', () => {

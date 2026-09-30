@@ -90,6 +90,14 @@ describe('Activity', () => {
       expect(activity.value).toBe('vid-123');
     });
 
+    it('should instantiate populated user object', () => {
+      const activity = createActivity({
+        user: createUser({ id: 'user-1' }),
+      });
+      expect(activity.user).toBeDefined();
+      expect((activity.user as { id: string }).id).toBe('user-1');
+    });
+
     it('should not wrap user when it is a string', () => {
       const activity = createActivity({
         user: 'user-string' as never,

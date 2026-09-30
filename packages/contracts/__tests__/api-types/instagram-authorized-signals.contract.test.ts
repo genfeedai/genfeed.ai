@@ -80,4 +80,30 @@ describe('Instagram authorized signals contract', () => {
       ),
     ).toEqual([]);
   });
+
+  it('rejects duplicate evidence that would leave a canonical check unmapped', () => {
+    const snapshot = makeSnapshot();
+    snapshot.evidence[1] = snapshot.evidence[0];
+
+    expect(
+      instagramAuthorizedSignalsSnapshotSchema.safeParse(snapshot).success,
+    ).toBe(false);
+  });
+
+  it('accepts professional-account-limited as an actionable reason', () => {
+    const snapshot = makeSnapshot();
+    snapshot.evidence[2] = {
+      ...snapshot.evidence[2],
+      reason: 'professional_account_limited',
+      status: 'permission_limited',
+    };
+
+    expect(
+      instagramAuthorizedSignalsSnapshotSchema.parse(snapshot).evidence[2],
+    ).toMatchObject({
+      key: 'publishing-capability-snapshot',
+      reason: 'professional_account_limited',
+      status: 'permission_limited',
+    });
+  });
 });

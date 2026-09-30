@@ -30,6 +30,15 @@ describe('slug-allocation.util', () => {
       ).toBe(true);
       expect(isSlugUniqueConstraintError({ code: 'P2002' })).toBe(true);
     });
+
+    it('rejects non-slug unique targets', () => {
+      expect(
+        isSlugUniqueConstraintError({
+          code: 'P2002',
+          meta: { target: ['email'] },
+        }),
+      ).toBe(false);
+    });
   });
 
   describe('nextSlugCandidate', () => {

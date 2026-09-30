@@ -177,6 +177,25 @@ function connectedInstagram(): BrandDetailSocialConnection {
   };
 }
 
+describe('PlatformHomePage catalog', () => {
+  it('reads copy from the pages.platforms.home catalog', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { dirname, join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const source = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), 'content.tsx'),
+      'utf8',
+    );
+    const { translateFromCatalog } = await import('@/../tests/next-intl.stub');
+    const translate = translateFromCatalog('pages.platforms.home');
+
+    expect(source).toContain("useTranslations('pages.platforms.home')");
+    expect(translate('empty.title', { platform: 'Instagram' })).toBe(
+      'Instagram is not connected',
+    );
+  });
+});
+
 describe('PlatformHomePage', () => {
   beforeEach(() => {
     mocks.brand = { id: 'brand-1', slug: 'moonrise' };

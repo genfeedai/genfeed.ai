@@ -155,6 +155,11 @@ describe('UsersController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+    expect(relationshipsController).toBeDefined();
+  });
+
   describe('workflow email notification preference', () => {
     it('reads the current account preference', async () => {
       await relationshipsController.findWorkflowEmailNotificationPreference(
@@ -240,6 +245,19 @@ describe('UsersController', () => {
   });
 
   describe('findMe', () => {
+    it('should return current user data', async () => {
+      subscriptionsService.findOne.mockResolvedValue(null);
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        isOnboardingCompleted: true,
+      });
+
+      const result = await controller.findMe(mockRequest, mockUser);
+
+      expect(usersService.findOne).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should throw when user does not exist', async () => {
       subscriptionsService.findOne.mockResolvedValue(null);
       usersService.findOne.mockResolvedValue(null);
@@ -317,6 +335,25 @@ describe('UsersController', () => {
   });
 
   describe('findMeSettings', () => {
+    it('should return user settings', async () => {
+      usersService.findOne.mockResolvedValue({
+        id: userId,
+        settings: {
+          id: settingsId,
+          isSidebarProgressCollapsed: true,
+          theme: 'dark',
+        },
+      });
+
+      const result = await relationshipsController.findMeSettings(
+        mockRequest,
+        mockUser,
+      );
+
+      expect(result).toBeDefined();
+      expect(usersService.findOne).toHaveBeenCalled();
+    });
+
     it('should throw when user has no settings', async () => {
       usersService.findOne.mockResolvedValue({
         id: userId,
@@ -479,6 +516,36 @@ describe('UsersController', () => {
         }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('rejects updating another user settings with 403', async () => {
+      const otherUserId = testId('other-user');
+
+      await expect(
+        relationshipsController.updateSettings(
+          mockRequest,
+          mockUser,
+          otherUserId,
+          { theme: 'light' } as never,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(usersService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.findOne).not.toHaveBeenCalled();
+      expect(settingsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects a route user matching only the auth subject id', async () => {
+      await expect(
+        relationshipsController.updateSettings(
+          mockRequest,
+          mockUser,
+          'user_subject_123',
+          { theme: 'light' } as never,
+        ),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+
+      expect(settingsService.patch).not.toHaveBeenCalled();
     });
 
     it('lets a superadmin update another user settings', async () => {

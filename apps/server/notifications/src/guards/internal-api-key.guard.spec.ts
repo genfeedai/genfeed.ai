@@ -19,6 +19,24 @@ describe('InternalApiKeyGuard', () => {
     vi.clearAllMocks();
   });
 
+  it('allows requests with the configured bearer token', () => {
+    const guard = new InternalApiKeyGuard(
+      {
+        get: vi.fn().mockReturnValue('secret-token'),
+        isDevelopment: false,
+      } as unknown as ConfigService,
+      logger,
+    );
+
+    expect(
+      guard.canActivate(
+        createContext({
+          headers: { authorization: 'Bearer secret-token' },
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it('rejects invalid bearer tokens', () => {
     const guard = new InternalApiKeyGuard(
       {

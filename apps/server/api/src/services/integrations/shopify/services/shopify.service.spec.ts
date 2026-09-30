@@ -82,6 +82,10 @@ describe('ShopifyService', () => {
     service = module.get(ShopifyService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('generateAuthUrl', () => {
     it('returns a valid Shopify OAuth URL', () => {
       const url = service.generateAuthUrl(shop, 'state-abc');
@@ -91,6 +95,11 @@ describe('ShopifyService', () => {
       expect(url).toContain('redirect_uri=');
       expect(url).toContain('scope=write_products');
       expect(url).toContain('state=state-abc');
+    });
+
+    it('includes read_products scope', () => {
+      const url = service.generateAuthUrl(shop, 'state-xyz');
+      expect(url).toContain('read_products');
     });
   });
 
@@ -148,6 +157,26 @@ describe('ShopifyService', () => {
 
     it('returns false when credential is not found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
+
+      const result = await service.verifyToken(orgId, brandId);
+      expect(result).toBe(false);
+    });
+
+    it('returns false when accessToken is missing', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        ...mockCredential,
+        accessToken: null,
+      });
+
+      const result = await service.verifyToken(orgId, brandId);
+      expect(result).toBe(false);
+    });
+
+    it('returns false when externalHandle is missing', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        ...mockCredential,
+        externalHandle: null,
+      });
 
       const result = await service.verifyToken(orgId, brandId);
       expect(result).toBe(false);

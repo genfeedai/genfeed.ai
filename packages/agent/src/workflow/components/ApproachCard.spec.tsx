@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Approach } from '../types';
 import { ApproachCard } from './ApproachCard';
@@ -59,5 +59,47 @@ describe('ApproachCard', () => {
     );
 
     expect(screen.getByText('Recommended')).toBeInTheDocument();
+  });
+
+  it('selects the approach by id on click', () => {
+    const onSelect = vi.fn();
+    render(
+      <ApproachCard
+        approach={makeApproach({ id: 'approach-7' })}
+        isSelected={false}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onSelect).toHaveBeenCalledWith('approach-7');
+  });
+
+  it('does not select while disabled', () => {
+    const onSelect = vi.fn();
+    render(
+      <ApproachCard
+        approach={makeApproach()}
+        disabled
+        isSelected={false}
+        onSelect={onSelect}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('marks the selected card visually', () => {
+    render(
+      <ApproachCard approach={makeApproach()} isSelected onSelect={vi.fn()} />,
+    );
+
+    expect(screen.getByRole('button')).toHaveClass(
+      'bg-info/10',
+      'shadow-border-strong',
+    );
   });
 });

@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
+  buildPostsListQueryKey,
   getDefaultPostsSort,
   parsePostsPublicationState,
   parsePostsStatus,
@@ -13,6 +14,39 @@ import {
 import { describe, expect, it, vi } from 'vitest';
 
 describe('posts list query helpers', () => {
+  it('builds the shared posts list query key used by server hydration and client queries', () => {
+    expect(
+      buildPostsListQueryKey({
+        adminBrand: '',
+        adminOrg: '',
+        brandId: 'brand_123',
+        currentPage: 2,
+        filterSearch: 'launch',
+        filterSort: 'scheduledDate: 1',
+        filterStatus: PostStatus.SCHEDULED,
+        organizationId: 'org_123',
+        platformFilter: 'linkedin',
+        publicationState: 'not-posted',
+        scope: PageScope.PUBLISHING,
+        status: PostStatus.SCHEDULED,
+      }),
+    ).toEqual([
+      'posts-list',
+      PageScope.PUBLISHING,
+      'brand_123',
+      'org_123',
+      'linkedin',
+      'not-posted',
+      'launch',
+      PostStatus.SCHEDULED,
+      'scheduledDate: 1',
+      2,
+      PostStatus.SCHEDULED,
+      '',
+      '',
+    ]);
+  });
+
   it('keeps the server and client default sort rules aligned', () => {
     expect(getDefaultPostsSort(PostStatus.SCHEDULED)).toBe('scheduledDate: 1');
     expect(getDefaultPostsSort(PostStatus.PUBLIC)).toBe('scheduledDate: -1');

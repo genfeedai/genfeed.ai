@@ -222,4 +222,23 @@ describe('OutreachCampaignDetail', () => {
     expect(factLine).toHaveTextContent('Status');
     expect(factLine).toHaveTextContent('Active');
   });
+
+  it('disables Resume everywhere while a start call is already in flight', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'Paused sequence',
+      platform: CampaignPlatform.TWITTER,
+      status: CampaignStatus.PAUSED,
+    });
+    mockUseOutreachCampaignDetail.mockReturnValue({
+      ...mockUseOutreachCampaignDetail(),
+      isStartingCampaign: true,
+    });
+
+    render(<OutreachCampaignDetail />);
+
+    for (const button of screen.getAllByRole('button', { name: 'Resume' })) {
+      expect(button).toBeDisabled();
+    }
+  });
 });

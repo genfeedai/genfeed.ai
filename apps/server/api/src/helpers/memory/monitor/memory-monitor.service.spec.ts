@@ -65,6 +65,17 @@ describe('MemoryMonitorService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('initialization', () => {
+    it('should not start monitoring in test environment', () => {
+      // Verify no interval was started (isDevelopment is false)
+      expect(service['monitorInterval']).toBeNull();
+    });
+  });
+
   describe('onModuleDestroy', () => {
     it('should stop monitoring on module destroy', () => {
       service.onModuleDestroy();

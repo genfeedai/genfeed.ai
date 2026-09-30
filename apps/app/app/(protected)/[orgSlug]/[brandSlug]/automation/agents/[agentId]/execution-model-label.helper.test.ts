@@ -9,6 +9,17 @@ function buildExecution(
 }
 
 describe('getExecutionModelLabel', () => {
+  it('shows the routed model when the actual model differs from the requested one', () => {
+    expect(
+      getExecutionModelLabel(
+        buildExecution({
+          actualModel: 'google/gemini-2.5-flash',
+          requestedModel: 'openai/gpt-5.6-terra',
+        }),
+      ),
+    ).toBe('google/gemini-2.5-flash via openai/gpt-5.6-terra');
+  });
+
   it('shows just the model when actual and requested match', () => {
     expect(
       getExecutionModelLabel(

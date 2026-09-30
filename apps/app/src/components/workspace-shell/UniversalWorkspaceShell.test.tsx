@@ -719,6 +719,24 @@ describe('UniversalWorkspaceShell', () => {
     expect(aside).not.toHaveClass('border-r');
   });
 
+  it('keeps the mobile drawer closed without a context sidebar selection', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+
+    const { container } = render(
+      <ContextSidebarProvider>
+        <UniversalWorkspaceShell agentApiService={agentApiService}>
+          <div>Workspace overview</div>
+        </UniversalWorkspaceShell>
+      </ContextSidebarProvider>,
+    );
+
+    // The mocked Drawer renders nothing at all while closed — the mobile
+    // drawer body (and its `id`) only exists once a selection opens it.
+    expect(
+      container.querySelector('#workspace-context-inspector-drawer'),
+    ).not.toBeInTheDocument();
+  });
+
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
     navigation.pathname = '/acme/moonrise/studio/storyboard';
     navigation.searchParams = new URLSearchParams();
@@ -792,6 +810,46 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveAttribute('data-composer-target', 'inline');
   });
 
+  it('passes the selected brand to a new conversation composer', () => {
+    navigation.pathname = '/acme/moonrise/agent/new';
+    agentState.activeThreadId = null;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>New conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.getByText('New conversation').closest('[data-composer-brand]'),
+    ).toHaveAttribute('data-composer-brand', 'brand-1');
+  });
+
+  it('keeps a conversation created from Studio out of the canonical URL', () => {
+    navigation.pathname = '/acme/moonrise/studio/storyboard';
+    navigation.searchParams = new URLSearchParams();
+    agentState.activeThreadId = null;
+
+    const view = render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Studio canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    agentState.activeThreadId = 'thread-created-in-studio';
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Studio canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    // Thread identity is the agent store's, not the URL's. `/agent/:id` is the
+    // only route that carries it in the path.
+    expect(router.replace).not.toHaveBeenCalledWith(
+      expect.stringContaining('thread='),
+    );
+  });
+
   it('hides inspector chrome on focused onboarding so the canvas is the conversation', () => {
     navigation.pathname = '/acme/~/agent/onboarding';
     agentState.activeThreadId = null;
@@ -811,6 +869,33 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       container.querySelector('#workspace-context-inspector'),
     ).not.toBeInTheDocument();
+  });
+
+  it('binds the topbar brand on product routes without a surface adapter', async () => {
+    navigation.pathname = '/acme/moonrise/publishing/overview';
+    navigation.searchParams = new URLSearchParams();
+    agentState.threads[0].brandId = null;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publishing overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.getByText('Publishing overview').closest('[data-composer-brand]'),
+    ).toHaveAttribute('data-composer-brand', 'brand-1');
+
+    await waitFor(() =>
+      expect(updateThreadContext).toHaveBeenCalledWith(
+        'thread-1',
+        {
+          brandId: 'brand-1',
+          expectedContextVersion: 3,
+        },
+        expect.any(AbortSignal),
+      ),
+    );
   });
 
   it('renders product-owned adapter context in the shared shell slots', async () => {
@@ -1075,6 +1160,25 @@ describe('UniversalWorkspaceShell', () => {
     expect(
       screen.queryByText('Workflow surface inspector'),
     ).not.toBeInTheDocument();
+  });
+
+  it('dispatches Remix through the authorized no-parameter Library overlay', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dispatch remix action' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith(
+      '/acme/moonrise/workspace?overlay=library-picker',
+    );
   });
 
   it('consumes a reauthorized Library reference into the canonical Remix route', () => {

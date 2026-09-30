@@ -79,6 +79,14 @@ describe('prisma client singleton', () => {
     expect(options.log).toEqual(['query', 'error', 'warn']);
   });
 
+  it('caches the client on globalThis outside production', async () => {
+    vi.stubEnv('NODE_ENV', 'test');
+
+    const { prisma } = await importClientModule();
+
+    expect(globalForPrisma.prisma).toBe(prisma);
+  });
+
   it('does not cache the client on globalThis in production', async () => {
     vi.stubEnv('NODE_ENV', 'production');
 

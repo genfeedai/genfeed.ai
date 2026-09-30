@@ -91,6 +91,10 @@ describe('FFmpegMergeService', () => {
     service = module.get<FFmpegMergeService>(FFmpegMergeService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('mergeNormalizedVideos', () => {
     it('normalizes every generated video/audio stream before ordered concatenation', async () => {
       await service.mergeNormalizedVideos(
@@ -152,6 +156,12 @@ describe('FFmpegMergeService', () => {
       expect(args.indexOf('-an')).toBeLessThan(args.indexOf('/tmp/out.mp4'));
     });
 
+    it('keeps the source audio unless muted', async () => {
+      await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      expect(args).not.toContain('-an');
+    });
+
     it('should call executeFFmpeg with concat demuxer args', async () => {
       await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
 
@@ -163,6 +173,22 @@ describe('FFmpegMergeService', () => {
       expect(args).toContain('0');
     });
 
+    it('should write a temp list file containing input paths', async () => {
+      const { promises: fsp } = await import('node:fs');
+      await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
+
+      expect(fsp.writeFile).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining("file '/tmp/a.mp4'"),
+      );
+    });
+
+    it('should cleanup the temp list file after execution', async () => {
+      await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');
+
+      expect(coreService.cleanupTempFiles).toHaveBeenCalledOnce();
+    });
+
     it('should still cleanup temp file even if executeFFmpeg throws', async () => {
       coreService.executeFFmpeg.mockRejectedValue(new Error('ffmpeg died'));
 
@@ -171,6 +197,21 @@ describe('FFmpegMergeService', () => {
       ).rejects.toThrow('ffmpeg died');
 
       expect(coreService.cleanupTempFiles).toHaveBeenCalledOnce();
+    });
+
+    it('should pass progress callback to executeFFmpeg when provided', async () => {
+      const onProgress = vi.fn();
+      await service.mergeVideos(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+        undefined,
+        onProgress,
+      );
+
+      expect(coreService.executeFFmpeg).toHaveBeenCalledWith(
+        expect.any(Array),
+        onProgress,
+      );
     });
   });
 
@@ -219,6 +260,17 @@ describe('FFmpegMergeService', () => {
   });
 
   describe('mergeVideosWithTransitions', () => {
+    it('should fall back to mergeVideos when fewer than 2 clips', async () => {
+      const { promises: fsp } = await import('node:fs');
+      await service.mergeVideosWithTransitions(
+        ['/tmp/only.mp4'],
+        '/tmp/out.mp4',
+      );
+
+      // mergeVideos path: writes list file
+      expect(fsp.writeFile).toHaveBeenCalled();
+    });
+
     it('should fall back to mergeVideos when transition is "none"', async () => {
       const { promises: fsp } = await import('node:fs');
       await service.mergeVideosWithTransitions(
@@ -289,9 +341,48 @@ describe('FFmpegMergeService', () => {
       const fc = args[args.indexOf('-filter_complex') + 1];
       expect(fc).toContain('acrossfade');
     });
+
+    it('should log debug message with transition details', async () => {
+      coreService.probe.mockResolvedValue(makeProbeResult(5, false));
+
+      await service.mergeVideosWithTransitions(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+        { transition: 'wipeleft' },
+      );
+
+      expect(loggerService.debug).toHaveBeenCalledWith(
+        expect.stringContaining('wipeleft'),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('concatenateVideos', () => {
+    it('should validate each input path via SecurityUtil', async () => {
+      const { SecurityUtil } = await import(
+        '@files/helpers/utils/security/security.util'
+      );
+
+      await service.concatenateVideos(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+      );
+
+      expect(SecurityUtil.validateFilePath).toHaveBeenCalledTimes(3); // 2 inputs + 1 output
+    });
+
+    it('should call executeFFmpeg with filter_complex concat', async () => {
+      await service.concatenateVideos(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+      );
+
+      const [args] = coreService.executeFFmpeg.mock.calls[0] as [string[]];
+      const fc = args[args.indexOf('-filter_complex') + 1];
+      expect(fc).toContain('concat=n=2');
+    });
+
     it('should include audio streams in concat when present', async () => {
       coreService.hasAudioStream.mockResolvedValue(true);
 

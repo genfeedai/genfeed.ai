@@ -131,6 +131,40 @@ describe('TrackedLinksService', () => {
     expect(result.totalClicks).toBe(12);
   });
 
+  it('rejects unsafe redirect URL schemes when creating tracked links', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.generateTrackingLink(
+        {
+          platform: 'twitter',
+          url: 'javascript:alert(document.cookie)',
+        },
+        'org-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.trackedLink.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects bracketed IPv6 loopback redirect URLs', async () => {
+    const { prisma, service } = makeService();
+    prisma.trackedLink.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.generateTrackingLink(
+        {
+          platform: 'twitter',
+          url: 'https://[::1]/callback',
+        },
+        'org-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.trackedLink.create).not.toHaveBeenCalled();
+  });
+
   it('normalizes and stores only HTTP(S) redirect URLs', async () => {
     const { prisma, service } = makeService();
     prisma.trackedLink.findFirst.mockResolvedValue(null);
@@ -312,6 +346,22 @@ describe('TrackedLinksService', () => {
   // SSRF: getCountryFromIP must only interpolate validated, globally-routable IP
   // literals into the outbound ipapi.co URL. All private / reserved ranges must
   // be rejected before any outbound fetch is made.
+  it('does not call the geolocation API for non-IP X-Forwarded-For values', async () => {
+    const { service } = makeService();
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('US'));
+    const probe = service as unknown as {
+      getCountryFromIP(ip?: string): Promise<string | undefined>;
+    };
+
+    await expect(
+      probe.getCountryFromIP('1.1.1.1/../v1/admin?x='),
+    ).resolves.toBeUndefined();
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    fetchSpy.mockRestore();
+  });
 
   it.each([
     '172.16.0.1',

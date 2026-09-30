@@ -91,6 +91,20 @@ describe('HarnessReviewFeedbackService', () => {
     expect(harnessProfilesService.update).toHaveBeenCalledTimes(1);
   });
 
+  it('is a no-op for approved decisions (promote-winners owns positive reinforcement)', async () => {
+    await service.recordReviewDecision({
+      brandId: 'brand-1',
+      content: 'Great post!',
+      decision: ReviewDecision.APPROVED,
+      organizationId: 'org-1',
+      sourceId: 'item-3',
+      sourceType: 'batch_item',
+    });
+
+    expect(harnessProfilesService.getActiveForBrand).not.toHaveBeenCalled();
+    expect(harnessProfilesService.update).not.toHaveBeenCalled();
+  });
+
   it('is a no-op for unset decisions', async () => {
     await service.recordReviewDecision({
       brandId: 'brand-1',

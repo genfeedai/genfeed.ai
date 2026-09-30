@@ -25,6 +25,7 @@ describe('IngredientsController (cloneIngredient)', () => {
   let filesClientService: FilesClientService;
   let sharedService: SharedService;
   let metadataService: MetadataService;
+  let loggerService: LoggerService;
 
   const organizationId = testId('org');
   const brandId = testId('brand');
@@ -97,6 +98,16 @@ describe('IngredientsController (cloneIngredient)', () => {
     filesClientService = module.get<FilesClientService>(FilesClientService);
     sharedService = module.get<SharedService>(SharedService);
     metadataService = module.get<MetadataService>(MetadataService);
+    loggerService = module.get<LoggerService>(LoggerService);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+    expect(service).toBeDefined();
+    expect(filesClientService).toBeDefined();
+    expect(sharedService).toBeDefined();
+    expect(metadataService).toBeDefined();
+    expect(loggerService).toBeDefined();
   });
 
   describe('cloneIngredient', () => {

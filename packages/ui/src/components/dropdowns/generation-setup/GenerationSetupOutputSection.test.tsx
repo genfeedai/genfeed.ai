@@ -148,6 +148,22 @@ describe('GenerationSetupOutputSection — music controls', () => {
     expect(screen.queryByLabelText('Lyrics')).not.toBeInTheDocument();
   });
 
+  it('disables the Lyrics field once Instrumental is on', () => {
+    renderSection({ setup: buildSetup({ instrumental: true }) });
+
+    expect(screen.getByLabelText('Lyrics')).toBeDisabled();
+  });
+
+  it("offers only the selected model's own duration grid (Eleven Music: 10-90s)", () => {
+    renderSection({
+      setup: buildSetup({ modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC }),
+    });
+
+    const select = screen.getByLabelText('Duration') as HTMLSelectElement;
+    const values = Array.from(select.options).map((option) => option.value);
+    expect(values).toEqual(['10', '15', '20', '30', '45', '60', '90']);
+  });
+
   it("narrows to MusicGen's own 5-30s grid instead of the cross-provider superset", () => {
     renderSection({
       setup: buildSetup({
@@ -158,6 +174,41 @@ describe('GenerationSetupOutputSection — music controls', () => {
     const select = screen.getByLabelText('Duration') as HTMLSelectElement;
     const values = Array.from(select.options).map((option) => option.value);
     expect(values).toEqual(['5', '10', '15', '30']);
+  });
+
+  it('hides Duration entirely for a model with no duration parameter (Lyria 3 Pro)', () => {
+    renderSection({
+      setup: buildSetup({ modelKey: MODEL_KEYS.FAL_LYRIA3_PRO }),
+    });
+
+    expect(screen.queryByLabelText('Duration')).not.toBeInTheDocument();
+  });
+
+  it('does not reconcile store state from an Output-only effect', () => {
+    const onSetField = vi.fn();
+    renderSection({
+      onSetField,
+      setup: buildSetup({
+        duration: 90,
+        modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      }),
+    });
+
+    // MusicGen's grid tops out at 30 — 90 is nearer to 30 than to any other option.
+    expect(onSetField).not.toHaveBeenCalled();
+  });
+
+  it('does not touch duration when it is already inside the resolved grid', () => {
+    const onSetField = vi.fn();
+    renderSection({
+      onSetField,
+      setup: buildSetup({
+        duration: 15,
+        modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      }),
+    });
+
+    expect(onSetField).not.toHaveBeenCalled();
   });
 });
 

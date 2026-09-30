@@ -61,6 +61,10 @@ describe('CiTriageWebhookService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('diagnoseAndComment()', () => {
     it('should log error and return early when ANTHROPIC_API_KEY is missing', async () => {
       mockConfigService.get.mockReturnValue(undefined);

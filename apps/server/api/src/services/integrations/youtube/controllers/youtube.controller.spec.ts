@@ -178,6 +178,10 @@ describe('YoutubeController', () => {
     controller = module.get<YoutubeController>(YoutubeController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     const dto = { brandId: brandId.toString() };
 

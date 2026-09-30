@@ -162,7 +162,20 @@ describe('VideoCompletionService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('completion subscription', () => {
+    it('should subscribe to video completion channel', async () => {
+      await subscriberService.onModuleInit();
+
+      expect(redisService.subscribe).toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.any(Function),
+      );
+    });
+
     it.each([
       null,
       {},
@@ -451,6 +464,46 @@ describe('VideoCompletionService', () => {
       });
     });
 
+    it('emits a generation webhook when a video ingredient completes', async () => {
+      const mockData = {
+        ingredientId: mockIngredientId.toString(),
+        organizationId: mockOrganizationId.toString(),
+        result: {
+          s3Key: `ingredients/videos/${mockIngredientId}`,
+        },
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+        userId: mockUserId.toString(),
+      };
+
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
+
+      await subscriberService.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+
+      await subscribeCallback(mockData);
+      await waitForAsyncHandler();
+
+      expect(
+        generationEventWebhookService.emitGenerationCompleted,
+      ).toHaveBeenCalledWith({
+        generationId: mockData.ingredientId,
+        kind: 'video',
+        organizationId: mockData.organizationId,
+        output: {
+          mimeType: null,
+          storageKey: mockData.result.s3Key,
+          url: null,
+        },
+      });
+    });
+
     it('should handle completion with s3Key result', async () => {
       const mockData = {
         ingredientId: mockIngredientId.toString(),
@@ -523,6 +576,49 @@ describe('VideoCompletionService', () => {
         },
       );
       expect(metadataService.patch).not.toHaveBeenCalled();
+    });
+
+    it('should persist top-level duration and dimensions metadata when present', async () => {
+      const mockData = {
+        ingredientId: mockIngredientId.toString(),
+        organizationId: mockOrganizationId.toString(),
+        result: {
+          dimensions: {
+            height: 1920,
+            width: 1080,
+          },
+          duration: 24.2,
+        },
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+        userId: mockUserId.toString(),
+      };
+
+      ingredientsService.findOne.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          metadataId: mockMetadataId,
+        }),
+      );
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocumentFixture({
+          id: mockIngredientId,
+          status: IngredientStatus.GENERATED,
+        }),
+      );
+
+      await subscriberService.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+
+      await subscribeCallback(mockData);
+      await waitForAsyncHandler();
+
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadataId, {
+        duration: 24.2,
+        height: 1920,
+        width: 1080,
+      });
     });
 
     it('should handle errors during ingredient update', async () => {
@@ -659,6 +755,26 @@ describe('VideoCompletionService', () => {
     expect(rawCutClipCompletionService.handleCompletion).toHaveBeenCalledWith(
       event,
     );
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('never falls through raw-cut events to ingredient persistence', async () => {
+    rawCutClipCompletionService.handleCompletion.mockResolvedValue(false);
+
+    await subscriberService.onModuleInit();
+    const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+      .calls[0][1];
+    await subscribeCallback({
+      ingredientId: 'clip-result-1',
+      organizationId: mockOrganizationId.toString(),
+      result: {
+        jobId: 'raw-cut-trim-clip-result-1',
+      },
+      status: Status.COMPLETED,
+      timestamp: new Date().toISOString(),
+    });
+
+    expect(rawCutClipCompletionService.handleCompletion).toHaveBeenCalled();
     expect(ingredientsService.patch).not.toHaveBeenCalled();
   });
 

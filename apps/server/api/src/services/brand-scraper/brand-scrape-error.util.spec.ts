@@ -27,6 +27,15 @@ describe('classifyBrandScrapeError', () => {
     });
   });
 
+  it('classifies a message that says the request timed out', () => {
+    expect(
+      classifyBrandScrapeError(new Error('Request timed out after 10000ms')),
+    ).toEqual({
+      code: BrandScrapeErrorCode.TIMEOUT,
+      message: 'The site took too long to respond.',
+    });
+  });
+
   it.each([
     'ENOTFOUND',
     'ECONNREFUSED',
@@ -90,6 +99,20 @@ describe('classifyBrandScrapeError', () => {
     });
   });
 
+  it.each([401, 403, 429, 999])(
+    'classifies an embedded %s status as blocked',
+    (status) => {
+      expect(
+        classifyBrandScrapeError(
+          new Error(`Failed to fetch https://example.com: ${status} Forbidden`),
+        ),
+      ).toEqual({
+        code: BrandScrapeErrorCode.SITE_BLOCKED,
+        message: 'That website blocked our request to read it.',
+      });
+    },
+  );
+
   it('classifies an embedded 5xx status as an upstream provider error', () => {
     expect(
       classifyBrandScrapeError(
@@ -103,6 +126,17 @@ describe('classifyBrandScrapeError', () => {
     });
   });
 
+  it('classifies an embedded 4xx (non-blocking) status as unreachable', () => {
+    expect(
+      classifyBrandScrapeError(
+        new Error('Failed to fetch https://example.com: 404 Not Found'),
+      ),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_UNREACHABLE,
+      message: 'We could not reach that website.',
+    });
+  });
+
   it('reads the trailing status, not a 3-digit port in the URL (#5080 review)', () => {
     expect(
       classifyBrandScrapeError(
@@ -113,6 +147,15 @@ describe('classifyBrandScrapeError', () => {
     ).toEqual({
       code: BrandScrapeErrorCode.SITE_UNREACHABLE,
       message: 'We could not reach that website.',
+    });
+  });
+
+  it('reads the trailing status with no statusText (LinkedIn/X error shape)', () => {
+    expect(
+      classifyBrandScrapeError(new Error('Failed to fetch LinkedIn page: 403')),
+    ).toEqual({
+      code: BrandScrapeErrorCode.SITE_BLOCKED,
+      message: 'That website blocked our request to read it.',
     });
   });
 
@@ -136,6 +179,13 @@ describe('classifyBrandScrapeError', () => {
     ).toEqual({
       code: BrandScrapeErrorCode.SITE_BLOCKED,
       message: 'That website blocked our request to read it.',
+    });
+  });
+
+  it('falls back to UNKNOWN for an unrecognized failure', () => {
+    expect(classifyBrandScrapeError(new Error('boom'))).toEqual({
+      code: BrandScrapeErrorCode.UNKNOWN,
+      message: 'We could not analyze that website.',
     });
   });
 

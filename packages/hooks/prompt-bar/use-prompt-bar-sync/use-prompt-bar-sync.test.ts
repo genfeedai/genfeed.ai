@@ -112,6 +112,25 @@ describe('usePromptBarSync', () => {
       expect(options.onTextChange).toHaveBeenCalledWith('current text');
     });
 
+    it('triggers config change in legacy mode', () => {
+      const options = {
+        ...createBaseOptions(),
+        useSplitState: false,
+      };
+      const { result } = renderHook(() => usePromptBarSync(options));
+
+      act(() => {
+        result.current.handleTextChange();
+      });
+
+      // In legacy mode, it triggers debounced config change
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(options.onDatasetChange).toHaveBeenCalled();
+    });
+
     it('does nothing when isExternalUpdate is true', () => {
       const options = createBaseOptions();
       const { result } = renderHook(() => usePromptBarSync(options));
@@ -126,6 +145,20 @@ describe('usePromptBarSync', () => {
   });
 
   describe('handleTextareaChange', () => {
+    it('calls handleTextChange', () => {
+      const options = {
+        ...createBaseOptions(),
+        useSplitState: true,
+      };
+      const { result } = renderHook(() => usePromptBarSync(options));
+
+      act(() => {
+        result.current.handleTextareaChange();
+      });
+
+      expect(options.onTextChange).toHaveBeenCalled();
+    });
+
     it('debounces text value update', () => {
       const options = createBaseOptions();
       const { result } = renderHook(() => usePromptBarSync(options));
@@ -156,6 +189,25 @@ describe('usePromptBarSync', () => {
   });
 
   describe('triggerConfigChange', () => {
+    it('debounces config change callback', () => {
+      const options = createBaseOptions();
+      const { result } = renderHook(() => usePromptBarSync(options));
+
+      act(() => {
+        result.current.triggerConfigChange();
+      });
+
+      // Should not be called immediately
+      expect(options.onDatasetChange).not.toHaveBeenCalled();
+
+      // After 300ms debounce
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+
+      expect(options.onDatasetChange).toHaveBeenCalled();
+    });
+
     it('calls onConfigChange in split state mode', () => {
       const options = {
         ...createBaseOptions(),
@@ -218,6 +270,18 @@ describe('usePromptBarSync', () => {
   });
 
   describe('flushConfigChange', () => {
+    it('syncs form values immediately without debounce', () => {
+      const options = createBaseOptions();
+      const { result } = renderHook(() => usePromptBarSync(options));
+
+      act(() => {
+        result.current.flushConfigChange();
+      });
+
+      // Should be called immediately, no debounce
+      expect(options.onDatasetChange).toHaveBeenCalled();
+    });
+
     it('clears pending debounce timer', () => {
       const options = createBaseOptions();
       const { result } = renderHook(() => usePromptBarSync(options));
@@ -283,6 +347,18 @@ describe('usePromptBarSync', () => {
         shouldValidate: true,
       });
     });
+
+    it('does not sync when external format is undefined', () => {
+      const options = createBaseOptions();
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).not.toHaveBeenCalledWith(
+        'format',
+        expect.anything(),
+        expect.anything(),
+      );
+    });
   });
 
   describe('Category Type Changes', () => {
@@ -299,6 +375,21 @@ describe('usePromptBarSync', () => {
       expect(options.form.setValue).toHaveBeenCalledWith('references', [], {
         shouldValidate: true,
       });
+    });
+
+    it('resets format to PORTRAIT when categoryType changes', () => {
+      const options = {
+        ...createBaseOptions(),
+        categoryType: IngredientCategory.IMAGE,
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith(
+        'format',
+        IngredientFormat.PORTRAIT,
+        { shouldValidate: true },
+      );
     });
 
     it('resets dimensions to 1080x1920 when categoryType changes', () => {
@@ -319,6 +410,47 @@ describe('usePromptBarSync', () => {
   });
 
   describe('promptData Sync', () => {
+    it('syncs text from promptData', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptData: { text: 'new prompt text' },
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith(
+        'text',
+        'new prompt text',
+        { shouldValidate: true },
+      );
+    });
+
+    it('syncs style from promptData', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptData: { style: 'cinematic', text: 'text' },
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith('style', 'cinematic', {
+        shouldValidate: true,
+      });
+    });
+
+    it('syncs mood from promptData', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptData: { mood: 'happy', text: 'text' },
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith('mood', 'happy', {
+        shouldValidate: true,
+      });
+    });
+
     it('syncs references from promptData', () => {
       const options = {
         ...createBaseOptions(),
@@ -348,6 +480,22 @@ describe('usePromptBarSync', () => {
       expect(options.form.setValue).toHaveBeenCalledWith(
         'text',
         'Cinematic portrait with dramatic rim light',
+        { shouldValidate: true },
+      );
+    });
+
+    it('syncs format from promptConfig in split state mode', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptConfig: { format: IngredientFormat.SQUARE },
+        useSplitState: true,
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith(
+        'format',
+        IngredientFormat.SQUARE,
         { shouldValidate: true },
       );
     });
@@ -392,6 +540,28 @@ describe('usePromptBarSync', () => {
       expect(options.form.setValue).toHaveBeenCalledWith('duration', 5, {
         shouldValidate: true,
       });
+    });
+
+    it('syncs quality from promptConfig', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptConfig: { quality: QualityTier.STANDARD },
+        useSplitState: true,
+      };
+      options.form.getValues = vi.fn((field?: string) => {
+        if (field === 'quality') {
+          return QualityTier.HIGH;
+        }
+        return undefined;
+      });
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith(
+        'quality',
+        QualityTier.STANDARD,
+        { shouldValidate: true },
+      );
     });
 
     it('does not resync quality when the form already matches', () => {
@@ -443,6 +613,71 @@ describe('usePromptBarSync', () => {
         false,
         { shouldValidate: true },
       );
+    });
+
+    it('syncs autoSelectModel from promptConfig', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptConfig: { autoSelectModel: true },
+        useSplitState: true,
+      };
+      options.form.getValues = vi.fn((field?: string) => {
+        if (field === 'autoSelectModel') {
+          return false;
+        }
+        return undefined;
+      });
+
+      renderHook(() => usePromptBarSync(options));
+
+      expect(options.form.setValue).toHaveBeenCalledWith(
+        'autoSelectModel',
+        true,
+        { shouldValidate: true },
+      );
+    });
+
+    it('does not sync when not in split state mode', () => {
+      const options = {
+        ...createBaseOptions(),
+        promptConfig: { format: IngredientFormat.SQUARE },
+        useSplitState: false,
+      };
+
+      renderHook(() => usePromptBarSync(options));
+
+      // Format should not be synced from promptConfig when not in split state
+      const formatCalls = options.form.setValue.mock.calls.filter(
+        (call) => call[0] === 'format' && call[1] === IngredientFormat.SQUARE,
+      );
+      expect(formatCalls.length).toBe(0);
+    });
+  });
+
+  describe('Cleanup', () => {
+    it('cleans up debounce timers on unmount', () => {
+      const options = createBaseOptions();
+      const { result, unmount } = renderHook(() => usePromptBarSync(options));
+
+      act(() => {
+        result.current.triggerConfigChange();
+      });
+
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
+
+      unmount();
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('setTextValue', () => {
+    it('provides setTextValue function', () => {
+      const { result } = renderHook(() =>
+        usePromptBarSync(createBaseOptions()),
+      );
+
+      expect(typeof result.current.setTextValue).toBe('function');
     });
   });
 });

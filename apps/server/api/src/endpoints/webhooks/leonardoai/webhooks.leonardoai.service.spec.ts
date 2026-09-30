@@ -39,6 +39,10 @@ describe('LeonardoaiWebhookService', () => {
     service = module.get<LeonardoaiWebhookService>(LeonardoaiWebhookService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should return early when no generationId', async () => {
     const body = { customId: 'abc', data: null } as LeonardoAIWebhookPayload;
 
@@ -152,6 +156,65 @@ describe('LeonardoaiWebhookService', () => {
       metadataId,
       expect.objectContaining({
         error: 'Image generation failed',
+      }),
+    );
+  });
+
+  it('should patch with empty object for non-COMPLETE non-FAILED status', async () => {
+    const metadataId = testId('metadata');
+    const body = {
+      customId: metadataId,
+      data: null,
+      generationId: 'gen-123',
+      status: 'PROCESSING',
+    } as LeonardoAIWebhookPayload;
+
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
+    deps.metadataService.patch.mockResolvedValue({});
+
+    await service.handleCallback(body);
+
+    expect(deps.metadataService.patch).toHaveBeenCalledWith(metadataId, {});
+  });
+
+  it('should look up metadata with correct filter', async () => {
+    const metadataId = testId('metadata');
+    const body = {
+      customId: metadataId,
+      data: null,
+      generationId: 'gen-123',
+      status: 'COMPLETE',
+    } as LeonardoAIWebhookPayload;
+
+    deps.metadataService.findOne.mockResolvedValue(null);
+
+    await service.handleCallback(body);
+
+    expect(deps.metadataService.findOne).toHaveBeenCalledWith({
+      id: metadataId,
+    });
+  });
+
+  it('should log completion with generationId, metadataId, and status', async () => {
+    const metadataId = testId('metadata');
+    const body = {
+      customId: metadataId,
+      data: null,
+      generationId: 'gen-xyz',
+      status: 'COMPLETE',
+    } as LeonardoAIWebhookPayload;
+
+    deps.metadataService.findOne.mockResolvedValue({ id: metadataId });
+    deps.metadataService.patch.mockResolvedValue({});
+
+    await service.handleCallback(body);
+
+    expect(deps.logger.log).toHaveBeenCalledWith(
+      expect.stringContaining('completed'),
+      expect.objectContaining({
+        generationId: 'gen-xyz',
+        metadataId,
+        status: 'COMPLETE',
       }),
     );
   });

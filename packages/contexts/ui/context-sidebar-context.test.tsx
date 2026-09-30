@@ -249,6 +249,35 @@ describe('ContextSidebarPanel', () => {
     expect(screen.getByTestId('rail-outlet')).toBeEmptyDOMElement();
   });
 
+  it('keeps the drawer closed on desktop widths', () => {
+    stubCompactViewport(false);
+
+    render(
+      <Shell>
+        <ContextSidebarPanel selection={{ ...ASSET, origin: 'user' }}>
+          <p>asset detail</p>
+        </ContextSidebarPanel>
+      </Shell>,
+    );
+
+    expect(readProbe()).toMatchObject({ isMobileOpen: false, isOpen: true });
+  });
+
+  it('moves the panel into the drawer when the topbar opens it', () => {
+    render(
+      <Shell>
+        <ContextSidebarPanel selection={ASSET}>
+          <p>asset detail</p>
+        </ContextSidebarPanel>
+      </Shell>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'open drawer' }));
+
+    expect(screen.getByTestId('drawer-outlet')).toHaveTextContent(
+      'asset detail',
+    );
+  });
+
   it('opens the drawer when the user taps the item the page picked automatically', () => {
     stubCompactViewport(true);
     function Page() {

@@ -94,6 +94,11 @@ describe('ModalFolder', () => {
     setValueMock.mockClear();
   });
 
+  it('renders folder form', () => {
+    render(<ModalFolder {...defaultProps} />);
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
   it('renders with existing folder', () => {
     const folder = {
       id: 'folder-1',

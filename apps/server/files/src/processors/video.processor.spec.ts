@@ -242,6 +242,19 @@ describe('VideoProcessor', () => {
   // ==========================================================================
   // Initialization
   // ==========================================================================
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(processor).toBeDefined();
+    });
+
+    it('should have all required dependencies', () => {
+      expect(ffmpegService).toBeDefined();
+      expect(s3Service).toBeDefined();
+      expect(webSocketService).toBeDefined();
+      expect(loggerService).toBeDefined();
+      expect(redisService).toBeDefined();
+    });
+  });
 
   // ==========================================================================
   // process() - Job Router
@@ -432,6 +445,20 @@ describe('VideoProcessor', () => {
       );
     });
 
+    it('should download from URL when inputPath provided', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://example.com/video.mp4',
+          s3Key: undefined,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.RESIZE_VIDEO, data);
+
+      await processor.handleResize(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalled();
+    });
+
     it('should handle errors during resize', async () => {
       const error = new Error('Resize failed');
       s3Service.downloadFile.mockRejectedValue(error);
@@ -462,6 +489,15 @@ describe('VideoProcessor', () => {
       await processor.handleResize(mockJob);
 
       expect(webSocketService.emitProgress).toHaveBeenCalled();
+    });
+
+    it('should cleanup temp files after processing', async () => {
+      await processor.handleResize(mockJob);
+
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        mockJobData.ingredientId,
+        'resize',
+      );
     });
 
     it('should use default dimensions when not provided', async () => {
@@ -534,6 +570,59 @@ describe('VideoProcessor', () => {
       await processor.handleMerge(job);
 
       expect(ffmpegService.mergeVideosWithTransitions).toHaveBeenCalled();
+    });
+
+    it('should not use transition when set to none', async () => {
+      const data = createMockJobData({
+        params: {
+          sourceIds: ['source1', 'source2'],
+          transition: VideoTransition.NONE,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.MERGE_VIDEOS, data);
+
+      await processor.handleMerge(job);
+
+      expect(ffmpegService.mergeVideos).toHaveBeenCalled();
+      expect(ffmpegService.mergeVideosWithTransitions).not.toHaveBeenCalled();
+    });
+
+    it('should resize after merge when isResizeEnabled is true', async () => {
+      const data = createMockJobData({
+        params: {
+          height: 1920,
+          isResizeEnabled: true,
+          sourceIds: ['source1', 'source2'],
+          width: 1080,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.MERGE_VIDEOS, data);
+
+      await processor.handleMerge(job);
+
+      expect(ffmpegService.convertToPortrait).toHaveBeenCalled();
+    });
+
+    it('should handle music download failure gracefully', async () => {
+      const data = createMockJobData({
+        params: {
+          music: 'music-id',
+          sourceIds: ['source1', 'source2'],
+        },
+      });
+      const job = createMockJob(JOB_TYPES.MERGE_VIDEOS, data);
+
+      // First 2 calls for videos succeed, 3rd for music fails
+      s3Service.downloadFile
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Music not found'));
+
+      await processor.handleMerge(job);
+
+      // Should continue with merge without music
+      expect(ffmpegService.mergeVideos).toHaveBeenCalled();
+      expect(ffmpegService.mergeVideosWithMusic).not.toHaveBeenCalled();
     });
 
     it('should handle merge errors', async () => {
@@ -626,6 +715,39 @@ describe('VideoProcessor', () => {
       );
     });
 
+    it('reports the size of the captioned file it uploaded', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
+      });
+
+      const result = await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(result.size).toBe(4096);
+    });
+
+    it('mutes the captioned output when asked', async () => {
+      const data = createMockJobData({
+        params: {
+          captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello',
+          isMuteVideoAudio: true,
+        },
+      });
+
+      await processor.handleAddCaptions(
+        createMockJob(JOB_TYPES.ADD_CAPTIONS, data, 'captions-1'),
+      );
+
+      expect(ffmpegService.addCaptions).toHaveBeenCalledWith(
+        expect.stringContaining('input.mp4'),
+        expect.stringContaining('output.mp4'),
+        expect.stringContaining('captions.srt'),
+        expect.any(Function),
+        { muteVideoAudio: true },
+      );
+    });
+
     it('only strips audio when muting without captions', async () => {
       const data = createMockJobData({
         params: { captionContent: '', isMuteVideoAudio: true },
@@ -683,6 +805,20 @@ describe('VideoProcessor', () => {
       expect(redisService.publish).not.toHaveBeenCalledWith(
         'video-processing-complete',
         expect.objectContaining({ status: 'failed' }),
+      );
+    });
+
+    it('does not publish ordinary ingredient caption jobs as raw-cut completions', async () => {
+      const data = createMockJobData({
+        params: { captionContent: '1\n00:00:00,000 --> 00:00:05,000\nHello' },
+      });
+      const job = createMockJob(JOB_TYPES.ADD_CAPTIONS, data);
+
+      await processor.handleAddCaptions(job);
+
+      expect(redisService.publish).not.toHaveBeenCalledWith(
+        'video-processing-complete',
+        expect.anything(),
       );
     });
   });
@@ -825,6 +961,34 @@ describe('VideoProcessor', () => {
         'Trim duration must be between 2 and 15 seconds',
       );
     });
+
+    it('should throw error for duration more than 15 seconds', async () => {
+      const data = createMockJobData({
+        params: { endTime: 20, startTime: 0 },
+      });
+      const job = createMockJob(JOB_TYPES.TRIM_VIDEO, data);
+
+      await expect(processor.handleTrim(job)).rejects.toThrow(
+        'Trim duration must be between 2 and 15 seconds',
+      );
+    });
+
+    it('should use default startTime of 0 when not provided', async () => {
+      const data = createMockJobData({
+        params: { endTime: 10, startTime: undefined },
+      });
+      const job = createMockJob(JOB_TYPES.TRIM_VIDEO, data);
+
+      await processor.handleTrim(job);
+
+      expect(ffmpegService.trimVideo).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        0,
+        10,
+        expect.any(Function),
+      );
+    });
   });
 
   // ==========================================================================
@@ -886,6 +1050,60 @@ describe('VideoProcessor', () => {
       );
     });
 
+    it('should not throw the trim duration guard error for out-of-range durations', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      const result = await processor.handleClipTrim(job);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('should download input and upload the trimmed output via mocked services', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, s3Key: 'source-video-key', startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(s3Service.downloadFile).toHaveBeenCalled();
+      expect(s3Service.uploadFile).toHaveBeenCalled();
+      expect(s3Service.getPublicUrl).toHaveBeenCalled();
+    });
+
+    it('should download from URL when inputPath provided instead of s3Key', async () => {
+      const data = createMockJobData({
+        params: {
+          endTime: 40,
+          inputPath: 'https://example.com/video.mp4',
+          s3Key: undefined,
+          startTime: 10,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalled();
+    });
+
+    it('should cleanup temp files after processing', async () => {
+      const data = createMockJobData({
+        params: { endTime: 40, startTime: 10 },
+      });
+      const job = createMockJob(JOB_TYPES.CLIP_TRIM, data);
+
+      await processor.handleClipTrim(job);
+
+      expect(ffmpegService.cleanupTempFiles).toHaveBeenCalledWith(
+        data.ingredientId,
+        'clip-trim',
+      );
+    });
+
     it('should handle errors during clip trim', async () => {
       const data = createMockJobData({
         params: { endTime: 40, startTime: 10 },
@@ -934,6 +1152,23 @@ describe('VideoProcessor', () => {
         expect.any(String),
         'Hello World',
         { position: 'top' },
+        expect.any(Function),
+      );
+    });
+
+    it('should use default position when not provided', async () => {
+      const data = createMockJobData({
+        params: { text: 'Test' },
+      });
+      const job = createMockJob(JOB_TYPES.ADD_TEXT_OVERLAY, data);
+
+      await processor.handleTextOverlay(job);
+
+      expect(ffmpegService.addTextOverlay).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'Test',
+        { position: 'bottom' },
         expect.any(Function),
       );
     });
@@ -1386,6 +1621,21 @@ describe('VideoProcessor', () => {
   // Edge Cases
   // ==========================================================================
   describe('Edge Cases', () => {
+    it('should handle download from URL when s3Key is not provided', async () => {
+      const data = createMockJobData({
+        params: {
+          inputPath: 'https://example.com/video.mp4',
+          s3Key: undefined,
+        },
+      });
+      const job = createMockJob(JOB_TYPES.REVERSE_VIDEO, data);
+
+      await processor.handleReverse(job);
+
+      expect(s3Service.downloadFromUrl).toHaveBeenCalled();
+      expect(s3Service.downloadFile).not.toHaveBeenCalled();
+    });
+
     it('should handle progress callback with default percent', async () => {
       ffmpegService.resizeVideo.mockImplementation(
         (_input, _output, _w, _h, onProgress) => {

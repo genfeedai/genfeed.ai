@@ -1,4 +1,5 @@
 import type { PlatformSettingsService } from '@api/collections/platform-settings/services/platform-settings.service';
+import { JevTypedDecisionProvider } from '@api/services/typed-decisions/providers/jev-typed-decision.provider';
 import { NullTypedDecisionProvider } from '@api/services/typed-decisions/providers/null-typed-decision.provider';
 import { TypedDecisionProviderResolver } from '@api/services/typed-decisions/typed-decision-provider.resolver';
 import { TYPED_DECISION_PROVIDER_CACHE_TTL_MS } from '@api/services/typed-decisions/typed-decisions.constants';
@@ -38,6 +39,24 @@ describe('TypedDecisionProviderResolver', () => {
     vi.useRealTimers();
   });
 
+  it('binds the provider the operator selected', async () => {
+    const { getSingleton, resolver } = build();
+    getSingleton.mockResolvedValue(settingsRow('jev'));
+
+    await expect(resolver.resolve()).resolves.toBeInstanceOf(
+      JevTypedDecisionProvider,
+    );
+  });
+
+  it('binds the null provider for `none`', async () => {
+    const { getSingleton, resolver } = build();
+    getSingleton.mockResolvedValue(settingsRow('none'));
+
+    await expect(resolver.resolve()).resolves.toBeInstanceOf(
+      NullTypedDecisionProvider,
+    );
+  });
+
   it('fails closed on a value this deployment does not know', async () => {
     const { getSingleton, resolver } = build();
     getSingleton.mockResolvedValue(settingsRow('some-future-vendor'));
@@ -58,6 +77,17 @@ describe('TypedDecisionProviderResolver', () => {
     vi.advanceTimersByTime(TYPED_DECISION_PROVIDER_CACHE_TTL_MS);
     await resolver.resolve();
     expect(getSingleton).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses the adapter across refreshes so a 429 cooldown survives', async () => {
+    const { getSingleton, resolver } = build();
+    getSingleton.mockResolvedValue(settingsRow('jev'));
+
+    const first = await resolver.resolve();
+    vi.advanceTimersByTime(TYPED_DECISION_PROVIDER_CACHE_TTL_MS);
+    const second = await resolver.resolve();
+
+    expect(second).toBe(first);
   });
 
   it('picks up a kill switch on the next read', async () => {
@@ -107,5 +137,14 @@ describe('TypedDecisionProviderResolver', () => {
     await resolver.resolve();
 
     expect(getSingleton).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the deterministic path when Jev is selected with no key', async () => {
+    const { getSingleton, resolver } = build({});
+    getSingleton.mockResolvedValue(settingsRow('jev'));
+
+    await expect(resolver.resolve()).resolves.toBeInstanceOf(
+      NullTypedDecisionProvider,
+    );
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
+import { DEFAULT_CREDIT_COSTS } from '../../utils/credit-calculator';
 import {
   createTrendHashtagInspirationExecutor,
   type TrendHashtagInspirationOutput,
@@ -21,7 +22,25 @@ const ctx: ExecutionContext = {
   workflowVersionId: 'w-v1',
 };
 
+const TREND_INSPIRATION_NODE_TYPES = [
+  'trendHashtagInspiration',
+  'trendSoundInspiration',
+  'trendVideoInspiration',
+] as const;
+
 describe('trend inspiration executors', () => {
+  it('assigns explicit credits to each implemented trend inspiration node', () => {
+    for (const nodeType of TREND_INSPIRATION_NODE_TYPES) {
+      expect(DEFAULT_CREDIT_COSTS[nodeType]).toBe(1);
+    }
+  });
+
+  it('constructs an executor for each implemented trend inspiration node', () => {
+    expect(createTrendHashtagInspirationExecutor()).toBeDefined();
+    expect(createTrendSoundInspirationExecutor()).toBeDefined();
+    expect(createTrendVideoInspirationExecutor()).toBeDefined();
+  });
+
   describe('TrendHashtagInspirationExecutor', () => {
     it('validates platform, content preference, and hashtag config', () => {
       const executor = createTrendHashtagInspirationExecutor();

@@ -21,4 +21,8 @@ describe('formatUseCaseSlug', () => {
       'Social Media Managers',
     );
   });
+
+  it('returns an empty string for an empty slug', () => {
+    expect(formatUseCaseSlug('')).toBe('');
+  });
 });

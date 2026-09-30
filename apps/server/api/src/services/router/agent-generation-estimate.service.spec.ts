@@ -60,6 +60,22 @@ describe('AgentGenerationEstimateService', () => {
     expect(selectModel).toHaveBeenCalledTimes(1);
     expect(validateModelForOrg).toHaveBeenCalledWith(model.key, 'org-1');
   });
+  it('applies video pricing multipliers', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      category: ModelCategory.VIDEO,
+      costPerUnit: 10,
+      minCost: 50,
+      pricingType: 'per-second',
+    });
+    expect(
+      await service.estimate({
+        ...input,
+        category: ModelCategory.VIDEO,
+        duration: 8,
+      }),
+    ).toMatchObject({ credits: 80, isAvailable: true });
+  });
   it('quotes the executed dimensions for per-megapixel models by aspect ratio', async () => {
     validateModelForOrg.mockResolvedValue({
       ...model,
@@ -193,6 +209,21 @@ describe('AgentGenerationEstimateService', () => {
       }),
     ).toMatchObject({ credits: 24, isAvailable: true });
   });
+  it('resolves fan-out from the model row provider, not the key shape', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      cost: 6,
+      key: 'bytedance/seedream-4.5',
+      provider: 'fal',
+    });
+    expect(
+      await service.estimate({
+        ...input,
+        modelKey: 'bytedance/seedream-4.5',
+        outputs: 4,
+      }),
+    ).toMatchObject({ credits: 24, isAvailable: true });
+  });
   it('defaults a missing video duration to the Agent tool duration', async () => {
     validateModelForOrg.mockResolvedValue({
       ...model,
@@ -232,6 +263,16 @@ describe('AgentGenerationEstimateService', () => {
   it('hides model identity when organization policy rejects it', async () => {
     validateModelForOrg.mockRejectedValue(new Error('not enabled'));
     expect(await service.estimate(input)).toEqual(unavailable);
+  });
+  it('rejects an empty aspect ratio at the DTO boundary', async () => {
+    const dto = Object.assign(new EstimateGenerationCreditsDto(), {
+      aspectRatio: '',
+      category: 'image',
+      prompt: 'Car',
+    });
+    expect(
+      (await validate(dto)).some((error) => error.property === 'aspectRatio'),
+    ).toBe(true);
   });
   it.each([0, 9, 1.5, Number.NaN, Infinity])(
     'rejects invalid output count %s at service and DTO boundaries',

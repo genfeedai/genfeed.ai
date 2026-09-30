@@ -121,6 +121,10 @@ describe('ImagesController', () => {
     controller = module.get<ImagesController>(ImagesController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll (latest=true shorthand)', () => {
     const latestQuery = {
       isDeleted: false,
@@ -176,6 +180,18 @@ describe('ImagesController', () => {
         brandId: mockUser.brandId,
         isDefault: true,
       });
+    });
+
+    it('should cap the latest limit at 50', async () => {
+      await controller.findAll(mockRequest, mockUser, {
+        ...latestQuery,
+        limit: 100,
+      } as unknown as ImagesQueryDto);
+
+      const options = imagesService.findAll.mock.calls[0][1] as {
+        limit: number;
+      };
+      expect(options.limit).toBe(50);
     });
   });
 

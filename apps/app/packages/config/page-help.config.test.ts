@@ -24,8 +24,11 @@ describe('page help routing', () => {
       'automationWorkflows',
     );
     expect(
-      resolvePageHelpKey('/acme/brand/automation/workflows/templates'),
+      resolvePageHelpKey('/acme/brand/automation/workflows', 'view=templates'),
     ).toBe('automationTemplates');
+    expect(resolvePageHelpKey('/acme/brand/automation/workflows')).toBe(
+      'automationWorkflows',
+    );
   });
 
   it('resolves the calendar from the Posts desk calendar view', () => {
@@ -36,5 +39,9 @@ describe('page help routing', () => {
       'publishingPosts',
     );
     expect(resolvePageHelpKey('/acme/brand/publishing/calendar')).toBeNull();
+  });
+
+  it('returns null for pages without help copy', () => {
+    expect(resolvePageHelpKey('/acme/brand/settings/general')).toBeNull();
   });
 });

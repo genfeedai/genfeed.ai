@@ -173,6 +173,29 @@ describe('WorkflowEngine', () => {
       expect(result.nodeResults.get('n1')?.status).toBe('completed');
     });
 
+    it('should pass persisted execution id into node context', async () => {
+      const contextEngine = createTestEngine();
+      const contextExecutor: NodeExecutor = vi.fn(async () =>
+        buildFixtureOutput('imageGen'),
+      );
+      contextEngine.registerExecutor('imageGen', contextExecutor);
+
+      const workflow = makeWorkflow([makeNode('n1', 'imageGen')]);
+
+      await contextEngine.execute(workflow, { executionId: 'exec-1' });
+
+      expect(contextExecutor).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Map),
+        expect.objectContaining({
+          executionId: 'exec-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          workflowId: 'wf-1',
+        }),
+      );
+    });
+
     it('suspends a provider-callback action and does not dispatch downstream nodes', async () => {
       const suspendEngine = createTestEngine();
       const imageExecutor = vi.fn().mockResolvedValue({
@@ -217,6 +240,27 @@ describe('WorkflowEngine', () => {
 
       expect(result.status).toBe('failed');
       expect(imageExecutor).toHaveBeenCalledOnce();
+    });
+
+    it('should execute nodes in dependency order', async () => {
+      const orderEngine = createTestEngine();
+      const executionOrder: string[] = [];
+      const trackingExecutor: NodeExecutor = vi.fn(async (node) => {
+        executionOrder.push(node.id);
+        return buildFixtureOutput(node.type);
+      });
+
+      orderEngine.registerExecutor('imageGen', trackingExecutor);
+      orderEngine.registerExecutor('upscale', trackingExecutor);
+
+      const workflow = makeWorkflow(
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
+      );
+
+      await orderEngine.execute(workflow);
+
+      expect(executionOrder).toEqual(['n1', 'n2']);
     });
 
     it('should handle diamond dependency graph', async () => {
@@ -323,6 +367,38 @@ describe('WorkflowEngine', () => {
       expect(capturedInputs[1].get('media')).toEqual(
         buildFixtureOutput('imageGen'),
       );
+    });
+
+    it('should read sourceHandle field and write it to targetHandle', async () => {
+      const gatherEngine = createTestEngine();
+      const capturedInputs: Map<string, unknown>[] = [];
+      const sourceExecutor: NodeExecutor = vi.fn(async () => ({
+        id: 'ingredient-42',
+        model: 'flux',
+        provider: 'replicate',
+        status: 'succeeded',
+      }));
+      const targetExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
+        capturedInputs.push(new Map(inputs));
+        return buildFixtureOutput('upscale');
+      });
+
+      gatherEngine.registerExecutor('imageGen', sourceExecutor);
+      gatherEngine.registerExecutor('upscale', targetExecutor);
+
+      const workflow = makeWorkflow(
+        [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
+        [
+          makeEdge('n1', 'n2', {
+            sourceHandle: 'id',
+            targetHandle: 'model',
+          }),
+        ],
+      );
+
+      await gatherEngine.execute(workflow);
+
+      expect(capturedInputs[0].get('model')).toBe('ingredient-42');
     });
 
     it('does not route an inactive explicit sourceHandle', async () => {
@@ -483,6 +559,33 @@ describe('WorkflowEngine', () => {
       expect(mockExecutor).toHaveBeenCalledTimes(1);
     });
 
+    it('should pass locked node cached output as input to downstream', async () => {
+      const lockedEngine = createTestEngine();
+      const capturedInputs: Map<string, unknown>[] = [];
+      const capturingExecutor: NodeExecutor = vi.fn(async (_node, inputs) => {
+        capturedInputs.push(new Map(inputs));
+        return buildFixtureOutput('upscale');
+      });
+
+      lockedEngine.registerExecutor('upscale', capturingExecutor);
+
+      const workflow = makeWorkflow(
+        [
+          makeNode('n1', 'imageGen', {
+            cachedOutput: { image: 'cached.png' },
+            isLocked: true,
+          }),
+          makeNode('n2', 'upscale'),
+        ],
+        [makeEdge('n1', 'n2', { targetHandle: 'media' })],
+        { lockedNodeIds: ['n1'] },
+      );
+
+      await lockedEngine.execute(workflow);
+
+      expect(capturedInputs[0].get('media')).toEqual({ image: 'cached.png' });
+    });
+
     it('rerenders edited localized speech and composition while reusing both generated scenes', async () => {
       const rerunEngine = createTestEngine();
       const generation = vi.fn();
@@ -637,6 +740,23 @@ describe('WorkflowEngine', () => {
       });
 
       expect(result.status).toBe('completed');
+    });
+
+    it('should track total credits used', async () => {
+      const engineWithCosts = new WorkflowEngine({
+        creditCosts: { imageGen: 10, upscale: 5 },
+      });
+      engineWithCosts.registerExecutor('imageGen', mockExecutor);
+      engineWithCosts.registerExecutor('upscale', mockExecutor);
+
+      const workflow = makeWorkflow([
+        makeNode('n1', 'imageGen'),
+        makeNode('n2', 'upscale'),
+      ]);
+
+      const result = await engineWithCosts.execute(workflow);
+
+      expect(result.totalCreditsUsed).toBe(15);
     });
   });
 
@@ -958,6 +1078,20 @@ describe('WorkflowEngine', () => {
       const result = engine.estimateCredits([makeNode('n1', 'imageGen')]);
 
       expect(result).toBe(0);
+    });
+
+    it('should sum credits from cost config', () => {
+      const engineWithCosts = new WorkflowEngine({
+        creditCosts: { imageGen: 10, upscale: 5 },
+      });
+
+      const result = engineWithCosts.estimateCredits([
+        makeNode('n1', 'imageGen'),
+        makeNode('n2', 'upscale'),
+        makeNode('n3', 'imageGen'),
+      ]);
+
+      expect(result).toBe(25);
     });
   });
 });

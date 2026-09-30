@@ -27,6 +27,10 @@ describe('WebhooksController', () => {
     webhooksService = module.get<WebhooksService>(WebhooksService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('notify', () => {
     it('should handle webhook notification', async () => {
       const notification: WebhookNotification = {
@@ -51,6 +55,25 @@ describe('WebhooksController', () => {
         message: 'Notification received',
         success: true,
       });
+    });
+
+    it('should handle different service types', async () => {
+      const notification: WebhookNotification = {
+        data: {
+          error: 'Processing failed',
+        },
+        id: 'video_456',
+        service: 'openai',
+        status: 'failed',
+      };
+
+      mockWebhooksService.handleWebhookNotification.mockResolvedValue(
+        undefined,
+      );
+
+      const result = await controller.notify(notification);
+
+      expect(result.success).toBe(true);
     });
   });
 

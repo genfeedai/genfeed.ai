@@ -77,6 +77,10 @@ describe('MediumController', () => {
     controller = module.get(MediumController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     it('stores an opaque state against the authenticated brand', async () => {
       const brand = { id: brandId, organizationId, userId };

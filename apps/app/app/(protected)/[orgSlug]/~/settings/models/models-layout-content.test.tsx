@@ -52,6 +52,15 @@ beforeAll(() => {
 });
 
 describe('ModelsLayoutContent', () => {
+  it('should render without crashing', () => {
+    const { container } = render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('renders a model type filter instead of type tabs', () => {
     render(
       <ModelsLayoutContent>

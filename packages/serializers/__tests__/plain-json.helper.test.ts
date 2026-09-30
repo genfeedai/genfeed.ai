@@ -16,6 +16,24 @@ describe('toPlainJson', () => {
     expect(output.nested).not.toBe(input.nested);
   });
 
+  it('converts Date instances to ISO strings via JSON round-trip', () => {
+    const input = { createdAt: new Date('2026-08-01T10:00:00.000Z') };
+    const output = toPlainJson(input) as unknown as { createdAt: string };
+
+    expect(output.createdAt).toBe('2026-08-01T10:00:00.000Z');
+  });
+
+  it('drops undefined properties and functions like JSON serialization does', () => {
+    const input = {
+      fn: () => 'nope',
+      kept: 'yes',
+      missing: undefined,
+    };
+    const output = toPlainJson(input) as Record<string, unknown>;
+
+    expect(output).toEqual({ kept: 'yes' });
+  });
+
   it('passes primitives through intact', () => {
     expect(toPlainJson(42)).toBe(42);
     expect(toPlainJson('text')).toBe('text');

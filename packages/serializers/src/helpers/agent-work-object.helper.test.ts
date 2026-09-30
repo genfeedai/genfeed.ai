@@ -4,6 +4,22 @@ import { serializeAgentWorkObject } from '@serializers/helpers/agent-work-object
 import { describe, expect, it } from 'vitest';
 
 describe('canonical agent work serialization', () => {
+  it('exposes Library content while withholding provider and review internals', () => {
+    expect(
+      serializeAgentWorkObject({
+        providerData: {
+          secret: 'private',
+          agentWorkObject: {
+            kind: 'script',
+            title: 'Launch',
+            body: 'The script',
+            reviewToken: 'private',
+            threadId: 'private',
+          },
+        },
+      }),
+    ).toEqual({ kind: 'script', title: 'Launch', body: 'The script' });
+  });
   it('only exposes declared text cells', () => {
     expect(
       serializeAgentWorkObject({

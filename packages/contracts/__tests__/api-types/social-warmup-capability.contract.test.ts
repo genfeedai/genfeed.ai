@@ -100,6 +100,28 @@ describe('social warm-up capability matrix', () => {
     }
   });
 
+  test('reports the canonical X Ads OAuth scopes', () => {
+    expect(
+      SOCIAL_WARMUP_CAPABILITY_MATRIX[CredentialPlatform.X_ADS]
+        .connectionScopes,
+    ).toEqual(['ads.read', 'ads.write', 'offline.access']);
+  });
+
+  test('reports the canonical Fanvue OAuth scopes', () => {
+    expect(
+      SOCIAL_WARMUP_CAPABILITY_MATRIX[CredentialPlatform.FANVUE]
+        .connectionScopes,
+    ).toEqual([
+      'openid',
+      'offline_access',
+      'offline',
+      'read:self',
+      'read:media',
+      'write:media',
+      'write:post',
+    ]);
+  });
+
   test('classifies LinkedIn as full_blueprint with a catalog blueprint', () => {
     expect(getSocialWarmupSupportClass(CredentialPlatform.YOUTUBE)).toBe(
       'full_blueprint',

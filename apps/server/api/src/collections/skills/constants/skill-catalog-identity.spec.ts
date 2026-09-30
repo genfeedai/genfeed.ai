@@ -3,13 +3,37 @@ import { join } from 'node:path';
 
 import { resolveProductSkillsDirectory } from '@api/collections/skills/catalog/first-party-skill-loader';
 import {
+  BUILT_IN_SKILL_ID_PREFIX,
   builtInSkillIdentityForSlug,
   compactBuiltInSkillId,
   mergeBuiltInSkillCatalog,
+  ORIGINAL_BUILT_IN_SKILL_CATALOG,
 } from '@api/collections/skills/constants/skill-catalog-identity';
 import { describe, expect, it } from 'vitest';
 
 describe('built-in skill identity scheme', () => {
+  it('keeps the original five handler identities unchanged', () => {
+    expect(ORIGINAL_BUILT_IN_SKILL_CATALOG).toEqual([
+      {
+        id: `${BUILT_IN_SKILL_ID_PREFIX}contentgeo`,
+        slug: 'content-geo-optimizer',
+      },
+      {
+        id: `${BUILT_IN_SKILL_ID_PREFIX}contentwrite`,
+        slug: 'content-writing',
+      },
+      {
+        id: `${BUILT_IN_SKILL_ID_PREFIX}imagegenerate`,
+        slug: 'image-generation',
+      },
+      {
+        id: `${BUILT_IN_SKILL_ID_PREFIX}trenddiscover`,
+        slug: 'trend-discovery',
+      },
+      { id: `${BUILT_IN_SKILL_ID_PREFIX}trendremix`, slug: 'trend-remix' },
+    ]);
+  });
+
   it('does not regenerate original compact ids from their slugs', () => {
     expect(compactBuiltInSkillId('content-geo-optimizer')).toBe(
       'cskillbuiltincontentgeooptimizer',

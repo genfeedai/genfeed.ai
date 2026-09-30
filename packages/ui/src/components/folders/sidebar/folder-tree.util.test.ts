@@ -39,6 +39,15 @@ describe('buildFolderTree', () => {
     expect(tree[0].children[0].children[0].depth).toBe(2);
   });
 
+  it('sorts each level by label', () => {
+    const tree = buildFolderTree([
+      createFolder('2', 'Brand'),
+      createFolder('1', 'Ads'),
+    ]);
+
+    expect(getLabels(tree)).toEqual(['Ads', 'Brand']);
+  });
+
   it('shows a folder whose parent is missing from the page as a root', () => {
     const tree = buildFolderTree([createFolder('2', 'Orphan', 'missing')]);
 
@@ -53,6 +62,16 @@ describe('buildFolderTree', () => {
 
     expect(getLabels(tree).sort()).toEqual(['Loop A', 'Loop B']);
   });
+
+  it('treats a null parent as a root', () => {
+    const tree = buildFolderTree([createFolder('1', 'Root', null)]);
+
+    expect(getLabels(tree)).toEqual(['Root']);
+  });
+
+  it('returns nothing for an empty page', () => {
+    expect(buildFolderTree([])).toEqual([]);
+  });
 });
 
 describe('getFolderAncestorIds', () => {
@@ -62,8 +81,16 @@ describe('getFolderAncestorIds', () => {
     createFolder('3', 'Launch', '2'),
   ];
 
+  it('collects every folder between a selection and its root', () => {
+    expect([...getFolderAncestorIds(folders, '3')]).toEqual(['2', '1']);
+  });
+
   it('returns nothing for a root selection', () => {
     expect([...getFolderAncestorIds(folders, '1')]).toEqual([]);
+  });
+
+  it('returns nothing when nothing is selected', () => {
+    expect([...getFolderAncestorIds(folders, null)]).toEqual([]);
   });
 
   it('stops on a cycle instead of looping forever', () => {

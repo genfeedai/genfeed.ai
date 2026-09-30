@@ -44,6 +44,13 @@ describe('PromptBarVariationPresets', () => {
     expect(screen.getByText('Quick prompts:')).toBeInTheDocument();
   });
 
+  it('returns null when shouldRender is false', () => {
+    const { container } = render(
+      <PromptBarVariationPresets {...defaultProps} shouldRender={false} />,
+    );
+    expect(container.firstChild).toBeNull();
+  });
+
   it('renders all preset buttons', () => {
     render(<PromptBarVariationPresets {...defaultProps} />);
     expect(screen.getByText('Preset 1')).toBeInTheDocument();

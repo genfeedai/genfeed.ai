@@ -68,6 +68,11 @@ describe('OutreachCampaignsList', () => {
     vi.clearAllMocks();
   });
 
+  it('should render without crashing', () => {
+    const { container } = render(<OutreachCampaignsList />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('uses outreach sequence copy instead of Campaign', () => {
     render(<OutreachCampaignsList />);
 

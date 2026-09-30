@@ -156,6 +156,15 @@ describe('PostAnalyticsCollectionStateService', () => {
 
       expect(updateMany).not.toHaveBeenCalled();
     });
+
+    it('defaults the collection time to now', async () => {
+      await service.markReadyBatch([makeTarget()]);
+
+      const [[args]] = updateMany.mock.calls as [
+        [{ data: { analyticsCollectedAt: Date } }],
+      ];
+      expect(args.data.analyticsCollectedAt).toBeInstanceOf(Date);
+    });
   });
 
   it('advances groupless posts while preserving stale-attempt ownership', async () => {
@@ -236,6 +245,33 @@ describe('PostAnalyticsCollectionStateService', () => {
           organizationId: 'org-1',
         }),
       });
+    });
+
+    it('splits targets whose classification differs', async () => {
+      await service.markFailedTargets([
+        { ...makeTarget({ id: 'post-1' }), failure: FAILURE },
+        {
+          ...makeTarget({ id: 'post-2' }),
+          failure: { ...FAILURE, code: 'RATE_LIMITED' },
+        },
+      ]);
+
+      expect(updateMany).toHaveBeenCalledTimes(2);
+    });
+
+    it('does not merge groups when a failure message contains the separator', async () => {
+      await service.markFailedTargets([
+        {
+          ...makeTarget({ id: 'post-1' }),
+          failure: { ...FAILURE, message: 'a' },
+        },
+        {
+          ...makeTarget({ id: 'post-2' }),
+          failure: { ...FAILURE, message: 'b' },
+        },
+      ]);
+
+      expect(updateMany).toHaveBeenCalledTimes(2);
     });
 
     it('skips targets without an attempt key', async () => {

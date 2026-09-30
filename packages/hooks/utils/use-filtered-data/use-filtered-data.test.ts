@@ -44,4 +44,20 @@ describe('useFilteredData', () => {
     expect(result.current).toHaveLength(1);
     expect(result.current[0].name).toBe('Banana');
   });
+
+  it('returns all data when filter is empty', () => {
+    const mockData: TestItem[] = [
+      { id: 1, name: 'Apple' },
+      { id: 2, name: 'Banana' },
+    ];
+    const { result } = renderHook(() =>
+      useFilteredData({
+        data: mockData,
+        filter: '',
+        filterFields: (item) => [item.name ?? ''],
+      }),
+    );
+
+    expect(result.current).toHaveLength(2);
+  });
 });

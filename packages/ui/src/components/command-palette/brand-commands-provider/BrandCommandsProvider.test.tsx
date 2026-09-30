@@ -91,6 +91,18 @@ describe('BrandCommandsProvider', () => {
     );
   });
 
+  it('returns null (renders nothing visible)', () => {
+    const brands = [
+      { color: '#FF0000', id: 'a', label: 'Alpha', slug: 'alpha' },
+    ];
+
+    const { container } = render(
+      <BrandCommandsProvider brands={brands as never} brandId="a" />,
+    );
+
+    expect(container.firstChild).toBeNull();
+  });
+
   it('wires brand change handler into command registration', () => {
     const brands = [
       { color: '#FF0000', id: 'a', label: 'Alpha', slug: 'alpha' },

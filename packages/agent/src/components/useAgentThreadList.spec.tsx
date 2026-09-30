@@ -148,6 +148,16 @@ describe('useAgentThreadList', () => {
     expect(result.current.shouldShowHeader).toBe(true);
   });
 
+  it('shows the empty state when the API returns nothing', async () => {
+    const apiService = makeApiService({
+      getThreads: vi.fn().mockResolvedValue([]),
+    });
+
+    const { result } = renderThreadList(apiService);
+
+    await waitFor(() => expect(result.current.shouldShowEmptyState).toBe(true));
+  });
+
   it('handleSelect loads messages and the thread prompt', async () => {
     const messages = [
       {

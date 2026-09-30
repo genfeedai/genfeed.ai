@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { type PageScope, VoiceProvider } from '@genfeedai/contracts';
+import { PageScope, VoiceProvider } from '@genfeedai/contracts';
 import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
@@ -279,6 +279,35 @@ describe('LibraryVoicesPage', () => {
 
     expect(screen.getByTestId('ingredients-layout')).toBeInTheDocument();
     expect(screen.getByTestId('voice-row-skeleton')).toBeInTheDocument();
+  });
+
+  it('uses organization scope when the shared org route requests it', () => {
+    mockUseVoiceCatalog.mockReturnValue({
+      isLoading: true,
+      refresh: vi.fn(),
+      voices: [],
+    });
+
+    render(<LibraryVoicesPage scope={PageScope.ORGANIZATION} />);
+
+    expect(screen.getByTestId('ingredients-layout')).toHaveAttribute(
+      'data-scope',
+      PageScope.ORGANIZATION,
+    );
+  });
+
+  it('renders the row list when voices are available', () => {
+    mockUseVoiceCatalog.mockReturnValue({
+      isLoading: false,
+      refresh: vi.fn(),
+      voices: [createVoice()],
+    });
+
+    render(<LibraryVoicesPage />);
+
+    expect(screen.getByTestId('voice-catalog-list')).toBeInTheDocument();
+    expect(screen.getByText('1 voice on this page')).toBeInTheDocument();
+    expect(screen.getAllByText('Rachel').length).toBeGreaterThan(0);
   });
 
   it('renders the empty state when no voices are available', () => {

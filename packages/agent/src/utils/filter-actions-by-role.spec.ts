@@ -33,4 +33,10 @@ describe('filterActionsByRole', () => {
       filterActionsByRole(actions, MemberRole.CREATOR).map((item) => item.id),
     ).toEqual(['public', 'creators']);
   });
+
+  it('hides restricted actions from roles that are not listed', () => {
+    expect(
+      filterActionsByRole(actions, MemberRole.USER).map((item) => item.id),
+    ).toEqual(['public']);
+  });
 });

@@ -144,6 +144,28 @@ const createRole = (partial: Partial<IRole> = {}): IRole => ({
   ...partial,
 });
 
+const _createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
+  ...createBaseEntity<IBrand>(partial),
+  backgroundColor: '#000000',
+  credentials: [],
+  description: 'Brand description',
+  fontFamily: 'Inter',
+  handle: 'test-brand',
+  isActive: true,
+  isFleetEnabled: false,
+  isDefault: false,
+  isSelected: false,
+  isVerified: false,
+  label: 'Test Brand',
+  links: [],
+  organization: createOrganization(),
+  primaryColor: '#ffffff',
+  scope: 'brand' as never,
+  secondaryColor: '#cccccc',
+  user: createUser(),
+  ...partial,
+});
+
 const createMember = (partial: Partial<IMember> = {}) =>
   new Member({
     ...createBaseEntity<IMember>(partial),
@@ -159,6 +181,36 @@ const createMember = (partial: Partial<IMember> = {}) =>
 
 describe('Member', () => {
   describe('constructor', () => {
+    it('should create a member instance', () => {
+      const member = createMember({ id: 'mem-1' });
+      expect(member).toBeDefined();
+    });
+
+    it('should instantiate populated organization', () => {
+      const member = createMember({
+        organization: createOrganization({ id: 'org-1' }),
+      });
+      expect(member.organization).toBeDefined();
+    });
+
+    it('should instantiate populated user', () => {
+      const member = createMember({
+        user: createUser({
+          email: 'test@example.com',
+          firstName: 'John',
+          id: 'user-1',
+        }),
+      });
+      expect(member.user).toBeDefined();
+    });
+
+    it('should instantiate populated role', () => {
+      const member = createMember({
+        role: createRole({ id: 'role-1', label: 'Admin' }),
+      });
+      expect(member.role).toBeDefined();
+    });
+
     it('keeps the canonical organization ID independently of population', () => {
       const member = createMember({ organizationId: 'org-string' });
       expect(member.organizationId).toBe('org-string');
@@ -199,6 +251,11 @@ describe('Member', () => {
         user: createUser({ email: 'test@example.com', id: 'u1' }),
       });
       expect(member.userEmail).toBe('test@example.com');
+    });
+
+    it('should return undefined when user is missing', () => {
+      const member = createMember({ user: undefined as never });
+      expect(member.userEmail).toBeUndefined();
     });
   });
 

@@ -100,6 +100,10 @@ describe('PublicMusicsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findPublicMusics', () => {
     it('should return public musics list', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };

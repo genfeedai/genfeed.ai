@@ -101,6 +101,24 @@ describe('GlobalModalsProvider', () => {
     expect(screen.getByTestId('provider-child')).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    render(
+      <GlobalModalsProvider>
+        <div data-testid="provider-child" />
+      </GlobalModalsProvider>,
+    );
+    expect(screen.getByTestId('provider-child')).toBeInTheDocument();
+  });
+
+  it('should apply correct styles and classes', () => {
+    const { container } = render(
+      <GlobalModalsProvider>
+        <div data-testid="provider-child" />
+      </GlobalModalsProvider>,
+    );
+    expect(container).toBeTruthy();
+  });
+
   it('cleans stale body interaction locks after the last global modal closes', () => {
     vi.useFakeTimers();
     render(

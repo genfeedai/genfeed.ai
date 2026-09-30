@@ -85,6 +85,10 @@ describe('WordpressController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     it('should return auth URL with server-issued state', async () => {
       const result = await controller.connect({} as never, user, {

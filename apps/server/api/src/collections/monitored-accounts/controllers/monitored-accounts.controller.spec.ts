@@ -66,6 +66,10 @@ describe('MonitoredAccountsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('validateTwitterUsername', () => {
     it('should return valid user details when account exists', async () => {
       const mockTweets = [

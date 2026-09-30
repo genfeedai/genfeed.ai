@@ -1,5 +1,7 @@
+import { RouterPriority } from '@genfeedai/contracts';
 import {
   AUTO_MODEL_OPTION_VALUE,
+  getAutoModelLabel,
   isAutoGenerationModelKey,
   toGenerationSetupModelKey,
   toStudioSettingsModelKey,
@@ -23,5 +25,9 @@ describe('auto generation model keys', () => {
     expect(toStudioSettingsModelKey('google/nano-banana-pro')).toBe(
       'google/nano-banana-pro',
     );
+  });
+
+  it('keeps the Auto priority label for the model picker', () => {
+    expect(getAutoModelLabel(RouterPriority.BALANCED)).toBe('Auto · Balanced');
   });
 });

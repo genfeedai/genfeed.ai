@@ -54,6 +54,42 @@ describe('AssetGateGuard', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders children on a non-gated section even while locked', () => {
+    mockAccessState.isAssetGateLocked = true;
+    mockPathname.value = '/acme/brand-x/agent';
+
+    render(
+      <AssetGateGuard>
+        <div data-testid="protected-child">Protected content</div>
+      </AssetGateGuard>,
+    );
+
+    expect(screen.getByTestId('protected-child')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {
+        name: 'Generate your first asset to unlock',
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the teaser and hides children on a gated section while locked', () => {
+    mockAccessState.isAssetGateLocked = true;
+    mockPathname.value = '/acme/brand-x/library/videos';
+
+    render(
+      <AssetGateGuard>
+        <div data-testid="protected-child">Protected content</div>
+      </AssetGateGuard>,
+    );
+
+    expect(
+      screen.getByRole('heading', {
+        name: 'Generate your first asset to unlock',
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('protected-child')).not.toBeInTheDocument();
+  });
+
   it('dismisses the gate when clicking "Explore anyway"', () => {
     mockAccessState.isAssetGateLocked = true;
     mockPathname.value = '/acme/brand-x/library/videos';

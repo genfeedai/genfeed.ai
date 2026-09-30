@@ -70,6 +70,10 @@ describe('PersonaContentPlanService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should throw NotFoundException when persona not found', async () => {
     mockPersonasService.findOne.mockResolvedValueOnce(null);
     await expect(service.generateContentPlan(makeInput())).rejects.toThrow(

@@ -6,6 +6,10 @@ import {
 
 describe('websocket-events.enum', () => {
   describe('WebSocketEventType', () => {
+    it('should have 21 members', () => {
+      expect(Object.values(WebSocketEventType)).toHaveLength(21);
+    });
+
     it('should have correct values', () => {
       expect(WebSocketEventType.VIDEO_GENERATED).toBe('video-generated');
       expect(WebSocketEventType.VIDEO_MERGED).toBe('video-merged');
@@ -34,6 +38,10 @@ describe('websocket-events.enum', () => {
   });
 
   describe('WebSocketEventStatus', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(WebSocketEventStatus)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(WebSocketEventStatus.STARTED).toBe('started');
       expect(WebSocketEventStatus.PROCESSING).toBe('processing');

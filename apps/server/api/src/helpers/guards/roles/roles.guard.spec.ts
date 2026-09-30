@@ -90,6 +90,52 @@ describe('RolesGuard', () => {
     );
   });
 
+  it('rejects mismatched route organization when token organization exists', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+    const context = createContext(
+      {
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
+      },
+      { params: { organizationId: REQUEST_ORGANIZATION_ID } },
+    );
+
+    await expectForbidden(guard.canActivate(context));
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('rejects a mismatched explicit organization even when the user is a member of it (switch-first semantics)', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+    // Genuine, active member of BOTH orgs — membership lookup would succeed
+    // for either org if the guard ever reached it. Token/session org is A;
+    // the request explicitly targets org B. Switch-first semantics require
+    // a 403 here without ever consulting membership for org B.
+    mockMembersService.findOne.mockImplementation(
+      async (filter: { organizationId?: string }) => {
+        if (
+          filter.organizationId === TOKEN_ORGANIZATION_ID ||
+          filter.organizationId === REQUEST_ORGANIZATION_ID
+        ) {
+          return { id: 'member-1' };
+        }
+        return null;
+      },
+    );
+
+    const context = createContext(
+      {
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
+      },
+      { params: { organizationId: REQUEST_ORGANIZATION_ID } },
+    );
+
+    await expectForbidden(guard.canActivate(context));
+    expect(mockMembersService.findOne).not.toHaveBeenCalled();
+  });
+
   it('rejects mismatched body organization when token organization exists', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
 
@@ -342,6 +388,21 @@ describe('RolesGuard', () => {
     );
   });
 
+  it.each([undefined, null, '', 123])(
+    'rejects malformed Better Auth user context %s before membership lookup',
+    async (userId) => {
+      vi.spyOn(reflector, 'get').mockReturnValue(undefined);
+
+      const context = createContext({
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId,
+      });
+
+      await expectForbidden(guard.canActivate(context));
+      expect(mockMembersService.findOne).not.toHaveBeenCalled();
+    },
+  );
+
   it('authorizes a UUID Better Auth user id from active membership', async () => {
     vi.spyOn(reflector, 'get').mockReturnValue(undefined);
     mockMembersService.findOne.mockResolvedValue({ id: 'member-1' });
@@ -357,6 +418,25 @@ describe('RolesGuard', () => {
       expect.objectContaining({ userId }),
       expect.any(Array),
     );
+  });
+
+  it('does not grant org-admin to an owner-issued API key without an admin scope', async () => {
+    vi.spyOn(reflector, 'get').mockReturnValue([
+      MemberRole.ADMIN,
+      MemberRole.OWNER,
+    ]);
+    mockMembersService.findOne.mockResolvedValue({
+      role: { key: MemberRole.OWNER },
+    });
+
+    const context = createContext({
+      isApiKey: true,
+      organizationId: TOKEN_ORGANIZATION_ID,
+      scopes: [ApiKeyScope.VIDEOS_READ],
+      userId: USER_ID,
+    });
+
+    await expectForbidden(guard.canActivate(context));
   });
 
   it('grants org-admin only when the API key has an explicit admin scope', async () => {

@@ -7,7 +7,7 @@ import { HookRemixController } from '@api/endpoints/v1/hook-remix/hook-remix.con
 import { HookRemixService } from '@api/endpoints/v1/hook-remix/hook-remix.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,6 +67,10 @@ describe('HookRemixController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createHookRemix', () => {
     const dto = {
       hookText: 'This hook slaps',
@@ -87,6 +91,16 @@ describe('HookRemixController', () => {
       expect(result).toEqual(serviceResult);
     });
 
+    it('should rethrow HttpException as-is (not wrap it)', async () => {
+      hookRemixService.createHookRemix.mockRejectedValue(
+        new HttpException('Conflict', HttpStatus.CONFLICT),
+      );
+
+      await expect(controller.createHookRemix(dto, mockUser)).rejects.toThrow(
+        HttpException,
+      );
+    });
+
     it('should throw HttpException for unexpected errors via ErrorResponse.handle', async () => {
       hookRemixService.createHookRemix.mockRejectedValue(
         new Error('Unexpected failure'),
@@ -96,6 +110,18 @@ describe('HookRemixController', () => {
         HttpException,
       );
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    it('should extract org and user from canonical identity fields', async () => {
+      hookRemixService.createHookRemix.mockResolvedValue({ jobId: 'j1' });
+
+      await controller.createHookRemix(dto, mockUser);
+
+      expect(hookRemixService.createHookRemix).toHaveBeenCalledWith(
+        dto,
+        userId,
+        orgId,
+      );
     });
   });
 
@@ -121,6 +147,16 @@ describe('HookRemixController', () => {
       expect(result).toEqual(serviceResult);
     });
 
+    it('should rethrow HttpException as-is', async () => {
+      hookRemixService.createBatchHookRemix.mockRejectedValue(
+        new HttpException('Too many requests', HttpStatus.TOO_MANY_REQUESTS),
+      );
+
+      await expect(
+        controller.createBatchHookRemix(batchDto, mockUser),
+      ).rejects.toThrow(HttpException);
+    });
+
     it('should throw HttpException for unexpected errors via ErrorResponse.handle', async () => {
       hookRemixService.createBatchHookRemix.mockRejectedValue(
         new Error('Network issue'),
@@ -144,6 +180,14 @@ describe('HookRemixController', () => {
 
       expect(hookRemixService.getJob).toHaveBeenCalledWith(jobId);
       expect(result).toEqual(job);
+    });
+
+    it('should rethrow HttpException from getJob', async () => {
+      hookRemixService.getJob.mockRejectedValue(
+        new HttpException('Not found', HttpStatus.NOT_FOUND),
+      );
+
+      await expect(controller.getJob(jobId)).rejects.toThrow(HttpException);
     });
 
     it('should wrap unexpected errors as HttpException via ErrorResponse.handle', async () => {

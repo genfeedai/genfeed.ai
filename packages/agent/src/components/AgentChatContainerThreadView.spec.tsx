@@ -1,10 +1,15 @@
-import { selectActiveWorkEvent } from '@genfeedai/agent/components/AgentChatContainerThreadView';
+import {
+  AgentChatContainerThreadView,
+  selectActiveWorkEvent,
+} from '@genfeedai/agent/components/AgentChatContainerThreadView';
 import type { AgentWorkEvent } from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -97,5 +102,92 @@ describe('selectActiveWorkEvent', () => {
     ]);
 
     expect(selected?.id).toBe('tool');
+  });
+
+  it('returns null when the stream is no longer active', () => {
+    expect(
+      selectActiveWorkEvent(
+        [
+          makeWorkEvent({
+            id: 'stuck',
+            status: AgentWorkEventStatus.RUNNING,
+            toolName: 'generate_image',
+          }),
+        ],
+        { isStreamActive: false },
+      ),
+    ).toBeNull();
+  });
+
+  it('ignores completed, failed, and cancelled events', () => {
+    expect(
+      selectActiveWorkEvent([
+        makeWorkEvent({
+          id: 'completed',
+          status: AgentWorkEventStatus.COMPLETED,
+          toolName: 'generate_image',
+        }),
+        makeWorkEvent({
+          id: 'failed',
+          status: AgentWorkEventStatus.FAILED,
+          toolName: 'generate_image',
+        }),
+        makeWorkEvent({
+          id: 'cancelled',
+          status: AgentWorkEventStatus.CANCELLED,
+          toolName: 'generate_image',
+        }),
+      ]),
+    ).toBeNull();
+  });
+});
+
+describe('AgentChatContainerThreadView', () => {
+  it('sits the jump-to-latest control on the composer overlay, not under it', () => {
+    render(
+      <AgentChatContainerThreadView
+        activeThreadTitle={null}
+        activeUiAction={null}
+        apiService={{} as never}
+        followUpTaskMessage={null}
+        highlightedMessageId={null}
+        isAtBottom={false}
+        isBusy={false}
+        isCreatingFollowUpTasks={false}
+        isPlanReviewPending={false}
+        isGenerating={false}
+        isWideLayout={false}
+        isReadOnly={false}
+        isStreamingActive={false}
+        isSubmittingInputRequest={false}
+        latestProposedPlan={null}
+        messagesEndRef={createRef<HTMLDivElement>()}
+        onboardingMode={false}
+        onApprovePlan={vi.fn()}
+        onCopy={vi.fn()}
+        onCreateFollowUpTasks={vi.fn()}
+        onIngredientSelect={vi.fn()}
+        onRequestPlanChanges={vi.fn()}
+        onRetry={vi.fn()}
+        onRetryLastFailedRun={vi.fn()}
+        onSubmitInputRequest={vi.fn()}
+        onUiAction={vi.fn()}
+        padBottomForComposer
+        composerTranscriptPaddingPx={180}
+        pendingInputRequest={null}
+        pendingUiActions={[]}
+        scrollContainerRef={createRef<HTMLDivElement>()}
+        scrollToBottom={vi.fn()}
+        shouldShowInputRequestOverlay={false}
+        showFollowUpButton={false}
+        timeline={[]}
+      />,
+    );
+
+    const jump = screen.getByRole('button', {
+      name: 'Scroll to latest message',
+    });
+
+    expect(jump.parentElement).toHaveStyle({ bottom: '180px' });
   });
 });

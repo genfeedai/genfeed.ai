@@ -39,6 +39,13 @@ describe('theme.constant', () => {
     expect(isThemePreference(theme)).toBe(true);
   });
 
+  it.each([undefined, null, '', 'solarized', 'LIGHT'])(
+    'rejects the invalid %s preference',
+    (theme) => {
+      expect(isThemePreference(theme)).toBe(false);
+    },
+  );
+
   it('accepts only resolved Light and Dark values', () => {
     expect(isResolvedTheme('light')).toBe(true);
     expect(isResolvedTheme('dark')).toBe(true);

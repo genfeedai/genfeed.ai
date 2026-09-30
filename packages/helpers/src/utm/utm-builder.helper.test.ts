@@ -12,9 +12,31 @@ describe('UTM Builder Helper', () => {
       expect(getLinkType('https://youtu.be/abc123')).toBe('social_youtube');
     });
 
+    it('should identify TikTok links', () => {
+      expect(getLinkType('https://tiktok.com/@user')).toBe('social_tiktok');
+    });
+
+    it('should identify Instagram links', () => {
+      expect(getLinkType('https://instagram.com/user')).toBe(
+        'social_instagram',
+      );
+    });
+
     it('should identify Twitter/X links', () => {
       expect(getLinkType('https://twitter.com/user')).toBe('social_twitter');
       expect(getLinkType('https://x.com/user')).toBe('social_twitter');
+    });
+
+    it('should identify LinkedIn links', () => {
+      expect(getLinkType('https://linkedin.com/in/user')).toBe(
+        'social_linkedin',
+      );
+    });
+
+    it('should identify Calendly links', () => {
+      expect(getLinkType('https://calendly.com/user')).toBe(
+        'integration_calendly',
+      );
     });
 
     it('should default to custom_link for unknown domains', () => {
@@ -95,6 +117,13 @@ describe('UTM Builder Helper', () => {
       expect(calendlyResult).toContain('utm_content=integration_calendly');
     });
 
+    it('should allow custom link type override', () => {
+      const url = 'https://example.com';
+      const result = addUTMParameters(url, username, 'custom_type');
+
+      expect(result).toContain('utm_content=custom_type');
+    });
+
     it('should handle invalid URLs gracefully', () => {
       const invalidUrl = 'not-a-valid-url';
       const result = addUTMParameters(invalidUrl, username);
@@ -113,6 +142,23 @@ describe('UTM Builder Helper', () => {
 
       expect(result).toContain('email=test%40example.com');
       expect(result).toContain('utm_source=genfeedai_profile');
+    });
+
+    it('should handle usernames with special characters', () => {
+      const url = 'https://example.com';
+      const specialUsername = 'user-name_123';
+      const result = addUTMParameters(url, specialUsername);
+
+      expect(result).toContain('utm_campaign=user-name_123');
+    });
+
+    it('should generate proper UTM string for Calendly', () => {
+      const url = 'https://calendly.com/johndoe/30min';
+      const result = addUTMParameters(url, 'johndoe');
+
+      expect(result).toBe(
+        'https://calendly.com/johndoe/30min?utm_source=genfeedai_profile&utm_medium=profile_link&utm_campaign=johndoe&utm_content=integration_calendly',
+      );
     });
 
     it('should handle HTTPS and HTTP protocols', () => {
@@ -170,6 +216,13 @@ describe('UTM Builder Helper', () => {
       const result = addUTMParameters(url, 'user');
 
       expect(result).toContain('user:pass@');
+      expect(result).toContain('utm_source=genfeedai_profile');
+    });
+
+    it('should handle international domain names', () => {
+      const url = 'https://例え.jp';
+      const result = addUTMParameters(url, 'user');
+
       expect(result).toContain('utm_source=genfeedai_profile');
     });
   });

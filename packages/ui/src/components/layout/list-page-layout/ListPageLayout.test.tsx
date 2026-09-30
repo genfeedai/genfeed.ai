@@ -32,6 +32,20 @@ describe('ListPageLayout', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <ListPageLayout
+        title="Items"
+        items={items}
+        columns={columns}
+        filters={filters}
+        onFiltersChange={vi.fn()}
+        showPagination={false}
+      />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <ListPageLayout

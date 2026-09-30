@@ -3,6 +3,41 @@ import { Platform } from '../../src/enums/platform.enum';
 
 describe('platform.enum', () => {
   describe('Platform', () => {
+    it('should have the intended members', () => {
+      expect(Object.keys(Platform)).toEqual([
+        'YOUTUBE',
+        'INSTAGRAM',
+        'TIKTOK',
+        'FACEBOOK',
+        'GOOGLE_ADS',
+        'GOOGLE_SEARCH_CONSOLE',
+        'TWITTER',
+        'X_ADS',
+        'LINKEDIN',
+        'PINTEREST',
+        'REDDIT',
+        'DISCORD',
+        'TELEGRAM',
+        'TWITCH',
+        'MEDIUM',
+        'THREADS',
+        'FANVUE',
+        'SLACK',
+        'WORDPRESS',
+        'SNAPCHAT',
+        'WHATSAPP',
+        'MASTODON',
+        'GHOST',
+        'SHOPIFY',
+        'BEEHIIV',
+        'UNIPILE',
+        'DEV_TO',
+        'PRODUCT_HUNT',
+        'HACKER_NEWS',
+        'RESTREAM',
+      ]);
+    });
+
     it('should have correct values', () => {
       expect(Platform.YOUTUBE).toBe('youtube');
       expect(Platform.INSTAGRAM).toBe('instagram');

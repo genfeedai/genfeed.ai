@@ -150,6 +150,10 @@ describe('LlmDispatcherService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('chatCompletion — provider routing', () => {
     it('should route anthropic/ models to AnthropicService', async () => {
       const result = await service.chatCompletion(
@@ -161,6 +165,13 @@ describe('LlmDispatcherService', () => {
         ...mockResponse,
         usage: { ...mockResponse.usage, is_byok: false },
       });
+    });
+
+    it('should route openai/ models to OpenAiLlmService when OPENAI_API_KEY is set', async () => {
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'));
+
+      expect(openAiLlmService.chatCompletion).toHaveBeenCalled();
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
     });
 
     it('should route openai/ models via OpenRouter when OPENAI_API_KEY is missing', async () => {
@@ -178,6 +189,26 @@ describe('LlmDispatcherService', () => {
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('No openai key — routing'),
       );
+    });
+
+    it('should route deepseek/ models to OpenRouterService', async () => {
+      await service.chatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+      );
+
+      expect(openRouterService.chatCompletion).toHaveBeenCalled();
+    });
+
+    it('should route google/ models to OpenRouterService', async () => {
+      await service.chatCompletion(makeParams('google/gemini-2.5-pro'));
+
+      expect(openRouterService.chatCompletion).toHaveBeenCalled();
+    });
+
+    it('should route x-ai/ models to OpenRouterService', async () => {
+      await service.chatCompletion(makeParams('x-ai/grok-3'));
+
+      expect(openRouterService.chatCompletion).toHaveBeenCalled();
     });
 
     it('falls back from the experimental Free router to DeepSeek on capability failure', async () => {
@@ -248,6 +279,51 @@ describe('LlmDispatcherService', () => {
       expect(anthropicService.chatCompletion).toHaveBeenCalledWith(
         expect.any(Object),
         'byok-key',
+      );
+    });
+
+    it('should resolve OpenAI BYOK provider for openai/ models', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'oai-key' });
+
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'), orgId);
+
+      expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+        orgId,
+        ByokProvider.OPENAI,
+      );
+    });
+
+    it('should resolve OpenRouter BYOK provider for other models', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'or-key' });
+
+      await service.chatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+        orgId,
+      );
+
+      expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+        orgId,
+        ByokProvider.OPENROUTER,
+      );
+    });
+
+    it('should not resolve BYOK when no organizationId', async () => {
+      await service.chatCompletion(makeParams('anthropic/claude-sonnet-5'));
+
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
+    });
+
+    it('should pass undefined apiKeyOverride when BYOK returns null but platform key exists', async () => {
+      byokService.resolveApiKey.mockResolvedValue(null);
+
+      await service.chatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(anthropicService.chatCompletion).toHaveBeenCalledWith(
+        expect.any(Object),
+        undefined,
       );
     });
 
@@ -349,6 +425,14 @@ describe('LlmDispatcherService', () => {
   });
 
   describe('streamChatCompletion', () => {
+    it('should route anthropic/ models to AnthropicService for streaming', async () => {
+      await service.streamChatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+      );
+
+      expect(anthropicService.streamChatCompletion).toHaveBeenCalled();
+    });
+
     it('should route openai/ models to OpenAiLlmService for streaming', async () => {
       await service.streamChatCompletion(makeParams('openai/gpt-5.6-terra'));
 
@@ -407,6 +491,16 @@ describe('LlmDispatcherService', () => {
       });
     });
 
+    it('should route openai/ models to OpenAiLlmService', async () => {
+      await service.streamChatCompletionAggregated(
+        makeParams('openai/gpt-5.6-terra'),
+      );
+
+      expect(
+        openAiLlmService.streamChatCompletionAggregated,
+      ).toHaveBeenCalled();
+    });
+
     it('should route other models to OpenRouterService', async () => {
       await service.streamChatCompletionAggregated(
         makeParams('deepseek/deepseek-v4-flash-0731'),
@@ -415,6 +509,20 @@ describe('LlmDispatcherService', () => {
       expect(
         openRouterService.streamChatCompletionAggregated,
       ).toHaveBeenCalled();
+    });
+
+    it('should forward the onToken callback to the provider', async () => {
+      const onToken = vi.fn();
+
+      await service.streamChatCompletionAggregated(
+        makeParams('anthropic/claude-sonnet-5'),
+        undefined,
+        onToken,
+      );
+
+      expect(
+        anthropicService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(expect.any(Object), undefined, onToken);
     });
 
     it('should warm and stream local/ models via GPU vLLM URL', async () => {
@@ -456,9 +564,40 @@ describe('LlmDispatcherService', () => {
       );
       expect(loggerService.warn).toHaveBeenCalled();
     });
+
+    it('should resolve BYOK key when organizationId is provided', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      await service.streamChatCompletionAggregated(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(
+        anthropicService.streamChatCompletionAggregated,
+      ).toHaveBeenCalledWith(expect.any(Object), 'byok-key', undefined);
+    });
   });
 
   describe('completion telemetry wrapper', () => {
+    it('records exact OpenRouter vendor cost and actual routed model', async () => {
+      openRouterService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        model: 'openai/gpt-5.6-terra',
+        usage: { ...mockResponse.usage, cost: 0.012345 },
+      });
+
+      await service.chatCompletion(makeParams('openrouter/auto'), orgId);
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'openai/gpt-5.6-terra',
+          vendorCostMicros: 12_345,
+        }),
+      );
+    });
     it('emits one telemetry event per chatCompletion without prompt content', async () => {
       await service.chatCompletion(
         makeParams('deepseek/deepseek-v4-flash-0731'),
@@ -492,6 +631,26 @@ describe('LlmDispatcherService', () => {
       expect(payload).not.toContain('Hello!');
       expect(payload).not.toContain('"messages"');
       expect(payload).not.toContain('"content"');
+    });
+
+    it('marks BYOK completions with isByok and still records tokens', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      await service.chatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(
+        llmCompletionTelemetryService.recordCompletion,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isByok: true,
+          promptTokens: 10,
+          completionTokens: 5,
+          provider: 'anthropic',
+        }),
+      );
     });
 
     it('emits one telemetry event per aggregated stream completion', async () => {
@@ -541,6 +700,34 @@ describe('LlmDispatcherService', () => {
       );
 
       expect(result.usage.is_byok).toBe(true);
+    });
+
+    it('never flags a platform-key round as BYOK, even when the upstream says so', async () => {
+      anthropicService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, is_byok: true },
+      });
+
+      const result = await service.chatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(result.usage.is_byok).toBe(false);
+    });
+
+    it('never flags a platform-key OpenRouter round with an exact cost as BYOK', async () => {
+      openRouterService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, cost: 0.01, is_byok: true },
+      });
+
+      const result = await service.chatCompletion(
+        makeParams('openrouter/auto'),
+        orgId,
+      );
+
+      expect(result.usage.is_byok).toBe(false);
     });
   });
 
@@ -623,6 +810,45 @@ describe('LlmDispatcherService', () => {
         }),
       ).rejects.toBeInstanceOf(LlmStructuredOutputError);
       expect(openRouterService.chatCompletion).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps enforcing the schema on the anthropic route', async () => {
+      anthropicService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+      );
+
+      await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'anthropic/claude-sonnet-5',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      const [sent] = anthropicService.chatCompletion.mock.calls[0] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(sent.response_format?.json_schema.name).toBe('content_plan');
+    });
+
+    it('keeps enforcing the schema on the local vLLM route', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://gpu.internal:8000' : '',
+      );
+      openAiLlmService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+      );
+
+      await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'local/qwen3',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      const [sent] = openAiLlmService.chatCompletion.mock.calls[0] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(sent.response_format?.json_schema.name).toBe('content_plan');
     });
   });
 });

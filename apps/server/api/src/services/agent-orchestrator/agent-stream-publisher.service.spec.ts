@@ -129,6 +129,18 @@ describe('AgentStreamPublisherService', () => {
   });
 
   describe('publishToken', () => {
+    it('should not publish immediately for a token below the byte threshold', async () => {
+      await service.publishToken({
+        runId: 'run-1',
+        threadId: 'thread-1',
+        token: 'hello',
+        userId: 'user-1',
+      });
+
+      expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockRedisService.publishBatch).not.toHaveBeenCalled();
+    });
+
     it('should coalesce multiple tokens within the window into a single publish, concatenated in order', async () => {
       await service.publishToken({
         runId: 'run-1',

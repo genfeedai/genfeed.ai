@@ -42,6 +42,10 @@ describe('CommentTriggerExecutor', () => {
     executor.setChecker(checker);
   });
 
+  it('creates via factory', () => {
+    expect(executor.nodeType).toBe('commentTrigger');
+  });
+
   it('throws if checker is not configured', async () => {
     const fresh = new CommentTriggerExecutor();
     await expect(

@@ -5,6 +5,10 @@ import { CredentialPublishingOperationsService } from '@api/collections/credenti
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('CredentialsModule', () => {
+  it('should be defined', () => {
+    expect(CredentialsModule).toBeDefined();
+  });
+
   it('registers the publishing controller before wildcard credential routes', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, CredentialsModule),

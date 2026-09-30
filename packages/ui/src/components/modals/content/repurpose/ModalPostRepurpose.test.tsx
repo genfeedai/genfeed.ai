@@ -102,6 +102,12 @@ describe('ModalPostRepurpose', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('keeps the confirm action disabled until a channel is picked', () => {
+    render(<ModalPostRepurpose {...baseProps} />);
+
+    expect(screen.getByRole('button', { name: 'Create draft' })).toBeDisabled();
+  });
+
   it('submits the picked platform and mode', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<ModalPostRepurpose {...baseProps} onSubmit={onSubmit} />);

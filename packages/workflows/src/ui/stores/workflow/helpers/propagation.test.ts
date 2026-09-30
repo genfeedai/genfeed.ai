@@ -39,6 +39,74 @@ describe('getNodeOutput', () => {
     expect(getNodeOutput(node)).toBe('a.jpg');
   });
 
+  it('falls through empty outputImages to outputImage', () => {
+    const node = makeNode('n1', 'imageGen', {
+      outputImage: 'fallback.jpg',
+      outputImages: [],
+    });
+    expect(getNodeOutput(node)).toBe('fallback.jpg');
+  });
+
+  it('returns outputImage when outputImages is absent', () => {
+    const node = makeNode('n1', 'imageGen', { outputImage: 'img.jpg' });
+    expect(getNodeOutput(node)).toBe('img.jpg');
+  });
+
+  it('returns outputVideo', () => {
+    const node = makeNode('n1', 'videoGen', { outputVideo: 'vid.mp4' });
+    expect(getNodeOutput(node)).toBe('vid.mp4');
+  });
+
+  it('returns outputText', () => {
+    const node = makeNode('n1', 'llm', { outputText: 'hello world' });
+    expect(getNodeOutput(node)).toBe('hello world');
+  });
+
+  it('returns outputAudio', () => {
+    const node = makeNode('n1', 'tts', { outputAudio: 'audio.mp3' });
+    expect(getNodeOutput(node)).toBe('audio.mp3');
+  });
+
+  it('returns prompt', () => {
+    const node = makeNode('n1', 'prompt', { prompt: 'a sunset' });
+    expect(getNodeOutput(node)).toBe('a sunset');
+  });
+
+  it('returns extractedTweet', () => {
+    const node = makeNode('n1', 'tweetParser', {
+      extractedTweet: 'tweet text',
+    });
+    expect(getNodeOutput(node)).toBe('tweet text');
+  });
+
+  it('returns image', () => {
+    const node = makeNode('n1', 'image', { image: 'img2.jpg' });
+    expect(getNodeOutput(node)).toBe('img2.jpg');
+  });
+
+  it('returns video', () => {
+    const node = makeNode('n1', 'video', { video: 'vid2.mp4' });
+    expect(getNodeOutput(node)).toBe('vid2.mp4');
+  });
+
+  it('returns audio', () => {
+    const node = makeNode('n1', 'audio', { audio: 'aud.mp3' });
+    expect(getNodeOutput(node)).toBe('aud.mp3');
+  });
+
+  it('respects priority: outputImage > outputVideo', () => {
+    const node = makeNode('n1', 'imageGen', {
+      outputImage: 'img.jpg',
+      outputVideo: 'vid.mp4',
+    });
+    expect(getNodeOutput(node)).toBe('img.jpg');
+  });
+
+  it('returns null for empty data', () => {
+    const node = makeNode('n1', 'imageGen', {});
+    expect(getNodeOutput(node)).toBeNull();
+  });
+
   it('returns null for non-string, non-array value', () => {
     const node = makeNode('n1', 'imageGen', { outputImage: 42 });
     expect(getNodeOutput(node)).toBeNull();
@@ -50,6 +118,11 @@ describe('getNodeOutput', () => {
     });
     expect(getNodeOutput(node)).toBe('first.jpg');
   });
+
+  it('returns null for empty array value via fallback', () => {
+    const node = makeNode('n1', 'imageGen', { outputImage: [] });
+    expect(getNodeOutput(node)).toBeNull();
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -57,6 +130,13 @@ describe('getNodeOutput', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('getOutputType', () => {
+  it.each(['prompt', 'llm', 'tweetParser', 'transcribe'])(
+    'returns text for %s',
+    (type) => {
+      expect(getOutputType(type)).toBe('text');
+    },
+  );
+
   it.each([
     'imageGen',
     'image',
@@ -84,6 +164,17 @@ describe('getOutputType', () => {
   ])('returns video for %s', (type) => {
     expect(getOutputType(type)).toBe('video');
   });
+
+  it.each(['textToSpeech', 'audio', 'audioInput'])(
+    'returns audio for %s',
+    (type) => {
+      expect(getOutputType(type)).toBe('audio');
+    },
+  );
+
+  it('returns null for unknown type', () => {
+    expect(getOutputType('unknownWidget')).toBeNull();
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -92,6 +183,17 @@ describe('getOutputType', () => {
 
 describe('mapOutputToInput', () => {
   // Text source routing
+  it('text -> imageGen -> inputPrompt', () => {
+    expect(mapOutputToInput('hello', 'prompt', 'imageGen')).toEqual({
+      inputPrompt: 'hello',
+    });
+  });
+
+  it('text -> textToSpeech -> inputText', () => {
+    expect(mapOutputToInput('hello', 'llm', 'textToSpeech')).toEqual({
+      inputText: 'hello',
+    });
+  });
 
   it('text -> subtitle -> inputText', () => {
     expect(mapOutputToInput('hello', 'llm', 'subtitle')).toEqual({
@@ -99,10 +201,34 @@ describe('mapOutputToInput', () => {
     });
   });
 
+  it('text -> videoGen -> inputPrompt', () => {
+    expect(mapOutputToInput('prompt', 'prompt', 'videoGen')).toEqual({
+      inputPrompt: 'prompt',
+    });
+  });
+
+  it('text -> llm -> inputPrompt', () => {
+    expect(mapOutputToInput('text', 'prompt', 'llm')).toEqual({
+      inputPrompt: 'text',
+    });
+  });
+
+  it('text -> motionControl -> inputPrompt', () => {
+    expect(mapOutputToInput('text', 'llm', 'motionControl')).toEqual({
+      inputPrompt: 'text',
+    });
+  });
+
   // Image source routing
   it('image -> imageGen -> inputImages array', () => {
     expect(mapOutputToInput('img.jpg', 'imageGen', 'imageGen')).toEqual({
       inputImages: ['img.jpg'],
+    });
+  });
+
+  it('image -> videoGen -> inputImage', () => {
+    expect(mapOutputToInput('img.jpg', 'image', 'videoGen')).toEqual({
+      inputImage: 'img.jpg',
     });
   });
 
@@ -150,6 +276,11 @@ describe('mapOutputToInput', () => {
   });
 
   // Audio source routing
+  it('audio -> lipSync -> inputAudio', () => {
+    expect(mapOutputToInput('aud.mp3', 'textToSpeech', 'lipSync')).toEqual({
+      inputAudio: 'aud.mp3',
+    });
+  });
 
   it('audio -> transcribe -> inputAudio', () => {
     expect(mapOutputToInput('aud.mp3', 'audio', 'transcribe')).toEqual({
@@ -158,6 +289,9 @@ describe('mapOutputToInput', () => {
   });
 
   // Incompatible
+  it('returns null for incompatible types', () => {
+    expect(mapOutputToInput('img.jpg', 'imageGen', 'transcribe')).toBeNull();
+  });
 
   it('returns null for unknown source type', () => {
     expect(mapOutputToInput('val', 'unknownType', 'imageGen')).toBeNull();
@@ -169,6 +303,37 @@ describe('mapOutputToInput', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('collectGalleryUpdate', () => {
+  it('uses outputImages array when present', () => {
+    const result = collectGalleryUpdate(
+      { outputImages: ['a.jpg', 'b.jpg'] },
+      'ignored.jpg',
+      [],
+      [],
+    );
+    expect(result).toEqual({ images: ['a.jpg', 'b.jpg'] });
+  });
+
+  it('uses currentOutput when outputImages absent', () => {
+    const result = collectGalleryUpdate({}, 'single.jpg', [], []);
+    expect(result).toEqual({ images: ['single.jpg'] });
+  });
+
+  it('deduplicates across existing, pending, and new', () => {
+    const result = collectGalleryUpdate(
+      { outputImages: ['a.jpg', 'b.jpg'] },
+      'ignored',
+      ['a.jpg', 'c.jpg'],
+      ['b.jpg', 'd.jpg'],
+    );
+    expect(result).toEqual({ images: ['a.jpg', 'c.jpg', 'b.jpg', 'd.jpg'] });
+  });
+
+  it('returns images with empty string when outputImages is empty but currentOutput is empty string', () => {
+    // empty outputImages falls through; '' is typeof string so gets pushed
+    const result = collectGalleryUpdate({ outputImages: [] }, '', [], []);
+    expect(result).toEqual({ images: [''] });
+  });
+
   it('returns null when currentOutput is empty and no outputImages', () => {
     const result = collectGalleryUpdate({}, '', [], []);
     // empty string is still a string, so it gets pushed
@@ -181,6 +346,19 @@ describe('collectGalleryUpdate', () => {
 /* -------------------------------------------------------------------------- */
 
 describe('computeDownstreamUpdates', () => {
+  it('propagates through a linear chain A -> B -> C', () => {
+    const nodes = [
+      makeNode('A', 'prompt', { outputText: 'hello' }),
+      makeNode('B', 'imageGen', {}),
+      makeNode('C', 'download', {}),
+    ];
+    const edges = [makeEdge('e1', 'A', 'B'), makeEdge('e2', 'B', 'C')];
+
+    const updates = computeDownstreamUpdates('A', 'hello', nodes, edges);
+    expect(updates.get('B')).toEqual({ inputPrompt: 'hello' });
+    // B has no existing output so C should not get updates from BFS passthrough
+  });
+
   it('propagates with passthrough when target has existing output', () => {
     const nodes = [
       makeNode('A', 'prompt', { outputText: 'hello' }),
@@ -245,6 +423,14 @@ describe('computeDownstreamUpdates', () => {
     const updates = computeDownstreamUpdates('A', 'hello', nodes, edges);
     expect(updates.size).toBe(0);
   });
+
+  it('returns empty map when source has no downstream edges', () => {
+    const nodes = [makeNode('A', 'prompt', { outputText: 'hello' })];
+    const edges: any[] = [];
+
+    const updates = computeDownstreamUpdates('A', 'hello', nodes, edges);
+    expect(updates.size).toBe(0);
+  });
 });
 
 /* -------------------------------------------------------------------------- */
@@ -258,9 +444,21 @@ describe('hasStateChanged', () => {
     expect(hasStateChanged(updates, nodes)).toBe(false);
   });
 
+  it('returns true when a primitive value differs', () => {
+    const nodes = [makeNode('n1', 'imageGen', { inputPrompt: 'hello' })];
+    const updates = new Map([['n1', { inputPrompt: 'world' }]]);
+    expect(hasStateChanged(updates, nodes)).toBe(true);
+  });
+
   it('returns true when array lengths differ', () => {
     const nodes = [makeNode('n1', 'gallery', { images: ['a.jpg'] })];
     const updates = new Map([['n1', { images: ['a.jpg', 'b.jpg'] }]]);
+    expect(hasStateChanged(updates, nodes)).toBe(true);
+  });
+
+  it('returns true when an array element differs', () => {
+    const nodes = [makeNode('n1', 'gallery', { images: ['a.jpg', 'b.jpg'] })];
+    const updates = new Map([['n1', { images: ['a.jpg', 'c.jpg'] }]]);
     expect(hasStateChanged(updates, nodes)).toBe(true);
   });
 
@@ -274,6 +472,12 @@ describe('hasStateChanged', () => {
     const nodes = [makeNode('n1', 'gallery', { images: ['a.jpg', 'b.jpg'] })];
     const updates = new Map([['n1', { images: ['a.jpg', 'b.jpg'] }]]);
     expect(hasStateChanged(updates, nodes)).toBe(false);
+  });
+
+  it('returns true when existing value is undefined but update is set', () => {
+    const nodes = [makeNode('n1', 'imageGen', {})];
+    const updates = new Map([['n1', { inputPrompt: 'new' }]]);
+    expect(hasStateChanged(updates, nodes)).toBe(true);
   });
 });
 
@@ -292,6 +496,17 @@ describe('applyNodeUpdates', () => {
     expect(nodes[0].data.inputPrompt).toBe('old');
     // New reference
     expect(result[0]).not.toBe(nodes[0]);
+  });
+
+  it('returns unchanged nodes by reference', () => {
+    const nodes = [
+      makeNode('n1', 'imageGen', { inputPrompt: 'old' }),
+      makeNode('n2', 'prompt', { prompt: 'keep' }),
+    ];
+    const updates = new Map([['n1', { inputPrompt: 'new' }]]);
+
+    const result = applyNodeUpdates(nodes, updates);
+    expect(result[1]).toBe(nodes[1]); // Same reference
   });
 
   it('returns same-content array for empty updates', () => {
@@ -333,5 +548,23 @@ describe('propagateExistingOutputs', () => {
     expect(fn).toHaveBeenCalledTimes(2);
     expect(fn).toHaveBeenCalledWith('n1');
     expect(fn).toHaveBeenCalledWith('n3');
+  });
+
+  it('skips nodes without any output', () => {
+    const nodes = [
+      makeNode('n1', 'imageGen', {}),
+      makeNode('n2', 'prompt', {}),
+    ];
+    const fn = vi.fn();
+
+    propagateExistingOutputs(nodes, fn);
+
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('handles empty nodes array', () => {
+    const fn = vi.fn();
+    propagateExistingOutputs([], fn);
+    expect(fn).not.toHaveBeenCalled();
   });
 });

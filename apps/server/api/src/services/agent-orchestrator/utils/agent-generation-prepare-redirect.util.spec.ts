@@ -19,6 +19,12 @@ describe('normalizeRequestedAgentToolName', () => {
       'generate_voice',
     );
   });
+
+  it('leaves already-canonical names unchanged', () => {
+    expect(normalizeRequestedAgentToolName('generate_image')).toBe(
+      'generate_image',
+    );
+  });
 });
 
 describe('isIdentityGenerationToolName', () => {
@@ -105,11 +111,30 @@ describe('getGenerationPreparationRedirect', () => {
     ).toBe('prepare_voice_clone');
   });
 
+  it('does not treat open_studio_handoff as a generate tool', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        'open_studio_handoff',
+        new Set(['prepare_generation', 'open_studio_handoff']),
+        { requestedGenerationType: 'image' },
+      ),
+    ).toBeNull();
+  });
+
   it('does not remap unknown non-generate tools', () => {
     expect(
       getGenerationPreparationRedirect(
         'default_api.nonexistent_tool',
         new Set(['prepare_generation', 'prepare_voice_clone']),
+      ),
+    ).toBeNull();
+  });
+
+  it('does not admit media generation into a run without a visual tool surface', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        'generate_image',
+        new Set(['get_dashboard_layout']),
       ),
     ).toBeNull();
   });
@@ -121,6 +146,15 @@ describe('getGenerationPreparationRedirect', () => {
         new Set(['prepare_generation']),
       ),
     ).toBeNull();
+  });
+
+  it('remaps generate_voice to the voice-clone card when that prepare tool is allowed', () => {
+    expect(
+      getGenerationPreparationRedirect(
+        'generate_voice',
+        new Set(['prepare_voice_clone']),
+      ),
+    ).toBe('prepare_voice_clone');
   });
 
   it('leaves generate_voice alone when prepare_voice_clone is not in the run', () => {

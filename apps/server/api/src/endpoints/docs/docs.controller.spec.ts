@@ -28,6 +28,10 @@ describe('DocsController', () => {
     docsService = module.get(DocsService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getOpenApiSpec', () => {
     it('should return OpenAPI specification', async () => {
       const mockOpenApiDoc = {
@@ -144,6 +148,25 @@ describe('DocsController', () => {
       );
       expect(operations).toContain('action1');
       expect(operations).toContain('action2');
+    });
+
+    it('should handle empty paths', async () => {
+      const mockGptActionsSpec = {
+        info: {
+          title: 'GPT Actions',
+          version: '1.0.0',
+        },
+        openapi: '3.1.0',
+        paths: {},
+      };
+
+      docsService.getGptActionsSpec.mockReturnValue(
+        mockGptActionsSpec as never,
+      );
+
+      const result = await controller.getGptActionsSpec();
+
+      expect(result.paths).toEqual({});
     });
   });
 });

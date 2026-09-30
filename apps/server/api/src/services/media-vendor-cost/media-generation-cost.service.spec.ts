@@ -35,6 +35,34 @@ describe('MediaGenerationCostService', () => {
     );
   });
 
+  it('records realized vendor cost from the model provider cost', async () => {
+    await service.recordGenerationCost({
+      brandId: 'brand-1',
+      category: 'video',
+      durationSeconds: 10,
+      ingredientId: 'ing-1',
+      modelKey: 'bytedance/seedance-2.5',
+      organizationId: 'org-1',
+    });
+
+    expect(ledgerService.record).toHaveBeenCalledWith({
+      costEvidence: 'calculated',
+      realizedDurationSeconds: 10,
+      realizedWidth: undefined,
+      realizedHeight: undefined,
+      brandId: 'brand-1',
+      category: 'video',
+      ingredientId: 'ing-1',
+      isByok: false,
+      model: 'bytedance/seedance-2.5',
+      organizationId: 'org-1',
+      pricingType: 'per-second',
+      provider: 'replicate',
+      units: 10,
+      vendorCostMicros: 2_400_000,
+    });
+  });
+
   it('zeroes vendor cost for BYOK organizations but keeps the row', async () => {
     byokService.isByokActiveForProvider.mockResolvedValue(true);
 

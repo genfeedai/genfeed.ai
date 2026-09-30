@@ -106,6 +106,10 @@ describe('ApifyTikTokService', () => {
     service = module.get<ApifyTikTokService>(ApifyTikTokService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getTikTokTrends()', () => {
     it('should return normalized trend data', async () => {
       const trends = [

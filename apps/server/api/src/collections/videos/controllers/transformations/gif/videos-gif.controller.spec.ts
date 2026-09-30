@@ -114,7 +114,18 @@ describe('VideosGifController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // --- createGif ---
+  it('should create gif from video and return serialized ingredient', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    const result = await controller.createGif(mockRequest, mockUser, videoId);
+    expect(result).toBeDefined();
+    expect(mockServices.fileQueueService.createGif).toHaveBeenCalled();
+    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
+  });
 
   it('should throw NOT_FOUND when video does not exist for gif creation', async () => {
     mockServices.videosService.findOne.mockResolvedValue(null);

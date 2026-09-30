@@ -8,6 +8,10 @@ import {
 
 describe('ingredient-category.util', () => {
   describe('normalizeCategory', () => {
+    it('returns the enum value for a lower-cased string input', () => {
+      expect(normalizeCategory('video')).toBe(IngredientCategory.VIDEO);
+    });
+
     it('returns the enum value for enum input', () => {
       expect(normalizeCategory(IngredientCategory.IMAGE)).toBe(
         IngredientCategory.IMAGE,
@@ -19,11 +23,27 @@ describe('ingredient-category.util', () => {
     it('lower-cases an enum member', () => {
       expect(categoryToString(IngredientCategory.VIDEO)).toBe('video');
     });
+
+    it('passes through already-lowercase string values', () => {
+      expect(categoryToString('image')).toBe('image');
+    });
   });
 
   describe('categoryToPlural', () => {
     it('pluralizes video', () => {
       expect(categoryToPlural(IngredientCategory.VIDEO)).toBe('videos');
+    });
+
+    it('pluralizes image', () => {
+      expect(categoryToPlural(IngredientCategory.IMAGE)).toBe('images');
+    });
+
+    it('pluralizes music', () => {
+      expect(categoryToPlural(IngredientCategory.MUSIC)).toBe('musics');
+    });
+
+    it('handles string input', () => {
+      expect(categoryToPlural('video')).toBe('videos');
     });
 
     // The regression this helper exists to prevent: IngredientCategory labels
@@ -41,8 +61,16 @@ describe('ingredient-category.util', () => {
   });
 
   describe('categoryToMediaType', () => {
+    it('returns "video" for VIDEO', () => {
+      expect(categoryToMediaType(IngredientCategory.VIDEO)).toBe('video');
+    });
+
     it('returns "music" for MUSIC', () => {
       expect(categoryToMediaType(IngredientCategory.MUSIC)).toBe('music');
+    });
+
+    it('returns "image" for IMAGE', () => {
+      expect(categoryToMediaType(IngredientCategory.IMAGE)).toBe('image');
     });
 
     it('defaults to "image" for unknown categories', () => {

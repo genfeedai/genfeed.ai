@@ -63,6 +63,11 @@ describe('TikTokAdsAdapter', () => {
     adapter = module.get(TikTokAdsAdapter);
   });
 
+  it('should be defined with platform=tiktok', () => {
+    expect(adapter).toBeDefined();
+    expect(adapter.platform).toBe('tiktok');
+  });
+
   describe('getAdAccounts', () => {
     it('should map TikTok accounts to unified format', async () => {
       tiktokAdsService.getAdAccounts.mockResolvedValue([

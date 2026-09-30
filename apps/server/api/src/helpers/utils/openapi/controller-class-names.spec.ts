@@ -39,6 +39,10 @@ function walkControllerFiles(dir: string): string[] {
 }
 
 describe('controller class-name uniqueness', () => {
+  it('finds controller files (sanity check that the walk is anchored)', () => {
+    expect(walkControllerFiles(srcRoot).length).toBeGreaterThan(100);
+  });
+
   it('has no duplicate exported controller class names', () => {
     const classToFiles = new Map<string, string[]>();
 

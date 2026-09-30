@@ -83,6 +83,10 @@ describe('OpenAiOAuthController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     it('should generate an auth URL with org and user context', async () => {
       const result = await controller.connect(mockUser);

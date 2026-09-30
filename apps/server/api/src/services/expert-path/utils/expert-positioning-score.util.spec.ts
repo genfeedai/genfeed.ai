@@ -110,4 +110,11 @@ describe('scoreExpertPositioning', () => {
     expect(read(thin)).toBeLessThan(3);
     expect(read(rich)).toBeGreaterThanOrEqual(8);
   });
+
+  it('is deterministic for the same answers', () => {
+    const at = new Date('2026-09-19T00:00:00.000Z');
+    expect(scoreExpertPositioning(STRONG_ANSWERS, at)).toEqual(
+      scoreExpertPositioning(STRONG_ANSWERS, at),
+    );
+  });
 });

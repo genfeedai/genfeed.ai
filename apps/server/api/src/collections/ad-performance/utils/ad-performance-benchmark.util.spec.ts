@@ -53,6 +53,32 @@ describe('buildAdPerformanceBenchmarkFields', () => {
     expect(fields.scope).toBe('brand');
   });
 
+  it('rejects empty strings and non-string values', () => {
+    const fields = buildAdPerformanceBenchmarkFields({
+      adPlatform: '',
+      industry: 42,
+      scope: null,
+    });
+
+    expect(fields.adPlatform).toBeNull();
+    expect(fields.industry).toBeNull();
+    expect(fields.scope).toBeNull();
+  });
+
+  it('rejects non-finite and non-numeric metrics', () => {
+    const fields = buildAdPerformanceBenchmarkFields({
+      cpc: '1.25',
+      ctr: Number.NaN,
+      roas: Number.POSITIVE_INFINITY,
+      spend: null,
+    });
+
+    expect(fields.cpc).toBeNull();
+    expect(fields.ctr).toBeNull();
+    expect(fields.roas).toBeNull();
+    expect(fields.spend).toBeNull();
+  });
+
   it('collects every matching headline pattern category', () => {
     const fields = buildAdPerformanceBenchmarkFields({
       headlineText: 'How to save 30% today?',

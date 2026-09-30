@@ -10,6 +10,24 @@ describe('Alert', () => {
     expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
   });
 
+  it.each([AlertCategory.ERROR, AlertCategory.WARNING])(
+    'renders %s as an assertive alert region',
+    (type) => {
+      render(<Alert type={type}>{type}</Alert>);
+
+      expect(screen.getByRole('alert')).not.toHaveAttribute('aria-live');
+    },
+  );
+
+  it.each([AlertCategory.INFO, AlertCategory.SUCCESS])(
+    'renders %s as a polite status region',
+    (type) => {
+      render(<Alert type={type}>{type}</Alert>);
+
+      expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'polite');
+    },
+  );
+
   it('keeps severity, content, and close action in separate grid columns', () => {
     const handleClose = vi.fn();
 

@@ -827,6 +827,41 @@ describe('PublishApprovalsService', () => {
     );
   });
 
+  it('clears every post approval marker when invalidating queued approval state', async () => {
+    const approval = makeApproval();
+    const post = { updateMany: vi.fn().mockResolvedValue({ count: 1 }) };
+    const publishApproval = {
+      findMany: vi.fn().mockResolvedValue([approval]),
+      update: vi.fn().mockResolvedValue(approval),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) =>
+        callback({ post, publishApproval }),
+      ),
+      publishApproval,
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {} as AgentArtifactReferenceService,
+    );
+
+    await service.invalidatePost(
+      'org-1',
+      'post-1',
+      'Canonical publish scope changed.',
+      'user-1',
+    );
+
+    expect(post.updateMany).toHaveBeenCalledWith({
+      data: {
+        publishApprovalId: null,
+        reviewDecision: null,
+        reviewVersionPinId: null,
+      },
+      where: { id: 'post-1', isDeleted: false, organizationId: 'org-1' },
+    });
+  });
+
   it('blocks version drift before claiming execution', async () => {
     const approval = makeApproval({ scopeDigest: scopeDigest() });
     const publishApproval = {
@@ -1203,5 +1238,59 @@ describe('PublishApprovalsService', () => {
 
     expect(publishApproval.create).not.toHaveBeenCalled();
     expect(approval.provenance.mediaReadinessWarnings).toEqual([warning]);
+  });
+
+  it('drops stored media warnings from a reused approval when this attempt is clean', async () => {
+    const post = makePost({
+      ingredients: [{ id: 'asset-1' }],
+      publishApprovalId: 'approval-1',
+    });
+    const existing = makeApproval({
+      provenance: {
+        mediaReadinessWarnings: [{ code: 'stale_from_first_approval' }],
+        source: 'typed-publish-approval',
+      },
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.APPROVED,
+    });
+    const publishApproval = {
+      create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(existing),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(),
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      publishApproval,
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+      } as unknown as AgentArtifactReferenceService,
+      { log: vi.fn(), warn: vi.fn() } as never,
+      {
+        evaluatePublishReadiness: vi.fn().mockResolvedValue({
+          checkedAt: '2026-09-19T10:00:00.000Z',
+          diagnostics: [],
+          isBlocked: false,
+        }),
+      },
+    );
+
+    const approval = await service.createForCurrentPost({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+    });
+
+    expect(approval.provenance.mediaReadinessWarnings).toBeUndefined();
   });
 });

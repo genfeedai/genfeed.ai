@@ -83,6 +83,15 @@ describe('bootstrap', () => {
     ]);
   });
 
+  it('skips env files that do not exist', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.mocked(fs.existsSync).mockReturnValue(false);
+
+    bootstrap({ app: 'api' });
+
+    expect(dotenv.config).not.toHaveBeenCalled();
+  });
+
   it('defaults SERVICE_NAME to the app name', () => {
     vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(fs.existsSync).mockReturnValue(false);

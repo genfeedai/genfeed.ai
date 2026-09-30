@@ -3,7 +3,69 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
-import { mapSnapshotWorkEvents } from './agent-thread-snapshot.util';
+import {
+  mapSnapshotWorkEvents,
+  readSnapshotRunError,
+} from './agent-thread-snapshot.util';
+
+describe('readSnapshotRunError', () => {
+  const baseSnapshot = {
+    activeRun: {
+      runId: 'run-current',
+      status: 'failed',
+    },
+    lastAssistantMessage: null,
+    lastSequence: 2,
+    latestProposedPlan: null,
+    latestUiBlocks: null,
+    memorySummaryRefs: [],
+    pendingApprovals: [],
+    pendingInputRequests: [],
+    profileSnapshot: null,
+    sessionBinding: null,
+    source: 'agent',
+    threadId: 'thread-1',
+    threadStatus: 'active',
+    timeline: [
+      {
+        createdAt: '2026-08-28T17:00:00.000Z',
+        detail: 'Old attempt failed',
+        id: 'old-error',
+        kind: 'error' as const,
+        label: 'Agent error',
+        runId: 'run-old',
+        sequence: 1,
+        status: 'failed',
+      },
+      {
+        createdAt: '2026-08-28T17:01:00.000Z',
+        detail: 'Current run stopped safely. Please retry.',
+        id: 'current-error',
+        kind: 'error' as const,
+        label: 'Agent error',
+        runId: 'run-current',
+        sequence: 2,
+        status: 'failed',
+      },
+    ],
+    title: 'Thread',
+  };
+
+  it('restores the latest failure for the current run', () => {
+    expect(readSnapshotRunError(baseSnapshot)).toBe(
+      'Current run stopped safely. Please retry.',
+    );
+  });
+
+  it('does not revive an older error after the current run completed', () => {
+    expect(
+      readSnapshotRunError({
+        ...baseSnapshot,
+        activeRun: { runId: 'run-current', status: 'completed' },
+      }),
+    ).toBeNull();
+  });
+});
 
 describe('mapSnapshotWorkEvents', () => {
   it('maps completed work timeline entries to completed run events', () => {

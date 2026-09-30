@@ -87,4 +87,12 @@ describe('AgentProfilePlatformOverrideWideFields', () => {
       );
     },
   );
+
+  it('disables the wide override fields when isDisabled is set', () => {
+    renderFields({ isDisabled: true });
+
+    expect(
+      screen.getByRole('button', { name: 'linkedin Persona Override' }),
+    ).toBeDisabled();
+  });
 });

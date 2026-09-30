@@ -3,6 +3,20 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 describe('wrapError', () => {
+  it('returns the resolved value', async () => {
+    await expect(wrapError(async () => 42)).resolves.toBe(42);
+  });
+
+  it('rethrows HttpException unchanged', async () => {
+    const error = new HttpException('Nope', HttpStatus.BAD_REQUEST);
+
+    await expect(
+      wrapError(async () => {
+        throw error;
+      }),
+    ).rejects.toBe(error);
+  });
+
   it('maps unknown errors to a 500 using the error message', async () => {
     const error = await wrapError(async () => {
       throw new Error('disk full');

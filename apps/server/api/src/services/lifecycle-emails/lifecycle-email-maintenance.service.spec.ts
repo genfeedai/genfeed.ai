@@ -73,6 +73,21 @@ describe('system recap policy', () => {
       end: new Date('2027-01-04T00:00:00Z'),
     });
   });
+  it('uses the previous complete UTC day', () => {
+    expect(
+      completedEmailPeriod(new Date('2026-09-09T08:00:00Z'), false),
+    ).toEqual({
+      start: new Date('2026-09-08T00:00:00Z'),
+      end: new Date('2026-09-09T00:00:00Z'),
+    });
+  });
+  it('does not queue a weekly recap for four outputs', async () => {
+    const { service, queueEmail } = fixture(4);
+    await service.recaps(request);
+    expect(queueEmail.mock.calls.map(([input]) => input.topic)).toEqual([
+      'content.daily',
+    ]);
+  });
   it('queues a tracked weekly recap at five outputs using completion time and tenant/user scope', async () => {
     const { service, prisma, queueEmail } = fixture(5);
     await service.recaps(request);
@@ -229,6 +244,14 @@ describe('credit balance alerts', () => {
     expect(queueEmail).toHaveBeenCalledWith(
       expect.objectContaining({ templateKey: 'credit-exhausted' }),
     );
+  });
+  it('does not fall back to a low alert after an exhausted alert', async () => {
+    const { service, queueEmail } = creditsFixture({
+      spendable: 400,
+      recentAlert: { templateKey: 'credit-exhausted' },
+    });
+    await service.credits(request);
+    expect(queueEmail).not.toHaveBeenCalled();
   });
   it('does not alert an organization that has never paid for credits', async () => {
     const { service, prisma, queueEmail } = creditsFixture({

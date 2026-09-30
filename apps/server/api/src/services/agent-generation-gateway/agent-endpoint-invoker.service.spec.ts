@@ -189,6 +189,22 @@ describe('AgentEndpointInvoker', () => {
     expect(endpoint.handle).not.toHaveBeenCalled();
   });
 
+  it('validates the body against the endpoint DTO before the handler runs', async () => {
+    const endpoint = buildEndpoint();
+
+    await invoker.invoke(endpoint, invocation);
+
+    expect(endpoint.handle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dto: expect.any(TestGenerationDto),
+        user: expect.objectContaining({
+          organizationId: ORGANIZATION_ID,
+          userId: USER_ID,
+        }),
+      }),
+    );
+  });
+
   it('rejects a body the endpoint DTO does not accept', async () => {
     await expect(
       invoker.invoke(buildEndpoint(), {

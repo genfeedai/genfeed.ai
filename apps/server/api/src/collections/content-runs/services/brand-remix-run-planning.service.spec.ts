@@ -375,6 +375,38 @@ describe('BrandRemixRunPlanningService', () => {
     expect(personaResolution.resolve).not.toHaveBeenCalled();
   });
 
+  it('rejects organization-shared identity assets', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+      {
+        id: 'voice-1',
+        brandId: 'brand-1',
+        category: IngredientCategory.VOICE,
+        externalVoiceId: 'voice-external-1',
+      },
+    ] as never);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects legacy imported source pixels as generation references', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'source-1', sourceActionId: 'remix-source:source_post:1' },
+    ] as never);
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([]);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        references: [
+          { assetId: 'source-1', role: 'subject', source: 'explicit' },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
   it('normalizes invalid implicit defaults but rejects the same explicit identity', async () => {
     vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
       { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },

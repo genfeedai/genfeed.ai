@@ -99,7 +99,35 @@ describe('ElementsMoodsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
+    it('should create a new mood', async () => {
+      const createDto: CreateElementMoodDto = {
+        description: 'Feeling happy',
+        key: 'happy',
+        label: 'Happy',
+      } as unknown as CreateElementMoodDto;
+
+      const mockCreatedMood = {
+        id: moodId,
+        ...createDto,
+        isDeleted: false,
+        organizationId,
+      };
+
+      moodsService.create.mockResolvedValueOnce(
+        mockCreatedMood as unknown as never,
+      );
+
+      const result = await controller.create(mockRequest, mockUser, createDto);
+
+      expect(moodsService.create).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should include organization in created mood', async () => {
       const createDto: CreateElementMoodDto = {
         key: 'excited',
@@ -125,6 +153,43 @@ describe('ElementsMoodsController', () => {
   });
 
   describe('update', () => {
+    it('should update an existing mood', async () => {
+      const updateDto: UpdateElementMoodDto = {
+        label: 'Updated Mood',
+      } as unknown as UpdateElementMoodDto;
+
+      const mockExistingMood = {
+        id: moodId,
+        isDeleted: false,
+        key: 'old-mood',
+        label: 'Old Mood',
+        organizationId,
+      };
+
+      const mockUpdatedMood = {
+        ...mockExistingMood,
+        ...updateDto,
+      };
+
+      moodsService.findOne.mockResolvedValueOnce(
+        mockExistingMood as unknown as never,
+      );
+      moodsService.patch.mockResolvedValueOnce(
+        mockUpdatedMood as unknown as never,
+      );
+
+      const result = await controller.update(
+        mockRequest,
+        mockUser,
+        moodId,
+        updateDto,
+      );
+
+      expect(moodsService.findOne).toHaveBeenCalled();
+      expect(moodsService.patch).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should throw error when mood not found', async () => {
       const updateDto: UpdateElementMoodDto = {
         label: 'Updated',
@@ -195,6 +260,47 @@ describe('ElementsMoodsController', () => {
   });
 
   describe('inherited methods', () => {
+    it('should handle findAll with pagination', async () => {
+      const mockMoods = {
+        docs: [
+          { id: 'mood-happy', key: 'happy', label: 'Happy' },
+          { id: 'mood-sad', key: 'sad', label: 'Sad' },
+        ],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 20,
+        page: 1,
+        pagingCounter: 1,
+        totalDocs: 2,
+        totalPages: 1,
+      };
+
+      moodsService.findAll.mockResolvedValueOnce(mockMoods as unknown as never);
+
+      const query = createBaseQuery();
+      const result = await controller.findAll(mockRequest, mockUser, query);
+
+      expect(moodsService.findAll).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should handle findOne', async () => {
+      const mockMood = {
+        id: moodId,
+        isDeleted: false,
+        key: 'happy',
+        label: 'Happy',
+        organizationId,
+      };
+
+      moodsService.findOne.mockResolvedValueOnce(mockMood as unknown as never);
+
+      const result = await controller.findOne(mockRequest, mockUser, moodId);
+
+      expect(moodsService.findOne).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should return not found when mood does not exist', async () => {
       moodsService.findOne.mockResolvedValueOnce(null);
 

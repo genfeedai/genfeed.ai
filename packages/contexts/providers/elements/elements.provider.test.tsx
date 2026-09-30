@@ -113,4 +113,21 @@ describe('ElementsProvider', () => {
 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  it('fetches elements when enabled is true', async () => {
+    function Consumer() {
+      const { moods } = useElementsContext();
+      return <span data-testid="mood-count">{String(moods.length)}</span>;
+    }
+
+    render(
+      <ElementsProvider enabled>
+        <Consumer />
+      </ElementsProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mood-count')).toHaveTextContent('1');
+    });
+  });
 });

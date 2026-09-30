@@ -36,6 +36,23 @@ describe('collectOperations', () => {
       path: '/v1/health',
     });
   });
+
+  it('treats empty-string operationIds as missing', () => {
+    const document = buildDocument({ '/v1/x': { get: { operationId: '' } } });
+    expect(collectOperations(document)[0]?.operationId).toBeUndefined();
+  });
+
+  it('ignores non-operation path-item keys like parameters', () => {
+    const document = {
+      paths: {
+        '/v1/x': {
+          get: { operationId: 'XController.get' },
+          parameters: [{ in: 'path', name: 'id' }],
+        },
+      },
+    };
+    expect(collectOperations(document)).toHaveLength(1);
+  });
 });
 
 describe('isInternalRoute', () => {

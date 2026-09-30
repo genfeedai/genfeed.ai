@@ -186,6 +186,11 @@ describe('normalizeAdvertiserHandle', () => {
     );
   });
 
+  it('rejects hyphens on TikTok and X, whose usernames never contain them', () => {
+    expect(normalizeAdvertiserHandle('tiktok', 'acme-corp')).toBeNull();
+    expect(normalizeAdvertiserHandle('x', 'acme-corp')).toBeNull();
+  });
+
   it('rejects handles the database check constraint would reject', () => {
     expect(normalizeAdvertiserHandle('meta', 'acme corp')).toBeNull();
     expect(normalizeAdvertiserHandle('meta', '')).toBeNull();

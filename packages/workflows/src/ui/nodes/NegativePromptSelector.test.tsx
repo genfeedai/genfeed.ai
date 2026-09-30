@@ -7,6 +7,13 @@ function expand() {
 }
 
 describe('NegativePromptSelector', () => {
+  it('is collapsed by default and hides the options', () => {
+    render(<NegativePromptSelector value="" onChange={vi.fn()} />);
+
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByText(/selected/)).toBeNull();
+  });
+
   it('toggles the option grid and the custom input when the header is clicked', () => {
     render(<NegativePromptSelector value="" onChange={vi.fn()} />);
 

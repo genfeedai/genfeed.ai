@@ -218,6 +218,29 @@ describe('MenuShared', () => {
     logoHref: '/',
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<MenuShared config={config} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should render menu items', () => {
+    render(<MenuShared config={config} />);
+    expect(
+      document.querySelector('[data-testid="menu-item"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('should render root element', () => {
+    const { container } = render(<MenuShared config={config} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('renders the sidebar header spacer', () => {
+    render(<MenuShared config={config} />);
+
+    expect(screen.queryByTestId('sidebar-header-shell')).toBeInTheDocument();
+  });
+
   it('renders a top slot before navigation items when provided', () => {
     render(
       <MenuShared
@@ -234,6 +257,20 @@ describe('MenuShared', () => {
       topSlot.compareDocumentPosition(firstMenuItem) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('renders the org switcher slot inside the sidebar header shell', () => {
+    render(
+      <MenuShared
+        config={config}
+        headerSlot={<div data-testid="organization-switcher">Acme</div>}
+      />,
+    );
+
+    const headerShell = screen.getByTestId('sidebar-header-shell');
+    const orgSwitcher = screen.getByTestId('organization-switcher');
+
+    expect(headerShell).toContainElement(orgSwitcher);
   });
 
   it('renders the org switcher in the header above the top slot and nav', () => {
@@ -295,6 +332,36 @@ describe('MenuShared', () => {
     expect(onToggleCollapse).toHaveBeenCalledTimes(1);
   });
 
+  it('omits the org switcher slot when not provided', () => {
+    render(<MenuShared config={config} />);
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
+  });
+
+  it.each(['all', 'recent'])('keeps Inbox selected on its %s alias', (view) => {
+    mockPathname.value = `/acme/moonrise-studio/workspace/inbox/${view}`;
+    render(
+      <MenuShared
+        config={{
+          logoHref: '/',
+          items: [
+            {
+              href: '/workspace/inbox/unread',
+              label: 'Inbox',
+              matchPaths: ['/workspace/inbox'],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+  });
+
   it('prefers the specific destination over an overview root alias', () => {
     mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
     mockSearchParams.value = 'view=recent';
@@ -321,6 +388,49 @@ describe('MenuShared', () => {
       'data-active',
       'false',
     );
+  });
+
+  it('keeps Inbox selected across query filters', () => {
+    mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
+    mockSearchParams.value = 'view=all&taskId=task-1';
+    render(
+      <MenuShared
+        config={{
+          logoHref: '/',
+          items: [
+            {
+              href: '/workspace/inbox?view=unread',
+              label: 'Inbox',
+              matchPaths: ['/workspace/inbox'],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+  });
+
+  it('attaches the unread workspace task count to the inbox row', () => {
+    const inboxConfig: MenuShellConfig = {
+      items: [
+        {
+          href: '/workspace',
+          label: 'Dashboard',
+        },
+        {
+          href: '/workspace/inbox/unread',
+          label: 'Inbox',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={inboxConfig} />);
+
+    expect(screen.getByText('Inbox (2)')).toBeInTheDocument();
   });
 
   it('renders the primary action CTA before navigation items', () => {
@@ -477,6 +587,26 @@ describe('MenuShared', () => {
     expect(screen.getByText('Activity')).toBeInTheDocument();
   });
 
+  it('keeps globally scoped menu hrefs unprefixed', () => {
+    const globalConfig: MenuConfig = {
+      items: [
+        {
+          href: '/admin/overview/dashboard',
+          hrefScope: 'global',
+          label: 'Dashboard',
+        },
+      ],
+      logoHref: '/',
+    };
+
+    render(<MenuShared config={globalConfig} />);
+
+    expect(screen.getByText('Dashboard')).toHaveAttribute(
+      'data-href',
+      '/admin/overview/dashboard',
+    );
+  });
+
   it('keeps a nested admin destination active in the global route scope', () => {
     mockPathname.value = '/admin/content/posts';
     const globalConfig: MenuConfig = {
@@ -581,6 +711,99 @@ describe('MenuShared', () => {
 
       expect(activeLabels()).toEqual(['Published']);
     });
+
+    it('keeps Posts active for filters that do not map to Pipeline', () => {
+      mockPathname.value = '/acme/moonrise/publishing/posts';
+      mockSearchParams.value = 'type=article&platform=linkedin';
+
+      render(
+        <MenuShared config={publishingConfig} sectionLabel="Publishing" />,
+      );
+
+      expect(activeLabels()).toEqual(['Posts']);
+    });
+  });
+
+  describe('workspace overview complete-path active state', () => {
+    // Canonical Overview is `/workspace/overview` (bare `/workspace` redirects
+    // there via next.config). Complete path does not prefix-match siblings —
+    // no isExactMatch required.
+    const workspaceConfig: MenuConfig = {
+      items: [
+        {
+          href: '/workspace/overview',
+          label: 'Overview',
+        },
+        {
+          href: '/workspace/inbox/unread',
+          label: 'Inbox',
+        },
+        {
+          href: '/workspace/tasks',
+          label: 'Tasks',
+        },
+        {
+          href: '/workspace/activity',
+          label: 'Activity',
+        },
+      ],
+      logoHref: '/workspace/overview',
+    };
+
+    const activeLabels = () =>
+      screen
+        .getAllByTestId('menu-item')
+        .filter((node) => node.getAttribute('data-active') === 'true')
+        .map((node) => node.textContent);
+
+    it('activates only Overview on /workspace/overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/overview';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Overview']);
+    });
+
+    it('activates only Activity on /workspace/activity — not Overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/activity';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Activity']);
+    });
+
+    it('activates only Tasks on /workspace/tasks — not Overview', () => {
+      mockPathname.value = '/acme/moonrise/workspace/tasks';
+      render(<MenuShared config={workspaceConfig} sectionLabel="Workspace" />);
+      expect(activeLabels()).toEqual(['Tasks']);
+    });
+  });
+
+  it('prefers a specific child destination over its parent route prefix', () => {
+    mockPathname.value = '/acme/moonrise/automation/templates';
+
+    render(
+      <MenuShared
+        config={{
+          items: [
+            { href: '/automation/workflows', label: 'Workflows' },
+            {
+              href: '/automation/templates',
+              label: 'Templates',
+            },
+            {
+              href: '/automation/runs',
+              label: 'Runs',
+            },
+          ],
+          logoHref: '/automation',
+        }}
+        sectionLabel="Automation"
+      />,
+    );
+
+    const activeLabels = screen
+      .getAllByTestId('menu-item')
+      .filter((node) => node.getAttribute('data-active') === 'true')
+      .map((node) => node.textContent);
+
+    expect(activeLabels).toEqual(['Templates']);
   });
 
   describe('settings exact-match active state', () => {
@@ -626,11 +849,62 @@ describe('MenuShared', () => {
         .filter((node) => node.getAttribute('data-active') === 'true')
         .map((node) => node.textContent);
 
+    it('activates only the personal root on /settings/personal', () => {
+      mockPathname.value = '/settings/personal';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Personal']);
+    });
+
+    it('activates General (not Members) on the org settings general route', () => {
+      mockPathname.value = '/acme/~/settings/general';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['General']);
+    });
+
+    it('activates Members only — not the General root — on an org sub-route', () => {
+      mockPathname.value = '/acme/~/settings/members';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Members']);
+    });
+
+    it('activates the brand Overview root on the brand settings root', () => {
+      mockPathname.value = '/acme/moonrise-studio/settings';
+      render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
+      expect(activeLabels()).toEqual(['Overview']);
+    });
+
     it('activates Voice only — not the Overview root — on a brand sub-route', () => {
       mockPathname.value = '/acme/moonrise-studio/settings/voice';
       render(<MenuShared config={settingsConfig} sectionLabel="Settings" />);
       expect(activeLabels()).toEqual(['Voice']);
     });
+  });
+
+  it('routes the conversations new-thread CTA through the selected brand', () => {
+    render(
+      <MenuShared
+        config={config}
+        renderAfterNavigation={() => <div>thread-list</div>}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /New Thread/i })).toHaveAttribute(
+      'href',
+      '/acme/moonrise-studio/agent/new',
+    );
+  });
+
+  it('does not add an extra inner horizontal gutter around the new agent thread row', () => {
+    render(
+      <MenuShared
+        config={config}
+        renderAfterNavigation={() => <div>thread-list</div>}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: /New Thread/i }).parentElement,
+    ).not.toHaveClass('px-2');
   });
 
   it('renders conversations in a dedicated flex section when the thread list is present', () => {
@@ -698,6 +972,15 @@ describe('MenuShared', () => {
     expect(screen.getByText('Library').parentElement).toHaveClass('pb-2');
     expect(screen.getByTestId('custom-body')).toBeInTheDocument();
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+  });
+
+  it('does not duplicate workspace context in the sidebar header', () => {
+    mockBrandState.selectedBrand = { label: 'Acme Org' };
+
+    render(<MenuShared config={config} />);
+
+    const labels = screen.queryAllByText('Acme Org');
+    expect(labels.length).toBeLessThanOrEqual(1);
   });
 
   it.each([

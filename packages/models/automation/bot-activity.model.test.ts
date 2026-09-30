@@ -16,5 +16,10 @@ describe('BotActivity', () => {
       const instance = new BotActivity({});
       expect(instance).toBeDefined();
     });
+
+    it('should create an instance with partial data', () => {
+      const instance = new BotActivity({ id: 'test-123' } as any);
+      expect(instance).toBeDefined();
+    });
   });
 });

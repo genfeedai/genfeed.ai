@@ -8,10 +8,15 @@ import { CampaignPlanningService } from '@api/collections/campaigns/services/cam
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { REQUEST_TIMEOUT_MS } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
 import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/contracts';
 import { Reflector } from '@nestjs/core';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { delay, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -117,6 +122,38 @@ describe('CampaignsController', () => {
       }
     },
   );
+
+  it('wires the collection routes onto the campaigns service', async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [CampaignsController],
+      providers: [
+        { provide: CampaignPlanningService, useValue: planningService },
+        { provide: CampaignComparisonService, useValue: comparisonService },
+        { provide: CampaignGenerationService, useValue: generationService },
+        { provide: CampaignLifecycleService, useValue: lifecycleService },
+        {
+          provide: CampaignPaidActivationService,
+          useValue: paidActivationService,
+        },
+        { provide: CampaignPerformanceService, useValue: performanceService },
+        { provide: CampaignsService, useValue: service },
+      ],
+    })
+      .overrideGuard(CreditsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(SubscriptionGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    expect(module.get(CampaignsController)).toBeDefined();
+  });
 
   it('scopes the list to the caller organization', async () => {
     service.list.mockResolvedValue({ docs: [] });

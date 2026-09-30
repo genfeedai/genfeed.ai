@@ -4,6 +4,10 @@ import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfi
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('ImagesModule', () => {
+  it('should be defined', () => {
+    expect(ImagesModule).toBeDefined();
+  });
+
   it('constructs the framework-agnostic Higgsfield adapter with its integration service', () => {
     const providers =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, ImagesModule) ?? [];

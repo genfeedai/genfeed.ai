@@ -1,4 +1,5 @@
 import {
+  mockError,
   mockFetch,
   mockJsonApiCollection,
   mockJsonApiResource,
@@ -99,6 +100,22 @@ describe('agent-api.media', () => {
       prompt: 'A futuristic city at sunset',
     });
     expect(JSON.parse(body ?? '{}')).not.toHaveProperty('organizationId');
+  });
+
+  it('estimateGenerationCredits surfaces isAvailable:false without throwing', async () => {
+    mockOk({ credits: null, isAvailable: false, modelKey: null });
+
+    const result = await estimateGenerationCredits(makeApi(), {
+      category: 'video',
+      duration: 5,
+      prompt: 'A drone shot over the ocean',
+    });
+
+    expect(result).toEqual({
+      credits: null,
+      isAvailable: false,
+      modelKey: null,
+    });
   });
 
   it('mergeVideos posts merge defaults', async () => {
@@ -254,6 +271,14 @@ describe('agent-api.media', () => {
     const { body, url } = lastRequest();
     expect(url).toBe('http://api.test/brands/brand-1/agent-config');
     expect(JSON.parse(body ?? '{}')).toEqual({ defaultVoiceId: 'voice-1' });
+  });
+
+  it('surfaces request errors from the API', async () => {
+    mockError(500);
+
+    await expect(resizeVideo(makeApi(), 'video-1', 10, 10)).rejects.toThrow(
+      'Failed to resize video',
+    );
   });
 
   it('createStudioHandoff posts the resolved payload and returns its id', async () => {

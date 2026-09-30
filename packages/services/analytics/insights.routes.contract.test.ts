@@ -24,9 +24,11 @@
  */
 import {
   axiosResponse,
+  collectionDocument,
   installMockHttp,
   resourceDocument,
 } from '@services/__mocks__/http.mock';
+import * as insightsServiceModule from '@services/analytics/insights.service';
 import { InsightsService } from '@services/analytics/insights.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -40,13 +42,63 @@ vi.mock('@services/core/logger.service', () => ({
  * against a base URL of `${apiEndpoint}/insights`, so every request it
  * issues must resolve to one of these relative to that base.
  */
+const REGISTERED_INSIGHTS_SUBPATHS = [
+  '', // GET /insights (root, `?limit=`)
+  'forecast', // POST /insights/forecast
+  'viral', // POST /insights/viral
+  'gaps', // GET /insights/gaps
+  'times', // GET /insights/times
+  'growth', // GET /insights/growth
+] as const;
 
 function isRegisteredInsightIdPath(path: string): boolean {
   // PATCH /insights/:insightId — the client calls this with a concrete id.
   return /^[^/?]+$/.test(path) && path.length > 0;
 }
 
+function isRegisteredSubpath(path: string): boolean {
+  const [withoutQuery] = path.split('?');
+  return (REGISTERED_INSIGHTS_SUBPATHS as readonly string[]).includes(
+    withoutQuery,
+  );
+}
+
 describe('insights.service route contract', () => {
+  it('exports only the client that has a matching backend route', () => {
+    // PredictiveAnalyticsService (deleted) called /analytics/insights,
+    // /analytics/predict/trends, /analytics/engagement/score, /analytics/roi,
+    // /analytics/audience, /analytics/competitors and
+    // /analytics/predict/viral/:id — none registered on any controller.
+    // Its removal is the fix: this module must export nothing else.
+    expect(Object.keys(insightsServiceModule).sort()).toEqual([
+      'InsightsService',
+    ]);
+  });
+
+  it('InsightsService.getInsights GETs a registered subpath', async () => {
+    const service = InsightsService.getInstance('contract-token');
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+    await service.getInsights(5);
+
+    const [calledPath] = http.get.mock.calls[0] as [string];
+    expect(isRegisteredSubpath(calledPath)).toBe(true);
+  });
+
+  it('InsightsService.markAsRead PATCHes the registered :insightId route', async () => {
+    const service = InsightsService.getInstance('contract-token');
+    const http = installMockHttp(service);
+    http.patch.mockResolvedValue(
+      axiosResponse(resourceDocument({}, { id: 'insight_1' })),
+    );
+
+    await service.markAsRead('insight_1');
+
+    const [calledPath] = http.patch.mock.calls[0] as [string];
+    expect(isRegisteredInsightIdPath(calledPath)).toBe(true);
+  });
+
   it('InsightsService.markAsDismissed PATCHes the registered :insightId route', async () => {
     const service = InsightsService.getInstance('contract-token');
     const http = installMockHttp(service);

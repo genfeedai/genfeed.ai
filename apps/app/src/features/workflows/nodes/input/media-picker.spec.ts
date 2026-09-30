@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildWorkflowMediaNodePatch,
   clearCurrentWorkflowMedia,
   createWorkflowMediaSelectionConfig,
   createWorkflowMediaUrlConfig,
@@ -116,5 +117,33 @@ describe('workflow media picker helpers', () => {
     expect(clearedMedia.itemId).toBeNull();
     expect(clearedMedia.selectedResolvedUrl).toBeNull();
     expect(clearedMedia.url).toBeNull();
+  });
+
+  it('builds node patches with executable config', () => {
+    const config = createWorkflowMediaSelectionConfig(
+      getWorkflowMediaConfig({}, 'image'),
+      'brand-references',
+      {
+        dimensions: null,
+        duration: null,
+        id: 'ref-1',
+        itemCategory: 'reference',
+        label: 'Reference',
+        mimeType: null,
+        resolvedUrl: 'https://cdn.example.com/references/ref-1',
+        thumbnailUrl: 'https://cdn.example.com/references/ref-1',
+      },
+    );
+
+    const patch = buildWorkflowMediaNodePatch('image', config);
+
+    expect(patch.image).toBe('https://cdn.example.com/references/ref-1');
+    expect(patch.config).toMatchObject({
+      itemCategory: 'reference',
+      itemId: 'ref-1',
+      resolvedUrl: 'https://cdn.example.com/references/ref-1',
+      selectedResolvedUrl: 'https://cdn.example.com/references/ref-1',
+      source: 'brand-references',
+    });
   });
 });

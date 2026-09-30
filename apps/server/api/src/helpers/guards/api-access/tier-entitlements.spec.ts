@@ -70,6 +70,10 @@ describe('tier API entitlements', () => {
     }
   });
 
+  it('escalates the rate limit across paid tiers', () => {
+    expect(HIGHER_API_RATE_LIMIT).toBeLessThan(SCALE_API_RATE_LIMIT);
+  });
+
   it('gives Enterprise API access with no platform-enforced ceiling', () => {
     expect(TIER_API_ENTITLEMENTS[SubscriptionTier.ENTERPRISE]).toEqual({
       apiAccess: true,
@@ -105,6 +109,15 @@ describe('tier API entitlements', () => {
       organizationLimit: SINGLE_ORGANIZATION_LIMIT,
       seatLimit: PLAN_LIMIT_UNLIMITED,
     });
+  });
+
+  it('resolves Scale+ product limits: unlimited seats, brands, channels, and organizations', () => {
+    for (const tier of [SubscriptionTier.SCALE, SubscriptionTier.ENTERPRISE]) {
+      expect(getBrandLimitForTier(tier)).toBeNull();
+      expect(getChannelLimitForTier(tier)).toBeNull();
+      expect(getOrganizationLimitForTier(tier)).toBeNull();
+      expect(getSeatLimitForTier(tier)).toBeNull();
+    }
   });
 
   it('uses PAYG/free limits for empty or unknown tiers', () => {

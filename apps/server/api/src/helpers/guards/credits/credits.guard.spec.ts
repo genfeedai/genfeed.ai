@@ -98,6 +98,10 @@ describe('CreditsGuard', () => {
     vi.restoreAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(guard).toBeDefined();
+  });
+
   it.each([true, false])(
     'enforces credits after Free metered subscription deferral (funded: %s)',
     async (funded) => {
@@ -250,6 +254,17 @@ describe('CreditsGuard', () => {
       await expect(rejection).rejects.toThrow('Unknown model: missing-model');
     });
 
+    it('surfaces an HTTP error from the wallet lookup unchanged', async () => {
+      const conflict = new ConflictException(
+        'Billing account could not be resolved',
+      );
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
+        conflict,
+      );
+
+      await expect(guard.canActivate(createContext())).rejects.toBe(conflict);
+    });
+
     it('surfaces an unexpected failure instead of reporting 0 of 0 credits', async () => {
       const failure = new Error('connection terminated');
       creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
@@ -381,6 +396,15 @@ describe('CreditsGuard', () => {
     ).toHaveBeenCalledWith(orgId, 6);
   });
 
+  it('throws InsufficientCreditsException when credits insufficient', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 10 });
+    creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+      false,
+    );
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(5);
+    await expect(guard.canActivate(createContext())).rejects.toThrow();
+  });
+
   it('looks up model from database when modelKey is in body', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
     modelsService.findOne.mockResolvedValue({ cost: 5, key: 'test-model' });
@@ -421,6 +445,32 @@ describe('CreditsGuard', () => {
         modelKey: model,
       });
     });
+
+    it('rejects missing non-provider models', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(
+        source === 'decorator' ? { modelKey: 'missing-model' } : {},
+      );
+      modelsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        guard.canActivate(
+          createContext(source === 'body' ? { model: 'missing-model' } : {}),
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
+  it('keeps the body model ahead of the decorator default', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      modelKey: 'default-model',
+    });
+    modelsService.findOne.mockResolvedValue({ cost: 7, key: 'body-model' });
+
+    await guard.canActivate(createContext({ model: 'body-model' }));
+
+    expect(modelsService.findOne).toHaveBeenCalledExactlyOnceWith({
+      key: 'body-model',
+    });
   });
 
   it('bills from providerCostUsd × applyMargin so admin margin applies live', async () => {
@@ -451,6 +501,43 @@ describe('CreditsGuard', () => {
     ).toHaveBeenLastCalledWith(orgId, applyMargin(0.15, 1.2));
 
     setRuntimeMarginMultiplier(1);
+  });
+
+  it('stamps the pricing audit metadata onto creditsConfig for resolved models', async () => {
+    const { setRuntimeMarginMultiplier } = await import('@genfeedai/pricing');
+    setRuntimeMarginMultiplier(1.2);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({
+      cost: 999,
+      key: 'priced-model',
+      pricingType: 'flat',
+      providerCostUsd: 0.15,
+    });
+
+    const ctx = createContext({ model: 'priced-model' });
+    await guard.canActivate(ctx);
+
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(req.creditsConfig).toMatchObject({
+      pricingMetadata: {
+        marginMultiplier: 1.2,
+        pricingType: 'flat',
+        providerCostUsd: 0.15,
+      },
+    });
+
+    setRuntimeMarginMultiplier(1);
+  });
+
+  it('omits pricing audit metadata when no model row was resolved', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 10 });
+    const ctx = createContext();
+    await guard.canActivate(ctx);
+
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(
+      (req.creditsConfig as Record<string, unknown>).pricingMetadata,
+    ).toBeUndefined();
   });
 
   it('scales providerCostUsd by duration for per-second video models', async () => {
@@ -515,6 +602,26 @@ describe('CreditsGuard', () => {
       expect(body.duration).toBe(duration);
     },
   );
+
+  it('retains the raw duration for nonmusic credit admission', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+      key === CREDITS_KEY
+        ? { source: ActivitySource.VIDEO_GENERATION }
+        : undefined,
+    );
+    modelsService.findOne.mockResolvedValue({
+      cost: 7,
+      costPerUnit: 2,
+      key: 'video-model',
+      pricingType: 'per-second',
+    });
+    await guard.canActivate(
+      createContext({ model: 'video-model', duration: 90 }),
+    );
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 180);
+  });
 
   it('multiplies credits by 2 for high resolution via data.attributes', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
@@ -765,6 +872,14 @@ describe('CreditsGuard', () => {
     });
   });
 
+  it('stores creditsConfig on the request after successful check', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 7 });
+    const ctx = createContext();
+    await guard.canActivate(ctx);
+    const req = ctx.switchToHttp().getRequest() as Record<string, unknown>;
+    expect(req.creditsConfig).toMatchObject({ amount: 7 });
+  });
+
   it('returns true and sets deferred flag when autoSelectModel is true with no model', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
       description: 'Image generation',
@@ -819,5 +934,20 @@ describe('CreditsGuard', () => {
     expect(
       creditsUtilsService.checkOrganizationCreditsAvailable,
     ).toHaveBeenCalled();
+  });
+
+  it('throws when user has no organization', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({ amount: 5 });
+    const req: Record<string, unknown> = {
+      body: {},
+      params: {},
+      user: { id: 'user-1' },
+    };
+    const ctx = {
+      getClass: vi.fn(),
+      getHandler: vi.fn(),
+      switchToHttp: () => ({ getRequest: () => req }),
+    } as unknown as ExecutionContext;
+    await expect(guard.canActivate(ctx)).rejects.toThrow();
   });
 });

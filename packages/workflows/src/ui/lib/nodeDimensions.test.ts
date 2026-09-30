@@ -171,6 +171,11 @@ describe('calculateNodeSizePreservingHeight', () => {
     expect(narrow.width).toBe(200);
   });
 
+  it('recomputes from scratch when the height is out of range', () => {
+    const size = calculateNodeSizePreservingHeight(16 / 9, 900);
+    expect(size).toEqual(calculateNodeSize(16 / 9));
+  });
+
   it('recomputes when no height is provided', () => {
     expect(calculateNodeSizePreservingHeight(16 / 9)).toEqual(
       calculateNodeSize(16 / 9),

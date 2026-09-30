@@ -73,6 +73,10 @@ describe('AgentMemoriesController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // ── personal / brand visibility ───────────────────────────────────────────
 
   describe('personal and brand memories', () => {

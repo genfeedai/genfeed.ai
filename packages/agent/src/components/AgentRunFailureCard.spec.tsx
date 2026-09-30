@@ -77,4 +77,21 @@ describe('AgentRunFailureCard', () => {
     expect(card).toHaveClass('shadow-border');
     expect(card).not.toHaveClass('bg-destructive/15');
   });
+
+  it('offers retry for a transient failure', () => {
+    render(<AgentRunFailureCard error="status code 503" onRetry={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
+  });
+
+  it('does not offer an unsafe retry for a terminal configuration failure', () => {
+    render(
+      <AgentRunFailureCard
+        error="Provider authentication failed"
+        onRetry={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
+  });
 });

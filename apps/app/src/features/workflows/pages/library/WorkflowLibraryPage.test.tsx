@@ -376,7 +376,7 @@ describe('WorkflowLibraryPage card semantics', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/acme/brand/automation/workflows/templates',
+      '/acme/brand/automation/workflows?view=templates',
     );
     expect(
       search.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -472,6 +472,29 @@ describe('WorkflowLibraryPage card semantics', () => {
     ).toBeInTheDocument();
   });
 
+  it.each(['list', 'grid'])(
+    'only permits removing existing favorites from read-only team rows in %s',
+    (view) => {
+      mocks.mostUsed = [{ ...mocks.workflows[0], executionCount: 23 }];
+      const { rerender } = render(<WorkflowLibraryPage />);
+      if (view === 'grid')
+        fireEvent.click(screen.getByRole('radio', { name: 'Grid' }));
+      const team = within(screen.getByTestId('workflow-section-most-used'));
+      expect(
+        team.queryByRole('button', { name: 'Add to favorites' }),
+      ).toBeNull();
+      mocks.favoriteIds = ['workflow-1'];
+      rerender(<WorkflowLibraryPage />);
+      fireEvent.click(
+        team.getByRole('button', { name: 'Remove from favorites' }),
+      );
+      expect(mocks.toggleFavorite).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'workflow-1' }),
+      );
+      expect(team.queryByRole('button', { name: 'Duplicate' })).toBeNull();
+    },
+  );
+
   it('keeps the library usable when Favorites fails', () => {
     mocks.favoriteError = true;
     render(<WorkflowLibraryPage />);
@@ -501,6 +524,14 @@ describe('WorkflowLibraryPage card semantics', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Disable schedules' }));
     expect(mocks.handleDisableSelected).toHaveBeenCalledOnce();
+  });
+
+  it('does not label hosted SaaS workflows as local or synced', () => {
+    mocks.cloudSync = null;
+    render(<WorkflowLibraryPage />);
+
+    expect(screen.queryByText('local')).not.toBeInTheDocument();
+    expect(screen.queryByText('synced')).not.toBeInTheDocument();
   });
 
   it('uses semantic status tokens for cloud and system workflow badges', () => {
@@ -540,6 +571,18 @@ describe('WorkflowLibraryPage card semantics', () => {
         name: 'Disable schedule for Scheduled workflow',
       }),
     ).toBeVisible();
+  });
+
+  it('lets operators pause system workflow schedules', () => {
+    mocks.isSystemWorkflow = true;
+    render(<WorkflowLibraryPage />);
+
+    expect(
+      screen.getByRole('switch', {
+        name: 'Disable schedule for Scheduled workflow',
+      }),
+    ).toBeVisible();
+    expect(screen.queryByText('Platform-managed')).not.toBeInTheDocument();
   });
 
   it('keeps search and creation in the sub-navbar while the initial load is pending', () => {

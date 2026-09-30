@@ -16,6 +16,10 @@ function buildPersuasionScores(
 }
 
 describe('getPersuasionHighlight', () => {
+  it('returns undefined when there is no persuasion result', () => {
+    expect(getPersuasionHighlight(undefined)).toBeUndefined();
+  });
+
   it('picks the highest-scoring layer', () => {
     const highlight = getPersuasionHighlight(
       buildPersuasionScores({ hookStrength: 92 }),

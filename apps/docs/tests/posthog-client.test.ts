@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildDocsPosthogOptions } from '../lib/analytics/posthog-client';
 
 const mocks = vi.hoisted(() => ({
   posthogImport: vi.fn(),
@@ -37,6 +38,30 @@ afterEach(() => {
 });
 
 describe('docs PostHog client', () => {
+  it('tracks page journeys and semantic controls without browser storage', () => {
+    expect(buildDocsPosthogOptions('https://eu.i.posthog.com')).toEqual({
+      api_host: 'https://eu.i.posthog.com',
+      autocapture: {
+        capture_copied_text: false,
+        dom_event_allowlist: ['click'],
+        element_allowlist: ['a', 'button'],
+      },
+      capture_dead_clicks: false,
+      capture_pageleave: true,
+      capture_pageview: 'history_change',
+      capture_performance: {
+        network_timing: false,
+        web_vitals: true,
+        web_vitals_attribution: false,
+      },
+      cookieless_mode: 'always',
+      defaults: '2026-05-30',
+      disable_session_recording: true,
+      disable_surveys: true,
+      person_profiles: 'never',
+    });
+  });
+
   it('imports and initializes PostHog for a valid project token', async () => {
     await loadInstrumentationClient();
 

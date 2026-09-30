@@ -92,6 +92,13 @@ describe('promptsApi', () => {
       );
     });
 
+    it('should handle empty query', async () => {
+      (apiClient.get as Mock).mockResolvedValueOnce([]);
+
+      const result = await promptsApi.getAll();
+      expect(result).toEqual([]);
+    });
+
     it('should pass sorting options', async () => {
       (apiClient.get as Mock).mockResolvedValueOnce([mockPromptItem]);
 

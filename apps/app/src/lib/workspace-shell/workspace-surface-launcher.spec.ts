@@ -2,6 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { resolveWorkspaceSurfaceLaunch } from './workspace-surface-launcher';
 
 describe('workspace surface launcher', () => {
+  it('preserves destination search params without leaking thread identity into canvas launches', () => {
+    expect(
+      resolveWorkspaceSurfaceLaunch({
+        currentHref: '/acme/~/agent/thread-1',
+        destinationHref: '/acme/~/analytics?taskId=task-1&taskSource=workspace',
+      }),
+    ).toMatchObject({
+      announcement: 'Opening analytics in canvas mode.',
+      history: 'push',
+      href: '/acme/~/analytics?taskId=task-1&taskSource=workspace',
+      mode: 'canvas',
+    });
+  });
+
   it('returns to the canonical active-thread conversation URL', () => {
     expect(
       resolveWorkspaceSurfaceLaunch({
@@ -22,6 +36,20 @@ describe('workspace surface launcher', () => {
         destinationHref: '/other/~/workspace/overview?thread=attacker-thread',
       }).href,
     ).toBe('/other/~/workspace/overview');
+  });
+
+  it('uses canvas navigation for settings and strips overlay and thread authority', () => {
+    expect(
+      resolveWorkspaceSurfaceLaunch({
+        currentHref: '/acme/~/agent/thread-1',
+        destinationHref:
+          '/acme/~/settings/subscription?overlay=library-picker&thread=thread-1',
+      }),
+    ).toMatchObject({
+      announcement: 'Opening organization settings in canvas mode.',
+      href: '/acme/~/settings/subscription',
+      mode: 'canvas',
+    });
   });
 
   it('keeps unknown routes outside shell state without navigating', () => {

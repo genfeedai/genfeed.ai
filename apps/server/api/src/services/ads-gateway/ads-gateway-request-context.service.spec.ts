@@ -87,6 +87,31 @@ describe('AdsGatewayRequestContextService', () => {
     },
   );
 
+  it('decrypts credentials and returns only the bounded adapter context', async () => {
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: EncryptionUtil.encrypt('x-access-token'),
+      accessTokenSecret: EncryptionUtil.encrypt('x-access-token-secret'),
+      developerToken: 'must-not-leak',
+      refreshToken: 'must-not-leak',
+    });
+
+    const context = await service.createAdapterContext(user, AdsPlatform.X, {
+      adAccountId: 'act-123',
+      credentialId,
+      loginCustomerId: 'login-customer-123',
+    });
+
+    expect(context).toEqual({
+      accessToken: 'x-access-token',
+      accessTokenSecret: 'x-access-token-secret',
+      adAccountId: 'act-123',
+      brandId: undefined,
+      credentialId,
+      loginCustomerId: 'login-customer-123',
+      organizationId: 'corg000000000000000000001',
+    });
+  });
+
   it.each([
     [null, `Credential ${credentialId} not found or missing access token`],
     [
@@ -106,4 +131,22 @@ describe('AdsGatewayRequestContextService', () => {
       ).rejects.toThrow(new UnauthorizedException(message));
     },
   );
+
+  it('requires the OAuth 1.0a token secret for X Ads', async () => {
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: EncryptionUtil.encrypt('x-access-token'),
+      accessTokenSecret: null,
+    });
+
+    await expect(
+      service.createAdapterContext(user, AdsPlatform.X, {
+        adAccountId: 'act-123',
+        credentialId,
+      }),
+    ).rejects.toThrow(
+      new UnauthorizedException(
+        `Credential ${credentialId} not found or missing access token secret`,
+      ),
+    );
+  });
 });

@@ -15,6 +15,10 @@ describe('reference.util', () => {
   });
 
   describe('resolveIngredientReferenceUrl', () => {
+    it('should return null for null input', () => {
+      expect(resolveIngredientReferenceUrl(null)).toBeNull();
+    });
+
     it('should return null for undefined input', () => {
       expect(resolveIngredientReferenceUrl(undefined)).toBeNull();
     });
@@ -123,6 +127,12 @@ describe('reference.util', () => {
       expect(result).toBe(
         `${EnvironmentService.ingredientsEndpoint}/images/asset-123`,
       );
+    });
+
+    it('should return null when asset has no URL or ID', () => {
+      const asset = {};
+      const result = resolveIngredientReferenceUrl(asset);
+      expect(result).toBeNull();
     });
 
     it('should return null when asset has empty ID', () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ApiError,
   AuthError,
+  BaseCliError,
   formatError,
   GenfeedError,
   handleError,
@@ -25,6 +26,17 @@ describe('utils/errors', () => {
       expect(error.name).toBe('GenfeedError');
       expect(error.suggestion).toBeUndefined();
     });
+
+    it('creates error with message and suggestion', () => {
+      const error = new GenfeedError('Test error', 'Try this instead');
+      expect(error.message).toBe('Test error');
+      expect(error.suggestion).toBe('Try this instead');
+    });
+
+    it('is instance of Error', () => {
+      const error = new GenfeedError('Test');
+      expect(error).toBeInstanceOf(Error);
+    });
   });
 
   describe('AuthError', () => {
@@ -33,6 +45,17 @@ describe('utils/errors', () => {
       expect(error.message).toBe('Not authenticated');
       expect(error.name).toBe('AuthError');
       expect(error.suggestion).toBe('Run `gf login` to authenticate');
+    });
+
+    it('creates error with custom message', () => {
+      const error = new AuthError('Custom auth error');
+      expect(error.message).toBe('Custom auth error');
+      expect(error.suggestion).toBe('Run `gf login` to authenticate');
+    });
+
+    it('is instance of GenfeedError', () => {
+      const error = new AuthError();
+      expect(error).toBeInstanceOf(GenfeedError);
     });
   });
 
@@ -45,11 +68,22 @@ describe('utils/errors', () => {
       expect(error.suggestion).toBeUndefined();
     });
 
+    it('creates error with status code', () => {
+      const error = new ApiError('Not found', 404);
+      expect(error.message).toBe('Not found');
+      expect(error.statusCode).toBe(404);
+    });
+
     it('creates error with status code and suggestion', () => {
       const error = new ApiError('Forbidden', 403, 'Check your permissions');
       expect(error.message).toBe('Forbidden');
       expect(error.statusCode).toBe(403);
       expect(error.suggestion).toBe('Check your permissions');
+    });
+
+    it('is instance of BaseCliError', () => {
+      const error = new ApiError('Test');
+      expect(error).toBeInstanceOf(BaseCliError);
     });
   });
 
@@ -60,14 +94,59 @@ describe('utils/errors', () => {
       expect(error.name).toBe('NoBrandError');
       expect(error.suggestion).toBe('Run `gf brand use` to choose a brand');
     });
+
+    it('is instance of GenfeedError', () => {
+      const error = new NoBrandError();
+      expect(error).toBeInstanceOf(GenfeedError);
+    });
   });
 
   describe('formatError', () => {
+    it('formats GenfeedError without suggestion', () => {
+      const error = new GenfeedError('Something went wrong');
+      const formatted = formatError(error);
+      expect(formatted).toContain('Something went wrong');
+    });
+
+    it('formats GenfeedError with suggestion', () => {
+      const error = new GenfeedError('Something went wrong', 'Try again');
+      const formatted = formatError(error);
+      expect(formatted).toContain('Something went wrong');
+      expect(formatted).toContain('Try again');
+    });
+
     it('formats AuthError', () => {
       const error = new AuthError();
       const formatted = formatError(error);
       expect(formatted).toContain('Not authenticated');
       expect(formatted).toContain('gf login');
+    });
+
+    it('formats ApiError', () => {
+      const error = new ApiError('Bad request', 400);
+      const formatted = formatError(error);
+      expect(formatted).toContain('Bad request');
+    });
+
+    it('formats standard Error', () => {
+      const error = new Error('Standard error');
+      const formatted = formatError(error);
+      expect(formatted).toContain('Standard error');
+    });
+
+    it('formats unknown error', () => {
+      const formatted = formatError('just a string');
+      expect(formatted).toContain('unknown error');
+    });
+
+    it('formats null error', () => {
+      const formatted = formatError(null);
+      expect(formatted).toContain('unknown error');
+    });
+
+    it('formats undefined error', () => {
+      const formatted = formatError(undefined);
+      expect(formatted).toContain('unknown error');
     });
   });
 
@@ -115,6 +194,13 @@ describe('utils/errors', () => {
       } finally {
         setReplMode(false);
       }
+    });
+
+    it('exits again after REPL mode is disabled', () => {
+      setReplMode(true);
+      setReplMode(false);
+      expect(() => handleError(new GenfeedError('fatal'))).toThrow('process.exit called');
+      expect(mockExit).toHaveBeenCalledWith(1);
     });
   });
 });

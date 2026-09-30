@@ -34,6 +34,15 @@ describe('deriveMcpResourceIdentifier', () => {
     );
   });
 
+  it('rejects relative and malformed values naming the source key', () => {
+    expect(() =>
+      deriveMcpResourceIdentifier(
+        'mcp.genfeed.ai/mcp',
+        'GENFEEDAI_MCP_PUBLIC_URL',
+      ),
+    ).toThrow(/GENFEEDAI_MCP_PUBLIC_URL/);
+  });
+
   it('rejects query strings and fragments', () => {
     expect(() =>
       deriveMcpResourceIdentifier(

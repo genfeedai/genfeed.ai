@@ -70,6 +70,11 @@ describe('useDominantColor', () => {
     vi.restoreAllMocks();
   });
 
+  it('returns null when no url is provided', () => {
+    const { result } = renderHook(() => useDominantColor(null));
+    expect(result.current).toBeNull();
+  });
+
   it('returns null for an empty string url', () => {
     const { result } = renderHook(() => useDominantColor(''));
     expect(result.current).toBeNull();

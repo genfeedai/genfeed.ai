@@ -69,6 +69,10 @@ describe('PresetsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
       const inputQuery = { category: 'video' };
@@ -82,6 +86,89 @@ describe('PresetsController', () => {
       const query = controller.buildFindAllQuery(mockUser, {});
 
       expect(query.orderBy).toEqual({ createdAt: -1 });
+    });
+
+    it('should filter by category', () => {
+      const inputQuery = { category: 'image' };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      expect(query).toBeDefined();
+    });
+
+    it('should filter by active status', () => {
+      const inputQuery = { isActive: true };
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      expect(query).toBeDefined();
+    });
+  });
+
+  describe('enrichCreateDto', () => {
+    it('should enrich create DTO for superadmin', () => {
+      const createDto: CreatePresetDto = {
+        category: 'video',
+        key: 'new',
+        label: 'New Preset',
+      };
+
+      const enriched = controller.enrichCreateDto(createDto, mockUser);
+
+      expect(enriched).toBeDefined();
+    });
+
+    it('should add organization for non-superadmin', () => {
+      const regularUser: User = {
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
+      } as unknown as User;
+
+      const createDto: CreatePresetDto = {
+        category: 'video',
+        key: 'new',
+        label: 'New Preset',
+      };
+
+      const enriched = controller.enrichCreateDto(createDto, regularUser);
+
+      expect(enriched.organizationId).toBeDefined();
+    });
+  });
+
+  describe('canUserModifyEntity', () => {
+    it('should allow superadmin to modify any preset', () => {
+      const entity = { organizationId: null };
+      const result = controller.canUserModifyEntity(mockUser, entity);
+
+      expect(result).toBe(true);
+    });
+
+    it('should deny non-admin modifying default presets', () => {
+      const regularUser: User = {
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
+      } as unknown as User;
+
+      const entity = { organizationId: null };
+      const result = controller.canUserModifyEntity(regularUser, entity);
+
+      expect(result).toBe(false);
+    });
+
+    it('should allow modifying own organization presets', () => {
+      const regularUser: User = {
+        isSuperAdmin: false,
+        organizationId: 'cmorganization000000000000001',
+        userId: 'cmuser0000000000000000001',
+      } as unknown as User;
+
+      const entity = {
+        organizationId: 'cmorganization000000000000001',
+      };
+      const result = controller.canUserModifyEntity(regularUser, entity);
+
+      expect(result).toBe(true);
     });
   });
 

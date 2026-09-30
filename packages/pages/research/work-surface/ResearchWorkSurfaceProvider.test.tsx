@@ -70,6 +70,13 @@ describe('ResearchWorkSurfaceProvider', () => {
     });
   });
 
+  it('does not rewrite canonical urls', () => {
+    mocks.searchParamsString.value = 'q=growth&page=2';
+    renderHook(() => useOptionalResearchWorkSurface(), { wrapper });
+
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
   it('selects a finding by pushing the encoded reference', () => {
     const { result } = renderHook(() => useOptionalResearchWorkSurface(), {
       wrapper,

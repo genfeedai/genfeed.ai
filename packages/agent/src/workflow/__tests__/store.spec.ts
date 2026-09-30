@@ -11,6 +11,10 @@ describe('AgentWorkflowStore', () => {
   });
 
   describe('phase transitions', () => {
+    it('starts at exploring', () => {
+      expect(getState().phase).toBe('exploring');
+    });
+
     it('advances from exploring to clarifying', () => {
       const result = getState().advance('agent');
       expect(result).toBe(true);
@@ -155,6 +159,36 @@ describe('AgentWorkflowStore', () => {
       expect(getState().phase).toBe('awaiting_approval');
 
       expect(getState().approveApproach()).toBe(false);
+    });
+  });
+
+  describe('verification', () => {
+    it('adds evidence and checks all passed', () => {
+      getState().addEvidence({
+        content: '10/10 passed',
+        passed: true,
+        title: 'Unit tests',
+        type: 'test_result',
+      });
+      getState().addEvidence({
+        content: '+ new line',
+        passed: true,
+        title: 'Code diff',
+        type: 'diff',
+      });
+
+      expect(getState().getAllEvidencePassed()).toBe(true);
+    });
+
+    it('reports not all passed when evidence fails', () => {
+      getState().addEvidence({
+        content: 'fail',
+        passed: false,
+        title: 'Tests',
+        type: 'test_result',
+      });
+
+      expect(getState().getAllEvidencePassed()).toBe(false);
     });
   });
 

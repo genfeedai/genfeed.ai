@@ -46,6 +46,11 @@ describe('WorkflowBuilder', () => {
     vi.clearAllMocks();
   });
 
+  it('should render without crashing', () => {
+    const { container } = render(<WorkflowBuilder {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should display loading state when isLoading is true', () => {
     const mockedUseWorkflowBuilder = vi.mocked(
       workflowBuilderHook.useWorkflowBuilder,
@@ -70,6 +75,11 @@ describe('WorkflowBuilder', () => {
 
     const { getByText } = render(<WorkflowBuilder {...defaultProps} />);
     expect(getByText(/Error loading workflow builder/)).toBeInTheDocument();
+  });
+
+  it('should render WorkflowToolbar with correct props', () => {
+    const { container } = render(<WorkflowBuilder {...defaultProps} />);
+    expect(container.querySelector('h2')).toBeInTheDocument();
   });
 
   it('should render NodePalette, WorkflowCanvas, and panels', () => {
@@ -99,5 +109,18 @@ describe('WorkflowBuilder', () => {
     await waitFor(() => {
       expect(onSave).toHaveBeenCalled();
     });
+  });
+
+  it('should toggle palette collapse state', () => {
+    const { container } = render(<WorkflowBuilder {...defaultProps} />);
+    const paletteContainer = container.querySelector('.border-r');
+    expect(paletteContainer).toBeInTheDocument();
+  });
+
+  it('should handle read-only mode', () => {
+    const { container } = render(
+      <WorkflowBuilder {...defaultProps} isReadOnly={true} />,
+    );
+    expect(container).toBeInTheDocument();
   });
 });

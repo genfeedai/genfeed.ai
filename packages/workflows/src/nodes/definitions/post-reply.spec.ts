@@ -27,5 +27,10 @@ describe('post-reply node', () => {
     it('should default mediaUrl to empty string', () => {
       expect(DEFAULT_POST_REPLY_DATA.mediaUrl).toBe('');
     });
+
+    it('should default output fields to null', () => {
+      expect(DEFAULT_POST_REPLY_DATA.replyId).toBeNull();
+      expect(DEFAULT_POST_REPLY_DATA.replyUrl).toBeNull();
+    });
   });
 });

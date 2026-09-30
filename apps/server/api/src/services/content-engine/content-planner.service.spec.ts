@@ -315,6 +315,10 @@ describe('ContentPlannerService', () => {
 
   // ─── instantiation ────────────────────────────────────────────────────────
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   // ─── generatePlan – happy path ────────────────────────────────────────────
 
   it('should throw BadRequestException when brand is not found', async () => {
@@ -483,6 +487,18 @@ describe('ContentPlannerService', () => {
       (i: { type: string }) => i.type === ContentPlanItemType.MEDIA_PIPELINE,
     );
     expect(pipelineItems.length).toBeGreaterThan(0);
+  });
+
+  it('should pass scheduledAt as Date when provided', async () => {
+    stubGeneratePlan();
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
+    const withDate = createManyArg.find(
+      (i: { scheduledAt?: unknown }) => i.scheduledAt !== undefined,
+    );
+    expect(withDate?.scheduledAt).toBeInstanceOf(Date);
   });
 
   it('should log success after plan creation', async () => {

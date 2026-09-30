@@ -114,6 +114,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(taskAttributes);
+      expect(unique.size).toBe(taskAttributes.length);
+    });
   });
 
   describe('botActivityAttributes', () => {
@@ -123,6 +128,11 @@ describe('Serializer Attributes', () => {
       for (const attr of botActivityAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(botActivityAttributes);
+      expect(unique.size).toBe(botActivityAttributes.length);
     });
   });
 
@@ -134,6 +144,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(replyBotConfigAttributes);
+      expect(unique.size).toBe(replyBotConfigAttributes.length);
+    });
   });
 
   describe('botAttributes', () => {
@@ -143,6 +158,11 @@ describe('Serializer Attributes', () => {
       for (const attr of botAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(botAttributes);
+      expect(unique.size).toBe(botAttributes.length);
     });
   });
 
@@ -154,6 +174,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(monitoredAccountAttributes);
+      expect(unique.size).toBe(monitoredAccountAttributes.length);
+    });
   });
 
   describe('workflowAttributes', () => {
@@ -163,6 +188,11 @@ describe('Serializer Attributes', () => {
       for (const attr of workflowAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(workflowAttributes);
+      expect(unique.size).toBe(workflowAttributes.length);
     });
   });
 
@@ -184,15 +214,42 @@ describe('Serializer Attributes', () => {
         expect.arrayContaining(['user', 'organization']),
       );
     });
+
+    it('keeps the hydrated workflow relation so lists can show its label', () => {
+      expect(workflowExecutionAttributes).toContain('workflow');
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(workflowExecutionAttributes);
+      expect(unique.size).toBe(workflowExecutionAttributes.length);
+    });
   });
 
   describe('evaluationAttributes', () => {
+    it('uses the canonical Prisma relation IDs and nested data payload', () => {
+      expect(evaluationAttributes).toEqual([
+        'organizationId',
+        'userId',
+        'contentType',
+        'contentId',
+        'data',
+        'createdAt',
+        'updatedAt',
+        'isDeleted',
+      ]);
+    });
+
     it('should be a non-empty array of strings', () => {
       expect(Array.isArray(evaluationAttributes)).toBe(true);
       expect(evaluationAttributes.length).toBeGreaterThan(0);
       for (const attr of evaluationAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(evaluationAttributes);
+      expect(unique.size).toBe(evaluationAttributes.length);
     });
   });
 
@@ -204,6 +261,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(watchlistAttributes);
+      expect(unique.size).toBe(watchlistAttributes.length);
+    });
   });
 
   describe('stripeCheckoutAttributes', () => {
@@ -213,6 +275,11 @@ describe('Serializer Attributes', () => {
       for (const attr of stripeCheckoutAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(stripeCheckoutAttributes);
+      expect(unique.size).toBe(stripeCheckoutAttributes.length);
     });
   });
 
@@ -224,6 +291,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(stripeUrlAttributes);
+      expect(unique.size).toBe(stripeUrlAttributes.length);
+    });
   });
 
   describe('serviceAttributes', () => {
@@ -233,6 +305,11 @@ describe('Serializer Attributes', () => {
       for (const attr of serviceAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(serviceAttributes);
+      expect(unique.size).toBe(serviceAttributes.length);
     });
   });
 
@@ -244,6 +321,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsAttributes);
+      expect(unique.size).toBe(analyticsAttributes.length);
+    });
   });
 
   describe('analyticsGrowthAttributes', () => {
@@ -253,6 +335,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsGrowthAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsGrowthAttributes);
+      expect(unique.size).toBe(analyticsGrowthAttributes.length);
     });
   });
 
@@ -264,6 +351,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsBrandLeaderboardAttributes);
+      expect(unique.size).toBe(analyticsBrandLeaderboardAttributes.length);
+    });
   });
 
   describe('apiKeyFullAttributes', () => {
@@ -273,6 +365,11 @@ describe('Serializer Attributes', () => {
       for (const attr of apiKeyFullAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(apiKeyFullAttributes);
+      expect(unique.size).toBe(apiKeyFullAttributes.length);
     });
 
     it('exposes the one-time key without a stale token alias', () => {
@@ -290,6 +387,11 @@ describe('Serializer Attributes', () => {
       }
     });
 
+    it('should not contain duplicates', () => {
+      const unique = new Set(apiKeyAttributes);
+      expect(unique.size).toBe(apiKeyAttributes.length);
+    });
+
     it('excludes sensitive key material', () => {
       expect(apiKeyAttributes).not.toContain('key');
       expect(apiKeyAttributes).not.toContain('token');
@@ -304,6 +406,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsHooksAttributes);
+      expect(unique.size).toBe(analyticsHooksAttributes.length);
+    });
   });
 
   describe('analyticsTopContentAttributes', () => {
@@ -313,6 +420,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsTopContentAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsTopContentAttributes);
+      expect(unique.size).toBe(analyticsTopContentAttributes.length);
     });
   });
 
@@ -324,6 +436,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsEngagementAttributes);
+      expect(unique.size).toBe(analyticsEngagementAttributes.length);
+    });
   });
 
   describe('analyticsTrendAttributes', () => {
@@ -333,6 +450,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsTrendAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsTrendAttributes);
+      expect(unique.size).toBe(analyticsTrendAttributes.length);
     });
   });
 
@@ -344,6 +466,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsOverviewAttributes);
+      expect(unique.size).toBe(analyticsOverviewAttributes.length);
+    });
   });
 
   describe('activityAttributes', () => {
@@ -353,6 +480,11 @@ describe('Serializer Attributes', () => {
       for (const attr of activityAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(activityAttributes);
+      expect(unique.size).toBe(activityAttributes.length);
     });
   });
 
@@ -364,6 +496,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(activityBulkPatchAttributes);
+      expect(unique.size).toBe(activityBulkPatchAttributes.length);
+    });
   });
 
   describe('analyticsPaginatedStatsAttributes', () => {
@@ -373,6 +510,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsPaginatedStatsAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsPaginatedStatsAttributes);
+      expect(unique.size).toBe(analyticsPaginatedStatsAttributes.length);
     });
   });
 
@@ -384,6 +526,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsOrgStatsAttributes);
+      expect(unique.size).toBe(analyticsOrgStatsAttributes.length);
+    });
   });
 
   describe('analyticsBrandStatsAttributes', () => {
@@ -393,6 +540,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsBrandStatsAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsBrandStatsAttributes);
+      expect(unique.size).toBe(analyticsBrandStatsAttributes.length);
     });
   });
 
@@ -404,6 +556,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsOrgLeaderboardAttributes);
+      expect(unique.size).toBe(analyticsOrgLeaderboardAttributes.length);
+    });
   });
 
   describe('analyticsPlatformAttributes', () => {
@@ -414,6 +571,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsPlatformAttributes);
+      expect(unique.size).toBe(analyticsPlatformAttributes.length);
+    });
   });
 
   describe('analyticsTimeSeriesAttributes', () => {
@@ -423,6 +585,11 @@ describe('Serializer Attributes', () => {
       for (const attr of analyticsTimeSeriesAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsTimeSeriesAttributes);
+      expect(unique.size).toBe(analyticsTimeSeriesAttributes.length);
     });
   });
 
@@ -438,6 +605,13 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(analyticsTimeSeriesWithPlatformsAttributes);
+      expect(unique.size).toBe(
+        analyticsTimeSeriesWithPlatformsAttributes.length,
+      );
+    });
   });
 
   describe('organizationAttributes', () => {
@@ -447,6 +621,11 @@ describe('Serializer Attributes', () => {
       for (const attr of organizationAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(organizationAttributes);
+      expect(unique.size).toBe(organizationAttributes.length);
     });
   });
 
@@ -458,6 +637,22 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(organizationSettingsAttributes);
+      expect(unique.size).toBe(organizationSettingsAttributes.length);
+    });
+
+    it('exposes the per-platform daily publishing caps', () => {
+      expect(organizationSettingsAttributes).toEqual(
+        expect.arrayContaining([
+          'quotaYoutube',
+          'quotaTiktok',
+          'quotaTwitter',
+          'quotaInstagram',
+        ]),
+      );
+    });
   });
 
   describe('credentialAttributes', () => {
@@ -467,6 +662,11 @@ describe('Serializer Attributes', () => {
       for (const attr of credentialAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(credentialAttributes);
+      expect(unique.size).toBe(credentialAttributes.length);
     });
 
     it('exposes public profile identity without credential secrets', () => {
@@ -487,6 +687,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(credentialInstagramAttributes);
+      expect(unique.size).toBe(credentialInstagramAttributes.length);
+    });
   });
 
   describe('credentialOAuthAttributes', () => {
@@ -496,6 +701,11 @@ describe('Serializer Attributes', () => {
       for (const attr of credentialOAuthAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(credentialOAuthAttributes);
+      expect(unique.size).toBe(credentialOAuthAttributes.length);
     });
   });
 
@@ -507,6 +717,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(memberAttributes);
+      expect(unique.size).toBe(memberAttributes.length);
+    });
   });
 
   describe('brandAttributes', () => {
@@ -516,6 +731,11 @@ describe('Serializer Attributes', () => {
       for (const attr of brandAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(brandAttributes);
+      expect(unique.size).toBe(brandAttributes.length);
     });
   });
 
@@ -527,6 +747,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(trainingAttributes);
+      expect(unique.size).toBe(trainingAttributes.length);
+    });
   });
 
   describe('modelAttributes', () => {
@@ -536,6 +761,11 @@ describe('Serializer Attributes', () => {
       for (const attr of modelAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(modelAttributes);
+      expect(unique.size).toBe(modelAttributes.length);
     });
   });
 
@@ -547,6 +777,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(trendAttributes);
+      expect(unique.size).toBe(trendAttributes.length);
+    });
   });
 
   describe('roleAttributes', () => {
@@ -556,6 +791,11 @@ describe('Serializer Attributes', () => {
       for (const attr of roleAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(roleAttributes);
+      expect(unique.size).toBe(roleAttributes.length);
     });
   });
 
@@ -567,6 +807,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(voteAttributes);
+      expect(unique.size).toBe(voteAttributes.length);
+    });
   });
 
   describe('promptAttributes', () => {
@@ -576,6 +821,11 @@ describe('Serializer Attributes', () => {
       for (const attr of promptAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(promptAttributes);
+      expect(unique.size).toBe(promptAttributes.length);
     });
   });
 
@@ -587,6 +837,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(folderAttributes);
+      expect(unique.size).toBe(folderAttributes.length);
+    });
   });
 
   describe('tagAttributes', () => {
@@ -597,6 +852,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(tagAttributes);
+      expect(unique.size).toBe(tagAttributes.length);
+    });
   });
 
   describe('settingAttributes', () => {
@@ -606,6 +866,11 @@ describe('Serializer Attributes', () => {
       for (const attr of settingAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(settingAttributes);
+      expect(unique.size).toBe(settingAttributes.length);
     });
 
     it('should include persisted UI preference attributes', () => {
@@ -625,6 +890,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(userAttributes);
+      expect(unique.size).toBe(userAttributes.length);
+    });
   });
 
   describe('imageAttributes', () => {
@@ -634,6 +904,11 @@ describe('Serializer Attributes', () => {
       for (const attr of imageAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(imageAttributes);
+      expect(unique.size).toBe(imageAttributes.length);
     });
   });
 
@@ -645,6 +920,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(imageEditAttributes);
+      expect(unique.size).toBe(imageEditAttributes.length);
+    });
   });
 
   describe('videoAttributes', () => {
@@ -654,6 +934,11 @@ describe('Serializer Attributes', () => {
       for (const attr of videoAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(videoAttributes);
+      expect(unique.size).toBe(videoAttributes.length);
     });
   });
 
@@ -665,6 +950,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(videoEditAttributes);
+      expect(unique.size).toBe(videoEditAttributes.length);
+    });
   });
 
   describe('videoCaptionAttributes', () => {
@@ -674,6 +964,11 @@ describe('Serializer Attributes', () => {
       for (const attr of videoCaptionAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(videoCaptionAttributes);
+      expect(unique.size).toBe(videoCaptionAttributes.length);
     });
   });
 
@@ -685,6 +980,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(metadataAttributes);
+      expect(unique.size).toBe(metadataAttributes.length);
+    });
   });
 
   describe('musicAttributes', () => {
@@ -694,6 +994,26 @@ describe('Serializer Attributes', () => {
       for (const attr of musicAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(musicAttributes);
+      expect(unique.size).toBe(musicAttributes.length);
+    });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(musicAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
     });
   });
 
@@ -705,6 +1025,26 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(ingredientAttributes);
+      expect(unique.size).toBe(ingredientAttributes.length);
+    });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(ingredientAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
+    });
   });
 
   describe('avatarAttributes', () => {
@@ -714,6 +1054,11 @@ describe('Serializer Attributes', () => {
       for (const attr of avatarAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(avatarAttributes);
+      expect(unique.size).toBe(avatarAttributes.length);
     });
   });
 
@@ -725,6 +1070,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(assetAttributes);
+      expect(unique.size).toBe(assetAttributes.length);
+    });
   });
 
   describe('presignedUploadAttributes', () => {
@@ -734,6 +1084,11 @@ describe('Serializer Attributes', () => {
       for (const attr of presignedUploadAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(presignedUploadAttributes);
+      expect(unique.size).toBe(presignedUploadAttributes.length);
     });
   });
 
@@ -745,6 +1100,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(templateAttributes);
+      expect(unique.size).toBe(templateAttributes.length);
+    });
   });
 
   describe('bookmarkAttributes', () => {
@@ -754,6 +1114,11 @@ describe('Serializer Attributes', () => {
       for (const attr of bookmarkAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(bookmarkAttributes);
+      expect(unique.size).toBe(bookmarkAttributes.length);
     });
   });
 
@@ -765,6 +1130,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(templateMetadataAttributes);
+      expect(unique.size).toBe(templateMetadataAttributes.length);
+    });
   });
 
   describe('newsAttributes', () => {
@@ -774,6 +1144,11 @@ describe('Serializer Attributes', () => {
       for (const attr of newsAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(newsAttributes);
+      expect(unique.size).toBe(newsAttributes.length);
     });
   });
 
@@ -785,6 +1160,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(personaAttributes);
+      expect(unique.size).toBe(personaAttributes.length);
+    });
   });
 
   describe('postAttributes', () => {
@@ -794,6 +1174,11 @@ describe('Serializer Attributes', () => {
       for (const attr of postAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(postAttributes);
+      expect(unique.size).toBe(postAttributes.length);
     });
   });
 
@@ -805,6 +1190,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(linkAttributes);
+      expect(unique.size).toBe(linkAttributes.length);
+    });
   });
 
   describe('articleAttributes', () => {
@@ -814,6 +1204,11 @@ describe('Serializer Attributes', () => {
       for (const attr of articleAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(articleAttributes);
+      expect(unique.size).toBe(articleAttributes.length);
     });
   });
 
@@ -825,6 +1220,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(threadMessageAttributes);
+      expect(unique.size).toBe(threadMessageAttributes.length);
+    });
   });
 
   describe('subscriptionPreviewAttributes', () => {
@@ -834,6 +1234,11 @@ describe('Serializer Attributes', () => {
       for (const attr of subscriptionPreviewAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(subscriptionPreviewAttributes);
+      expect(unique.size).toBe(subscriptionPreviewAttributes.length);
     });
   });
 
@@ -845,6 +1250,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(subscriptionAttributes);
+      expect(unique.size).toBe(subscriptionAttributes.length);
+    });
   });
 
   describe('elementCameraMovementAttributes', () => {
@@ -854,6 +1264,11 @@ describe('Serializer Attributes', () => {
       for (const attr of elementCameraMovementAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementCameraMovementAttributes);
+      expect(unique.size).toBe(elementCameraMovementAttributes.length);
     });
   });
 
@@ -865,6 +1280,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(soundAttributes);
+      expect(unique.size).toBe(soundAttributes.length);
+    });
   });
 
   describe('fontFamilyAttributes', () => {
@@ -874,6 +1294,11 @@ describe('Serializer Attributes', () => {
       for (const attr of fontFamilyAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(fontFamilyAttributes);
+      expect(unique.size).toBe(fontFamilyAttributes.length);
     });
   });
 
@@ -885,6 +1310,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(commonElementBaseAttributes);
+      expect(unique.size).toBe(commonElementBaseAttributes.length);
+    });
   });
 
   describe('simpleElementAttributes', () => {
@@ -894,6 +1324,11 @@ describe('Serializer Attributes', () => {
       for (const attr of simpleElementAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(simpleElementAttributes);
+      expect(unique.size).toBe(simpleElementAttributes.length);
     });
   });
 
@@ -905,6 +1340,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementBlacklistAttributes);
+      expect(unique.size).toBe(elementBlacklistAttributes.length);
+    });
   });
 
   describe('elementMoodAttributes', () => {
@@ -914,6 +1354,11 @@ describe('Serializer Attributes', () => {
       for (const attr of elementMoodAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementMoodAttributes);
+      expect(unique.size).toBe(elementMoodAttributes.length);
     });
   });
 
@@ -925,6 +1370,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementLensAttributes);
+      expect(unique.size).toBe(elementLensAttributes.length);
+    });
   });
 
   describe('elementLightingAttributes', () => {
@@ -934,6 +1384,11 @@ describe('Serializer Attributes', () => {
       for (const attr of elementLightingAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementLightingAttributes);
+      expect(unique.size).toBe(elementLightingAttributes.length);
     });
   });
 
@@ -945,6 +1400,15 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(captionAttributes);
+      expect(unique.size).toBe(captionAttributes.length);
+    });
+
+    it('should not expose a nonexistent brand field', () => {
+      expect(captionAttributes).not.toContain('brand');
+    });
   });
 
   describe('presetAttributes', () => {
@@ -954,6 +1418,11 @@ describe('Serializer Attributes', () => {
       for (const attr of presetAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(presetAttributes);
+      expect(unique.size).toBe(presetAttributes.length);
     });
   });
 
@@ -965,6 +1434,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementStyleAttributes);
+      expect(unique.size).toBe(elementStyleAttributes.length);
+    });
   });
 
   describe('voiceAttributes', () => {
@@ -974,6 +1448,11 @@ describe('Serializer Attributes', () => {
       for (const attr of voiceAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(voiceAttributes);
+      expect(unique.size).toBe(voiceAttributes.length);
     });
   });
 
@@ -985,6 +1464,11 @@ describe('Serializer Attributes', () => {
         expect(typeof attr).toBe('string');
       }
     });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementSceneAttributes);
+      expect(unique.size).toBe(elementSceneAttributes.length);
+    });
   });
 
   describe('elementCameraAttributes', () => {
@@ -994,6 +1478,11 @@ describe('Serializer Attributes', () => {
       for (const attr of elementCameraAttributes) {
         expect(typeof attr).toBe('string');
       }
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(elementCameraAttributes);
+      expect(unique.size).toBe(elementCameraAttributes.length);
     });
   });
 });

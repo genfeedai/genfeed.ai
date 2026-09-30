@@ -54,6 +54,15 @@ describe('AnalyticsProvider behavior', () => {
     expect(contextValue.refreshTrigger).toBe(0);
   });
 
+  it('does not read the brand context unless syncing is enabled', () => {
+    render(
+      <AnalyticsProvider>
+        <Consumer />
+      </AnalyticsProvider>,
+    );
+    expect(contextValue.brandId).toBeUndefined();
+  });
+
   it('mirrors the brand context brand when syncing is enabled', () => {
     render(
       <AnalyticsProvider syncWithBrandContext>

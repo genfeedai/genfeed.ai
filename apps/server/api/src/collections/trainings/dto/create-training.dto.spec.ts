@@ -26,12 +26,29 @@ async function sourcesErrorsFor(sourceCount: number) {
 }
 
 describe('CreateTrainingDto', () => {
+  it('should be defined', () => {
+    expect(CreateTrainingDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new CreateTrainingDto();
+      expect(dto).toBeInstanceOf(CreateTrainingDto);
+    });
+
+    it('accepts a sources array at the maximum size', async () => {
+      expect(await sourcesErrorsFor(MAX_TRAINING_SOURCES)).toEqual([]);
+    });
+
     it('rejects a sources array over the maximum size', async () => {
       const sourcesErrors = await sourcesErrorsFor(MAX_TRAINING_SOURCES + 1);
 
       expect(sourcesErrors).toHaveLength(1);
       expect(sourcesErrors[0]?.constraints).toHaveProperty('arrayMaxSize');
+    });
+
+    it('still accepts the ten-source floor enforced by the handlers', async () => {
+      expect(await sourcesErrorsFor(10)).toEqual([]);
     });
   });
 });

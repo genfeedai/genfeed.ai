@@ -115,6 +115,24 @@ describe('navigation prefetch lifecycle', () => {
     expect(prefetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('cancels pending work when unmounted or the tenant destination changes', () => {
+    const { rerender, unmount } = render(
+      <IntentProbe href="/old/brand/agent" />,
+    );
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Warm route' }));
+    rerender(<IntentProbe href="/new/brand/agent" />);
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(prefetchMock).not.toHaveBeenCalled();
+    fireEvent.focus(screen.getByRole('button', { name: 'Warm route' }));
+    unmount();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(prefetchMock).not.toHaveBeenCalled();
+  });
+
   it('warms again on the next interaction after Next invalidates the route', () => {
     render(<PrefetchProbe href="/acme/brand/agent" />);
     const button = screen.getByRole('button', { name: 'Prefetch' });

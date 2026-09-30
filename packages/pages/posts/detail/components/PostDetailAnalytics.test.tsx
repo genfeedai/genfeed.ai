@@ -27,6 +27,12 @@ describe('PostDetailAnalytics', () => {
     expect(screen.getByText('Likes:')).toBeInTheDocument();
   });
 
+  it('renders the empty state when there are no stats', () => {
+    render(<PostDetailAnalytics stats={[]} />);
+
+    expect(screen.getByText('No analytics found')).toBeInTheDocument();
+  });
+
   it('renders a custom empty state label and description', () => {
     render(
       <PostDetailAnalytics
@@ -46,5 +52,13 @@ describe('PostDetailAnalytics', () => {
     );
 
     expect(container.firstChild).toBeNull();
+  });
+
+  it('forwards the className to the grid wrapper', () => {
+    const { container } = render(
+      <PostDetailAnalytics stats={stats} className="custom-analytics" />,
+    );
+
+    expect(container.firstChild).toHaveClass('custom-analytics');
   });
 });

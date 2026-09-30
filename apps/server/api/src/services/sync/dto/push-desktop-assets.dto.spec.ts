@@ -36,6 +36,12 @@ describe('PushDesktopAssetsDto', () => {
     pipe = new ValidationPipe();
   });
 
+  it(`accepts an assets array at the ${MAX_ASSETS} limit`, async () => {
+    await expect(
+      pipe.transform(buildBody(MAX_ASSETS), metadata),
+    ).resolves.toBeInstanceOf(PushDesktopAssetsDto);
+  });
+
   it('rejects an over-limit assets array with a 400', async () => {
     const error = await pipe
       .transform(buildBody(MAX_ASSETS + 1), metadata)

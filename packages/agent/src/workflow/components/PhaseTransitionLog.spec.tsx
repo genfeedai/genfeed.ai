@@ -27,6 +27,12 @@ describe('PhaseTransitionLog', () => {
     setTransitions([]);
   });
 
+  it('renders nothing when there are no transitions', () => {
+    const { container } = render(<PhaseTransitionLog />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('shows the transition count collapsed by default', () => {
     setTransitions([
       makeTransition(),

@@ -63,6 +63,19 @@ describe('TextGenerationCreditsService', () => {
         [ByokProvider.REPLICATE]: 'org-r8-key',
       });
     });
+
+    it('charges credits when any dispatched model lacks an org key', async () => {
+      byokService.resolveApiKey.mockImplementation(
+        async (_org: string, provider: ByokProvider) =>
+          provider === ByokProvider.OPENROUTER
+            ? { apiKey: 'org-or-key' }
+            : undefined,
+      );
+
+      await expect(
+        service.resolveDispatch('org-1', [OPENROUTER_MODEL, REPLICATE_MODEL]),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('ensureDeferredCredits', () => {
@@ -99,6 +112,20 @@ describe('TextGenerationCreditsService', () => {
       // The decrypted key never rides on the request's credits config.
       expect(JSON.stringify(request)).not.toContain('org-or-key');
     });
+
+    it('leaves the deferred charge on credits without an org key', async () => {
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      const request: CreditsRequest = {
+        creditsConfig: { amount: 0, deferred: true },
+      };
+
+      await expect(
+        service.ensureDeferredCredits(asRequest(request), 'org-1', [
+          OPENROUTER_MODEL,
+        ]),
+      ).resolves.toBeUndefined();
+      expect(request.creditsConfig?.isByokBypass).toBeUndefined();
+    });
   });
 
   describe('deferredKeyResolver', () => {
@@ -134,6 +161,12 @@ describe('TextGenerationCreditsService', () => {
         ),
       ).toEqual({ keys: { [ByokProvider.OPENROUTER]: 'org-or-key' } });
       expect(byokService.resolveApiKey).not.toHaveBeenCalled();
+    });
+
+    it('dispatches on the platform key when the guard charged credits', () => {
+      expect(
+        service.guardResolvedDispatch(asRequest({ creditsConfig: {} })),
+      ).toBeUndefined();
     });
 
     it('fails closed when a bypass carries no usable text key', () => {

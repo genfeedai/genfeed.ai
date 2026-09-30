@@ -35,6 +35,10 @@ describe('TaskQueueService', () => {
     service = module.get<TaskQueueService>(TaskQueueService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('addTransformJob', () => {
     it('should queue a transform job with correct params', async () => {
       const jobData: TaskJobData = {

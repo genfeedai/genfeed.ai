@@ -423,6 +423,45 @@ describe('RemixBriefInspector', () => {
     });
   });
 
+  it('edits only explicit references and leaves brand defaults server-owned', () => {
+    expect(
+      buildRemixDraftEdits(
+        {
+          angle: '',
+          aspectRatio: '9:16',
+          avatarAssetId: '',
+          callToAction: '',
+          count: 2,
+          credentialId: '',
+          fidelityMode: 'strict',
+          hook: '',
+          objective: 'Keep the source hook.',
+          outputKind: 'video',
+          references: [
+            {
+              assetId: 'brand-default-1',
+              role: 'product',
+              source: 'brand_default',
+            },
+            {
+              assetId: 'explicit-1',
+              role: 'style',
+              source: 'explicit',
+            },
+          ],
+          speechVoiceId: '',
+          storyboard: [],
+          targetPlatform: 'tiktok',
+          visualDirection: '',
+        },
+        run,
+      ),
+    ).toMatchObject({
+      fidelityMode: 'strict',
+      references: [{ assetId: 'explicit-1', role: 'style' }],
+    });
+  });
+
   it('requires a paired durable avatar and voice identity for avatar output', () => {
     mocks.run.value = {
       ...run,
@@ -508,6 +547,33 @@ describe('RemixBriefInspector', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('emits durable ingredient row ids for a complete avatar identity', () => {
+    expect(
+      buildRemixDraftEdits(
+        {
+          angle: '',
+          aspectRatio: '9:16',
+          avatarAssetId: 'avatar-row-1',
+          callToAction: '',
+          count: 2,
+          credentialId: '',
+          fidelityMode: 'guided',
+          hook: '',
+          objective: 'Deliver the source hook through the brand avatar.',
+          outputKind: 'avatar',
+          references: [],
+          speechVoiceId: 'voice-row-1',
+          storyboard: [],
+          targetPlatform: 'tiktok',
+          visualDirection: '',
+        },
+        run,
+      ).identity,
+    ).toEqual({
+      avatarAssetId: 'avatar-row-1',
+      speechVoiceId: 'voice-row-1',
+    });
+  });
   it('selects a real destination without overriding the unchanged default identity', () => {
     mocks.run.value = {
       ...run,
@@ -535,6 +601,42 @@ describe('RemixBriefInspector', () => {
     });
     expect(edits).not.toHaveProperty('identity');
   });
+
+  it('keeps incomplete avatar identity blocked for an unchanged destination', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identitySource: 'brand_default',
+        output: { ...run.draft.output, kind: 'avatar' },
+        target: { ...run.draft.target, credentialId: 'credential-1' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it.each(['explicit', undefined] as const)(
+    'does not expect a destination persona to replace frozen %s identity',
+    (identitySource) => {
+      mocks.run.value = {
+        ...run,
+        draft: {
+          ...run.draft,
+          identitySource,
+          output: { ...run.draft.output, kind: 'avatar' },
+        },
+      };
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', { name: 'Destination account' }),
+      );
+      fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+      expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    },
+  );
 
   it('allows a destination persona to resolve until the user makes a partial identity edit', () => {
     mocks.run.value = {
@@ -666,6 +768,21 @@ describe('RemixBriefInspector', () => {
       });
     },
   );
+  it('keeps an unavailable persisted destination for server validation', () => {
+    mocks.accountsHook.mockReturnValue({ accounts: [], isPending: false });
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        target: { ...run.draft.target, credentialId: 'disconnected-account' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.confirm.mock.calls[0][0].target.credentialId).toBe(
+      'disconnected-account',
+    );
+  });
 
   it.each([
     [true, false, 'Loading connected accounts…'],

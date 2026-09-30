@@ -12,6 +12,10 @@ describe('GifsService', () => {
     service = new GifsService(mockToken);
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(GifsService);
+  });
+
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
     expect(service.findOne).toBeDefined();

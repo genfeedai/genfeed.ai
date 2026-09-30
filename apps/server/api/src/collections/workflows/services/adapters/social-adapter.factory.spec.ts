@@ -26,6 +26,10 @@ describe('SocialAdapterFactory', () => {
     factory = new SocialAdapterFactory(twitterAdapter, instagramAdapter);
   });
 
+  it('should return twitter adapter for "twitter"', () => {
+    expect(factory.getAdapter('twitter')).toBe(twitterAdapter);
+  });
+
   it('should return instagram adapter for "instagram"', () => {
     expect(factory.getAdapter('instagram')).toBe(instagramAdapter);
   });

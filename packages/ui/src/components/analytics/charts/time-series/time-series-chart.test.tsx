@@ -108,6 +108,11 @@ describe('TimeSeriesChart', () => {
       expect(screen.getByText('No data available')).toBeInTheDocument();
     });
 
+    it('shows no data message when data is empty array', () => {
+      render(<TimeSeriesChart data={[]} />);
+      expect(screen.getByText('No data available')).toBeInTheDocument();
+    });
+
     it('shows suggestion to select different date range', () => {
       render(<TimeSeriesChart data={[]} />);
       expect(

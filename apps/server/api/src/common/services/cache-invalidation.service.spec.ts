@@ -55,6 +55,10 @@ describe('CacheInvalidationService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('invalidate', () => {
     it('should call redis.unlink with the provided keys', async () => {
       mockUnlink.mockResolvedValue(2);

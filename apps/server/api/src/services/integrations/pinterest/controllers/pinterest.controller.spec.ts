@@ -60,6 +60,10 @@ describe('PinterestController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('returns an auth URL with server-issued state', async () => {
     const result = await controller.connect({} as never, user, {
       brandId: 'brand-id',

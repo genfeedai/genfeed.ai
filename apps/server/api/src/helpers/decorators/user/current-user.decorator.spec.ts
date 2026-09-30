@@ -1,3 +1,4 @@
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ExecutionContext } from '@nestjs/common';
 
@@ -36,6 +37,22 @@ describe('CurrentUser Decorator', () => {
     expect(request.user.email).toBe('test@example.com');
   });
 
+  it('should return undefined when user is not in request', () => {
+    const context = createContext(undefined);
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user: MockUser | undefined }>();
+    expect(request.user).toBeUndefined();
+  });
+
+  it('should return null when user is null', () => {
+    const context = createContext(null);
+    const request = context
+      .switchToHttp()
+      .getRequest<{ user: MockUser | null }>();
+    expect(request.user).toBeNull();
+  });
+
   it('should access user with complete metadata', () => {
     const brandId = testId('brand');
 
@@ -52,5 +69,14 @@ describe('CurrentUser Decorator', () => {
     expect(request.user.id).toBe('user-456');
     expect(request.user?.role).toBe('admin');
     expect(request.user?.brandId).toBe(brandId);
+  });
+
+  it('should be defined as a param decorator factory', () => {
+    // Verify the decorator is defined and is a function
+    expect(CurrentUser).toBeDefined();
+    expect(typeof CurrentUser).toBe('function');
+    // Calling CurrentUser() returns a ParameterDecorator function
+    const decorator = CurrentUser();
+    expect(typeof decorator).toBe('function');
   });
 });

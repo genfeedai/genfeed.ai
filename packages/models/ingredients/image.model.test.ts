@@ -16,5 +16,10 @@ describe('Image', () => {
       const instance = new Image({});
       expect(instance).toBeDefined();
     });
+
+    it('should create an instance with partial data', () => {
+      const instance = new Image({ id: 'test-123' } as any);
+      expect(instance).toBeDefined();
+    });
   });
 });

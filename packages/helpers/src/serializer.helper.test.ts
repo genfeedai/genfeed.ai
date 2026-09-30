@@ -1,8 +1,10 @@
+import { Serializer } from 'ts-jsonapi';
 import { describe, expect, it } from 'vitest';
 import {
   createEntityAttributes,
   getSerializer,
   type ISerializerConfig,
+  type ISerializerOptions,
 } from './serializer.helper';
 
 describe('createEntityAttributes', () => {
@@ -123,6 +125,75 @@ describe('Serializer Helper', () => {
         'updatedAt',
         'isDeleted',
       ]);
+    });
+  });
+
+  describe('getSerializer', () => {
+    test('should create serializer with default mode', () => {
+      const config: ISerializerConfig = {
+        attributes: ['id', 'name', 'email'],
+        type: 'user',
+      };
+
+      const serializer = getSerializer(config);
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
+    test('should create serializer with API mode', () => {
+      const config: ISerializerConfig = {
+        attributes: ['id', 'name', 'email'],
+        type: 'user',
+      };
+
+      const serializer = getSerializer(config, 'api');
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
+    test('should create serializer with frontend mode', () => {
+      const config: ISerializerConfig = {
+        attributes: ['id', 'name', 'email'],
+        type: 'user',
+      };
+
+      const serializer = getSerializer(config, 'frontend');
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
+    test('should create serializer with custom options', () => {
+      const config: ISerializerConfig = {
+        attributes: ['id', 'name', 'email'],
+        type: 'user',
+      };
+
+      const customOptions: ISerializerOptions = {
+        id: 'customId',
+        nullIfMissing: false,
+      };
+
+      const serializer = getSerializer(config, 'default', customOptions);
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
+    test('should handle serializer with relationships', () => {
+      const config: ISerializerConfig = {
+        attributes: ['title', 'content'],
+        relationships: {
+          author: {
+            attributes: ['name'],
+            ref: 'id',
+            type: 'user',
+          },
+        },
+        type: 'publication',
+      };
+
+      const serializer = getSerializer(config);
+
+      expect(serializer).toBeInstanceOf(Serializer);
     });
   });
 

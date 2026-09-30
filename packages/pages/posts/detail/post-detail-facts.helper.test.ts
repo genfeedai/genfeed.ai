@@ -19,6 +19,16 @@ function buildPost(overrides: Partial<IPost> = {}): IPost {
 }
 
 describe('buildPostDetailFacts', () => {
+  it('omits facts the post has no value for', () => {
+    const facts = buildPostDetailFacts(buildPost(), false);
+
+    const byId = new Map(facts.map((fact) => [fact.id, fact.value]));
+    expect(byId.get('platform')).toBeUndefined();
+    expect(byId.get('category')).toBeUndefined();
+    expect(byId.get('seoScore')).toBeUndefined();
+    expect(byId.get('views')).toBeUndefined();
+  });
+
   it('includes the known platform, status and category', () => {
     const facts = buildPostDetailFacts(
       buildPost({

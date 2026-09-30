@@ -443,6 +443,26 @@ describe('BrandKitReviewCard', () => {
     expect(screen.getByText('New description')).toBeInTheDocument();
   });
 
+  it('does not keep a dead Refresh brand control', async () => {
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+    await screen.findByText('67% readiness');
+
+    expect(
+      screen.queryByRole('button', { name: /refresh brand/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it('does not apply deferred asset fields by default', async () => {
     render(
       <BrandKitReviewCard

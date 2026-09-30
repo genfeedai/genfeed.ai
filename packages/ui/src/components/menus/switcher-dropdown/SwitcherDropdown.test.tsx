@@ -64,6 +64,14 @@ describe('SwitcherDropdown', () => {
     expect(onSelect).toHaveBeenCalledWith('2');
   });
 
+  it('does not call onSelect for active item', () => {
+    const onSelect = vi.fn();
+    renderDropdown({ onSelect });
+    fireEvent.click(screen.getByText('Open'));
+    fireEvent.click(screen.getByText('Alpha'));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('exposes listbox/option roles and marks the active row with aria-current', () => {
     renderDropdown();
     fireEvent.click(screen.getByText('Open'));
@@ -140,6 +148,21 @@ describe('SwitcherDropdown', () => {
     expect(footer).toBeInTheDocument();
     fireEvent.click(footer);
     expect(onAction).toHaveBeenCalled();
+  });
+
+  it('renders multiple footer actions when provided', () => {
+    const onSettings = vi.fn();
+    const onCreate = vi.fn();
+    renderDropdown({
+      footerActions: [
+        { label: 'Settings', onAction: onSettings },
+        { label: 'Create', onAction: onCreate },
+      ],
+    });
+
+    fireEvent.click(screen.getByText('Open'));
+    fireEvent.click(screen.getByText('Settings'));
+    expect(onSettings).toHaveBeenCalled();
   });
 
   it('renders footer icons passed as component types', () => {

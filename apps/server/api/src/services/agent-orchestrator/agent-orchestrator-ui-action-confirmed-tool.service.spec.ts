@@ -385,4 +385,53 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       }),
     );
   });
+
+  it('passes the server-set confirmation origin into install_official_workflow (#4306)', async () => {
+    const executeTool = vi.fn().mockResolvedValue({
+      creditsUsed: 0,
+      nextActions: [],
+      success: true,
+    });
+    const finalizeStructuredAssistantTurn = vi
+      .fn()
+      .mockResolvedValue({ threadId: 'thread-1' });
+    const service = new AgentOrchestratorUiActionConfirmedToolService(
+      { executeTool } as never,
+      {
+        recordToolCompleted: vi.fn(),
+        recordToolStarted: vi.fn(),
+      } as never,
+      { finalizeStructuredAssistantTurn } as never,
+      {
+        acquireLock: vi.fn().mockResolvedValue(true),
+        get: vi.fn().mockResolvedValue(null),
+        releaseLock: vi.fn(),
+        set: vi.fn(),
+      } as never,
+      { execute: vi.fn() } as never,
+      { transition: vi.fn() } as never,
+    );
+
+    await service.execute('confirm_install_official_workflow', {
+      context: {
+        organizationId: 'organization-1',
+        userId: 'user-1',
+      },
+      model: 'test/model',
+      payload: {
+        sourceActionId: 'install-action-1',
+        workflowId: 'workflow-1',
+      },
+      threadId: 'thread-1',
+    });
+
+    expect(executeTool).toHaveBeenCalledWith(
+      'install_official_workflow',
+      expect.objectContaining({ workflowId: 'workflow-1' }),
+      expect.objectContaining({
+        confirmationOrigin: 'thread-ui-action',
+        sourceActionId: 'install-action-1',
+      }),
+    );
+  });
 });

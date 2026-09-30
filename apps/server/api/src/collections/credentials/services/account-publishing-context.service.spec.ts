@@ -248,6 +248,33 @@ describe('AccountPublishingContextService', () => {
     expect(serialized).not.toContain('refresh-secret');
   });
 
+  it('uses a later OAuth token field when an earlier token field is empty', async () => {
+    credentialsService.findOne.mockResolvedValueOnce({
+      accessToken: '',
+      accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
+      brandId,
+      id: credentialId,
+      isConnected: true,
+      isDeleted: false,
+      oauthToken: 'oauth-secret',
+      organizationId,
+      platform: CredentialPlatform.TWITTER,
+    });
+
+    const context = await service.resolve({
+      brandId,
+      credentialId,
+      organizationId,
+      surface: 'post',
+    });
+
+    expect(context.readiness).toMatchObject({
+      canSchedule: true,
+      state: 'publish_capable',
+      tokenFreshness: 'pass',
+    });
+  });
+
   it('surfaces a retryable degraded state when access can be refreshed', async () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'secret-token',

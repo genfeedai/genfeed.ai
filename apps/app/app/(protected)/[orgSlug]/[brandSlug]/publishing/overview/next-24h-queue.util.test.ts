@@ -192,4 +192,25 @@ describe('buildNext24hQueue', () => {
       'AI content is taking over! Manual content...',
     );
   });
+
+  it('links each item to its release drawer, not a post detail page', () => {
+    const releases = [
+      buildRelease({
+        id: 'release-42',
+        targets: [
+          buildTarget({
+            id: 'target-42',
+            releaseId: 'release-42',
+            scheduledAt: '2026-09-01T13:00:00.000Z',
+          }),
+        ],
+      }),
+    ];
+
+    const groups = buildNext24hQueue(releases, NOW);
+
+    expect(groups[0]?.items[0]?.href).toBe(
+      '/publishing/posts?release=release-42',
+    );
+  });
 });

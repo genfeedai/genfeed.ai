@@ -27,6 +27,11 @@ describe('ConfigService (Notifications)', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    service = new ConfigService();
+    expect(service).toBeDefined();
+  });
+
   it('should get environment variable', () => {
     vi.stubEnv('NODE_ENV', 'development');
     service = new ConfigService();
@@ -106,6 +111,12 @@ describe('ConfigService (Notifications)', () => {
       expect(service.isDiscordEnabled()).toBe(true);
     });
 
+    it('reports Resend enabled from the setup api key', () => {
+      // RESEND_API_KEY is set in test/setup-unit.ts
+      service = new ConfigService();
+      expect(service.isResendEnabled()).toBe(true);
+    });
+
     it('reports Sentry enabled only with a DSN', () => {
       delete process.env.SENTRY_DSN;
       service = new ConfigService();
@@ -150,6 +161,19 @@ describe('ConfigService (Notifications)', () => {
 
   describe('consumed env-var schema coverage (#484)', () => {
     // Every env var the notifications service reads must be in its schema.
+    const consumedKeys = [
+      'CHROME_EXTENSION_ID', // main.ts CORS
+      'SLACK_NOTIFICATION_BOT_TOKEN', // slack.service
+      'GENFEED_CLOUD', // terminal.service cloud gate
+      'NEXT_PUBLIC_GENFEED_CLOUD', // terminal.service cloud gate
+      'GF_DEV_ENABLE_DISCORD', // explicit local Discord login opt-in
+      // The `VALIDATION_*` keys were removed with the service-local
+      // `ValidationConfigService` copy — notifications reads none of them.
+    ] as const;
+
+    it.each(consumedKeys)('validates %s', (key) => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(key);
+    });
 
     it('rejects a malformed CHROME_EXTENSION_ID at startup', () => {
       process.env.CHROME_EXTENSION_ID = 'too-short';
@@ -157,6 +181,14 @@ describe('ConfigService (Notifications)', () => {
       expect(() => new ConfigService()).toThrow(/CHROME_EXTENSION_ID/);
 
       delete process.env.CHROME_EXTENSION_ID;
+    });
+
+    it('keeps the new consumed vars optional (absent does not throw)', () => {
+      for (const key of consumedKeys) {
+        delete process.env[key];
+      }
+
+      expect(() => new ConfigService()).not.toThrow();
     });
   });
 });

@@ -44,6 +44,18 @@ describe('InProcessRedisService', () => {
     expect(handler).toHaveBeenCalledWith({ value: 1 });
   });
 
+  it('emits the raw JSON payload for message listeners', async () => {
+    const listener = vi.fn();
+    service.on('message', listener);
+
+    await service.publish('channel-a', { value: 2 });
+
+    expect(listener).toHaveBeenCalledWith(
+      'channel-a',
+      JSON.stringify({ value: 2 }),
+    );
+  });
+
   it('keeps delivering when one subscriber throws', async () => {
     const failing = vi.fn(() => {
       throw new Error('subscriber exploded');
@@ -61,6 +73,13 @@ describe('InProcessRedisService', () => {
       expect.any(Error),
       expect.objectContaining({ service: 'InProcessRedisService' }),
     );
+  });
+
+  it('supports subscribing without a handler', async () => {
+    await expect(service.subscribe('channel-b')).resolves.toBeUndefined();
+    await expect(
+      service.publish('channel-b', { value: 4 }),
+    ).resolves.toBeUndefined();
   });
 
   it('stops delivery after unsubscribe', async () => {

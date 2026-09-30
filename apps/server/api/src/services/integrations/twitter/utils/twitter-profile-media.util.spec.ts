@@ -5,6 +5,14 @@ import {
 } from './twitter-profile-media.util';
 
 describe('toTwitterFullSizeAvatarUrl', () => {
+  it('upgrades the 48px _normal avatar to the 400px rendition', () => {
+    expect(
+      toTwitterFullSizeAvatarUrl(
+        'https://pbs.twimg.com/profile_images/1/abc_normal.jpg',
+      ),
+    ).toBe('https://pbs.twimg.com/profile_images/1/abc_400x400.jpg');
+  });
+
   it('leaves other renditions and missing values alone', () => {
     expect(
       toTwitterFullSizeAvatarUrl(
@@ -16,6 +24,15 @@ describe('toTwitterFullSizeAvatarUrl', () => {
 });
 
 describe('readTwitterBannerUrl', () => {
+  it('requests the full-width rendition of a size-less banner URL', () => {
+    expect(
+      readTwitterBannerUrl({
+        profile_banner_url:
+          'https://pbs.twimg.com/profile_banners/1/1700000000',
+      }),
+    ).toBe('https://pbs.twimg.com/profile_banners/1/1700000000/1500x500');
+  });
+
   it('keeps an explicit rendition', () => {
     expect(
       readTwitterBannerUrl({

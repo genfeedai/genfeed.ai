@@ -208,6 +208,10 @@ describe('ArticlesOperationsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('generateArticles', () => {
     it('should generate articles from prompts', async () => {
       const dto: GenerateArticlesDto = {
@@ -395,6 +399,35 @@ describe('ArticlesOperationsController', () => {
       ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
 
       expect(service.generateArticles).not.toHaveBeenCalled();
+    });
+
+    it('passes no override to model resolution when the request omits one', async () => {
+      const dto: GenerateArticlesDto = {
+        prompt: 'AI Technology',
+      };
+
+      mockArticlesService.generateArticles.mockResolvedValue({
+        articles: [mockArticle],
+        billedCredits: 0,
+      });
+      mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+        generationModel: 'default-text-model',
+        reviewModel: 'default-text-model',
+        updateModel: 'default-text-model',
+      });
+      mockActivitiesService.record.mockResolvedValue({
+        id: activityId,
+      });
+      mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
+        undefined,
+      );
+
+      await controller.generateArticles(mockRequest, dto, mockUser);
+
+      expect(service.resolveArticleCycleModelConfig).toHaveBeenCalledWith(
+        mockPublicMetadata.organization,
+        undefined,
+      );
     });
 
     it('fails closed when ensured organization settings keep article generation disabled', async () => {

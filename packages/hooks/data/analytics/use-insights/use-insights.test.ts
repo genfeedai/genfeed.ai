@@ -76,6 +76,14 @@ describe('useInsights', () => {
       expect(result.current).toBeDefined();
     });
 
+    it('should accept enabled option', () => {
+      const { result } = renderHook(() => useInsights({ enabled: false }), {
+        wrapper: createQueryWrapper(),
+      });
+
+      expect(result.current).toBeDefined();
+    });
+
     it('should return loading state', () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
@@ -206,6 +214,14 @@ describe('useInsights', () => {
   });
 
   describe('refresh functionality', () => {
+    it('should have refresh function', () => {
+      const { result } = renderHook(() => useInsights(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      expect(typeof result.current.refresh).toBe('function');
+    });
+
     it('should call refresh without throwing', async () => {
       const { result } = renderHook(() => useInsights(), {
         wrapper: createQueryWrapper(),
@@ -218,6 +234,16 @@ describe('useInsights', () => {
       await act(async () => {
         await expect(result.current.refresh()).resolves.not.toThrow();
       });
+    });
+  });
+
+  describe('disabled state', () => {
+    it('should not fetch data when disabled', () => {
+      renderHook(() => useInsights({ enabled: false }), {
+        wrapper: createQueryWrapper(),
+      });
+
+      expect(mockInsightsService.getInsights).not.toHaveBeenCalled();
     });
   });
 

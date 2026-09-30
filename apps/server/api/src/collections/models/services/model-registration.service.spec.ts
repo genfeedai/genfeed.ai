@@ -123,6 +123,26 @@ describe('ModelRegistrationService.validateModelForOrg', () => {
     ).resolves.toBe(explicitSettings);
   });
 
+  it('allows a model when the allowlist stores its key instead of its id', async () => {
+    const { modelsService, orgSettingsService, service } = makeService();
+    const keyedSettings = {
+      enabledModelIds: [modelKey],
+      id: testId('setting'),
+      organizationId,
+    };
+    const model = makeModel();
+
+    modelsService.findOne.mockResolvedValue(model);
+    orgSettingsService.findOne.mockResolvedValue(keyedSettings);
+    orgSettingsService.ensureEnabledModelIds.mockImplementation(
+      (setting: typeof keyedSettings) => Promise.resolve(setting),
+    );
+
+    await expect(
+      service.validateModelForOrg(modelKey, organizationId),
+    ).resolves.toEqual(model);
+  });
+
   it('resolves an allowlisted global Retired alias to its global successor', async () => {
     const { modelsService, orgSettingsService, service } = makeService();
     const successorKey = 'black-forest-labs/flux-2-pro';

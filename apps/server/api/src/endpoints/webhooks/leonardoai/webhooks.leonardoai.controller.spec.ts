@@ -88,6 +88,10 @@ describe('LeonardoaiWebhookController', () => {
     webhooksService = module.get(WebhooksService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('handleCallback', () => {
     it('should handle callback successfully with a valid webhook token', async () => {
       const body = {

@@ -200,6 +200,19 @@ describe('BrandSettingsSkillsPage', () => {
     });
   });
 
+  it('filters skills by source using the subbar select', async () => {
+    render(<BrandSettingsSkillsPage />);
+
+    await waitFor(() => {
+      expect(listSkillsMock).toHaveBeenCalledTimes(1);
+    });
+    expect(await screen.findByText('YouTube Script Setup')).toBeVisible();
+
+    expect(
+      screen.getByRole('combobox', { name: /filter skills by source/i }),
+    ).toBeInTheDocument();
+  });
+
   it('clears the previous organization catalog while a new scope loads and fails', async () => {
     const { rerender } = render(<BrandSettingsSkillsPage />);
 

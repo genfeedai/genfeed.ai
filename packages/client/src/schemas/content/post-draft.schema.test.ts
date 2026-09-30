@@ -12,6 +12,17 @@ describe('draft authoring without accounts', () => {
     platform: Platform.TWITTER,
     targetExecutionState: TargetExecutionState.DRAFT,
   };
+  it('accepts a post draft with a platform and no account', () => {
+    expect(postModalSchema.safeParse(draft).success).toBe(true);
+  });
+  it('accepts a thread draft without an account', () => {
+    expect(
+      threadModalSchema.safeParse({
+        ...draft,
+        posts: [{ description: 'First' }, { description: 'Second' }],
+      }).success,
+    ).toBe(true);
+  });
   it('requires an account before scheduling', () => {
     const scheduled = {
       ...draft,

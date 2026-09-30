@@ -204,6 +204,16 @@ describe('parseCreditActivityValue', () => {
     ).toEqual({ amount: null, description: 'Master prompt generation' });
   });
 
+  it.each(['1', '{"value":1}', '{"value":"1"}'])(
+    'reads existing amounts: %s',
+    (value) => {
+      expect(parseCreditActivityValue(value)).toEqual({
+        amount: 1,
+        description: undefined,
+      });
+    },
+  );
+
   it.each([
     '',
     ' ',
@@ -218,6 +228,15 @@ describe('parseCreditActivityValue', () => {
   ])('does not invent a numeric cost for %s', (value) => {
     expect(parseCreditActivityValue(value).amount).toBeNull();
   });
+
+  it.each([' ', '{"internal":"payload"}', '[1,2]'])(
+    'ignores non-descriptive text: %s',
+    (description) => {
+      expect(
+        parseCreditActivityValue(JSON.stringify({ description, value: 0 })),
+      ).toEqual({ amount: 0, description: undefined });
+    },
+  );
 });
 
 describe('credit transaction presentation', () => {

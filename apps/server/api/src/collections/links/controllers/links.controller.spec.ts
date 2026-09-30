@@ -19,6 +19,15 @@ describe('LinksController.buildFindAllQuery', () => {
     buildFindAllQuery: LinksController.prototype.buildFindAllQuery,
   } as unknown as LinksController;
 
+  it('defaults members to their authorized session brand', () => {
+    const result = controller.buildFindAllQuery(member, {} as LinksQueryDto);
+
+    expect(result.where).toEqual({
+      brandId: 'brand-1',
+      isDeleted: false,
+    });
+  });
+
   it('rejects a foreign brand for members', () => {
     const call = () =>
       controller.buildFindAllQuery(member, {

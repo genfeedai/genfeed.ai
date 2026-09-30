@@ -23,6 +23,41 @@ function readEnumBlock(source: string, enumName: string): string {
 }
 
 describe('integration documentation coverage', () => {
+  it('documents every server integration directory', () => {
+    const serverIntegrationDirectory = path.join(
+      repositoryRoot,
+      'apps/server/api/src/services/integrations',
+    );
+    const adapterDirectories = fs
+      .readdirSync(serverIntegrationDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+    const inventory = readIntegrationDoc('runtime-adapters.mdx');
+
+    for (const directory of adapterDirectories) {
+      expect(inventory, directory).toContain(`\`${directory}\``);
+    }
+  });
+
+  it('documents every organization BYOK provider key', () => {
+    const enumSource = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        'packages/contracts/src/enums/byok-provider.enum.ts',
+      ),
+      'utf8',
+    );
+    const providerKeys = [...enumSource.matchAll(/= '([^']+)'/g)].map(
+      (match) => match[1],
+    );
+    const providerGuide = readIntegrationDoc('ai-providers.mdx');
+
+    for (const providerKey of providerKeys) {
+      expect(providerGuide, providerKey).toContain(`\`${providerKey}\``);
+    }
+  });
+
   it('documents every credential-platform registry key', () => {
     const prismaSchema = fs.readFileSync(
       path.join(repositoryRoot, 'packages/prisma/prisma/schema.prisma'),

@@ -85,6 +85,10 @@ const routeInventory = new Set(
 );
 
 describe('extension API route contract', () => {
+  it.each(routes)('%s /%s exists in an API controller', (method, route) => {
+    expect(apiRoutes.has(`${method} ${normalizeRoute(route)}`)).toBe(true);
+  });
+
   it('inventories every literal API endpoint used by the extension', () => {
     const files = [
       'background.ts',

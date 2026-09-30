@@ -128,6 +128,62 @@ describe('AgentCompletionCardBuilderService', () => {
     });
   });
 
+  it('keeps the concrete content preview as the only result surface', () => {
+    const contentAction: AgentUiAction = {
+      audio: ['https://cdn.example.com/audio.mp3'],
+      ctas: [
+        {
+          href: '/publishing/posts?publicationState=not-posted',
+          label: 'View all drafts',
+        },
+      ],
+      id: 'content-preview-1',
+      images: [
+        'https://cdn.example.com/image-1.png',
+        'https://cdn.example.com/image-2.png',
+      ],
+      ingredients: [
+        {
+          id: 'ingredient-1',
+          title: 'Ingredient image',
+          type: 'image',
+          url: 'https://cdn.example.com/ingredient.png',
+        },
+      ],
+      textContent: 'Long-form caption',
+      title: 'Generated drafts',
+      tweets: ['Hook one', 'Hook two'],
+      type: 'content_preview_card',
+      videos: ['https://cdn.example.com/video.mp4'],
+    };
+
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [{ status: 'completed', toolName: 'generate_content' }],
+      uiActions: [contentAction],
+    });
+
+    expect(result.uiActions).toEqual([contentAction]);
+  });
+
+  it('keeps a thread preview as the only result surface', () => {
+    const threadPreview: AgentUiAction = {
+      contentFormat: 'thread',
+      id: 'thread-preview-1',
+      textContent: 'Hook',
+      title: 'Launch thread',
+      tweets: ['Hook', 'Proof', 'Close'],
+      type: 'content_preview_card',
+    };
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [{ status: 'completed', toolName: 'generate_content' }],
+      uiActions: [threadPreview],
+    });
+
+    expect(result.uiActions).toEqual([threadPreview]);
+  });
+
   it('does not mint Done for an empty content preview card', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
@@ -146,6 +202,52 @@ describe('AgentCompletionCardBuilderService', () => {
         id: 'empty-content-preview',
         title: 'Draft',
         type: 'content_preview_card',
+      },
+    ]);
+  });
+
+  it('builds the generic completed-tool card and formats tool names', () => {
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [
+        { status: 'completed', toolName: 'create_post' },
+        { status: 'failed', toolName: 'schedule_post' },
+      ],
+      uiActions: [],
+    });
+
+    expect(result.uiActions).toEqual([
+      {
+        id: `completion-summary-tools-${'create_post'}`,
+        outcomeBullets: ['1 tool action completed', 'Tool: Create Post'],
+        secondaryCtas: [
+          {
+            action: 'send_prompt',
+            label: 'Create follow-ups',
+            payload: {
+              prompt: 'Create two follow-up posts that build on this result',
+            },
+          },
+          {
+            action: 'send_prompt',
+            label: 'Map the next slot',
+            payload: {
+              prompt:
+                'Find the best next slot in my calendar for related content',
+            },
+          },
+          {
+            action: 'send_prompt',
+            label: 'Cross-post versions',
+            payload: {
+              prompt: 'Adapt this into versions for my other active channels',
+            },
+          },
+        ],
+        status: 'completed',
+        summaryText: 'Completed this request successfully.',
+        title: 'Done',
+        type: 'completion_summary_card',
       },
     ]);
   });

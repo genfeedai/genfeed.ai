@@ -28,6 +28,18 @@ vi.mock('@helpers/generation-eta.helper', () => ({
 import { getExecutionEtaDisplayState } from './eta-display';
 
 describe('getExecutionEtaDisplayState', () => {
+  it('should return null labels when no eta is provided', () => {
+    const result = getExecutionEtaDisplayState({
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.etaLabel).toBeNull();
+    expect(result.actualDurationLabel).toBeNull();
+    expect(result.elapsedLabel).toBeNull();
+    expect(result.phaseLabel).toBeNull();
+    expect(result.reassuranceLabel).toBeNull();
+  });
+
   it('should return actualDurationLabel from eta.actualDurationMs', () => {
     const result = getExecutionEtaDisplayState({
       eta: { actualDurationMs: 30000 },
@@ -35,6 +47,25 @@ describe('getExecutionEtaDisplayState', () => {
     });
 
     expect(result.actualDurationLabel).toBe('30s');
+  });
+
+  it('should fall back to durationMs when eta.actualDurationMs is missing', () => {
+    const result = getExecutionEtaDisplayState({
+      durationMs: 45000,
+      eta: {},
+      status: WorkflowExecutionStatus.COMPLETED,
+    });
+
+    expect(result.actualDurationLabel).toBe('45s');
+  });
+
+  it('should return null actualDurationLabel when duration is zero', () => {
+    const result = getExecutionEtaDisplayState({
+      durationMs: 0,
+      status: WorkflowExecutionStatus.COMPLETED,
+    });
+
+    expect(result.actualDurationLabel).toBeNull();
   });
 
   it('should return etaLabel with range for low confidence', () => {
@@ -48,6 +79,20 @@ describe('getExecutionEtaDisplayState', () => {
     });
 
     expect(result.etaLabel).toContain('Usually takes');
+  });
+
+  it('should return etaLabel with remaining time for high confidence', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 30000,
+        etaConfidence: 'high',
+        remainingDurationMs: 15000,
+      },
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.etaLabel).toContain('About');
+    expect(result.etaLabel).toContain('left');
   });
 
   it('should use estimatedDurationMs when remainingDurationMs is missing for high confidence', () => {
@@ -64,6 +109,45 @@ describe('getExecutionEtaDisplayState', () => {
     expect(result.etaLabel).toContain('left');
   });
 
+  it('should not show etaLabel for completed status', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 30000,
+        etaConfidence: 'high',
+        remainingDurationMs: 15000,
+      },
+      status: WorkflowExecutionStatus.COMPLETED,
+    });
+
+    expect(result.etaLabel).toBeNull();
+  });
+
+  it('should not show etaLabel for failed status', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 30000,
+        etaConfidence: 'high',
+        remainingDurationMs: 15000,
+      },
+      status: WorkflowExecutionStatus.FAILED,
+    });
+
+    expect(result.etaLabel).toBeNull();
+  });
+
+  it('should not show etaLabel when eta is not visible (below threshold)', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 2000,
+        etaConfidence: 'high',
+        remainingDurationMs: 1000,
+      },
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.etaLabel).toBeNull();
+  });
+
   it('should return phaseLabel from eta.currentPhase', () => {
     const result = getExecutionEtaDisplayState({
       eta: { currentPhase: 'Generating image' },
@@ -71,6 +155,15 @@ describe('getExecutionEtaDisplayState', () => {
     });
 
     expect(result.phaseLabel).toBe('Generating image');
+  });
+
+  it('should return null phaseLabel when currentPhase is missing', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {},
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.phaseLabel).toBeNull();
   });
 
   it('should return reassuranceLabel when estimated duration >= 60s and status is running', () => {
@@ -86,6 +179,56 @@ describe('getExecutionEtaDisplayState', () => {
     expect(result.reassuranceLabel).toContain('You can keep working');
   });
 
+  it('should not return reassuranceLabel when estimated duration < 60s', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 30000,
+        etaConfidence: 'high',
+        remainingDurationMs: 20000,
+      },
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.reassuranceLabel).toBeNull();
+  });
+
+  it('should not return reassuranceLabel when status is completed', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 120000,
+        remainingDurationMs: 0,
+      },
+      status: WorkflowExecutionStatus.COMPLETED,
+    });
+
+    expect(result.reassuranceLabel).toBeNull();
+  });
+
+  it('should not return reassuranceLabel when status is failed', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 120000,
+        remainingDurationMs: 0,
+      },
+      status: WorkflowExecutionStatus.FAILED,
+    });
+
+    expect(result.reassuranceLabel).toBeNull();
+  });
+
+  it('should not return etaLabel when the execution is cancelled', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {
+        estimatedDurationMs: 30000,
+        etaConfidence: 'high',
+        remainingDurationMs: 15000,
+      },
+      status: WorkflowExecutionStatus.CANCELLED,
+    });
+
+    expect(result.etaLabel).toBeNull();
+  });
+
   it('should return elapsedLabel when startedAt is a valid date', () => {
     const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
     const result = getExecutionEtaDisplayState({
@@ -94,6 +237,15 @@ describe('getExecutionEtaDisplayState', () => {
     });
 
     expect(result.elapsedLabel).not.toBeNull();
+  });
+
+  it('should return null elapsedLabel when startedAt is missing', () => {
+    const result = getExecutionEtaDisplayState({
+      eta: {},
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+
+    expect(result.elapsedLabel).toBeNull();
   });
 
   it('should return null elapsedLabel when startedAt is invalid', () => {

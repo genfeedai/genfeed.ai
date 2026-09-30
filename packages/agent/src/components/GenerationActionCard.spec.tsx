@@ -775,6 +775,88 @@ describe('GenerationActionCard', () => {
     });
   });
 
+  it('hides the prompt preview when the copy already fits two rows', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'A short boxing ring.',
+          },
+          generationType: 'image',
+          id: 'action-short',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(
+      screen.queryByRole('button', { name: 'Read and edit the full prompt' }),
+    ).toBeNull();
+  });
+
+  it('formats structured prompts with readable section breaks', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'SCENE: Professional boxing ring. SUBJECT: Athletic boxer in black gear. BACKGROUND: Blurred arena crowd. LIGHTING: Dramatic overhead spotlights. STYLE: Photorealistic sports photography. NEGATIVE: No text or watermarks.',
+          },
+          generationType: 'image',
+          id: 'action-1',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue(
+        [
+          'SCENE: Professional boxing ring.',
+          '',
+          'SUBJECT: Athletic boxer in black gear.',
+          '',
+          'BACKGROUND: Blurred arena crowd.',
+          '',
+          'LIGHTING: Dramatic overhead spotlights.',
+          '',
+          'STYLE: Photorealistic sports photography.',
+          '',
+          'NEGATIVE: No text or watermarks.',
+        ].join('\n'),
+      );
+    });
+  });
+
+  it('converts escaped newlines in generated prompts into real line breaks', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt:
+              'SCENE: Professional boxing ring.\\n\\nSUBJECT: Athletic boxer in black gear.',
+          },
+          generationType: 'image',
+          id: 'action-2',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue(
+        'SCENE: Professional boxing ring.\n\nSUBJECT: Athletic boxer in black gear.',
+      );
+    });
+  });
+
   it('passes Genfeed image models into the shared model selector', async () => {
     const imageModel = createModel({
       key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
@@ -2181,6 +2263,26 @@ describe('GenerationActionCard', () => {
     });
     expect(
       screen.queryByRole('button', { name: /generate image/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render an Open in Studio control unless a handler is passed', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-no-studio-slot',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+      />,
+    );
+
+    await screen.findByRole('textbox', { name: 'Prompt' });
+    expect(
+      screen.queryByRole('button', { name: /open this generation in studio/i }),
     ).not.toBeInTheDocument();
   });
 

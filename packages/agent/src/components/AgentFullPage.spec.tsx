@@ -822,6 +822,24 @@ describe('AgentFullPage', () => {
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
   });
 
+  it('surfaces a generic load error when bootstrap fails', async () => {
+    const apiService = createApiService({
+      getMessagesPage: vi.fn(),
+      getThread: vi.fn().mockRejectedValue(new Error('Network down')),
+      getThreadSnapshot: vi.fn(),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to load this thread. Refresh and try again.',
+      );
+    });
+  });
+
   it('passes a loading state to the chat container while bootstrapping a thread', async () => {
     const messages = [
       {
@@ -1075,6 +1093,16 @@ describe('AgentFullPage', () => {
     );
   });
 
+  it('leaves the context sidebar empty without outputs, even while setup is incomplete', () => {
+    setupStatusState.showSetupPanel = true;
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [];
+
+    render(shellTree({ threadId: 'thread-1' }));
+
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+  });
+
   it('prefers latest assistant completion recos over static page-context actions', () => {
     storeState.pageContext = {
       placeholder: 'Ask about this page...',
@@ -1110,6 +1138,74 @@ describe('AgentFullPage', () => {
 
     expect(screen.getByText('Make variations')).toBeInTheDocument();
     expect(screen.queryByText('Static action')).not.toBeInTheDocument();
+  });
+
+  it('preserves visible messages while refreshing the already-active thread', async () => {
+    storeState.activeThreadId = 'thread-1';
+    storeState.messages = [
+      {
+        content: 'Existing visible message',
+        createdAt: '2026-03-10T10:00:00.000Z',
+        id: 'msg-keep',
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ];
+
+    const apiService = createApiService({
+      getMessagesPage: vi.fn(
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
+          createAbortAwareValue(
+            {
+              hasMore: false,
+              messages: storeState.messages,
+              nextCursor: null,
+            },
+            signal,
+          ),
+      ),
+      getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            createdAt: '2026-03-10T10:00:00.000Z',
+            id: threadId,
+            status: AgentThreadStatus.ACTIVE,
+            title: 'Loaded thread',
+            updatedAt: '2026-03-10T10:00:00.000Z',
+          },
+          signal,
+        ),
+      ),
+      getThreadSnapshot: vi.fn((threadId: string, signal?: AbortSignal) =>
+        createAbortAwareValue(
+          {
+            activeRun: null,
+            lastAssistantMessage: null,
+            lastSequence: 0,
+            latestProposedPlan: null,
+            latestUiBlocks: null,
+            memorySummaryRefs: [],
+            pendingApprovals: [],
+            pendingInputRequests: [],
+            profileSnapshot: null,
+            sessionBinding: null,
+            source: 'agent',
+            threadId,
+            threadStatus: AgentThreadStatus.ACTIVE,
+            timeline: [],
+            title: 'Loaded thread',
+          },
+          signal,
+        ),
+      ),
+    });
+
+    render(
+      <AgentFullPage apiService={apiService as never} threadId="thread-1" />,
+    );
+
+    expect(storeState.setMessagesPage).not.toHaveBeenCalled();
+    expect(storeState.resetStreamState).not.toHaveBeenCalled();
   });
 
   it('does not reload the thread when an optimistic message is appended locally', async () => {
@@ -1277,6 +1373,16 @@ describe('AgentFullPage', () => {
       screen.getByText('Ask for help with content, review, or planning...'),
     ).toBeInTheDocument();
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
+  });
+
+  it('invites refinement of the first brand draft during onboarding', () => {
+    render(
+      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
+    );
+
+    expect(
+      screen.getByText('Tell us what to change, or ask for another version…'),
+    ).toBeInTheDocument();
   });
 
   it('does not clear draft conversation state again while waiting to navigate away from /agent/new', async () => {

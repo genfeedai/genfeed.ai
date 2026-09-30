@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -46,4 +48,12 @@ describe('website Sentry instrumentation', () => {
   });
 
   // The SDK is ~75 KB gzip; it must not be part of the first-load bundle.
+  it('never imports the Sentry SDK statically', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'instrumentation-client.ts'),
+      'utf8',
+    );
+
+    expect(source).not.toMatch(/^import[^;]*'@sentry\/nextjs'/m);
+  });
 });

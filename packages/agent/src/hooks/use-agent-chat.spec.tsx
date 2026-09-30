@@ -22,6 +22,44 @@ describe('useAgentChat', () => {
     });
   });
 
+  it('leaves the model unset so the server resolves the runtime default', async () => {
+    const chat = vi.fn().mockResolvedValue({
+      contextVersion: 1,
+      creditsRemaining: 95,
+      creditsUsed: 5,
+      message: {
+        content: 'Kimi default response',
+        metadata: {},
+        role: 'assistant',
+      },
+      threadId: 'thread-kimi-default',
+      toolCalls: [],
+    });
+    const apiService = {
+      chat,
+    } as unknown as AgentApiService;
+
+    const { result } = renderHook(() =>
+      useAgentChat({
+        apiService,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.sendMessage('Use the default runtime model');
+    });
+
+    // No client-side default: the hook sends model: undefined and the
+    // server resolves the registry default (agent-runtime-model.constant).
+    expect(chat).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'Use the default runtime model',
+        model: undefined,
+      }),
+      expect.any(AbortSignal),
+    );
+  });
+
   it('preserves an explicit model override for internal callers', async () => {
     const chat = vi.fn().mockResolvedValue({
       contextVersion: 1,

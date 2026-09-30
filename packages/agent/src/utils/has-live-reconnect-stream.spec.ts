@@ -11,6 +11,28 @@ const SETTLED: LiveReconnectStreamInput = {
 };
 
 describe('hasLiveReconnectStream', () => {
+  it('is false when the client is not streaming and has no pending UI', () => {
+    expect(hasLiveReconnectStream(SETTLED)).toBe(false);
+  });
+
+  it('is true while the local stream is still open', () => {
+    expect(
+      hasLiveReconnectStream({
+        ...SETTLED,
+        isStreaming: true,
+      }),
+    ).toBe(true);
+  });
+
+  it('is true when a pending generation card still owns the turn', () => {
+    expect(
+      hasLiveReconnectStream({
+        ...SETTLED,
+        pendingUiActionCount: 1,
+      }),
+    ).toBe(true);
+  });
+
   it('stays true when both the stream and a pending card are live', () => {
     expect(
       hasLiveReconnectStream({

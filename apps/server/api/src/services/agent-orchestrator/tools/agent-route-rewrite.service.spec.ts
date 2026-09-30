@@ -37,6 +37,45 @@ describe('AgentRouteRewriteService', () => {
     });
   });
 
+  it('rewrites nested route hrefs with active organization and brand slugs', async () => {
+    const service = createService();
+    const result: AgentToolResult = {
+      nextActions: [
+        {
+          ctas: [
+            {
+              href: '/analytics/overview?period=30d#top',
+              label: 'Open analytics',
+            },
+            {
+              ctaHref: '/automation/workflows/workflow-1',
+              label: 'Open workflow',
+            },
+          ],
+          editorUrl: '/publishing/review?filter=ready',
+          id: 'action-review',
+          title: 'Review',
+          type: 'content_preview_card',
+        },
+      ],
+      success: true,
+    };
+
+    const scoped = await service.scopeToolResultHrefs(result, context);
+
+    expect(scoped.nextActions?.[0]).toMatchObject({
+      ctas: [
+        {
+          href: '/genfeed-ai/launch-brand/analytics/overview?period=30d#top',
+        },
+        {
+          ctaHref: '/genfeed-ai/launch-brand/automation/workflows/workflow-1',
+        },
+      ],
+      editorUrl: '/genfeed-ai/launch-brand/publishing/review?filter=ready',
+    });
+  });
+
   // The ads tools emit bare `/discovery/ads*` paths. Discovery has no org-level
   // exemption, so it scopes to the brand route when a brand is resolvable and
   // to the `~` route otherwise — both exist in the app router.
@@ -81,6 +120,29 @@ describe('AgentRouteRewriteService', () => {
 
     expect(scopedToOrg.nextActions?.[0].ctas?.[0]).toMatchObject({
       href: '/genfeed-ai/~/discovery/ads/meta',
+    });
+  });
+
+  it('uses org-level routes when no brand slug is available', async () => {
+    brandsService.findOne.mockResolvedValueOnce(null);
+    const service = createService();
+
+    const scoped = await service.scopeToolResultHrefs(
+      {
+        nextActions: [
+          {
+            ctas: [{ href: '/settings/api-keys', label: 'Settings' }],
+            title: 'Connect',
+            type: 'oauth_connect_card',
+          },
+        ],
+        success: true,
+      },
+      context,
+    );
+
+    expect(scoped.nextActions?.[0].ctas?.[0]).toMatchObject({
+      href: '/genfeed-ai/~/settings/api-keys',
     });
   });
 
@@ -193,5 +255,28 @@ describe('AgentRouteRewriteService', () => {
 
     expect(scoped).toBe(result);
     expect(brandsService.findOne).not.toHaveBeenCalled();
+  });
+
+  it('uses the explicit context brand before selected-brand fallback', async () => {
+    const service = createService();
+
+    await service.scopeToolResultHrefs(
+      {
+        nextActions: [
+          {
+            ctas: [{ href: '/analytics', label: 'Analytics' }],
+            title: 'Analytics',
+            type: 'analytics_card',
+          },
+        ],
+        success: true,
+      },
+      { ...context, brandId: 'brand-1' },
+    );
+
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: 'org-1',
+    });
   });
 });

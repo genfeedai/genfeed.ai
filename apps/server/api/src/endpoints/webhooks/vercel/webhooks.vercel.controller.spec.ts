@@ -46,6 +46,10 @@ describe('VercelWebhookController', () => {
     loggerService = module.get(LoggerService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('handleVercel', () => {
     it('should handle webhook successfully with valid signature', async () => {
       const payload = { data: 'test', type: 'deployment.ready' };

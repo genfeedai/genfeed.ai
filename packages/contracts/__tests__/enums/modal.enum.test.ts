@@ -3,6 +3,10 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
+    it('should have 62 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(62);
+    });
+
     it('should have correct values', () => {
       expect(ModalEnum.ARTICLE).toBe('modal-article');
       expect(ModalEnum.NEWSLETTER).toBe('modal-newsletter');

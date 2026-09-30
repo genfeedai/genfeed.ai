@@ -62,6 +62,10 @@ describe('QueueService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('dispatch', () => {
     it('enqueues and reports the job id when a broker is available', async () => {
       queue.add.mockResolvedValue(mockJob);
@@ -128,6 +132,14 @@ describe('QueueService', () => {
       expect(queue.add).toHaveBeenCalledWith(DEFAULT_QUEUE, jobData, undefined);
     });
 
+    it('should handle errors when adding job', async () => {
+      const error = new Error('Queue full');
+
+      queue.add.mockRejectedValue(error);
+
+      await expect(service.add(DEFAULT_QUEUE, {})).rejects.toThrow(error);
+    });
+
     it('should reject unknown queues instead of routing them to default', async () => {
       await expect(service.add('unknown-queue', {})).rejects.toThrow(
         'Unsupported queue: unknown-queue',
@@ -147,6 +159,16 @@ describe('QueueService', () => {
 
       expect(result).toBe(mockJob);
       expect(queue.getJob).toHaveBeenCalledWith(jobId);
+    });
+
+    it('should return undefined for non-existent job', async () => {
+      const jobId = 'non-existent';
+
+      queue.getJob.mockResolvedValue(undefined);
+
+      const result = await service.getJob(jobId);
+
+      expect(result).toBeUndefined();
     });
   });
 
@@ -225,6 +247,14 @@ describe('QueueService', () => {
       expect(result).toEqual(removedIds);
       expect(queue.clean).toHaveBeenCalledWith(5000, 0, 'failed');
     });
+
+    it('should return empty array when no jobs to clean', async () => {
+      queue.clean.mockResolvedValue([]);
+
+      const result = await service.clean(1000, 'completed');
+
+      expect(result).toEqual([]);
+    });
   });
 
   describe('pause', () => {
@@ -255,6 +285,14 @@ describe('QueueService', () => {
 
       expect(result).toBe(true);
       expect(queue.isPaused).toHaveBeenCalled();
+    });
+
+    it('should return false when queue is not paused', async () => {
+      queue.isPaused.mockResolvedValue(false);
+
+      const result = await service.isPaused();
+
+      expect(result).toBe(false);
     });
   });
 

@@ -30,5 +30,11 @@ describe('engagement-trigger node', () => {
     it('should default postIds to empty array', () => {
       expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.postIds).toEqual([]);
     });
+
+    it('should default tracking fields to null', () => {
+      expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastCheckedPostId).toBeNull();
+      expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastTriggeredAt).toBeNull();
+      expect(DEFAULT_ENGAGEMENT_TRIGGER_DATA.lastMetricValue).toBeNull();
+    });
   });
 });

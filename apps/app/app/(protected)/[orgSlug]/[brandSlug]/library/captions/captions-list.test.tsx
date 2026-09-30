@@ -62,6 +62,16 @@ describe('CaptionsList', () => {
     findAllMock.mockResolvedValue([]);
   });
 
+  it('should render without crashing', () => {
+    const { container } = render(<CaptionsList />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should display empty state when no captions', async () => {
+    render(<CaptionsList />);
+    expect(await screen.findByText('No captions found')).toBeInTheDocument();
+  });
+
   it('should render table with correct columns', async () => {
     findAllMock.mockResolvedValue([
       {

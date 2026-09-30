@@ -167,6 +167,10 @@ describe('IngredientsOperationsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getAnalytics', () => {
     it('should return analytics data', async () => {
       const result = await controller.getAnalytics(mockUser, 'image');
@@ -177,6 +181,20 @@ describe('IngredientsOperationsController', () => {
   });
 
   describe('cloneIngredient', () => {
+    it('should clone an ingredient successfully', async () => {
+      const result = await controller.cloneIngredient(
+        mockRequest,
+        mockUser,
+        ingredientId,
+      );
+
+      expect(ingredientsService.findOne).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     // Regression: production categories are SCREAMING_SNAKE, but uploads land
     // in lowercase plural folders. The raw `${category}s` interpolation sent
     // the clone to `VIDEOs/` and pulled its source from a key that never
@@ -202,6 +220,21 @@ describe('IngredientsOperationsController', () => {
   });
 
   describe('refreshMetadata', () => {
+    it('should refresh metadata successfully', async () => {
+      const result = await controller.refreshMetadata(
+        mockRequest,
+        ingredientId,
+        mockUser,
+      );
+
+      expect(ingredientsService.findOne).toHaveBeenCalled();
+      expect(
+        mockServices.filesClientService.extractMetadataFromUrl,
+      ).toHaveBeenCalled();
+      expect(metadataService.patch).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     // Regression: same defect on the read path — `VIDEOs/` resolves to nothing,
     // so metadata extraction silently failed for every real ingredient.
     it('lower-cases a SCREAMING_SNAKE category for the metadata source URL', async () => {

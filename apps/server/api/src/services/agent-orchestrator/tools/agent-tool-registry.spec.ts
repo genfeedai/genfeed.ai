@@ -154,6 +154,15 @@ describe('agent-tool-registry', () => {
   });
 });
 
+it.each(['capture_memory', 'create_workflow'] as const)(
+  'keeps %s nested parameters and shared definitions canonical',
+  (name) => {
+    expect(getToolDefinitionByName(name)?.parameters).toEqual(
+      getToolByName(name)?.parameters,
+    );
+  },
+);
+
 it('advertises only root fields accepted by each canonical tool contract', () => {
   for (const tool of getToolDefinitions()) {
     const canonical = getToolByName(tool.name);

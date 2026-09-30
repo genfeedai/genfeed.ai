@@ -605,6 +605,18 @@ describe('AgentChatContainer', () => {
     storeState.activeRunStatus = 'idle';
   });
 
+  it('clears a stale local run when the server has no active execution for the thread', async () => {
+    const apiService = createApiService();
+    storeState.activeRunId = 'run-stale';
+    storeState.activeRunStatus = 'running';
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('adopts a restored running execution as a live stream', async () => {
     const apiService = createApiService({
       getActiveWorkflowExecutions: vi.fn().mockResolvedValue([
@@ -1042,6 +1054,18 @@ describe('AgentChatContainer', () => {
       expect(sendNonStreaming).not.toHaveBeenCalled();
     });
 
+    it('offers to open the thread in Desktop', () => {
+      const apiService = createApiService();
+
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+
+      expect(
+        screen.getByRole('link', { name: 'openInDesktop' }),
+      ).toHaveAttribute('href', 'genfeedai-desktop://thread/thread-1');
+    });
+
     it('switches the thread to the hosted runtime through the runtime selection path', () => {
       const apiService = createApiService({
         updateThread: vi.fn().mockResolvedValue({}),
@@ -1278,6 +1302,38 @@ describe('AgentChatContainer', () => {
     portalTarget.remove();
   });
 
+  it('pads the transcript under a portaled surface composer without a black fade slab', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage()];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:3"
+        placement="surface"
+        portalTarget={portalTarget}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    expect(
+      container.querySelector('[data-composer-padding="128"]'),
+    ).not.toBeNull();
+    expect(
+      portalTarget.querySelector(
+        '[data-layout-mode="inflow"][data-show-top-fade="true"]',
+      ),
+    ).not.toBeNull();
+
+    portalTarget.remove();
+  });
+
   it('includes the surface dock inset when padding the transcript', async () => {
     const apiService = createApiService();
     const composerDock = document.createElement('div');
@@ -1447,6 +1503,23 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'true',
     );
+  });
+
+  it('shows a loading state while a thread is being hydrated', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        isLoadingThread
+        isStreaming
+      />,
+    );
+
+    expect(screen.getByTestId('conversation-skeleton')).toBeInTheDocument();
   });
 
   it('renders the active conversation title inside the conversation column', () => {
@@ -1680,6 +1753,33 @@ describe('AgentChatContainer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reprompt' }));
     expect(onSendMessage).toHaveBeenCalledOnce();
     expect(sendNonStreaming).toHaveBeenCalled();
+  });
+
+  it('submits a shared suggestion chip through chat send in the empty state', async () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'review',
+            label: 'Review',
+            prompt: 'Review the current branch',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review' }));
+
+    expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch', {
+      attachments: undefined,
+      agentMode: AgentThreadMode.MANUAL,
+    });
   });
 
   it('queues a suggestion while a turn is in flight', () => {
@@ -2157,6 +2257,39 @@ describe('AgentChatContainer', () => {
     });
   });
 
+  it('sends the plan-mode suggestion shortcut like any other suggested prompt (#4672 — Plan is reachable via the mode dropdown, not a filtered shortcut)', () => {
+    const apiService = createApiService({
+      updateThread: vi.fn().mockResolvedValue({}),
+    });
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.activeThreadId = 'thread-1';
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        suggestedActions={[
+          {
+            id: 'use-plan-mode',
+            label: 'Use plan mode',
+            prompt: 'Use plan mode in this thread',
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
+
+    expect(sendNonStreaming).toHaveBeenCalledWith(
+      'Use plan mode in this thread',
+      {
+        attachments: undefined,
+        agentMode: AgentThreadMode.MANUAL,
+      },
+    );
+  });
+
   it('renders the composer alongside a non-empty conversation when suggested actions are provided', () => {
     const apiService = createApiService();
 
@@ -2380,6 +2513,39 @@ describe('AgentChatContainer', () => {
 
     expect(screen.getByTestId('agent-plan-review-card')).toBeInTheDocument();
     expect(screen.queryByText('Start a chat')).not.toBeInTheDocument();
+  });
+
+  it('renders workflow-created links from ui actions', async () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [
+      buildAssistantMessage({
+        content: 'Recurring automation created.',
+        id: 'm-task',
+        metadata: {
+          uiActions: [
+            {
+              ctas: [
+                {
+                  href: '/automation/workflows/wf-42',
+                  label: 'Open workflow',
+                },
+              ],
+              id: 'workflow-created-1',
+              title: 'Automation created',
+              type: 'workflow_created_card',
+            },
+          ],
+        },
+      }),
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    expect(
+      await screen.findByRole('link', { name: 'Open workflow' }),
+    ).toHaveAttribute('href', '/automation/workflows/wf-42');
   });
 
   it('submits workflow confirmation through the UI action endpoint', async () => {
@@ -2645,6 +2811,39 @@ describe('AgentChatContainer', () => {
     );
 
     expect(screen.getByText('Start a conversation')).toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="agent-chat-input-shell"]'),
+    ).toBeNull();
+    expect(
+      portalTarget.querySelector('[data-layout-mode="inflow"]'),
+    ).not.toBeNull();
+
+    portalTarget.remove();
+  });
+
+  it('keeps an empty conversation composer in an overlay slot', () => {
+    const apiService = createApiService();
+    const portalTarget = document.createElement('div');
+    document.body.append(portalTarget);
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+
+    const { container } = render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:new:0"
+        placement="overlay"
+        portalTarget={portalTarget}
+        shellState="overlay"
+      >
+        <AgentChatContainer
+          apiService={apiService as never}
+          emptyStateTitle="Start a conversation"
+        />
+      </ConversationComposerShellProvider>,
+    );
+
     expect(
       container.querySelector('[data-testid="agent-chat-input-shell"]'),
     ).toBeNull();

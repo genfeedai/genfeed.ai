@@ -27,6 +27,10 @@ describe('TelegramBotController', () => {
     controller = module.get<TelegramBotController>(TelegramBotController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('webhook', () => {
     it('should call handleWebhookUpdate with the update payload', async () => {
       telegramBotServiceMock.handleWebhookUpdate.mockResolvedValue(undefined);

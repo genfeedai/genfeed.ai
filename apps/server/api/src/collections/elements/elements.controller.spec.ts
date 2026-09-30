@@ -67,6 +67,10 @@ describe('ElementsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAllElements', () => {
     it('should return all elements for user organization', async () => {
       elementsService.findAllElements.mockResolvedValue(mockElements);
@@ -78,6 +82,98 @@ describe('ElementsController', () => {
       expect(elementsService.findAllElements).toHaveBeenCalledWith(
         mockUser.organizationId,
       );
+    });
+
+    it('should return all elements with cameras', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.cameras).toBeDefined();
+    });
+
+    it('should return all elements with moods', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.moods).toBeDefined();
+    });
+
+    it('should return all elements with scenes', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.scenes).toBeDefined();
+    });
+
+    it('should return all elements with styles', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.styles).toBeDefined();
+    });
+
+    it('should return all elements with sounds', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.sounds).toBeDefined();
+    });
+
+    it('should return all elements with blacklists', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.blacklists).toBeDefined();
+    });
+
+    it('should return all elements with lightings', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.lightings).toBeDefined();
+    });
+
+    it('should return all elements with lenses', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.lenses).toBeDefined();
+    });
+
+    it('should return all elements with camera movements', async () => {
+      elementsService.findAllElements.mockResolvedValue(mockElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data.cameraMovements).toBeDefined();
+    });
+
+    it('should handle empty results', async () => {
+      const emptyElements = {
+        blacklists: [],
+        cameraMovements: [],
+        cameras: [],
+        lenses: [],
+        lightings: [],
+        moods: [],
+        scenes: [],
+        sounds: [],
+        styles: [],
+      };
+
+      elementsService.findAllElements.mockResolvedValue(emptyElements);
+
+      const result = await controller.findAllElements(mockReq, mockUser);
+
+      expect(result.data).toBeDefined();
     });
 
     it('should handle service errors', async () => {

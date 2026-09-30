@@ -11,4 +11,13 @@ describe('CreateAvatarUploadDto', () => {
       ),
     ).toHaveLength(0);
   });
+
+  it.each([undefined, null, 123, {}])(
+    'rejects a missing or non-string MIME type %s',
+    async (contentType) => {
+      expect(
+        await validate(plainToInstance(CreateAvatarUploadDto, { contentType })),
+      ).not.toHaveLength(0);
+    },
+  );
 });

@@ -48,6 +48,7 @@ function toApiIntegration(integration: OrgIntegration) {
 
 describe('SlackBotManager', () => {
   let service: SlackBotManager;
+  let _configService: Mocked<ConfigService>;
   let httpService: Mocked<HttpService>;
   let redisService: Mocked<RedisService>;
   let loggerRef: Logger;
@@ -117,6 +118,7 @@ describe('SlackBotManager', () => {
     }).compile();
 
     service = module.get<SlackBotManager>(SlackBotManager);
+    _configService = module.get(ConfigService);
     httpService = module.get(HttpService);
     redisService = module.get(RedisService);
 
@@ -155,6 +157,16 @@ describe('SlackBotManager', () => {
       );
       expect(loggerRef.log).toHaveBeenCalledWith(
         'Slack Bot Manager initialized with 0 bots',
+      );
+    });
+  });
+
+  describe('shutdown', () => {
+    it('should shutdown successfully', async () => {
+      await service.shutdown();
+
+      expect(loggerRef.log).toHaveBeenCalledWith(
+        'Shutting down Slack Bot Manager',
       );
     });
   });
@@ -213,6 +225,63 @@ describe('SlackBotManager', () => {
         socketMode: true,
         token: 'mock-bot-token-test',
       });
+    });
+
+    it('should handle app start failure', async () => {
+      const error = new Error('Failed to start Slack app');
+      mockApp.start.mockRejectedValue(error);
+
+      await expect(service.createBotInstance(mockIntegration)).rejects.toThrow(
+        'Failed to start Slack app',
+      );
+    });
+
+    it('should set up slash commands correctly', async () => {
+      mockApp.start.mockResolvedValue(undefined);
+
+      await service.createBotInstance(mockIntegration);
+
+      expect(mockApp.command).toHaveBeenCalledWith(
+        '/workflows',
+        expect.any(Function),
+      );
+    });
+  });
+
+  describe('destroyBotInstance', () => {
+    it('should stop the Slack app', async () => {
+      const mockInstance = {
+        app: mockApp,
+        id: mockIntegration.id,
+        integration: mockIntegration,
+        orgId: mockIntegration.orgId,
+      };
+
+      mockApp.stop.mockResolvedValue(undefined);
+
+      await service.destroyBotInstance(mockInstance);
+
+      expect(mockApp.stop).toHaveBeenCalled();
+    });
+
+    it('should handle app stop failure gracefully', async () => {
+      const mockInstance = {
+        app: mockApp,
+        id: mockIntegration.id,
+        integration: mockIntegration,
+        orgId: mockIntegration.orgId,
+      };
+
+      const error = new Error('Stop failed');
+      mockApp.stop.mockRejectedValue(error);
+
+      // Service catches errors in destroyBotInstance and logs an error
+      await service.destroyBotInstance(mockInstance);
+
+      expect(loggerRef.error).toHaveBeenCalledWith(
+        `Error stopping bot ${mockIntegration.id}`,
+        expect.objectContaining({ message: error.message }),
+      );
     });
   });
 
@@ -335,6 +404,10 @@ describe('SlackBotManager', () => {
   });
 
   describe('getActiveCount', () => {
+    it('should return 0 for empty manager', () => {
+      expect(service.getActiveCount()).toBe(0);
+    });
+
     it('should return correct count after adding integrations', async () => {
       mockApp.start.mockResolvedValue(undefined);
 

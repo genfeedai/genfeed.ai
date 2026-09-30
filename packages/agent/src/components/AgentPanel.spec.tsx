@@ -296,6 +296,18 @@ describe('AgentPanel', () => {
     );
   });
 
+  it('restores the persisted terminal working directory', () => {
+    window.localStorage.setItem('genfeed:terminal:cwd', '/tmp/genfeed');
+
+    renderAgentPanel(
+      <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+    );
+
+    expect(screen.getByLabelText('Terminal working directory')).toHaveValue(
+      '/tmp/genfeed',
+    );
+  });
+
   it('shows the hosted runtime picker in a browser', async () => {
     renderAgentPanel(
       <AgentPanel apiService={createCreditsInfoApiService() as never} />,

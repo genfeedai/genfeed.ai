@@ -103,6 +103,10 @@ describe('PublicBrandsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findBySlug', () => {
     it('queries an exact case-insensitive slug and excludes deleted brands', async () => {
       brandsService.findOneBySlug.mockResolvedValue(
@@ -117,6 +121,26 @@ describe('PublicBrandsController', () => {
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
+    });
+
+    it('returns a brand stored with the PUBLIC scope value', async () => {
+      brandsService.findOneBySlug.mockImplementation(
+        scopeFilteringFindOne(PRISMA_SCOPE_PUBLIC),
+      );
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toEqual(mockBrand);
+    });
+
+    it('returns not found for a brand stored with the USER scope value', async () => {
+      brandsService.findOneBySlug.mockImplementation(
+        scopeFilteringFindOne(PRISMA_SCOPE_USER),
+      );
+
+      const result = await controller.findOneBySlug(mockReq, 'test-brand');
+
+      expect(result).toMatchObject({ data: null });
     });
 
     it('should return not found message for non-existent brand', async () => {
@@ -158,6 +182,33 @@ describe('PublicBrandsController', () => {
 
       expect(brandsService.findOne).not.toHaveBeenCalled();
       expect(result).toMatchObject({ data: null });
+    });
+  });
+
+  describe('findBrandArticles', () => {
+    it('queries public brand articles with persisted status values', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      articlesService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as never);
+
+      await controller.findBrandArticles(brandId, mockReq);
+
+      expect(articlesService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId,
+            isDeleted: false,
+            publishedAt: { lte: expect.any(Date) },
+            scope: AssetScope.PUBLIC,
+            status: 'PUBLISHED',
+          }),
+        }),
+        expect.any(Object),
+      );
     });
   });
 

@@ -113,4 +113,33 @@ describe('MusicsService', () => {
       }),
     );
   });
+
+  it('uses create-context population for a GENERATED create by default', async () => {
+    await service.create({
+      status: IngredientStatus.GENERATED,
+      text: 'Ambient focus track',
+    });
+
+    expect(ingredientDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: {
+          brand: expect.objectContaining({ select: expect.any(Object) }),
+          metadata: expect.objectContaining({ select: expect.any(Object) }),
+          prompt: expect.objectContaining({ select: expect.any(Object) }),
+        },
+      }),
+    );
+  });
+
+  it('preserves requested population for a GENERATED update', async () => {
+    await service.patch('music-1', { status: IngredientStatus.GENERATED }, [
+      'metadata',
+    ]);
+
+    expect(ingredientDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: { metadata: true },
+      }),
+    );
+  });
 });

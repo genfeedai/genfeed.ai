@@ -72,6 +72,12 @@ describe('canonicalize model registry migration', () => {
     }
   });
 
+  it('preserves the keys of a valid object providerConfig', () => {
+    const providerConfig = { apiVersion: 'v1', region: 'eu' };
+
+    expect(resolveMergeLeftOperand(providerConfig)).toEqual(providerConfig);
+  });
+
   it('falls back to an empty object for malformed providerConfig values', () => {
     expect(resolveMergeLeftOperand(['v1'])).toEqual({});
     expect(resolveMergeLeftOperand('v1')).toEqual({});

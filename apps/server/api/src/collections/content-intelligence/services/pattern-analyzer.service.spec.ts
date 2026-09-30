@@ -313,6 +313,20 @@ describe('PatternAnalyzerService rule-based extraction', () => {
     expect(hook?.placeholders).toContain('QUESTION');
   });
 
+  it('extracts CONTRARIAN hook when starting with "stop"', async () => {
+    withPost(
+      "Stop trying to work harder. It doesn't work.\n\nWork smarter instead.",
+    );
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+    const hook = patterns.find(
+      (p) =>
+        p.patternType === ContentPatternType.HOOK &&
+        p.templateCategory === ContentPatternCategory.CONTRARIAN,
+    );
+    expect(hook).toBeDefined();
+  });
+
   it('extracts CONTRARIAN hook when starting with "hot take"', async () => {
     withPost('Hot take: most productivity advice is wrong.\n\nHere is why.');
 
@@ -352,6 +366,16 @@ describe('PatternAnalyzerService rule-based extraction', () => {
     expect(list?.placeholders).toContain('NUMBER');
   });
 
+  it('does NOT extract LIST for only 2 numbered items', async () => {
+    withPost('Two tips:\n\n1. First thing\n2. Second thing');
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+    const list = patterns.find(
+      (p) => p.templateCategory === ContentPatternCategory.LIST,
+    );
+    expect(list).toBeUndefined();
+  });
+
   it('extracts STRUCTURE for thread indicator', async () => {
     withPost(
       'How to build a startup:\n\n🧵 Thread:\n\n1. Start with problem...',
@@ -362,6 +386,16 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       (p) => p.patternType === ContentPatternType.STRUCTURE,
     );
     expect(thread).toBeDefined();
+  });
+
+  it('extracts CTA for "follow for" pattern', async () => {
+    withPost(
+      'Great content here.\n\nFollow for daily tips on AI and productivity.',
+    );
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+    const cta = patterns.find((p) => p.patternType === ContentPatternType.CTA);
+    expect(cta).toBeDefined();
   });
 
   it('extracts CTA for "save this" pattern', async () => {
@@ -516,6 +550,28 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     const { patterns } = await service.analyzeCreator(creatorId);
     expect(patterns.length).toBeGreaterThan(0);
     expect(patterns[0].patternType).toBe(ContentPatternType.HOOK);
+  });
+
+  it('falls back to rule-based when LLM throws', async () => {
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('timeout'),
+    );
+
+    // Post that triggers story rule
+    mockCreatorScraperService.scrapeCreator.mockResolvedValue({
+      posts: [
+        makePost({
+          text: 'I failed at my first startup.\n\nHere is what I learned:',
+        }),
+      ],
+      profile: {},
+    });
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+    const story = patterns.find(
+      (p) => p.templateCategory === ContentPatternCategory.STORY,
+    );
+    expect(story).toBeDefined();
   });
 
   it('returns no patterns when the model reports none', async () => {

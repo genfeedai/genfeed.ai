@@ -62,6 +62,12 @@ describe('AnalyticsExportService', () => {
     service = module.get<AnalyticsExportService>(AnalyticsExportService);
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   // ==========================================================================
   // exportData
   // ==========================================================================
@@ -120,6 +126,18 @@ describe('AnalyticsExportService', () => {
       const result = await service.exportData('xlsx', ['id', 'title']);
 
       expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should return headers only when no data', async () => {
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      const result = await service.exportData('csv', [
+        'id',
+        'title',
+        'platform',
+      ]);
+
+      expect(result).toBe('id,title,platform');
     });
 
     it('should fetch platform-specific analytics', async () => {
@@ -220,6 +238,51 @@ describe('AnalyticsExportService', () => {
 
       expect(result).toBeDefined();
       expect(mockLoggerService.error).toHaveBeenCalled();
+    });
+
+    it('should scope PostsService.findAll to the given organizationId', async () => {
+      const orgId = 'org-scoped-abc';
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.exportData('csv', ['id', 'title'], {
+        organizationId: orgId,
+      });
+
+      expect(mockPostsService.findAll).toHaveBeenCalledWith(
+        {
+          include: {
+            credential: { select: { id: true, platform: true } },
+          },
+          where: { status: 'published', organizationId: orgId },
+        },
+        {
+          limit: 5000,
+          page: 1,
+          pagination: true,
+          sort: { publicationDate: -1 },
+        },
+      );
+    });
+
+    it('should NOT include organizationId filter when no organizationId provided', async () => {
+      mockPostsService.findAll.mockResolvedValue({ docs: [] });
+
+      await service.exportData('csv', ['id', 'title']);
+
+      expect(mockPostsService.findAll).toHaveBeenCalledWith(
+        {
+          include: {
+            credential: { select: { id: true, platform: true } },
+          },
+          where: { status: 'published' },
+        },
+        {
+          limit: 5000,
+          page: 1,
+          pagination: true,
+          sort: { publicationDate: -1 },
+        },
+      );
     });
 
     it('bounds exports to the requested brand, platform, and date range', async () => {

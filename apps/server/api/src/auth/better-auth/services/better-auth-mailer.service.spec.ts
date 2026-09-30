@@ -77,6 +77,26 @@ describe('BetterAuthMailerService', () => {
     expect(html).not.toContain('%2Fapi%2Fversion');
   });
 
+  it('sanitizes a callback even when the deployment app URL is absent', () => {
+    expect(
+      resolveBrowserAuthActionUrl(
+        'https://api.example.test/v1/auth/magic-link/verify?token=tok&callbackURL=%2Fapi%2Fversion',
+        undefined,
+      ),
+    ).toContain('callbackURL=%2F');
+  });
+
+  it('preserves a fixed absolute callback when the deployment app URL is absent', () => {
+    const callbackURL =
+      'https://selfhost.example/?callbackUrl=%2Facme%2F~%2Fworkspace%2Foverview';
+    const resolved = resolveBrowserAuthActionUrl(
+      `https://selfhost.example/v1/auth/magic-link/verify?token=tok&callbackURL=${encodeURIComponent(callbackURL)}`,
+      undefined,
+    );
+
+    expect(new URL(resolved).searchParams.get('callbackURL')).toBe(callbackURL);
+  });
+
   it.each(['/\\evil.example/', 'https://app.genfeed.ai@evil.example/'])(
     'sanitizes the authority-confusing callback %s',
     (callbackURL) => {
@@ -408,5 +428,11 @@ describe('buildAuthLinkCorrelationId', () => {
     expect(linkId).toBe(buildAuthLinkCorrelationId(token));
     expect(linkId).not.toContain(token);
     expect(token).not.toContain(linkId);
+  });
+
+  it('distinguishes separate issuances', () => {
+    expect(buildAuthLinkCorrelationId('token-a')).not.toBe(
+      buildAuthLinkCorrelationId('token-b'),
+    );
   });
 });

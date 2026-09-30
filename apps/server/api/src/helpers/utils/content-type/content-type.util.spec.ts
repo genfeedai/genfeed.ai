@@ -237,5 +237,20 @@ describe('ContentTypeUtil', () => {
         ContentTypeUtil.isAllowedExtension('TEST.PNG', ['.jpg', '.png']),
       ).toBe(true);
     });
+
+    it('should handle paths with directories', () => {
+      expect(
+        ContentTypeUtil.isAllowedExtension('/path/to/test.jpg', [
+          '.jpg',
+          '.png',
+        ]),
+      ).toBe(true);
+    });
+
+    it('should handle files without extension', () => {
+      expect(
+        ContentTypeUtil.isAllowedExtension('noextension', ['.jpg', '.png']),
+      ).toBe(false);
+    });
   });
 });

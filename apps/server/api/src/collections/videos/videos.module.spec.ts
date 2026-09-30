@@ -5,6 +5,10 @@ import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfi
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('VideosModule', () => {
+  it('should be defined', () => {
+    expect(VideosModule).toBeDefined();
+  });
+
   it('registers video merge orchestration', () => {
     const providers =
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, VideosModule) ?? [];

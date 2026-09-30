@@ -86,6 +86,10 @@ describe('BotGatewayController', () => {
     botGatewayService = module.get(BotGatewayService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // ── Discord ──────────────────────────────────────────────────────────
 
   describe('handleDiscordInteraction', () => {

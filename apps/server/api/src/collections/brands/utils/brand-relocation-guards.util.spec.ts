@@ -74,4 +74,23 @@ describe('security audit relocation history', () => {
       );
     }
   }
+
+  it('permits a brand without audit history', async () => {
+    const client = {
+      workflow: { findMany: vi.fn().mockResolvedValue([]) },
+      workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
+      postGroup: { findMany: vi.fn().mockResolvedValue([]) },
+      agentPublishAudit: { findFirst: vi.fn().mockResolvedValue(null) },
+      agentUntrustedContentAudit: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
+    };
+    await expect(
+      assertNoSecurityAuditHistory(
+        client as unknown as Prisma.TransactionClient,
+        'brand',
+        'org',
+      ),
+    ).resolves.toBeUndefined();
+  });
 });

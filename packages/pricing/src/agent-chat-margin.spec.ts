@@ -52,4 +52,9 @@ describe('agent-chat runtime margin multiplier', () => {
       DEFAULT_AGENT_CHAT_MARGIN_MULTIPLIER,
     );
   });
+
+  it('clamps to the shared MAX_MARGIN_MULTIPLIER cap', () => {
+    setRuntimeAgentChatMarginMultiplier(999);
+    expect(getRuntimeAgentChatMarginMultiplier()).toBe(10);
+  });
 });

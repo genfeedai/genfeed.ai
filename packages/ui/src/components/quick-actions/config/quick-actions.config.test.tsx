@@ -13,6 +13,10 @@ describe('QuickActionsConfig', () => {
     expect(action).toBeDefined();
   });
 
+  it('should expose configuration helpers', () => {
+    expect(QuickActionsConfig.createPublishAction).toBeDefined();
+  });
+
   it('exposes image variation as a contextual Remix action', () => {
     const ingredient = { id: 'ingredient-1' } as IIngredient;
     const handler = vi.fn();

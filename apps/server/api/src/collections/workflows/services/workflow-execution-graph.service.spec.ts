@@ -2,6 +2,7 @@ import { WorkflowExecutionGraphService } from '@api/collections/workflows/servic
 import type {
   ExecutableEdge,
   ExecutableNode,
+  NodeExecutionResult,
 } from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
@@ -14,6 +15,27 @@ describe('WorkflowExecutionGraphService', () => {
     label: 'Target',
     type: 'genfeedAction',
   };
+
+  it('routes a source handle into a differently named target handle', () => {
+    const edges: ExecutableEdge[] = [
+      {
+        id: 'plan-to-items',
+        source: 'plan',
+        sourceHandle: 'hookItems',
+        target: target.id,
+        targetHandle: 'items',
+      },
+    ];
+
+    expect(
+      service.gatherInputs(
+        target,
+        edges,
+        new Map([['plan', { hookItems: [{ index: 0 }], remainingItems: [] }]]),
+        new Map(),
+      ),
+    ).toEqual(new Map([['items', [{ index: 0 }]]]));
+  });
 
   it('does not route an inactive explicit source handle', () => {
     const edges: ExecutableEdge[] = [
@@ -74,6 +96,47 @@ describe('WorkflowExecutionGraphService', () => {
     },
   );
 
+  it.each([null, 'prepare', 'infer', 'finalize'])(
+    'only schedules a shared failure sink for an active failure (%s)',
+    (failedNode) => {
+      const sources = ['prepare', 'infer', 'finalize'];
+      const edges: ExecutableEdge[] = sources.map((source) => ({
+        id: `${source}-failure`,
+        source,
+        sourceHandle: 'failure',
+        target: 'fail-turn',
+        targetHandle: 'failure',
+      }));
+      const results = new Map<string, Pick<NodeExecutionResult, 'status'>>(
+        sources.map((source) => [
+          source,
+          { status: source === failedNode ? 'failed' : 'completed' },
+        ]),
+      );
+      expect(
+        service.isNodeReachable(
+          'fail-turn',
+          edges,
+          new Set(sources),
+          new Set(),
+          results,
+        ),
+      ).toBe(failedNode !== null);
+    },
+  );
+
+  it('does not activate a success edge from a failed predecessor', () => {
+    expect(
+      service.isNodeReachable(
+        'success',
+        [{ id: 'success-edge', source: 'work', target: 'success' }],
+        new Set(['work']),
+        new Set(),
+        new Map([['work', { status: 'failed' }]]),
+      ),
+    ).toBe(false);
+  });
+
   it.each(['prepare', 'infer', 'finalize'])(
     'preserves the shared failure handler when %s fails',
     (failedNode) => {
@@ -113,6 +176,18 @@ describe('WorkflowExecutionGraphService', () => {
       ).toBe(true);
     },
   );
+
+  it('preserves ordinary successors of completed nodes', () => {
+    expect(
+      service.isNodeReachable(
+        'next',
+        [{ id: 'work-next', source: 'work', target: 'next' }],
+        new Set(['work']),
+        new Set(),
+        new Map([['work', { status: 'completed' }]]),
+      ),
+    ).toBe(true);
+  });
 
   it('selects failure and success edges exclusively', () => {
     const edges: ExecutableEdge[] = [

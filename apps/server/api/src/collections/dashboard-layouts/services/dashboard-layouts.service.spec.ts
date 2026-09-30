@@ -105,6 +105,18 @@ describe('DashboardLayoutsService', () => {
         }),
       );
     });
+
+    it('returns null when no layout exists for the page', async () => {
+      mockPrisma.dashboardLayout.findFirst.mockResolvedValueOnce(null);
+
+      const result = await service.findForPage(
+        'brand-1',
+        'org-1',
+        'workspace-overview',
+      );
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('upsertForPage', () => {
@@ -199,6 +211,52 @@ describe('DashboardLayoutsService', () => {
       ).rejects.toThrow(NotFoundException);
 
       expect(mockCacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    });
+
+    it('defaults pageKey to workspace-overview when omitted', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockResolvedValueOnce(
+        mockDashboardLayout,
+      );
+
+      await service.upsertForPage('org-1', {
+        brandId: 'brand-1',
+        document: { blocks: [] },
+      });
+
+      expect(mockPrisma.dashboardLayout.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId_brandId_pageKey: {
+              brandId: 'brand-1',
+              organizationId: 'org-1',
+              pageKey: 'workspace-overview',
+            },
+          },
+        }),
+      );
+    });
+
+    it('scopes the brand lookup to the caller organization', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValueOnce({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockResolvedValueOnce(
+        mockDashboardLayout,
+      );
+
+      await service.upsertForPage('org-1', {
+        brandId: 'brand-1',
+        document: { blocks: [] },
+        pageKey: 'workspace-overview',
+      });
+
+      expect(mockPrisma.brand.findFirst).toHaveBeenCalledWith({
+        select: { organizationId: true },
+        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      });
     });
 
     it('denies cross-org access: a foreign org cannot upsert another org brand layout', async () => {

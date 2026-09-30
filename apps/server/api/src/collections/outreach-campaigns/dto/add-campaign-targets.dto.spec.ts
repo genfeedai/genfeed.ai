@@ -17,7 +17,16 @@ function buildUsernames(count: number): string[] {
 }
 
 describe('AddCampaignTargetsDto', () => {
+  it('should be defined', () => {
+    expect(AddCampaignTargetsDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new AddCampaignTargetsDto();
+      expect(dto).toBeInstanceOf(AddCampaignTargetsDto);
+    });
+
     it('accepts a url list at the maximum size', async () => {
       const dto = Object.assign(new AddCampaignTargetsDto(), {
         urls: buildUrls(ADD_CAMPAIGN_TARGETS_MAX_ITEMS),

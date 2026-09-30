@@ -39,6 +39,12 @@ describe('EnvironmentService', () => {
   });
 
   describe('API endpoints', () => {
+    it('returns default API endpoint when NEXT_PUBLIC_API_ENDPOINT is not set', () => {
+      delete process.env.NEXT_PUBLIC_API_ENDPOINT;
+
+      expect(EnvironmentService.apiEndpoint).toBe('https://api.genfeed.ai/v1');
+    });
+
     it('returns custom API endpoint when NEXT_PUBLIC_API_ENDPOINT is set', () => {
       process.env.NEXT_PUBLIC_API_ENDPOINT = 'http://custom-api.example.com';
 
@@ -91,6 +97,12 @@ describe('EnvironmentService', () => {
   });
 
   describe('CDN URL', () => {
+    it('returns default CDN URL when NEXT_PUBLIC_CDN_URL is not set', () => {
+      delete process.env.NEXT_PUBLIC_CDN_URL;
+
+      expect(EnvironmentService.cdnUrl).toBe('https://cdn.genfeed.ai');
+    });
+
     it('returns custom CDN URL when NEXT_PUBLIC_CDN_URL is set', () => {
       process.env.NEXT_PUBLIC_CDN_URL = 'http://custom-cdn.example.com';
 

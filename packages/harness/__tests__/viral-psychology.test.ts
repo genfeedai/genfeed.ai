@@ -36,6 +36,16 @@ describe('VIRAL_PSYCHOLOGY_HARNESS_PACK', () => {
     ]);
   });
 
+  it('publishes the score keys as a provider hint', () => {
+    const contribution = contribute({
+      intent: { contentType: 'post', objective: 'engagement' },
+    });
+
+    expect(contribution.providerHints?.join(' ')).toContain(
+      'demandFit, hookStrength, openLoopIntegrity, ctaNaturalness',
+    );
+  });
+
   it('requests overall together with every layer key from evaluators', () => {
     const contribution = contribute({
       intent: { contentType: 'post', objective: 'engagement' },
@@ -88,6 +98,20 @@ describe('VIRAL_PSYCHOLOGY_HARNESS_PACK', () => {
       'the self-hosted tier',
     );
   });
+
+  it('leaves conversion directives out of non-conversion intent', () => {
+    const contribution = contribute({
+      intent: {
+        contentType: 'post',
+        objective: 'engagement',
+        offer: 'the self-hosted tier',
+      },
+    });
+
+    expect(contribution.styleDirectives?.join(' ')).not.toContain(
+      'the self-hosted tier',
+    );
+  });
 });
 
 describe('normalizePersuasionScores', () => {
@@ -108,6 +132,17 @@ describe('normalizePersuasionScores', () => {
     ).toBeUndefined();
   });
 
+  it('rejects an object with a non-numeric layer score', () => {
+    expect(
+      normalizePersuasionScores({
+        ctaNaturalness: 80,
+        demandFit: 80,
+        hookStrength: 80,
+        openLoopIntegrity: 'high',
+      }),
+    ).toBeUndefined();
+  });
+
   it('derives overall as the mean of the four layer scores, ignoring any evaluator-supplied overall', () => {
     const normalized = normalizePersuasionScores({
       ctaNaturalness: 100,
@@ -122,6 +157,23 @@ describe('normalizePersuasionScores', () => {
       demandFit: 0,
       hookStrength: 100,
       openLoopIntegrity: 0,
+      overall: 50,
+    });
+  });
+
+  it('clamps and rounds out-of-range layer scores', () => {
+    const normalized = normalizePersuasionScores({
+      ctaNaturalness: 50.4,
+      demandFit: -10,
+      hookStrength: 150,
+      openLoopIntegrity: 50.6,
+    });
+
+    expect(normalized).toEqual({
+      ctaNaturalness: 50,
+      demandFit: 0,
+      hookStrength: 100,
+      openLoopIntegrity: 51,
       overall: 50,
     });
   });

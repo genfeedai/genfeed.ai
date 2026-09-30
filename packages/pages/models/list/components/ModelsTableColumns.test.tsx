@@ -2,6 +2,7 @@ import {
   CostTier,
   ModelCategory,
   ModelLifecycle,
+  ModelProvider,
   QualityTier,
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
@@ -107,6 +108,18 @@ describe('buildModelsTableColumns', () => {
     ).toBe(true);
   });
 
+  it('renders lifecycle and requires a successor for a terminal transition', () => {
+    const model = buildModel({ lifecycle: ModelLifecycle.AVAILABLE });
+    renderColumn('Lifecycle', model, true);
+
+    expect(
+      screen.getByRole('combobox', { name: 'Lifecycle for Flux Dev' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps a retired row to a single lifecycle control', () => {
     const successor = buildModel({
       id: 'model-2',
@@ -142,6 +155,24 @@ describe('buildModelsTableColumns', () => {
       screen.queryByRole('combobox', { name: 'Successor for Flux Dev' }),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Successor: Flux Pro')).toBeInTheDocument();
+  });
+
+  it('renders the model key on one compact line', () => {
+    renderColumn('Key', buildModel({ key: 'openrouter/auto-beta' }), true);
+
+    const key = screen.getByText('openrouter/auto-beta');
+    expect(key).toHaveClass('truncate', 'whitespace-nowrap', 'text-2xs');
+    expect(key).toHaveAttribute('title', 'openrouter/auto-beta');
+  });
+
+  it('renders the provider as a branded pill', () => {
+    renderColumn(
+      'Provider',
+      buildModel({ provider: ModelProvider.REPLICATE }),
+      true,
+    );
+
+    expect(screen.getByText('Replicate')).toBeInTheDocument();
   });
 
   it('renders the picker quality meter and dollar cost mark', () => {
@@ -197,5 +228,25 @@ describe('buildModelsTableColumns', () => {
     expect(onOpenDetails).toHaveBeenCalledWith(
       expect.objectContaining({ label: 'Flux Dev' }),
     );
+  });
+
+  it('places the model description under its label', () => {
+    const model = buildModel({ description: 'Detailed model description' });
+    const columns = buildModelsTableColumns({
+      handleAdminToggle: vi.fn(),
+      handleLifecycleChange: vi.fn(),
+      handleToggleModel: vi.fn(),
+      isAdminScope: true,
+      isModelEnabled: () => true,
+      isOnlyDefaultInCategory: () => false,
+      onOpenDetails: vi.fn(),
+      togglingModelId: null,
+      models: [model],
+      translate,
+    });
+
+    const labelColumn = columns.find((column) => column.header === 'Label');
+
+    expect(labelColumn?.subtext?.(model)).toBe('Detailed model description');
   });
 });

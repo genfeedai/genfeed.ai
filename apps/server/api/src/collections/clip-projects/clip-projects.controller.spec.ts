@@ -6,6 +6,7 @@ import { ClipProjectsController } from '@api/collections/clip-projects/clip-proj
 import type { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import {
+  type GenerateClipHighlightDto,
   GenerateClipsDto,
   SubmitHookClipDecisionDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
@@ -380,6 +381,121 @@ describe('ClipProjectsController', () => {
       ).toContain('feedback');
       expect(validateSync(approval)).toEqual([]);
     });
+  });
+
+  describe('GenerateClipsDto validation', () => {
+    const editedHighlights: GenerateClipHighlightDto[] = [
+      {
+        id: 'highlight-1',
+        summary: 'Edited summary',
+        title: 'Edited title',
+      },
+    ];
+
+    it('should accept the production-ready HeyGen avatar provider', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'avatar-1',
+        avatarProvider: 'heygen',
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'voice-1',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should accept the production-ready Argil avatar provider', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 'argil-avatar-1',
+        avatarProvider: 'argil',
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: 'argil-voice-1',
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should allow the controller to resolve omitted avatar credentials', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should accept raw-cut mode without avatar credentials', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        mode: 'raw-cut',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto)).toEqual([]);
+    });
+
+    it('should validate optional avatar credentials in raw-cut mode', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        avatarId: 123,
+        editedHighlights,
+        mode: 'raw-cut',
+        selectedHighlightIds: ['highlight-1'],
+        voiceId: false,
+      });
+
+      const errors = validateSync(dto);
+
+      expect(errors.map((error) => error.property)).toEqual(
+        expect.arrayContaining(['avatarId', 'voiceId']),
+      );
+    });
+
+    it('should reject unknown generation modes', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        mode: 'unknown',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'mode',
+      );
+    });
+
+    it('should reject unknown selected-reference policies', () => {
+      const dto = plainToInstance(GenerateClipsDto, {
+        editedHighlights,
+        referencePolicy: 'best-effort',
+        selectedHighlightIds: ['highlight-1'],
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toContain(
+        'referencePolicy',
+      );
+    });
+
+    it.each(['did', 'tavus', 'musetalk'] as const)(
+      'should reject unsupported avatar provider %s',
+      (avatarProvider) => {
+        const dto = plainToInstance(GenerateClipsDto, {
+          avatarId: 'avatar-1',
+          avatarProvider,
+          editedHighlights,
+          selectedHighlightIds: ['highlight-1'],
+          voiceId: 'voice-1',
+        });
+
+        const errors = validateSync(dto);
+        const messages = errors.flatMap((error) =>
+          Object.values(error.constraints ?? {}),
+        );
+
+        expect(messages).toContain(
+          'avatarProvider must be one of the following values: heygen, argil, genfeedai',
+        );
+      },
+    );
   });
 
   it('should persist edited highlights and keep the project generating while jobs are queued', async () => {

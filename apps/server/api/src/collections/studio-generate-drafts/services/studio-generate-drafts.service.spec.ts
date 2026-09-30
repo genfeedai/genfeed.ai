@@ -117,6 +117,25 @@ describe('StudioGenerateDraftsService', () => {
     expect(studioGenerateDraft.findFirst).not.toHaveBeenCalled();
   });
 
+  it('checks the caller membership in the draft organization', async () => {
+    studioGenerateDraft.findFirst.mockResolvedValueOnce(null);
+
+    await service.findCurrent(scope);
+
+    expect(member.findFirst).toHaveBeenCalledWith({
+      select: {
+        brands: { select: { id: true } },
+        role: { select: { key: true } },
+      },
+      where: {
+        isActive: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'opaque-user-id',
+      },
+    });
+  });
+
   it('refuses a brand outside the member assigned brands', async () => {
     member.findFirst.mockResolvedValue({
       brands: [{ id: 'brand-other' }],
@@ -131,6 +150,21 @@ describe('StudioGenerateDraftsService', () => {
     );
     expect(studioGenerateDraft.findFirst).not.toHaveBeenCalled();
     expect(studioGenerateDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('lets an assigned member and an admin reach the brand', async () => {
+    studioGenerateDraft.findFirst.mockResolvedValue(null);
+    member.findFirst.mockResolvedValueOnce({
+      brands: [{ id: 'brand-1' }],
+      role: { key: MemberRole.USER },
+    });
+    await expect(service.findCurrent(scope)).resolves.toBeNull();
+
+    member.findFirst.mockResolvedValueOnce({
+      brands: [{ id: 'brand-other' }],
+      role: { key: MemberRole.ADMIN },
+    });
+    await expect(service.findCurrent(scope)).resolves.toBeNull();
   });
 
   it('refuses a caller without an active membership', async () => {
@@ -342,6 +376,17 @@ describe('StudioGenerateDraftsService', () => {
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(studioGenerateDraft.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('never writes a draft for a brand outside the organization', async () => {
+    brand.findFirst.mockReset();
+    brand.findFirst.mockResolvedValueOnce(null);
+
+    await expect(service.upsertCurrent(dto, scope)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(studioGenerateDraft.updateMany).not.toHaveBeenCalled();
+    expect(studioGenerateDraft.create).not.toHaveBeenCalled();
   });
 
   it('skips the ingredient lookup when the draft references nothing', async () => {

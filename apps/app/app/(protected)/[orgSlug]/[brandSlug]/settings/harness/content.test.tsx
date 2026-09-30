@@ -198,6 +198,22 @@ describe('BrandSettingsHarnessPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('hides the positioning scorecard when the profile has no positioning score', async () => {
+    mocks.findForBrand.mockResolvedValue([
+      {
+        id: 'profile-1',
+        isDefault: true,
+        label: 'Acme Harness',
+        status: 'active',
+      },
+    ]);
+
+    render(<BrandSettingsHarnessPage />);
+
+    await screen.findByLabelText('Label');
+    expect(screen.queryByText('Positioning scorecard')).not.toBeInTheDocument();
+  });
+
   it('saves the draft through the harness profiles service', async () => {
     mocks.createForBrand.mockResolvedValue({
       id: 'profile-1',

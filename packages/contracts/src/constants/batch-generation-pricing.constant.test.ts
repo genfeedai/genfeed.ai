@@ -61,6 +61,26 @@ describe('batch-generation-pricing', () => {
     expect(captionOnly).toBeGreaterThanOrEqual(20);
   });
 
+  it('charges only completed items', () => {
+    const total = chargeBatchGenerationCredits(
+      [
+        { format: ContentFormat.IMAGE, hasMedia: false },
+        { format: ContentFormat.REEL, hasMedia: false },
+      ],
+      { includeMedia: false, qualityTier: 'budget' },
+    );
+    expect(total).toBe(
+      batchItemCredits(
+        { format: ContentFormat.IMAGE, hasMedia: false },
+        { includeMedia: false, qualityTier: 'budget' },
+      ) +
+        batchItemCredits(
+          { format: ContentFormat.REEL, hasMedia: false },
+          { includeMedia: false, qualityTier: 'budget' },
+        ),
+    );
+  });
+
   it('charges media rates for items that came back with media', () => {
     const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
     const captionOnly = chargeBatchGenerationCredits(
@@ -85,6 +105,19 @@ describe('batch-generation-pricing', () => {
     expect(uiOptions).toEqual(serverOptions);
     expect(uiOptions.includeMedia).toBe(false);
     expect(uiOptions.qualityTier).toBe('balanced');
+  });
+
+  it('promotes batch-level media intent to media rates', () => {
+    const captionOnly = resolveBatchPricingOptions({
+      hasMediaGeneration: false,
+    });
+    const mediaRun = resolveBatchPricingOptions({ hasMediaGeneration: true });
+
+    expect(
+      batchItemCredits({ format: ContentFormat.VIDEO }, mediaRun),
+    ).toBeGreaterThan(
+      batchItemCredits({ format: ContentFormat.VIDEO }, captionOnly),
+    );
   });
 
   it('bills the shortfall when an async batch produced media', () => {
@@ -170,5 +203,29 @@ describe('batch-generation-pricing', () => {
       reel: 0,
     });
     expect(counts).toEqual({ image: 4, video: 0, reel: 0 });
+  });
+
+  it('prices a one-item mixed mix as exactly one item', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const estimate = estimateBatchGenerationCredits(
+      {
+        contentMix: {
+          [ContentFormat.IMAGE]: 1,
+          [ContentFormat.VIDEO]: 1,
+          [ContentFormat.REEL]: 1,
+          [ContentFormat.CAROUSEL]: 1,
+          [ContentFormat.STORY]: 1,
+        },
+        count: 1,
+      },
+      options,
+    );
+    // Single largest remainder winner — never multiplies by every format.
+    expect(estimate).toBe(
+      batchItemCredits(
+        { format: ContentFormat.IMAGE, hasMedia: false },
+        options,
+      ),
+    );
   });
 });

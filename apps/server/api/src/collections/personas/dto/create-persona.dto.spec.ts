@@ -12,6 +12,10 @@ async function handleErrorsFor(handle: unknown) {
 }
 
 describe('CreatePersonaDto', () => {
+  it('should be defined', () => {
+    expect(CreatePersonaDto).toBeDefined();
+  });
+
   it('accepts a valid lowercase handle', async () => {
     expect(await handleErrorsFor('anna')).toEqual([]);
     expect(await handleErrorsFor('red-jacket_01')).toEqual([]);
@@ -33,5 +37,15 @@ describe('CreatePersonaDto', () => {
     });
     expect(dto.handle).toBeNull();
     expect(await handleErrorsFor('')).toEqual([]);
+  });
+
+  it('rejects handles that are not URL-safe', async () => {
+    const errors = await handleErrorsFor('anna doe');
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it('rejects one-character handles', async () => {
+    const errors = await handleErrorsFor('a');
+    expect(errors.length).toBeGreaterThan(0);
   });
 });

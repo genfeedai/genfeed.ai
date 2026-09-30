@@ -123,6 +123,10 @@ describe('PostsAnalyticsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getAnalytics', () => {
     const postId = testId('post');
 
@@ -217,6 +221,47 @@ describe('PostsAnalyticsController', () => {
       const result = await controller.refreshAnalytics(mockUser, postId);
 
       expect(result).toHaveProperty('statusCode', 404);
+    });
+
+    it('keeps the credential lookup scoped to the brand and organization', async () => {
+      mockPostsService.findOne.mockResolvedValue(mockPost);
+      mockCredentialsService.findOne.mockResolvedValue(mockCredential);
+      mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
+        mockAnalyticsSummary,
+      );
+
+      await controller.refreshAnalytics(mockUser, postId);
+
+      // Exact match: an extra/missing key here is the whole defect. Filter
+      // values of `undefined` are dropped by `normalizeWhere`, so a lookup
+      // built from unpopulated relation aliases silently loses its tenant
+      // scoping and can return another organization's credential.
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: testId('credential'),
+        brandId: testId('brand'),
+        organizationId: testId('org'),
+      });
+    });
+
+    it('uses canonical scalar foreign keys for the credential lookup', async () => {
+      mockPostsService.findOne.mockResolvedValue({
+        ...mockPost,
+        brandId: testId('brand'),
+        credentialId: testId('credential'),
+        organizationId: testId('org'),
+      });
+      mockCredentialsService.findOne.mockResolvedValue(mockCredential);
+      mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
+        mockAnalyticsSummary,
+      );
+
+      await controller.refreshAnalytics(mockUser, postId);
+
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: testId('credential'),
+        brandId: testId('brand'),
+        organizationId: testId('org'),
+      });
     });
 
     it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {

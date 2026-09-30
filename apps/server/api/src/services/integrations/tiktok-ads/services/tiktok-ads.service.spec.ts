@@ -59,6 +59,10 @@ describe('TikTokAdsService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   // ─── getAdAccounts ────────────────────────────────────────────────────────
 
   describe('getAdAccounts', () => {
@@ -176,6 +180,25 @@ describe('TikTokAdsService', () => {
 
       expect(id).toBe('new-camp-99');
       expect(logger.log).toHaveBeenCalled();
+    });
+
+    it('should convert budget to micros before sending', async () => {
+      httpService.post.mockReturnValue(
+        of(makeApiResponse({ campaign_id: 'camp-x' })),
+      );
+
+      await service.createCampaign(ACCESS_TOKEN, ADVERTISER_ID, {
+        budget: 25.5,
+        budgetMode: 'DAILY',
+        campaignName: 'Test',
+        objectiveType: 'REACH',
+      });
+
+      const [, body] = httpService.post.mock.calls[0] as [
+        string,
+        Record<string, unknown>,
+      ];
+      expect(body.budget).toBe(25_500_000);
     });
 
     it('should propagate errors from http layer', async () => {

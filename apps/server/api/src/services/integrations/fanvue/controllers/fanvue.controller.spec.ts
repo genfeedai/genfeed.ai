@@ -146,6 +146,10 @@ describe('FanvueController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     it('should generate PKCE pair and return OAuth URL', async () => {
       const dto = { brandId };
@@ -183,6 +187,22 @@ describe('FanvueController', () => {
         controller.connect(mockReq, mockUser, { brandId } as never),
       ).rejects.toMatchObject({ status: 400 });
       expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+    });
+
+    it('fails closed before generating or persisting PKCE state', async () => {
+      fanvueService.requireConfigured.mockImplementation(() => {
+        throw new ServiceUnavailableException(
+          'Fanvue OAuth is not configured for this deployment.',
+        );
+      });
+
+      await expect(
+        controller.connect(mockReq, mockUser, { brandId } as never),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      expect(fanvueService.generatePkce).not.toHaveBeenCalled();
+      expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
+      expect(fanvueService.buildAuthUrl).not.toHaveBeenCalled();
     });
   });
 

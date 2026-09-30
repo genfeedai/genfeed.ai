@@ -97,6 +97,10 @@ describe('PlaybooksController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('should return playbooks for organization', async () => {
       mockPlaybookBuilderService.findAll.mockResolvedValue({

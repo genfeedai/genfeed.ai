@@ -3,6 +3,10 @@ import { VideoProcessingStatus } from '../../src/enums/video-processing.enum';
 
 describe('video-processing.enum', () => {
   describe('VideoProcessingStatus', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(VideoProcessingStatus)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(VideoProcessingStatus.PENDING).toBe('pending');
       expect(VideoProcessingStatus.PROCESSING).toBe('processing');

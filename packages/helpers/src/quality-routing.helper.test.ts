@@ -101,6 +101,10 @@ vi.mock('../src/model-capability.helper', () => ({
 
 describe('quality-routing.helper', () => {
   describe('QUALITY_TIER_OPTIONS', () => {
+    it('should have 3 quality tiers', () => {
+      expect(QUALITY_TIER_OPTIONS).toHaveLength(3);
+    });
+
     it('should have standard, premium, and ultra tiers', () => {
       const values = QUALITY_TIER_OPTIONS.map((o) => o.value);
       expect(values).toContain(QualityTier.STANDARD);
@@ -118,11 +122,23 @@ describe('quality-routing.helper', () => {
     });
   });
 
+  describe('DEFAULT_QUALITY_TIER', () => {
+    it('should be PREMIUM', () => {
+      expect(DEFAULT_QUALITY_TIER).toBe(QualityTier.HIGH);
+    });
+  });
+
   describe('resolveQualityToModel', () => {
     const imageModels = [
       MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
       MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
       MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
+    ];
+
+    const videoModels = [
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
     ];
 
     it('should return standard image model for standard quality', () => {
@@ -133,6 +149,58 @@ describe('quality-routing.helper', () => {
         imageModels,
       );
       expect(result).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO);
+    });
+
+    it('should return premium image model for premium quality', () => {
+      const result = resolveQualityToModel(
+        QualityTier.HIGH,
+        ModelCategory.IMAGE,
+        'landscape',
+        imageModels,
+      );
+      expect(result).toBe(
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+      );
+    });
+
+    it('should return ultra image model for ultra quality', () => {
+      const result = resolveQualityToModel(
+        QualityTier.ULTRA,
+        ModelCategory.IMAGE,
+        'landscape',
+        imageModels,
+      );
+      expect(result).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY);
+    });
+
+    it('should return standard video model for standard quality', () => {
+      const result = resolveQualityToModel(
+        QualityTier.STANDARD,
+        ModelCategory.VIDEO,
+        'landscape',
+        videoModels,
+      );
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST);
+    });
+
+    it('should return premium video model for premium quality', () => {
+      const result = resolveQualityToModel(
+        QualityTier.HIGH,
+        ModelCategory.VIDEO,
+        'landscape',
+        videoModels,
+      );
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
+    });
+
+    it('should return ultra video model for ultra quality', () => {
+      const result = resolveQualityToModel(
+        QualityTier.ULTRA,
+        ModelCategory.VIDEO,
+        'landscape',
+        videoModels,
+      );
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
     });
 
     it('should fallback to lower tier when requested tier not available', () => {
@@ -232,6 +300,14 @@ describe('quality-routing.helper', () => {
   });
 
   describe('getQualityTierLabel', () => {
+    it('should return Standard for STANDARD tier', () => {
+      expect(getQualityTierLabel(QualityTier.STANDARD)).toBe('Standard');
+    });
+
+    it('should return Premium for PREMIUM tier', () => {
+      expect(getQualityTierLabel(QualityTier.HIGH)).toBe('Premium');
+    });
+
     it('should return Ultra for ULTRA tier', () => {
       expect(getQualityTierLabel(QualityTier.ULTRA)).toBe('Ultra');
     });
@@ -244,6 +320,36 @@ describe('quality-routing.helper', () => {
   describe('isQualityTierSupportedForCategory', () => {
     it('should return true for IMAGE category', () => {
       expect(isQualityTierSupportedForCategory(ModelCategory.IMAGE)).toBe(true);
+    });
+
+    it('should return true for VIDEO category', () => {
+      expect(isQualityTierSupportedForCategory(ModelCategory.VIDEO)).toBe(true);
+    });
+
+    it('should return true for MUSIC category', () => {
+      expect(isQualityTierSupportedForCategory(ModelCategory.MUSIC)).toBe(true);
+    });
+
+    it('should return false for TEXT category', () => {
+      expect(isQualityTierSupportedForCategory(ModelCategory.TEXT)).toBe(false);
+    });
+
+    it('should return false for EMBEDDING category', () => {
+      expect(isQualityTierSupportedForCategory(ModelCategory.EMBEDDING)).toBe(
+        false,
+      );
+    });
+
+    it('should return false for IMAGE_UPSCALE category', () => {
+      expect(
+        isQualityTierSupportedForCategory(ModelCategory.IMAGE_UPSCALE),
+      ).toBe(false);
+    });
+
+    it('should return false for VIDEO_UPSCALE category', () => {
+      expect(
+        isQualityTierSupportedForCategory(ModelCategory.VIDEO_UPSCALE),
+      ).toBe(false);
     });
   });
 
@@ -459,6 +565,12 @@ describe('quality-routing.helper', () => {
       const model = createMockModel({ qualityTier: QualityTier.ULTRA });
 
       expect(getQualityTierFromModel(model)).toBe(QualityTier.ULTRA);
+    });
+
+    it('should return DEFAULT_QUALITY_TIER when qualityTier is not set', () => {
+      const model = createMockModel();
+
+      expect(getQualityTierFromModel(model)).toBe(DEFAULT_QUALITY_TIER);
     });
   });
 });

@@ -33,6 +33,42 @@ vi.mock('next-intl', async () => {
 });
 
 describe('LinkedInPreview', () => {
+  it('truncates the caption at the LinkedIn 3000-character limit', () => {
+    const caption = 'x'.repeat(3010);
+    render(
+      <LinkedInPreview
+        credential={makeCredential()}
+        release={makeRelease({ baseContent: caption })}
+        target={makeTarget()}
+      />,
+    );
+
+    expect(screen.getByText(`${'x'.repeat(3000)}...`)).toBeInTheDocument();
+  });
+
+  it('renders media at the LinkedIn 1:1 aspect', () => {
+    render(
+      <LinkedInPreview
+        credential={makeCredential()}
+        release={makeRelease({
+          media: [
+            {
+              assetId: 'asset-1',
+              kind: 'image',
+              url: 'https://cdn.example/a.jpg',
+            },
+          ],
+        })}
+        target={makeTarget()}
+      />,
+    );
+
+    expect(screen.getByTestId('preview-media')).toHaveAttribute(
+      'data-media-aspect',
+      '1:1',
+    );
+  });
+
   it('places the first comment beneath the caption', () => {
     const target = makeTarget();
     target.attachments = [

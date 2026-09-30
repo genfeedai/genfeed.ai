@@ -31,6 +31,12 @@ describe('ManualInputDto', () => {
     pipe = new ValidationPipe();
   });
 
+  it(`accepts an entries array at the ${MAX_MANUAL_ENTRIES} limit`, async () => {
+    await expect(
+      pipe.transform(buildBody(MAX_MANUAL_ENTRIES), metadata),
+    ).resolves.toBeInstanceOf(ManualInputDto);
+  });
+
   it('rejects an over-limit entries array with a 400', async () => {
     await expect(
       pipe.transform(buildBody(MAX_MANUAL_ENTRIES + 1), metadata),

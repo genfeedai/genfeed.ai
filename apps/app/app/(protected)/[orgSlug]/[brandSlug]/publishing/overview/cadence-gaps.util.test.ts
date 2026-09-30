@@ -98,6 +98,24 @@ function buildRelease(overrides: Partial<IReleaseGroup> = {}): IReleaseGroup {
 }
 
 describe('buildCadenceGaps', () => {
+  it('computes the gap in days since the last published target', () => {
+    const accountHealth = [buildAccountHealth()];
+    const postedReleases = [
+      buildRelease({
+        targets: [buildTarget({ publishedAt: '2026-08-27T12:00:00.000Z' })],
+      }),
+    ];
+
+    const gaps = buildCadenceGaps(
+      { accountHealth, postedReleases, upcomingReleases: [] },
+      NOW,
+    );
+
+    expect(gaps).toHaveLength(1);
+    expect(gaps[0]?.gapDays).toBe(5);
+    expect(gaps[0]?.hasUpcoming).toBe(false);
+  });
+
   it('reports a null gap and sorts never-published accounts first', () => {
     const accountHealth = [
       buildAccountHealth({
@@ -129,6 +147,24 @@ describe('buildCadenceGaps', () => {
     expect(gaps[0]?.gapDays).toBeNull();
     expect(gaps[1]?.accountLabel).toBe('Recent');
     expect(gaps[1]?.gapDays).toBe(1);
+  });
+
+  it('marks hasUpcoming when a scheduled target exists for the credential', () => {
+    const accountHealth = [buildAccountHealth()];
+    const upcomingReleases = [
+      buildRelease({
+        targets: [
+          buildTarget({ executionState: TargetExecutionState.SCHEDULED }),
+        ],
+      }),
+    ];
+
+    const gaps = buildCadenceGaps(
+      { accountHealth, postedReleases: [], upcomingReleases },
+      NOW,
+    );
+
+    expect(gaps[0]?.hasUpcoming).toBe(true);
   });
 
   it('surfaces reconnect and hold-publishing state from account health', () => {

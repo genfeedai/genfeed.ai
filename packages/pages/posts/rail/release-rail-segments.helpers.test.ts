@@ -36,6 +36,15 @@ describe('release-rail-segments', () => {
       expect(railSegmentFromFilters({ status })).toBe(segment);
     });
 
+    it('normalizes legacy public and in-flight statuses', () => {
+      expect(railSegmentFromFilters({ status: PostStatus.PUBLIC })).toBe(
+        'published',
+      );
+      expect(railSegmentFromFilters({ status: PostStatus.PENDING })).toBe(
+        'publishing',
+      );
+    });
+
     it('falls back to all when no canonical filter matches', () => {
       expect(railSegmentFromFilters({})).toBe('all');
       expect(railSegmentFromFilters({ status: PostStatus.PRIVATE })).toBe(
@@ -99,6 +108,13 @@ describe('release-rail-segments', () => {
         'posted',
       );
       expect(next.has(PUBLISHING_POSTS_QUERY_KEYS.STATUS)).toBe(false);
+    });
+
+    it('sets status=failed for the failed segment', () => {
+      const next = applyRailSegment(new URLSearchParams(), 'failed');
+      expect(next.get(PUBLISHING_POSTS_QUERY_KEYS.STATUS)).toBe(
+        PostStatus.FAILED,
+      );
     });
 
     it('never mutates the input params', () => {

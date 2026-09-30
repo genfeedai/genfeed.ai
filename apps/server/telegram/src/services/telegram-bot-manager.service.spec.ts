@@ -177,11 +177,61 @@ describe('TelegramBotManager', () => {
     manager = createManager();
   });
 
+  it('should be defined', () => {
+    expect(manager).toBeDefined();
+  });
+
+  it('should initialize and subscribe to redis events', async () => {
+    await manager.initialize();
+    expect(mockRedisService.subscribe).toHaveBeenCalled();
+  });
+
+  it('should return 0 active bots initially', () => {
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
   it('should create a bot instance with grammy Bot', async () => {
     const instance = await manager.createBotInstance(mockIntegration as never);
     expect(instance).toHaveProperty('bot');
     expect(instance).toHaveProperty('id', 'int-1');
     expect(instance).toHaveProperty('orgId', 'org-1');
+  });
+
+  it('should destroy bot instance without throwing', async () => {
+    const instance = await manager.createBotInstance(mockIntegration as never);
+    await expect(
+      manager.destroyBotInstance(instance as never),
+    ).resolves.not.toThrow();
+  });
+
+  it('should shutdown and clear bots', async () => {
+    await manager.shutdown();
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
+  it('should handle empty integrations from API', async () => {
+    (firstValueFrom as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: [],
+    });
+    await manager.initialize();
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
+  it('should handle API failure during fetchActiveIntegrations', async () => {
+    (firstValueFrom as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('network error'),
+    );
+    await manager.initialize();
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
+  it('should NOT unsubscribe shared Redis channels on shutdown (starves other bots)', async () => {
+    // Shared integration channels are intentionally not unsubscribed because
+    // RedisService has no per-handler granularity — unsubscribing would starve
+    // Discord and Slack managers.  Cleanup happens in RedisService.onModuleDestroy.
+    await manager.initialize();
+    await manager.shutdown();
+    expect(mockRedisService.unsubscribe).not.toHaveBeenCalled();
   });
 });
 
@@ -241,6 +291,19 @@ describe('Telegram agent report reviews', () => {
     },
   );
 
+  it('keeps the bot allowlist guard in front of review resolution', async () => {
+    const { callback, authorize } = await handlers();
+    const ctx = {
+      ...context(`agent-review:${token}:approve`),
+      from: { id: 99 },
+    };
+    await authorize(ctx, () => callback(ctx));
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'You are not authorized to use this bot.',
+    );
+  });
+
   it('does not resolve callbacks without an authenticated actor', async () => {
     const { callback } = await handlers();
     const ctx = {
@@ -280,5 +343,15 @@ describe('Telegram agent report reviews', () => {
     await callback(ctx);
     expect(resolveReview).not.toHaveBeenCalled();
     expect(ctx.reply).not.toHaveBeenCalled();
+  });
+
+  it('preserves workflow cancellation callbacks', async () => {
+    const { callback } = await handlers();
+    const ctx = context('confirm:cancel');
+    await callback(ctx);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'Cancelled. Use /workflows to start again.',
+    );
   });
 });

@@ -15,6 +15,11 @@ vi.mock('@services/core/environment.service', () => ({
 }));
 
 describe('BrandDetailLatestVideos', () => {
+  it('should render without crashing', () => {
+    const { container } = render(<BrandDetailLatestVideos />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('scopes Create a video to the current brand instead of bare /agent/new', () => {
     render(<BrandDetailLatestVideos />);
 

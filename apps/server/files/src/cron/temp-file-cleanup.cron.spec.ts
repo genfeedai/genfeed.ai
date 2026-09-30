@@ -33,6 +33,10 @@ describe('TempFileCleanupCron', () => {
     cron = module.get<TempFileCleanupCron>(TempFileCleanupCron);
   });
 
+  it('should be defined', () => {
+    expect(cron).toBeDefined();
+  });
+
   describe('manualCleanup', () => {
     it('reports nothing to clean up when the temp dir does not exist', () => {
       (fs.existsSync as Mock).mockReturnValue(false);
@@ -69,6 +73,18 @@ describe('TempFileCleanupCron', () => {
         message: 'Cleanup completed successfully',
         totalFiles: 2,
       });
+    });
+
+    it('does not run in verbose mode and skips per-file log lines', () => {
+      (fs.existsSync as Mock).mockReturnValue(true);
+      (fs.readdirSync as Mock).mockReturnValue(['old.json']);
+      (fs.statSync as Mock).mockReturnValue({
+        mtimeMs: Date.now() - 60 * 60 * 1000,
+      });
+
+      cron.manualCleanup();
+
+      expect(logger.log).not.toHaveBeenCalled();
     });
 
     it('logs a warning and continues when processing a file throws', () => {

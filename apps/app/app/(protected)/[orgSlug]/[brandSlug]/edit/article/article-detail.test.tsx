@@ -146,6 +146,14 @@ describe('ArticleDetail', () => {
     expect(container.textContent).toBe('Price is $&5');
   });
 
+  it('does not offer the generated-only X Article category manually', () => {
+    render(<ArticleDetail />);
+
+    expect(
+      screen.queryByRole('option', { name: 'X Article' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('generates publishable X teaser drafts from an account-aware X Article', async () => {
     useArticleDetailMock.mockReturnValue({
       ...defaultArticleDetailState(),

@@ -43,6 +43,138 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('reports both sides of a surface transition', () => {
+    const before = parseCatalogSource(
+      catalog(`{ name: 'move_action', surfaces: ['agent'] }`),
+    );
+    const after = parseCatalogSource(
+      catalog(`{ name: 'move_action', surfaces: ['mcp'] }`),
+    );
+
+    expect(diffCatalogs(before, after)).toEqual([
+      expect.objectContaining({
+        action: 'move_action',
+        kind: 'surface-removed',
+        surfaces: ['agent'],
+      }),
+      expect.objectContaining({
+        action: 'move_action',
+        kind: 'surface-added',
+        surfaces: ['mcp'],
+      }),
+    ]);
+  });
+
+  it('accepts canonical publishing approval metadata', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            isPublishingApprovalRequired: true,
+            name: 'publish_action',
+            surfaces: ['mcp'],
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'publish_action',
+        surfaces: ['mcp'],
+      }),
+    ]);
+  });
+
+  it('parses a one-line entry with a toolset', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{ name: 'one_liner', surfaces: ['agent'], toolset: 'content' }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'one_liner',
+        surfaces: ['agent'],
+        toolset: 'content',
+      }),
+    ]);
+  });
+
+  it('parses a workflow surface alongside agent and mcp', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            name: 'workflow_action',
+            surfaces: ['agent', 'mcp', 'workflow'],
+            toolset: 'knowledge',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'workflow_action',
+        surfaces: ['agent', 'mcp', 'workflow'],
+        toolset: 'knowledge',
+      }),
+    ]);
+  });
+
+  it('parses a multi-line entry reflowed by Biome once the toolset field is added', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            name: 'reflowed_action',
+            surfaces: ['agent', 'mcp'],
+            toolset: 'knowledge',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'reflowed_action',
+        surfaces: ['agent', 'mcp'],
+        toolset: 'knowledge',
+      }),
+    ]);
+  });
+
+  it('parses a multi-line publishing approval entry with a toolset', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            isPublishingApprovalRequired: true,
+            name: 'publish_action_with_toolset',
+            surfaces: ['mcp'],
+            toolset: 'social-inbox',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'publish_action_with_toolset',
+        surfaces: ['mcp'],
+        toolset: 'social-inbox',
+      }),
+    ]);
+  });
+
+  it('parses a legacy entry with no toolset field as undefined', () => {
+    expect(
+      parseCatalogSource(
+        catalog(`{ name: 'legacy_action', surfaces: ['agent'] }`),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'legacy_action',
+        surfaces: ['agent'],
+        toolset: undefined,
+      }),
+    ]);
+  });
+
   it('reports a toolset change between base and head, including when the base has no toolset field', () => {
     const before = parseCatalogSource(
       catalog(`{ name: 'moved_toolset_action', surfaces: ['agent', 'mcp'] }`),
@@ -134,6 +266,14 @@ describe('curated action catalog change reporter', () => {
     ).toThrow(/is not a canonical catalog entry/);
   });
 
+  it('rejects duplicate surfaces on one entry', () => {
+    expect(() =>
+      parseCatalogSource(
+        catalog(`{ name: 'twice', surfaces: ['agent', 'agent'] }`),
+      ),
+    ).toThrow(/must have unique, non-empty surfaces/);
+  });
+
   it('rejects entries with an empty surface list', () => {
     expect(() =>
       parseCatalogSource(catalog(`{ name: 'nowhere', surfaces: [] }`)),
@@ -149,6 +289,13 @@ describe('curated action catalog change reporter', () => {
     expect(parseCatalogSource(source)).toEqual([
       expect.objectContaining({ name: 'kept_action', surfaces: ['agent'] }),
     ]);
+  });
+
+  it('reports no changes for identical catalogs', () => {
+    const parsed = parseCatalogSource(
+      catalog(`{ name: 'same_action', surfaces: ['agent', 'mcp'] }`),
+    );
+    expect(diffCatalogs(parsed, parsed)).toEqual([]);
   });
 
   it('describes every change kind in warning annotations', () => {

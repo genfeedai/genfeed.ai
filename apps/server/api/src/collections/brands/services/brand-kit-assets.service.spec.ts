@@ -146,6 +146,12 @@ describe('BrandKitAssetsService.resolveBrandKitAssets', () => {
       ),
     );
   });
+
+  it('returns an empty kit when the brand has no assets', async () => {
+    const assets = await service.resolveBrandKitAssets('brand-1', 'org-1');
+
+    expect(assets).toEqual({ references: [] });
+  });
 });
 
 describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
@@ -245,6 +251,15 @@ describe('BrandKitAssetsService.resolveBrandKitAssetsForBrands', () => {
 
     expect(resolved.size).toBe(1);
     expect(resolved.get('brand-1')?.logo?.id).toBe('logo-1');
+  });
+
+  it('yields an empty kit for a brand that owns no assets', async () => {
+    const resolved = await service.resolveBrandKitAssetsForBrands(
+      ['brand-1'],
+      'org-1',
+    );
+
+    expect(resolved.get('brand-1')).toEqual({ references: [] });
   });
 
   it('skips the read entirely when there are no brands', async () => {

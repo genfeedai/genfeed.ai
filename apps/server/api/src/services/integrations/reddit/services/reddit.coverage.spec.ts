@@ -130,6 +130,14 @@ describe('RedditService (coverage)', () => {
       );
       expect(url).toContain('state=csrf-abc');
     });
+
+    it('starts with the Reddit authorize base URL', () => {
+      const url = service.generateAuthUrl('some-state');
+
+      expect(url.startsWith('https://www.reddit.com/api/v1/authorize?')).toBe(
+        true,
+      );
+    });
   });
 
   // ── refreshToken ──────────────────────────────────────────────────────────
@@ -137,6 +145,16 @@ describe('RedditService (coverage)', () => {
   describe('refreshToken', () => {
     it('throws when credential is not found', async () => {
       credentialsService.findOne.mockResolvedValue(null);
+
+      await expect(service.refreshToken('org-1', 'brand-1')).rejects.toThrow(
+        'Reddit credential not found',
+      );
+    });
+
+    it('throws when credential exists but has no refreshToken', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: null }),
+      );
 
       await expect(service.refreshToken('org-1', 'brand-1')).rejects.toThrow(
         'Reddit credential not found',
@@ -166,6 +184,54 @@ describe('RedditService (coverage)', () => {
         }),
       );
       expect(result).toEqual(patched);
+    });
+
+    it('uses new refresh_token when API returns one', async () => {
+      const cred = makeCredential({ refreshToken: 'enc-old-rt' });
+      credentialsService.findOne.mockResolvedValue(cred);
+      httpService.post.mockReturnValue(
+        of({
+          data: {
+            access_token: 'fresh-access',
+            expires_in: 7200,
+            refresh_token: 'fresh-rt',
+          },
+        }),
+      );
+
+      await service.refreshToken('org-1', 'brand-1');
+
+      expect(credentialsService.patch).toHaveBeenCalledWith(
+        'cred-id-1',
+        expect.objectContaining({ refreshToken: 'fresh-rt' }),
+      );
+    });
+
+    it('propagates httpService error', async () => {
+      const cred = makeCredential({ refreshToken: 'enc-rt' });
+      credentialsService.findOne.mockResolvedValue(cred);
+      httpService.post.mockReturnValue(
+        throwError(() => new Error('Network error')),
+      );
+
+      await expect(service.refreshToken('org-1', 'brand-1')).rejects.toThrow(
+        'Network error',
+      );
+    });
+
+    it('sets accessTokenExpiry to undefined when expires_in is absent', async () => {
+      const cred = makeCredential({ refreshToken: 'enc-rt' });
+      credentialsService.findOne.mockResolvedValue(cred);
+      httpService.post.mockReturnValue(
+        of({ data: { access_token: 'tok', refresh_token: 'new-rt' } }),
+      );
+
+      await service.refreshToken('org-1', 'brand-1');
+
+      expect(credentialsService.patch).toHaveBeenCalledWith(
+        'cred-id-1',
+        expect.objectContaining({ accessTokenExpiry: undefined }),
+      );
     });
   });
 
@@ -222,6 +288,24 @@ describe('RedditService (coverage)', () => {
       await expect(
         service.getAccountDetails('org-1', 'brand-1'),
       ).rejects.toThrow('Reddit credential missing access token');
+    });
+
+    it('propagates httpService.get error', async () => {
+      const cred = makeCredential({ accessToken: 'enc-at' });
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      credentialsService.patch.mockResolvedValue(cred);
+      httpService.post.mockReturnValue(
+        of({ data: { access_token: 'tok', refresh_token: 'new-rt' } }),
+      );
+      httpService.get.mockReturnValue(
+        throwError(() => new Error('Reddit API down')),
+      );
+
+      await expect(
+        service.getAccountDetails('org-1', 'brand-1'),
+      ).rejects.toThrow('Reddit API down');
     });
   });
 
@@ -283,6 +367,27 @@ describe('RedditService (coverage)', () => {
       // should NOT produce t3_t3_abc123
       expect(body).toContain('thing_id=t3_abc123');
       expect(body).not.toContain('t3_t3_');
+    });
+
+    it('falls back to alternate commentId path (json.data.id)', async () => {
+      setupSuccessfulRefresh();
+      // Response has no things array; comment id is at json.data.id
+      httpService.post.mockReturnValueOnce(
+        of({
+          data: {
+            json: { data: { id: 'alt-cmt-id' } },
+          },
+        }),
+      );
+
+      const result = await service.postComment(
+        'org-1',
+        'brand-1',
+        't3_post1',
+        'Comment text',
+      );
+
+      expect(result).toEqual({ commentId: 'alt-cmt-id' });
     });
 
     it('returns commentId as undefined when neither path present', async () => {
@@ -377,6 +482,19 @@ describe('RedditService (coverage)', () => {
       expect(body).not.toContain('text=');
     });
 
+    it('uses link kind when neither text nor url is provided', async () => {
+      setupSuccessfulRefresh();
+      httpService.post.mockReturnValueOnce(
+        of({ data: { json: { data: { id: 'bare-post-id' } } } }),
+      );
+
+      await service.submitPost('org-1', 'brand-1', 'r/test', 'Bare');
+
+      const submitCall = httpService.post.mock.calls[1];
+      const body = submitCall[1] as string;
+      expect(body).toContain('kind=link');
+    });
+
     it('includes both text and url params when both are provided', async () => {
       setupSuccessfulRefresh();
       httpService.post.mockReturnValueOnce(
@@ -409,6 +527,22 @@ describe('RedditService (coverage)', () => {
       await expect(
         service.submitPost('org-1', 'brand-1', 'r/test', 'Title'),
       ).rejects.toThrow('Submit failed');
+    });
+
+    it('returns undefined when API response has no id', async () => {
+      setupSuccessfulRefresh();
+      httpService.post.mockReturnValueOnce(
+        of({ data: { json: { data: {} } } }),
+      );
+
+      const result = await service.submitPost(
+        'org-1',
+        'brand-1',
+        'r/test',
+        'No ID Post',
+      );
+
+      expect(result).toBeUndefined();
     });
   });
 });

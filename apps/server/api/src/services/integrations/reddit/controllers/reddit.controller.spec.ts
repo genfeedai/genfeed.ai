@@ -129,6 +129,10 @@ describe('RedditController', () => {
     controller = module.get<RedditController>(RedditController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     const dto = { brandId: brandId.toString() };
 
@@ -249,6 +253,15 @@ describe('RedditController', () => {
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );
+    });
+
+    it('should set accessTokenExpiry from expires_in', async () => {
+      await controller.verify(mockRequest, dto);
+      const patchCall = credentialsService.patch.mock.calls[0] as [
+        string,
+        Record<string, unknown>,
+      ];
+      expect(patchCall[1].accessTokenExpiry).toBeInstanceOf(Date);
     });
 
     it('should fetch Reddit profile after token exchange', async () => {

@@ -32,6 +32,13 @@ describe('getOutputUpdate', () => {
   describe('imageGen nodes', () => {
     const store = makeStore([makeNode('imageGen')]);
 
+    it('maps a single string output', () => {
+      expect(getOutputUpdate('node-1', 'https://img/1.png', store)).toEqual({
+        outputImage: 'https://img/1.png',
+        outputImages: ['https://img/1.png'],
+      });
+    });
+
     it('maps an array of urls', () => {
       const update = getOutputUpdate(
         'node-1',
@@ -64,6 +71,13 @@ describe('getOutputUpdate', () => {
         store,
       );
       expect(update.outputImages).toEqual(['https://img/only.png']);
+    });
+
+    it('maps empty output to null image', () => {
+      expect(getOutputUpdate('node-1', null, store)).toEqual({
+        outputImage: null,
+        outputImages: [],
+      });
     });
   });
 

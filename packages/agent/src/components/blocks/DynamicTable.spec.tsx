@@ -29,12 +29,33 @@ function readColumn(index: number): string[] {
 }
 
 describe('DynamicTable', () => {
+  it('marks the table viewed in session when it is rendered inline', () => {
+    const { container } = render(<DynamicTable block={makeBlock()} />);
+
+    expect(container.firstChild).toHaveAttribute(
+      'data-work-object-viewed',
+      'true',
+    );
+  });
+
   it('renders headers and rows in source order by default', () => {
     render(<DynamicTable block={makeBlock()} />);
 
     expect(screen.getByText('Name')).toBeInTheDocument();
     expect(screen.getByText('Views')).toBeInTheDocument();
     expect(readColumn(0)).toEqual(['Beta', 'Alpha', 'Gamma']);
+  });
+
+  it('renders a dash for nullish cells', () => {
+    render(<DynamicTable block={makeBlock()} />);
+
+    expect(readColumn(2)).toEqual(['ok', '—', 'hm']);
+  });
+
+  it('applies the initial sort from the block', () => {
+    render(<DynamicTable block={makeBlock({ sortBy: 'name' })} />);
+
+    expect(readColumn(0)).toEqual(['Alpha', 'Beta', 'Gamma']);
   });
 
   it('honours an explicit descending initial direction', () => {
@@ -45,6 +66,12 @@ describe('DynamicTable', () => {
     );
 
     expect(readColumn(0)).toEqual(['Gamma', 'Beta', 'Alpha']);
+  });
+
+  it('sorts numerically when the column holds numbers', () => {
+    render(<DynamicTable block={makeBlock({ sortBy: 'views' })} />);
+
+    expect(readColumn(1)).toEqual(['5', '20', '100']);
   });
 
   it('toggles sort direction when a sortable header is clicked twice', () => {

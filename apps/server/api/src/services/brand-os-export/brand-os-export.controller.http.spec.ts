@@ -210,6 +210,24 @@ describe('Brand OS export real HTTP pipeline', () => {
     expect(result.body.data.attributes).not.toHaveProperty('content');
     expect(result.body.data.attributes).not.toHaveProperty('organizationId');
   });
+  it('validates publication input before the service and requires administrator membership', async () => {
+    await request(app.getHttpServer())
+      .post('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer member-session')
+      .send({ revisionId: '../bad' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer member-session')
+      .send({})
+      .expect(400);
+    memberRole = MemberRole.USER;
+    await request(app.getHttpServer())
+      .post('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer member-session')
+      .send({ revisionId: 'revision-1' })
+      .expect(403);
+  });
   it.each([
     '/public/brand-os/publication-1/design.md',
     '/public/brand-os/publication-1/revision-1/design.md',

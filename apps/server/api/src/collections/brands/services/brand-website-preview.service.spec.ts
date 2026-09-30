@@ -144,6 +144,19 @@ describe('BrandWebsitePreviewService', () => {
     });
   });
 
+  it('never substitutes the Open Graph image for an unresolved logo', async () => {
+    brandScraperService.scrapeWebsite.mockResolvedValue(
+      scrapedData({
+        companyName: 'Acme',
+        ogImage: 'https://cdn.acme.com/social-card.jpg',
+      }),
+    );
+
+    const result = await service.previewWebsite(sourceUrl);
+
+    expect(result.data.logoUrl).toBeUndefined();
+  });
+
   it('translates scraper failures into HTTP 400 with the scraper message', async () => {
     brandScraperService.scrapeWebsite.mockRejectedValue(
       new Error('Website unavailable'),

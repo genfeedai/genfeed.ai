@@ -186,6 +186,25 @@ describe('LiveSessionCreditsService', () => {
     expect(session.reservationId).toBe('reservation-1');
   });
 
+  it('applies the 1080P resolution multiplier to the reserved ceiling', async () => {
+    const request = deferredCreditsRequest();
+
+    await service.openSession({
+      dto: {
+        ceilingSeconds: 900,
+        model: MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
+        resolution: '1080P',
+      },
+      now: new Date('2026-09-18T12:00:00.000Z'),
+      request,
+      user: user as never,
+    });
+
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 48_600 }),
+    );
+  });
+
   it('refuses to open when the ceiling cannot be reserved', async () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       false,
@@ -324,6 +343,26 @@ describe('LiveSessionCreditsService', () => {
         }),
       }),
     );
+  });
+
+  it('terminates a session whose hold was already settled for another amount', async () => {
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException(
+        'Settlement amount does not match the completed reservation',
+        { actualAmount: 400, settledAmount: 24_300 },
+        'SETTLEMENT_AMOUNT_MISMATCH',
+      ),
+    );
+
+    await expect(
+      service.terminateSession({
+        now: new Date('2026-09-18T12:00:10.000Z'),
+        organizationId: 'org-1',
+        reason: LiveSessionTerminateReason.USER,
+        sessionId: 'session-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toMatchObject({ status: LiveSessionStatus.TERMINATED });
   });
 
   it('rethrows a settlement failure that leaves the hold chargeable', async () => {

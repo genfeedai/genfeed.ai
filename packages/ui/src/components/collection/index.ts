@@ -1,3 +1,4 @@
+export { default as CollectionCarouselSection } from '@ui/collection/CollectionCarouselSection';
 export { default as CollectionGrid } from '@ui/collection/CollectionGrid';
 export { default as CollectionItemActions } from '@ui/collection/CollectionItemActions';
 export { default as CollectionList } from '@ui/collection/CollectionList';

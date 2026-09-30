@@ -19,6 +19,13 @@ const pending = {
  * equality — a forged or mismatched sourceActionId is rejected either way.
  */
 describe('readPendingToolConfirmation', () => {
+  it('accepts a persisted record with an empty threadId', () => {
+    expect(readPendingToolConfirmation({ ...pending, threadId: '' })).toEqual({
+      ...pending,
+      threadId: '',
+    });
+  });
+
   it.each([
     ['missing threadId', { ...pending, threadId: undefined }],
     ['blank sourceActionId', { ...pending, sourceActionId: '   ' }],
@@ -44,5 +51,19 @@ describe('verifyPendingToolConfirmation', () => {
     expect(cacheService.get).toHaveBeenCalledWith(
       buildToolConfirmationCacheKey(threadless),
     );
+  });
+
+  it('rejects a card persisted for a different thread', async () => {
+    const cacheService = cacheWith({ ...pending, threadId: 'thread-2' });
+
+    await expect(
+      verifyPendingToolConfirmation(cacheService, pending),
+    ).resolves.toBe(false);
+  });
+
+  it('rejects an unknown sourceActionId', async () => {
+    await expect(
+      verifyPendingToolConfirmation(cacheWith(null), pending),
+    ).resolves.toBe(false);
   });
 });

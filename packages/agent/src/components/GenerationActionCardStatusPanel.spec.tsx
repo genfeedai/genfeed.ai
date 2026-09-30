@@ -41,6 +41,12 @@ function renderPanel(
 }
 
 describe('generation result recovery and navigation', () => {
+  it('retries a transient failure using the supplied operation', () => {
+    const { onRetry } = renderPanel();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
   it.each([
     { error: 'Provider authentication failed' },
     { isPilotCeilingReached: true },

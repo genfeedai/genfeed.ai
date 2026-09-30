@@ -102,4 +102,19 @@ describe('ReleaseAnalyticsTable', () => {
     expect(screen.getAllByText('Unavailable')).toHaveLength(6);
     expect(screen.getByText('Provider timed out.')).toBeInTheDocument();
   });
+
+  it('renders the explicit empty state when no targets exist', () => {
+    const empty = comparison('empty');
+    empty.targets = [];
+
+    render(<ReleaseAnalyticsTable comparison={empty} />);
+
+    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
+  });
+
+  it('renders the empty state rather than crashing on an uncollected release', () => {
+    render(<ReleaseAnalyticsTable comparison={undefined} />);
+
+    expect(screen.getByText('No target analytics yet')).toBeInTheDocument();
+  });
 });

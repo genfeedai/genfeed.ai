@@ -53,6 +53,34 @@ describe('audio.utils', () => {
       expect(typeof result?.stop).toBe('function');
     });
 
+    it('calls play() on the audio element', () => {
+      playAudio('https://example.com/test.mp3');
+      expect(lastAudioInstance?.play).toHaveBeenCalled();
+    });
+
+    it('registers onEnded listener when provided', () => {
+      const onEnded = vi.fn();
+      playAudio('https://example.com/audio.mp3', onEnded);
+      expect(lastAudioInstance?.addEventListener).toHaveBeenCalledWith(
+        'ended',
+        onEnded,
+      );
+    });
+
+    it('does not add ended listener when onEnded not provided', () => {
+      playAudio('https://example.com/audio.mp3');
+      expect(lastAudioInstance?.addEventListener).not.toHaveBeenCalledWith(
+        'ended',
+        expect.any(Function),
+      );
+    });
+
+    it('stop() calls pause()', () => {
+      const result = playAudio('https://example.com/audio.mp3');
+      result?.stop();
+      expect(lastAudioInstance?.pause).toHaveBeenCalled();
+    });
+
     it('stop() removes onEnded listener when provided', () => {
       const onEnded = vi.fn();
       const result = playAudio('https://example.com/audio.mp3', onEnded);

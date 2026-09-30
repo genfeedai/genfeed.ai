@@ -45,6 +45,10 @@ describe('WordpressPublisherService', () => {
   });
 
   describe('instantiation', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
     it('should have correct platform capabilities', () => {
       expect(service.platform).toBe(CredentialPlatform.WORDPRESS);
       expect(service.supportsTextOnly).toBe(true);
@@ -98,6 +102,32 @@ describe('WordpressPublisherService', () => {
         'encrypted-token',
         'site-123',
         'Test Post',
+        expect.any(String),
+        'publish',
+        undefined,
+        undefined,
+        undefined,
+      );
+    });
+
+    it('should publish to the site on the context, not a sibling account', async () => {
+      // A brand with two WordPress sites publishes to the site carried by the
+      // post's own credential.
+      vi.mocked(wordpressService.createPost).mockResolvedValue('wp-post-456');
+
+      await service.publish(
+        makeContext({
+          ...connectedAccount,
+          id: testId('credential-2'),
+          accessToken: 'encrypted-token-2',
+          externalId: 'site-456',
+        } as unknown as CredentialDocument),
+      );
+
+      expect(wordpressService.createPost).toHaveBeenCalledWith(
+        'encrypted-token-2',
+        'site-456',
+        expect.any(String),
         expect.any(String),
         'publish',
         undefined,

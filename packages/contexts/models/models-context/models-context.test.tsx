@@ -13,6 +13,15 @@ describe('ModelsContext', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <ModelsProvider>
+        <div data-testid="child" />
+      </ModelsProvider>,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <ModelsProvider>

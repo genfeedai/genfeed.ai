@@ -86,12 +86,23 @@ function buildSettledEntry(eventCount: number): TimelineWorkGroupEntry {
 }
 
 describe('TimelineWorkGroup', () => {
+  it('renders step count at the trailing duration line for live groups', () => {
+    render(<TimelineWorkGroup entry={buildLiveEntry(5)} />);
+    expect(screen.getByText(/5 steps/)).toBeTruthy();
+    expect(screen.getByText(/Working for/i)).toBeTruthy();
+  });
+
   it('shows all real steps for live groups above the duration footer', () => {
     render(<TimelineWorkGroup entry={buildLiveEntry(5)} />);
     const entries = screen.getAllByText(/^entry-e-/);
     expect(entries).toHaveLength(5);
     expect(screen.getByText('entry-e-0-active')).toBeTruthy();
     expect(screen.getByText('entry-e-4-active')).toBeTruthy();
+  });
+
+  it('single event shows "1 step"', () => {
+    render(<TimelineWorkGroup entry={buildLiveEntry(1)} />);
+    expect(screen.getByText(/1 step(?!s)/)).toBeTruthy();
   });
 
   it('hides generic lifecycle bookends from the step list', () => {
@@ -127,6 +138,21 @@ describe('TimelineWorkGroup', () => {
     expect(screen.getByText(/1 step(?!s)/)).toBeTruthy();
   });
 
+  it('renders settled groups collapsed with trailing Worked for duration', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildSettledEntry(4),
+          totalDurationMs: 237000,
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Worked for 3m 57s')).toBeTruthy();
+    expect(screen.getByText('Completed')).toBeTruthy();
+    expect(screen.queryByText('entry-e-0-active')).toBeNull();
+  });
+
   it('expands and collapses settled groups from the trailing duration row', () => {
     render(
       <TimelineWorkGroup
@@ -144,6 +170,50 @@ describe('TimelineWorkGroup', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Worked for 4s/i }));
     expect(screen.queryByText('entry-e-0-active')).toBeNull();
+  });
+
+  it('treats stale lifecycle running as settled when a terminal event exists', () => {
+    render(
+      <TimelineWorkGroup
+        entry={{
+          ...buildSettledEntry(1),
+          events: [
+            {
+              createdAt: '2026-03-18T10:00:00.000Z',
+              event: AgentWorkEventType.STARTED,
+              id: 'e-running',
+              label: 'Run Started',
+              status: AgentWorkEventStatus.RUNNING,
+              threadId: 't1',
+            },
+            {
+              createdAt: '2026-03-18T10:00:01.000Z',
+              event: AgentWorkEventType.TOOL_STARTED,
+              id: 'e-pending',
+              label: 'Check Onboarding',
+              status: AgentWorkEventStatus.PENDING,
+              threadId: 't1',
+              toolName: 'check_onboarding',
+            },
+            {
+              createdAt: '2026-03-18T10:00:02.000Z',
+              event: AgentWorkEventType.FAILED,
+              id: 'e-failed',
+              label: 'Run Failed',
+              status: AgentWorkEventStatus.FAILED,
+              threadId: 't1',
+            },
+          ],
+          presentation: 'live',
+          totalDurationMs: 2000,
+        }}
+      />,
+    );
+
+    // Lifecycle hidden; tool pending + failed visible when expanded/open for failure
+    expect(screen.queryByText(/entry-e-running/)).toBeNull();
+    expect(screen.getByText('Worked for 2s')).toBeTruthy();
+    expect(screen.getByText('Failed')).toBeTruthy();
   });
 
   it('keeps duration neutral on failed runs (only Failed is semantic red)', () => {

@@ -47,6 +47,10 @@ describe('CacheTagsService', () => {
     service = module.get<CacheTagsService>(CacheTagsService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should do nothing when tags array is empty', async () => {
     await service.setTags('cache:key', []);
     expect(mockRedisClient.multi).not.toHaveBeenCalled();
@@ -86,6 +90,23 @@ describe('CacheTagsService', () => {
     expect(mockPipeline.del).toHaveBeenCalledWith('key:2');
     expect(mockPipeline.del).toHaveBeenCalledWith('tag:my-tag');
     expect(mockPipeline.exec).toHaveBeenCalledOnce();
+  });
+
+  it('should sum counts across multiple tags', async () => {
+    mockRedisClient.smembers
+      .mockResolvedValueOnce(['a:1'])
+      .mockResolvedValueOnce(['b:1', 'b:2', 'b:3']);
+    const count = await service.invalidateByTags(['tag-a', 'tag-b']);
+    expect(count).toBe(4);
+  });
+
+  it('should log debug when keys were invalidated', async () => {
+    mockRedisClient.smembers.mockResolvedValueOnce(['k1']);
+    await service.invalidateByTags(['t1']);
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      expect.stringContaining('invalidated 1 keys'),
+      expect.objectContaining({ tags: ['t1'] }),
+    );
   });
 
   it('should return 0 and log error when invalidation fails', async () => {

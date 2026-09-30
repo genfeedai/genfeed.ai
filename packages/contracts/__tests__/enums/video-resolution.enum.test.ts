@@ -3,6 +3,10 @@ import { VideoResolution } from '../../src/enums/video-resolution.enum';
 
 describe('video-resolution.enum', () => {
   describe('VideoResolution', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(VideoResolution)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(VideoResolution._360P).toBe('360p');
       expect(VideoResolution._480P).toBe('480p');

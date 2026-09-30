@@ -69,11 +69,30 @@ describe('virality-analysis.mapper', () => {
   });
 
   describe('validateViralityResponse', () => {
+    it('should pass validation for a valid response', () => {
+      expect(() => validateViralityResponse(validAiResponse)).not.toThrow();
+    });
+
     it('should throw for null/undefined input', () => {
       expect(() => validateViralityResponse(null)).toThrow(
         'Invalid response format from AI service',
       );
       expect(() => validateViralityResponse(undefined)).toThrow(
+        'Invalid response format from AI service',
+      );
+    });
+
+    it('should throw when viralityScore is not a number', () => {
+      expect(() =>
+        validateViralityResponse({
+          ...validAiResponse,
+          viralityScore: 'high',
+        }),
+      ).toThrow('Invalid response format from AI service');
+    });
+
+    it('should throw when required fields are missing', () => {
+      expect(() => validateViralityResponse({ viralityScore: 50 })).toThrow(
         'Invalid response format from AI service',
       );
     });
@@ -91,9 +110,35 @@ describe('virality-analysis.mapper', () => {
       expect(result.analysis.factors.emotionalAppeal).toBe(90);
       expect(result.analysis.analyzedAt).toBeInstanceOf(Date);
     });
+
+    it('should throw for invalid raw response', () => {
+      expect(() => buildViralityAnalysisResponse('article-123', null)).toThrow(
+        'Invalid response format from AI service',
+      );
+    });
   });
 
   describe('normalizePerformanceMetrics', () => {
+    it('should return correct shape with all fields', () => {
+      const metrics = {
+        clickThroughRate: 0.05,
+        comments: 10,
+        likes: 50,
+        shares: 25,
+        views: 100,
+      };
+
+      const result = normalizePerformanceMetrics(metrics);
+
+      expect(result).toEqual({
+        clickThroughRate: 0.05,
+        comments: 10,
+        likes: 50,
+        shares: 25,
+        views: 100,
+      });
+    });
+
     it('should handle partial metrics (undefined fields)', () => {
       const result = normalizePerformanceMetrics({ views: 42 });
 

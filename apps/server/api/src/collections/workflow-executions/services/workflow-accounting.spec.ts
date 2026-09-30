@@ -301,6 +301,30 @@ describe('workflow accounting', () => {
       )?.nodes[0]?.actualCredits,
     ).toBe(5);
   });
+  it('does not infer platform spend from an avatar snapshot with unknown key ownership', async () => {
+    const db = fixture();
+    db.mediaVendorCost.findMany.mockResolvedValue([
+      {
+        id: 'intent',
+        ingredientId: 'asset',
+        pricingSnapshot: {
+          providerCostUsd: 0.1,
+          pricingType: 'flat',
+          isByok: null,
+        },
+      },
+    ]);
+    db.ingredient.findMany.mockResolvedValue([
+      {
+        id: 'asset',
+        metadata: { width: 1, height: 1, duration: 1, isDeleted: false },
+      },
+    ]);
+    await reconcileWorkflowMediaCosts(db as unknown as PrismaService, 'org', [
+      'run',
+    ]);
+    expect(db.mediaVendorCost.updateMany).not.toHaveBeenCalled();
+  });
   it('does not query ledgers for another tenant execution', async () => {
     const db = fixture();
     db.workflowExecution.findMany.mockResolvedValue([]);

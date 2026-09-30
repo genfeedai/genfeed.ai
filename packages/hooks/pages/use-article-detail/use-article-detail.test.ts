@@ -109,6 +109,11 @@ describe('useArticleDetail', () => {
     expect(result.current).toHaveProperty('handleScoreSeo');
   });
 
+  it('initializes with null article', () => {
+    const { result } = renderHook(() => useArticleDetail({}));
+    expect(result.current.article).toBeNull();
+  });
+
   it('initializes with isLoading true when articleId is provided', async () => {
     const { result } = renderHook(() =>
       useArticleDetail({ articleId: 'article-1' }),

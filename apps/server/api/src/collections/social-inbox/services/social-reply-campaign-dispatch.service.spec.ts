@@ -472,6 +472,20 @@ describe('SocialReplyCampaignDispatchService', () => {
       expect(context.actionService.postReply).not.toHaveBeenCalled();
     });
 
+    it('records the dispatch as a multi-action system workflow run', async () => {
+      const context = createContext({});
+
+      await context.service.dispatchTick(TICK);
+
+      expect(context.provenanceService.runWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          canonicalId: 'social.reply-campaign.dispatch-tick',
+          inputValues: { request: TICK },
+          organizationId: 'org-1',
+        }),
+      );
+    });
+
     it('drains recipients in position order', async () => {
       const context = createContext({
         recipients: [

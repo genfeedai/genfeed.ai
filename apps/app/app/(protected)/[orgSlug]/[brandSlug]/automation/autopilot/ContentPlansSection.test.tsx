@@ -343,6 +343,18 @@ describe('ContentPlansSection', () => {
     ).toBeVisible();
   });
 
+  it('badges a grounded plan and shows no plans empty state otherwise', () => {
+    mocks.useContentPlans.mockReturnValue({
+      isLoading: false,
+      plans: [],
+      refresh: mocks.refresh,
+    });
+
+    render(<ContentPlansSection />);
+
+    expect(screen.getByText('No plans yet')).toBeVisible();
+  });
+
   it('opens the generate dialog, shows the dataset confidence, and submits', async () => {
     render(<ContentPlansSection />);
 

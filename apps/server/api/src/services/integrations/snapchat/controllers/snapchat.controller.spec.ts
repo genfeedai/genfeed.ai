@@ -76,7 +76,37 @@ describe('SnapchatController', () => {
     controller = module.get<SnapchatController>(SnapchatController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect()', () => {
+    it('should return auth URL from service', () => {
+      mockSnapchatService.generateAuthUrl.mockReturnValue(
+        'https://accounts.snapchat.com/oauth2/authorize?state=abc',
+      );
+
+      const result = controller.connect({} as never, user, {
+        brandId: 'brand-id',
+      });
+
+      return expect(result).resolves.toEqual({
+        url: 'https://accounts.snapchat.com/oauth2/authorize?state=abc',
+      });
+    });
+
+    it('should pass server-issued state to generateAuthUrl', async () => {
+      mockSnapchatService.generateAuthUrl.mockReturnValue(
+        'https://snap.com/auth',
+      );
+
+      await controller.connect({} as never, user, { brandId: 'brand-id' });
+
+      expect(mockSnapchatService.generateAuthUrl).toHaveBeenCalledWith(
+        'opaque-oauth-state',
+      );
+    });
+
     it('should log auth url request', async () => {
       mockSnapchatService.generateAuthUrl.mockReturnValue(
         'https://snap.com/auth',
@@ -110,6 +140,36 @@ describe('SnapchatController', () => {
         }),
       );
       expect(result).toEqual({ id: 'credential-id', isConnected: true });
+    });
+
+    it('should pass code to exchangeCodeForToken', async () => {
+      mockSnapchatService.exchangeCodeForToken.mockResolvedValue({
+        accessToken: 'token',
+      });
+
+      await controller.verify({} as never, {
+        code: 'my-code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockSnapchatService.exchangeCodeForToken).toHaveBeenCalledWith(
+        'my-code',
+      );
+    });
+
+    it('should log exchange token request', async () => {
+      mockSnapchatService.exchangeCodeForToken.mockResolvedValue({
+        accessToken: 'token',
+      });
+
+      await controller.verify({} as never, {
+        code: 'code',
+        state: 'opaque-oauth-state',
+      });
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        'Snapchat exchange token',
+      );
     });
 
     it('should propagate errors from service', async () => {

@@ -30,4 +30,10 @@ describe('resolveIsEmailVerificationEnforced', () => {
       resolveIsEmailVerificationEnforced(sources(false, false)),
     ).resolves.toBe(false);
   });
+
+  it('only asks about the mailer when the switch is on', async () => {
+    const off = sources(false, true);
+    await resolveIsEmailVerificationEnforced(off);
+    expect(off.isMailerConfigured).not.toHaveBeenCalled();
+  });
 });

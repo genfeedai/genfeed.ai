@@ -60,6 +60,15 @@ describe('ByokService subscription entitlement', () => {
     ).resolves.toBe(false);
   });
 
+  it('skips the subscription read when no key is stored', async () => {
+    await expect(
+      service.resolveApiKey('org-1', ByokProvider.OPENAI),
+    ).resolves.toBeUndefined();
+    expect(
+      organizationPaidAccessService.isSubscriptionGated,
+    ).not.toHaveBeenCalled();
+  });
+
   it('throws from lookupApiKey when the settings read fails, while resolveApiKey still reads it as no key', async () => {
     organizationSettingsService.findOne.mockRejectedValue(
       new Error('database unavailable'),

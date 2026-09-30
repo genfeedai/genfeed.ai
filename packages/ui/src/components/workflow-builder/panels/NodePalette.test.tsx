@@ -52,6 +52,17 @@ describe('NodePalette', () => {
     expect(screen.getByText('Processing')).toBeInTheDocument();
   });
 
+  it('should call onDragStart when node is dragged', () => {
+    const onDragStart = vi.fn();
+    render(<NodePalette {...defaultProps} onDragStart={onDragStart} />);
+
+    const nodeItem = screen.getByText('Image Input');
+    const dragEvent = new Event('dragstart', { bubbles: true });
+    fireEvent(nodeItem, dragEvent);
+
+    expect(onDragStart).toHaveBeenCalled();
+  });
+
   it('should toggle category expand/collapse when category button is clicked', () => {
     render(<NodePalette {...defaultProps} />);
 

@@ -3,6 +3,10 @@ import { FormFieldCategory } from '../../src/enums/form.enum';
 
 describe('form.enum', () => {
   describe('FormFieldCategory', () => {
+    it('should have 9 members', () => {
+      expect(Object.values(FormFieldCategory)).toHaveLength(9);
+    });
+
     it('should have correct values', () => {
       expect(FormFieldCategory.TEXT).toBe('text');
       expect(FormFieldCategory.EMAIL).toBe('email');

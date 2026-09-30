@@ -73,6 +73,17 @@ describe('mapSnapshotWorkEvents event mapping', () => {
     return mapSnapshotWorkEvents(snapshot)[0];
   }
 
+  it('honors explicit payload event names', () => {
+    const event = mapSingle(
+      makeEntry({
+        payload: { event: AgentWorkEventType.TOOL_COMPLETED },
+        status: 'completed',
+      }),
+    );
+
+    expect(event?.event).toBe(AgentWorkEventType.TOOL_COMPLETED);
+  });
+
   it('maps sourceEventType values to event types', () => {
     const cases: Array<[string, AgentWorkEventType]> = [
       ['tool.started', AgentWorkEventType.TOOL_STARTED],
@@ -214,6 +225,16 @@ describe('mapSnapshotWorkEvents event mapping', () => {
     });
   });
 
+  it('settles running events when the run is over', () => {
+    const snapshot = makeSnapshot({
+      activeRun: { runId: 'run-1', status: 'completed' },
+      timeline: [makeEntry({ kind: 'tool', status: 'running' })],
+    });
+
+    const [event] = mapSnapshotWorkEvents(snapshot);
+    expect(event?.status).toBe(AgentWorkEventStatus.COMPLETED);
+  });
+
   it('keeps pending input requests live even after the run settles', () => {
     const snapshot = makeSnapshot({
       pendingInputRequests: [
@@ -243,6 +264,10 @@ describe('mapSnapshotWorkEvents event mapping', () => {
 });
 
 describe('mapSnapshotPendingInputRequest', () => {
+  it('returns null without pending requests', () => {
+    expect(mapSnapshotPendingInputRequest(makeSnapshot())).toBeNull();
+  });
+
   it('maps the newest pending request', () => {
     const snapshot = makeSnapshot({
       pendingInputRequests: [

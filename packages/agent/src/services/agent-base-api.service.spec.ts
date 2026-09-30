@@ -1,4 +1,8 @@
-import { clearRequestOrganizationId } from '@genfeedai/services/core/interceptor.service';
+import { ORGANIZATION_CONTEXT_HEADER } from '@genfeedai/contracts/constants';
+import {
+  clearRequestOrganizationId,
+  setRequestOrganizationId,
+} from '@genfeedai/services/core/interceptor.service';
 import type {
   AgentApiDecodeError,
   AgentApiRequestError,
@@ -23,6 +27,20 @@ describe('AgentBaseApiService', () => {
     clearRequestOrganizationId();
   });
 
+  describe('constructor', () => {
+    it('should be defined', () => {
+      const service = new AgentBaseApiService(baseConfig);
+      expect(service).toBeDefined();
+    });
+
+    it('should store config', () => {
+      const service = new AgentBaseApiService(baseConfig);
+      expect((service as unknown as { config: AgentApiConfig }).config).toBe(
+        baseConfig,
+      );
+    });
+  });
+
   describe('headers()', () => {
     it('should include Authorization header when token is present', async () => {
       const service = new AgentBaseApiService({
@@ -42,6 +60,30 @@ describe('AgentBaseApiService', () => {
       const headers = await service.headers();
       expect(headers.Authorization).toBeUndefined();
       expect(headers['Content-Type']).toBe('application/json');
+    });
+
+    it('should call getToken to retrieve the current token', async () => {
+      const getToken = vi.fn().mockResolvedValue('fresh-token');
+      const service = new AgentBaseApiService({ ...baseConfig, getToken });
+      await service.headers();
+      expect(getToken).toHaveBeenCalledOnce();
+    });
+
+    it('should send the confirmed routed organization so the API fails closed on drift', async () => {
+      setRequestOrganizationId('org_alpha');
+      const service = new AgentBaseApiService(baseConfig);
+
+      const headers = await service.headers();
+
+      expect(headers[ORGANIZATION_CONTEXT_HEADER]).toBe('org_alpha');
+    });
+
+    it('should omit the organization header while no organization is confirmed', async () => {
+      const service = new AgentBaseApiService(baseConfig);
+
+      const headers = await service.headers();
+
+      expect(headers).not.toHaveProperty(ORGANIZATION_CONTEXT_HEADER);
     });
   });
 
@@ -71,6 +113,64 @@ describe('AgentBaseApiService', () => {
       expect(result).toEqual(mockResponse);
     });
 
+    it('should throw with default message when response is not ok', async () => {
+      mockFetch.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue({ message: 'Not Found' }),
+        ok: false,
+        status: 404,
+      });
+
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchJson('https://api.genfeed.ai/missing'),
+      ).rejects.toMatchObject({
+        _tag: 'AgentApiRequestError',
+        message: 'Request failed: 404 - Not Found',
+        status: 404,
+      });
+    });
+
+    it('should throw with custom error message when provided', async () => {
+      mockFetch.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue({ message: 'Forbidden' }),
+        ok: false,
+        status: 403,
+      });
+
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchJson(
+          'https://api.genfeed.ai/secret',
+          undefined,
+          'Access denied',
+        ),
+      ).rejects.toMatchObject({
+        _tag: 'AgentApiRequestError',
+        message: 'Access denied: 403 - Forbidden',
+        status: 403,
+      });
+    });
+
+    it('should extract error.detail from JSON API error format', async () => {
+      mockFetch.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue({
+          errors: [{ detail: 'Invalid field value' }],
+        }),
+        ok: false,
+        status: 422,
+      });
+
+      const service = new AgentBaseApiService(baseConfig);
+      await expect(
+        service.fetchJson('https://api.genfeed.ai/resource'),
+      ).rejects.toMatchObject({
+        _tag: 'AgentApiRequestError',
+        detail: 'Invalid field value',
+        message: 'Request failed: 422 - Invalid field value',
+        status: 422,
+      });
+    });
+
     it('should handle array message field in error response', async () => {
       mockFetch.mockResolvedValueOnce({
         json: vi.fn().mockResolvedValue({
@@ -90,6 +190,28 @@ describe('AgentBaseApiService', () => {
           'Request failed: 400 - field is required, field must be a string',
         status: 400,
       });
+    });
+
+    it('should omit Content-Type when body is FormData', async () => {
+      mockFetch.mockResolvedValueOnce({
+        json: vi.fn().mockResolvedValue({ uploaded: true }),
+        ok: true,
+      });
+
+      const formData = new FormData();
+      formData.append('file', new Blob(['test']), 'test.txt');
+
+      const service = new AgentBaseApiService(baseConfig);
+      await service.fetchJson('https://api.genfeed.ai/upload', {
+        body: formData,
+        method: 'POST',
+      });
+
+      const calledHeaders = mockFetch.mock.calls[0][1].headers as Record<
+        string,
+        string
+      >;
+      expect(calledHeaders['Content-Type']).toBeUndefined();
     });
 
     it('should merge custom headers with default headers', async () => {

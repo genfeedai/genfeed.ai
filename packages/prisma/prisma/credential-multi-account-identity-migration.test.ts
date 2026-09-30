@@ -15,6 +15,12 @@ const migrationSource = readFileSync(
 );
 
 describe('credential multi-account identity migration', () => {
+  it('creates a partial unique index on live identified credentials', () => {
+    expect(migrationSource).toMatch(
+      /CREATE UNIQUE INDEX "credentials_brand_platform_external_key"\nON "credentials" \("brandId", "platform", "externalId"\)\nWHERE "isDeleted" = false AND "externalId" IS NOT NULL;/,
+    );
+  });
+
   it('leaves pending credentials unconstrained', () => {
     expect(migrationSource).toContain('"externalId" IS NOT NULL');
     expect(migrationSource).not.toMatch(

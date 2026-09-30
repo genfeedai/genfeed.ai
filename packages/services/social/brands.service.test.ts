@@ -178,6 +178,18 @@ describe('BrandsService', () => {
     vi.clearAllMocks();
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(BrandsService);
+  });
+
+  it('has CRUD methods', () => {
+    expect(service.findAll).toBeDefined();
+    expect(service.findOne).toBeDefined();
+    expect(service.post).toBeDefined();
+    expect(service.patch).toBeDefined();
+    expect(service.delete).toBeDefined();
+  });
+
   describe('findOneBySlug', () => {
     it('calls GET with slug param', async () => {
       const mockBrand = { id: 'b1', slug: 'testbrand' };
@@ -188,6 +200,14 @@ describe('BrandsService', () => {
       expect(mockGet).toHaveBeenCalledWith('slug', {
         params: { slug: 'testbrand' },
       });
+    });
+
+    it('returns mapped brand', async () => {
+      const mockBrand = { id: 'b1', slug: 'mybrand' };
+      mockGet.mockResolvedValue({ data: { data: mockBrand } });
+
+      const result = await service.findOneBySlug('mybrand');
+      expect(result).toBeDefined();
     });
   });
 

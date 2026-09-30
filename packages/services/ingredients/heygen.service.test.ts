@@ -66,6 +66,18 @@ describe('HeygenService', () => {
     service = new HeygenService(mockToken);
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(HeygenService);
+  });
+
+  it('has CRUD methods', () => {
+    expect(service.findAll).toBeDefined();
+    expect(service.findOne).toBeDefined();
+    expect(service.post).toBeDefined();
+    expect(service.patch).toBeDefined();
+    expect(service.delete).toBeDefined();
+  });
+
   it('generates avatar videos through the videos avatar endpoint', async () => {
     const response: IHeyGen = {
       createdAt: '2026-06-08T00:00:00.000Z',

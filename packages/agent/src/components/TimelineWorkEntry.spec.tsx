@@ -59,6 +59,11 @@ function buildEvent(overrides?: Partial<EnrichedWorkEvent>): EnrichedWorkEvent {
 }
 
 describe('TimelineWorkEntry', () => {
+  it('renders label from TOOL_LABELS', () => {
+    render(<TimelineWorkEntry event={buildEvent()} />);
+    expect(screen.getByText('Generate Image')).toBeTruthy();
+  });
+
   it('shows status icons', () => {
     const { container: completedContainer } = render(
       <TimelineWorkEntry event={buildEvent()} />,

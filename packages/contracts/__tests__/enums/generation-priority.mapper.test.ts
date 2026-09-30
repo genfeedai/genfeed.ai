@@ -20,6 +20,13 @@ describe('generation-priority.mapper', () => {
         GenerationPriority.SPEED,
       );
     });
+
+    it('rejects null, empty, and unknown values', () => {
+      expect(toGenerationPriority(null)).toBeUndefined();
+      expect(toGenerationPriority(undefined)).toBeUndefined();
+      expect(toGenerationPriority('')).toBeUndefined();
+      expect(toGenerationPriority('cheapest')).toBeUndefined();
+    });
   });
 
   describe('toRouterPriority', () => {
@@ -36,6 +43,10 @@ describe('generation-priority.mapper', () => {
       expect(toRouterPriority(GenerationPriority.BALANCED)).toBe(
         RouterPriority.BALANCED,
       );
+    });
+
+    it('is idempotent on values that are already router values', () => {
+      expect(toRouterPriority(RouterPriority.COST)).toBe(RouterPriority.COST);
     });
 
     it('rejects null, empty, and unknown values', () => {

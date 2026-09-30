@@ -46,6 +46,16 @@ describe('TaskCountersService', () => {
       });
     });
 
+    it('never falls back to a read-then-create race', async () => {
+      taskCounter.upsert.mockResolvedValue({ counter: 1, organizationId });
+
+      await service.getNextNumber(organizationId);
+
+      expect(taskCounter.findFirst).not.toHaveBeenCalled();
+      expect(taskCounter.create).not.toHaveBeenCalled();
+      expect(taskCounter.update).not.toHaveBeenCalled();
+    });
+
     it('returns the incremented counter on repeated calls', async () => {
       let counter = 0;
       taskCounter.upsert.mockImplementation(async () => {

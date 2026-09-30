@@ -3,6 +3,10 @@ import { JobState } from '../../src/enums/job.enum';
 
 describe('job.enum', () => {
   describe('JobState', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(JobState)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(JobState.PENDING).toBe('pending');
       expect(JobState.ACTIVE).toBe('active');

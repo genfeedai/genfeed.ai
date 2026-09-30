@@ -23,4 +23,10 @@ describe('getProviderBrands', () => {
     expect(higgsfield?.modelCount).toBe(4);
     expect(higgsfield?.categories).toEqual(['Image', 'Video']);
   });
+
+  it('orders brands by how many models they contribute', () => {
+    const counts = getProviderBrands().map((brand) => brand.modelCount);
+
+    expect([...counts].sort((left, right) => right - left)).toEqual(counts);
+  });
 });

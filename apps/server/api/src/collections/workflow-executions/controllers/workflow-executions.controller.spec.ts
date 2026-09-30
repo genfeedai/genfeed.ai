@@ -86,6 +86,10 @@ describe('WorkflowExecutionsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('should return paginated executions with an aggregation pipeline', async () => {
       const mockResult = { docs: [{ id: 'exec-1' }], total: 1 };
@@ -117,6 +121,40 @@ describe('WorkflowExecutionsController', () => {
         expect.objectContaining({ limit: expect.any(Number), offset: 0 }),
       );
       expect(result).toEqual([{ id: 'exec-1' }]);
+    });
+
+    it('should use default limit and offset when not provided', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [], total: 0 });
+
+      await controller.findAll(mockRequest, mockUser, {} as never);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: -1 },
+          where: expect.objectContaining({
+            isDeleted: false,
+            organizationId: expect.any(String),
+          }),
+        }),
+        expect.objectContaining({ limit: 20, offset: 0 }),
+      );
+    });
+
+    it('scopes nested workflow brand filters to the current organization', async () => {
+      mockService.findAll.mockResolvedValue({ docs: [], total: 0 });
+
+      await controller.findAll(mockRequest, mockUser, {
+        brandId: 'brand-from-another-org',
+      } as never);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: buildCustomerExecutionWhere(organizationId, {
+            brandId: 'brand-from-another-org',
+          }),
+        }),
+        expect.any(Object),
+      );
     });
 
     it('filters executions by strategy id in result metadata', async () => {
@@ -423,6 +461,15 @@ describe('WorkflowExecutionsController', () => {
       expect(where).not.toHaveProperty('organizationId');
       expect(JSON.stringify(where.workflow)).toContain('agent.turn.execute');
       expect(JSON.stringify(where.workflow)).not.toContain('voice.generate');
+    });
+
+    it('declares platform-admin authorization on the cross-tenant route', () => {
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          WorkflowExecutionsController.prototype.findAdminFailures,
+        ),
+      ).toEqual(['superadmin']);
     });
   });
 });

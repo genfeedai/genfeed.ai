@@ -106,6 +106,10 @@ describe('ElementsLightingsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
     it('should create a lighting for superadmin', async () => {
       const createDto: CreateElementLightingDto = {
@@ -214,6 +218,37 @@ describe('ElementsLightingsController', () => {
   });
 
   describe('findAll', () => {
+    it('should return paginated lightings', async () => {
+      const mockLightings = {
+        docs: [
+          { id: 'lighting-1', key: 'lighting-1', label: 'Lighting 1' },
+          { id: 'lighting-2', key: 'lighting-2', label: 'Lighting 2' },
+        ],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 2,
+        totalPages: 1,
+      };
+
+      lightingsService.findAll.mockResolvedValue(mockLightings as never);
+
+      const query = createBaseQuery();
+
+      const result = await controller.findAll(
+        mockRequest,
+        mockSuperAdminUser,
+        query,
+      );
+
+      expect(lightingsService.findAll).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should handle empty results', async () => {
       const mockLightings = {
         docs: [],

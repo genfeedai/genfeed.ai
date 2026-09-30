@@ -64,6 +64,10 @@ describe('GenFeedService', () => {
     service = module.get<GenFeedService>(GenFeedService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should initialize with API configuration', () => {
     expect(mockConfigService.get).toHaveBeenCalledWith('GENFEEDAI_API_URL');
     expect(mockConfigService.get).toHaveBeenCalledWith('GENFEEDAI_API_KEY');

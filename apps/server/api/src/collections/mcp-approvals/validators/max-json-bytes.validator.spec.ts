@@ -8,6 +8,15 @@ class TestDto {
 }
 
 describe('MaxJsonBytes', () => {
+  it('passes for a payload under the byte limit', async () => {
+    const dto = new TestDto();
+    dto.payload = { a: 1 };
+
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+  });
+
   it('fails for a payload over the byte limit', async () => {
     const dto = new TestDto();
     dto.payload = { big: 'x'.repeat(200) };

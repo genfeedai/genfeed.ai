@@ -15,7 +15,7 @@ describe('workflowCollectionHeaderTabs', () => {
         matchMode: 'exact',
       },
       {
-        href: href(APP_ROUTES.AUTOMATION.WORKFLOWS_TEMPLATES),
+        href: href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}?view=templates`),
         id: 'templates',
         label: 'Templates',
         matchMode: 'exact',

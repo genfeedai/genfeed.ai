@@ -16,5 +16,23 @@ describe('trend-sound-inspiration node', () => {
     it('should default minUsageCount to 10000', () => {
       expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.minUsageCount).toBe(10000);
     });
+
+    it('should default maxDuration to null', () => {
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.maxDuration).toBeNull();
+    });
+
+    it('should default all output fields to null', () => {
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.soundId).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.soundName).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.soundUrl).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.duration).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.usageCount).toBeNull();
+    });
+
+    it('should default display info fields to null', () => {
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.authorName).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.coverUrl).toBeNull();
+      expect(DEFAULT_TREND_SOUND_INSPIRATION_DATA.growthRate).toBeNull();
+    });
   });
 });

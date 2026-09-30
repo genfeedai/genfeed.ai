@@ -54,6 +54,25 @@ describe('reviewed Fal execution contracts', () => {
     ).toBe(FalSchemaFamily.IMAGE_EDIT_MULTI);
   });
 
+  it('adapts a modern multi-image request through its reviewed family', () => {
+    const { input } = extractFalEndpointSchemas(fixture('image-openapi.json'));
+
+    expect(
+      adaptFalImageRequest(FalSchemaFamily.IMAGE_EDIT_MULTI, input, {
+        height: 768,
+        prompt: 'put this product in a studio',
+        referenceImageUrls: ['https://cdn.test/a.png'],
+        seed: 42,
+        width: 1024,
+      }),
+    ).toEqual({
+      image_size: { height: 768, width: 1024 },
+      image_urls: ['https://cdn.test/a.png'],
+      prompt: 'put this product in a studio',
+      seed: 42,
+    });
+  });
+
   it('rejects a reviewed image-edit contract when a required reference is absent', () => {
     const { input } = extractFalEndpointSchemas(fixture('image-openapi.json'));
 

@@ -14,11 +14,27 @@ describe('createLibraryShelfRoute', () => {
       '/library/assets?shelf=needs-review',
     );
   });
+
+  it('keeps every shelf under the canonical shelf prefix', () => {
+    expect(
+      createLibraryShelfRoute(LibraryShelf.GENERATING).startsWith(
+        `${APP_ROUTES.LIBRARY.ASSETS}?shelf=`,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('createLibraryBrowserRoute', () => {
   it('defaults to All assets with no filters', () => {
     expect(createLibraryBrowserRoute()).toBe(APP_ROUTES.LIBRARY.ASSETS);
+  });
+
+  it('repeats the categories key so the type axis stays multi-select', () => {
+    expect(
+      createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
+        categories: [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+      }),
+    ).toBe('/library/assets?categories=IMAGE&categories=VIDEO');
   });
 
   it('composes the type and folder axes on a shelf route', () => {

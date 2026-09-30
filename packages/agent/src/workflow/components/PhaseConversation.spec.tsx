@@ -24,6 +24,12 @@ describe('PhaseConversation', () => {
     setMessages([]);
   });
 
+  it('shows the empty state with no messages', () => {
+    render(<PhaseConversation />);
+
+    expect(screen.getByText('No messages yet')).toBeInTheDocument();
+  });
+
   it('groups messages under their phase heading', () => {
     setMessages([
       makeMessage(),
@@ -56,5 +62,16 @@ describe('PhaseConversation', () => {
     expect(screen.getByText('Explore')).toBeInTheDocument();
     expect(screen.queryByText('Verify')).not.toBeInTheDocument();
     expect(screen.queryByText('Complete')).not.toBeInTheDocument();
+  });
+
+  it('scrolls the transcript to the bottom on mount', () => {
+    setMessages([makeMessage()]);
+
+    const { container } = render(<PhaseConversation />);
+    const scroller = container.firstElementChild as HTMLElement;
+
+    // jsdom reports zero geometry, so the assertion is that the effect ran
+    // against the scroller without throwing and left a defined scrollTop.
+    expect(scroller.scrollTop).toBe(0);
   });
 });

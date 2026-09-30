@@ -34,4 +34,20 @@ describe('AgentExecutionLaneService', () => {
     await expect(secondTask).resolves.toBe('second-result');
     expect(order).toEqual(['first:start', 'first:end', 'second:start']);
   });
+
+  it('allows different lanes to run independently', async () => {
+    const service = new AgentExecutionLaneService();
+    const order: string[] = [];
+
+    await Promise.all([
+      service.runExclusive('thread-1', async () => {
+        order.push('lane-1');
+      }),
+      service.runExclusive('thread-2', async () => {
+        order.push('lane-2');
+      }),
+    ]);
+
+    expect(order.sort()).toEqual(['lane-1', 'lane-2']);
+  });
 });

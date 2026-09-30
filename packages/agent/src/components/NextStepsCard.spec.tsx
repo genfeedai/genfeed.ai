@@ -55,6 +55,43 @@ function buildAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
 }
 
 describe('NextStepsCard', () => {
+  it('renders every offered step as a control, not prose', () => {
+    render(
+      <NextStepsCard
+        action={buildAction({
+          nextSteps: [
+            {
+              ctas: [
+                { href: '/settings/integrations', label: 'Open connections' },
+              ],
+              id: 'step-1',
+              title: 'Connect a social account',
+            },
+            {
+              ctas: [
+                { href: '/settings/brands', label: 'Open brand settings' },
+              ],
+              id: 'step-2',
+              title: 'Brand setup',
+            },
+            {
+              ctas: [{ href: '/settings', label: 'Open settings' }],
+              id: 'step-3',
+              title: 'Default settings',
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Brand setup')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: /Open brand settings/ }),
+    ).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Open connections/ })).toBeTruthy();
+    expect(screen.getByRole('link', { name: /Open settings/ })).toBeTruthy();
+  });
+
   it('points a navigation CTA at the owning page through the application Link', () => {
     render(<NextStepsCard action={buildAction()} />);
 

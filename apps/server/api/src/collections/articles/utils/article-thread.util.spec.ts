@@ -26,6 +26,23 @@ describe('article-thread.util', () => {
       });
     });
 
+    it('falls back to the title alone when title + summary exceeds the limit', () => {
+      const label = 'L'.repeat(200);
+      const summary = 'S'.repeat(200);
+
+      const tweets = buildTwitterThreadTweets({
+        content: 'Body.',
+        label,
+        summary,
+      });
+
+      expect(tweets[0]).toEqual({
+        characterCount: label.length,
+        content: label,
+        order: 1,
+      });
+    });
+
     it('strips HTML tags from the content before building tweets', () => {
       const tweets = buildTwitterThreadTweets({
         content: '<p>Hi <strong>there</strong></p>',
@@ -188,6 +205,19 @@ describe('article-thread.util', () => {
 
       expect(tweets).toHaveLength(2); // title + single merged paragraph
       expect(tweets[1].content).toBe('Para one.\nPara two.');
+    });
+
+    it('numbers tweets sequentially starting at 1', () => {
+      const tweets = buildTwitterThreadTweets({
+        articleUrl: 'https://genfeed.ai/articles/slug',
+        content: 'Body paragraph.',
+        label: 'Title',
+        summary: 'Summary',
+      });
+
+      expect(tweets.map((tweet) => tweet.order)).toEqual(
+        tweets.map((_tweet, index) => index + 1),
+      );
     });
   });
 });

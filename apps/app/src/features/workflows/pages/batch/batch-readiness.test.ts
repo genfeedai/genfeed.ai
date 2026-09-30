@@ -76,6 +76,20 @@ describe('isBrandReadyForBatch', () => {
     );
   });
 
+  it('returns ready for fully-configured brand', () => {
+    const brand = makeBrand();
+    const result = isBrandReadyForBatch(brand, [shortFormCred]);
+    expect(result.ready).toBe(true);
+    expect(result.reasons).toHaveLength(0);
+  });
+
+  it('accepts uppercase platform value (case-insensitive check)', () => {
+    const brand = makeBrand();
+    const upperCaseCred = makeCredential('INSTAGRAM');
+    const result = isBrandReadyForBatch(brand, [upperCaseCred]);
+    expect(result.ready).toBe(true);
+  });
+
   it('requires avatar + voice when avatar format is requested', () => {
     const brand = makeBrand({
       agentConfig: {
@@ -103,6 +117,21 @@ describe('isBrandReadyForBatch', () => {
     });
     const result = isBrandReadyForBatch(brand, [shortFormCred], ['avatar']);
     expect(result.ready).toBe(true);
+  });
+
+  it('does NOT accept defaultAvatarPhotoUrl alone for avatar format (needs an ingredient id)', () => {
+    const brand = makeBrand({
+      agentConfig: {
+        voice: { tone: 'casual' },
+        defaultAvatarPhotoUrl: 'https://example.com/avatar.jpg',
+        defaultVoiceId: 'voice-1',
+      },
+    });
+    const result = isBrandReadyForBatch(brand, [shortFormCred], ['avatar']);
+    expect(result.ready).toBe(false);
+    expect(result.reasons.some((r) => r.toLowerCase().includes('avatar'))).toBe(
+      true,
+    );
   });
 
   it('returns not-ready when voice tone is missing', () => {

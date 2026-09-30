@@ -48,6 +48,29 @@ describe('post-schedule-approval.util', () => {
     ).toBe(false);
   });
 
+  it('skips thread children and drafts', async () => {
+    await bindScheduledPublishApproval({
+      post: {
+        id: 'child-1',
+        organizationId: 'org-1',
+        parentId: 'root-1',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        userId: 'user-1',
+      },
+      publishApprovalsService,
+    });
+    await bindScheduledPublishApproval({
+      post: {
+        id: 'draft-1',
+        organizationId: 'org-1',
+        targetExecutionState: TargetExecutionState.DRAFT,
+        userId: 'user-1',
+      },
+      publishApprovalsService,
+    });
+    expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
+  });
+
   it('fails closed without an approval service or actor', async () => {
     await expect(
       bindScheduledPublishApproval({

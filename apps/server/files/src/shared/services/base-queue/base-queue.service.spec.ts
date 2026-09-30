@@ -60,7 +60,31 @@ describe('BaseQueueService', () => {
     service = new TestQueueService(mockQueue, TestQueueService.name);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('addJob', () => {
+    it('should call queue.add with job type and data', async () => {
+      await service.addDownload({ fileId: 'file-1' });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        JOB_TYPES.DOWNLOAD_FILE,
+        expect.objectContaining({ fileId: 'file-1' }),
+        expect.any(Object),
+      );
+    });
+
+    it('should use configured attempts from jobConfigs', async () => {
+      await service.addDownload({ fileId: 'file-1' });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({ attempts: 5 }),
+      );
+    });
+
     it('should fall back to DEFAULT_JOB_CONFIG for unknown job types', async () => {
       // We call an unconfigured job type via a different subclass behaviour — simulate by calling with UPLOAD_TO_S3
       class MinimalService extends BaseQueueService<TestJobData> {
@@ -78,9 +102,34 @@ describe('BaseQueueService', () => {
         expect.objectContaining({ attempts: DEFAULT_JOB_CONFIG.attempts }),
       );
     });
+
+    it('should use data.priority when provided', async () => {
+      await service.addDownload({ fileId: 'hi', priority: JOB_PRIORITY.LOW });
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({ priority: JOB_PRIORITY.LOW }),
+      );
+    });
+
+    it('should return the created job', async () => {
+      const result = await service.addDownload({ fileId: 'ret-1' });
+      expect(result).toBe(mockJob);
+    });
   });
 
   describe('addJobWithDelay', () => {
+    it('should pass delay to queue.add options', async () => {
+      await service.addDelayedDownload({ fileId: 'delayed-1' }, 5000);
+
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        expect.objectContaining({ delay: 5000 }),
+      );
+    });
+
     it('should still use configured attempts', async () => {
       await service.addDelayedDownload({ fileId: 'delayed-2' }, 3000);
 
@@ -100,6 +149,13 @@ describe('BaseQueueService', () => {
 
       expect(mockQueue.getJob).toHaveBeenCalledWith('job-1');
       expect(result).toBe(mockJob);
+    });
+
+    it('should return undefined when job not found', async () => {
+      mockQueue.getJob = vi.fn().mockResolvedValue(undefined);
+
+      const result = await service.getJob('unknown');
+      expect(result).toBeUndefined();
     });
   });
 
@@ -129,6 +185,15 @@ describe('BaseQueueService', () => {
         0,
         'failed',
       );
+    });
+
+    it('should use default grace of 1 hour for completed jobs', async () => {
+      await service.clean();
+
+      const completedCall = (
+        mockQueue.clean as ReturnType<typeof vi.fn>
+      ).mock.calls.find((c: unknown[]) => c[2] === 'completed');
+      expect(completedCall?.[0]).toBe(3_600_000);
     });
   });
 

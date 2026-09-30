@@ -78,6 +78,29 @@ describe('api/articles', () => {
       expect(body).not.toHaveProperty('brand');
     });
 
+    it('passes optional category and keywords through', async () => {
+      mockFetch.mockResolvedValue({ data: [] });
+
+      await generateArticle({
+        brandId: 'brand-1',
+        category: 'guide',
+        keywords: ['climate', 'renewable'],
+        prompt: 'Climate solutions',
+        type: 'standard',
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('/articles/generations', {
+        body: {
+          brandId: 'brand-1',
+          category: 'guide',
+          keywords: ['climate', 'renewable'],
+          prompt: 'Climate solutions',
+          type: 'standard',
+        },
+        method: 'POST',
+      });
+    });
+
     it('forwards cancellation to article generation', async () => {
       mockFetch.mockResolvedValue({ data: [] });
       const controller = new AbortController();
@@ -138,6 +161,14 @@ describe('api/articles', () => {
       const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
       expect(body).toHaveProperty('brandId', 'brand-2');
       expect(body).not.toHaveProperty('brand');
+    });
+
+    it('propagates errors', async () => {
+      mockFetch.mockRejectedValue(new Error('Insufficient credits'));
+
+      await expect(
+        generateArticle({ brandId: 'brand-1', prompt: 'anything', type: 'x-article' })
+      ).rejects.toThrow('Insufficient credits');
     });
   });
 

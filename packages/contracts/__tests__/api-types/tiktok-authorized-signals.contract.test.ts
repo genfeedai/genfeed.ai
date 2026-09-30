@@ -60,4 +60,13 @@ describe('TikTok authorized signals contract', () => {
       tiktokAuthorizedSignalEvidenceKeys,
     );
   });
+
+  it('rejects duplicate evidence that would leave a canonical check unmapped', () => {
+    const snapshot = makeSnapshot();
+    snapshot.evidence[1] = snapshot.evidence[0];
+
+    expect(
+      tiktokAuthorizedSignalsSnapshotSchema.safeParse(snapshot).success,
+    ).toBe(false);
+  });
 });

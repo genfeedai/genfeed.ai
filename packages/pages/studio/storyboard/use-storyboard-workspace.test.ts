@@ -335,6 +335,17 @@ describe('useStoryboardWorkspace', () => {
       );
     });
 
+    it('passes an AbortSignal to every scene request', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      await seedScenes(result, 1);
+
+      await act(async () => {
+        await result.current.generatePendingScenes();
+      });
+
+      expect(mockVideosPost.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
+    });
+
     it('refuses a second run while one is in flight', async () => {
       const { result } = renderHook(() => useStoryboardWorkspace());
       await seedScenes(result, 2);
@@ -455,6 +466,29 @@ describe('useStoryboardWorkspace', () => {
       });
 
       expect(result.current.isMerging).toBe(false);
+    });
+
+    it('sends the workspace merge settings with the scene merge', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      await generateTwoScenes(result);
+
+      await act(async () => {
+        result.current.updateMergeSettings({
+          isCaptionsEnabled: true,
+          transitionDuration: 1.2,
+        });
+      });
+      await act(async () => {
+        await result.current.mergeStoryboardVideos();
+      });
+
+      expect(mockVideosPostMerge).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ids: ['video-a', 'video-b'],
+          isCaptionsEnabled: true,
+          transitionDuration: 1.2,
+        }),
+      );
     });
 
     it('sends the same merge settings when merging hand-picked videos', async () => {

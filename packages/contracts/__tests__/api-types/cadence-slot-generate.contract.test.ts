@@ -49,6 +49,16 @@ describe('buildCadenceSlotGeneratePrompt', () => {
     expect(prompt.maxTokens).toBeLessThanOrEqual(180);
   });
 
+  it('keeps the system prompt short', () => {
+    const prompt = buildCadenceSlotGeneratePrompt(baseInput());
+    expect(prompt.system.split(' ').length).toBeLessThan(60);
+  });
+
+  it('asks not to repeat already scheduled campaign posts', () => {
+    const prompt = buildCadenceSlotGeneratePrompt(baseInput());
+    expect(prompt.system.toLowerCase()).toContain('do not repeat');
+  });
+
   it('uses campaign fallbacks when the cadence is unnamed', () => {
     const prompt = buildCadenceSlotGeneratePrompt({
       ...baseInput(),

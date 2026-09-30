@@ -71,6 +71,10 @@ describe('ApifyTwitterService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('getTwitterTrends normalizes trends', async () => {
     baseService.runActor.mockResolvedValue([mockTrend]);
     const result = await service.getTwitterTrends({ limit: 10, region: 'US' });

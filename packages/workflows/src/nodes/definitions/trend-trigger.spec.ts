@@ -31,5 +31,11 @@ describe('trend-trigger node', () => {
       expect(DEFAULT_TREND_TRIGGER_DATA.keywords).toEqual([]);
       expect(DEFAULT_TREND_TRIGGER_DATA.excludeKeywords).toEqual([]);
     });
+
+    it('should default tracking fields to null', () => {
+      expect(DEFAULT_TREND_TRIGGER_DATA.lastTriggeredAt).toBeNull();
+      expect(DEFAULT_TREND_TRIGGER_DATA.lastTrendId).toBeNull();
+      expect(DEFAULT_TREND_TRIGGER_DATA.lastTrendTopic).toBeNull();
+    });
   });
 });

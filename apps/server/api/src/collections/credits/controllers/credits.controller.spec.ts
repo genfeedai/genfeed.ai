@@ -3,12 +3,14 @@ import { CreditsController } from '@api/collections/credits/controllers/credits.
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { TopbarBalancesService } from '@api/collections/credits/services/topbar-balances.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('CreditsController', () => {
   let controller: CreditsController;
+  let _creditTransactionsService: CreditTransactionsService;
 
   const organizationId = testId('org');
 
@@ -81,6 +83,9 @@ describe('CreditsController', () => {
     }).compile();
 
     controller = module.get<CreditsController>(CreditsController);
+    _creditTransactionsService = module.get<CreditTransactionsService>(
+      CreditTransactionsService,
+    );
   });
 
   const mockReq = {
@@ -91,6 +96,34 @@ describe('CreditsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('should have rate limit on getUsageMetrics endpoint', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      CreditsController.prototype.getUsageMetrics,
+    );
+    expect(metadata).toEqual({ limit: 20, scope: 'user', windowMs: 60000 });
+  });
+
+  it('should have rate limit on getLastPurchaseBaseline endpoint', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      CreditsController.prototype.getLastPurchaseBaseline,
+    );
+    expect(metadata).toEqual({ limit: 20, scope: 'user', windowMs: 60000 });
+  });
+
+  it('should have rate limit on getTopbarBalances endpoint', () => {
+    const metadata = Reflect.getMetadata(
+      RATE_LIMIT_KEY,
+      CreditsController.prototype.getTopbarBalances,
+    );
+    expect(metadata).toEqual({ limit: 30, scope: 'user', windowMs: 60000 });
+  });
+
   describe('getUsageMetrics', () => {
     it('should return usage metrics', async () => {
       const result = await controller.getUsageMetrics(mockReq, mockUser);
@@ -99,6 +132,14 @@ describe('CreditsController', () => {
         mockServices.creditTransactionsService.getUsageMetrics,
       ).toHaveBeenCalledWith(organizationId);
       expect(result).toBeDefined();
+    });
+
+    it('should call service with correct organization ID', async () => {
+      await controller.getUsageMetrics(mockReq, mockUser);
+
+      expect(
+        mockServices.creditTransactionsService.getUsageMetrics,
+      ).toHaveBeenCalledWith(organizationId);
     });
 
     it('prefers the request context organization for usage metrics', async () => {

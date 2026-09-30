@@ -58,6 +58,22 @@ describe('BrandDetailOverview', () => {
     ).toHaveTextContent('Content for ambitious teams');
   });
 
+  it('saves an edited handle', async () => {
+    const user = userEvent.setup();
+    const onUpdateHandle = vi.fn().mockResolvedValue(undefined);
+    renderOverview({ onUpdateHandle });
+
+    await user.click(screen.getByRole('button', { name: 'Edit brand handle' }));
+    const editor = screen.getByRole('textbox', { name: 'Edit brand handle' });
+    await user.clear(editor);
+    await user.type(editor, '@acme-labs');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() =>
+      expect(onUpdateHandle).toHaveBeenCalledWith('@acme-labs'),
+    );
+  });
+
   it('reverts the handle when the save is rejected', async () => {
     const user = userEvent.setup();
     const onUpdateHandle = vi.fn().mockRejectedValue(new Error('taken'));
@@ -88,5 +104,21 @@ describe('BrandDetailOverview', () => {
     await waitFor(() =>
       expect(onUpdateBrand).toHaveBeenCalledWith('label', 'Acme Labs'),
     );
+  });
+
+  it('shows the description placeholder when no description exists', () => {
+    render(
+      <BrandDetailOverview
+        brand={{ ...brand, description: '' }}
+        isGeneratingLogo={false}
+        onGenerateLogo={vi.fn()}
+        onUpdateBrand={vi.fn()}
+        onUploadLogo={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Edit brand description' }),
+    ).toHaveTextContent('Add a description');
   });
 });

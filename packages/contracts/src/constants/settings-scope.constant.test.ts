@@ -14,6 +14,12 @@ describe('settings scope ownership', () => {
     }
   });
 
+  it('keeps fields uniquely owned in the canonical map', () => {
+    const fields = SETTINGS_SCOPE_FIELD_OWNERSHIP.map(({ field }) => field);
+
+    expect(new Set(fields).size).toBe(fields.length);
+  });
+
   it('keeps conflict notes tied to known canonical fields', () => {
     for (const conflict of SETTINGS_SCOPE_CONFLICTS) {
       const canonicalField = SETTINGS_SCOPE_FIELD_OWNERSHIP.find(

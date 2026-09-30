@@ -91,6 +91,17 @@ describe('OAuth metadata', () => {
       },
     );
 
+    it('prefers the public URL over the internal service URL', () => {
+      const serviceConfig = config({
+        GENFEEDAI_MCP_PUBLIC_URL: 'https://mcp.genfeed.ai',
+        GENFEEDAI_MICROSERVICES_MCP_URL: 'http://mcp.genfeed.internal:3014',
+      });
+
+      expect(resolveMcpResourceUrl(serviceConfig)).toBe(
+        'https://mcp.genfeed.ai/mcp',
+      );
+    });
+
     it.each([
       'http://genfeed.localhost:3014',
       'http://genfeed.localhost:3014/',

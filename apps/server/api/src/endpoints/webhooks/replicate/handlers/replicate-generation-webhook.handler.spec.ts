@@ -95,6 +95,17 @@ describe('ReplicateGenerationWebhookHandler', () => {
   });
 
   describe('media generation output', () => {
+    it('fetches an output URL served by Replicate', async () => {
+      await handler.handleCompleted(payloadWith(ALLOWED_URL));
+
+      expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
+        'replicate',
+        expect.anything(),
+        'pred_123',
+        ALLOWED_URL,
+      );
+    });
+
     it('finalizes by continuation identity before the provider id metadata patch lands', async () => {
       const continuations = (
         handler as never as { continuations: { findCallbackTarget: vi.Mock } }

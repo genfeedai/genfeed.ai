@@ -64,6 +64,10 @@ describe('AvatarsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(buildController()).toBeDefined();
+  });
+
   describe('getHeygenVoices', () => {
     it('should return HeyGen voices wrapped in JSON:API', async () => {
       const controller = buildController();

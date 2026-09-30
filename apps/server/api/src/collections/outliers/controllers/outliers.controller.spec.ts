@@ -8,9 +8,17 @@ import {
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { MemberRole } from '@genfeedai/contracts';
 import { ValidationPipe } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 describe('outlier HTTP contracts', () => {
+  it.each([{ page: 0 }, { limit: 101 }, { page: 1.5 }, { limit: 'nope' }])(
+    'rejects invalid pagination %j',
+    async (input) =>
+      expect(
+        (await validate(plainToInstance(OutlierPaginationDto, input))).length,
+      ).toBeGreaterThan(0),
+  );
   it('transforms string pagination through the endpoint validation pipe', async () => {
     const query = await new ValidationPipe({ transform: true }).transform(
       { page: '2', limit: '10' },
@@ -37,6 +45,14 @@ describe('outlier HTTP contracts', () => {
       windowSize: 10,
     });
   });
+  it('rejects invalid ranked-list tiers', async () =>
+    expect(
+      (
+        await validate(
+          plainToInstance(OutlierRankedQueryDto, { tier: 'winner' }),
+        )
+      ).length,
+    ).toBeGreaterThan(0));
   it.each(['refresh', 'patchConfiguration'] as const)(
     'restricts %s to owner/admin',
     (method) =>

@@ -30,4 +30,8 @@ describe('Instagram candidate avatars', () => {
   ])('rejects untrusted avatar %s', (url) => {
     expect(hasRemoteMatch([], patterns, new URL(url))).toBe(false);
   });
+
+  it('preserves the unoptimized image policy', () => {
+    expect(config.images?.unoptimized).toBe(true);
+  });
 });

@@ -1,5 +1,6 @@
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
+import { testId } from '@helpers/testing/test-id.helper';
 
 const expectValidationDetail = (fn: () => unknown, detail: string) => {
   try {
@@ -34,6 +35,15 @@ const expectValidationDetailContains = (
 
 describe('InputValidationUtil', () => {
   describe('validateString', () => {
+    it('should validate and return trimmed string', () => {
+      const result = InputValidationUtil.validateString(
+        '  test string  ',
+        'testField',
+        { sanitize: false },
+      );
+      expect(result).toBe('test string');
+    });
+
     it('should throw error for required field when null', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateString(null, 'testField'),
@@ -52,6 +62,13 @@ describe('InputValidationUtil', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateString(123, 'testField'),
         'testField must be a string',
+      );
+    });
+
+    it('should throw error for empty string when not allowed', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateString('   ', 'testField'),
+        'testField cannot be empty',
       );
     });
 
@@ -82,9 +99,63 @@ describe('InputValidationUtil', () => {
         'testField must be no more than 5 characters long',
       );
     });
+
+    it('should validate pattern matching', () => {
+      const result = InputValidationUtil.validateString(
+        'test123',
+        'testField',
+        {
+          pattern: /^[a-z0-9]+$/,
+          sanitize: false,
+        },
+      );
+      expect(result).toBe('test123');
+    });
+
+    it('should throw error for pattern mismatch', () => {
+      expectValidationDetail(
+        () =>
+          InputValidationUtil.validateString('test@#$', 'testField', {
+            pattern: /^[a-z0-9]+$/,
+          }),
+        'testField format is invalid',
+      );
+    });
+
+    it('should detect and reject XSS script tags', () => {
+      expectValidationDetail(
+        () =>
+          InputValidationUtil.validateString(
+            '<script>alert("xss")</script>',
+            'testField',
+          ),
+        'testField contains potentially dangerous content',
+      );
+    });
+
+    it('should detect and reject javascript: protocol', () => {
+      expectValidationDetail(
+        () =>
+          InputValidationUtil.validateString(
+            'javascript:alert(1)',
+            'testField',
+          ),
+        'testField contains potentially dangerous content',
+      );
+    });
   });
 
   describe('validateNumber', () => {
+    it('should validate and return number', () => {
+      const result = InputValidationUtil.validateNumber(42, 'testField');
+      expect(result).toBe(42);
+    });
+
+    it('should convert string to number', () => {
+      const result = InputValidationUtil.validateNumber('42', 'testField');
+      expect(result).toBe(42);
+    });
+
     it('should throw error for required field when null', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateNumber(null, 'testField'),
@@ -102,6 +173,13 @@ describe('InputValidationUtil', () => {
     it('should throw error for NaN', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateNumber('abc', 'testField'),
+        'testField must be a valid number',
+      );
+    });
+
+    it('should throw error for non-finite number', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateNumber(Infinity, 'testField'),
         'testField must be a valid number',
       );
     });
@@ -213,6 +291,15 @@ describe('InputValidationUtil', () => {
       return item;
     };
 
+    it('should validate and return array', () => {
+      const result = InputValidationUtil.validateArray(
+        ['a', 'b', 'c'],
+        'testField',
+        itemValidator,
+      );
+      expect(result).toEqual(['a', 'b', 'c']);
+    });
+
     it('should throw error for required field when null', () => {
       expectValidationDetail(
         () =>
@@ -287,6 +374,14 @@ describe('InputValidationUtil', () => {
   });
 
   describe('validateEmail', () => {
+    it('should validate and return lowercase email', () => {
+      const result = InputValidationUtil.validateEmail(
+        'Test@Example.COM',
+        'emailField',
+      );
+      expect(result).toBe('test@example.com');
+    });
+
     it('should validate correct email format', () => {
       expect(
         InputValidationUtil.validateEmail('user@domain.com', 'emailField'),
@@ -299,6 +394,13 @@ describe('InputValidationUtil', () => {
       ).toBe('user.name@domain.co.uk');
     });
 
+    it('should throw error for invalid email format', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateEmail('invalid-email', 'emailField'),
+        'emailField format is invalid',
+      );
+    });
+
     it('should throw error for email without domain', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateEmail('user@', 'emailField'),
@@ -308,6 +410,15 @@ describe('InputValidationUtil', () => {
   });
 
   describe('validateUrl', () => {
+    it('should validate and return valid URL', () => {
+      const result = InputValidationUtil.validateUrl(
+        'https://example.com',
+        'urlField',
+        false,
+      );
+      expect(result).toBe('https:&#x2F;&#x2F;example.com');
+    });
+
     it('should accept http and https protocols', () => {
       expect(
         InputValidationUtil.validateUrl(
@@ -331,9 +442,37 @@ describe('InputValidationUtil', () => {
         'urlField must be a valid URL',
       );
     });
+
+    it('should throw error for non-http protocols', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateUrl('ftp://example.com', 'urlField'),
+        'urlField must be a valid URL',
+      );
+    });
   });
 
   describe('validateEntityId', () => {
+    it('should validate supported entity id strings', () => {
+      const entityId = testId('id');
+      const result = InputValidationUtil.validateEntityId(entityId, 'idField');
+
+      expect(result).toBe(entityId);
+    });
+
+    it('should throw error for invalid id format', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateEntityId('not-an-id', 'idField'),
+        'Invalid idField format. Must be a valid entity id.',
+      );
+    });
+
+    it('should throw error for non-string value', () => {
+      expectValidationDetail(
+        () => InputValidationUtil.validateEntityId(123, 'idField'),
+        'idField is required and must be a string',
+      );
+    });
+
     it('should throw error for null value', () => {
       expectValidationDetail(
         () => InputValidationUtil.validateEntityId(null, 'idField'),
@@ -342,7 +481,39 @@ describe('InputValidationUtil', () => {
     });
   });
 
+  describe('security - XSS prevention', () => {
+    it('should reject common XSS patterns', () => {
+      const xssPatterns = [
+        '<script>alert(1)</script>',
+        'javascript:void(0)',
+        '<iframe src="evil.com"></iframe>',
+        '<object data="evil.swf"></object>',
+        '<embed src="evil.swf">',
+        'onload=alert(1)',
+        'onerror=alert(1)',
+        'onclick=alert(1)',
+      ];
+
+      xssPatterns.forEach((pattern) => {
+        expectValidationDetail(
+          () => InputValidationUtil.validateString(pattern, 'testField'),
+          'testField contains potentially dangerous content',
+        );
+      });
+    });
+  });
+
   describe('content boundary protections', () => {
+    it.each([{ $ne: null }, { $where: 'true', $or: [] }, ['Create a logo']])(
+      'rejects structured values instead of interpreting query operators: %j',
+      (value) => {
+        expectValidationDetail(
+          () => InputValidationUtil.validateString(value, 'text'),
+          'text must be a string',
+        );
+      },
+    );
+
     it.each([
       '<svg onanimationstart="alert(1)">',
       '<img src=x onpointerenter="alert(1)">',
@@ -379,6 +550,21 @@ describe('InputValidationUtil', () => {
       'EXEC xp_cmdshell',
     ])('accepts ordinary text containing database keywords: %s', (text) => {
       expect(InputValidationUtil.validateString(text, 'text')).toBe(text);
+    });
+
+    it('encodes quotes in SQL-like text without rejecting it', () => {
+      expect(InputValidationUtil.validateString("1' OR '1'='1", 'text')).toBe(
+        '1&#x27; OR &#x27;1&#x27;=&#x27;1',
+      );
+    });
+
+    it('accepts NoSQL operator names as literal content while encoding HTML characters', () => {
+      expect(
+        InputValidationUtil.validateString(
+          '$where: "example", $not: null, $or: []',
+          'text',
+        ),
+      ).toBe('$where: &quot;example&quot;, $not: null, $or: []');
     });
   });
 });

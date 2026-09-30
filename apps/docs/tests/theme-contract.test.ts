@@ -58,6 +58,45 @@ describe('docs theme contract', () => {
     );
   });
 
+  it.each(['missing', 'throwing'] as const)(
+    'keeps Nextra System mode safe when matchMedia is %s',
+    (failureMode) => {
+      const localStorage = {
+        getItem: () => 'system',
+        setItem: vi.fn(),
+      };
+      const windowObject: {
+        localStorage: typeof localStorage;
+        matchMedia?: (query: string) => MediaQueryList;
+      } = {
+        localStorage,
+        matchMedia:
+          failureMode === 'missing'
+            ? undefined
+            : () => {
+                throw new DOMException('Blocked', 'SecurityError');
+              },
+      };
+
+      runInNewContext(DOCS_THEME_STORAGE_BOOTSTRAP_SOURCE, {
+        DOMException,
+        TypeError,
+        window: windowObject,
+      });
+
+      expect(() => {
+        const mediaQuery = windowObject.matchMedia?.(
+          '(prefers-color-scheme: dark)',
+        );
+        mediaQuery?.addListener(() => undefined);
+        mediaQuery?.removeListener(() => undefined);
+      }).not.toThrow();
+      expect(
+        windowObject.matchMedia?.('(prefers-color-scheme: dark)').matches,
+      ).toBe(true);
+    },
+  );
+
   it('keeps the root error surface theme-aware', () => {
     const source = readFileSync(
       join(process.cwd(), 'app/global-error.tsx'),

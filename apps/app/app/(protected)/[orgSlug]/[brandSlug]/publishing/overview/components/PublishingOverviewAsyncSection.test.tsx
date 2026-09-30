@@ -60,4 +60,19 @@ describe('PublishingOverviewAsyncSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
+
+  it('renders successful data', () => {
+    render(
+      <PublishingOverviewAsyncSection
+        errorMessage="Could not load."
+        loadingLabel="Loading accounts"
+        onRetry={vi.fn()}
+        state={{ data: ['one', 'two'], status: 'success' }}
+      >
+        {(items) => <p>{items.join(', ')}</p>}
+      </PublishingOverviewAsyncSection>,
+    );
+
+    expect(screen.getByText('one, two')).toBeVisible();
+  });
 });

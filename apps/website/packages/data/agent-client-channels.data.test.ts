@@ -60,6 +60,27 @@ describe('agent client channel pages', () => {
     },
   );
 
+  it('tells OAuth channels no API key is needed', () => {
+    const page = buildAgentClientChannelPage(
+      getAgentClient('claude'),
+      'linkedin',
+    );
+    const answer = page.faq.find((item) =>
+      item.question.endsWith('API key?'),
+    )?.answer;
+
+    expect(answer).toMatch(/^No\./);
+  });
+
+  it('titles a page with the channel noun and client name', () => {
+    const page = buildAgentClientChannelPage(
+      getAgentClient('claude-code'),
+      'tiktok',
+    );
+
+    expect(page.title).toBe('Schedule TikTok Videos with Claude Code');
+  });
+
   it('emits a three-level breadcrumb and an ordered HowTo', () => {
     const client = getAgentClient('muse');
     const page = buildAgentClientChannelPage(client, 'linkedin');

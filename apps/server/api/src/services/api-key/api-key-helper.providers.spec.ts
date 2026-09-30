@@ -16,6 +16,10 @@ describe('ApiKeyHelperService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getApiKey', () => {
     it('should return HEYGEN_KEY for heygen provider', () => {
       configService.get.mockReturnValue('heygen-api-key');

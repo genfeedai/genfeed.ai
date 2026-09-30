@@ -153,6 +153,36 @@ describe('PostThreadGenerationService', () => {
   // #5375: BYOK — the key the controller captured synchronously from
   // request.creditsConfig before this fire-and-forget dispatch must reach
   // the actual completion call.
+  it('forwards a resolved BYOK key to the completion call', async () => {
+    await service.expandThread(
+      originalPost,
+      childPosts,
+      { count: 3, tone: TweetTone.PROFESSIONAL },
+      identity,
+      'org-openrouter-key',
+    );
+
+    expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Object),
+      'org-openrouter-key',
+    );
+  });
+
+  it('dispatches with no key override when the guard did not bypass', async () => {
+    await service.expandThread(
+      originalPost,
+      childPosts,
+      { count: 3, tone: TweetTone.PROFESSIONAL },
+      identity,
+    );
+
+    expect(replicateService.generateTextCompletionSync).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Object),
+      undefined,
+    );
+  });
 
   it('fails only unresolved children when the provider returns too few replies', async () => {
     replicateService.generateTextCompletionSync.mockResolvedValueOnce(

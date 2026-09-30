@@ -86,6 +86,32 @@ describe('performance command', () => {
   });
 
   describe('weekly', () => {
+    it('sends the active brand as brandId with renamed range and count params', async () => {
+      await performanceCommand.parseAsync(
+        [
+          'weekly',
+          '--top',
+          '12',
+          '--worst',
+          '8',
+          '--start',
+          '2026-01-01',
+          '--end',
+          '2026-01-07',
+          '--json',
+        ],
+        { from: 'user' }
+      );
+
+      expect(mockGetWeeklySummary).toHaveBeenCalledWith({
+        brandId: 'brand-active',
+        endDate: '2026-01-07',
+        startDate: '2026-01-01',
+        topN: 12,
+        worstN: 8,
+      });
+    });
+
     it('prefers the --brand flag over the active brand', async () => {
       await performanceCommand.parseAsync(['weekly', '--brand', 'brand-flag', '--json'], {
         from: 'user',
@@ -109,6 +135,20 @@ describe('performance command', () => {
   });
 
   describe('top', () => {
+    it('sends brandId and limit', async () => {
+      await performanceCommand.parseAsync(
+        ['top', '--limit', '3', '--start', '2026-01-01', '--json'],
+        { from: 'user' }
+      );
+
+      expect(mockGetTopPerformers).toHaveBeenCalledWith({
+        brandId: 'brand-active',
+        endDate: undefined,
+        limit: 3,
+        startDate: '2026-01-01',
+      });
+    });
+
     it('prints the array payload as JSON', async () => {
       const items = [
         {
@@ -143,6 +183,19 @@ describe('performance command', () => {
   });
 
   describe('prompts', () => {
+    it('sends brandId and the renamed date range', async () => {
+      await performanceCommand.parseAsync(
+        ['prompts', '--start', '2026-01-01', '--end', '2026-01-07', '--json'],
+        { from: 'user' }
+      );
+
+      expect(mockGetPromptPerformance).toHaveBeenCalledWith({
+        brandId: 'brand-active',
+        endDate: '2026-01-07',
+        startDate: '2026-01-01',
+      });
+    });
+
     it('prints the array payload as JSON', async () => {
       const prompts = [
         {

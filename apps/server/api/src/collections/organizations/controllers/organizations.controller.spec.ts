@@ -17,6 +17,7 @@ import type { OrganizationDocument } from '@api/collections/organizations/schema
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { OrganizationsOperationsService } from '@api/collections/organizations/services/organizations-operations.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { SKIP_ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
@@ -56,6 +57,15 @@ describe('OrganizationsController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps membership discovery outside active-organization role validation', () => {
+    expect(
+      Reflect.getMetadata(
+        SKIP_ROLES_KEY,
+        OrganizationsController.prototype.findAll,
+      ),
+    ).toBe(true);
   });
 
   it('delegates organization access decisions to the operations service', async () => {

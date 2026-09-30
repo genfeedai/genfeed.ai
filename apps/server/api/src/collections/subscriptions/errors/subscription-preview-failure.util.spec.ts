@@ -9,7 +9,7 @@ import {
   StripeUpcomingInvoiceErrorCode,
 } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/billing';
-import { HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 
 /** Shape of the Stripe SDK's `StripeError` as the classifier reads it. */
@@ -30,6 +30,14 @@ function stripeError(overrides: {
 }
 
 describe('toSubscriptionPreviewException', () => {
+  it('passes an already classified failure through untouched', () => {
+    const typed = new SubscriptionPreviewException(
+      SubscriptionPreviewFailureCode.SUBSCRIPTION_MISSING,
+    );
+
+    expect(toSubscriptionPreviewException(typed)).toBe(typed);
+  });
+
   it.each([
     [
       StripeUpcomingInvoiceErrorCode.CUSTOMER_MISMATCH,
@@ -66,6 +74,22 @@ describe('toSubscriptionPreviewException', () => {
   );
 
   describe('Stripe resource_missing', () => {
+    it('is a missing price when the price stage fails', () => {
+      const exception = toSubscriptionPreviewException(
+        stripeError({
+          code: 'resource_missing',
+          param: 'id',
+          statusCode: 404,
+          type: 'StripeInvalidRequestError',
+        }),
+        SubscriptionPreviewStage.PRICE,
+      );
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.PRICE_NOT_FOUND,
+      );
+    });
+
     it.each([
       [
         'subscription',
@@ -160,6 +184,16 @@ describe('toSubscriptionPreviewException', () => {
     },
   );
 
+  it('treats any other NestJS 4xx as rejected client state', () => {
+    const exception = toSubscriptionPreviewException(
+      new BadRequestException('Subscription stripePriceId is required'),
+    );
+
+    expect(exception.code).toBe(
+      SubscriptionPreviewFailureCode.PREVIEW_REJECTED,
+    );
+  });
+
   it('falls back to an unclassified fault for anything else', () => {
     const cause = new TypeError('Cannot read properties of undefined');
     const exception = toSubscriptionPreviewException(cause);
@@ -167,6 +201,14 @@ describe('toSubscriptionPreviewException', () => {
     expect(exception.code).toBe(SubscriptionPreviewFailureCode.PREVIEW_FAILED);
     expect(exception.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
     expect(exception.cause).toBe(cause);
+  });
+
+  it('keeps a Stripe-shaped error outside a Stripe stage from masquerading as a provider fault', () => {
+    const exception = toSubscriptionPreviewException(
+      stripeError({ type: 'StripeConnectionError' }),
+    );
+
+    expect(exception.code).toBe(SubscriptionPreviewFailureCode.PREVIEW_FAILED);
   });
 });
 
@@ -226,6 +268,21 @@ describe('getSubscriptionPreviewFailureDiagnostics', () => {
       stripeStatusCode: 429,
     });
     expect(JSON.stringify(diagnostics)).not.toContain('provider-secret-token');
+  });
+
+  it('labels local prerequisite failures as local state', () => {
+    const diagnostics = getSubscriptionPreviewFailureDiagnostics(
+      new SubscriptionPreviewException(
+        SubscriptionPreviewFailureCode.CURRENT_PRICE_MISSING,
+      ),
+    );
+
+    expect(diagnostics).toEqual({
+      category: 'local_state',
+      code: 'current_price_missing',
+      errorName: 'SubscriptionPreviewException',
+      isRetryable: false,
+    });
   });
 
   it('labels an unclassified fault as unknown', () => {

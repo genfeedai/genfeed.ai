@@ -75,6 +75,15 @@ describe('handleAccountManagementTool', () => {
     expect(textOf(result.content[0])).toContain('brand-2');
   });
 
+  it('reports an empty brand list', async () => {
+    const client = buildClient();
+    client.listBrands.mockResolvedValue([]);
+
+    const result = await call(client, 'list_brands', {});
+
+    expect(textOf(result.content[0])).toBe('No brands found.');
+  });
+
   it('treats a non-array brand payload as an empty list', async () => {
     const client = buildClient();
     client.listBrands.mockResolvedValue({ id: 'brand-1' });

@@ -26,6 +26,13 @@ describe('PipelineBuilder', () => {
     expect(first[tag]).toBe('first');
   });
 
+  describe('static create()', () => {
+    it('creates a new PipelineBuilder instance', () => {
+      const builder = PipelineBuilder.create();
+      expect(builder).toBeInstanceOf(PipelineBuilder);
+    });
+  });
+
   describe('static buildMatch()', () => {
     it('creates a match stage', () => {
       const stage = PipelineBuilder.buildMatch({ isDeleted: false });

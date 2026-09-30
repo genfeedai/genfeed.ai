@@ -105,6 +105,20 @@ describe('handleToolDiscoveryTool', () => {
       ]);
     });
 
+    it('omits a toolset the caller cannot see any tool from', () => {
+      const registry: ToolDiscoverySource = {
+        getDiscoverableTools: () => [tool({ name: 'create_post' })],
+      };
+
+      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      expectSuccess(result);
+
+      const toolsets = result.structuredContent?.toolsets as Array<{
+        name: string;
+      }>;
+      expect(toolsets.map((toolset) => toolset.name)).toEqual(['content']);
+    });
+
     it('is role-aware: a plain user sees core with 9 tools and never sees resolve_approval', () => {
       // `getDiscoverableTools` is the registry's job to pre-filter by role —
       // this fixture simulates what a `user`-scoped registry returns: every
@@ -174,6 +188,31 @@ describe('handleToolDiscoveryTool', () => {
       );
     });
 
+    it('matches case-insensitively across name, description, and toolset', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        query: 'IMAGE',
+      });
+      expectSuccess(result);
+
+      expect(result.structuredContent?.tools).toEqual([
+        expect.objectContaining({ name: 'generate_image' }),
+      ]);
+    });
+
+    it('filters by toolset', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        toolset: 'generation',
+      });
+      expectSuccess(result);
+
+      expect(result.structuredContent?.tools).toEqual([
+        expect.objectContaining({
+          name: 'generate_image',
+          toolset: 'generation',
+        }),
+      ]);
+    });
+
     it('lowercases and trims the toolset filter before matching', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         toolset: '  Generation  ',
@@ -199,6 +238,24 @@ describe('handleToolDiscoveryTool', () => {
       expect(result.content[0].text).toContain('content');
     });
 
+    it('reports mutationPolicy, creditCost, and requiredRole per hit', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        query: 'generate_image',
+      });
+      expectSuccess(result);
+
+      expect(result.structuredContent?.tools).toEqual([
+        {
+          creditCost: 5,
+          description: 'Generate an image',
+          mutationPolicy: 'approval-required',
+          name: 'generate_image',
+          requiredRole: 'user',
+          toolset: 'generation',
+        },
+      ]);
+    });
+
     it('caps results at the provided limit', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         limit: 1,
@@ -216,6 +273,23 @@ describe('handleToolDiscoveryTool', () => {
       expectSuccess(result);
 
       expect(result.content[0].text).toBe('No matching tools found.');
+    });
+
+    it('respects whatever the caller-role filter already excluded upstream', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        query: 'admin',
+      });
+      expectSuccess(result);
+
+      // The fixture registry still returns the admin tool (role filtering is
+      // the registry's job via getDiscoverableTools), so the handler surfaces
+      // it — proving it does not re-filter or drop role-restricted hits.
+      expect(result.structuredContent?.tools).toEqual([
+        expect.objectContaining({
+          name: 'admin_only_tool',
+          requiredRole: 'admin',
+        }),
+      ]);
     });
   });
 

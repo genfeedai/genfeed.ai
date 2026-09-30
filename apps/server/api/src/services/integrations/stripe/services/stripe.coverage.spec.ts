@@ -244,6 +244,22 @@ describe('StripeService — coverage spec', () => {
       );
       expect(retrieve).not.toHaveBeenCalled();
     });
+
+    it('fails production startup when the Pro price identifier is malformed', async () => {
+      const configGet = buildConfigGet();
+      configGet.mockImplementation((key: string) => {
+        if (key === 'NODE_ENV') return 'production';
+        if (key === 'GENFEED_CLOUD') return '1';
+        if (key === 'STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY')
+          return 'not-a-price';
+        return buildConfigGet()(key);
+      });
+      const production = await buildModule(configGet);
+
+      await expect(production.service.onApplicationBootstrap()).rejects.toThrow(
+        'Production subscription price configuration is invalid',
+      );
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -284,6 +300,37 @@ describe('StripeService — coverage spec', () => {
       );
       expect(result).toBe(mockCustomer);
       expect(loggerMock.log).toHaveBeenCalled();
+    });
+
+    it('uses one organization-generation key for concurrent members with different details', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.customers, 'create')
+        .mockResolvedValue(
+          makeMockCustomer(
+            'cus_org',
+          ) as unknown as Stripe.Response<Stripe.Customer>,
+        );
+
+      await Promise.all([
+        service.createOrganizationCustomer(
+          'Acme Inc',
+          'owner@acme.com',
+          'org_1',
+          'user_owner',
+          null,
+        ),
+        service.createOrganizationCustomer(
+          'Acme Renamed',
+          'member@acme.com',
+          'org_1',
+          'user_member',
+          null,
+        ),
+      ]);
+
+      const firstKey = createSpy.mock.calls[0]?.[1]?.idempotencyKey;
+      const secondKey = createSpy.mock.calls[1]?.[1]?.idempotencyKey;
+      expect(firstKey).toBe(secondKey);
     });
 
     it('uses a new key when replacing a stale Stripe customer generation', async () => {
@@ -445,6 +492,25 @@ describe('StripeService — coverage spec', () => {
           },
         }),
       );
+    });
+
+    it('passes through a custom quantity', async () => {
+      vi.spyOn(service.stripe.checkout.sessions, 'create').mockResolvedValue(
+        makeMockSession(),
+      );
+
+      await service.createUserPaymentSession({
+        cancelUrl: 'https://app/cancel',
+        quantity: 5,
+        stripeCustomerId: 'cus_3',
+        stripePriceId: 'price_abc',
+        successUrl: 'https://app/success',
+        userId: 'user_3',
+      });
+
+      const call = vi.mocked(service.stripe.checkout.sessions.create).mock
+        .calls[0][0] as { line_items: Array<{ quantity: number }> };
+      expect(call.line_items[0].quantity).toBe(5);
     });
 
     it('re-throws and logs on Stripe error', async () => {
@@ -742,6 +808,23 @@ describe('StripeService — coverage spec', () => {
   // -----------------------------------------------------------------------
 
   describe('createPaymentSession — subscription branch', () => {
+    it('uses subscription mode for pro_id price', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue(makeMockSession());
+
+      await service.createPaymentSession('cus_1', 'pro_id', 'http://origin');
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'subscription',
+          subscription_data: expect.objectContaining({
+            metadata: expect.objectContaining({ tier: 'pro', type: 'monthly' }),
+          }),
+        }),
+      );
+    });
+
     it('uses subscription mode for scale_id price', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
@@ -754,6 +837,48 @@ describe('StripeService — coverage spec', () => {
           mode: 'subscription',
           subscription_data: expect.objectContaining({
             metadata: expect.objectContaining({ tier: 'scale' }),
+          }),
+        }),
+      );
+    });
+
+    it('uses subscription mode for enterprise_id price', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue(makeMockSession());
+
+      await service.createPaymentSession(
+        'cus_1',
+        'enterprise_id',
+        'http://origin',
+      );
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'subscription',
+          subscription_data: expect.objectContaining({
+            metadata: expect.objectContaining({ tier: 'enterprise' }),
+          }),
+        }),
+      );
+    });
+
+    it('uses subscription mode for the yearly Pro price', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue(makeMockSession());
+
+      await service.createPaymentSession(
+        'cus_1',
+        'pro_yearly_id',
+        'http://origin',
+      );
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'subscription',
+          subscription_data: expect.objectContaining({
+            metadata: expect.objectContaining({ tier: 'pro', type: 'yearly' }),
           }),
         }),
       );
@@ -919,6 +1044,21 @@ describe('StripeService — coverage spec', () => {
       expect(result).toBe(mockSub);
     });
 
+    it('cancels immediately when cancelAtPeriodEnd is false', async () => {
+      const mockSub = makeMockSubscription();
+      const updateSpy = vi
+        .spyOn(service.stripe.subscriptions, 'update')
+        .mockResolvedValue(
+          mockSub as unknown as Stripe.Response<Stripe.Subscription>,
+        );
+
+      await service.cancelSubscription('sub_1', false);
+
+      expect(updateSpy).toHaveBeenCalledWith('sub_1', {
+        cancel_at_period_end: false,
+      });
+    });
+
     it('re-throws and logs on Stripe error', async () => {
       vi.spyOn(service.stripe.subscriptions, 'update').mockRejectedValue(
         new Error('cancel error'),
@@ -964,6 +1104,25 @@ describe('StripeService — coverage spec', () => {
         }),
       );
       expect(result).toBe(mockUpdatedSub);
+    });
+
+    it('uses provided prorationBehavior', async () => {
+      const mockSub = makeMockSubscription();
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        mockSub as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const updateSpy = vi
+        .spyOn(service.stripe.subscriptions, 'update')
+        .mockResolvedValue(
+          mockSub as unknown as Stripe.Response<Stripe.Subscription>,
+        );
+
+      await service.changeSubscriptionPlan('sub_1', 'new_price', 'none');
+
+      expect(updateSpy).toHaveBeenCalledWith(
+        'sub_1',
+        expect.objectContaining({ proration_behavior: 'none' }),
+      );
     });
 
     it('throws an error when subscription has no items', async () => {
@@ -1110,6 +1269,48 @@ describe('StripeService — coverage spec', () => {
       expect(result.lines.data[0]?.amount).toBe(-1_200);
     });
 
+    it('preserves the current subscription item quantity by default', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        makeMockSubscription(
+          'sub_1',
+          'si_1',
+          'price_1',
+          'cus_1',
+          3,
+        ) as unknown as Stripe.Response<Stripe.Subscription>,
+      );
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_1',
+        'price_1',
+        'price_scale',
+      );
+
+      expect(createPreview).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscription_details: expect.objectContaining({
+            items: [
+              expect.objectContaining({
+                id: 'si_1',
+                price: 'price_scale',
+                quantity: 3,
+              }),
+            ],
+          }),
+        }),
+      );
+    });
+
     it('omits quantity when the target price is metered', async () => {
       vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
         makeMockSubscription(
@@ -1253,6 +1454,43 @@ describe('StripeService — coverage spec', () => {
       ).rejects.toThrow('No price found for subscription item');
     });
 
+    it('selects the plan item by its current price on multi-item subscriptions', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue({
+        customer: 'cus_1',
+        id: 'sub_multi',
+        items: {
+          data: [
+            { id: 'si_addon', price: { id: 'price_addon' }, quantity: 10 },
+            { id: 'si_plan', price: { id: 'price_plan' }, quantity: 2 },
+          ],
+        },
+      } as unknown as Stripe.Response<Stripe.Subscription>);
+      const createPreview = vi
+        .spyOn(service.stripe.invoices, 'createPreview')
+        .mockResolvedValue(
+          makeMockInvoicePreview(
+            0,
+            'usd',
+            [],
+          ) as unknown as Stripe.Response<Stripe.Invoice>,
+        );
+
+      await service.getUpcomingInvoice(
+        'cus_1',
+        'sub_multi',
+        'price_plan',
+        'price_scale',
+      );
+
+      expect(
+        createPreview.mock.calls[0]?.[0]?.subscription_details?.items?.[0],
+      ).toEqual({
+        id: 'si_plan',
+        price: 'price_scale',
+        quantity: 2,
+      });
+    });
+
     it('rejects a subscription without the expected current price item', async () => {
       vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
         makeMockSubscription() as unknown as Stripe.Response<Stripe.Subscription>,
@@ -1298,4 +1536,41 @@ describe('StripeService — coverage spec', () => {
   // -----------------------------------------------------------------------
   // IS_SELF_HOSTED constructor path
   // -----------------------------------------------------------------------
+
+  describe('IS_SELF_HOSTED constructor branch', () => {
+    it('sets stripe to null when IS_SELF_HOSTED is true', async () => {
+      // Re-mock @genfeedai/config with IS_SELF_HOSTED = true for this test only
+      vi.doMock('@genfeedai/config', async (importOriginal) => {
+        const actual =
+          await importOriginal<typeof import('@genfeedai/config')>();
+        return { ...actual, isSelfHostedDeployment: () => true };
+      });
+
+      // Dynamically re-import the service to get the IS_SELF_HOSTED=true variant
+      const { StripeService: SelfHostedStripeService } = await import(
+        '@api/services/integrations/stripe/services/stripe.service'
+      );
+
+      const configGetMock = buildConfigGet();
+      const loggerSelfHosted = { error: vi.fn(), log: vi.fn() };
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SelfHostedStripeService,
+          { provide: ConfigService, useValue: { get: configGetMock } },
+          { provide: LoggerService, useValue: loggerSelfHosted },
+        ],
+      }).compile();
+
+      const selfHostedService = module.get<StripeService>(
+        SelfHostedStripeService,
+      );
+
+      // In self-hosted mode the stripe client is null (noop)
+      // We just verify the service is defined (not crashed on construction)
+      expect(selfHostedService).toBeDefined();
+
+      vi.doUnmock('@genfeedai/config');
+    });
+  });
 });

@@ -14,6 +14,20 @@ function makeNode(overrides: Partial<NodeDefinition> = {}): NodeDefinition {
 }
 
 describe('InMemoryNodeRegistry', () => {
+  it('registers and retrieves a node by type and version', () => {
+    const registry = new InMemoryNodeRegistry();
+    const node = makeNode();
+    registry.register([node]);
+
+    expect(registry.get('test-node', 1)).toBe(node);
+  });
+
+  it('returns undefined for an unknown type', () => {
+    const registry = new InMemoryNodeRegistry();
+    expect(registry.get('missing')).toBeUndefined();
+    expect(registry.get('missing', 2)).toBeUndefined();
+  });
+
   it('resolves the highest version when no version is given', () => {
     const registry = new InMemoryNodeRegistry();
     const v1 = makeNode({ version: 1 });
@@ -46,6 +60,16 @@ describe('InMemoryNodeRegistry', () => {
 
     expect(registry.get('a')).toBeDefined();
     expect(registry.get('b')).toBeDefined();
+    expect(registry.list()).toHaveLength(2);
+  });
+
+  it('list returns every registered definition', () => {
+    const registry = new InMemoryNodeRegistry();
+    registry.register([
+      makeNode({ type: 'a', version: 1 }),
+      makeNode({ type: 'a', version: 2 }),
+    ]);
+
     expect(registry.list()).toHaveLength(2);
   });
 });

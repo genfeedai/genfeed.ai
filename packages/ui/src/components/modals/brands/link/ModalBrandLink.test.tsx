@@ -121,6 +121,11 @@ describe('ModalBrandLink', () => {
     crudModalOptions.current = null;
   });
 
+  it('renders brand link form', () => {
+    render(<ModalBrandLink {...defaultProps} />);
+    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  });
+
   // Open: the brand overlay and the Social settings page both mount this modal
   // and drive it through `ModalEnum.BRAND_LINK`. A create pass must not present
   // itself as an edit — no Delete affordance, no `entity`.
@@ -187,5 +192,13 @@ describe('ModalBrandLink', () => {
     expect(closeModalMock).toHaveBeenCalledTimes(1);
     expect(closeModalMock).toHaveBeenCalledWith();
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('deletes through the CRUD hook when editing', () => {
+    render(<ModalBrandLink {...defaultProps} link={existingLink} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(deleteMock).toHaveBeenCalledTimes(1);
   });
 });

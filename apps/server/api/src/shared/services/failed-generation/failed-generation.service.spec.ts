@@ -63,7 +63,27 @@ describe('FailedGenerationService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('handleFailedGeneration', () => {
+    it('should update ingredient status to FAILED', async () => {
+      const options: FailedGenerationOptions = {
+        ingredientId: mockIngredientId,
+        websocketUrl: mockWebsocketUrl,
+      };
+
+      mockService.patch.mockResolvedValue({});
+
+      await service.handleFailedGeneration(mockService, options);
+
+      expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
+        status: IngredientStatus.FAILED,
+      });
+    });
+
     it('should create activity when metadata provided', async () => {
       const options: FailedGenerationOptions = {
         activityMetadata: {
@@ -90,6 +110,19 @@ describe('FailedGenerationService', () => {
           userId: expect.any(String),
         }),
       );
+    });
+
+    it('should not create activity when metadata not provided', async () => {
+      const options: FailedGenerationOptions = {
+        ingredientId: mockIngredientId,
+        websocketUrl: mockWebsocketUrl,
+      };
+
+      mockService.patch.mockResolvedValue({});
+
+      await service.handleFailedGeneration(mockService, options);
+
+      expect(activitiesService.record).not.toHaveBeenCalled();
     });
 
     it('should use publishMediaFailed when specified', async () => {
@@ -139,6 +172,23 @@ describe('FailedGenerationService', () => {
       });
 
       vi.useRealTimers();
+    });
+
+    it('should use custom status when provided', async () => {
+      const options: FailedGenerationOptions = {
+        ingredientId: mockIngredientId,
+        status: IngredientStatus.ARCHIVED,
+        websocketUrl: mockWebsocketUrl,
+      };
+
+      mockService.patch.mockResolvedValue({});
+
+      await service.handleFailedGeneration(mockService, options);
+
+      expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
+        status: IngredientStatus.ARCHIVED,
+      });
     });
   });
 

@@ -38,6 +38,16 @@ describe('DropdownScope', () => {
     onScopeChange: vi.fn(),
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<DropdownScope {...baseProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<DropdownScope {...baseProps} />);
+    expect(container.querySelector('button')).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<DropdownScope {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;

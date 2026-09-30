@@ -100,6 +100,18 @@ describe('NodePtyAdapter', () => {
   });
 
   describe('spawn', () => {
+    it('spawns a pty with the given options', () => {
+      adapter.spawn(spawnOptions);
+
+      expect(spawn).toHaveBeenCalledWith('/bin/bash', ['-l'], {
+        cols: 80,
+        cwd: '/workspace',
+        env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
+        name: 'xterm-256color',
+        rows: 24,
+      });
+    });
+
     it('exposes the pty pid', () => {
       const handle = adapter.spawn(spawnOptions);
 

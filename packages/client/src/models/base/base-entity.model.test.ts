@@ -22,4 +22,14 @@ describe('BaseEntity', () => {
     expect(entity.createdAt).toBe('2024-01-01');
     expect(entity.updatedAt).toBe('2024-01-02');
   });
+
+  it('handles empty constructor', () => {
+    const entity = new TestEntity();
+    expect(entity.id).toBeUndefined();
+  });
+
+  it('assigns extra fields via Object.assign', () => {
+    const entity = new TestEntity({ id: '1', name: 'Test' });
+    expect(entity.name).toBe('Test');
+  });
 });

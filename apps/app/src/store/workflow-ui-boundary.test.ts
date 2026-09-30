@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -24,6 +24,12 @@ const FORBIDDEN_SPECIFIERS = [
 ];
 
 // The shadow files themselves must no longer exist.
+const REMOVED_FILES = [
+  'store/settingsStore.ts',
+  'store/promptLibraryStore.ts',
+  'hooks/usePaneActions.ts',
+  'types/groups.ts',
+];
 
 function collectSourceFiles(dir: string, acc: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -38,6 +44,14 @@ function collectSourceFiles(dir: string, acc: string[] = []): string[] {
 }
 
 describe('workflow-ui app↔package boundary', () => {
+  it('has removed every app shadow module', () => {
+    for (const rel of REMOVED_FILES) {
+      expect(existsSync(path.join(SRC_ROOT, rel)), `${rel} still exists`).toBe(
+        false,
+      );
+    }
+  });
+
   it('has no imports of the deleted shadow specifiers', () => {
     const files = collectSourceFiles(SRC_ROOT);
     const offenders: string[] = [];

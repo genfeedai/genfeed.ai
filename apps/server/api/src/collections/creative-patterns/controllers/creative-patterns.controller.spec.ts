@@ -38,6 +38,10 @@ describe('CreativePatternsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('rejects a session without an organization', async () => {
       await expect(

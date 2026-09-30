@@ -43,4 +43,20 @@ describe('activity alert policy migration (#5197)', () => {
     expect(body).toContain('e."activityId"');
     expect(body).not.toContain(`'workflow.status'`);
   });
+
+  it('moves every stored event key onto the ActivityKey vocabulary', () => {
+    for (const [from, to] of [
+      ['workflow.execution.completed', 'workflow-execution-completed'],
+      ['workflow.execution.failed', 'workflow-execution-failed'],
+      ['agent.review.changed', 'agent-review-changed'],
+      ['agent.review.expired', 'agent-review-expired'],
+      ['agent.failure.delivery_failed', 'agent-run-delivery-failed'],
+      ['social.reply.received', 'social-replies-received'],
+    ]) {
+      expect(migration).toContain(`'${from}' THEN '${to}'`);
+    }
+    expect(migration).toContain(
+      `WHEN "eventKey" = 'workflow.execution.failed' AND "sourceType" = 'agent_run' THEN 'agent-run-failed'`,
+    );
+  });
 });

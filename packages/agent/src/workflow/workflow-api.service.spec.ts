@@ -72,4 +72,13 @@ describe('createWorkflowApiService', () => {
       [ORGANIZATION_CONTEXT_HEADER]: 'org_alpha',
     });
   });
+
+  it('omits the organization header while no organization is confirmed', async () => {
+    const service = createWorkflowApiService('https://api.test', () => 'tok');
+
+    await service.forceAdvance('workflow-1');
+
+    const [, init] = fetchMock.mock.calls[0] ?? [];
+    expect(init?.headers).not.toHaveProperty(ORGANIZATION_CONTEXT_HEADER);
+  });
 });

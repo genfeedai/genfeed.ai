@@ -40,6 +40,16 @@ describe('SubscriptionCreditGrantService', () => {
   });
 
   describe('resolveMonthlyCredits', () => {
+    it('reads the grant from the Stripe price metadata', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        metadata: { included_monthly_credits: '7500' },
+      });
+
+      await expect(
+        service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
+      ).resolves.toBe(7_500);
+    });
+
     it('prefers the price metadata over the published tier table', async () => {
       stripeService.getPrice.mockResolvedValue({
         metadata: { included_monthly_credits: '12000' },
@@ -49,6 +59,12 @@ describe('SubscriptionCreditGrantService', () => {
 
       expect(credits).toBe(12_000);
       expect(credits).not.toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    });
+
+    it('falls back to the tier table when the price carries no metadata', async () => {
+      await expect(
+        service.resolveMonthlyCredits(SCALE_MONTHLY_PRICE_ID),
+      ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.scale);
     });
 
     it.each([
@@ -81,6 +97,12 @@ describe('SubscriptionCreditGrantService', () => {
         service.resolveMonthlyCredits(PRO_MONTHLY_PRICE_ID),
       ).resolves.toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('resolves null for a price that neither source knows', async () => {
+      await expect(
+        service.resolveMonthlyCredits('price_unmapped'),
+      ).resolves.toBeNull();
     });
 
     it('resolves null without calling Stripe when there is no price at all', async () => {
@@ -148,6 +170,15 @@ describe('SubscriptionCreditGrantService', () => {
       });
     });
 
+    it('grants one month for a monthly plan', async () => {
+      await expect(
+        service.resolvePlanCredits(
+          SubscriptionPlan.MONTHLY,
+          PRO_MONTHLY_PRICE_ID,
+        ),
+      ).resolves.toBe(5_900);
+    });
+
     it('grants twelve months up front for a yearly plan', async () => {
       await expect(
         service.resolvePlanCredits(
@@ -185,6 +216,12 @@ describe('SubscriptionCreditGrantService', () => {
     it('resolves null for an unmapped or missing price id', () => {
       expect(service.resolveTierFromPriceId('price_unmapped')).toBeNull();
       expect(service.resolveTierFromPriceId(null)).toBeNull();
+    });
+
+    it('resolves null when no price env is configured at all', () => {
+      configService.get.mockReturnValue('');
+
+      expect(service.resolveTierFromPriceId(PRO_MONTHLY_PRICE_ID)).toBeNull();
     });
   });
 

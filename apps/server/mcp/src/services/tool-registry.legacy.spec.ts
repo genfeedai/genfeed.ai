@@ -216,6 +216,17 @@ describe('handleLegacyTool — video', () => {
     expect(result.content[0].text).toContain('Video Analytics (7d)');
   });
 
+  it('honours an explicit analytics time range', async () => {
+    const { client, registry } = build();
+
+    await callTool(registry, 'get_video_analytics', {
+      timeRange: '30d',
+      videoId: 'video-1',
+    });
+
+    expect(client.getVideoAnalytics).toHaveBeenCalledWith('video-1', '30d');
+  });
+
   it('requires a videoId for analytics', async () => {
     const { client, registry } = build();
 
@@ -294,6 +305,19 @@ describe('handleLegacyTool — articles', () => {
     expect(result).not.toHaveProperty('component');
   });
 
+  it('reports an empty article search', async () => {
+    const { client, registry } = build();
+    client.searchArticles.mockResolvedValue([]);
+
+    const result = await callTool(registry, 'search_articles', {
+      query: 'nothing',
+    });
+
+    expect(result.content[0].text).toBe(
+      'No articles found matching "nothing".',
+    );
+  });
+
   it('requires a search query', async () => {
     const { registry } = build();
 
@@ -326,6 +350,54 @@ describe('handleLegacyTool — articles', () => {
 });
 
 describe('handleLegacyTool — media libraries', () => {
+  it('lists images with pagination forwarded', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'list_images', {
+      limit: 10,
+      offset: 20,
+    });
+
+    expect(client.listImages).toHaveBeenCalledWith({ limit: 10, offset: 20 });
+    expect(result.content[0].text).toContain('Found 1 images');
+  });
+
+  it('reports an empty image library', async () => {
+    const { client, registry } = build();
+    client.listImages.mockResolvedValue([]);
+
+    const result = await callTool(registry, 'list_images', {});
+
+    expect(result.content[0].text).toBe('No images found.');
+  });
+
+  it('lists avatars', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'list_avatars', { limit: 5 });
+
+    expect(client.listAvatars).toHaveBeenCalledWith({ limit: 5 });
+    expect(result.content[0].text).toContain('Found 1 avatars');
+  });
+
+  it('reports an empty avatar library', async () => {
+    const { client, registry } = build();
+    client.listAvatars.mockResolvedValue([]);
+
+    const result = await callTool(registry, 'list_avatars', {});
+
+    expect(result.content[0].text).toBe('No avatars found.');
+  });
+
+  it('lists music tracks', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'list_music', { limit: 3 });
+
+    expect(client.listMusic).toHaveBeenCalledWith({ limit: 3 });
+    expect(result.content[0].text).toContain('Found 1 music tracks');
+  });
+
   it('reports an empty music library', async () => {
     const { client, registry } = build();
     client.listMusic.mockResolvedValue([]);
@@ -425,6 +497,17 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
     expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
   });
 
+  it('forwards the requested usage range and displays the server-reported range', async () => {
+    const { client, registry } = build();
+
+    const result = await callTool(registry, 'get_usage_stats', {
+      timeRange: '7d',
+    });
+
+    expect(client.getUsageStats).toHaveBeenCalledWith('7d');
+    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
+  });
+
   it('generates LinkedIn variations with a default count of 3', async () => {
     const { client, registry } = build();
 
@@ -440,6 +523,19 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
     });
     expect(result.content[0].text).toContain(
       'Generated 1 LinkedIn content variations',
+    );
+  });
+
+  it('honours an explicit variations count', async () => {
+    const { client, registry } = build();
+
+    await callTool(registry, 'generate_linkedin_content', {
+      topic: 'Launch week',
+      variationsCount: 5,
+    });
+
+    expect(client.generateLinkedInContent).toHaveBeenCalledWith(
+      expect.objectContaining({ variationsCount: 5 }),
     );
   });
 
@@ -487,6 +583,20 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
     expect(result.content[0].text).toContain('4200');
   });
 
+  it('honours an explicit LinkedIn analytics range', async () => {
+    const { client, registry } = build();
+
+    await callTool(registry, 'get_linkedin_analytics', {
+      contentId: 'content-1',
+      timeRange: '90d',
+    });
+
+    expect(client.getLinkedInAnalytics).toHaveBeenCalledWith(
+      'content-1',
+      '90d',
+    );
+  });
+
   it('requires a contentId for LinkedIn analytics', async () => {
     const { registry } = build();
 
@@ -498,6 +608,21 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
 });
 
 describe('ToolRegistryService — agent result mapping', () => {
+  it('maps a failed agent tool result to an MCP error', async () => {
+    const { client, registry } = build();
+    client.executeAgentTool.mockResolvedValue({
+      error: 'model unavailable',
+      success: false,
+    });
+
+    const result = await callTool(registry, 'generate_image', {
+      prompt: 'a cat',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('Error: model unavailable');
+  });
+
   it('falls back to a generic message when the failure has no error text', async () => {
     const { client, registry } = build();
     client.executeAgentTool.mockResolvedValue({ success: false });

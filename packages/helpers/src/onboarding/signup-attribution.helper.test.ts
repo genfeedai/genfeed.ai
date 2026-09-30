@@ -17,6 +17,22 @@ describe('normalizeSignupAttributionValue', () => {
       'product hunt',
     );
   });
+
+  it('rejects markup, control characters and oversized values', () => {
+    expect(normalizeSignupAttributionValue('<script>')).toBeUndefined();
+    expect(normalizeSignupAttributionValue('a\u0000b')).toBeUndefined();
+    expect(normalizeSignupAttributionValue('x'.repeat(101))).toBeUndefined();
+    expect(normalizeSignupAttributionValue('')).toBeUndefined();
+  });
+
+  it('rejects URL-shaped values', () => {
+    expect(
+      normalizeSignupAttributionValue('https://example.com/private/customer-1'),
+    ).toBeUndefined();
+    expect(
+      normalizeSignupAttributionValue('example.com/private'),
+    ).toBeUndefined();
+  });
 });
 
 describe('normalizeSignupLandingPath', () => {
@@ -24,6 +40,15 @@ describe('normalizeSignupLandingPath', () => {
     expect(normalizeSignupLandingPath('/use-cases/creators?email=a#top')).toBe(
       '/use-cases/creators',
     );
+  });
+
+  it('rejects anything that is not a relative path', () => {
+    expect(normalizeSignupLandingPath('https://evil.test/')).toBeUndefined();
+    expect(normalizeSignupLandingPath('studio')).toBeUndefined();
+    expect(
+      normalizeSignupLandingPath('//example.com/private/customer-1'),
+    ).toBeUndefined();
+    expect(normalizeSignupLandingPath('/a//b')).toBeUndefined();
   });
 });
 

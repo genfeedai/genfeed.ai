@@ -75,6 +75,16 @@ describe('AutonomousPublishPolicyService', () => {
       activityRecorder as never,
     );
   });
+  it('keeps supervised drafts denied even with a connected channel', async () => {
+    expect(
+      (
+        await service.resolveForPost({
+          organizationId: 'org-1',
+          postId: 'post-1',
+        })
+      ).result.decision,
+    ).toBe(AgentPublishDecision.DENIED);
+  });
   it('lets a blocking media assessment turn auto-publish into review (#4881)', async () => {
     db.agentStrategy.findFirst.mockResolvedValue({
       id: 'strategy-1',

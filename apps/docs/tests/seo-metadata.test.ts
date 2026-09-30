@@ -116,6 +116,16 @@ describe('docs SEO metadata', () => {
     expect(body).toContain('Sitemap: https://docs.genfeed.ai/sitemap.xml');
   });
 
+  it('keeps an authored H1 out of the Swagger-owned reference page', () => {
+    const source = fs.readFileSync(apiReferencePath, 'utf8');
+
+    // The 2026-08-24 watchdog recorded `API Reference` in the fetched DOM, then
+    // `Genfeed.ai API 0.1.66 OAS 3.0` as a second H1 after Swagger hydrated.
+    // Removing the authored MDX H1 leaves the rendered Swagger document H1.
+    expect(source).toContain('<SwaggerUI />');
+    expect(source.match(/^# /gm) ?? []).toHaveLength(0);
+  });
+
   it('builds a complete Open Graph card for every docs route', () => {
     const metadata = withPageSeoMetadata(
       { description: 'Route-specific description', title: 'Brands' },
@@ -147,6 +157,12 @@ describe('docs SEO metadata', () => {
       title: DOCS_DEFAULT_TITLE,
       url: 'https://docs.genfeed.ai/cli',
     });
+  });
+
+  it('wires the page SEO builder into the catch-all route', () => {
+    const source = fs.readFileSync(catchAllPagePath, 'utf8');
+
+    expect(source).toContain('withPageSeoMetadata(metadata, params.mdxPath)');
   });
 
   it('suffixes every rendered title through the layout template', () => {

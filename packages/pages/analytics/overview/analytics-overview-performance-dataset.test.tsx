@@ -96,6 +96,12 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
     requestState.summary = null;
   });
 
+  it('renders nothing while there is no summary yet', () => {
+    requestState.summary = null;
+    const { container } = render(<AnalyticsOverviewPerformanceDataset />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders nothing instead of crashing when the summary has no dataset', async () => {
     // A generic/unhandled API-error fallback can resolve as an empty object
     // instead of rejecting -- this must degrade to the same "nothing yet"
@@ -117,6 +123,23 @@ describe('AnalyticsOverviewPerformanceDataset', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText('Low confidence')).toBeInTheDocument();
+  });
+
+  it('shows the cold-start hint and settings link for low confidence', async () => {
+    requestState.summary = buildSummary({
+      dataset: {
+        confidence: 'none',
+        genfeedPosts: 0,
+        importedPosts: 0,
+        totalPosts: 0,
+      },
+    });
+    render(<AnalyticsOverviewPerformanceDataset />);
+
+    const link = await screen.findByRole('link', {
+      name: 'Connect more accounts',
+    });
+    expect(link).toHaveAttribute('href', '/acme/brand/settings/integrations');
   });
 
   it('does not show the cold-start hint for high confidence', async () => {

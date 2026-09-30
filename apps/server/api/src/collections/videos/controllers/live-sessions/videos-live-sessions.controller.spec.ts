@@ -40,6 +40,13 @@ describe('VideosLiveSessionsController', () => {
     ]);
   });
 
+  it('does not re-reserve credits when terminating a session', () => {
+    const handler = VideosLiveSessionsController.prototype.terminateSession;
+
+    expect(Reflect.getMetadata(CREDITS_KEY, handler)).toBeUndefined();
+    expect(Reflect.getMetadata(INTERCEPTORS_METADATA, handler)).toBeUndefined();
+  });
+
   it('does not import a provider client on the reservation path', () => {
     const controllerSource = readFileSync(
       new URL('./videos-live-sessions.controller.ts', import.meta.url),

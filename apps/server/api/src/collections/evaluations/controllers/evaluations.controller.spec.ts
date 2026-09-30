@@ -19,6 +19,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('EvaluationsController', () => {
   let controller: EvaluationsController;
+  let _evaluationsService: EvaluationsService;
 
   const organizationId = testId('org');
   const brandId = testId('brand');
@@ -93,10 +94,15 @@ describe('EvaluationsController', () => {
       .compile();
 
     controller = module.get<EvaluationsController>(EvaluationsController);
+    _evaluationsService = module.get<EvaluationsService>(EvaluationsService);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
   describe('evaluatePost', () => {

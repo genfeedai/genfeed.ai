@@ -86,9 +86,40 @@ describe('VideoGenerationExecutionService', () => {
     );
   });
 
+  it('rethrows an unrelated error unchanged', async () => {
+    const { providerDispatchService, service } = createHarness();
+    const genericError = new Error('unrelated failure');
+    providerDispatchService.dispatch.mockRejectedValue(genericError);
+
+    await expect(service.execute(buildContext())).rejects.toBe(genericError);
+  });
+
   // #5294 the resolved BYOK key set on `request.creditsConfig` by
   // VideoGenerationCreditsService must reach the provider dispatch call —
   // otherwise the credit bypass and the actual dispatch key disagree.
+  it('forwards the resolved BYOK apiKeyOverride from creditsConfig into the dispatch call', async () => {
+    const { providerDispatchService, service } = createHarness();
+    providerDispatchService.dispatch.mockResolvedValue({
+      completion: 'polling',
+      externalId: 'ext-byok-1',
+      provider: 'replicate',
+    });
+    const context = buildContext({
+      request: {
+        creditsConfig: {
+          byokApiKeyOverride: 'org-replicate-key',
+          isByokBypass: true,
+          provider: 'replicate',
+        },
+      } as never,
+    });
+
+    await service.execute(context);
+
+    expect(providerDispatchService.dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKeyOverride: 'org-replicate-key' }),
+    );
+  });
 
   it('marks the polling fallback as BYOK so completion reads the prediction with the org key', async () => {
     const { providerDispatchService, replicatePollQueueService, service } =

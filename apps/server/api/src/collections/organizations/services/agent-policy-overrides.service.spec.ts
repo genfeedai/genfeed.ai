@@ -25,6 +25,24 @@ describe('AgentPolicyOverridesService', () => {
       expect(service.normalizeOverrides(settingsDto)).toBe(settingsDto);
     });
 
+    it('trims surrounding whitespace from the override fields', () => {
+      const settingsDto = {
+        agentPolicy: {
+          generationModelOverride: '  provider/gen  ',
+          reviewModelOverride: '  provider/review  ',
+          thinkingModelOverride: '  provider/think  ',
+        },
+      } as UpdateOrganizationSettingDto;
+
+      expect(service.normalizeOverrides(settingsDto)).toEqual({
+        agentPolicy: {
+          generationModelOverride: 'provider/gen',
+          reviewModelOverride: 'provider/review',
+          thinkingModelOverride: 'provider/think',
+        },
+      });
+    });
+
     it('clears an override that trims to empty instead of keeping whitespace', () => {
       const settingsDto = {
         agentPolicy: { thinkingModelOverride: '   ' },
@@ -33,6 +51,17 @@ describe('AgentPolicyOverridesService', () => {
       expect(service.normalizeOverrides(settingsDto)).toEqual({
         agentPolicy: { thinkingModelOverride: null },
       });
+    });
+
+    it('leaves a field not present in the patch as undefined', () => {
+      const settingsDto = {
+        agentPolicy: { thinkingModelOverride: 'provider/text-model' },
+      } as UpdateOrganizationSettingDto;
+
+      const result = service.normalizeOverrides(settingsDto);
+
+      expect(result.agentPolicy?.generationModelOverride).toBeUndefined();
+      expect(result.agentPolicy?.reviewModelOverride).toBeUndefined();
     });
   });
 
@@ -73,6 +102,18 @@ describe('AgentPolicyOverridesService', () => {
       ).rejects.toMatchObject({ status: 400 });
     });
 
+    it('accepts an override key that matches an enabled model for its category', async () => {
+      modelsService.findAvailableModels.mockResolvedValue([
+        { category: 'text', id: textModelId, key: 'provider/text-model' },
+      ]);
+
+      await expect(
+        service.validateOverrides(settingsWithAllowlist, {
+          agentPolicy: { thinkingModelOverride: 'provider/text-model' },
+        } as UpdateOrganizationSettingDto),
+      ).resolves.toBeUndefined();
+    });
+
     it('accepts an override key matched by id instead of key', async () => {
       modelsService.findAvailableModels.mockResolvedValue([
         { category: 'text', id: textModelId, key: 'provider/text-model' },
@@ -83,6 +124,24 @@ describe('AgentPolicyOverridesService', () => {
           agentPolicy: { thinkingModelOverride: textModelId },
         } as UpdateOrganizationSettingDto),
       ).resolves.toBeUndefined();
+    });
+
+    it('preserves an unchanged stored override without re-validating it against the catalog', async () => {
+      const settingsWithStaleOverride = {
+        ...settingsWithAllowlist,
+        agentPolicy: {
+          thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+        },
+      } as unknown as OrganizationSettingDocument;
+
+      await expect(
+        service.validateOverrides(settingsWithStaleOverride, {
+          agentPolicy: {
+            thinkingModelOverride: 'stale-cuid-no-longer-in-catalog',
+          },
+        } as UpdateOrganizationSettingDto),
+      ).resolves.toBeUndefined();
+      expect(modelsService.findAvailableModels).not.toHaveBeenCalled();
     });
 
     it('does not validate when agentPolicy is not part of the patch', async () => {

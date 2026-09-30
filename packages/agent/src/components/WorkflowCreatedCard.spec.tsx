@@ -1,7 +1,7 @@
 import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowCreatedCard', () => {
   it('renders workflow and execution handoff links', () => {
@@ -32,5 +32,63 @@ describe('WorkflowCreatedCard', () => {
     expect(
       screen.getByRole('link', { name: 'Open executions' }),
     ).toHaveAttribute('href', '/automation/runs');
+  });
+
+  it('renders action CTAs and invokes the UI action handler', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+    const action: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_install_official_workflow',
+          label: 'Confirm install',
+          payload: { sourceId: 'template-1' },
+        },
+      ],
+      id: 'workflow-created-2',
+      title: 'Install official workflow?',
+      type: 'workflow_created_card',
+      workflowName: 'Social Media Video Series',
+    };
+
+    render(<WorkflowCreatedCard action={action} onUiAction={onUiAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm install' }));
+
+    expect(onUiAction).toHaveBeenCalledWith(
+      'confirm_install_official_workflow',
+      { sourceId: 'template-1' },
+    );
+  });
+
+  it('shows installing state while an action CTA is running', () => {
+    let resolveAction: (() => void) | null = null;
+    const onUiAction = vi.fn().mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAction = resolve;
+        }),
+    );
+    const action: AgentUiAction = {
+      ctas: [
+        {
+          action: 'confirm_install_official_workflow',
+          label: 'Confirm install',
+        },
+      ],
+      id: 'workflow-created-3',
+      title: 'Install official workflow?',
+      type: 'workflow_created_card',
+      workflowName: 'Social Media Video Series',
+    };
+
+    render(<WorkflowCreatedCard action={action} onUiAction={onUiAction} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm install' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Installing...' }),
+    ).toBeDisabled();
+
+    resolveAction?.();
   });
 });

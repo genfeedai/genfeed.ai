@@ -1,6 +1,13 @@
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 
 describe('agent-final-content.util', () => {
+  it('returns content when non-empty and no batch card', () => {
+    expect(normalizeFinalAssistantContent('Hello world', [], [])).toEqual({
+      content: 'Hello world',
+      isFallback: false,
+    });
+  });
+
   it('strips batch detail lines when a result card is present', () => {
     const content = [
       'Here is your batch.',

@@ -47,6 +47,16 @@ describe('PageLayout Component', () => {
     expect(screen.getByTestId('proof-visual')).toBeInTheDocument();
   });
 
+  it('keeps breathing room between the hero divider and page content', () => {
+    renderPageLayout({ variant: 'poster' });
+
+    // Narrower than it was on purpose. The section, the hero grid and this
+    // wrapper each contributed their own padding, and the sum pushed a page's
+    // first real content most of a screen below its title.
+    const pageBody = screen.getByText('Page Body');
+    expect(pageBody.parentElement).toHaveClass('pt-10', 'sm:pt-14');
+  });
+
   it('applies compact density to proof hero layouts', () => {
     renderPageLayout({
       compact: true,
@@ -67,5 +77,11 @@ describe('PageLayout Component', () => {
     expect(heroGrid).not.toHaveClass('min-h-[calc(100vh-8rem)]');
     expect(heading).toHaveClass('text-4xl', 'sm:text-5xl');
     expect(heading).not.toHaveClass('lg:text-[5.2rem]');
+  });
+
+  it('omits footer when showFooter is false', () => {
+    renderPageLayout({ showFooter: false, variant: 'poster' });
+
+    expect(screen.queryByTestId('page-layout-footer')).not.toBeInTheDocument();
   });
 });

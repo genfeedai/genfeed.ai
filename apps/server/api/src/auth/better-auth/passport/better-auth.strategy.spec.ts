@@ -36,6 +36,12 @@ describe('BetterAuthStrategy', () => {
     expect(betterAuthService.verifyToken).not.toHaveBeenCalled();
   });
 
+  it('throws when no bearer token is present', async () => {
+    await expect(strategy.validate(requestWith())).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
   it.each([
     ['empty header', ''],
     ['single field (no token)', 'Bearer'],
@@ -56,6 +62,17 @@ describe('BetterAuthStrategy', () => {
       expect(betterAuthService.verifyToken).not.toHaveBeenCalled();
     },
   );
+
+  it('never authenticates using the last field of a multi-field header', async () => {
+    // The exploit shape called out in review: a malformed header carrying a
+    // real JWT as its last field must not be truncated down to that token.
+    betterAuthService.verifyToken.mockResolvedValue({ sub: 'user_1' });
+
+    await expect(
+      strategy.validate(requestWith('Bearer junk validJWT')),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(betterAuthService.verifyToken).not.toHaveBeenCalled();
+  });
 
   it('verifies the token and shapes the resolved identity on the user', async () => {
     betterAuthService.verifyToken.mockResolvedValue({

@@ -36,6 +36,21 @@ describe('toAgentTools', () => {
     expect(tools.map((tool) => tool.name)).toEqual(['generate_image']);
   });
 
+  it('maps the canonical definition onto the agent output shape', () => {
+    const [tool] = toAgentTools([buildTool()]);
+
+    expect(tool).toEqual({
+      creditCost: 5,
+      description: 'Generate an image',
+      name: 'generate_image',
+      parameters: {
+        properties: { prompt: { type: 'string' } },
+        required: ['prompt'],
+        type: 'object',
+      },
+    });
+  });
+
   it('returns an empty list when nothing targets the agent surface', () => {
     expect(
       toAgentTools([

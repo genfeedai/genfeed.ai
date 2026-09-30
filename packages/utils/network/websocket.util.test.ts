@@ -44,5 +44,18 @@ describe('websocket.util', () => {
     it('should generate video path', () => {
       expect(WebSocketPaths.video('vid-pqr')).toBe('/videos/vid-pqr');
     });
+
+    it('should handle UUIDs as IDs', () => {
+      const uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+      expect(WebSocketPaths.user(uuid)).toBe(`/users/${uuid}`);
+    });
+
+    it('should handle empty string IDs', () => {
+      expect(WebSocketPaths.activity('')).toBe('/activities/');
+    });
+
+    it('should handle IDs with special characters', () => {
+      expect(WebSocketPaths.brand('brand/123')).toBe('/brands/brand/123');
+    });
   });
 });

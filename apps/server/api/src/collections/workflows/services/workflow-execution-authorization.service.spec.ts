@@ -1,5 +1,5 @@
 import { WorkflowExecutionAuthorizationService } from '@api/collections/workflows/services/workflow-execution-authorization.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 
 const scope = {
   brandId: 'brand-1',
@@ -100,5 +100,21 @@ describe('WorkflowExecutionAuthorizationService', () => {
       'brand-1',
       'workflow',
     );
+  });
+
+  it('rejects a workflow outside the validated thread brand before engine execution', async () => {
+    agentScopeContextService.assertResourceBrand.mockImplementationOnce(() => {
+      throw new ForbiddenException('outside scope');
+    });
+
+    await expect(
+      service.authorize({
+        expectedContextVersion: 3,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

@@ -77,6 +77,10 @@ describe('PersonaContentService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should throw NotFoundException when persona not found for photo generation', async () => {
     mockPersonasService.findOne.mockResolvedValueOnce(null);
     const input: GeneratePhotoInput = { ...baseInput(), prompt: 'hi' };

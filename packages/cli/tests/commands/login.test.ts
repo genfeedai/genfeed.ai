@@ -222,6 +222,12 @@ describe('login command', () => {
       expect(mockSetApiKey).toHaveBeenCalledWith('gf_live_key');
     });
 
+    it('leaves the profile untouched when no endpoint flags are passed', async () => {
+      await createLoginCommand().parseAsync(['--key', 'gf_live_key'], { from: 'user' });
+
+      expect(mockSetProfileField).not.toHaveBeenCalled();
+    });
+
     it('rejects a malformed API key before touching the profile', async () => {
       await expect(
         createLoginCommand().parseAsync(['--key', 'nope'], { from: 'user' })

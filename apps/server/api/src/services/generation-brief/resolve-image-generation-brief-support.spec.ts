@@ -355,6 +355,20 @@ function expectedExemptionReasonFor(
 }
 
 describe('resolveImageGenerationBriefSupport', () => {
+  it.each(EXPECTED_COMPILE_SUPPORT)(
+    'compiles $modelKey through its registered compiler + profile',
+    ({ compilerId, compilerVersion, modelKey, profileId, profileVersion }) => {
+      expect(resolveImageGenerationBriefSupport(modelKey)).toEqual({
+        compilerId,
+        compilerVersion,
+        kind: 'compile',
+        modelKey,
+        profileId,
+        profileVersion,
+      });
+    },
+  );
+
   it.each(
     IMAGE_MODEL_KEYS.filter((modelKey) => !COMPILED_MODEL_KEYS.has(modelKey)),
   )('exempts image model %s with its enumerated reason', (modelKey) => {
@@ -364,6 +378,18 @@ describe('resolveImageGenerationBriefSupport', () => {
       modelKey,
       profileId: null,
       reason: expectedExemptionReasonFor(modelKey),
+    });
+  });
+
+  it('never falls through to legacy_prompt_builder for an unrecognized model key', () => {
+    expect(
+      resolveImageGenerationBriefSupport('unknown-provider/unknown-model'),
+    ).toEqual({
+      compilerId: null,
+      kind: 'exempt',
+      modelKey: 'unknown-provider/unknown-model',
+      profileId: null,
+      reason: 'unregistered_model',
     });
   });
 

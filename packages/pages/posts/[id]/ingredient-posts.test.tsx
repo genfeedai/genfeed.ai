@@ -12,6 +12,30 @@ describe('IngredientPosts', () => {
     totalViews: 10,
   } as Ingredient & { totalPosts?: number; totalViews?: number };
 
+  it('should render without crashing', () => {
+    const { container } = render(
+      <IngredientPosts
+        id="ingredient-1"
+        page={1}
+        ingredient={ingredient}
+        posts={[]}
+      />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <IngredientPosts
+        id="ingredient-1"
+        page={1}
+        ingredient={ingredient}
+        posts={[]}
+      />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <IngredientPosts

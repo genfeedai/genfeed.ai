@@ -48,6 +48,10 @@ describe('TagResolutionService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('resolveTagLabels', () => {
     it('should resolve tag IDs to labels', async () => {
       const tagIds = [mockTagId1, mockTagId2, mockTagId3];
@@ -159,6 +163,13 @@ describe('TagResolutionService', () => {
       expect(result).toBeNull();
     });
 
+    it('should return null for null tag ID', async () => {
+      const result = await service.resolveTagLabel(null as unknown as string);
+
+      expect(result).toBeNull();
+      expect(tagsService.findOne).not.toHaveBeenCalled();
+    });
+
     it('should return null for undefined tag ID', async () => {
       const result = await service.resolveTagLabel(
         undefined as unknown as string,
@@ -166,6 +177,22 @@ describe('TagResolutionService', () => {
 
       expect(result).toBeNull();
       expect(tagsService.findOne).not.toHaveBeenCalled();
+    });
+
+    it('should return null when tag exists but has no label', async () => {
+      const mockTag = {
+        id: mockTagId1,
+        category: 'general',
+        isActive: true,
+        isDeleted: false,
+        label: null,
+      } as unknown as import('@api/collections/tags/schemas/tag.schema').TagDocument;
+
+      tagsService.findOne.mockResolvedValue(mockTag);
+
+      const result = await service.resolveTagLabel(mockTagId1);
+
+      expect(result).toBeNull();
     });
 
     it('should handle errors from tagsService', async () => {

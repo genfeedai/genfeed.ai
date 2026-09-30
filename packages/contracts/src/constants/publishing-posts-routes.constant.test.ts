@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PostStatus } from '..';
 
 import {
   createPublishingPostsFilterRoute,
@@ -13,6 +14,21 @@ describe('publishing-posts-routes.constant', () => {
       APP_ROUTES.PUBLISHING.POSTS,
     );
   });
+
+  it('builds exact status filter deep links', () => {
+    expect(createPublishingPostsFilterRoute({ status: PostStatus.DRAFT })).toBe(
+      `${APP_ROUTES.PUBLISHING.POSTS}?${PUBLISHING_POSTS_QUERY_KEYS.STATUS}=${PostStatus.DRAFT}`,
+    );
+  });
+
+  it.each(['not-posted', 'posted'] as const)(
+    'builds the %s publication facet deep link',
+    (publicationState) => {
+      expect(createPublishingPostsFilterRoute({ publicationState })).toBe(
+        `${APP_ROUTES.PUBLISHING.POSTS}?${PUBLISHING_POSTS_QUERY_KEYS.PUBLICATION_STATE}=${publicationState}`,
+      );
+    },
+  );
 
   it('builds the release drawer deep link', () => {
     expect(createPublishingPostsFilterRoute({ release: 'release-1' })).toBe(

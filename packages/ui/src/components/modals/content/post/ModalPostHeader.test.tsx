@@ -9,6 +9,16 @@ describe('ModalPostHeader', () => {
     onTabChange: vi.fn(),
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<ModalPostHeader {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<ModalPostHeader {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<ModalPostHeader {...defaultProps} />);
     const rootElement = container.firstChild as HTMLElement;

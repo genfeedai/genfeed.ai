@@ -167,6 +167,75 @@ describe('CreatorScraperService.calculateAggregateMetrics', () => {
     expect(result.topHashtags).toContain('startup');
   });
 
+  it('limits topHashtags to 10', () => {
+    const hashtags = Array.from({ length: 15 }, (_, i) => `tag${i}`);
+    const posts: ScrapedPost[] = [
+      {
+        comments: 0,
+        engagementRate: 10,
+        hashtags,
+        id: '1',
+        likes: 1,
+        publishedAt: new Date(),
+        shares: 0,
+        text: 'a',
+        views: 10,
+      },
+    ];
+
+    const result = service.calculateAggregateMetrics(posts);
+    expect(result.topHashtags.length).toBeLessThanOrEqual(10);
+  });
+
+  it('computes avgViralScore from top 10% performers', () => {
+    const posts: ScrapedPost[] = Array.from({ length: 10 }, (_, i) => ({
+      comments: 0,
+      engagementRate: i * 2.5,
+      hashtags: [],
+      id: String(i),
+      likes: i * 100,
+      publishedAt: new Date(),
+      shares: 0,
+      text: 'test',
+      views: 1000,
+    }));
+
+    const result = service.calculateAggregateMetrics(posts);
+    // top 10% of 10 posts = 1 post, the one with highest engagement (22.5)
+    expect(result.avgViralScore).toBe(22.5);
+  });
+
+  it('calculates post frequency in posts per week', () => {
+    const posts: ScrapedPost[] = [
+      {
+        comments: 0,
+        engagementRate: 0,
+        hashtags: [],
+        id: '1',
+        likes: 0,
+        publishedAt: new Date('2024-01-01T00:00:00Z'),
+        shares: 0,
+        text: 'a',
+        views: 0,
+      },
+      {
+        comments: 0,
+        engagementRate: 0,
+        hashtags: [],
+        id: '2',
+        likes: 0,
+        publishedAt: new Date('2024-01-08T00:00:00Z'),
+        shares: 0,
+        text: 'b',
+        views: 0,
+      },
+    ];
+
+    const result = service.calculateAggregateMetrics(posts);
+    // 2 posts over 1 week = 2 posts/week
+    expect(result.postFrequency).toBe(2);
+  });
+
   it('identifies best posting times by hour', () => {
     const posts: ScrapedPost[] = [
       {
@@ -350,6 +419,37 @@ describe('CreatorScraperService.scrapeCreator', () => {
     );
   });
 
+  it('computes LinkedIn engagement rate from impressions', async () => {
+    mockContentIntelligenceService.findOne.mockResolvedValue(
+      makeCreator(ContentIntelligencePlatform.LINKEDIN),
+    );
+    mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
+    mockContentIntelligenceService.updateCreatorProfile.mockResolvedValue(
+      undefined,
+    );
+
+    mockApifyService.runActor.mockResolvedValue([
+      {
+        followersCount: 1000,
+        fullName: 'Jane',
+        posts: [
+          {
+            commentCount: 10,
+            impressionCount: 1000,
+            postUrl: 'url',
+            reactionCount: 50,
+            shareCount: 5,
+            text: 'post',
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.scrapeCreator(creatorId);
+    // (50+10+5)/1000 * 100 = 6.5
+    expect(result?.posts[0].engagementRate).toBe(6.5);
+  });
+
   it('falls back to likes*20 when impressionCount missing for LinkedIn', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue(
       makeCreator(ContentIntelligencePlatform.LINKEDIN),
@@ -390,6 +490,34 @@ describe('CreatorScraperService hashtag extraction', () => {
   beforeEach(() => {
     service = makeService();
     vi.clearAllMocks();
+  });
+
+  it('extracts hashtags from text with # symbols', () => {
+    mockContentIntelligenceService.findOne.mockResolvedValue(
+      makeCreator(ContentIntelligencePlatform.LINKEDIN),
+    );
+    mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
+    mockContentIntelligenceService.updateCreatorProfile.mockResolvedValue(
+      undefined,
+    );
+
+    mockApifyService.runActor.mockResolvedValue([
+      {
+        fullName: 'User',
+        posts: [
+          {
+            impressionCount: 100,
+            postUrl: 'url',
+            reactionCount: 10,
+            text: 'Check out #AI and #MachineLearning trends',
+          },
+        ],
+      },
+    ]);
+
+    return service.scrapeCreator(creatorId).then((result) => {
+      expect(result?.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
+    });
   });
 
   it('returns empty array when no hashtags', () => {

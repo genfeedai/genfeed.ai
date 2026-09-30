@@ -44,6 +44,10 @@ describe('SolanaService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('gets nft data', async () => {
     const res = await service.getNft('addr');
 

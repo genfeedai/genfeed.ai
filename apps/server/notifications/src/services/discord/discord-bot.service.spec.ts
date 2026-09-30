@@ -111,6 +111,12 @@ describe('DiscordBotService', () => {
     });
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   describe('onModuleInit', () => {
     it('should initialize bot when Discord is enabled', async () => {
       await service.onModuleInit();
@@ -132,6 +138,15 @@ describe('DiscordBotService', () => {
       );
     });
 
+    it('should register ready event handler', async () => {
+      await service.onModuleInit();
+
+      expect(mockClient.once).toHaveBeenCalledWith(
+        'clientReady',
+        expect.any(Function),
+      );
+    });
+
     it('should handle initialization errors', async () => {
       mockClient.login.mockRejectedValue(new Error('Login failed'));
 
@@ -145,6 +160,13 @@ describe('DiscordBotService', () => {
   });
 
   describe('onModuleDestroy', () => {
+    it('should destroy client on module destroy', async () => {
+      await service.onModuleInit();
+      await service.onModuleDestroy();
+
+      expect(mockClient.destroy).toHaveBeenCalled();
+    });
+
     it('should clear webhook cache on destroy', async () => {
       // Simulate ready state
       await service.onModuleInit();
@@ -159,6 +181,10 @@ describe('DiscordBotService', () => {
   });
 
   describe('botReady', () => {
+    it('should return false initially', () => {
+      expect(service.botReady).toBe(false);
+    });
+
     it('should return true after ready event', async () => {
       await service.onModuleInit();
 
@@ -351,6 +377,29 @@ describe('DiscordBotService', () => {
   });
 
   describe('getPostsWebhook', () => {
+    it('should get webhook for posts channel', async () => {
+      await service.onModuleInit();
+      const readyCallback = mockClient.once.mock.calls[0][1];
+      readyCallback();
+
+      const mockWebhook = { id: 'wh-123', url: 'https://discord.webhook/123' };
+      const mockChannel = Object.create(TextChannel.prototype);
+      Object.assign(mockChannel, {
+        createWebhook: vi.fn().mockResolvedValue(mockWebhook),
+        fetchWebhooks: vi.fn().mockResolvedValue({
+          find: vi.fn().mockReturnValue(undefined),
+        }),
+      });
+
+      mockClient.channels.fetch.mockResolvedValue(mockChannel);
+
+      await service.getPostsWebhook();
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledWith(
+        'channel-posts-123',
+      );
+    });
+
     it('should prefix bot-managed webhook names when configured', async () => {
       mockConfigService.get.mockImplementation((key: string) => {
         const config: Record<string, string> = {
@@ -539,6 +588,17 @@ describe('DiscordBotService', () => {
       expect(result.channels[0].name).toBe('POSTS');
       expect(result.channels[1].name).toBe('STUDIO');
       expect(result.channels[2].name).toBe('USERS');
+    });
+
+    it('should test each configured channel', async () => {
+      mockClient.channels.fetch.mockResolvedValue({
+        name: 'test-channel',
+        type: 0,
+      });
+
+      await service.getAllConfiguredChannels();
+
+      expect(mockClient.channels.fetch).toHaveBeenCalledTimes(3);
     });
   });
 });

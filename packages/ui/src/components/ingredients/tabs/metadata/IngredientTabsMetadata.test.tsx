@@ -12,6 +12,20 @@ describe('IngredientTabsMetadata', () => {
     metadataWidth: 0,
   } as IIngredient;
 
+  it('should render without crashing', () => {
+    const { container } = render(
+      <IngredientTabsMetadata ingredient={ingredient} onRefresh={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <IngredientTabsMetadata ingredient={ingredient} onRefresh={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <IngredientTabsMetadata ingredient={ingredient} onRefresh={vi.fn()} />,

@@ -42,6 +42,10 @@ describe('VideoCacheStrategy', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(strategy).toBeDefined();
+  });
+
   describe('cacheVideoList', () => {
     it('should call cacheService.set with sorted filter key, tags, and ttl 300', async () => {
       cacheService.set.mockResolvedValue(true);
@@ -67,6 +71,15 @@ describe('VideoCacheStrategy', () => {
         }),
       );
       expect(result).toBe(true);
+    });
+
+    it('should sort filter keys deterministically', async () => {
+      cacheService.set.mockResolvedValue(true);
+      await strategy.cacheVideoList(mockUserId, { a: '2', z: '1' }, 1, 10, []);
+      await strategy.cacheVideoList(mockUserId, { a: '2', z: '1' }, 1, 10, []);
+
+      const [firstCall, secondCall] = cacheService.set.mock.calls;
+      expect(firstCall[0]).toEqual(secondCall[0]);
     });
   });
 
@@ -125,6 +138,16 @@ describe('VideoCacheStrategy', () => {
       );
       expect(result).toBe(true);
     });
+
+    it('should use generateKey to build video key', async () => {
+      cacheService.set.mockResolvedValue(true);
+      await strategy.cacheVideo(mockVideoId, { brandId: 'b', userId: 'u' });
+
+      expect(cacheService.generateKey).toHaveBeenCalledWith(
+        'video',
+        mockVideoId,
+      );
+    });
   });
 
   describe('getVideo', () => {
@@ -135,6 +158,14 @@ describe('VideoCacheStrategy', () => {
       const result = await strategy.getVideo(mockVideoId);
 
       expect(result).toEqual(cachedData);
+    });
+
+    it('should return null on cache miss', async () => {
+      cacheService.get.mockResolvedValue(null);
+
+      const result = await strategy.getVideo(mockVideoId);
+
+      expect(result).toBeNull();
     });
   });
 

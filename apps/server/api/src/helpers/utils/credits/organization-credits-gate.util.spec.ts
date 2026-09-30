@@ -20,6 +20,17 @@ describe('assertOrganizationCreditsAvailable', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockReset();
   });
 
+  it('skips the balance lookup when no credits are required', async () => {
+    await assertOrganizationCreditsAvailable(creditsUtilsService, 'org_1', 0);
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.getOrganizationCreditsBalance,
+    ).not.toHaveBeenCalled();
+  });
+
   it('throws when the organization id is missing', async () => {
     await expect(
       assertOrganizationCreditsAvailable(creditsUtilsService, '', 12),
@@ -96,6 +107,42 @@ describe('resolveTextModelMinimumCredits', () => {
     expect(modelsService.findOne).toHaveBeenCalledWith({
       key: baseModelKey('missing-model'),
     });
+  });
+
+  it('uses getMinimumTextCredits for per-token models', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 40,
+      minCost: 7,
+      pricingType: 'per-token',
+    });
+
+    await expect(
+      resolveTextModelMinimumCredits(modelsService, 'text-model'),
+    ).resolves.toBe(1);
+  });
+
+  it('uses model.cost for non-per-token models and ignores minCost', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 25,
+      minCost: 7,
+      pricingType: 'flat',
+    });
+
+    await expect(
+      resolveTextModelMinimumCredits(modelsService, 'text-model'),
+    ).resolves.toBe(25);
+  });
+
+  it('returns 0 when a non-per-token model has no cost', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: null,
+      minCost: 7,
+      pricingType: 'flat',
+    });
+
+    await expect(
+      resolveTextModelMinimumCredits(modelsService, 'text-model'),
+    ).resolves.toBe(0);
   });
 });
 

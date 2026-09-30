@@ -91,6 +91,17 @@ describe('AssetsService', () => {
     vi.restoreAllMocks();
   });
 
+  describe('constructor', () => {
+    it('should create an instance with correct base URL', () => {
+      expect(service).toBeInstanceOf(AssetsService);
+      expect(service).toBeDefined();
+    });
+
+    it('should have the model property set', () => {
+      expect(service.model).toBe(Asset);
+    });
+  });
+
   describe('postUpload', () => {
     it('should upload FormData successfully', async () => {
       const mockResponse = {
@@ -160,6 +171,22 @@ describe('AssetsService', () => {
       expect(mockPost).toHaveBeenCalled();
     });
 
+    it('should handle progress with undefined total', async () => {
+      const progressCallback = vi.fn();
+
+      mockUploadPost((_url, _data, config) => {
+        // Simulate progress event with undefined total
+        config.onUploadProgress({ loaded: 50, total: undefined });
+        return Promise.resolve(buildUploadResponse());
+      });
+
+      const formData = new FormData();
+      await service.postUpload(formData, progressCallback);
+
+      // Should use 1 as fallback for undefined total
+      expect(progressCallback).toHaveBeenCalledWith(5000, 50, 0);
+    });
+
     it('should handle progress with zero total', async () => {
       const progressCallback = vi.fn();
 
@@ -173,6 +200,38 @@ describe('AssetsService', () => {
 
       // Should use 1 as fallback for zero total
       expect(progressCallback).toHaveBeenCalledWith(5000, 50, 0);
+    });
+
+    it('should handle upload errors', async () => {
+      const mockError = new Error('Upload failed');
+      const mockPost = vi.fn().mockRejectedValue(mockError);
+
+      service.instance = {
+        post: mockPost,
+      } as Partial<AxiosInstance> as AxiosInstance;
+
+      const formData = new FormData();
+
+      await expect(service.postUpload(formData)).rejects.toThrow(
+        'Upload failed',
+      );
+    });
+
+    it('should use correct timeout for uploads', async () => {
+      const mockPost = mockUploadPost(() =>
+        Promise.resolve(buildUploadResponse()),
+      );
+
+      const formData = new FormData();
+      await service.postUpload(formData);
+
+      expect(mockPost).toHaveBeenCalledWith(
+        '/upload',
+        formData,
+        expect.objectContaining({
+          timeout: 300_000, // 5 minutes
+        }),
+      );
     });
 
     it('should deserialize response correctly', async () => {
@@ -237,6 +296,20 @@ describe('AssetsService', () => {
         expect.any(Object),
       );
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('getInstance', () => {
+    it('should return an AssetsService instance', () => {
+      const instance = AssetsService.getInstance(mockToken);
+      expect(instance).toBeInstanceOf(AssetsService);
+    });
+
+    it('should create new instance for different token', () => {
+      const instance1 = AssetsService.getInstance(mockToken);
+      const instance2 = AssetsService.getInstance('different-token');
+
+      expect(instance1).not.toBe(instance2);
     });
   });
 

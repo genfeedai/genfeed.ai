@@ -72,6 +72,26 @@ describe('GenerationEventWebhookService', () => {
     },
   );
 
+  it('normalizes an empty output to null', async () => {
+    const { service, webhookDispatchService } = makeService();
+
+    await service.emitGenerationCompleted({
+      generationId: 'generation_1',
+      kind: 'video',
+      occurredAt,
+      organizationId: 'org_123',
+      output: { mimeType: null, storageKey: null, url: null },
+    });
+
+    expect(webhookDispatchService.dispatch).toHaveBeenCalledWith(
+      'org_123',
+      expect.objectContaining({
+        generation: expect.objectContaining({ output: null }),
+      }),
+      expect.anything(),
+    );
+  });
+
   it('classifies and redacts failure detail', async () => {
     const { service, webhookDispatchService } = makeService();
 

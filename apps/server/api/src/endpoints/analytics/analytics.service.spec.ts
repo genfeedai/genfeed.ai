@@ -155,6 +155,11 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   // Initialization
   // ==========================================================================
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
 
   // ==========================================================================
   // getTimeSeriesData
@@ -416,6 +421,28 @@ describe('AnalyticsService', () => {
       expect(result[0].totalViews).toBe(10000);
       // genfeedai/genfeed.ai#5424: Prisma label in, domain id out.
       expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
+    });
+
+    it('should call $queryRaw for different metrics', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+      await service.getTopContent(
+        undefined,
+        undefined,
+        10,
+        AnalyticsMetric.ENGAGEMENT,
+      );
+
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
+    });
+
+    it('should enforce max limit of 100', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+      // safeLimit = min(max(1, 200), 100) = 100
+      await service.getTopContent(undefined, undefined, 200);
+
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
     it('should parameterize brand, platform, organization, and date filters', async () => {

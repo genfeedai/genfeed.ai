@@ -360,6 +360,25 @@ describe('useEnhanceUpscale', () => {
 
       expect(mockPostUpscale).not.toHaveBeenCalled();
     });
+
+    it('calls onRefresh after successful upscale', async () => {
+      const ingredient: Partial<IIngredient> = {
+        category: IngredientCategory.IMAGE,
+        id: 'img-123',
+      };
+
+      const { result } = renderHook(() => useEnhanceUpscale(defaultParams));
+
+      await act(async () => {
+        await result.current.handleUpscale(ingredient as IIngredient);
+      });
+
+      await act(async () => {
+        await result.current.executeUpscale();
+      });
+
+      expect(mockOnRefresh).toHaveBeenCalled();
+    });
   });
 
   describe('executeEnhance', () => {

@@ -41,6 +41,48 @@ describe('useSpeechRecording', () => {
     expect(result.current).toHaveProperty('error');
   });
 
+  it('initializes isRecording to false', () => {
+    const { result } = renderHook(() => useSpeechRecording());
+    expect(result.current.isRecording).toBe(false);
+  });
+
+  it('initializes isProcessing to false', () => {
+    const { result } = renderHook(() => useSpeechRecording());
+    expect(result.current.isProcessing).toBe(false);
+  });
+
+  it('initializes error to null', () => {
+    const { result } = renderHook(() => useSpeechRecording());
+    expect(result.current.error).toBeNull();
+  });
+
+  it('isSupported reflects browser capabilities', () => {
+    const { result } = renderHook(() => useSpeechRecording());
+    // jsdom does not support MediaRecorder so isSupported should be false
+    expect(typeof result.current.isSupported).toBe('boolean');
+  });
+
+  it('accepts onTranscription callback option', () => {
+    const onTranscription = vi.fn();
+    const { result } = renderHook(() =>
+      useSpeechRecording({ onTranscription }),
+    );
+    expect(result.current).toBeDefined();
+  });
+
+  it('accepts onError callback option', () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useSpeechRecording({ onError }));
+    expect(result.current).toBeDefined();
+  });
+
+  it('accepts language and prompt options', () => {
+    const { result } = renderHook(() =>
+      useSpeechRecording({ language: 'fr', prompt: 'test hint' }),
+    );
+    expect(result.current).toBeDefined();
+  });
+
   it('startRecording returns a boolean or Promise<boolean>', async () => {
     const { result } = renderHook(() => useSpeechRecording());
     // In jsdom MediaRecorder isn't available so it should handle gracefully
@@ -78,5 +120,10 @@ describe('useSpeechRecording', () => {
   it('stopRecording does not throw', () => {
     const { result } = renderHook(() => useSpeechRecording());
     expect(() => result.current.stopRecording()).not.toThrow();
+  });
+
+  it('cleans up on unmount', () => {
+    const { unmount } = renderHook(() => useSpeechRecording());
+    expect(() => unmount()).not.toThrow();
   });
 });

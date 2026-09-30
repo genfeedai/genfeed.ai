@@ -161,6 +161,21 @@ describe('StudioGenerateComposer', () => {
     vi.clearAllMocks();
   });
 
+  it('applies studio extraExtensions to the prompt editor', () => {
+    const extraExtensions = [{ name: 'characterMention' }];
+    render(
+      <StudioGenerateComposer
+        {...baseProps}
+        extraExtensions={extraExtensions as never}
+        prompt="A product photo"
+        settings={settings}
+        type="image"
+      />,
+    );
+
+    expect(promptEditorProps.extraExtensions).toBe(extraExtensions);
+  });
+
   it('renders the unified GenerationSetupPopover', () => {
     const onTypeChange = vi.fn();
 
@@ -550,6 +565,21 @@ describe('StudioGenerateComposer', () => {
   });
 
   describe('Enhance prompt action (#4676)', () => {
+    it('is absent when no onEnhancePrompt handler is supplied', () => {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          prompt="A product photo"
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Enhance prompt' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('calls onEnhancePrompt and never touches onSubmit', () => {
       const onEnhancePrompt = vi.fn();
       render(
@@ -566,6 +596,22 @@ describe('StudioGenerateComposer', () => {
 
       expect(onEnhancePrompt).toHaveBeenCalledOnce();
       expect(baseProps.onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('disables the Enhance action for an empty prompt', () => {
+      render(
+        <StudioGenerateComposer
+          {...baseProps}
+          onEnhancePrompt={vi.fn()}
+          prompt=""
+          settings={settings}
+          type="image"
+        />,
+      );
+
+      expect(
+        screen.getByRole('button', { name: 'Enhance prompt' }),
+      ).toBeDisabled();
     });
 
     it('swaps to a clickable Cancel action while enhancing — the composer stays usable', () => {

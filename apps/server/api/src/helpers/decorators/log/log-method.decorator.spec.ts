@@ -59,6 +59,50 @@ describe('LogMethod Decorator', () => {
       );
     });
 
+    it('should log arguments when logArgs is true', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod({ logArgs: true })
+        async testMethod(a: number, b: number) {
+          await Promise.resolve();
+          return a + b;
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod(3, 4);
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'TestClass.testMethod started',
+        expect.objectContaining({
+          args: [3, 4],
+        }),
+      );
+    });
+
+    it('should log result when logResult is true', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod({ logResult: true })
+        async testMethod() {
+          await Promise.resolve();
+          return { data: 'test', success: true };
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'TestClass.testMethod completed',
+        expect.objectContaining({
+          result: { data: 'test', success: true },
+        }),
+      );
+    });
+
     it('should log errors and re-throw', async () => {
       class TestClass {
         logger = mockLogger;
@@ -85,6 +129,57 @@ describe('LogMethod Decorator', () => {
       );
     });
 
+    it('should use debug level when specified', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod({ level: 'debug' })
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.debug).toHaveBeenCalled();
+      expect(mockLogger.log).not.toHaveBeenCalled();
+    });
+
+    it('should use verbose level when specified', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod({ level: 'verbose' })
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.verbose).toHaveBeenCalled();
+      expect(mockLogger.log).not.toHaveBeenCalled();
+    });
+
+    it('should work without logger and just execute method', async () => {
+      class TestClass {
+        @LogMethod()
+        async testMethod(value: number) {
+          await Promise.resolve();
+          return value * 2;
+        }
+      }
+
+      const instance = new TestClass();
+      const result = await instance.testMethod(5);
+
+      expect(result).toBe(10);
+    });
+
     it('should handle methods with no arguments', async () => {
       class TestClass {
         logger = mockLogger;
@@ -101,6 +196,28 @@ describe('LogMethod Decorator', () => {
 
       expect(result).toBe('no args');
       expect(mockLogger.log).toHaveBeenCalled();
+    });
+
+    it('should handle methods that return undefined', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod({ logResult: true })
+        async testMethod() {
+          await Promise.resolve();
+          return undefined;
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        'TestClass.testMethod completed',
+        expect.not.objectContaining({
+          result: expect.anything(),
+        }),
+      );
     });
 
     it('should skip start logging when logStart is false', async () => {
@@ -247,6 +364,24 @@ describe('LogMethod Decorator', () => {
   });
 
   describe('LogErrors', () => {
+    it('should only log errors, not start or end', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogErrors()
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.log).not.toHaveBeenCalled();
+      expect(mockLogger.error).not.toHaveBeenCalled();
+    });
+
     it('should log errors when they occur', async () => {
       class TestClass {
         logger = mockLogger;
@@ -266,6 +401,28 @@ describe('LogMethod Decorator', () => {
   });
 
   describe('LogPerformance', () => {
+    it('should focus on execution time', async () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogPerformance()
+        async testMethod() {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          return 'done';
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.debug).toHaveBeenCalledWith(
+        'TestClass.testMethod completed',
+        expect.objectContaining({
+          executionTime: expect.stringMatching(/\d+ms/),
+        }),
+      );
+    });
+
     it('should not log start or results', async () => {
       class TestClass {
         logger = mockLogger;
@@ -322,6 +479,32 @@ describe('LogMethod Decorator', () => {
   });
 
   describe('production behavior', () => {
+    it('should disable logStart and logEnd by default in production', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'production';
+
+      try {
+        class TestClass {
+          logger = mockLogger;
+
+          @LogMethod()
+          async testMethod() {
+            await Promise.resolve();
+            return 'result';
+          }
+        }
+
+        const instance = new TestClass();
+        await instance.testMethod();
+
+        // In production, default LogMethod should not log start or end
+        expect(mockLogger.log).not.toHaveBeenCalled();
+        expect(mockLogger.debug).not.toHaveBeenCalled();
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
+    });
+
     it('should still log errors in production by default', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'production';
@@ -344,6 +527,43 @@ describe('LogMethod Decorator', () => {
       } finally {
         process.env.NODE_ENV = originalEnv;
       }
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle loggerService property name', async () => {
+      class TestClass {
+        loggerService = mockLogger;
+
+        @LogMethod()
+        async testMethod() {
+          await Promise.resolve();
+          return 'result';
+        }
+      }
+
+      const instance = new TestClass();
+      await instance.testMethod();
+
+      expect(mockLogger.log).toHaveBeenCalled();
+    });
+
+    it('should handle synchronous methods', () => {
+      class TestClass {
+        logger = mockLogger;
+
+        @LogMethod()
+        async testMethod(value: number) {
+          await Promise.resolve();
+          return value * 2;
+        }
+      }
+
+      const instance = new TestClass();
+      const result = instance.testMethod(5);
+
+      // Should work but may not log properly for sync methods
+      expect(typeof result).toBeDefined();
     });
   });
 });

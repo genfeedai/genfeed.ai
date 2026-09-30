@@ -73,6 +73,13 @@ describe('UpscaleExecutor', () => {
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Model is required for upscaling');
     });
+
+    it('should fail when node type does not match', () => {
+      const node = makeNode();
+      node.type = 'wrongType';
+      const result = executor.validate(node);
+      expect(result.valid).toBe(false);
+    });
   });
 
   describe('estimateCost', () => {
@@ -98,6 +105,37 @@ describe('UpscaleExecutor', () => {
 
       await expect(executor.execute(input)).rejects.toThrow(
         'Media input is required for upscaling',
+      );
+    });
+
+    it('should call resolver with correct parameters', async () => {
+      const input = makeInput({ model: 'topaz-standard', scale: '4x' }, [
+        ['media', 'https://cdn.example.com/image.png'],
+      ]);
+
+      await executor.execute(input);
+
+      expect(mockResolver).toHaveBeenCalledWith(
+        'https://cdn.example.com/image.png',
+        { model: 'topaz-standard', scale: '4x' },
+        input.context,
+        input.node,
+      );
+    });
+
+    it('should default scale to 2x when not specified', async () => {
+      const input = makeInput({ model: 'topaz-standard' }, [
+        ['media', 'https://cdn.example.com/image.png'],
+      ]);
+      delete input.node.config.scale;
+
+      await executor.execute(input);
+
+      expect(mockResolver).toHaveBeenCalledWith(
+        expect.any(String),
+        { model: 'topaz-standard', scale: '2x' },
+        expect.anything(),
+        expect.anything(),
       );
     });
 

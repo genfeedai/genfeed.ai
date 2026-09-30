@@ -165,6 +165,12 @@ describe('BaseIntegrationController', () => {
   });
 
   describe('getLogUrl', () => {
+    it('should return formatted log URL with method name', () => {
+      const result = controller.testGetLogUrl('connect');
+
+      expect(result).toBe('TestIntegrationController connect');
+    });
+
     it('should use CallerUtil when no method name is provided', () => {
       const result = controller.testGetLogUrl();
 
@@ -226,6 +232,24 @@ describe('BaseIntegrationController', () => {
       );
       expect(result).toHaveProperty('id');
     });
+
+    it('carries request-token fields onto the pending row', async () => {
+      const brand = {
+        id: brandId,
+        organizationId: orgId,
+      };
+
+      await controller.testCreatePendingCredential(brand, userId, {
+        oauthToken: 'request-token',
+      });
+
+      expect(credentialsService.createPendingForBrand).toHaveBeenCalledWith(
+        brand,
+        userId,
+        CredentialPlatform.YOUTUBE,
+        { oauthToken: 'request-token' },
+      );
+    });
   });
 
   describe('handleConnect', () => {
@@ -238,6 +262,28 @@ describe('BaseIntegrationController', () => {
       expect(result).toEqual({
         url: 'https://oauth.example.com/authorize',
       });
+    });
+
+    it('should save credential with OAuth tokens when provided', async () => {
+      controller.setMockOAuthResult({
+        oauthToken: 'request-token',
+        oauthTokenSecret: 'request-secret',
+        url: 'https://oauth.example.com/authorize',
+      });
+
+      await controller.testHandleConnect(mockUser, {
+        brandId: brandId.toString(),
+      });
+
+      expect(credentialsService.createPendingForBrand).toHaveBeenCalledWith(
+        expect.anything(),
+        userId,
+        CredentialPlatform.YOUTUBE,
+        expect.objectContaining({
+          oauthToken: 'request-token',
+          oauthTokenSecret: 'request-secret',
+        }),
+      );
     });
 
     it('resumes a pending connection id without creating another credential', async () => {

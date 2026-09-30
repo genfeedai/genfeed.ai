@@ -365,16 +365,40 @@ describe('Ingredient', () => {
       expect(ingredient.isFavorite).toBe(true);
     });
 
+    it('should handle brand as object', () => {
+      const ingredient = createIngredient({
+        brand: createBrand({ id: 'brand_123', label: 'Test Brand' }),
+      });
+
+      expect(ingredient.brand).toBeDefined();
+    });
+
     it('should handle user as string', () => {
       const ingredient = createIngredient({ user: 'user_123' });
 
       expect(ingredient.user).toBe('user_123');
     });
 
+    it('should handle user as object', () => {
+      const ingredient = createIngredient({
+        user: createUser({ id: 'user_123' }),
+      });
+
+      expect(ingredient.user).toBeDefined();
+    });
+
     it('should handle metadata as string', () => {
       const ingredient = createIngredient({ metadata: 'meta_123' });
 
       expect(ingredient.metadata).toBe('meta_123');
+    });
+
+    it('should handle metadata as object', () => {
+      const ingredient = createIngredient({
+        metadata: createMetadata({ height: 1080, label: 'Test', width: 1920 }),
+      });
+
+      expect(ingredient.metadata).toBeDefined();
     });
 
     it('should handle references as string array', () => {
@@ -406,6 +430,17 @@ describe('Ingredient', () => {
       const ingredient = createIngredient({ prompt: 'A beautiful sunset' });
 
       expect(ingredient.prompt).toBe('A beautiful sunset');
+    });
+
+    it('should handle prompt as object', () => {
+      const ingredient = createIngredient({
+        prompt: createPrompt({
+          enhanced: 'Enhanced prompt',
+          original: 'Original prompt',
+        }),
+      });
+
+      expect(ingredient.prompt).toBeDefined();
     });
 
     it('should handle script as string', () => {

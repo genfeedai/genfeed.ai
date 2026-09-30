@@ -66,6 +66,33 @@ describe('agent page-context authorization', () => {
     ).toBe(false);
   });
 
+  it('authorizes and deduplicates scoped Research selectors without copied state', () => {
+    expect(
+      authorizeResearchFindingReferences(
+        [
+          {
+            ...scope,
+            copiedBody: 'must be stripped',
+            id: 'trend-1',
+            kind: 'research-trend-video',
+          },
+          {
+            ...scope,
+            id: 'trend-1',
+            kind: 'research-trend-video',
+          },
+        ],
+        scope,
+      ),
+    ).toEqual([
+      {
+        ...scope,
+        id: 'trend-1',
+        kind: 'research-trend-video',
+      },
+    ]);
+  });
+
   it('rejects forged, malformed, and unbounded Research selectors', () => {
     expect(
       authorizeResearchFindingReferences(

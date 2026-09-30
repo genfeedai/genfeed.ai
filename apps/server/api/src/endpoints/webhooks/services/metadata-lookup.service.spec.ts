@@ -75,6 +75,14 @@ describe('MetadataLookupService', () => {
       });
     });
 
+    it('should return null when no metadata found', async () => {
+      metadataService.findOne.mockResolvedValue(null);
+
+      const result = await service.findMetadataWithFallback('ext-123');
+
+      expect(result).toBeNull();
+    });
+
     it('should not try fallback when externalId has no underscore', async () => {
       metadataService.findOne.mockResolvedValue(null);
 
@@ -102,6 +110,14 @@ describe('MetadataLookupService', () => {
       expect(ingredientsService.patch).toHaveBeenCalledWith('ing-1', {
         status: IngredientStatus.FAILED,
       });
+    });
+
+    it('should not throw if no metadata found for search', async () => {
+      metadataService.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.handleMetadataNotFound('ext-123', 'video', 'url', 'test'),
+      ).resolves.not.toThrow();
     });
 
     it('should handle errors gracefully', async () => {

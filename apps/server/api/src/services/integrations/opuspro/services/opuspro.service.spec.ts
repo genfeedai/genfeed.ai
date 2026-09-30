@@ -51,6 +51,10 @@ describe('OpusProService', () => {
     service = module.get(OpusProService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('generateVideo', () => {
     it('should return videoId from response data.videoId', async () => {
       httpService.post.mockReturnValue(
@@ -90,9 +94,55 @@ describe('OpusProService', () => {
       ).rejects.toThrow('network error');
       expect(loggerService.error).toHaveBeenCalled();
     });
+
+    it('should include callbackUrl and templateId in request body', async () => {
+      httpService.post.mockReturnValue(
+        of({ data: { videoId: 'v1' }, status: 200 }),
+      );
+
+      await service.generateVideo('meta-cb', 'tpl-cb', { a: 1 });
+
+      expect(httpService.post).toHaveBeenCalledWith(
+        expect.stringContaining('/v1/video/generate'),
+        expect.objectContaining({
+          callback_id: 'meta-cb',
+          params: { a: 1 },
+          templateId: 'tpl-cb',
+        }),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'x-api-key': mockApiKey }),
+        }),
+      );
+    });
   });
 
   describe('getVideoStatus', () => {
+    it('should return status, videoUrl, and progress', async () => {
+      httpService.get.mockReturnValue(
+        of({
+          data: {
+            progress: 42,
+            status: 'processing',
+            videoUrl: 'https://cdn/v.mp4',
+          },
+          status: 200,
+        }),
+      );
+
+      const result = await service.getVideoStatus(
+        'vid-abc',
+        mockOrgId,
+        mockUserId,
+      );
+
+      expect(result).toEqual({
+        error: undefined,
+        progress: 42,
+        status: 'processing',
+        videoUrl: 'https://cdn/v.mp4',
+      });
+    });
+
     it('should fall back to video_url field', async () => {
       httpService.get.mockReturnValue(
         of({

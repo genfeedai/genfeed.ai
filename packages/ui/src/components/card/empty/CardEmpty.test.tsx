@@ -1,13 +1,34 @@
-import { ButtonVariant } from '@genfeedai/contracts';
+import { ButtonVariant, CardEmptySize } from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import CardEmpty from '@ui/card/empty/CardEmpty';
+import CardEmpty, { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 
 describe('CardEmpty', () => {
   it('should render without crashing', () => {
     const { container } = render(<CardEmpty />);
     expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('fires the action callback when the empty-state button is clicked', async () => {
+    const user = userEvent.setup();
+    const onClick = vi.fn();
+
+    render(
+      <CardEmpty
+        label="No tasks"
+        description="Tasks will appear here."
+        action={{
+          label: 'Create task',
+          onClick,
+          variant: ButtonVariant.DEFAULT,
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Create task' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('renders a custom actions slot instead of the single action button', () => {
@@ -53,5 +74,13 @@ describe('CardEmpty', () => {
     );
 
     expect(screen.getByText('Tasks will appear here.')).toHaveClass('mb-3');
+  });
+
+  it('applies the large size title class on CardEmptyContent', () => {
+    render(<CardEmptyContent label="Nothing here" size={CardEmptySize.LG} />);
+
+    expect(screen.getByRole('heading', { name: 'Nothing here' })).toHaveClass(
+      'text-base',
+    );
   });
 });

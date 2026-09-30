@@ -42,6 +42,21 @@ function buildPost(overrides: Partial<IPost> = {}): IPost {
 }
 
 describe('PostDetailNeedsYou', () => {
+  it('renders nothing when the post needs nothing from the viewer', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished
+        onReviewHref="/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.APPROVED,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('surfaces a failed post with a retry action', () => {
     const onPublishNow = vi.fn();
     render(
@@ -81,6 +96,21 @@ describe('PostDetailNeedsYou', () => {
       'href',
       '/publishing/review',
     );
+  });
+
+  it('does not treat an ordinary draft with no review lineage as awaiting review', () => {
+    const { container } = render(
+      <PostDetailNeedsYou
+        isPublished={false}
+        onReviewHref="/publishing/review"
+        post={buildPost({
+          reviewDecision: ReviewDecision.UNSET,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        })}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('does not treat a rejected draft as awaiting review, even with review lineage', () => {

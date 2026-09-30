@@ -339,6 +339,13 @@ describe('AppRail', () => {
     );
   });
 
+  it('never viewport-prefetches the rail destinations', () => {
+    render(<AppRail orgSlug="acme" brandSlug="my-brand" showAdmin />);
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).toHaveAttribute('data-prefetch', 'false');
+    }
+  });
+
   it('renders every app in rail order with Agent first', () => {
     render(<AppRail orgSlug="acme" />);
 
@@ -489,6 +496,29 @@ describe('AppRail', () => {
     );
   });
 
+  it('shows the lock instead of a badge on a locked item', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        isAssetGateLocked
+        badges={{ workspace: { count: 4, label: '4 new' } }}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId('app-rail-badge-workspace'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('reports navigation so a drawer host can close', () => {
+    const onNavigate = vi.fn();
+    render(<AppRail orgSlug="acme" onNavigate={onNavigate} />);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Studio' }));
+
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+  });
+
   it('renders Library with the stacked-assets icon, not a briefcase', () => {
     render(<AppRail orgSlug="acme" />);
 
@@ -516,6 +546,16 @@ describe('AppRail', () => {
       divider.compareDocumentPosition(discovery) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  it('drops the divider when every secondary app is hidden', () => {
+    featureFlags.discovery = false;
+    featureFlags.analytics = false;
+    featureFlags.automation = false;
+
+    render(<AppRail orgSlug="acme" />);
+
+    expect(screen.queryByTestId('app-rail-divider')).not.toBeInTheDocument();
   });
 
   it('hides Studio when its app-switcher discovery flag is disabled', () => {
@@ -569,6 +609,28 @@ describe('AppRail', () => {
     expect(screen.getByRole('link', { name: 'Workspace' })).toBeInTheDocument();
   });
 
+  it('renders the admin app only when enabled', () => {
+    render(<AppRail orgSlug="acme" showAdmin />);
+
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'href',
+      '/admin/overview/dashboard',
+    );
+  });
+
+  it('marks the active app with aria-current="page" from the product path root', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/publishing/review"
+      />,
+    );
+    const activeButton = screen.getByRole('link', { name: 'Publishing' });
+
+    expect(activeButton).toHaveAttribute('aria-current', 'page');
+  });
+
   it('uses the application-owned navigation resolver and announces the mode change', () => {
     render(
       <AppRail
@@ -593,6 +655,21 @@ describe('AppRail', () => {
     ).toBeInTheDocument();
   });
 
+  it('marks the operator agent item active on the agent surface', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/agent/thread-1"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
   it('routes the agent item to the selected brand when the current route is org-scoped', () => {
     render(<AppRail orgSlug="acme" brandAwareSlug="moonrise" />);
 
@@ -603,6 +680,39 @@ describe('AppRail', () => {
     expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
       'href',
       '/acme/~/workspace/overview',
+    );
+  });
+
+  it('routes the studio item to the selected brand when the current route is org-scoped (#4671)', () => {
+    render(<AppRail orgSlug="acme" brandAwareSlug="moonrise" />);
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/studio/generate',
+    );
+  });
+
+  it('keeps the org studio fallback for an operator with no selected brand (#4671)', () => {
+    render(<AppRail orgSlug="acme" />);
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'href',
+      '/acme/~/studio',
+    );
+  });
+
+  it('marks messages active when the messages shell is current', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/messages"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
   });
 
@@ -753,6 +863,71 @@ describe('AppRail', () => {
     expect(screen.getByRole('link', { name: 'Messages' })).toBeInTheDocument();
   });
 
+  it('does not highlight a product app on settings routes', () => {
+    render(<AppRail orgSlug="acme" currentPath="/acme/~/settings/brands" />);
+
+    for (const name of [
+      'Workspace',
+      'Agent',
+      'Studio',
+      'Library',
+      'Discovery',
+      'Publishing',
+      'Analytics',
+      'Automation',
+      'Messages',
+    ]) {
+      expect(screen.getByRole('link', { name })).not.toHaveAttribute(
+        'aria-current',
+        'page',
+      );
+    }
+  });
+
+  it('marks studio active for any studio child path, not only the home href', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/studio/clips"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('marks admin active on admin routes', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        currentPath="/admin/automation/models"
+        showAdmin
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('does not set aria-current on inactive app buttons', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/workspace"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Analytics' })).not.toHaveAttribute(
+      'aria-current',
+    );
+  });
+
   it('keeps the contextual remix route inside Publishing', () => {
     render(
       <AppRail
@@ -769,6 +944,35 @@ describe('AppRail', () => {
     expect(
       screen.queryByRole('link', { name: 'Remix' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('highlights nested studio routes under Studio', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/studio/batch"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+  });
+
+  it('does not classify focused artifact editors as Publishing', () => {
+    render(
+      <AppRail
+        orgSlug="acme"
+        brandSlug="my-brand"
+        currentPath="/acme/my-brand/edit/article/article-1"
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: 'Publishing' }),
+    ).not.toHaveAttribute('aria-current');
   });
 
   it('highlights Studio for the Editor surface', () => {
@@ -791,6 +995,14 @@ describe('AppRail', () => {
   });
 
   describe('route generation', () => {
+    it('links to studio URL with brandSlug when provided', () => {
+      render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/studio/generate',
+      );
+    });
+
     it('links operate apps workspace, agent, messages, and automation', () => {
       render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
 
@@ -822,6 +1034,67 @@ describe('AppRail', () => {
       expect(screen.getByRole('link', { name: 'Messages' })).toHaveAttribute(
         'href',
         '/acme/~/messages',
+      );
+    });
+
+    it('links to org-scoped create fallbacks when brandSlug is absent', () => {
+      render(<AppRail orgSlug="acme" />);
+      expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+        'href',
+        '/acme/~/studio',
+      );
+    });
+
+    it('routes brand apps to org views when brandSlug is absent', () => {
+      render(<AppRail orgSlug="acme" />);
+
+      for (const [label, href] of [
+        ['Studio', '/acme/~/studio'],
+        ['Library', '/acme/~/library/assets'],
+        ['Discovery', '/acme/~/discovery/overview'],
+        ['Publishing', '/acme/~/publishing/overview'],
+        ['Analytics', '/acme/~/analytics/overview'],
+        ['Automation', '/acme/~/automation/overview'],
+        ['Messages', '/acme/~/messages'],
+      ] as const) {
+        expect(screen.getByRole('link', { name: label })).toHaveAttribute(
+          'href',
+          href,
+        );
+      }
+    });
+
+    it('links to correct route for workspace app', () => {
+      render(<AppRail orgSlug="acme" />);
+      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+        'href',
+        '/acme/~/discovery/overview',
+      );
+    });
+
+    it('links to brand-scoped workspace when a brand is selected', () => {
+      render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+      expect(screen.getByRole('link', { name: 'Discovery' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/discovery/overview',
+      );
+    });
+
+    it('links to correct route for analytics app', () => {
+      render(<AppRail orgSlug="acme" />);
+
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/~/analytics/overview',
+      );
+    });
+
+    it('links brand app surfaces to brand-scoped routes', () => {
+      render(<AppRail orgSlug="acme" brandSlug="my-brand" />);
+
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/my-brand/analytics/overview',
       );
     });
 
@@ -864,6 +1137,20 @@ describe('AppRail', () => {
       expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
         'href',
         '/acme/my-brand/publishing/overview',
+      );
+    });
+
+    it('preserves task context search params when switching apps', () => {
+      render(
+        <AppRail
+          orgSlug="acme"
+          preservedSearch="taskId=123&taskSource=workspace"
+        />,
+      );
+
+      expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
+        'href',
+        '/acme/~/analytics/overview?taskId=123&taskSource=workspace',
       );
     });
   });

@@ -100,6 +100,22 @@ describe('useAgentWorkflow', () => {
     );
   });
 
+  it('answers a question and unblocks the clarifying gate', () => {
+    const { result } = renderHook(() => useAgentWorkflow());
+
+    act(() => {
+      result.current.agentAsk({ text: 'Which platform?', type: 'free_text' });
+    });
+
+    const questionId = result.current.questions[0]?.id ?? '';
+
+    act(() => {
+      result.current.answerQuestion(questionId, 'Instagram');
+    });
+
+    expect(result.current.questions[0]?.answer).toBe('Instagram');
+  });
+
   it('forwards core transitions to the store', () => {
     const { result } = renderHook(() => useAgentWorkflow());
 
@@ -150,5 +166,18 @@ describe('useAgentWorkflow', () => {
       result.current.approveApproach();
     });
     expect(result.current.phase).toBe('implementing');
+  });
+
+  it('appends free-form messages', () => {
+    const { result } = renderHook(() => useAgentWorkflow());
+
+    act(() => {
+      result.current.addMessage('user', 'Sounds good');
+    });
+
+    expect(result.current.messages.at(-1)).toMatchObject({
+      content: 'Sounds good',
+      role: 'user',
+    });
   });
 });

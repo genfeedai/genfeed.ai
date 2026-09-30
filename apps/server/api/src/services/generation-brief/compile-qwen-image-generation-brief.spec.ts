@@ -145,4 +145,18 @@ describe('compileQwenImageGenerationBrief', () => {
       }),
     ).toThrow(GenerationBriefCompileError);
   });
+
+  it('does not mutate the normalized brief', () => {
+    const brief = imageGenerationBriefSchema.parse(
+      readFixture('guided.input.json'),
+    );
+    const original = structuredClone(brief);
+
+    compileQwenImageGenerationBrief({
+      brief,
+      modelKey: QWEN_IMAGE_MODEL_KEY,
+    });
+
+    expect(brief).toEqual(original);
+  });
 });

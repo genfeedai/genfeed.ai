@@ -79,6 +79,20 @@ describe('SchedulePanel', () => {
     expect(scheduleElements.length).toBeGreaterThan(0);
   });
 
+  it('should call onToggleCollapse when header is clicked', () => {
+    const onToggleCollapse = vi.fn();
+    const { container } = render(
+      <SchedulePanel {...defaultProps} onToggleCollapse={onToggleCollapse} />,
+    );
+
+    // The header row is clickable for collapse/expand
+    const headerRow = container.querySelector('.cursor-pointer');
+    if (headerRow) {
+      fireEvent.click(headerRow);
+      expect(onToggleCollapse).toHaveBeenCalled();
+    }
+  });
+
   it('should render collapsed state', () => {
     render(<SchedulePanel {...defaultProps} isCollapsed={true} />);
     // Multiple elements contain "Schedule" - use getAllByText

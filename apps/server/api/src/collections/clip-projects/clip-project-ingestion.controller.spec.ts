@@ -233,6 +233,19 @@ describe('ClipProjectIngestionController', () => {
     );
   });
 
+  it('preserves ingestion service errors', async () => {
+    const error = new Error('Queue unavailable');
+    ingestionService.createFromYoutube.mockRejectedValue(error);
+
+    await expect(
+      controller.createFromYoutube(currentUser as never, {
+        avatarId: 'avatar-1',
+        voiceId: 'voice-1',
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      }),
+    ).rejects.toBe(error);
+  });
+
   it('delegates authenticated upload preparation and finalization', async () => {
     const dto: PrepareClipUploadDto = {
       contentType: 'video/mp4',
@@ -272,6 +285,18 @@ describe('ClipProjectIngestionController', () => {
       expect(validateSync(video)).toEqual([]);
       expect(validateSync(audio)).toEqual([]);
     });
+
+    it('rejects non-media MIME types and files above the upload ceiling', () => {
+      const dto = plainToInstance(PrepareClipUploadDto, {
+        contentType: 'application/zip',
+        filename: 'archive.zip',
+        sizeBytes: 11 * 1024 * 1024 * 1024,
+      });
+
+      expect(validateSync(dto).map((error) => error.property)).toEqual(
+        expect.arrayContaining(['contentType', 'sizeBytes']),
+      );
+    });
   });
 
   describe('CreateClipProjectFromYoutubeDto validation', () => {
@@ -287,5 +312,48 @@ describe('ClipProjectIngestionController', () => {
       expect(validateSync(avatar)).toEqual([]);
       expect(validateSync(rawCut)).toEqual([]);
     });
+
+    it('validates optional raw-cut credentials and the generation mode', () => {
+      const invalid = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        avatarId: 123,
+        mode: 'unknown',
+        voiceId: false,
+        youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+      });
+
+      expect(validateSync(invalid).map((error) => error.property)).toEqual(
+        expect.arrayContaining(['avatarId', 'mode', 'voiceId']),
+      );
+    });
+
+    it('rejects non-YouTube URLs', () => {
+      const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+        youtubeUrl: 'https://example.com/not-youtube',
+      });
+      const messages = validateSync(dto).flatMap((error) =>
+        Object.values(error.constraints ?? {}),
+      );
+
+      expect(messages).toContain('Must be a valid YouTube URL');
+    });
+
+    it.each(['did', 'tavus', 'musetalk'] as const)(
+      'rejects unsupported avatar provider %s',
+      (avatarProvider) => {
+        const dto = plainToInstance(CreateClipProjectFromYoutubeDto, {
+          avatarId: 'avatar-1',
+          avatarProvider,
+          voiceId: 'voice-1',
+          youtubeUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        });
+        const messages = validateSync(dto).flatMap((error) =>
+          Object.values(error.constraints ?? {}),
+        );
+
+        expect(messages).toContain(
+          'avatarProvider must be one of the following values: heygen, argil, genfeedai',
+        );
+      },
+    );
   });
 });

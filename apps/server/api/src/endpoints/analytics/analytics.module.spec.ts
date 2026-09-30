@@ -6,6 +6,10 @@ import { AnalyticsAdminSummaryService } from '@api/endpoints/analytics/analytics
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
 describe('AnalyticsModule', () => {
+  it('should be defined', () => {
+    expect(AnalyticsModule).toBeDefined();
+  });
+
   it('registers the split controllers and admin summary service', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AnalyticsModule),

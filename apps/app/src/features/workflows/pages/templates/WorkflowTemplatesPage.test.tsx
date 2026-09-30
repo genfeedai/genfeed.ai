@@ -195,12 +195,6 @@ vi.mock('@ui/primitives/select', () => ({
   SelectValue: () => null,
 }));
 
-vi.mock('@ui/layout/horizontal-carousel/HorizontalCarousel', () => ({
-  default: ({ children }: { children?: ReactNode }) => (
-    <div data-testid="featured-carousel">{children}</div>
-  ),
-}));
-
 vi.mock('@ui/primitives/dialog', () => ({
   Dialog: ({ children, open }: { children?: ReactNode; open?: boolean }) =>
     open ? <div role="dialog">{children}</div> : null,
@@ -316,6 +310,14 @@ async function openOverflow(container: HTMLElement) {
 
 describe('WorkflowTemplatesPage', () => {
   beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        disconnect() {}
+        observe() {}
+        unobserve() {}
+      },
+    );
     vi.clearAllMocks();
     window.localStorage.clear();
     mocks.scopedGetService = null;
@@ -365,6 +367,14 @@ describe('WorkflowTemplatesPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('templates-content')).toBeInTheDocument();
     });
+  });
+
+  it('renders Featured, Browse by type and All in order', async () => {
+    await renderLoadedPage();
+
+    expect(
+      screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent),
+    ).toEqual(['Featured', 'Browse by type', 'All templates']);
   });
 
   it('features the admin-pinned workflows, never catalog entries (#5511)', async () => {
@@ -580,13 +590,13 @@ describe('WorkflowTemplatesPage', () => {
     );
     expect(screen.getByRole('link', { name: 'Templates' })).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates',
+      '/demo/FUDNEWS/automation/workflows?view=templates',
     );
     expect(
       within(all).getByRole('link', { name: 'Use template' }),
     ).toHaveAttribute(
       'href',
-      '/demo/FUDNEWS/automation/workflows/templates?template=tpl-1',
+      '/demo/FUDNEWS/automation/workflows?view=templates&template=tpl-1',
     );
     expect(screen.queryByText('1 steps')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('section-topbar')).toHaveLength(1);
@@ -761,6 +771,22 @@ describe('WorkflowTemplatesPage', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );
     expect(trigger).toHaveFocus();
+  });
+
+  it('opens a catalog template from Use template', async () => {
+    const user = userEvent.setup();
+    await renderLoadedPage();
+
+    await user.click(
+      within(digestRow()).getByRole('button', { name: 'Use template' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/demo/FUDNEWS/automation/workflows/wf-installed',
+      );
+    });
+    expect(mocks.installSystemCatalog).toHaveBeenCalledWith('system-1');
   });
 
   it('installs from the overflow without leaving the page', async () => {
@@ -1002,6 +1028,36 @@ describe('WorkflowTemplatesPage', () => {
     }
     expect(categoryLabel('real-estate', keyOnly)).toBe('categories.realEstate');
     expect(categoryLabel('podcast', keyOnly)).toBe('Podcast');
+  });
+
+  it('translates the ads, agents, analytics and campaigns type tiles', async () => {
+    mocks.listSystemCatalog.mockResolvedValue([]);
+    mocks.listTemplates.mockResolvedValue(
+      ['ads', 'agents', 'analytics', 'campaigns'].map((category) => ({
+        ...POST_HARD_CUT_TEMPLATE,
+        category,
+        id: `tpl-${category}`,
+        name: `Template ${category}`,
+      })),
+    );
+    mocks.useTranslations.mockImplementation(
+      translateWithOverrides({
+        'pages.workflows.templates.categories.ads': 'Publicités',
+        'pages.workflows.templates.categories.agents': 'Agents IA',
+        'pages.workflows.templates.categories.analytics': 'Analytique',
+        'pages.workflows.templates.categories.campaigns': 'Opérations',
+      }),
+    );
+    render(<WorkflowTemplatesPage />);
+
+    const browse = await screen.findByRole('region', {
+      name: 'Browse by type',
+    });
+    expect(
+      within(browse)
+        .getAllByTestId('workflow-template-type-tile')
+        .map((tile) => tile.getAttribute('aria-label')),
+    ).toEqual(['Agents IA', 'Analytique', 'Opérations', 'Publicités']);
   });
 
   it('ignores a late Retry response once the auth scope has changed', async () => {

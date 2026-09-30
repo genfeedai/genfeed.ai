@@ -191,6 +191,17 @@ describe('MediaTextDecisionService', () => {
     expect(h.decide).not.toHaveBeenCalled();
   });
 
+  it('persists nothing and throws for a backed-off retry when the provider does not answer', async () => {
+    const h = makeHarness({ posts: [] });
+    h.decide.mockResolvedValue(null);
+
+    await expect(h.service.evaluate(JOB)).rejects.toBeInstanceOf(
+      MediaTextDecisionUnansweredError,
+    );
+
+    expect(h.upsert).not.toHaveBeenCalled();
+  });
+
   it('persists no caption row when the caption decision fails', async () => {
     const h = makeHarness();
     h.decide
@@ -254,5 +265,16 @@ describe('MediaTextDecisionService', () => {
     expect(h.decide.mock.calls[0][1].decisionPoint).toBe(
       'media_text.is_brand_safe',
     );
+  });
+
+  it('keeps no partial asset row when only one question is answered', async () => {
+    const h = makeHarness({ posts: [] });
+    h.decide.mockResolvedValueOnce(null);
+
+    await expect(h.service.evaluate(JOB)).rejects.toBeInstanceOf(
+      MediaTextDecisionUnansweredError,
+    );
+
+    expect(h.upsert).not.toHaveBeenCalled();
   });
 });

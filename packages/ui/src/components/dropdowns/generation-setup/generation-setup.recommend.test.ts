@@ -54,6 +54,15 @@ describe('recommendGenerationSetup', () => {
   });
 
   describe('type', () => {
+    it('never recommends type when the surface locks it', () => {
+      const { reasons, values } = recommendGenerationSetup(
+        buildInput({ lockedType: 'image', prompt: 'an animated film clip' }),
+      );
+
+      expect(values.type).toBeUndefined();
+      expect(reasons.type).toBeUndefined();
+    });
+
     it('still uses the locked type to resolve the aspect ratio default', () => {
       const { values } = recommendGenerationSetup(
         buildInput({ lockedType: 'video', prompt: 'a plain scene' }),
@@ -73,6 +82,15 @@ describe('recommendGenerationSetup', () => {
         expect(reasons.type).toBeTruthy();
       },
     );
+
+    it('does not force image when the prompt is not a motion request', () => {
+      const { reasons, values } = recommendGenerationSetup(
+        buildInput({ prompt: 'build the brand context for this company' }),
+      );
+
+      expect(values.type).toBeUndefined();
+      expect(reasons.type).toBeUndefined();
+    });
   });
 
   describe('aspectRatio', () => {
@@ -85,6 +103,16 @@ describe('recommendGenerationSetup', () => {
 
       expect(values.aspectRatio).toBeUndefined();
     });
+
+    it.each(['story', 'reel', 'tiktok', 'vertical', 'portrait'])(
+      'recommends 9:16 for "%s"',
+      (keyword) => {
+        const { values } = recommendGenerationSetup(
+          buildInput({ prompt: `a ${keyword} about our launch` }),
+        );
+        expect(values.aspectRatio).toBe('9:16');
+      },
+    );
 
     it.each(['banner', 'wide', 'cinematic', 'landscape', 'thumbnail'])(
       'recommends 16:9 for "%s"',
@@ -120,6 +148,25 @@ describe('recommendGenerationSetup', () => {
   });
 
   describe('duration', () => {
+    it('is not recommended for a non-video type', () => {
+      const { values } = recommendGenerationSetup(
+        buildInput({ lockedType: 'image', prompt: 'a quick loop' }),
+      );
+
+      expect(values.duration).toBeUndefined();
+    });
+
+    it('is not recommended when the type has no duration capability', () => {
+      const { values } = recommendGenerationSetup(
+        buildInput({
+          capabilities: { ...FULL_CAPABILITIES, hasDuration: false },
+          lockedType: 'video',
+        }),
+      );
+
+      expect(values.duration).toBeUndefined();
+    });
+
     it.each(['quick', 'loop', 'teaser'])(
       'recommends the short 4s duration for "%s"',
       (keyword) => {
@@ -180,6 +227,26 @@ describe('recommendGenerationSetup', () => {
       },
     );
 
+    it.each(['cheap', 'budget'])(
+      'recommends cost priority for "%s"',
+      (keyword) => {
+        const { values } = recommendGenerationSetup(
+          buildInput({ prompt: `a ${keyword} option` }),
+        );
+        expect(values.prioritize).toBe(RouterPriority.COST);
+      },
+    );
+
+    it.each(['draft', 'quick'])(
+      'recommends speed priority for "%s"',
+      (keyword) => {
+        const { values } = recommendGenerationSetup(
+          buildInput({ prompt: `a ${keyword} render` }),
+        );
+        expect(values.prioritize).toBe(RouterPriority.SPEED);
+      },
+    );
+
     it('defaults to balanced priority otherwise', () => {
       const { values } = recommendGenerationSetup(
         buildInput({ prompt: 'a cat on a chair' }),
@@ -199,6 +266,16 @@ describe('recommendGenerationSetup', () => {
 
       expect(values.outputs).toBeUndefined();
     });
+
+    it.each(['variations', 'variation', 'options', 'versions'])(
+      'recommends 4 outputs for "%s"',
+      (keyword) => {
+        const { values } = recommendGenerationSetup(
+          buildInput({ prompt: `give me some ${keyword}` }),
+        );
+        expect(values.outputs).toBe(4);
+      },
+    );
 
     it('defaults to a single output otherwise', () => {
       const { values } = recommendGenerationSetup(
@@ -225,6 +302,15 @@ describe('recommendGenerationSetup', () => {
 
       expect(values.brandingMode).toBe('brand');
       expect(reasons.brandingMode).toBeTruthy();
+    });
+  });
+
+  describe('isPromptEnhanceEnabled', () => {
+    it('never recommends a value — the switch was removed (#4676)', () => {
+      const { reasons, values } = recommendGenerationSetup(buildInput());
+
+      expect(values.isPromptEnhanceEnabled).toBeUndefined();
+      expect(reasons.isPromptEnhanceEnabled).toBeUndefined();
     });
   });
 });

@@ -44,4 +44,22 @@ describe('getWorkspaceOverviewArtifactReferences', () => {
       },
     ]);
   });
+
+  it('returns no references without an authorized task and scope', () => {
+    expect(
+      getWorkspaceOverviewArtifactReferences(null, {
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+      }),
+    ).toEqual([]);
+    expect(
+      getWorkspaceOverviewArtifactReferences(
+        new Task({
+          id: 'task-1',
+          linkedEntities: [{ entityId: 'post-1', entityModel: 'Post' }],
+        }),
+        { brandId: '', organizationId: 'org-1' },
+      ),
+    ).toEqual([]);
+  });
 });

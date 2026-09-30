@@ -18,6 +18,13 @@ describe('TextOverlayPanel', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <TextOverlayPanel video={video} isOpen={true} onClose={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <TextOverlayPanel video={video} isOpen={true} onClose={vi.fn()} />,

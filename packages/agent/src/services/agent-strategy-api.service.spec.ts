@@ -1,6 +1,7 @@
 import {
   mockError,
   mockFetch,
+  mockJsonApiCollection,
   mockJsonApiResource,
   mockOk,
 } from '@agent-tests/json-api-fetch.mock';
@@ -21,6 +22,13 @@ describe('AgentStrategyApiService', () => {
   });
 
   describe('getStrategies', () => {
+    it('fetches strategies', async () => {
+      mockJsonApiCollection([{ id: 's-1' }]);
+      const service = makeService();
+      const result = await service.getStrategies();
+      expect(result).toEqual([{ id: 's-1' }]);
+    });
+
     it('throws on error', async () => {
       mockError(500);
       const service = makeService();
@@ -29,6 +37,13 @@ describe('AgentStrategyApiService', () => {
   });
 
   describe('getStrategy', () => {
+    it('fetches single strategy', async () => {
+      mockJsonApiResource({ id: 's-1' });
+      const service = makeService();
+      const result = await service.getStrategy('s-1');
+      expect(result).toBeDefined();
+    });
+
     it('throws on error', async () => {
       mockError(404);
       const service = makeService();
@@ -47,6 +62,26 @@ describe('AgentStrategyApiService', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
+
+    it('throws on error', async () => {
+      mockError(400);
+      const service = makeService();
+      await expect(service.createStrategy({ label: 'Test' })).rejects.toThrow(
+        '400',
+      );
+    });
+
+    it('maps invalid strategy documents to a typed decode error', async () => {
+      mockOk({});
+      const service = makeService();
+
+      await expect(service.createStrategy({ label: 'Broken' })).rejects.toEqual(
+        expect.objectContaining({
+          _tag: 'AgentApiDecodeError',
+          message: 'Failed to deserialize strategy',
+        } satisfies Partial<AgentApiDecodeError>),
+      );
+    });
   });
 
   describe('updateStrategy', () => {
@@ -62,9 +97,25 @@ describe('AgentStrategyApiService', () => {
         expect.objectContaining({ method: 'PATCH' }),
       );
     });
+
+    it('throws on error', async () => {
+      mockError(500);
+      const service = makeService();
+      await expect(service.updateStrategy('s-1', {})).rejects.toThrow('500');
+    });
   });
 
   describe('deleteStrategy', () => {
+    it('deletes strategy', async () => {
+      mockJsonApiResource({ id: 's-1' });
+      const service = makeService();
+      await service.deleteStrategy('s-1');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/agent-strategies/s-1',
+        expect.objectContaining({ method: 'DELETE' }),
+      );
+    });
+
     it('throws on error', async () => {
       mockError(404);
       const service = makeService();
@@ -83,6 +134,12 @@ describe('AgentStrategyApiService', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
+
+    it('throws on error', async () => {
+      mockError(500);
+      const service = makeService();
+      await expect(service.toggleStrategy('s-1')).rejects.toThrow('500');
+    });
   });
 
   describe('runNow', () => {
@@ -95,6 +152,12 @@ describe('AgentStrategyApiService', () => {
         'http://api.test/agent-strategies/s-1/run-now',
         expect.objectContaining({ method: 'POST' }),
       );
+    });
+
+    it('throws on error', async () => {
+      mockError(500);
+      const service = makeService();
+      await expect(service.runNow('s-1')).rejects.toThrow('500');
     });
   });
 });

@@ -69,4 +69,11 @@ describe('button variants', () => {
     expect(className).toContain('justify-center');
     expect(className).toContain('p-0');
   });
+
+  it.each(Object.values(ButtonSize))(
+    'uses typography tokens rather than bracket sizes for %s',
+    (size) => {
+      expect(buttonVariants({ size })).not.toMatch(/\btext-\[/);
+    },
+  );
 });

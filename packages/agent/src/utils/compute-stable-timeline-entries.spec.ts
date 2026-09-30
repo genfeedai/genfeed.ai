@@ -79,6 +79,15 @@ function workGroupEntry(
 }
 
 describe('computeStableTimelineEntries', () => {
+  it('returns the empty state unchanged when given no entries', () => {
+    const state = computeStableTimelineEntries(
+      EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+      [],
+    );
+
+    expect(state.result).toEqual([]);
+  });
+
   it('reuses prior entry references when content is unchanged', () => {
     const first = computeStableTimelineEntries(
       EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
@@ -99,6 +108,19 @@ describe('computeStableTimelineEntries', () => {
     expect(second.result[0]).not.toBe(rebuilt[0]);
   });
 
+  it('returns the exact same state object when nothing changed', () => {
+    const first = computeStableTimelineEntries(
+      EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+      [userEntry(), assistantEntry()],
+    );
+    const second = computeStableTimelineEntries(first, [
+      userEntry(),
+      assistantEntry(),
+    ]);
+
+    expect(second).toBe(first);
+  });
+
   it('replaces only the entry whose content changed', () => {
     const first = computeStableTimelineEntries(
       EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
@@ -116,6 +138,18 @@ describe('computeStableTimelineEntries', () => {
     expect(second.result[0]).toBe(first.result[0]);
     expect(second.result[1]).toBe(changedAssistant);
     expect(second.result[1]).not.toBe(first.result[1]);
+  });
+
+  it('reuses work-group entries when the underlying events are deep-equal', () => {
+    const first = computeStableTimelineEntries(
+      EMPTY_STABLE_TIMELINE_ENTRIES_STATE,
+      [workGroupEntry()],
+    );
+
+    const rebuiltGroup = workGroupEntry();
+    const second = computeStableTimelineEntries(first, [rebuiltGroup]);
+
+    expect(second.result[0]).toBe(first.result[0]);
   });
 
   it('detects a changed work-group when its events differ', () => {

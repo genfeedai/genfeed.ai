@@ -69,6 +69,51 @@ describe('Onboarding path — regression #564: OrganizationCategory enum mapping
    * the Prisma UPPERCASE form before writing.
    */
   describe('OrganizationsService.create — app-form category → Prisma UPPERCASE (onboarding write boundary)', () => {
+    it('converts OrganizationCategory.BUSINESS ("business") to Prisma "BUSINESS"', async () => {
+      await organizationsService.create({
+        category: OrganizationCategory.BUSINESS,
+        label: 'Default Organization',
+        slug: 'default-organization',
+        userId: 'user_1',
+      } as never);
+
+      expect(organizationDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'BUSINESS' }),
+        }),
+      );
+    });
+
+    it('converts OrganizationCategory.CREATOR ("creator") to Prisma "CREATOR"', async () => {
+      await organizationsService.create({
+        category: OrganizationCategory.CREATOR,
+        label: 'Creator Org',
+        slug: 'creator-org',
+        userId: 'user_2',
+      } as never);
+
+      expect(organizationDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'CREATOR' }),
+        }),
+      );
+    });
+
+    it('converts OrganizationCategory.AGENCY ("agency") to Prisma "AGENCY"', async () => {
+      await organizationsService.create({
+        category: OrganizationCategory.AGENCY,
+        label: 'Agency Org',
+        slug: 'agency-org',
+        userId: 'user_3',
+      } as never);
+
+      expect(organizationDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'AGENCY' }),
+        }),
+      );
+    });
+
     it('passes through an already-UPPERCASE category idempotently', async () => {
       await organizationsService.create({
         category: 'BUSINESS' as OrganizationCategory,

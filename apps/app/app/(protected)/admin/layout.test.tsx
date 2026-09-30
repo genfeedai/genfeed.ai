@@ -59,6 +59,18 @@ describe('AdminLayout authorization', () => {
     expect(notFoundMock).not.toHaveBeenCalled();
   });
 
+  it('404s a non-superadmin when the Playwright bypass is off', async () => {
+    isProtectedBootstrapBypassedMock.mockResolvedValue(false);
+    loadProtectedBootstrapMock.mockResolvedValue({
+      accessState: { isSuperAdmin: false },
+    });
+    const AdminLayout = (await import('./layout')).default;
+
+    await expect(AdminLayout({ children })).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(loadProtectedBootstrapMock).toHaveBeenCalledTimes(1);
+    expect(notFoundMock).toHaveBeenCalledTimes(1);
+  });
+
   it('renders admin children for a superadmin when the Playwright bypass is off', async () => {
     isProtectedBootstrapBypassedMock.mockResolvedValue(false);
     loadProtectedBootstrapMock.mockResolvedValue({

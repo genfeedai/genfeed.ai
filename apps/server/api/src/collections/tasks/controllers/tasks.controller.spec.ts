@@ -101,6 +101,10 @@ describe('TasksController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
     it('creates a task with organization prefix and next counter number', async () => {
       const createdTask = {

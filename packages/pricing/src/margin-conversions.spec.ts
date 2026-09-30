@@ -50,6 +50,12 @@ describe('multiplierFromMarkupPercent', () => {
     expect(multiplierFromMarkupPercent(-150)).toBe(1);
     expect(multiplierFromMarkupPercent(Number.NaN)).toBe(1);
   });
+
+  it('round-trips through multiplierToMarkupPercent', () => {
+    expect(multiplierToMarkupPercent(multiplierFromMarkupPercent(233))).toBe(
+      233,
+    );
+  });
 });
 
 describe('multiplierFromMarginPercent', () => {
@@ -62,6 +68,10 @@ describe('multiplierFromMarginPercent', () => {
     expect(multiplierFromMarginPercent(100)).toBe(1);
     expect(multiplierFromMarginPercent(150)).toBe(1);
     expect(multiplierFromMarginPercent(Number.NaN)).toBe(1);
+  });
+
+  it('round-trips through multiplierToMarginPercent', () => {
+    expect(multiplierToMarginPercent(multiplierFromMarginPercent(70))).toBe(70);
   });
 });
 

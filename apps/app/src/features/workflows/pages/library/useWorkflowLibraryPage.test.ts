@@ -129,6 +129,17 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     });
   });
 
+  it('requests a paginated workflow page from the API', async () => {
+    renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      brandId: 'brand-fud',
+      limit: 15,
+      page: 1,
+    });
+  });
+
   it('does not fetch workflows until collection scope is ready', async () => {
     mocks.collectionScope = {
       brandId: undefined,
@@ -140,6 +151,80 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     renderHook(() => useWorkflowLibraryPage());
 
     expect(mocks.serviceListPage).not.toHaveBeenCalled();
+  });
+
+  it('omits brandId on org-scoped routes', async () => {
+    mocks.collectionScope = {
+      brandId: undefined,
+      isReady: true,
+      organizationId: 'org-demo',
+      pageScope: 'org',
+    };
+
+    renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(mocks.serviceListPage).toHaveBeenCalled());
+    expect(mocks.serviceListPage).toHaveBeenCalledWith({
+      limit: 15,
+      page: 1,
+    });
+  });
+
+  it('calls updateSchedule with isScheduleEnabled=true when toggling on a workflow that has a schedule', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.handleToggleSchedule('wf-1', true);
+    });
+
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('wf-1', {
+      isScheduleEnabled: true,
+      schedule: '0 9 * * 1',
+      timezone: 'UTC',
+    });
+  });
+
+  it('reflects the derived next run after the toggle resolves', async () => {
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    await act(async () => {
+      await result.current.handleToggleSchedule('wf-1', true);
+    });
+
+    const wf = result.current.workflows.find((w) => w.id === 'wf-1');
+    expect(wf?.nextRunAt).toBe('2099-01-01T09:00:00.000Z');
+  });
+
+  it('applies an optimistic update before the API resolves', async () => {
+    let resolveSchedule!: (value: {
+      id: string;
+      nextRunAt: string | null;
+    }) => void;
+    mocks.serviceUpdateSchedule.mockImplementation(
+      () =>
+        new Promise<{ id: string; nextRunAt: string | null }>((resolve) => {
+          resolveSchedule = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(2));
+
+    act(() => {
+      void result.current.handleToggleSchedule('wf-1', true);
+    });
+
+    // Optimistic state should be applied immediately
+    await waitFor(() => {
+      const wf = result.current.workflows.find((w) => w.id === 'wf-1');
+      expect(wf?.isScheduleEnabled).toBe(true);
+    });
+
+    // Resolve the API call
+    act(() => resolveSchedule({ id: 'wf-1', nextRunAt: null }));
   });
 
   it('reverts the optimistic update when the API call fails', async () => {
@@ -169,6 +254,44 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     });
 
     expect(mocks.serviceUpdateSchedule).not.toHaveBeenCalled();
+  });
+
+  it('pauses schedules on canonical system workflows', async () => {
+    mocks.serviceList.mockResolvedValueOnce([
+      makeWorkflow({
+        id: 'system-wf',
+        isScheduleEnabled: true,
+        metadata: {
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: 'content-loop-autopilot',
+          }),
+        },
+        label: 'Content Loop Autopilot',
+        schedule: '0 8 * * *',
+        timezone: 'UTC',
+      }),
+    ]);
+    mocks.serviceUpdateSchedule.mockResolvedValueOnce({
+      id: 'system-wf',
+      isScheduleEnabled: false,
+      nextRunAt: null,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
+
+    const { result } = renderHook(() => useWorkflowLibraryPage());
+    await waitFor(() => expect(result.current.workflows).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.handleToggleSchedule('system-wf', false);
+    });
+
+    expect(mocks.serviceUpdateSchedule).toHaveBeenCalledWith('system-wf', {
+      isScheduleEnabled: false,
+      schedule: '0 8 * * *',
+      timezone: 'UTC',
+    });
+    expect(result.current.workflows[0]?.isScheduleEnabled).toBe(false);
   });
 
   it('disables schedules for every selected workflow that has a cadence', async () => {

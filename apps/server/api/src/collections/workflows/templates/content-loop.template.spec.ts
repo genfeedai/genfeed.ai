@@ -88,6 +88,43 @@ function definitionDeclaresHandle(
 }
 
 describe('CONTENT_LOOP_TEMPLATE', () => {
+  it('wires every analytics recommendation output into a downstream handle', () => {
+    expect(CONTENT_LOOP_TEMPLATE.edges).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'analytics-feedback',
+          sourceHandle: 'topTopics',
+          target: 'trend-trigger',
+          targetHandle: 'keywords',
+        }),
+        expect.objectContaining({
+          source: 'analytics-feedback',
+          sourceHandle: 'bestPlatform',
+          target: 'trend-trigger',
+          targetHandle: 'platform',
+        }),
+        expect.objectContaining({
+          source: 'analytics-feedback',
+          sourceHandle: 'topHooks',
+          target: 'prompt-constructor',
+          targetHandle: 'hooks',
+        }),
+        expect.objectContaining({
+          source: 'analytics-feedback',
+          sourceHandle: 'worstTopics',
+          target: 'prompt-constructor',
+          targetHandle: 'avoid',
+        }),
+        expect.objectContaining({
+          source: 'analytics-feedback',
+          sourceHandle: 'bestPostingTimes',
+          target: 'publish',
+          targetHandle: 'schedule',
+        }),
+      ]),
+    );
+  });
+
   it('keeps prompt and publish steps dependent on analytics feedback', () => {
     expect(
       CONTENT_LOOP_TEMPLATE.edges?.filter(

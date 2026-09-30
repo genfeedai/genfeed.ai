@@ -45,6 +45,19 @@ describe('GenfeedActionExecutor idempotency', () => {
     );
   });
 
+  it('passes the execution-owned brand instead of node config brand', async () => {
+    const actionExecutor = vi.fn().mockResolvedValue({ data: { ok: true } });
+    const executor = createGenfeedActionExecutor(actionExecutor);
+    const input = makeInput('search_knowledge', { brandId: 'workflow-brand' });
+    input.node.config.brandId = 'node-brand';
+
+    await executor.execute(input);
+
+    expect(actionExecutor.mock.calls[0]?.[0].context.brandId).toBe(
+      'workflow-brand',
+    );
+  });
+
   it('omits the idempotency key for actions declaring none', async () => {
     const actionExecutor = vi.fn().mockResolvedValue({ data: { ok: true } });
     const executor = createGenfeedActionExecutor(actionExecutor);

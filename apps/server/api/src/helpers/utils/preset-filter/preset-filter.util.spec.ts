@@ -30,6 +30,14 @@ describe('PresetFilterUtil', () => {
   });
 
   describe('canUserModifyPreset', () => {
+    it('allows superadmin to modify any preset', () => {
+      const canModify = PresetFilterUtil.canUserModifyPreset(
+        { isSuperAdmin: true },
+        { organizationId: null },
+      );
+      expect(canModify).toBe(true);
+    });
+
     it('blocks non-admin from modifying global presets', () => {
       const canModify = PresetFilterUtil.canUserModifyPreset(
         { isSuperAdmin: false, organizationId: 'org1' },
@@ -63,6 +71,16 @@ describe('PresetFilterUtil', () => {
 
       expect(enriched.organizationId).toBe(orgId);
       expect(enriched.brandId).toBe(brandId);
+    });
+
+    it('keeps null organization/brand for superadmin global presets', () => {
+      const enriched = PresetFilterUtil.enrichPresetDto(
+        { label: 'Global' },
+        { isSuperAdmin: true },
+      );
+
+      expect(enriched.organizationId).toBeNull();
+      expect(enriched.brandId).toBeNull();
     });
 
     it('converts provided organization/brand for superadmin org presets', () => {

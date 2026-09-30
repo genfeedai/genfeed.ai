@@ -3,6 +3,18 @@ import { ModelCategory } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
 describe('JsonPromptBuilder', () => {
+  it('copies the prompt and omits empty creative fields', () => {
+    expect(
+      JsonPromptBuilder.build({
+        modelCategory: ModelCategory.IMAGE,
+        prompt: 'a red bicycle',
+      }),
+    ).toEqual({
+      elements: {},
+      text: 'a red bicycle',
+    });
+  });
+
   it('includes creative elements, speech, and sounds when present', () => {
     const prompt = JsonPromptBuilder.build({
       camera: '35mm',

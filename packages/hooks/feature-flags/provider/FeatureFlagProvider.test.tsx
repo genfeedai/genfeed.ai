@@ -33,6 +33,27 @@ describe('FeatureFlagProvider', () => {
     expect(screen.getByTestId('ready')).toHaveTextContent('false');
   });
 
+  it('merges configured defaults and overrides over product fallbacks', () => {
+    function Consumer() {
+      const context = useFeatureFlagContext();
+      return <span data-testid="flags">{JSON.stringify(context.flags)}</span>;
+    }
+
+    render(
+      <FeatureFlagProvider
+        fallbacks={{ studio: false, workflows: true }}
+        defaults={{ studio: true }}
+        overrides={{ workflows: false }}
+      >
+        <Consumer />
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByTestId('flags')).toHaveTextContent(
+      JSON.stringify({ studio: true, workflows: false }),
+    );
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -106,6 +127,16 @@ describe('FeatureFlagProvider', () => {
     });
   });
 
+  it('renders children when no config is provided', () => {
+    render(
+      <FeatureFlagProvider defaults={{}}>
+        <span>child content</span>
+      </FeatureFlagProvider>,
+    );
+
+    expect(screen.getByText('child content')).toBeDefined();
+  });
+
   it('marks the provider as configured when defaults are provided', () => {
     let status: { isConfigured: boolean; isReady: boolean } | null = null;
 
@@ -123,5 +154,23 @@ describe('FeatureFlagProvider', () => {
 
     expect(screen.getByText('configured content')).toBeDefined();
     expect(status).toEqual({ isConfigured: true, isReady: true });
+  });
+
+  it('exposes flag values through context', () => {
+    let flags: Record<string, unknown> = {};
+
+    function Probe() {
+      const ctx = useFeatureFlagContext();
+      flags = ctx.flags;
+      return <span>test</span>;
+    }
+
+    render(
+      <FeatureFlagProvider defaults={{ analytics: true, beta: false }}>
+        <Probe />
+      </FeatureFlagProvider>,
+    );
+
+    expect(flags).toEqual({ analytics: true, beta: false });
   });
 });

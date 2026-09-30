@@ -133,6 +133,98 @@ describe('OrgLandingContent', () => {
     });
   });
 
+  it('routes incomplete Community users to the shared brand step before a seeded project', async () => {
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
+  it('keeps self-hosted desktop org-root navigation on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
+  it('routes incomplete SaaS users to the shared brand step', async () => {
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
+  it('keeps cloud-connected desktop org-root navigation on the classic wizard', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', 'true');
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    };
+    mocks.brandState.brands = [
+      {
+        id: 'brand_1',
+        label: 'Default Organization',
+        slug: 'default',
+        totalCredentials: 0,
+      },
+    ];
+
+    render(<OrgLandingContent />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/onboarding/brand');
+    });
+  });
+
   it('renders the project picker when multiple projects exist', () => {
     mocks.brandState.brands = [
       {

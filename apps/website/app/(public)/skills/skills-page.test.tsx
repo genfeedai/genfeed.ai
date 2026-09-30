@@ -169,6 +169,12 @@ describe('SkillsContent', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Platform Warmup')).toBeInTheDocument();
   });
+
+  it('hides the premium section for an empty registry', () => {
+    render(<SkillsContent initialRegistry={registry({ skills: [] })} />);
+
+    expect(screen.queryByText('Pro Skills')).not.toBeInTheDocument();
+  });
 });
 
 describe('InstallCommand', () => {

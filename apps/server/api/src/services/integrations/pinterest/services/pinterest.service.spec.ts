@@ -81,6 +81,10 @@ describe('PinterestService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('generateAuthUrl builds url', () => {
     const url = service.generateAuthUrl('state');
     expect(url).toContain('client_id=client');

@@ -124,6 +124,27 @@ describe('Slack Bot Manager Integration Flow', () => {
       expect(service.getActiveCount()).toBe(1);
     });
 
+    it('should create Slack App with socket mode config', async () => {
+      await service.initialize();
+
+      // Verify App was constructed with correct config
+      const { App } = await import('@slack/bolt');
+      expect(App).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appToken: 'mock-slack-app-token',
+          socketMode: true,
+          token: 'mock-bot-token-test-123',
+        }),
+      );
+    });
+
+    it('should register command handlers on bot creation', async () => {
+      await service.initialize();
+
+      // Should register slash commands
+      expect(mockApp.command).toHaveBeenCalled();
+    });
+
     it('should handle integration lifecycle: add -> update -> remove', async () => {
       // Step 1: Add integration
       await service.addIntegration(mockIntegration);
@@ -227,6 +248,15 @@ describe('Slack Bot Manager Integration Flow', () => {
         'Socket mode failed',
       );
 
+      expect(service.getActiveCount()).toBe(0);
+    });
+
+    it('should handle API fetch failure during initialization', async () => {
+      httpService.get.mockReturnValue(of({ data: [] }));
+
+      await service.initialize();
+
+      // Should initialize successfully with no bots
       expect(service.getActiveCount()).toBe(0);
     });
   });

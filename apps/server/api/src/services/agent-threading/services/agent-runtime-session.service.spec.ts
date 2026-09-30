@@ -73,6 +73,10 @@ describe('AgentRuntimeSessionService', () => {
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('upsertBinding', () => {
     it('should return the created binding document without relation aliases', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
@@ -206,6 +210,19 @@ describe('AgentRuntimeSessionService', () => {
       );
     });
 
+    it('should return null when snapshot returns null-like', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(null);
+
+      const result = await service.upsertBinding({
+        organizationId,
+        status: 'active',
+        threadId,
+      });
+
+      expect(result).toBeNull();
+    });
+
     it('should propagate errors from prisma', async () => {
       mockPrisma.agentThreadSnapshot.findFirst.mockRejectedValue(
         new Error('DB error'),
@@ -300,6 +317,15 @@ describe('AgentRuntimeSessionService', () => {
         expect.objectContaining({ organizationId, runId, threadId }),
       );
     });
+
+    it('should work without a runId', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
+
+      await service.markCancelled(threadId, organizationId);
+
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
+    });
   });
 
   describe('optional runtime binding helpers', () => {
@@ -334,6 +360,19 @@ describe('AgentRuntimeSessionService', () => {
 
       expect(mockPrisma.agentThreadSnapshot.findFirst).not.toHaveBeenCalled();
       expect(mockPrisma.agentThreadSnapshot.create).not.toHaveBeenCalled();
+    });
+
+    it('upsertRuntimeBinding delegates when service is present', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
+
+      await upsertRuntimeBinding(service, {
+        organizationId,
+        status: 'running',
+        threadId,
+      });
+
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
     });
   });
 });

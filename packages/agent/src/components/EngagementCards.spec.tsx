@@ -220,6 +220,14 @@ describe('BrandInterviewOfferCard', () => {
       expect(screen.getByText('Interview started.')).toBeInTheDocument(),
     );
   });
+
+  it('hides the start button without a start CTA', () => {
+    render(<BrandInterviewOfferCard action={makeAction({ ctas: [] })} />);
+
+    expect(
+      screen.queryByRole('button', { name: /start interview/i }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe('ContentCalendarCard', () => {
@@ -246,5 +254,11 @@ describe('ContentCalendarCard', () => {
 
     fireEvent.click(screen.getByRole('button'));
     expect(onFillGap).toHaveBeenCalledWith('2026-04-07');
+  });
+
+  it('renders an empty state without calendar days', () => {
+    render(<ContentCalendarCard action={makeAction({ calendarDays: [] })} />);
+
+    expect(screen.getByText('No calendar data available')).toBeInTheDocument();
   });
 });

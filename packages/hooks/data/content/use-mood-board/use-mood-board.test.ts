@@ -62,6 +62,14 @@ describe('useMoodBoard', () => {
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
+  it('does not fetch without a brand id', () => {
+    mockUseBrand.mockReturnValue({ brandId: undefined });
+
+    renderHook(() => useMoodBoard(), { wrapper: createQueryWrapper() });
+
+    expect(mockGetService).not.toHaveBeenCalled();
+  });
+
   it('saves a layout patch for the loaded board', async () => {
     const { result } = renderHook(() => useMoodBoard(), {
       wrapper: createQueryWrapper(),

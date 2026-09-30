@@ -242,6 +242,32 @@ describe('StudioGenerateCard', () => {
     expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
   });
 
+  it('reuses the behavior-rich masonry video for hydrated clips', () => {
+    const ingredient = {
+      category: IngredientCategory.VIDEO,
+      id: generatedJob.id,
+      promptText: generatedJob.prompt,
+      status: IngredientStatus.GENERATED,
+    } as IVideo;
+
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          ingredient,
+          type: 'video',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(screen.getByTestId('shared-masonry-video')).toBeInTheDocument();
+  });
+
   it('hands hydrated video results the Library video transformations plus editor and resize', () => {
     const assetActions = buildAssetActions();
     const ingredient = {
@@ -277,6 +303,29 @@ describe('StudioGenerateCard', () => {
       'href',
       `/my-org/my-brand/studio/clips/new?video=${ingredient.id}`,
     );
+  });
+
+  it('keeps video transformations off until the clip is a persisted asset', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{
+          ...generatedJob,
+          type: 'video',
+          url: 'https://cdn.example.com/video.mp4',
+        }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+
+    expect(masonryMocks.video.mock.calls.at(-1)?.[0].isActionsEnabled).toBe(
+      false,
+    );
+    expect(
+      screen.queryByRole('link', { name: 'Make clips' }),
+    ).not.toBeInTheDocument();
   });
 
   it('links a transformation to its source with a keyboard-operable control', () => {
@@ -322,6 +371,22 @@ describe('StudioGenerateCard', () => {
     expect(onSelect).toHaveBeenCalledWith(parentJob);
   });
 
+  it('shows no source link when the parent is not in the gallery', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, parentId: 'missing-source' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.LIST}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', { name: /Show the source/ }),
+    ).toBeNull();
+  });
+
   it.each(['image', 'video'] as const)(
     'uses masonry for %s URLs before ingredient hydration',
     (type) => {
@@ -347,6 +412,21 @@ describe('StudioGenerateCard', () => {
       });
     },
   );
+
+  it('reports video errors through the shared fallback before hydration', () => {
+    render(
+      <StudioGenerateCard
+        assetActions={buildAssetActions()}
+        job={{ ...generatedJob, type: 'video' }}
+        onReprompt={vi.fn()}
+        onSelect={vi.fn()}
+        view={ViewType.GRID}
+      />,
+    );
+    const props = masonryMocks.video.mock.calls.at(-1)?.[0];
+    act(() => props?.onMediaError?.());
+    expect(screen.getByText('Preview unavailable')).toBeInTheDocument();
+  });
 
   it('uses shared audio transport without selecting the generation when playing', () => {
     const onSelect = vi.fn();

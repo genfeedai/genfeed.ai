@@ -74,6 +74,10 @@ describe('DiscordService', () => {
     service = module.get<DiscordService>(DiscordService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('generateAuthUrl', () => {
     it('should generate a valid Discord OAuth URL with correct params', () => {
       const url = service.generateAuthUrl('test-state');

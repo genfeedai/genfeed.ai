@@ -71,6 +71,26 @@ describe('api/client', () => {
       expect(mockFetch).toHaveBeenCalledWith('/test', { method: 'GET' });
       expect(result).toEqual({ data: 'test' });
     });
+
+    it('returns response data', async () => {
+      mockFetch.mockResolvedValue({ users: [{ id: 1 }] });
+
+      const result = await get<{ users: { id: number }[] }>('/users');
+
+      expect(result.users).toHaveLength(1);
+    });
+
+    it('forwards an abort signal', async () => {
+      const controller = new AbortController();
+      mockFetch.mockResolvedValue({ data: 'test' });
+
+      await get('/test', { signal: controller.signal });
+
+      expect(mockFetch).toHaveBeenCalledWith('/test', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+    });
   });
 
   describe('post', () => {
@@ -125,6 +145,13 @@ describe('api/client', () => {
   });
 
   describe('client configuration', () => {
+    it('uses the configured base URL', async () => {
+      mockFetch.mockResolvedValue({});
+      await get('/anything');
+
+      expect(lastClientOptions().baseURL).toBe('https://api.genfeed.ai/v1');
+    });
+
     it('adds bearer authorization while preserving existing headers', async () => {
       mockApiKey.mockReturnValue('secret-key');
       mockFetch.mockResolvedValue({});

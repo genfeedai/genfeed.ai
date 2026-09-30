@@ -61,6 +61,10 @@ describe('LaunchCopyController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('generates copy when the brand is accessible', async () => {
     brandsService.findOne.mockResolvedValue({ _id: dto.brandId });
     generatorService.generate.mockResolvedValue({

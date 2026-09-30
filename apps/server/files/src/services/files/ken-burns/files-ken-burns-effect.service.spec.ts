@@ -80,6 +80,10 @@ describe('FilesKenBurnsEffectService', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('generateKenBurnsVideo / applyKenBurnsEffect', () => {
     it('generates slides, merges transitions, and returns the final video path', async () => {
       const result = await service.applyKenBurnsEffect(
@@ -111,6 +115,22 @@ describe('FilesKenBurnsEffectService', () => {
           'ingredient-1',
         ),
       ).rejects.toThrow('No image files found in the specified directory');
+    });
+
+    it('uses default slide text, dimensions, and font when no options are provided', async () => {
+      filesService.getSortedFiles.mockReturnValue(['1.jpeg']);
+
+      await service.applyKenBurnsEffect(
+        'https://example.com/image.jpg',
+        4,
+        'ingredient-1',
+      );
+
+      expect(ffmpegService.generateKenBurnsSlide).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({ dimensions: { height: 1920, width: 1080 } }),
+      );
     });
 
     it('writes clips to the clips directory when isClipSelected is true', async () => {
@@ -218,6 +238,20 @@ describe('FilesKenBurnsEffectService', () => {
           ],
         }),
       );
+    });
+
+    it('skips missing srt files without reading them', async () => {
+      (fs.readdirSync as Mock).mockReturnValue(['0.mp3']);
+      (fs.existsSync as Mock).mockReturnValue(false);
+
+      await service.applyKenBurnsEffect(
+        'https://example.com/image.jpg',
+        3,
+        'ingredient-1',
+        { dimensions, slideText },
+      );
+
+      expect(fs.readFileSync).not.toHaveBeenCalled();
     });
 
     it('ignores non-mp3 files in the voice directory', async () => {

@@ -51,6 +51,34 @@ describe('StripeWebhookBillingService', () => {
     accounts.resolveForOrganization.mockResolvedValue(account);
   });
 
+  it.each(['cus_1', { id: 'cus_1' }])(
+    'resolves metadata-free persisted identity: %j',
+    async (reference) => {
+      expect(await service.resolve({ ...input, customer: reference })).toEqual({
+        subscription,
+        stripeCustomerId: 'cus_1',
+        stripeSubscriptionId: 'sub_1',
+        customerBillingAccountId: null,
+        billingAccountId: 'ba_1',
+      });
+    },
+  );
+  it.each(['subscription', 'customer'])(
+    'accepts production checkout organization metadata through persisted %s identity',
+    async (path) => {
+      if (path === 'customer')
+        prisma.subscription.findMany.mockResolvedValueOnce([]);
+      await expect(
+        service.resolve({
+          ...input,
+          metadata: {
+            billing_account_type: 'organization',
+            billing_organization_id: 'org_1',
+          },
+        }),
+      ).resolves.toMatchObject({ billingAccountId: 'ba_1' });
+    },
+  );
   it('does not use the organization marker as metadata-only routing authority', async () => {
     prisma.subscription.findMany.mockResolvedValue([]);
     prisma.customer.findMany.mockResolvedValue([]);
@@ -62,6 +90,21 @@ describe('StripeWebhookBillingService', () => {
     ).rejects.toMatchObject({ code: 'identity_missing' });
     expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
   });
+  it.each(['billing_organization_id', 'organizationId', 'billing_account_id'])(
+    'rejects mismatched %s with production organization metadata',
+    async (key) => {
+      await expect(
+        service.resolve({
+          ...input,
+          metadata: {
+            billing_account_type: 'organization',
+            billing_organization_id: 'org_1',
+            [key]: 'other',
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'identity_conflict' });
+    },
+  );
   it('uses bounded scoped persisted-customer fallback without provider metadata', async () => {
     prisma.subscription.findMany.mockResolvedValueOnce([]);
     await service.resolve(input);
@@ -97,6 +140,25 @@ describe('StripeWebhookBillingService', () => {
         service.resolve({ ...input, customer: reference }),
       ).rejects.toMatchObject({ code: 'invalid_payload' });
       expect(prisma.subscription.findMany).not.toHaveBeenCalled();
+    },
+  );
+  it.each([undefined, null, '', ' ', {}])(
+    'rejects invalid subscription identifier %j',
+    async (id) => {
+      await expect(
+        service.resolve({ ...input, stripeSubscriptionId: id }),
+      ).rejects.toMatchObject({ code: 'invalid_payload' });
+    },
+  );
+  it.each(['id', 'organizationId', 'userId', 'customerId'])(
+    'requires canonical subscription scalar %s',
+    async (key) => {
+      prisma.subscription.findMany.mockResolvedValue([
+        { ...subscription, [key]: '' },
+      ]);
+      await expect(service.resolve(input)).rejects.toMatchObject({
+        code: 'identity_missing',
+      });
     },
   );
   it.each([
@@ -325,6 +387,18 @@ describe('StripeWebhookBillingService', () => {
       },
     });
   });
+  it.each([0, 2])(
+    'rejects guarded write count %s as a retryable stale identity',
+    async (count) => {
+      prisma.subscription.updateMany.mockResolvedValue({ count });
+      await expect(
+        service.persist(await service.resolve(input), {
+          status: 'ACTIVE',
+          stripeSubscriptionId: 'sub_1',
+        }),
+      ).rejects.toMatchObject({ code: 'identity_stale', isRetryable: true });
+    },
+  );
   it('classifies persistence P2002 as retryable conflict while preserving other failures', async () => {
     const identity = await service.resolve(input);
     prisma.subscription.updateMany.mockRejectedValueOnce({ code: 'P2002' });
@@ -347,6 +421,12 @@ describe('StripeWebhookBillingService', () => {
     'rejects invalid timestamp %j',
     (value) => {
       expect(() => stripeWebhookPeriod(value)).toThrow();
+    },
+  );
+  it.each([undefined, null])(
+    'treats an absent timestamp %j as no period boundary',
+    (value) => {
+      expect(stripeWebhookPeriod(value)).toBeUndefined();
     },
   );
   it('keeps zero as the Unix epoch', () => {

@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { decodeWorkflowNodeTransfer } from './paletteTransfer';
+import {
+  decodeWorkflowNodeTransfer,
+  encodeWorkflowNodeTransfer,
+} from './paletteTransfer';
 
 describe('workflow node palette transfer', () => {
+  it('round-trips an action-bound node payload', () => {
+    const encoded = encodeWorkflowNodeTransfer({
+      actionId: 'imageGen',
+      label: 'Generate Image',
+      type: 'genfeedAction',
+    });
+
+    expect(decodeWorkflowNodeTransfer(encoded)).toEqual({
+      actionId: 'imageGen',
+      label: 'Generate Image',
+      type: 'genfeedAction',
+      version: 1,
+    });
+  });
+
   it.each([
     '',
     'not json',

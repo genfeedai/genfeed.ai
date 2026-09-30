@@ -20,4 +20,9 @@ describe('ModelSelectorQualityBar', () => {
       '1',
     );
   });
+
+  it('renders nothing without a quality tier', () => {
+    const { container } = render(<ModelSelectorQualityBar />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

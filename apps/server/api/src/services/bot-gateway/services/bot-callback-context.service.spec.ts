@@ -100,6 +100,19 @@ describe('BotCallbackContextService', () => {
     await expect(service.get(ingredientId)).resolves.toEqual(storedContext);
   });
 
+  it('returns undefined when nothing is stored', async () => {
+    await expect(service.get('missing')).resolves.toBeUndefined();
+  });
+
+  it('ignores stored values that are not a bot callback context', async () => {
+    redisValues.set(key, {
+      expiresAtMs: Date.now() + 86_400_000,
+      value: JSON.stringify({ platform: 'whatsapp' }),
+    });
+
+    await expect(service.get(ingredientId)).resolves.toBeUndefined();
+  });
+
   it('claims the record once and nothing on a second claim', async () => {
     await service.store(ingredientId, callbackContext);
 

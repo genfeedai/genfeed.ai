@@ -79,4 +79,19 @@ describe('MetadataService', () => {
       }),
     });
   });
+
+  it('drops invalid relation IDs instead of persisting legacy identifiers', async () => {
+    await service.create({
+      extension: ApiMetadataExtension.JPEG,
+      promptId: '000000000000000000000001',
+      tags: ['000000000000000000000002'],
+    });
+
+    expect(metadata.create).toHaveBeenCalledWith({
+      data: {
+        extension: PrismaMetadataExtension.JPEG,
+        label: 'Generated media',
+      },
+    });
+  });
 });

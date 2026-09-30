@@ -60,4 +60,16 @@ describe('persistComposerGenerationSource', () => {
     ).rejects.toThrow();
     expect(addMessage).not.toHaveBeenCalled();
   });
+  it('propagates source persistence failure before returning a dispatch identity', async () => {
+    await expect(
+      persistComposerGenerationSource(
+        state,
+        'image',
+        { findOne: vi.fn().mockResolvedValue({ contextVersion: 1 }) } as never,
+        {
+          addMessage: vi.fn().mockRejectedValue(new Error('storage failed')),
+        } as never,
+      ),
+    ).rejects.toThrow('storage failed');
+  });
 });

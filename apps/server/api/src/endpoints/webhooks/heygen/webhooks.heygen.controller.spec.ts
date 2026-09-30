@@ -74,7 +74,26 @@ describe('HeygenWebhookController', () => {
     loggerService = module.get(LoggerService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('handleCallback', () => {
+    it('verifies the signature against the untouched request bytes', async () => {
+      const body = {
+        callback_id: 'cb_123',
+        event_type: 'avatar_video.success',
+      };
+
+      await controller.handleCallback(signedRequest(body));
+
+      expect(verificationService.assertSignature).toHaveBeenCalledWith(
+        Buffer.from(JSON.stringify(body)),
+        'deadbeef',
+        '1770000000',
+      );
+    });
+
     it('handles callback successfully and returns webhook received', async () => {
       const body = { callback_id: 'cb_123', video_id: 'vid_123' };
       heygenWebhookService.handleCallback.mockResolvedValue(undefined);
@@ -178,6 +197,14 @@ describe('HeygenWebhookController', () => {
       expect(verificationService.releaseReplayClaim).toHaveBeenCalledWith(
         'evt_1',
       );
+    });
+
+    it('keeps the replay claim when callback handling succeeds', async () => {
+      heygenWebhookService.handleCallback.mockResolvedValue(undefined);
+
+      await controller.handleCallback(signedRequest({ callback_id: 'cb_789' }));
+
+      expect(verificationService.releaseReplayClaim).not.toHaveBeenCalled();
     });
 
     it('processes a retried delivery whose first attempt failed', async () => {

@@ -129,6 +129,14 @@ describe('ExpertPositioningService', () => {
       );
       expect(answers).toEqual({ originStory: 'Second version' });
     });
+
+    it('returns an empty object when there are no stored entries', async () => {
+      brandMemoryService.listTypedEntries.mockResolvedValue([]);
+
+      await expect(service.readAnswers('org-1', 'brand-1')).resolves.toEqual(
+        {},
+      );
+    });
   });
 
   describe('generateDraft', () => {

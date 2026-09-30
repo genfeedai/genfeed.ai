@@ -1,5 +1,6 @@
 import * as LazyModals from '@ui/lazy/modal/LazyModal';
 import '@testing-library/jest-dom/vitest';
+import { render, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock next/dynamic
@@ -50,6 +51,18 @@ describe('LazyModal', () => {
     it('should export LazyModalVideo', () => {
       expect(LazyModals.LazyModalVideo).toBeDefined();
       expect(typeof LazyModals.LazyModalVideo).toBe('function');
+    });
+
+    it('should render LazyIngredientOverlay when mounted', async () => {
+      const { getByTestId } = render(
+        <LazyModals.LazyIngredientOverlay
+          ingredient={null}
+          onConfirm={() => {}}
+        />,
+      );
+      await waitFor(() => {
+        expect(getByTestId('lazy-component')).toBeInTheDocument();
+      });
     });
   });
 
@@ -167,5 +180,11 @@ describe('LazyModal', () => {
     exports.forEach((exportedItem) => {
       expect(typeof exportedItem).toBe('function');
     });
+  });
+
+  it('should have correct number of exported modals', () => {
+    const exports = Object.keys(LazyModals);
+    // 46 -> 47: LazyModalNewsletter added for manual newsletter creation (#5349).
+    expect(exports.length).toBe(47); // Count of all exported modals
   });
 });

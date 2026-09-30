@@ -87,6 +87,10 @@ describe('ReplyBotConfigsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('testReplyGeneration', () => {
     it('should delegate to orchestrator service and return generated reply', async () => {
       const mockReply = { replyText: 'Hello there!' };

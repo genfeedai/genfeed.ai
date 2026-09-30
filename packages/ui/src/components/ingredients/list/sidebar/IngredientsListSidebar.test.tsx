@@ -21,6 +21,18 @@ describe('IngredientsListSidebar', () => {
     scope: PageScope.ORGANIZATION,
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<IngredientsListSidebar {...baseProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    render(<IngredientsListSidebar {...baseProps} />);
+    expect(
+      document.querySelector('[data-testid="folders-sidebar-panel"]'),
+    ).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<IngredientsListSidebar {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;

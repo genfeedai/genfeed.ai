@@ -52,6 +52,24 @@ describe('RemotionRenderCancellationService', () => {
     );
   });
 
+  it('routes a remote cancellation event to the owning worker', async () => {
+    const service = new RemotionRenderCancellationService(
+      redisService as never,
+      logger as never,
+    );
+    const cancel = vi.fn();
+    service.register('job-123', cancel);
+    await service.onModuleInit();
+    const handler = redisService.subscribe.mock.calls[0]?.[1];
+
+    handler?.({
+      jobId: 'job-123',
+      requestedAt: '2026-07-19T00:00:00.000Z',
+    });
+
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it('applies a cancellation that arrives before renderer registration', async () => {
     vi.useFakeTimers();
     const service = new RemotionRenderCancellationService(

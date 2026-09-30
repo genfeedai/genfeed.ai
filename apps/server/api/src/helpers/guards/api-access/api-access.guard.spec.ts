@@ -72,6 +72,10 @@ describe('ApiAccessGuard', () => {
     vi.unstubAllEnvs();
   });
 
+  it('is defined', () => {
+    expect(guard).toBeDefined();
+  });
+
   describe('managed cloud (enforced)', () => {
     it('throws 401 when no user in request', () => {
       const ctx = buildContext(null);
@@ -102,6 +106,18 @@ describe('ApiAccessGuard', () => {
           },
         });
       }
+    });
+
+    it('blocks the retired byok tier', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('byok');
+      const ctx = buildContext(buildUser());
+      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    });
+
+    it('blocks an unknown/empty tier (default-deny)', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('');
+      const ctx = buildContext(buildUser());
+      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
 
     it.each([
@@ -148,6 +164,15 @@ describe('ApiAccessGuard', () => {
     beforeEach(() => {
       vi.stubEnv('GENFEED_CLOUD', undefined);
     });
+
+    it.each([SubscriptionTier.FREE, 'byok'])(
+      'allows %s tier off cloud (no managed tiers/billing)',
+      (tier) => {
+        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+        const ctx = buildContext(buildUser());
+        expect(guard.canActivate(ctx)).toBe(true);
+      },
+    );
 
     it('allows even with no user off cloud', () => {
       const ctx = buildContext(null);

@@ -45,6 +45,13 @@ export interface CollectionSectionProps {
   'data-testid'?: string;
 }
 
+export interface CollectionCarouselSectionProps
+  extends Omit<CollectionSectionProps, 'children'> {
+  gap?: 'sm' | 'md' | 'lg';
+  /** Rail items; each should be `shrink-0` with a fixed or clamped width. */
+  children: ReactNode;
+}
+
 export interface CollectionGridProps {
   maxColumns?: CollectionMaxColumns;
   density?: CollectionGridDensity;

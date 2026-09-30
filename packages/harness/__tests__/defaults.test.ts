@@ -65,6 +65,20 @@ describe('CORE_CONTENT_HARNESS_PACK', () => {
     );
   });
 
+  it('mentions the platform in evaluation criteria when provided', () => {
+    const contribution = contribute({
+      intent: {
+        contentType: 'thread',
+        objective: 'engagement',
+        platform: 'twitter',
+      },
+    });
+
+    expect(contribution.evaluationCriteria).toContain(
+      'Platform fit: the output should read naturally on twitter.',
+    );
+  });
+
   it('builds system directives from brand, topic, and offer', () => {
     const contribution = contribute({
       brandName: 'Acme',

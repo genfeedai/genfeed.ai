@@ -98,6 +98,38 @@ describe('ClipsWorkspace with the real page-help provider', () => {
     mocks.useStudioClipsPage.mockReturnValue(baseClipsPageState());
   });
 
+  it('keeps SectionTopbar mounted while projects are loading', () => {
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: true,
+      projects: [],
+    });
+
+    renderWithRealPageHelp();
+
+    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
+  });
+
+  it('keeps SectionTopbar mounted once the project list resolves empty', () => {
+    mocks.useStudioClipProjects.mockReturnValue({
+      error: null,
+      isLoading: false,
+      projects: [],
+    });
+
+    renderWithRealPageHelp();
+
+    expect(screen.getByTestId('section-topbar')).toBeInTheDocument();
+    expect(screen.getByTestId('container')).toHaveAttribute(
+      'data-module-chrome',
+      'section-topbar',
+    );
+  });
+
   it('does not flip module chrome across loading, empty, and populated states', () => {
     mocks.useStudioClipProjects.mockReturnValue({
       error: null,

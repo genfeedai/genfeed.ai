@@ -24,6 +24,10 @@ describe('entity id helpers', () => {
     expect(entityIdSchema.parse(id)).toBe(id);
   });
 
+  it('trims identifiers before returning validated data', () => {
+    expect(entityIdSchema.parse(`  ${CUID_FIXTURE}  `)).toBe(CUID_FIXTURE);
+  });
+
   it.each([
     '',
     OBJECT_ID_FIXTURE,

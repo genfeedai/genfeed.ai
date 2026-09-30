@@ -22,6 +22,9 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 
 describe('EvaluationsOperationsService', () => {
   let service: EvaluationsOperationsService;
+  let _configService: ConfigService;
+  let _replicateService: ReplicateService;
+  let _promptBuilderService: PromptBuilderService;
   let loggerService: LoggerService;
 
   const mockServices = {
@@ -86,11 +89,19 @@ describe('EvaluationsOperationsService', () => {
     service = module.get<EvaluationsOperationsService>(
       EvaluationsOperationsService,
     );
+    _configService = module.get<ConfigService>(ConfigService);
+    _replicateService = module.get<ReplicateService>(ReplicateService);
+    _promptBuilderService =
+      module.get<PromptBuilderService>(PromptBuilderService);
     loggerService = module.get<LoggerService>(LoggerService);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('BYOK dispatch (#5380)', () => {

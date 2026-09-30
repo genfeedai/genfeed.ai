@@ -84,6 +84,10 @@ describe('HookRemixService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('createHookRemix', () => {
     it('should create a hook remix and return queued status', async () => {
       ingredientsFindOneMock.mockResolvedValue(mockIngredient);
@@ -103,6 +107,19 @@ describe('HookRemixService', () => {
       });
     });
 
+    it('should use default hookDurationSeconds of 3 when not provided', async () => {
+      ingredientsFindOneMock.mockResolvedValue(mockIngredient);
+      httpPostMock.mockReturnValue(of({ data: {} }));
+
+      const result = await service.createHookRemix(
+        { ...baseHookRemixDto },
+        userId,
+        organizationId,
+      );
+
+      expect(result.hookDurationSeconds).toBe(3);
+    });
+
     it('should use custom hookDurationSeconds when provided', async () => {
       ingredientsFindOneMock.mockResolvedValue(mockIngredient);
       httpPostMock.mockReturnValue(of({ data: {} }));
@@ -114,6 +131,19 @@ describe('HookRemixService', () => {
       );
 
       expect(result.hookDurationSeconds).toBe(7);
+    });
+
+    it('should fall back to generated jobId when server returns none', async () => {
+      ingredientsFindOneMock.mockResolvedValue(mockIngredient);
+      httpPostMock.mockReturnValue(of({ data: {} }));
+
+      const result = await service.createHookRemix(
+        baseHookRemixDto,
+        userId,
+        organizationId,
+      );
+
+      expect(result.jobId).toBe('mock-uuid-1234');
     });
 
     it('should throw NotFoundException when CTA ingredient is not found', async () => {
@@ -145,6 +175,24 @@ describe('HookRemixService', () => {
         service.createHookRemix(baseHookRemixDto, userId, organizationId),
       ).rejects.toThrow('Files service down');
     });
+
+    it('should post to the correct files service URL', async () => {
+      ingredientsFindOneMock.mockResolvedValue(mockIngredient);
+      httpPostMock.mockReturnValue(of({ data: {} }));
+
+      await service.createHookRemix(baseHookRemixDto, userId, organizationId);
+
+      expect(httpPostMock).toHaveBeenCalledWith(
+        'http://localhost:3012/v1/files/process/hook-remix',
+        expect.objectContaining({
+          brandId,
+          ctaVideoUrl: mockIngredient.cdnUrl,
+          organizationId,
+          userId,
+          youtubeUrl: baseHookRemixDto.youtubeUrl,
+        }),
+      );
+    });
   });
 
   describe('createBatchHookRemix', () => {
@@ -172,6 +220,19 @@ describe('HookRemixService', () => {
       expect(result.queued).toBe(2);
       expect(result.failed).toBe(0);
       expect(result.jobs).toHaveLength(2);
+    });
+
+    it('should include batchId in result', async () => {
+      ingredientsFindOneMock.mockResolvedValue(mockIngredient);
+      httpPostMock.mockReturnValue(of({ data: {} }));
+
+      const result = await service.createBatchHookRemix(
+        batchDto,
+        userId,
+        organizationId,
+      );
+
+      expect(result.batchId).toBe('mock-uuid-1234');
     });
 
     it('should label jobs with prefix and index', async () => {

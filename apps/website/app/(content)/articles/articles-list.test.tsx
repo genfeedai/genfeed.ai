@@ -46,6 +46,17 @@ describe('ArticlesList pagination', () => {
     );
   });
 
+  it('shows no page links when there are no articles', () => {
+    render(
+      <ArticlesList
+        articles={[]}
+        pagination={{ page: 1, total: 0, totalPages: 1 }}
+      />,
+    );
+
+    expect(screen.queryByText('0 articles')).toBeNull();
+  });
+
   it('links back from a page past the end', () => {
     render(
       <ArticlesList

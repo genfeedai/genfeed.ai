@@ -6,6 +6,7 @@ import {
   SubscriptionTier,
 } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
+import { ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const configMocks = vi.hoisted(() => ({
@@ -120,6 +121,22 @@ describe('OrganizationPaidAccessService', () => {
     // The organization's own row already grants access — the billing
     // account round trip must not run.
     expect(prisma.organization.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('grants access through a linked billing account subscription (#5293)', async () => {
+    const prisma = createFakePrisma({
+      billingAccount: {
+        id: 'ba-1',
+        isDeleted: false,
+        planTier: null,
+      },
+      billingAccountSubscriptions: [activeSubscription()],
+      organization: { billingAccountId: 'ba-1', isDeleted: false },
+      ownSubscriptions: [],
+    });
+    const { service } = createService(prisma);
+
+    await expect(service.hasPaidSubscription('org-1')).resolves.toBe(true);
   });
 
   it("does not grant access from a linked billing account's own planTier when it has no subscription row (adversarial check, #5293)", async () => {
@@ -253,5 +270,34 @@ describe('OrganizationPaidAccessService', () => {
 
     await expect(service.hasPaidSubscription('org-1')).resolves.toBe(false);
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('caches a granted decision for the TTL window', async () => {
+    const prisma = createFakePrisma({
+      ownSubscriptions: [activeSubscription()],
+    });
+    const { service } = createService(prisma);
+
+    await service.hasPaidSubscription('org-1');
+    await service.hasPaidSubscription('org-1');
+
+    expect(prisma.subscription.findMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes ConflictException as a real thrown type from the ambiguous-link path', async () => {
+    // Sanity check on the fixture itself: an ambiguous multi-link
+    // organization is a genuine data-integrity conflict, not a "not
+    // linked" outcome, so it must not be swallowed as a soft no-grant.
+    const prisma = createFakePrisma({
+      billingAccountOrganizationLinks: [
+        { billingAccountId: 'ba-1' },
+        { billingAccountId: 'ba-2' },
+      ],
+      organization: { billingAccountId: null, isDeleted: false },
+    });
+    const { resolveBillingAccountAccess } = await import('@api/index');
+    await expect(
+      resolveBillingAccountAccess('org-1', prisma as never),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

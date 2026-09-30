@@ -8,8 +8,18 @@ describe('parseCadencePhrase', () => {
     );
   });
 
+  it('parses "each day at 8"', () => {
+    expect(parseCadencePhrase('each day at 8')?.schedule).toBe('0 8 * * *');
+  });
+
   it('parses "daily at 8:30am"', () => {
     expect(parseCadencePhrase('daily at 8:30am')?.schedule).toBe('30 8 * * *');
+  });
+
+  it('parses "every morning" onto the canonical morning hour', () => {
+    expect(
+      parseCadencePhrase('audit my timeline every morning')?.schedule,
+    ).toBe('0 9 * * *');
   });
 
   it('parses "each evening" onto the canonical evening hour', () => {
@@ -21,6 +31,12 @@ describe('parseCadencePhrase', () => {
   it('prefers an explicit time over the day-part default', () => {
     expect(parseCadencePhrase('every morning at 7')?.schedule).toBe(
       '0 7 * * *',
+    );
+  });
+
+  it('parses "every weekday at 9am"', () => {
+    expect(parseCadencePhrase('every weekday at 9am')?.schedule).toBe(
+      '0 9 * * 1-5',
     );
   });
 
@@ -46,6 +62,10 @@ describe('parseCadencePhrase', () => {
     const parsed = parseCadencePhrase('every day at 9am europe/paris');
     expect(parsed?.schedule).toBe('0 9 * * *');
     expect(parsed?.timezone).toBe('europe/paris');
+  });
+
+  it('returns null for an ambiguous phrase so callers ask instead of guessing', () => {
+    expect(parseCadencePhrase('run this every day')).toBeNull();
   });
 
   it('returns null when no cadence phrase is present', () => {

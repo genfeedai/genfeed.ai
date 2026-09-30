@@ -5,6 +5,38 @@ import {
 } from './authorization-header';
 
 describe('parseAuthorizationHeader', () => {
+  it('parses a well-formed header into scheme and token', () => {
+    expect(parseAuthorizationHeader('Bearer gf_1234567890abcdef')).toEqual({
+      normalizedScheme: 'bearer',
+      scheme: 'Bearer',
+      token: 'gf_1234567890abcdef',
+    });
+  });
+
+  it('preserves the scheme as presented and normalizes it for comparisons', () => {
+    expect(parseAuthorizationHeader('ApiKey gf_1234567890abcdef')).toEqual({
+      normalizedScheme: 'apikey',
+      scheme: 'ApiKey',
+      token: 'gf_1234567890abcdef',
+    });
+  });
+
+  it('normalizes a mixed-case scheme (RFC 7235 scheme names are case-insensitive)', () => {
+    expect(parseAuthorizationHeader('bEaReR gf_1234567890abcdef')).toEqual({
+      normalizedScheme: 'bearer',
+      scheme: 'bEaReR',
+      token: 'gf_1234567890abcdef',
+    });
+  });
+
+  it('tolerates surrounding whitespace around a well-formed header', () => {
+    expect(parseAuthorizationHeader('  Bearer session-token  ')).toEqual({
+      normalizedScheme: 'bearer',
+      scheme: 'Bearer',
+      token: 'session-token',
+    });
+  });
+
   it.each([
     ['undefined', undefined],
     ['empty', ''],

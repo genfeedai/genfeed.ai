@@ -12,4 +12,15 @@ describe('getTrendEngagementTotal', () => {
       getTrendEngagementTotal({ comments: 0, likes: 0, shares: 0, views: 0 }),
     ).toBe(0);
   });
+
+  it('sums comments, likes, shares, and views', () => {
+    expect(
+      getTrendEngagementTotal({
+        comments: 1,
+        likes: 4,
+        shares: 2,
+        views: 20,
+      }),
+    ).toBe(27);
+  });
 });

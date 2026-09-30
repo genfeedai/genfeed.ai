@@ -206,6 +206,30 @@ describe('ResendService', () => {
     });
   });
 
+  it('retries concurrent requests that reuse an in-flight idempotency key', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'The original request is still in progress',
+        name: 'concurrent_idempotent_requests',
+        statusCode: 409,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        idempotencyKey: 'workflow-status/workflow_1/completed',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'concurrent_idempotent_requests',
+      retryable: true,
+      statusCode: 409,
+    });
+  });
+
   it('surfaces permanent Resend failures without marking them retryable', async () => {
     mockSend.mockResolvedValue({
       data: null,
@@ -230,6 +254,29 @@ describe('ResendService', () => {
     });
   });
 
+  it('does not retry quota failures that cannot recover within the retry window', async () => {
+    mockSend.mockResolvedValue({
+      data: null,
+      error: {
+        message: 'Monthly quota exceeded',
+        name: 'monthly_quota_exceeded',
+        statusCode: 429,
+      },
+    });
+
+    await expect(
+      service.sendEmail({
+        html: '<p>hello</p>',
+        subject: 'Subject',
+        to: 'test@example.com',
+      }),
+    ).rejects.toMatchObject({
+      providerCode: 'monthly_quota_exceeded',
+      retryable: false,
+      statusCode: 429,
+    });
+  });
+
   it('surfaces thrown transport failures as retryable delivery errors', async () => {
     mockSend.mockRejectedValue(new Error('socket closed'));
 
@@ -249,6 +296,15 @@ describe('ResendService', () => {
 });
 
 describe('resolveResendFromAddress', () => {
+  it('uses Resend onboarding sender in development so unverified product domains still deliver', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: 'Genfeed <no-reply@genfeed.ai>',
+        isDevelopment: true,
+      }),
+    ).toBe(RESEND_DEVELOPMENT_FROM);
+  });
+
   it('keeps an explicit resend.dev sender in development', () => {
     expect(
       resolveResendFromAddress({
@@ -256,6 +312,15 @@ describe('resolveResendFromAddress', () => {
         isDevelopment: true,
       }),
     ).toBe('QA <qa@resend.dev>');
+  });
+
+  it('uses the configured production sender outside development', () => {
+    expect(
+      resolveResendFromAddress({
+        configuredFrom: 'Genfeed <updates@genfeed.ai>',
+        isDevelopment: false,
+      }),
+    ).toBe('Genfeed <updates@genfeed.ai>');
   });
 
   it('falls back to the product sender when production from is unset', () => {

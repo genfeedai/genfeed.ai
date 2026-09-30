@@ -84,6 +84,30 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
     }
   });
 
+  it('prefers the scalar foreign key over the legacy alias', async () => {
+    const { service, upsert } = createHarness({
+      brand: 'stale_brand',
+      brandId: 'brand_1',
+      id: 'post_1',
+      organization: 'stale_org',
+      organizationId: 'org_1',
+      user: 'stale_user',
+      userId: 'user_1',
+    } as unknown as PostDocument);
+
+    await service.updateTodayAnalytics('post_1', TWITTER, metrics, {
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      credentialId: 'credential_1',
+    });
+
+    expect(upsert.mock.calls[0][0].create).toMatchObject({
+      brandId: 'brand_1',
+      organizationId: 'org_1',
+      userId: 'user_1',
+    });
+  });
+
   it('skips the upsert when an owner id cannot be resolved', async () => {
     const { logger, service, upsert } = createHarness({
       brandId: 'brand_1',

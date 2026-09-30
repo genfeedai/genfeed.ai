@@ -228,6 +228,23 @@ describe('useAgentThreadPrefetch', () => {
     expect(capturedSignal?.aborted).toBe(true);
   });
 
+  it('cancelPrefetch aborts a pending debounce before it fires', async () => {
+    const apiService = makeApiService();
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      result.current.cancelPrefetch();
+      vi.advanceTimersByTime(150);
+    });
+
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
+  });
+
   it('cancelPrefetch scoped to a threadId ignores a stale pointer-leave for a superseded row', async () => {
     const apiService = makeApiService();
     const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
@@ -274,6 +291,66 @@ describe('useAgentThreadPrefetch', () => {
     expect(apiService.getMessagesPage).not.toHaveBeenCalled();
   });
 
+  it('never overwrites an already-fresh cache entry for the target thread', async () => {
+    act(() => {
+      useAgentChatStore.getState().primeConversationCache('thread-a', {
+        error: null,
+        hasMoreMessages: true,
+        latestProposedPlan: null,
+        messages: makeMessages('thread-a'),
+        messagesCursor: 'cursor-thread-a',
+        pendingInputRequest: null,
+        workEvents: [],
+      });
+    });
+    const apiService = makeApiService();
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      vi.advanceTimersByTime(150);
+    });
+
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(apiService.getMessagesPage).not.toHaveBeenCalled();
+  });
+
+  it('refetches once a previously-cached entry expires past the freshness window', async () => {
+    act(() => {
+      useAgentChatStore.getState().primeConversationCache('thread-a', {
+        error: null,
+        hasMoreMessages: true,
+        latestProposedPlan: null,
+        messages: makeMessages('thread-a'),
+        messagesCursor: 'cursor-thread-a',
+        pendingInputRequest: null,
+        workEvents: [],
+      });
+    });
+    const apiService = makeApiService();
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    // Freshness window is CONVERSATION_CACHE_FRESHNESS_MS (20s) — advance
+    // past it so the entry is stale by the time the hover debounce fires.
+    await act(async () => {
+      vi.advanceTimersByTime(21_000);
+    });
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      vi.advanceTimersByTime(150);
+    });
+
+    await act(async () => {
+      await vi.runOnlyPendingTimersAsync();
+    });
+
+    expect(apiService.getMessagesPage).toHaveBeenCalledTimes(1);
+  });
+
   it('does not abort an in-flight prefetch after the thread becomes active', async () => {
     let capturedSignal: AbortSignal | undefined;
     const apiService = makeApiService({
@@ -301,6 +378,27 @@ describe('useAgentThreadPrefetch', () => {
     });
 
     expect(capturedSignal?.aborted).toBe(false);
+    expect(conversationHydrationFlights.has('thread-a')).toBe(true);
+  });
+
+  it('registers the prefetch on the shared hydration flight so a click can adopt it', async () => {
+    const apiService = makeApiService({
+      getMessagesPage: vi.fn(
+        (_threadId: string, _params, signal?: AbortSignal) =>
+          new Promise<ReturnType<typeof makeMessagesPage>>((resolve) => {
+            signal?.addEventListener('abort', () =>
+              resolve({ hasMore: false, messages: [], nextCursor: null }),
+            );
+          }),
+      ),
+    });
+    const { result } = renderHook(() => useAgentThreadPrefetch({ apiService }));
+
+    act(() => {
+      result.current.prefetchThread('thread-a');
+      vi.advanceTimersByTime(150);
+    });
+
     expect(conversationHydrationFlights.has('thread-a')).toBe(true);
   });
 

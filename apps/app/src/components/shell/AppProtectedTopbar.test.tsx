@@ -318,6 +318,14 @@ describe('AppProtectedTopbar', () => {
     ).toBeTruthy();
   });
 
+  it('leaves app navigation to the rail', () => {
+    render(<AppProtectedTopbar orgSlug="acme" currentApp="studio" />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Switch app' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders admin chrome without brand, credits, account, or cloud controls', () => {
     render(
       <AppProtectedTopbar
@@ -339,6 +347,29 @@ describe('AppProtectedTopbar', () => {
       screen.queryByTestId('cloud-sync-indicator'),
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId('topbar-credits-bar')).not.toBeInTheDocument();
+  });
+
+  it('places credits first in the right-side control cluster', () => {
+    render(<AppProtectedTopbar />);
+
+    const activityMenu = screen.getByTestId('notification-inbox');
+    const cloudSyncIndicator = screen.getByTestId('cloud-sync-indicator');
+    const credits = screen.getByTestId('topbar-credits-bar');
+
+    expect(
+      credits.compareDocumentPosition(activityMenu) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      activityMenu.compareDocumentPosition(cloudSyncIndicator) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('does not render a settings cog in the topbar (settings lives in the sidebar user menu)', () => {
+    render(<AppProtectedTopbar />);
+
+    expect(screen.queryByTitle('Settings')).not.toBeInTheDocument();
   });
 
   it('renders separate mobile and desktop navigation controls', () => {
@@ -374,6 +405,14 @@ describe('AppProtectedTopbar', () => {
 
     fireEvent.click(expandToggle);
     expect(onSidebarToggle).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the expanded sidebar control in the unified sidebar header', () => {
+    render(<AppProtectedTopbar onSidebarToggle={vi.fn()} />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Collapse sidebar' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not mount a topbar account menu when the sidebar is collapsed', () => {

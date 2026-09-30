@@ -190,4 +190,18 @@ describe('AgentChatPromptBar', () => {
       'true',
     );
   });
+
+  it('hides follow-up chips while an input request is pending', () => {
+    renderPromptBar(false, {
+      pendingInputRequest: {
+        inputRequestId: 'input-1',
+        prompt: 'Pick a format',
+        threadId: 'thread-1',
+        title: 'Format',
+      },
+      promptBarSuggestions: <div data-testid="follow-up-chips" />,
+    });
+
+    expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
+  });
 });

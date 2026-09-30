@@ -87,7 +87,7 @@ test.describe('Context sidebar — selection driven', () => {
     await mockStudioGallery(authenticatedPage);
   });
 
-  test('shows no right column and no toggle while nothing is selected', async ({
+  test('shows no right column and a disabled toggle while nothing is selected', async ({
     authenticatedPage,
   }) => {
     await authenticatedPage.setViewportSize({ height: 900, width: 1440 });
@@ -98,9 +98,10 @@ test.describe('Context sidebar — selection driven', () => {
         name: 'Selection details',
       }),
     ).toHaveCount(0);
-    await expect(
-      authenticatedPage.getByTestId('topbar-inspector-toggle'),
-    ).toHaveCount(0);
+    // The toggle stays in the topbar but has nothing to open.
+    const toggle = authenticatedPage.getByTestId('topbar-inspector-toggle');
+    await expect(toggle).toBeDisabled();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
     // The legacy agent inspector and its tabs are gone.
     await expect(
       authenticatedPage.getByRole('complementary', {

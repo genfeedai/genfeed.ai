@@ -80,6 +80,28 @@ describe('resolveGenerationBriefBrandContext', () => {
     expect(templatesService.getPromptByKey).not.toHaveBeenCalled();
   });
 
+  it('degrades to undefined when the template is missing, mirroring PromptBuilderService.buildBrandContext', async () => {
+    const templatesService = buildTemplatesService({ content: null });
+
+    const result = await resolveGenerationBriefBrandContext({
+      brand: { label: 'Acme' },
+      templatesService: templatesService as never,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
+  it('degrades to undefined when the template is inactive', async () => {
+    const templatesService = buildTemplatesService({ isActive: false });
+
+    const result = await resolveGenerationBriefBrandContext({
+      brand: { label: 'Acme' },
+      templatesService: templatesService as never,
+    });
+
+    expect(result).toBeUndefined();
+  });
+
   it('truncates an unusually long rendered template as a defensive margin', async () => {
     const longTone = 'x'.repeat(1000);
     const templatesService = buildTemplatesService({

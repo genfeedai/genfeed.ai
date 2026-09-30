@@ -58,6 +58,17 @@ describe('TemplateService', () => {
       expect(result).toHaveLength(1);
     });
 
+    it('sends no params without a filter', async () => {
+      http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+      await service.getTemplates();
+
+      expect(http.get).toHaveBeenCalledWith('', {
+        params: {},
+        signal: undefined,
+      });
+    });
+
     it('wraps failures in a structured error', async () => {
       http.get.mockRejectedValue({
         response: { data: { message: 'nope' }, status: 500 },

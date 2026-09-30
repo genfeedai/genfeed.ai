@@ -1,4 +1,7 @@
-import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import {
+  CampaignPerformanceService,
+  rollupCampaignMetric,
+} from '@api/collections/campaigns/services/campaign-performance.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -10,6 +13,24 @@ const CAMPAIGN_ID = 'ccampaign0001';
 function asMock(fn: unknown) {
   return fn as ReturnType<typeof vi.fn>;
 }
+
+describe('rollupCampaignMetric', () => {
+  it('returns null when no member post has provider data', () => {
+    expect(rollupCampaignMetric(3, [])).toEqual({
+      availablePostCount: 0,
+      totalPostCount: 3,
+      value: null,
+    });
+  });
+
+  it('sums measured zeros without turning missing siblings into zero', () => {
+    expect(rollupCampaignMetric(2, [0])).toEqual({
+      availablePostCount: 1,
+      totalPostCount: 2,
+      value: 0,
+    });
+  });
+});
 
 describe('CampaignPerformanceService', () => {
   const prisma = {

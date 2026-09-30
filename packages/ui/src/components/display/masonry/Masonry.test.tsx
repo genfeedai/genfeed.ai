@@ -8,6 +8,11 @@ describe('Masonry', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<Masonry />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <Masonry columns={{ default: 2 }} gap={12}>

@@ -107,4 +107,17 @@ describe('ExecutionDetailPage', () => {
       screen.queryByRole('button', { name: 'Resume Execution' }),
     ).not.toBeInTheDocument();
   });
+
+  it('renders the execution header once the run has loaded', async () => {
+    render(<ExecutionDetailPage executionId="exec-1" />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Daily digest execution exec-1'),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getAllByRole('link', { name: 'All executions' }).length,
+    ).toBeGreaterThan(0);
+  });
 });

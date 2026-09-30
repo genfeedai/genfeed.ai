@@ -32,9 +32,24 @@ describe('collectConnectPlatforms', () => {
       ),
     ).toEqual(['twitter', 'tiktok']);
   });
+
+  it('falls back to the single platform field', () => {
+    expect(collectConnectPlatforms(connectCard())).toEqual(['twitter']);
+  });
+
+  it('returns nothing for the generic picker card', () => {
+    expect(
+      collectConnectPlatforms(connectCard({ platform: '   ' })),
+    ).toHaveLength(0);
+  });
 });
 
 describe('collapseOAuthConnectCards', () => {
+  it('leaves a single connect card untouched', () => {
+    const uiActions = [connectCard(), preview()];
+    expect(collapseOAuthConnectCards(uiActions)).toEqual(uiActions);
+  });
+
   it('collapses one card per status probe into one picker card', () => {
     const collapsed = collapseOAuthConnectCards([
       connectCard({ id: 'a', platform: 'twitter' }),
@@ -71,5 +86,18 @@ describe('collapseOAuthConnectCards', () => {
 
     expect(collapsed).toHaveLength(1);
     expect(collapsed[0]?.id).toBe('a');
+  });
+
+  it('preserves order of non-connect cards', () => {
+    const collapsed = collapseOAuthConnectCards([
+      preview(),
+      connectCard({ id: 'a', platform: 'twitter' }),
+      connectCard({ id: 'b', platform: 'tiktok' }),
+    ]);
+
+    expect(collapsed.map((action) => action.type)).toEqual([
+      'content_preview_card',
+      'oauth_connect_card',
+    ]);
   });
 });

@@ -1,6 +1,28 @@
+import { SettingsSurface } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
 
-import { isPersonalSettingsPage } from './app-protected-layout.settings-scope';
+import {
+  isPersonalSettingsPage,
+  resolveSettingsScope,
+} from './app-protected-layout.settings-scope';
+
+describe('resolveSettingsScope', () => {
+  it('resolves brand scope when a brand slug is present', () => {
+    expect(
+      resolveSettingsScope({ brandSlug: 'brand-123', orgSlug: 'org-123' }),
+    ).toBe(SettingsSurface.BRAND);
+  });
+
+  it('resolves organization scope when only an org slug is present', () => {
+    expect(resolveSettingsScope({ orgSlug: 'org-123' })).toBe(
+      SettingsSurface.ORGANIZATION,
+    );
+  });
+
+  it('resolves personal scope when neither slug is present', () => {
+    expect(resolveSettingsScope({})).toBe(SettingsSurface.PERSONAL);
+  });
+});
 
 describe('isPersonalSettingsPage', () => {
   it('is true for every flat personal settings page', () => {
@@ -23,6 +45,13 @@ describe('isPersonalSettingsPage', () => {
     expect(isPersonalSettingsPage('/acme/~/settings/general')).toBe(false);
     expect(isPersonalSettingsPage('/acme/~/settings/members')).toBe(false);
     expect(isPersonalSettingsPage('/acme/~/settings/brands')).toBe(false);
+  });
+
+  it('is false for brand-scoped settings pages', () => {
+    expect(isPersonalSettingsPage('/acme/brand/settings')).toBe(false);
+    expect(isPersonalSettingsPage('/acme/brand/settings/publishing')).toBe(
+      false,
+    );
   });
 
   it('is false for non-settings routes', () => {

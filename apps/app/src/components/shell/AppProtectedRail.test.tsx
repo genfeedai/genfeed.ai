@@ -182,10 +182,31 @@ type RailProps = {
 };
 
 describe('AppProtectedRail', () => {
+  it('uses only Workspace and Messages unread counts', () => {
+    badgeCounts.workspace = 4;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        badges: {
+          workspace: { count: 4, label: 'workspaceBadge' },
+          messages: { count: 0, label: '0 unread conversations' },
+        },
+        surface: 'desktop',
+      }),
+    );
+  });
+
   it('puts Help and the account avatar in the rail footer', () => {
     render(<AppProtectedRail orgSlug="acme" />);
 
     expect(screen.getByTestId('rail-account')).toBeInTheDocument();
+  });
+
+  it('marks the AppLayout drawer clone as the drawer analytics surface', () => {
+    render(<AppProtectedRail orgSlug="acme" onNavigate={vi.fn()} />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ surface: 'drawer' }),
+    );
   });
 
   beforeEach(() => {
@@ -209,6 +230,38 @@ describe('AppProtectedRail', () => {
     ];
   });
 
+  it('highlights from the current pathname', () => {
+    mockPathname.value = '/acme/brand/studio/clips';
+
+    render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
+
+    expect(screen.getByTestId('app-rail')).toBeInTheDocument();
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ currentPath: '/acme/brand/studio/clips' }),
+    );
+  });
+
+  it('badges the Messages item with the route brand unread count', () => {
+    messagesUnread.count = 3;
+
+    render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith('brand', true);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        badges: expect.objectContaining({
+          messages: { count: 3, label: '3 unread conversations' },
+        }),
+      }),
+    );
+  });
+
+  it('counts every brand for the org-scoped Messages item', () => {
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, true);
+  });
+
   it('never falls back to the org-wide count while the routed brand has not loaded yet', () => {
     brandContextState.brands = [];
 
@@ -217,6 +270,37 @@ describe('AppProtectedRail', () => {
     // Unresolved: no brand id yet, and the hook must not fetch org-wide
     // instead — that would flash the wrong count once brands load.
     expect(messagesUnread.spy).toHaveBeenLastCalledWith(undefined, false);
+  });
+
+  it('does not inject the context brand into explicit org-scoped routes', () => {
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandAwareSlug: 'brand',
+        brandSlug: undefined,
+        orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('passes an explicit brand route through', () => {
+    render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        brandSlug: 'brand',
+        orgSlug: 'acme',
+      }),
+    );
+  });
+
+  it('falls back to the session org when the route has none', () => {
+    render(<AppProtectedRail />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ brandSlug: 'brand', orgSlug: 'acme' }),
+    );
   });
 
   it('renders nothing without any organization scope', () => {
@@ -228,6 +312,28 @@ describe('AppProtectedRail', () => {
     expect(screen.queryByTestId('app-rail')).not.toBeInTheDocument();
   });
 
+  it('offers Admin to platform admins only', () => {
+    const { unmount } = render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ showAdmin: false }),
+    );
+    unmount();
+
+    mockAccessState.isSuperAdmin = true;
+    render(<AppProtectedRail orgSlug="acme" />);
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ showAdmin: true }),
+    );
+  });
+
+  it('always offers Admin in admin chrome', () => {
+    render(<AppProtectedRail orgSlug="acme" isAdminChrome />);
+
+    expect(appRailSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ showAdmin: true }),
+    );
+  });
+
   it('forwards the first-asset gate and the drawer close callback', () => {
     mockAccessState.isAssetGateLocked = true;
     const onNavigate = vi.fn();
@@ -237,6 +343,21 @@ describe('AppProtectedRail', () => {
     expect(appRailSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ isAssetGateLocked: true, onNavigate }),
     );
+  });
+
+  it('pins the organization avatar at the top of the rail', () => {
+    render(<AppProtectedRail orgSlug="acme" brandSlug="brand" />);
+
+    const organization = screen.getByTestId('organization-switcher');
+    expect(organization).toHaveAttribute('data-subscription-tier', 'pro');
+  });
+
+  it('keeps the organization avatar on organization settings pages', () => {
+    mockPathname.value = '/acme/~/settings/general';
+
+    render(<AppProtectedRail orgSlug="acme" />);
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
   });
 
   it('hides the organization avatar on personal-account settings pages (#4659)', () => {

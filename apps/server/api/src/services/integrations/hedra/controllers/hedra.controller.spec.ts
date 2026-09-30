@@ -50,6 +50,10 @@ describe('HedraController', () => {
     controller = module.get<HedraController>(HedraController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // --- getVoices ---
   it('should return voices with provider hedra', async () => {
     hedraService.getVoices.mockResolvedValue([{ id: 'v1', name: 'TestVoice' }]);
@@ -60,6 +64,11 @@ describe('HedraController', () => {
     expect(result.data.attributes.voices).toEqual([
       { id: 'v1', name: 'TestVoice' },
     ]);
+  });
+
+  it('should pass organization to getVoices', async () => {
+    await controller.getVoices(mockUser);
+    expect(hedraService.getVoices).toHaveBeenCalledWith(organizationId);
   });
 
   it('should throw HttpException when getVoices fails', async () => {
@@ -97,6 +106,14 @@ describe('HedraController', () => {
     expect(result.data.attributes.url).toBe('https://vid.mp4');
   });
 
+  it('should pass jobId and organization to getJobStatus', async () => {
+    await controller.getJobStatus('job-99', mockUser);
+    expect(hedraService.getJobStatus).toHaveBeenCalledWith(
+      'job-99',
+      organizationId,
+    );
+  });
+
   it('should throw HttpException when getJobStatus fails', async () => {
     hedraService.getJobStatus.mockRejectedValue(new Error('not found'));
     await expect(controller.getJobStatus('bad-id', mockUser)).rejects.toThrow(
@@ -123,5 +140,16 @@ describe('HedraController', () => {
   it('should throw HttpException when status check fails', async () => {
     hedraService.getVoices.mockRejectedValue(new Error('refused'));
     await expect(controller.getStatus(mockUser)).rejects.toThrow(HttpException);
+  });
+
+  it('should handle unknown error type gracefully', async () => {
+    hedraService.getVoices.mockRejectedValue(42);
+    try {
+      await controller.getVoices(mockUser);
+    } catch (error) {
+      const httpError = error as HttpException;
+      const response = httpError.getResponse() as Record<string, string>;
+      expect(response.detail).toBe('Unknown error occurred');
+    }
   });
 });

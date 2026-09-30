@@ -60,6 +60,10 @@ describe('LaunchCopyGeneratorService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('Hacker News', () => {
     it('parses showHnTitle + firstComment and passes org context to the LLM', async () => {
       chatCompletionMock.mockResolvedValue(

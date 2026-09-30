@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { WorkflowEditorSectionTopbar } from './WorkflowEditorSectionTopbar';
@@ -117,6 +118,23 @@ describe('WorkflowEditorSectionTopbar', () => {
     expect(props.onArchive).toHaveBeenCalledTimes(1);
   });
 
+  it('supports keyboard activation for Publish and the actions menu', async () => {
+    const user = userEvent.setup();
+    const props = renderTopbar();
+    const publish = screen.getByRole('button', { name: 'Publish' });
+    const menu = screen.getByRole('button', { name: 'Workflow actions' });
+
+    publish.focus();
+    await user.keyboard('{Enter}');
+    expect(props.onPublish).toHaveBeenCalledTimes(1);
+
+    menu.focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menuitem', { name: 'Archive' });
+    await user.keyboard('{Enter}');
+    expect(props.onArchive).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     [WorkflowLifecycle.PUBLISHED, 'This workflow is already published.'],
     [WorkflowLifecycle.ARCHIVED, 'Archived workflows cannot be published.'],
@@ -166,5 +184,12 @@ describe('WorkflowEditorSectionTopbar', () => {
     fireEvent.click(publish);
     expect(props.onRun).not.toHaveBeenCalled();
     expect(props.onPublish).not.toHaveBeenCalled();
+  });
+
+  it('leaves Run and Publish enabled when not unsaved-empty', () => {
+    renderTopbar({ isUnsavedEmpty: false });
+
+    expect(screen.getByRole('button', { name: 'Run' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Publish' })).not.toBeDisabled();
   });
 });

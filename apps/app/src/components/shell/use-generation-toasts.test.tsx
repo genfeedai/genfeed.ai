@@ -122,6 +122,16 @@ describe('generation toasts', () => {
     unmount();
     expect(mock.handlers.size).toBe(0);
   });
+  it('stops polling once nothing is running and the socket is connected', () => {
+    // Mounted on every page, so an unconditional interval would poll the
+    // activity endpoints forever.
+    renderHook(() => useGenerationToasts());
+    mock.invalidate.mockClear();
+    act(() => vi.advanceTimersByTime(ACTIVITY_RECONCILE_MS * 4));
+    expect(mock.invalidate).not.toHaveBeenCalled();
+    act(() => window.dispatchEvent(new Event('focus')));
+    expect(mock.invalidate).toHaveBeenCalledTimes(1);
+  });
   it('keeps polling while the socket cannot deliver updates', () => {
     mock.connectionState = 'disconnected';
     renderHook(() => useGenerationToasts());

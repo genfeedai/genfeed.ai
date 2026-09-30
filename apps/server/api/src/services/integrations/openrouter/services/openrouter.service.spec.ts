@@ -81,7 +81,19 @@ describe('OpenRouterService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('chatCompletion', () => {
+    it('returns response data from the API', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      const result = await service.chatCompletion(defaultParams);
+
+      expect(result).toEqual(mockResponse);
+    });
+
     it('falls back to generation metadata for exact cost and actual model', async () => {
       httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
       httpService.get.mockReturnValue(
@@ -109,6 +121,82 @@ describe('OpenRouterService', () => {
         model: 'openai/gpt-5.6-terra',
         usage: { cost: 0.0142, cost_source: 'generation' },
       });
+    });
+
+    it('uses OPENROUTER_API_KEY from config by default', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams);
+
+      expect(configService.get).toHaveBeenCalledWith('OPENROUTER_API_KEY');
+    });
+
+    it('uses apiKeyOverride instead of config key when provided', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams, 'override-key');
+
+      expect(configService.get).not.toHaveBeenCalled();
+    });
+
+    it('posts with stream: false forced on', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.stream).toBe(false);
+    });
+
+    it('posts OpenRouter zdr and deny data_collection on first-party requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection when a BYOK key is supplied', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams, 'override-key');
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('overwrites weaker caller provider prefs with the first-party policy', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      const params: OpenRouterChatCompletionParams = {
+        ...defaultParams,
+        provider: { data_collection: 'allow', zdr: false },
+      };
+
+      await service.chatCompletion(params);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('includes correct Authorization header', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+
+      await service.chatCompletion(defaultParams);
+
+      const headers = (
+        httpService.post.mock.calls[0][2] as { headers: Record<string, string> }
+      ).headers;
+      expect(headers.Authorization).toBe('Bearer test-api-key');
     });
 
     it('throws when OPENROUTER_API_KEY is not configured', async () => {
@@ -191,6 +279,19 @@ describe('OpenRouterService', () => {
       expect(body.temperature).toBe(0.7);
       expect(body.max_tokens).toBe(200);
     });
+
+    it('passes plugins through unchanged', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse(mockResponse)));
+      const params: OpenRouterChatCompletionParams = {
+        ...defaultParams,
+        plugins: [{ id: 'web' }],
+      };
+
+      await service.chatCompletion(params);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.plugins).toEqual([{ id: 'web' }]);
+    });
   });
 
   describe('embeddings', () => {
@@ -224,6 +325,33 @@ describe('OpenRouterService', () => {
           }),
         }),
       );
+    });
+
+    it('sends the first-party ZDR/no-retention policy on every request', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(embeddingResponse)),
+      );
+
+      await service.embeddings({
+        input: 'hello',
+        model: 'baai/bge-large-en-v1.5',
+      });
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({ data_collection: 'deny', zdr: true });
+    });
+
+    it('uses apiKeyOverride instead of config key when provided', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(embeddingResponse)),
+      );
+
+      await service.embeddings(
+        { input: 'hello', model: 'baai/bge-large-en-v1.5' },
+        'override-key',
+      );
+
+      expect(configService.get).not.toHaveBeenCalled();
     });
 
     it('logs and rethrows on failure', async () => {
@@ -262,6 +390,51 @@ describe('OpenRouterService', () => {
       }
 
       expect(output).toBe('Hello world');
+    });
+
+    it('posts with stream: true forced on', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.stream).toBe(true);
+    });
+
+    it('posts OpenRouter zdr and deny data_collection on stream requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection on BYOK stream requests', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams, 'stream-key');
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('uses responseType: stream in request config', async () => {
+      httpService.post.mockReturnValue(of(makeAxiosResponse({})));
+
+      await service.streamChatCompletion(defaultParams);
+
+      const config = httpService.post.mock.calls[0][2] as Record<
+        string,
+        unknown
+      >;
+      expect(config.responseType).toBe('stream');
     });
 
     it('uses apiKeyOverride when provided for streaming', async () => {
@@ -333,6 +506,37 @@ describe('OpenRouterService', () => {
       const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
       expect(body.stream).toBe(true);
       expect(body.usage).toEqual({ include: true });
+    });
+
+    it('posts OpenRouter zdr and deny data_collection on aggregated stream requests', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+      );
+
+      await service.streamChatCompletionAggregated(defaultParams);
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
+    });
+
+    it('keeps zdr and deny data_collection on BYOK aggregated stream requests', async () => {
+      httpService.post.mockReturnValue(
+        of(makeAxiosResponse(Readable.from(['data: [DONE]\n\n']))),
+      );
+
+      await service.streamChatCompletionAggregated(
+        defaultParams,
+        'aggregated-key',
+      );
+
+      const body = httpService.post.mock.calls[0][1] as Record<string, unknown>;
+      expect(body.provider).toEqual({
+        data_collection: 'deny',
+        zdr: true,
+      });
     });
 
     it('accumulates tool-call fragments split across SSE chunks', async () => {

@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FeatureFlag } from '@api/feature-flag/feature-flag.decorator';
 import { FeatureFlagGuard } from '@api/feature-flag/feature-flag.guard';
 import {
@@ -51,6 +52,30 @@ describe('FeatureFlagGuard (#5468)', () => {
       guard.canActivate(createContext(OpenController, 'open') as never),
     ).resolves.toBe(true);
     expect(getFeatureSettings).not.toHaveBeenCalled();
+  });
+
+  it('lets a flagged controller through while its flag is on', async () => {
+    const { guard } = createGuard();
+
+    await expect(
+      guard.canActivate(createContext(StudioController, 'list') as never),
+    ).resolves.toBe(true);
+  });
+
+  it('answers 404 on a controller whose module is off', async () => {
+    const { guard } = createGuard({ studio: false });
+
+    await expect(
+      guard.canActivate(createContext(StudioController, 'list') as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('answers 404 on a flagged handler whose feature is off', async () => {
+    const { guard } = createGuard({ reply_bot: false });
+
+    await expect(
+      guard.canActivate(createContext(OpenController, 'gated') as never),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('lets a superadmin inspect a module that is off', async () => {

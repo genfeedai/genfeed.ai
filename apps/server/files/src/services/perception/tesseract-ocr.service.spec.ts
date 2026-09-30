@@ -80,4 +80,10 @@ describe('TesseractOcrService', () => {
     );
     expect(logger.warn).toHaveBeenCalledOnce();
   });
+
+  it('caps very long OCR text', () => {
+    expect(TesseractOcrService.normalize('x'.repeat(5_000))).toHaveLength(
+      2_000,
+    );
+  });
 });

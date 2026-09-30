@@ -59,6 +59,28 @@ describe('ConfigService (MCP)', () => {
 
   describe('consumed env-var schema coverage (#484)', () => {
     // main.ts reads CHROME_EXTENSION_ID for CORS; it must be validated.
+    it('validates CHROME_EXTENSION_ID', () => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'CHROME_EXTENSION_ID',
+      );
+    });
+
+    it('validates the optional PostHog project configuration', () => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'POSTHOG_PROJECT_API_KEY',
+      );
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'POSTHOG_HOST',
+      );
+    });
+
+    it('accepts a well-formed 32-char CHROME_EXTENSION_ID', () => {
+      process.env.CHROME_EXTENSION_ID = 'a'.repeat(32);
+
+      expect(() => new ConfigService()).not.toThrow();
+
+      delete process.env.CHROME_EXTENSION_ID;
+    });
 
     it('rejects a malformed CHROME_EXTENSION_ID at startup', () => {
       process.env.CHROME_EXTENSION_ID = 'too-short';

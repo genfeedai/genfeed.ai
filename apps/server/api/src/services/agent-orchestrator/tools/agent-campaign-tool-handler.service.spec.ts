@@ -418,6 +418,35 @@ describe('AgentCampaignToolHandler', () => {
     expect(result.requiresConfirmation).toBeUndefined();
   });
 
+  it('rejects confirmation when the persisted preparation targets another campaign', async () => {
+    campaignsService.findOneById.mockResolvedValue({
+      id: 'campaign-1',
+      label: 'Launch',
+      status: 'draft',
+    });
+    const preparation = await handler.startCampaign(
+      { campaignId: 'campaign-1' },
+      ctx,
+    );
+    const sourceActionId = String(preparation.data?.sourceActionId);
+
+    await expect(
+      handler.startCampaign(
+        {
+          campaignId: 'campaign-2',
+          confirmed: true,
+          sourceActionId,
+        },
+        {
+          ...ctx,
+          confirmationOrigin: 'thread-ui-action',
+          sourceActionId,
+        },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(campaignsService.start).not.toHaveBeenCalled();
+  });
+
   it.each([
     {
       label: 'organization',

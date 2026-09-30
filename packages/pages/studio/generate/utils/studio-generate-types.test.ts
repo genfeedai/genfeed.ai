@@ -4,9 +4,32 @@ import { describe, expect, it } from 'vitest';
 import type { StudioGenerateType } from '../types';
 import {
   getStudioGenerateTypeConfig,
+  listStudioGenerateTypeConfigs,
   resolveStudioGenerateCapabilities,
+  resolveStudioGenerateType,
   STUDIO_GENERATE_TYPES,
 } from './studio-generate-types';
+
+describe('STUDIO_GENERATE_TYPES', () => {
+  it('covers every asset kind the playground generates', () => {
+    expect([...STUDIO_GENERATE_TYPES]).toEqual([
+      'image',
+      'video',
+      'music',
+      'avatar',
+      'voice',
+    ]);
+  });
+
+  it('exposes a config for every registered type', () => {
+    for (const type of STUDIO_GENERATE_TYPES) {
+      expect(getStudioGenerateTypeConfig(type).type).toBe(type);
+    }
+    expect(listStudioGenerateTypeConfigs()).toHaveLength(
+      STUDIO_GENERATE_TYPES.length,
+    );
+  });
+});
 
 describe('lyrics/instrumental/style capabilities', () => {
   it('are only offered for music', () => {
@@ -21,6 +44,49 @@ describe('lyrics/instrumental/style capabilities', () => {
 });
 
 describe('resolveStudioGenerateCapabilities', () => {
+  it('keeps the static per-type capabilities for non-music types regardless of modelKey', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'video',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+    expect(capabilities).toEqual(
+      getStudioGenerateTypeConfig('video').capabilities,
+    );
+  });
+
+  it('hides model-specific controls when no model is resolved yet', () => {
+    const capabilities = resolveStudioGenerateCapabilities('music', undefined);
+    expect(capabilities).toMatchObject({
+      hasDuration: false,
+      hasInstrumentalToggle: false,
+      hasLyrics: false,
+    });
+  });
+
+  it('hides model-specific controls in auto-select mode', () => {
+    const capabilities = resolveStudioGenerateCapabilities('music', 'auto');
+    expect(capabilities.hasInstrumentalToggle).toBe(false);
+    expect(capabilities.hasLyrics).toBe(false);
+  });
+
+  it('hides both instrumental and lyrics controls for MusicGen (no vocal support)', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'music',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    );
+    expect(capabilities.hasInstrumentalToggle).toBe(false);
+    expect(capabilities.hasLyrics).toBe(false);
+  });
+
+  it('offers both controls for a model that supports vocals and lyrics (Eleven Music)', () => {
+    const capabilities = resolveStudioGenerateCapabilities(
+      'music',
+      MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    );
+    expect(capabilities.hasInstrumentalToggle).toBe(true);
+    expect(capabilities.hasLyrics).toBe(true);
+  });
+
   it('leaves every other capability flag untouched', () => {
     const capabilities = resolveStudioGenerateCapabilities(
       'music',
@@ -97,6 +163,14 @@ describe('getStudioGenerateTypeConfig', () => {
     });
   });
 
+  it('waits on the videos collection for a finished avatar clip', () => {
+    // `POST /videos/avatar` persists a video ingredient and publishes
+    // `WebSocketPaths.video(id)`; `/avatars` holds the source portraits.
+    expect(getStudioGenerateTypeConfig('avatar').resourceSegment).toBe(
+      'videos',
+    );
+  });
+
   it('picks a catalog voice instead of a router model', () => {
     const config = getStudioGenerateTypeConfig('voice');
 
@@ -110,4 +184,21 @@ describe('getStudioGenerateTypeConfig', () => {
       hasSpeech: true,
     });
   });
+});
+
+describe('resolveStudioGenerateType', () => {
+  it('accepts every registered type', () => {
+    for (const type of STUDIO_GENERATE_TYPES) {
+      expect(resolveStudioGenerateType(type)).toBe(type);
+    }
+  });
+
+  it.each([undefined, null, '', 'gif', 'IMAGE '])(
+    'falls back to image for %p',
+    (value) => {
+      expect(resolveStudioGenerateType(value as StudioGenerateType)).toBe(
+        'image',
+      );
+    },
+  );
 });

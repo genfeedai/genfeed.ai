@@ -9,4 +9,15 @@ describe('app robots', () => {
     expect(body).toContain('Allow: /login');
     expect(body).toContain('Allow: /sign-up');
   });
+
+  it('serves the static policy as cacheable plain text', () => {
+    const response = GET();
+
+    expect(response.headers.get('Content-Type')).toBe(
+      'text/plain; charset=utf-8',
+    );
+    expect(response.headers.get('Cache-Control')).toBe(
+      'public, max-age=3600, stale-while-revalidate=86400',
+    );
+  });
 });

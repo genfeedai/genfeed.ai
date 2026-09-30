@@ -1,8 +1,14 @@
 import {
   readAdsChannel,
   readAdsPlatform,
+  readAdsSource,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { AdsChannel, AdsPlatform } from '@genfeedai/contracts/interfaces';
+import {
+  AdsChannel,
+  AdsPlatform,
+  adsChannelValues,
+  adsPlatformValues,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -12,6 +18,10 @@ import { describe, expect, it } from 'vitest';
  * the `AdsPlatform` product-channel enum.
  */
 describe('readAdsPlatform', () => {
+  it.each(adsPlatformValues)('accepts %s', (platform) => {
+    expect(readAdsPlatform(platform)).toBe(platform);
+  });
+
   it('accepts AdsPlatform.GOOGLE, not CredentialPlatform.GOOGLE_ADS', () => {
     expect(readAdsPlatform(AdsPlatform.GOOGLE)).toBe(AdsPlatform.GOOGLE);
     expect(readAdsPlatform('google_ads')).toBeUndefined();
@@ -31,8 +41,26 @@ describe('readAdsPlatform', () => {
   });
 });
 
+describe('readAdsSource', () => {
+  it.each(['public', 'my_accounts', 'all'])('accepts %s', (source) => {
+    expect(readAdsSource(source)).toBe(source);
+  });
+
+  it('rejects an unknown source', () => {
+    expect(readAdsSource('connected')).toBeUndefined();
+  });
+});
+
 describe('readAdsChannel', () => {
+  it.each(adsChannelValues)('accepts %s', (channel) => {
+    expect(readAdsChannel(channel)).toBe(channel);
+  });
+
   it('accepts AdsChannel.YOUTUBE as youtube inventory, not CredentialPlatform', () => {
     expect(readAdsChannel(AdsChannel.YOUTUBE)).toBe(AdsChannel.YOUTUBE);
+  });
+
+  it('rejects an unknown channel', () => {
+    expect(readAdsChannel('shopping')).toBeUndefined();
   });
 });

@@ -1,6 +1,6 @@
 import { ReplicateWebhookPayloadDto } from '@api/endpoints/webhooks/dto/replicate-webhook-payload.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { type ArgumentMetadata } from '@nestjs/common';
+import { type ArgumentMetadata, BadRequestException } from '@nestjs/common';
 
 const metadata: ArgumentMetadata = {
   data: '',
@@ -13,6 +13,37 @@ describe('ReplicateWebhookPayloadDto', () => {
 
   beforeEach(() => {
     pipe = new ValidationPipe();
+  });
+
+  it('should reject a body without the prediction id', async () => {
+    await expect(
+      pipe.transform({ status: 'succeeded' }, metadata),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should reject a body without the status', async () => {
+    await expect(
+      pipe.transform({ id: 'prediction-id' }, metadata),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should reject a non-string status', async () => {
+    await expect(
+      pipe.transform({ id: 'prediction-id', status: 200 }, metadata),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should report the offending property', async () => {
+    expect.assertions(1);
+
+    try {
+      await pipe.transform({ status: 'succeeded' }, metadata);
+    } catch (error) {
+      expect((error as BadRequestException).getResponse()).toMatchObject({
+        errors: [{ property: 'id' }],
+        message: 'Validation failed',
+      });
+    }
   });
 
   it('should accept a real callback and keep undeclared vendor keys', async () => {

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 'use client';
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CharacterCreateDialog from './character-create-dialog';
 
@@ -64,6 +64,33 @@ function buildProps(
 }
 
 describe('CharacterCreateDialog', () => {
+  it('disables generate while description is empty', () => {
+    render(<CharacterCreateDialog {...buildProps()} />);
+    expect(screen.getByTestId('generate-sheet')).toBeDisabled();
+  });
+
+  it('calls generateSheet when the generate button is clicked', () => {
+    const generateSheet = vi.fn();
+    render(
+      <CharacterCreateDialog
+        {...buildProps({
+          create: {
+            description: 'a tall woman',
+            isNonHumanoid: false,
+            seed: '',
+            setDescription: vi.fn(),
+            setIsNonHumanoid: vi.fn(),
+            setSeed: vi.fn(),
+          },
+          generateSheet,
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('generate-sheet'));
+    expect(generateSheet).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the candidate step actions', () => {
     render(
       <CharacterCreateDialog
@@ -78,5 +105,21 @@ describe('CharacterCreateDialog', () => {
     expect(screen.getByTestId('regenerate-sheet')).toBeInTheDocument();
     expect(screen.getByTestId('discard-sheet')).toBeInTheDocument();
     expect(screen.getByTestId('approve-sheet')).toBeInTheDocument();
+  });
+
+  it('submits the approve step with name and handle', () => {
+    const createCharacter = vi.fn();
+    render(
+      <CharacterCreateDialog
+        {...buildProps({
+          candidate: { id: 'img-1', url: 'https://cdn.test/img-1.jpg' },
+          createCharacter,
+          step: 'approve',
+        })}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('create-character'));
+    expect(createCharacter).toHaveBeenCalledTimes(1);
   });
 });

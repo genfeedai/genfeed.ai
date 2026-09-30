@@ -13,6 +13,10 @@ import {
 
 describe('template.enum', () => {
   describe('TemplateCategory', () => {
+    it('should have 29 members', () => {
+      expect(Object.values(TemplateCategory)).toHaveLength(29);
+    });
+
     it('should have correct values', () => {
       expect(TemplateCategory.CAPTION).toBe('caption');
       expect(TemplateCategory.VIDEO).toBe('video');
@@ -49,6 +53,10 @@ describe('template.enum', () => {
   });
 
   describe('TemplateDifficulty', () => {
+    it('should have 3 members', () => {
+      expect(Object.values(TemplateDifficulty)).toHaveLength(3);
+    });
+
     it('should have correct values', () => {
       expect(TemplateDifficulty.BEGINNER).toBe('beginner');
       expect(TemplateDifficulty.INTERMEDIATE).toBe('intermediate');
@@ -57,6 +65,10 @@ describe('template.enum', () => {
   });
 
   describe('TemplateIndustry', () => {
+    it('should have 11 members', () => {
+      expect(Object.values(TemplateIndustry)).toHaveLength(11);
+    });
+
     it('should have correct values', () => {
       expect(TemplateIndustry.TECHNOLOGY).toBe('technology');
       expect(TemplateIndustry.FINANCE).toBe('finance');
@@ -73,6 +85,10 @@ describe('template.enum', () => {
   });
 
   describe('TemplateSortBy', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(TemplateSortBy)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(TemplateSortBy.POPULAR).toBe('popular');
       expect(TemplateSortBy.RECENT).toBe('recent');
@@ -83,6 +99,10 @@ describe('template.enum', () => {
   });
 
   describe('VariableType', () => {
+    it('should have 10 members', () => {
+      expect(Object.values(VariableType)).toHaveLength(10);
+    });
+
     it('should have correct values', () => {
       expect(VariableType.TEXT).toBe('text');
       expect(VariableType.NUMBER).toBe('number');
@@ -98,6 +118,10 @@ describe('template.enum', () => {
   });
 
   describe('SystemPromptKey', () => {
+    it('should have 40 members', () => {
+      expect(Object.values(SystemPromptKey)).toHaveLength(40);
+    });
+
     it('should have correct values', () => {
       expect(SystemPromptKey.DEFAULT).toBe('system.default');
       expect(SystemPromptKey.IMAGE).toBe('system.image');
@@ -149,6 +173,10 @@ describe('template.enum', () => {
   });
 
   describe('PromptTemplateKey', () => {
+    it('should have 24 members', () => {
+      expect(Object.values(PromptTemplateKey)).toHaveLength(24);
+    });
+
     it('should have correct values', () => {
       expect(PromptTemplateKey.TEXT_DEFAULT).toBe('prompt.text.default');
       expect(PromptTemplateKey.TEXT_ENHANCEMENT).toBe(
@@ -206,6 +234,10 @@ describe('template.enum', () => {
   });
 
   describe('ContentTemplateKey', () => {
+    it('should have 13 members', () => {
+      expect(Object.values(ContentTemplateKey)).toHaveLength(13);
+    });
+
     it('should have correct values', () => {
       expect(ContentTemplateKey.VIDEO_DEFAULT).toBe('content.video.default');
       expect(ContentTemplateKey.VIDEO_CINEMATIC).toBe(

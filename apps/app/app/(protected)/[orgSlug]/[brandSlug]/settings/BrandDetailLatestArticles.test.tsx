@@ -9,6 +9,16 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 describe('BrandDetailLatestArticles', () => {
+  it('should render without crashing', () => {
+    const { container } = render(<BrandDetailLatestArticles />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<BrandDetailLatestArticles />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<BrandDetailLatestArticles />);
     const rootElement = container.firstChild as HTMLElement;

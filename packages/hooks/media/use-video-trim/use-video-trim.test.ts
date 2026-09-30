@@ -27,6 +27,37 @@ describe('useVideoTrim', () => {
     expect(result.current).toHaveProperty('error');
   });
 
+  it('initializes startTime to 0', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    expect(result.current.startTime).toBe(0);
+  });
+
+  it('initializes endTime to min(duration, maxDuration)', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    // default maxDuration is 15
+    expect(result.current.endTime).toBe(15);
+  });
+
+  it('caps endTime at video duration when duration < maxDuration', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 5 }));
+    expect(result.current.endTime).toBe(5);
+  });
+
+  it('calculates trimDuration correctly', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    expect(result.current.trimDuration).toBe(
+      result.current.endTime - result.current.startTime,
+    );
+  });
+
+  it('isValid is true when trimDuration is within bounds', () => {
+    const { result } = renderHook(() =>
+      useVideoTrim({ maxDuration: 15, minDuration: 2, videoDuration: 30 }),
+    );
+    // endTime = 15, startTime = 0, trimDuration = 15 which <= 15 and >= 2
+    expect(result.current.isValid).toBe(true);
+  });
+
   it('isValid is false when trimDuration is too short', () => {
     const { result } = renderHook(() =>
       useVideoTrim({ minDuration: 2, videoDuration: 1 }),
@@ -69,6 +100,32 @@ describe('useVideoTrim', () => {
     });
     expect(result.current.startTime).toBe(startTime);
     expect(result.current.endTime).toBe(endTime);
+  });
+
+  it('setStartTime manually updates start', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    act(() => {
+      result.current.setStartTime(3);
+    });
+    expect(result.current.startTime).toBe(3);
+  });
+
+  it('setEndTime manually updates end', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    act(() => {
+      result.current.setEndTime(10);
+    });
+    expect(result.current.endTime).toBe(10);
+  });
+
+  it('initializes thumbnails as empty array', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    expect(result.current.thumbnails).toEqual([]);
+  });
+
+  it('initializes error as null', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    expect(result.current.error).toBeNull();
   });
 });
 

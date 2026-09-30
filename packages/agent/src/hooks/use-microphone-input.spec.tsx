@@ -198,6 +198,27 @@ describe('useMicrophoneInput', () => {
     });
   });
 
+  it('reads the flat transcript shapes too', async () => {
+    vi.mocked(global.fetch).mockResolvedValue({
+      json: async () => ({ text: 'flat' }),
+      ok: true,
+      status: 200,
+    } as unknown as Response);
+
+    const { onTranscript, result } = renderMic();
+
+    await act(async () => {
+      result.current.startListening();
+    });
+    await act(async () => {
+      result.current.stopListening();
+    });
+
+    await waitFor(() => {
+      expect(onTranscript).toHaveBeenCalledWith('flat');
+    });
+  });
+
   it('ignores an empty transcript', async () => {
     vi.mocked(global.fetch).mockResolvedValue({
       json: async () => ({}),

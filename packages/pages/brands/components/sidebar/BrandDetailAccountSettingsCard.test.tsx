@@ -4,6 +4,13 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('BrandDetailAccountSettingsCard', () => {
+  it('should render without crashing', () => {
+    render(
+      <BrandDetailAccountSettingsCard isPublic={false} onToggle={vi.fn()} />,
+    );
+    expect(screen.getByText('Public Profile')).toBeInTheDocument();
+  });
+
   it('should handle user interactions correctly', () => {
     const onToggle = vi.fn();
     render(

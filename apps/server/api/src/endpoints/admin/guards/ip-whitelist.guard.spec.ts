@@ -45,7 +45,29 @@ describe('IpWhitelistGuard', () => {
     loggerService = module.get(LoggerService);
   }
 
+  it('should be defined', async () => {
+    process.env.ADMIN_ALLOWED_IPS = '127.0.0.1';
+    await buildGuard();
+    expect(guard).toBeDefined();
+  });
+
   describe('canActivate', () => {
+    it('should allow requests from whitelisted IPs', async () => {
+      process.env.ADMIN_ALLOWED_IPS = '127.0.0.1,192.168.1.1';
+      await buildGuard();
+
+      const ctx = makeContext('127.0.0.1');
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+
+    it('should allow requests from second IP in whitelist', async () => {
+      process.env.ADMIN_ALLOWED_IPS = '10.0.0.1,192.168.1.100';
+      await buildGuard();
+
+      const ctx = makeContext('192.168.1.100');
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+
     it('should block requests from non-whitelisted IPs', async () => {
       process.env.ADMIN_ALLOWED_IPS = '127.0.0.1';
       await buildGuard();
@@ -53,6 +75,14 @@ describe('IpWhitelistGuard', () => {
       const ctx = makeContext('192.168.99.99');
       expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
       expect(() => guard.canActivate(ctx)).toThrow('Access denied');
+    });
+
+    it('should block all requests when ADMIN_ALLOWED_IPS is empty', async () => {
+      process.env.ADMIN_ALLOWED_IPS = '';
+      await buildGuard();
+
+      const ctx = makeContext('127.0.0.1');
+      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
 
     it('should log a warning when ADMIN_ALLOWED_IPS is empty', async () => {
@@ -68,6 +98,22 @@ describe('IpWhitelistGuard', () => {
 
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('ADMIN_ALLOWED_IPS is empty'),
+      );
+    });
+
+    it('should log a warning when blocking a non-whitelisted IP', async () => {
+      process.env.ADMIN_ALLOWED_IPS = '10.0.0.1';
+      await buildGuard();
+
+      const ctx = makeContext('99.99.99.99', '/admin/crm/leads');
+      try {
+        guard.canActivate(ctx);
+      } catch {
+        // expected
+      }
+
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Blocked request from 99.99.99.99'),
       );
     });
 

@@ -83,6 +83,10 @@ describe('OpenAiLlmService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('chatCompletion', () => {
     it('should return a well-formed response for a simple text completion', async () => {
       mockCreate.mockResolvedValue(makeOpenAIResponse('Hi there'));
@@ -94,6 +98,51 @@ describe('OpenAiLlmService', () => {
       expect(result.choices[0]?.message.content).toBe('Hi there');
       expect(result.choices[0]?.message.role).toBe('assistant');
       expect(result.usage.total_tokens).toBe(15);
+    });
+
+    it('should strip the openai/ prefix from model name', async () => {
+      mockCreate.mockResolvedValue(makeOpenAIResponse());
+
+      await service.chatCompletion(
+        makeParams({ model: 'openai/gpt-5.6-terra' }),
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs.model).toBe('gpt-5.6-terra');
+    });
+
+    it('should strip the local/ prefix from model name', async () => {
+      mockCreate.mockResolvedValue(makeOpenAIResponse());
+
+      await service.chatCompletion(
+        makeParams({ model: 'local/llama3-instruct' }),
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs.model).toBe('llama3-instruct');
+    });
+
+    it('should omit temperature and max_tokens for reasoning models (o3)', async () => {
+      mockCreate.mockResolvedValue(makeOpenAIResponse());
+
+      await service.chatCompletion(
+        makeParams({ max_tokens: 1024, model: 'o3-mini', temperature: 1.0 }),
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs.temperature).toBeUndefined();
+      expect(callArgs.max_tokens).toBeUndefined();
+    });
+
+    it('should omit temperature and max_tokens for o4-mini', async () => {
+      mockCreate.mockResolvedValue(makeOpenAIResponse());
+
+      await service.chatCompletion(
+        makeParams({ max_tokens: 512, model: 'o4-mini', temperature: 0.5 }),
+      );
+
+      const callArgs = mockCreate.mock.calls[0][0] as Record<string, unknown>;
+      expect(callArgs.temperature).toBeUndefined();
     });
 
     it('should map tool_calls from the response correctly', async () => {
@@ -145,6 +194,14 @@ describe('OpenAiLlmService', () => {
       );
     });
 
+    it('should return null tool_calls when no tool calls in response', async () => {
+      mockCreate.mockResolvedValue(makeOpenAIResponse('plain text', undefined));
+
+      const result = await service.chatCompletion(makeParams());
+
+      expect(result.choices[0]?.message.tool_calls).toBeUndefined();
+    });
+
     it('should extract reasoning_content from o3 response if present', async () => {
       const rawResponse = {
         ...makeOpenAIResponse(null),
@@ -172,6 +229,18 @@ describe('OpenAiLlmService', () => {
   });
 
   describe('streamChatCompletion', () => {
+    it('should return a ReadableStream', async () => {
+      async function* asyncGen() {
+        yield { choices: [{ delta: { content: 'Hello' } }] };
+        yield { choices: [{ delta: { content: ' world' } }] };
+      }
+      mockCreate.mockResolvedValue(asyncGen());
+
+      const stream = await service.streamChatCompletion(makeParams());
+
+      expect(stream).toBeInstanceOf(ReadableStream);
+    });
+
     it('should throw when API key is missing for streaming', async () => {
       configService.get.mockReturnValue(undefined as never);
 

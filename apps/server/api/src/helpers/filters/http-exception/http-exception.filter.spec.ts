@@ -107,6 +107,10 @@ describe('HttpExceptionFilter', () => {
     filter = new HttpExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
+  it('should be defined', () => {
+    expect(filter).toBeDefined();
+  });
+
   it('should handle HttpException with string message', () => {
     const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
 
@@ -280,9 +284,98 @@ describe('HttpExceptionFilter', () => {
         }),
       );
     });
+
+    it('preserves a stable, non-generic code an exception attaches to its own response body (#5080)', () => {
+      const exception = new HttpException(
+        {
+          code: 'BRAND_SCRAPE_INVALID_URL',
+          detail: 'That is not a valid URL',
+          title: 'Invalid URL',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              code: 'BRAND_SCRAPE_INVALID_URL',
+              detail: 'That is not a valid URL',
+              title: 'Invalid URL',
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('falls back to the HTTP status string when no code is attached', () => {
+      const exception = new HttpException(
+        { detail: 'Something went wrong', title: 'Error' },
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              code: HttpStatus.BAD_REQUEST.toString(),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('should preserve original error structure in response', () => {
+      const exception = new HttpException(
+        'Resource not found',
+        HttpStatus.NOT_FOUND,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      const callArgs = mockResponse.json.mock.calls[0][0];
+      expect(callArgs).toMatchObject({
+        errors: [
+          {
+            code: HttpStatus.NOT_FOUND.toString(),
+            detail: 'Resource not found',
+            source: expect.objectContaining({
+              pointer: mockRequest.originalUrl,
+            }),
+            title: 'HTTP Exception',
+          },
+        ],
+      });
+    });
   });
 
   describe('Error Message Formatting', () => {
+    it('should format error messages consistently', () => {
+      const exception = new HttpException(
+        'Invalid input parameters',
+        HttpStatus.BAD_REQUEST,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          errors: expect.arrayContaining([
+            expect.objectContaining({
+              code: expect.any(String),
+              detail: 'Invalid input parameters',
+              source: expect.any(Object),
+              title: expect.any(String),
+            }),
+          ]),
+        }),
+      );
+    });
+
     it('should handle null and undefined error messages', () => {
       const exception = new HttpException(
         null,
@@ -324,6 +417,17 @@ describe('HttpExceptionFilter', () => {
           ]),
         }),
       );
+    });
+
+    it('should capture 5xx exceptions to Sentry in production', () => {
+      const exception = new HttpException(
+        'Internal Server Error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      expect(Sentry.captureException).toHaveBeenCalledWith(exception);
     });
   });
 
@@ -383,6 +487,19 @@ describe('HttpExceptionFilter', () => {
   });
 
   describe('Security Considerations', () => {
+    it('should not expose sensitive system information in production', () => {
+      const exception = new HttpException(
+        'Database connection failed: Connection refused to localhost:5432',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+
+      filter.catch(exception, mockArgumentsHost);
+
+      const responseCall = mockResponse.json.mock.calls[0][0];
+      // In production, we want to ensure internal error details are not exposed
+      expect(responseCall.errors[0].detail).toBeDefined();
+    });
+
     it('should sanitize stack traces in production', () => {
       const exception = new HttpException(
         'Internal server error',

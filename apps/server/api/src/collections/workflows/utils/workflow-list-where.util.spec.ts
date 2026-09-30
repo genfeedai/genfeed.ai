@@ -13,6 +13,20 @@ const baseInput = {
 };
 
 describe('buildWorkflowListWhere', () => {
+  it('scopes the customer library to the selected brand', () => {
+    expect(
+      buildWorkflowListWhere({
+        ...baseInput,
+        brandId: 'brand-fud',
+        includeSystem: false,
+        referencable: false,
+      }),
+    ).toMatchObject({
+      brandId: 'brand-fud',
+      userId: 'user-1',
+    });
+  });
+
   it('keeps tenant workflows whose metadata is SQL NULL', () => {
     expect(EXCLUDE_SYSTEM_WORKFLOW).toEqual({
       AND: [
@@ -48,6 +62,28 @@ describe('buildWorkflowListWhere', () => {
       isDeleted: false,
       organizationId: 'org-1',
       userId: 'user-1',
+    });
+  });
+
+  it('keeps organization-visible system workflows on the admin includeSystem list', () => {
+    expect(
+      buildWorkflowListWhere({
+        ...baseInput,
+        includeSystem: true,
+        referencable: false,
+      }),
+    ).toEqual({
+      OR: [
+        { userId: 'user-1' },
+        {
+          metadata: {
+            equals: 'organization',
+            path: [SYSTEM_WORKFLOW_METADATA_KEY, 'visibility'],
+          },
+        },
+      ],
+      isDeleted: false,
+      organizationId: 'org-1',
     });
   });
 });

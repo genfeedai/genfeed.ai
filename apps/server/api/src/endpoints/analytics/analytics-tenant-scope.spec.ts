@@ -20,6 +20,36 @@ describe('analytics tenant scope', () => {
   };
 
   describe('resolveAnalyticsTenantScope', () => {
+    it('binds customers to the session organization', () => {
+      expect(resolveAnalyticsTenantScope(member)).toEqual({
+        organizationId: 'org-1',
+        privilege: 'customer',
+      });
+    });
+
+    it('keeps superadmin analytics unscoped', () => {
+      expect(
+        resolveAnalyticsTenantScope({
+          ...member,
+          isSuperAdmin: true,
+        }),
+      ).toEqual({
+        organizationId: undefined,
+        privilege: 'superadmin',
+      });
+    });
+
+    it('narrows a superadmin to the organization named on the request', () => {
+      expect(
+        resolveAnalyticsTenantScope({ ...member, isSuperAdmin: true }, {
+          query: { organizationId: 'org-2' },
+        } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+      ).toEqual({
+        organizationId: 'org-2',
+        privilege: 'superadmin',
+      });
+    });
+
     it('rejects a customer naming another organization', () => {
       expect(() =>
         resolveAnalyticsTenantScope(member, {
@@ -27,9 +57,48 @@ describe('analytics tenant scope', () => {
         } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
       ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
     });
+
+    it('lets a customer name their own organization', () => {
+      expect(
+        resolveAnalyticsTenantScope(member, {
+          query: { organizationId: 'org-1' },
+        } as unknown as Parameters<typeof resolveAnalyticsTenantScope>[1]),
+      ).toEqual({
+        organizationId: 'org-1',
+        privilege: 'customer',
+      });
+    });
+
+    it('rejects a customer without an organization before any read', () => {
+      expect(() =>
+        resolveAnalyticsTenantScope({
+          ...member,
+          organizationId: '',
+        }),
+      ).toThrow(new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE));
+    });
   });
 
   describe('buildAnalyticsCacheKey', () => {
+    it('namespaces customer keys by organization, not user id', () => {
+      expect(
+        buildAnalyticsCacheKey(
+          'platforms',
+          {
+            query: {
+              brandId: 'brand-1',
+              endDate: '2025-01-31',
+              startDate: '2025-01-01',
+            },
+            user: { organizationId: 'org-1' },
+          },
+          ['2025-01-01', '2025-01-31', 'brand-1'],
+        ),
+      ).toBe(
+        'analytics:platforms:customer:org-1:2025-01-01:2025-01-31:brand-1',
+      );
+    });
+
     it('keeps two organizations from sharing a customer cache entry', () => {
       const parts = ['2025-01-01', '2025-01-31', ''] as const;
       const orgA = buildAnalyticsCacheKey(
@@ -103,6 +172,46 @@ describe('analytics tenant scope', () => {
   });
 
   describe('resolveOwnedAnalyticsTenantScope', () => {
+    const superadmin: AuthenticatedUser = {
+      brandId: 'brand-1',
+      id: 'user-2',
+      isSuperAdmin: true,
+      organizationId: 'org-1',
+      userId: 'user-2',
+    } as AuthenticatedUser;
+
+    it('binds a customer to the session organization', () => {
+      expect(resolveOwnedAnalyticsTenantScope(member)).toBe('org-1');
+    });
+
+    it('binds a superadmin to their own organization, not every tenant', () => {
+      expect(resolveOwnedAnalyticsTenantScope(superadmin)).toBe('org-1');
+    });
+
+    it('lets a superadmin name their own organization', () => {
+      expect(
+        resolveOwnedAnalyticsTenantScope(superadmin, {
+          query: { organizationId: 'org-1' },
+        }),
+      ).toBe('org-1');
+    });
+
+    it('rejects a superadmin naming another organization', () => {
+      expect(() =>
+        resolveOwnedAnalyticsTenantScope(superadmin, {
+          query: { organizationId: 'org-2' },
+        }),
+      ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+    });
+
+    it('rejects a customer naming another organization', () => {
+      expect(() =>
+        resolveOwnedAnalyticsTenantScope(member, {
+          query: { organizationId: 'org-2' },
+        }),
+      ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+    });
+
     it('rejects a caller without an organization before any read', () => {
       expect(() =>
         resolveOwnedAnalyticsTenantScope({
@@ -133,6 +242,15 @@ describe('analytics tenant scope', () => {
         ),
       ).toBe('analytics:top:owned:org-b:2025-01-01:2025-01-31:brand-1');
     });
+
+    it('ignores a requested organization that the owned resolver would reject', () => {
+      expect(
+        buildOwnedAnalyticsCacheKey('hooks', {
+          query: { organizationId: 'org-2' },
+          user: { isSuperAdmin: true, organizationId: 'org-1' },
+        }),
+      ).toBe('analytics:hooks:owned:org-1');
+    });
   });
 
   describe('assertAnalyticsBrandInScope', () => {
@@ -142,6 +260,26 @@ describe('analytics tenant scope', () => {
       await assertAnalyticsBrandInScope(findBrand, undefined, 'org-1');
 
       expect(findBrand).not.toHaveBeenCalled();
+    });
+
+    it('accepts a brand that belongs to the authorized organization', async () => {
+      const findBrand = vi.fn().mockResolvedValue({ id: 'brand-1' });
+
+      await assertAnalyticsBrandInScope(findBrand, 'brand-1', 'org-1');
+
+      expect(findBrand).toHaveBeenCalledWith({
+        id: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+    });
+
+    it('rejects a brand outside the authorized organization without revealing it', async () => {
+      const findBrand = vi.fn().mockResolvedValue(null);
+
+      await expect(
+        assertAnalyticsBrandInScope(findBrand, 'brand-foreign', 'org-1'),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
     });
 
     it('requires a superadmin brand filter to match an existing brand', async () => {

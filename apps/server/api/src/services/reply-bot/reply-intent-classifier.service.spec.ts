@@ -139,6 +139,16 @@ describe('ReplyIntentClassifierService', () => {
       });
       expect(chooseMock).not.toHaveBeenCalled();
     });
+
+    it('never consults the provider binding in off mode', async () => {
+      const { isProviderBoundMock, service } = createHarness({
+        replyBotIntentDecisionMode: 'off',
+      });
+
+      await service.classify(COMMENT);
+
+      expect(isProviderBoundMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('shadow mode', () => {

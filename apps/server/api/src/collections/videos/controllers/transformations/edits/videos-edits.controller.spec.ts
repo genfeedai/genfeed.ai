@@ -128,7 +128,21 @@ describe('VideosEditsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // --- trimVideo ---
+  it('should trim video and return serialized ingredient', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    const result = await controller.trimVideo(mockRequest, mockUser, videoId, {
+      endTime: 10,
+      startTime: 2,
+    });
+    expect(result).toBeDefined();
+    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
+    expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
+  });
 
   it('should throw NOT_FOUND when video does not exist for trim', async () => {
     mockServices.videosService.findOne.mockResolvedValue(null);
@@ -156,6 +170,16 @@ describe('VideosEditsController', () => {
     } catch (error) {
       expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
     }
+  });
+
+  it('should reject trim duration greater than 15 seconds', async () => {
+    mockServices.videosService.findOne.mockResolvedValue(mockVideo);
+    await expect(
+      controller.trimVideo(mockRequest, mockUser, videoId, {
+        endTime: 20,
+        startTime: 0,
+      }),
+    ).rejects.toThrow(HttpException);
   });
 
   it('should reject negative startTime for trim', async () => {

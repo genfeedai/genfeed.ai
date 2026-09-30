@@ -447,6 +447,26 @@ describe('FilesController', () => {
   // ==========================================================================
   // Initialization
   // ==========================================================================
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(controller).toBeDefined();
+    });
+
+    it('should have all required dependencies injected', () => {
+      expect(videoQueueService).toBeDefined();
+      expect(imageQueueService).toBeDefined();
+      expect(fileQueueService).toBeDefined();
+      expect(youtubeQueueService).toBeDefined();
+      expect(httpService).toBeDefined();
+      expect(s3Service).toBeDefined();
+      expect(uploadService).toBeDefined();
+      expect(videoThumbnailService).toBeDefined();
+      expect(imagesSplitService).toBeDefined();
+      expect(filesService).toBeDefined();
+      expect(tempFileCleanupCron).toBeDefined();
+      expect(ffmpegService).toBeDefined();
+    });
+  });
 
   // ==========================================================================
   // processVideo
@@ -640,6 +660,28 @@ describe('FilesController', () => {
       );
     });
 
+    it('should use default priority when not provided', async () => {
+      const body = { ...baseBody, type: JOB_TYPES.RESIZE_VIDEO };
+      await controller.processVideo(body);
+
+      expect(videoQueueService.addResizeJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          priority: expect.any(Number),
+        }),
+      );
+    });
+
+    it('should generate unique id when not provided', async () => {
+      const body = { ...baseBody, type: JOB_TYPES.RESIZE_VIDEO };
+      await controller.processVideo(body);
+
+      expect(videoQueueService.addResizeJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: expect.stringContaining('video-'),
+        }),
+      );
+    });
+
     it('should handle queue service errors', async () => {
       mockVideoQueueService.addResizeJob.mockRejectedValueOnce(
         new Error('Queue unavailable'),
@@ -823,6 +865,19 @@ describe('FilesController', () => {
         'Unknown file processing type',
       );
     });
+
+    it('should include delay in job data when provided', async () => {
+      const body = {
+        ...baseBody,
+        delay: 5000,
+        type: JOB_TYPES.DOWNLOAD_FILE,
+      };
+      await controller.processFile(body);
+
+      expect(fileQueueService.addDownloadJob).toHaveBeenCalledWith(
+        expect.objectContaining({ delay: 5000 }),
+      );
+    });
   });
 
   // ==========================================================================
@@ -854,6 +909,28 @@ describe('FilesController', () => {
       expect(result.jobId).toBe('job_123');
       expect(result.type).toBe('upload-youtube');
       expect(result.postId).toBe('post_123');
+    });
+
+    it('should default to unlisted status', async () => {
+      await controller.processYoutube(baseBody);
+
+      expect(youtubeQueueService.addUploadJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isUnlisted: true,
+          status: 'unlisted',
+        }),
+      );
+    });
+
+    it('should handle public status', async () => {
+      await controller.processYoutube({ ...baseBody, status: 'public' });
+
+      expect(youtubeQueueService.addUploadJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isUnlisted: false,
+          status: 'public',
+        }),
+      );
     });
 
     it('should handle scheduled status with date', async () => {
@@ -898,6 +975,36 @@ describe('FilesController', () => {
       expect(result.result).toEqual({ success: true });
     });
 
+    it('should check image queue if not in video queue', async () => {
+      mockVideoQueueService.getJob.mockResolvedValueOnce(null);
+      mockImageQueueService.getJob.mockResolvedValueOnce(mockJob);
+
+      const result = await controller.getJobStatus('job_123');
+
+      expect(result.jobId).toBe('job_123');
+    });
+
+    it('should check file queue if not in video or image queue', async () => {
+      mockVideoQueueService.getJob.mockResolvedValueOnce(null);
+      mockImageQueueService.getJob.mockResolvedValueOnce(null);
+      mockFileQueueService.getJob.mockResolvedValueOnce(mockJob);
+
+      const result = await controller.getJobStatus('job_123');
+
+      expect(result.jobId).toBe('job_123');
+    });
+
+    it('should check youtube queue if not in other queues', async () => {
+      mockVideoQueueService.getJob.mockResolvedValueOnce(null);
+      mockImageQueueService.getJob.mockResolvedValueOnce(null);
+      mockFileQueueService.getJob.mockResolvedValueOnce(null);
+      mockYoutubeQueueService.getJob.mockResolvedValueOnce(mockJob);
+
+      const result = await controller.getJobStatus('job_123');
+
+      expect(result.jobId).toBe('job_123');
+    });
+
     it('should throw 404 if job not found in any queue', async () => {
       mockVideoQueueService.getJob.mockResolvedValueOnce(null);
       mockImageQueueService.getJob.mockResolvedValueOnce(null);
@@ -919,6 +1026,18 @@ describe('FilesController', () => {
         message: 'Redis unavailable',
         status: 500,
       });
+    });
+
+    it('should include failed reason for failed jobs', async () => {
+      const failedJob = {
+        ...mockJob,
+        failedReason: 'Processing failed due to timeout',
+      };
+      mockVideoQueueService.getJob.mockResolvedValueOnce(failedJob);
+
+      const result = await controller.getJobStatus('job_123');
+
+      expect(result.failedReason).toBe('Processing failed due to timeout');
     });
   });
 
@@ -1455,6 +1574,23 @@ describe('FilesController', () => {
       expect(result.publicUrl).toBeDefined();
     });
 
+    it('should upload file from base64', async () => {
+      const body = {
+        key: 'test-file.mp4',
+        source: {
+          contentType: 'video/mp4',
+          data: 'dGVzdC1kYXRh',
+          type: 'base64' as const,
+        },
+        type: 'video',
+      };
+
+      const result = await controller.uploadFile(body);
+
+      expect(uploadService.uploadToS3).toHaveBeenCalled();
+      expect(result.publicUrl).toBeDefined();
+    });
+
     it('should upload file from buffer (base64 encoded)', async () => {
       const body = {
         key: 'test-file.mp4',
@@ -1719,6 +1855,14 @@ describe('FilesController', () => {
       await expect(controller.copyFile(body)).rejects.toThrow(
         'sourceKey and destinationKey are required',
       );
+    });
+
+    it('should throw error if destinationKey is missing', async () => {
+      const body = { sourceKey: 'source.mp4' } as Parameters<
+        typeof controller.copyFile
+      >[0];
+
+      await expect(controller.copyFile(body)).rejects.toThrow(HttpException);
     });
 
     it('should handle S3 copy errors', async () => {

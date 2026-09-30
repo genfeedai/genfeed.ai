@@ -282,6 +282,28 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.edges).toEqual([]);
     });
 
+    it('should extract config from node.data.config', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: { model: 'flux', steps: 20 }, label: 'Gen' },
+            id: 'n1',
+            type: 'imageGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].config).toEqual({
+        actionId: 'imageGen',
+        parameters: { model: 'flux', steps: 20 },
+      });
+    });
+
     it('merges editor prompt fields into executable action parameters', () => {
       const workflowDoc = {
         id: 'wf-1',
@@ -1346,6 +1368,75 @@ describe('WorkflowEngineAdapterService', () => {
   });
 
   describe('node type to executor mapping', () => {
+    it('keeps brandAsset in its action envelope', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: { assetType: 'logo', brandId: 'brand-1' } },
+            id: 'n1',
+            type: 'brandAsset',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0]).toMatchObject({
+        config: {
+          actionId: 'brandAsset',
+          parameters: { assetType: 'logo', brandId: 'brand-1' },
+        },
+        type: 'genfeedAction',
+      });
+    });
+
+    it('resolves the postReply action executor', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {}, label: 'Post Reply' },
+            id: 'n1',
+            type: 'postReply',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0]).toMatchObject({
+        config: { actionId: 'postReply', parameters: {} },
+        type: 'genfeedAction',
+      });
+    });
+
+    it('resolves the sendDm action executor', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {}, label: 'Send DM' },
+            id: 'n1',
+            type: 'sendDm',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0]).toMatchObject({
+        config: { actionId: 'sendDm', parameters: {} },
+        type: 'genfeedAction',
+      });
+    });
+
     it('should map trigger nodes to corresponding executors', () => {
       const workflowDoc = {
         id: 'wf-1',
@@ -1442,6 +1533,25 @@ describe('WorkflowEngineAdapterService', () => {
       expect(result.nodes[1].type).toBe('condition');
     });
 
+    it('should map input-video to the dedicated input-video executor', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {} },
+            id: 'n1',
+            type: 'input-video',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].type).toBe('input-video');
+    });
+
     it('fails closed for unknown product node types', () => {
       const workflowDoc = {
         id: 'wf-1',
@@ -1459,6 +1569,87 @@ describe('WorkflowEngineAdapterService', () => {
       expect(() => convertActionGraph(service, workflowDoc)).toThrow(
         /unsupported product node type customType/,
       );
+    });
+  });
+
+  describe('node configuration handling', () => {
+    it('should handle node.inputs array', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {} },
+            id: 'n1',
+            inputs: ['input1', 'input2'],
+            type: 'imageGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].inputs).toEqual(['input1', 'input2']);
+    });
+
+    it('should handle node.cachedOutput', () => {
+      const cachedOutput = { result: 'cached' };
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            cachedOutput,
+            data: { config: {} },
+            id: 'n1',
+            type: 'imageGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].cachedOutput).toEqual(cachedOutput);
+    });
+
+    it('should extract label from node.data.label', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {}, label: 'Custom Label' },
+            id: 'n1',
+            type: 'imageGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].label).toBe('Custom Label');
+    });
+
+    it('should fallback to node type when label is missing', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        nodes: [
+          {
+            data: { config: {} },
+            id: 'n1',
+            type: 'imageGen',
+          },
+        ],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.nodes[0].label).toBe('imageGen');
     });
   });
 
@@ -1556,6 +1747,36 @@ describe('WorkflowEngineAdapterService', () => {
         'https://cdn.example.com/references/ref-1',
         'https://cdn.example.com/references/ref-2',
       ]);
+    });
+  });
+
+  describe('edges handling', () => {
+    it('should preserve sourceHandle and targetHandle', () => {
+      const workflowDoc = {
+        id: 'wf-1',
+        edges: [
+          {
+            id: 'e1',
+            source: 'n1',
+            sourceHandle: 'output-1',
+            target: 'n2',
+            targetHandle: 'input-2',
+          },
+        ],
+        nodes: [],
+        organizationId: 'org-1',
+        userId: 'user-1',
+      };
+
+      const result = convertActionGraph(service, workflowDoc);
+
+      expect(result.edges[0]).toEqual({
+        id: 'e1',
+        source: 'n1',
+        sourceHandle: 'output-1',
+        target: 'n2',
+        targetHandle: 'input-2',
+      });
     });
   });
 
@@ -1727,6 +1948,12 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].platform).toBe('youtube');
+    });
+
+    it('treats an empty platform list as no constraint', async () => {
+      const result = await service.buildDigestTrends(makeTrends(), 10, 0, []);
+
+      expect(result).toHaveLength(2);
     });
 
     it('includes topic-corpus rows from get_trends that clear the viral gate', async () => {

@@ -229,6 +229,21 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
     });
   });
 
+  it('advances the watched row bookkeeping on a successful run', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+
+    await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(
+      harness.adWatchedAdvertisersService.recordIngestionResult,
+    ).toHaveBeenCalledWith('watch-1', 'org-1', {
+      freshnessState: 'fresh',
+      recordCount: 1,
+      snapshotId: expect.stringContaining('watch-1:'),
+      status: 'success',
+    });
+  });
+
   it('reports an archive that genuinely returned nothing as empty, not unavailable', async () => {
     const harness = buildHarness([META_ADVERTISER]);
     harness.adapter.fetchCreatives.mockResolvedValue([]);
@@ -317,6 +332,20 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
     });
   });
 
+  it('denies collection when the provider signals the subscription is unverified', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+    harness.adapter.fetchCreatives.mockRejectedValue(
+      new ServiceUnavailableException('research_subscription_unverified'),
+    );
+
+    const [result] = await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(result).toMatchObject({
+      errorCode: 'research_subscription_unverified',
+      status: 'unavailable',
+    });
+  });
+
   it('surfaces an unreconciled collection start as its own error code, not a generic outage (#5212)', async () => {
     const harness = buildHarness([META_ADVERTISER]);
     harness.adapter.fetchCreatives.mockRejectedValue(
@@ -382,6 +411,19 @@ describe('PaidCreativeResearchIngestionService (#3537)', () => {
       'unavailable',
       'success',
     ]);
+  });
+
+  it('narrows the watchlist query to the requested brand and platform', async () => {
+    const harness = buildHarness([]);
+
+    await executeAtomicIngestionBatch(harness, 'org-1', {
+      brandId: 'brand-1',
+      platform: 'tiktok',
+    });
+
+    expect(
+      harness.adWatchedAdvertisersService.findAllByAccount,
+    ).toHaveBeenCalledWith('org-1', 'brand-1', 'tiktok');
   });
 
   it('completes the run when freshness bookkeeping itself fails', async () => {

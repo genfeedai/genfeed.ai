@@ -3,6 +3,10 @@ import { AnalyticsMetric } from '../../src/enums/analytics-metric.enum';
 
 describe('analytics-metric.enum', () => {
   describe('AnalyticsMetric', () => {
+    it('should have 15 members', () => {
+      expect(Object.values(AnalyticsMetric)).toHaveLength(15);
+    });
+
     it('should have correct values', () => {
       expect(AnalyticsMetric.VIEWS).toBe('views');
       expect(AnalyticsMetric.VIDEO_VIEWS).toBe('videoViews');

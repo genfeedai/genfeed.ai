@@ -9,9 +9,34 @@ describe('getModelMeta', () => {
     expect(meta?.allFields).toContain('userId');
     expect(meta?.relationIdFields.user).toBe('userId');
   });
+
+  it('resolves camelCase model names by pascalizing the first letter', () => {
+    expect(getModelMeta('account')).toBe(PRISMA_MODEL_METADATA.Account);
+    expect(getModelMeta('workflowExecution')).toBe(
+      PRISMA_MODEL_METADATA.WorkflowExecution,
+    );
+  });
+
+  it('returns undefined for unknown models', () => {
+    expect(getModelMeta('NotARealModel')).toBeUndefined();
+    expect(getModelMeta('')).toBeUndefined();
+  });
 });
 
 describe('PRISMA_MODEL_METADATA integrity', () => {
+  it('contains model entries generated from the schema', () => {
+    expect(Object.keys(PRISMA_MODEL_METADATA).length).toBeGreaterThan(0);
+  });
+
+  it('marks enum fields with their Prisma enum type', () => {
+    const meta = PRISMA_MODEL_METADATA.WorkflowExecution;
+
+    expect(meta?.enumFields.status).toEqual({
+      enumType: 'WorkflowExecutionStatus',
+      isRequired: true,
+    });
+  });
+
   it('keeps every enum field and relation alias inside allFields', () => {
     for (const [modelName, meta] of Object.entries(PRISMA_MODEL_METADATA)) {
       const allFields = new Set(meta.allFields);

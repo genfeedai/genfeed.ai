@@ -11,6 +11,12 @@ import {
 } from './oauth-connect-platforms';
 
 describe('resolveOAuthServicePath', () => {
+  it('prefers an explicit servicePath', () => {
+    expect(resolveOAuthServicePath('google_ads', 'google-ads')).toBe(
+      'google-ads',
+    );
+  });
+
   it('hyphenates underscore CredentialPlatform values', () => {
     expect(resolveOAuthServicePath(CredentialPlatform.GOOGLE_ADS)).toBe(
       'google-ads',
@@ -41,6 +47,20 @@ describe('OAUTH_CONNECT_PLATFORMS ads tiles', () => {
 });
 
 describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
+  it.each(['unknown', 'unavailable'] as const)(
+    'fails Threads closed when readiness is %s',
+    (readiness) => {
+      const threads = resolveOAuthConnectPlatformCatalog({
+        threads: readiness,
+      }).find((item) => item.platform === CredentialPlatform.THREADS);
+
+      expect(threads).toMatchObject({
+        isConnectAvailable: false,
+        readiness,
+      });
+    },
+  );
+
   it('enables one canonical Threads service path when readiness is available', () => {
     const threads = resolveOAuthConnectPlatformCatalog({
       threads: 'available',
@@ -107,6 +127,14 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     ).toBe('fanvue');
   });
 
+  it('omits X Ads while its OAuth 1.0a migration is incomplete', () => {
+    expect(
+      OAUTH_CONNECT_PLATFORMS.some(
+        (p) => p.platform === CredentialPlatform.X_ADS,
+      ),
+    ).toBe(false);
+  });
+
   it('includes Restream under video for multistream chat OAuth', () => {
     const restream = OAUTH_CONNECT_PLATFORMS.find(
       (p) => p.platform === CredentialPlatform.RESTREAM,
@@ -118,5 +146,14 @@ describe('OAUTH_CONNECT_PLATFORMS catalog', () => {
     expect(
       resolveOAuthServicePath(restream?.platform ?? '', restream?.servicePath),
     ).toBe('restream');
+  });
+
+  it('carries an icon and colour for every tile', () => {
+    for (const platform of OAUTH_CONNECT_PLATFORMS) {
+      // React component types may be functions or wrapper objects such as
+      // forwardRef; the catalog contract is that an icon is present.
+      expect(platform.Icon).toBeTruthy();
+      expect(platform.iconClassName).toBeTruthy();
+    }
   });
 });

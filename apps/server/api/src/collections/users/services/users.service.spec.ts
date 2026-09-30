@@ -70,6 +70,20 @@ describe('UsersService', () => {
     expect(args.select).not.toHaveProperty('authProviderId');
   });
 
+  it('returns the identity and activity fields required by the admin user list', async () => {
+    await service.findAll({ where: {} }, { page: 1, limit: 20 });
+
+    expect(delegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          createdAt: true,
+          lastActiveAt: true,
+          name: true,
+        }),
+      }),
+    );
+  });
+
   it('preserves an explicit caller select', async () => {
     await service.findAll(
       { select: { id: true }, where: {} },
@@ -131,6 +145,15 @@ describe('UsersService', () => {
         ],
         skipDuplicates: true,
       });
+    });
+
+    it('keeps the existing record when attribution is posted again', async () => {
+      delegate.findFirst.mockResolvedValue({ createdAt: new Date() });
+      attributionDelegate.createMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.recordSignupAttribution('user_1', { utmSource: 'google' }),
+      ).resolves.toBe(false);
     });
 
     it('ignores accounts older than the attribution window', async () => {

@@ -140,6 +140,14 @@ describe('AdCreativeMappingsService', () => {
       });
     });
 
+    it('returns an empty list when no row matches the content id', async () => {
+      findMany.mockResolvedValue([]);
+
+      await expect(
+        service.findByContentId('content-missing', 'org-1'),
+      ).resolves.toEqual([]);
+    });
+
     it('queries a single row by external ad id inside the tenant scope', async () => {
       findFirst.mockResolvedValue(
         makeRow('map-2', {
@@ -158,6 +166,22 @@ describe('AdCreativeMappingsService', () => {
           organizationId: 'org-1',
         },
       });
+    });
+
+    it('returns null when no row carries the external ad id', async () => {
+      findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.findByExternalAdId('ad-missing', 'org-1'),
+      ).resolves.toBeNull();
+    });
+
+    it('returns an empty list when no row matches the ad account', async () => {
+      findMany.mockResolvedValue([]);
+
+      await expect(
+        service.findByAdAccount('account-missing', 'org-1'),
+      ).resolves.toEqual([]);
     });
 
     it('queries ad account id inside the tenant scope', async () => {
@@ -189,6 +213,30 @@ describe('AdCreativeMappingsService', () => {
         service.update('map-1', 'org-1', { status: 'active' }),
       ).resolves.toBeNull();
       expect(update).not.toHaveBeenCalled();
+    });
+
+    it('merges only the explicitly provided keys into the JSON column', async () => {
+      findFirst.mockResolvedValue(
+        makeRow('map-1', {
+          adAccountId: 'act_1',
+          metadata: { source: 'manual' },
+          status: 'draft',
+        }),
+      );
+      update.mockResolvedValue({ id: 'map-1' });
+
+      await service.update('map-1', 'org-1', { status: 'active' });
+
+      expect(update).toHaveBeenCalledWith({
+        data: {
+          data: {
+            adAccountId: 'act_1',
+            metadata: { source: 'manual' },
+            status: 'active',
+          },
+        },
+        where: { id: 'map-1', isDeleted: false, organizationId: 'org-1' },
+      });
     });
 
     it('writes every provided key, including empty-string identifiers', async () => {

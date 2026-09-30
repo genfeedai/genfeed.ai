@@ -21,6 +21,11 @@ describe('ConfigService (Discord)', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    const service = new ConfigService();
+    expect(service).toBeDefined();
+  });
+
   it('should return default API_URL when env var is not set', () => {
     delete process.env.GENFEEDAI_API_URL;
     const service = new ConfigService();
@@ -73,5 +78,11 @@ describe('ConfigService (Discord)', () => {
     process.env.NODE_ENV = 'test';
     const service = new ConfigService();
     expect(service.isTest).toBe(true);
+  });
+
+  it('should get NODE_ENV via get()', () => {
+    process.env.NODE_ENV = 'development';
+    const service = new ConfigService();
+    expect(service.get('NODE_ENV')).toBe('development');
   });
 });

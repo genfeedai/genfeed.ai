@@ -51,6 +51,14 @@ describe('ToolbarDropdown', () => {
     expect(screen.queryByText('First Action')).not.toBeInTheDocument();
   });
 
+  it('ignores clicks on disabled items', () => {
+    const { onClick } = renderDropdown(vi.fn(), { disabled: true });
+    fireEvent.click(screen.getByText('File'));
+    fireEvent.click(screen.getByText('First Action'));
+
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('closes on Escape', () => {
     renderDropdown();
     fireEvent.click(screen.getByText('File'));

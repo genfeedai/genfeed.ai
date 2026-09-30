@@ -1,6 +1,14 @@
 import { EngagementRulesController } from '@api/collections/engagement-rules/controllers/engagement-rules.controller';
 import type { EngagementRulesService } from '@api/collections/engagement-rules/services/engagement-rules.service';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
+
+const MUTATION_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_SCHEDULE,
+];
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -75,5 +83,17 @@ describe('EngagementRulesController', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(service.updateScoped).not.toHaveBeenCalled();
+  });
+
+  it('declares posting write scopes on every mutation route', () => {
+    for (const handler of [
+      EngagementRulesController.prototype.create,
+      EngagementRulesController.prototype.update,
+      EngagementRulesController.prototype.remove,
+    ]) {
+      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual(
+        MUTATION_SCOPES,
+      );
+    }
   });
 });

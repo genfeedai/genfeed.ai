@@ -119,6 +119,15 @@ describe('BotInternalApiClient', () => {
       expect(result).not.toBeNull();
       expect(result?.id).toBe('int-1');
     });
+
+    it('returns null when payload cannot be normalized', async () => {
+      const { adapter, get } = makeMockAdapter();
+      get.mockResolvedValue({});
+      const client = makeClient('SLACK', adapter);
+
+      const result = await client.fetchIntegration('missing');
+      expect(result).toBeNull();
+    });
   });
 
   describe('fetchOrgWorkflows', () => {

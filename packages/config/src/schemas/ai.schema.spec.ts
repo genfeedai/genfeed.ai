@@ -19,4 +19,14 @@ describe('Argil configuration schema', () => {
       schema.validate({ ARGIL_WEBHOOK_SECRET: 'argil-webhook-secret' }).error,
     ).toBeUndefined();
   });
+
+  it('keeps Argil configuration optional for self-hosted deployments', async () => {
+    vi.stubEnv('GENFEED_CLOUD', 'false');
+    vi.resetModules();
+    const { argilSchema } = await import('./ai.schema');
+    const schema = Joi.object(argilSchema);
+
+    expect(schema.validate({}).error).toBeUndefined();
+    expect(schema.validate({ ARGIL_WEBHOOK_SECRET: '' }).error).toBeUndefined();
+  });
 });

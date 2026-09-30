@@ -111,6 +111,10 @@ describe('FacebookController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('verify', () => {
     it('persists a verified facebook credential', async () => {
       mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({

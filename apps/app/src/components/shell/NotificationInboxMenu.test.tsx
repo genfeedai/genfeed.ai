@@ -149,6 +149,24 @@ describe('NotificationInboxMenu', () => {
       screen.queryByRole('button', { name: 'Mark read' }),
     ).toBeInTheDocument();
   });
+  it('links a social reply notification to Messages', async () => {
+    current.history.data.pages[0].items = [
+      {
+        ...item,
+        topic: 'social.reply',
+        outcome: 'completed',
+        sourceHref: '/acme/brand/messages',
+        sourceLabel: null,
+        failure: null,
+        socialReply: { accountHandle: 'acme', replyCount: 3 },
+      },
+    ];
+    await open();
+    expect(screen.getByText('3 new replies on @acme')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Reply in Messages/ }),
+    ).toHaveAttribute('href', '/acme/brand/messages');
+  });
   it('marks an unread item read when its link is opened', async () => {
     current.history.data.pages[0].items = [
       {
@@ -220,5 +238,19 @@ describe('NotificationInboxMenu', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Retry' }));
     expect(current.history.refetch).toHaveBeenCalled();
+  });
+  it('supports keyboard opening and escape to return focus', async () => {
+    const user = userEvent.setup();
+    render(<NotificationInboxMenu />);
+    const trigger = screen.getByRole('button', {
+      name: 'Open notifications, 1 unread',
+    });
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    expect(
+      screen.getByRole('heading', { name: 'Notifications' }),
+    ).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(trigger).toHaveFocus();
   });
 });

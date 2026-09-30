@@ -46,6 +46,10 @@ describe('createPathSecurity', () => {
   });
 
   describe('error-factory seam', () => {
+    it('throws errors built by the injected factory, not a built-in type', () => {
+      expect(() => security.validateFilePath('')).toThrow(TestSecurityError);
+    });
+
     it('lets each consumer choose its own error class independently', () => {
       class OtherError extends Error {}
       const other = createPathSecurity({
@@ -89,6 +93,12 @@ describe('createPathSecurity', () => {
       );
     });
 
+    it('blocks Windows traversal (..\\)', () => {
+      expect(() => security.validateFilePath('..\\..\\windows')).toThrow(
+        'forbidden pattern',
+      );
+    });
+
     it('blocks traversal regardless of case', () => {
       expect(() => security.validateFilePath('/ETC/PASSWD')).toThrow(
         'forbidden pattern',
@@ -125,6 +135,15 @@ describe('createPathSecurity', () => {
       );
     });
 
+    it.each(['~/secrets', '$HOME/file', '%USERPROFILE%\\x'])(
+      'blocks home/env expansion in %s',
+      (badPath) => {
+        expect(() => security.validateFilePath(badPath)).toThrow(
+          'forbidden pattern',
+        );
+      },
+    );
+
     it.each([
       // biome-ignore lint/suspicious/noTemplateCurlyInString: testing shell expansion pattern
       '${HOME}/file.txt',
@@ -150,6 +169,12 @@ describe('createPathSecurity', () => {
   });
 
   describe('configurable blocked patterns (api vs files divergence)', () => {
+    it('does not block ";" in paths by default (api behavior)', () => {
+      // A semicolon alone is a legal POSIX filename character; the default set
+      // leaves it to sanitizeCommandArgs / validateStringParam.
+      expect(() => security.validateFilePath('videos/a;b.mp4')).not.toThrow();
+    });
+
     it('blocks ";" when a consumer adds it (files behavior)', () => {
       const strict = createPathSecurity({
         createError,
@@ -162,11 +187,27 @@ describe('createPathSecurity', () => {
   });
 
   describe('validateFileExtension', () => {
+    it.each(['video.mp4', 'video.MOV', 'image.png', 'audio.mp3', 'x.webp'])(
+      'accepts allowed extension in %s',
+      (name) => {
+        expect(() => security.validateFileExtension(name)).not.toThrow();
+      },
+    );
+
     it('rejects a file with no extension', () => {
       expect(() => security.validateFileExtension('file')).toThrow(
         'File must have an extension',
       );
     });
+
+    it.each(['file.exe', 'file.sh', 'file.bat', 'file.php'])(
+      'rejects disallowed extension %s',
+      (name) => {
+        expect(() => security.validateFileExtension(name)).toThrow(
+          'is not allowed',
+        );
+      },
+    );
 
     it('honors a custom allowed-extension list', () => {
       const restricted = createPathSecurity({
@@ -201,6 +242,15 @@ describe('createPathSecurity', () => {
   });
 
   describe('validateFileSize', () => {
+    it('resolves for files within the limit', async () => {
+      (fs.stat as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        size: 50 * 1024 * 1024,
+      });
+      await expect(
+        security.validateFileSize('/tmp/file.mp4', 100),
+      ).resolves.toBeUndefined();
+    });
+
     it('throws when a file exceeds the limit', async () => {
       (fs.stat as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
         size: 150 * 1024 * 1024,
@@ -230,6 +280,11 @@ describe('createPathSecurity', () => {
   });
 
   describe('sanitizeCommandArgs', () => {
+    it('passes clean arguments through unchanged', () => {
+      const args = ['file.mp4', 'output.mp4', '1920', '1080'];
+      expect(security.sanitizeCommandArgs(args)).toEqual(args);
+    });
+
     it('escapes quotes and backslashes', () => {
       expect(security.sanitizeCommandArgs(['a "b" c'])[0]).toContain('\\"');
       expect(security.sanitizeCommandArgs(["a 'b' c"])[0]).toContain("\\'");
@@ -285,6 +340,10 @@ describe('createPathSecurity', () => {
   });
 
   describe('validateStringParam', () => {
+    it('trims and returns valid strings', () => {
+      expect(security.validateStringParam('  hi  ', 'p')).toBe('hi');
+    });
+
     it('rejects empty, null, and over-long values', () => {
       expect(() => security.validateStringParam('', 'p')).toThrow('required');
       expect(() =>
@@ -311,6 +370,21 @@ describe('createPathSecurity', () => {
       expect(result).toContain(`${path.sep}tmp${path.sep}`);
       expect(result).toContain('clip');
       expect(result).toMatch(/_\d+_[a-z0-9]+\.mp4$/);
+    });
+
+    it('normalizes an extension supplied without a leading dot', () => {
+      expect(security.createSecureTempPath('/tmp', 'clip', 'mp4')).toMatch(
+        /\.mp4$/,
+      );
+    });
+
+    it('validates the extension against the allow-list (regression: was a latent no-op)', () => {
+      // Guards the api-copy bug where extname('.mp4') === '' made this throw for
+      // EVERY valid extension. The shared form validates `file<ext>` so a real
+      // disallowed extension is what actually gets rejected.
+      expect(() =>
+        security.createSecureTempPath('/tmp', 'clip', '.exe'),
+      ).toThrow('is not allowed');
     });
 
     it('rejects over-long filenames before touching the extension', () => {

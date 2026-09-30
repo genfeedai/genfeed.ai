@@ -27,7 +27,19 @@ function idsOfLength(length: number): string[] {
 }
 
 describe('BulkScheduleDto', () => {
+  it('should be defined', () => {
+    expect(BulkScheduleDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('accepts a contentIds array at the maximum size', async () => {
+      expect(
+        await errorsForProperty('contentIds', {
+          contentIds: idsOfLength(MAX_BULK_SCHEDULE_CONTENT_IDS),
+        }),
+      ).toEqual([]);
+    });
+
     it('rejects a contentIds array over the maximum size', async () => {
       const contentIdErrors = await errorsForProperty('contentIds', {
         contentIds: idsOfLength(MAX_BULK_SCHEDULE_CONTENT_IDS + 1),

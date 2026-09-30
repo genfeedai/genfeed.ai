@@ -88,6 +88,10 @@ describe('BatchGenerationController', () => {
     workflowService = module.get(BatchGenerationWorkflowService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createBatch', () => {
     it('should call service.createBatch', () => {
       const user = {

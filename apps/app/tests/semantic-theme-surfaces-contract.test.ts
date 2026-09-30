@@ -21,15 +21,46 @@ function collectSourceFiles(relativeRoot: string): string[] {
   });
 }
 
+const DIVIDER_SOURCES = [
+  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-overview-sidebar.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-outputs-card.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-queue-card.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-thread-card.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/editor/[id]/EditorTextTrackList.tsx',
+  'app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-progress-rewards-card.tsx',
+] as const;
+
 const WORKFLOW_ROUTE_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/[id]/WorkflowDetailPageClient.tsx',
   'app/(protected)/[orgSlug]/[brandSlug]/automation/workflows/new/WorkflowNewPageClient.tsx',
+] as const;
+
+const LIGHT_THEME_CRITICAL_SOURCES = [
+  ...collectSourceFiles('app/(onboarding)/onboarding'),
+  ...collectSourceFiles('app/(protected)/[orgSlug]/[brandSlug]/tasks'),
 ] as const;
 
 const APP_PRODUCT_SOURCES = [
   ...collectSourceFiles('app'),
   ...collectSourceFiles('packages'),
   ...collectSourceFiles('src'),
+] as const;
+
+const CARD_MIGRATION_SOURCES = [
+  'app/(onboarding)/onboarding/(wizard)/providers/providers-action-bar.tsx',
+  'app/(onboarding)/onboarding/(wizard)/providers/providers-server-list.tsx',
+  'app/(onboarding)/onboarding/(wizard)/providers/providers-status-card.tsx',
+  'app/(onboarding)/onboarding/(wizard)/providers/providers-tool-list.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/library/voices/voice-catalog-list.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsInputForm.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/ClipsProgressView.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/studio/clips/components/HighlightReviewCard.tsx',
+  'packages/components/research/ads/AdsResearchWatchlistPanel.tsx',
+] as const;
+
+const OVERLAY_MENU_SOURCES = [
+  'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx',
+  'src/features/workflows/pages/library/WorkflowCardDropdown.tsx',
 ] as const;
 
 const ICONIC_STATUS_SOURCES = [
@@ -49,6 +80,16 @@ const TASK_STATUS_SOURCES = [
 ] as const;
 
 describe('semantic theme surface contracts', () => {
+  it.each(DIVIDER_SOURCES)(
+    'uses the theme border token for ordinary dividers in %s',
+    (relativePath) => {
+      const source = readSource(relativePath);
+
+      expect(source).not.toContain('divide-white');
+      expect(source).toContain('divide-border');
+    },
+  );
+
   it('uses the foreground token for the onboarding loading indicator', () => {
     const source = readSource('app/(onboarding)/onboarding/(wizard)/page.tsx');
 
@@ -129,6 +170,20 @@ describe('semantic theme surface contracts', () => {
     expect(listRow).not.toMatch(/\b(?:divide|border)-white\b/u);
   });
 
+  it.each(LIGHT_THEME_CRITICAL_SOURCES)(
+    'uses role or ladder tokens for light-theme-critical chrome in %s',
+    (relativePath) => {
+      const source = readSource(relativePath);
+
+      expect(source).not.toMatch(
+        /\b(?:bg-black|bg-white|text-white|border-white)(?:\/(?:\d+|\[[^\]]+\]))?\b/u,
+      );
+      expect(source).not.toMatch(
+        /dark:(?:bg|text|border)-(?:slate|zinc|gray|neutral|stone)-\d+/u,
+      );
+    },
+  );
+
   it.each(APP_PRODUCT_SOURCES)(
     'documents every intentional fixed content color in %s',
     (relativePath) => {
@@ -142,6 +197,26 @@ describe('semantic theme surface contracts', () => {
         );
 
       expect(unmarkedLines).toEqual([]);
+    },
+  );
+
+  it.each(CARD_MIGRATION_SOURCES)(
+    'uses the shared Card for semantic card surfaces in %s',
+    (relativePath) => {
+      const source = readSource(relativePath);
+
+      expect(source).toContain("import Card from '@ui/card/Card'");
+      expect(source).toContain('<Card');
+    },
+  );
+
+  it.each(OVERLAY_MENU_SOURCES)(
+    'uses the secondary overlay plane and dropdown elevation in %s',
+    (relativePath) => {
+      const source = readSource(relativePath);
+
+      expect(source).toContain('bg-secondary');
+      expect(source).toContain('shadow-dropdown');
     },
   );
 

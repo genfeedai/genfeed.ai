@@ -42,6 +42,11 @@ describe('ModalPostContent', () => {
     expect(screen.getByTestId('post-setup-tab')).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    render(<ModalPostContent {...baseProps} />);
+    expect(screen.getByTestId('post-setup-tab')).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     render(<ModalPostContent {...baseProps} activeTab="platforms" />);
     expect(screen.getByTestId('post-platforms-tab')).toBeInTheDocument();

@@ -13,6 +13,36 @@ describe('useFeatureFlag', () => {
     };
   }
 
+  it('returns true when the flag is on', () => {
+    const { result } = renderHook(() => useFeatureFlag('studio'), {
+      wrapper: createWrapper({ studio: true }),
+    });
+
+    expect(result.current).toBe(true);
+  });
+
+  it('returns false when the flag is off', () => {
+    const { result } = renderHook(() => useFeatureFlag('analytics'), {
+      wrapper: createWrapper({ analytics: false }),
+    });
+
+    expect(result.current).toBe(false);
+  });
+
+  it('returns a boolean value', () => {
+    const { result } = renderHook(() => useFeatureFlag('agent'), {
+      wrapper: createWrapper({ agent: true }),
+    });
+
+    expect(typeof result.current).toBe('boolean');
+  });
+
+  it('returns true when no provider is configured (OSS default)', () => {
+    const { result } = renderHook(() => useFeatureFlag('studio'));
+
+    expect(result.current).toBe(true);
+  });
+
   it('uses an explicit product fallback without changing other OSS flags', () => {
     function Wrapper({ children }: { children: ReactNode }) {
       return createElement(
@@ -40,6 +70,25 @@ describe('useFeatureFlag', () => {
 
     expect(studioResult.current).toBe(false);
     expect(analyticsResult.current).toBe(true);
+  });
+
+  it('keeps ordinary OSS flags on when only another override is configured', () => {
+    function Wrapper({ children }: { children: ReactNode }) {
+      return createElement(
+        FeatureFlagProvider,
+        {
+          defaults: {},
+          overrides: { server_override: true },
+        },
+        children,
+      );
+    }
+
+    const { result } = renderHook(() => useFeatureFlag('analytics'), {
+      wrapper: Wrapper,
+    });
+
+    expect(result.current).toBe(true);
   });
 
   it('returns false for a flag missing from configured Admin flags', () => {

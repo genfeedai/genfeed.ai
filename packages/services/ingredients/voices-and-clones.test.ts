@@ -38,6 +38,14 @@ describe('VoicesService', () => {
       });
       expect(result).toEqual([{ id: 'voice_1', name: 'Ava' }]);
     });
+
+    it('defaults to no filters', async () => {
+      http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+      await service.findCatalog();
+
+      expect(http.get).toHaveBeenCalledWith('/catalog', { params: {} });
+    });
   });
 
   describe('importCatalogVoices', () => {

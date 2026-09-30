@@ -23,4 +23,8 @@ describe('extractUserIds', () => {
     expect(result.userId).toBe(id);
     expect(result.userRoom).toBe(`user:${id}`);
   });
+
+  it('returns no identities for a populated document without an id', () => {
+    expect(extractUserIds({})).toEqual({});
+  });
 });

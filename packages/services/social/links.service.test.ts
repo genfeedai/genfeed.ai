@@ -11,6 +11,10 @@ describe('LinksService', () => {
     service = new LinksService(mockToken);
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(LinksService);
+  });
+
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
     expect(service.findOne).toBeDefined();

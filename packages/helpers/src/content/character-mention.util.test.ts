@@ -8,6 +8,16 @@ import {
 } from './character-mention.util';
 
 describe('character-mention.util', () => {
+  it('serializes a mention token to the display name', () => {
+    expect(
+      serializeCharacterMentionDisplayName({
+        handle: 'anna',
+        id: 'p1',
+        label: 'Anna',
+      }),
+    ).toBe('Anna');
+  });
+
   it('falls back to the handle when label is empty', () => {
     expect(
       serializeCharacterMentionDisplayName({

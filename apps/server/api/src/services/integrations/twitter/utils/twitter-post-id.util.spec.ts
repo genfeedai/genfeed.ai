@@ -5,6 +5,12 @@ import {
 } from './twitter-post-id.util';
 
 describe('parseTwitterPostId', () => {
+  it('accepts bare numeric ids', () => {
+    expect(parseTwitterPostId('1234567890123456789')).toBe(
+      '1234567890123456789',
+    );
+  });
+
   it('parses x.com and twitter.com status URLs', () => {
     expect(
       parseTwitterPostId('https://x.com/genfeed/status/1234567890123456789'),

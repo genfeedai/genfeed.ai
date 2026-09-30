@@ -77,6 +77,16 @@ describe('getJsonApiErrorMessage', () => {
       expect(getJsonApiErrorMetaBoolean(document, 'isRetryable')).toBe(true);
     });
 
+    it('never hands back a value of the wrong primitive type', () => {
+      // The privacy guarantee of these readers is that only the named
+      // primitive can come out; a string in `meta` is not a number.
+      expect(getJsonApiErrorMetaNumber(document, 'email')).toBeUndefined();
+      expect(getJsonApiErrorMetaBoolean(document, 'email')).toBeUndefined();
+      expect(
+        getJsonApiErrorMetaNumber(document, 'isRetryable'),
+      ).toBeUndefined();
+    });
+
     it.each([
       ['an absent key', { errors: [{ meta: {} }] }],
       ['no meta at all', { errors: [{ code: 'x' }] }],

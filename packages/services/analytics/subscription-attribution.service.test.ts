@@ -24,6 +24,11 @@ describe('SubscriptionAttributionService', () => {
     );
   });
 
+  it('returns an instance via getInstance', () => {
+    const instance = SubscriptionAttributionService.getInstance(mockToken);
+    expect(instance).toBeDefined();
+  });
+
   it('returns the same instance for the same token (singleton)', () => {
     const inst1 = SubscriptionAttributionService.getInstance(mockToken);
     const inst2 = SubscriptionAttributionService.getInstance(mockToken);
@@ -35,5 +40,12 @@ describe('SubscriptionAttributionService', () => {
     expect(typeof instance.trackSubscription).toBe('function');
     expect(typeof instance.getContentSubscriptionStats).toBe('function');
     expect(typeof instance.getTopContentBySubscriptions).toBe('function');
+  });
+
+  it('clearInstance removes the cached instance', () => {
+    const inst1 = SubscriptionAttributionService.getInstance(mockToken);
+    SubscriptionAttributionService.clearInstance(mockToken);
+    const inst2 = SubscriptionAttributionService.getInstance(mockToken);
+    expect(inst1).not.toBe(inst2);
   });
 });

@@ -7,6 +7,10 @@ import {
 
 describe('task-model.enum', () => {
   describe('ImageTaskModel', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(ImageTaskModel)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(ImageTaskModel.IMAGEN4).toBe('imagen4');
       expect(ImageTaskModel.LEONARDO).toBe('leonardo');
@@ -18,6 +22,10 @@ describe('task-model.enum', () => {
   });
 
   describe('VideoTaskModel', () => {
+    it('should have 8 members', () => {
+      expect(Object.values(VideoTaskModel)).toHaveLength(8);
+    });
+
     it('should have correct values', () => {
       expect(VideoTaskModel.KLINGAI).toBe('klingai');
       expect(VideoTaskModel.RUNWAY).toBe('runway');
@@ -31,6 +39,10 @@ describe('task-model.enum', () => {
   });
 
   describe('MusicTaskModel', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(MusicTaskModel)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(MusicTaskModel.MUSICGEN).toBe('musicgen');
       expect(MusicTaskModel.RIFFUSION).toBe('riffusion');

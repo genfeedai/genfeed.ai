@@ -131,6 +131,14 @@ describe('WorkflowRunContextPanel', () => {
     );
   });
 
+  it('registers nothing on list routes', () => {
+    navigation.pathname = '/acme/moonrise/automation/workflows';
+    renderPanel();
+
+    expect(screen.getByTestId('sidebar-state')).toHaveTextContent('none');
+    expect(screen.getByTestId('context-sidebar-outlet')).toBeEmptyDOMElement();
+  });
+
   it('follows navigation between workflows and clears on the list', () => {
     const { navigateTo } = renderPanel();
     fireEvent.click(screen.getByRole('button', { name: 'Toggle sidebar' }));

@@ -84,6 +84,24 @@ describe('CloudSyncIndicator', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('does not render when the cloud env uses the canonical numeric flag', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = '1';
+
+    render(<CloudSyncIndicator />);
+
+    expect(
+      screen.queryByRole('button', { name: 'Cloud disconnected' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders for local hybrid mode', () => {
+    render(<CloudSyncIndicator />);
+
+    expect(
+      screen.getByRole('button', { name: 'Cloud disconnected' }),
+    ).toBeInTheDocument();
+  });
+
   it('matches the 32px size of the other topbar controls', () => {
     render(<CloudSyncIndicator />);
 

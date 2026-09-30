@@ -110,6 +110,21 @@ describe('BrandAssetAutofillService', () => {
       ]);
     });
 
+    it('does nothing when both slots are already filled', async () => {
+      resolveBrandKitAssets.mockResolvedValue({
+        banner: { id: 'b', role: 'banner', url: 'https://cdn/banner' },
+        logo: { id: 'l', role: 'logo', url: 'https://cdn/logo' },
+        references: [],
+      });
+
+      await service.fillFromSocialProfile(SCOPE, {
+        avatarUrl: 'https://pbs.twimg.com/profile_images/1/avatar.jpg',
+        platform: 'twitter',
+      });
+
+      expect(importBrandKitAssets).not.toHaveBeenCalled();
+    });
+
     it.each([
       'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png',
       'https://mastodon.social/avatars/original/missing.png',
@@ -241,6 +256,29 @@ describe('BrandAssetAutofillService', () => {
       ]);
     });
 
+    it('uses the hero image, then the typed social card, as banner candidates', async () => {
+      await service.fillFromWebsite(
+        SCOPE,
+        scraped({
+          bannerUrl: 'https://acme.com/hero.avif',
+          ogImage: 'https://acme.com/opengraph-image?abc123',
+          ogImageType: 'image/png',
+        }),
+      );
+
+      expect(
+        importedCandidates()
+          .filter(({ role }) => role === 'banner')
+          .map(({ mimeType, sourceUrl }) => ({ mimeType, sourceUrl })),
+      ).toEqual([
+        { mimeType: undefined, sourceUrl: 'https://acme.com/hero.avif' },
+        {
+          mimeType: 'image/png',
+          sourceUrl: 'https://acme.com/opengraph-image?abc123',
+        },
+      ]);
+    });
+
     it('resolves a relative social card and types a header that is the same card', async () => {
       await service.fillFromWebsite(
         SCOPE,
@@ -263,6 +301,20 @@ describe('BrandAssetAutofillService', () => {
           mimeType: 'image/png',
           sourceUrl: 'https://acme.com/opengraph-image?abc123',
         },
+      ]);
+    });
+
+    it('falls back to logoUrl when the scrape predates logo candidates', async () => {
+      await service.fillFromWebsite(
+        SCOPE,
+        scraped({ logoUrl: 'https://acme.com/logo.png' }),
+      );
+
+      expect(importedCandidates()).toEqual([
+        expect.objectContaining({
+          role: 'logo',
+          sourceUrl: 'https://acme.com/logo.png',
+        }),
       ]);
     });
 

@@ -103,7 +103,8 @@ test.describe('Agent dock', () => {
 
     await expect(page).toHaveURL(/\/agent(\/|$)/);
     await expect(dock).toHaveCount(0);
-    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
+    // The toggle stays in the topbar but is disabled: /agent is the full page.
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
 
     // Back on a product page the dock stays closed until reopened.
     await openLibrary(page);

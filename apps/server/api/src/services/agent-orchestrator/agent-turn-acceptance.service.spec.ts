@@ -367,6 +367,19 @@ describe('AgentTurnAcceptanceService', () => {
     );
   });
 
+  it('derives the thread id deterministically from the client request identity', async () => {
+    const first = await service.accept(
+      { clientRequestId: 'stable-identity', content: 'Generate safely' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+    const second = await service.accept(
+      { clientRequestId: 'stable-identity', content: 'Generate safely' },
+      { organizationId: 'org-1', userId: 'user-1' },
+    );
+
+    expect(second.threadId).toBe(first.threadId);
+  });
+
   it('persists explicit media routing and structured settings into the durable workflow request', async () => {
     const acknowledgement = await service.accept(
       {
@@ -411,6 +424,28 @@ describe('AgentTurnAcceptanceService', () => {
       }),
     );
   });
+
+  it.each([true, false])(
+    'persists host approval capability %s across the durable turn boundary',
+    async (hostSupportsApproval) => {
+      await service.accept(
+        {
+          clientRequestId: 'approval-capability',
+          content: 'Create a draft',
+          hostSupportsApproval,
+        },
+        { organizationId: 'org-1', userId: 'user-1' },
+      );
+      expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inputValues: {
+            request: expect.objectContaining({ hostSupportsApproval }),
+          },
+        }),
+        { dispatchClass: SystemWorkflowDispatchClass.INTERACTIVE },
+      );
+    },
+  );
 
   it('resolves a pasted answer on the same accepted turn', async () => {
     scopeService.prepareForTurn.mockResolvedValue({

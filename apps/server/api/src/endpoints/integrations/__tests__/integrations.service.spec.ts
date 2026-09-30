@@ -60,6 +60,17 @@ describe('IntegrationsService', () => {
   });
 
   describe('wire format', () => {
+    it('returns the stored Prisma labels verbatim from findAll', async () => {
+      prisma.orgIntegration.findMany.mockResolvedValue([prismaRow]);
+
+      const [integration] = await buildService().findAll(ORG_ID);
+
+      expect(integration).toMatchObject({
+        platform: IntegrationPlatform.DISCORD,
+        status: IntegrationStatus.ACTIVE,
+      });
+    });
+
     it('returns the stored Prisma labels verbatim from findOne', async () => {
       prisma.orgIntegration.findFirst.mockResolvedValue(prismaRow);
 

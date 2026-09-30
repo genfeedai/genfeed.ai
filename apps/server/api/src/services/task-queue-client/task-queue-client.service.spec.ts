@@ -70,6 +70,10 @@ describe('TaskQueueClientService', () => {
     vi.restoreAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('queueTransformJob', () => {
     it('should queue a transform job successfully', async () => {
       const mockResponse = {

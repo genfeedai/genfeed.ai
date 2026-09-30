@@ -1,7 +1,10 @@
 import { Platform } from '@genfeedai/contracts';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useWorkflowActionScope } from './useWorkflowActionDefaults';
+import {
+  useWorkflowActionDefaults,
+  useWorkflowActionScope,
+} from './useWorkflowActionDefaults';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -42,6 +45,19 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategies', () => ({
     strategies: [{ id: 'strategy-1', label: 'Daily ship' }],
   }),
 }));
+
+describe('useWorkflowActionDefaults', () => {
+  it('prefills brand, timezone, and connected X/LinkedIn accounts', () => {
+    const { result } = renderHook(() => useWorkflowActionDefaults());
+    const defaults = result.current('daily-publishing.resolve');
+
+    expect(defaults).toEqual({
+      brandId: 'brand-shipshit',
+      credentialIds: ['cred-x', 'cred-li'],
+      timezone: 'America/New_York',
+    });
+  });
+});
 
 describe('useWorkflowActionScope', () => {
   it('falls back through externalHandle, externalName, then label for connected accounts', () => {

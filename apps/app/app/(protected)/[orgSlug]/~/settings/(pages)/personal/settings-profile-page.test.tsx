@@ -106,6 +106,13 @@ describe('SettingsProfilePage', () => {
     expect(screen.queryByText('Email Notifications')).not.toBeInTheDocument();
   });
 
+  it('offers a language picker for the app interface', () => {
+    render(<SettingsProfilePage />);
+
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(screen.getByTestId('personal-locale-trigger')).toBeInTheDocument();
+  });
+
   it('offers System, Light, and Dark appearance preferences', async () => {
     const user = userEvent.setup();
     render(<SettingsProfilePage />);

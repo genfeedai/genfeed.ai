@@ -24,6 +24,21 @@ const ANSWERS: ExpertPositioningAnswers = {
 };
 
 describe('splitAnswerItems', () => {
+  it('splits bullet lines and strips markers', () => {
+    expect(splitAnswerItems('- one\n* two\n3. three')).toEqual([
+      'one',
+      'two',
+      'three',
+    ]);
+  });
+
+  it('splits a single paragraph into sentences', () => {
+    expect(splitAnswerItems('First point. Second point!')).toEqual([
+      'First point.',
+      'Second point!',
+    ]);
+  });
+
   it('returns nothing for blank input', () => {
     expect(splitAnswerItems('  ')).toEqual([]);
     expect(splitAnswerItems(undefined)).toEqual([]);

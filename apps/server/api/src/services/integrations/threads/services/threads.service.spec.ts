@@ -79,6 +79,10 @@ describe('ThreadsService', () => {
     ).mockResolvedValue(mockCredential);
   }
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getAccountDetails', () => {
     it('should call the Threads Graph API with access token', async () => {
       const mockResponse = { data: { id: '123', username: 'testuser' } };

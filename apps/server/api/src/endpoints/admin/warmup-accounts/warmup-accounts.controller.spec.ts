@@ -2,6 +2,12 @@ import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { WarmupPreparationService } from '@api/endpoints/admin/warmup-accounts/warmup-preparation.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RequestMethod } from '@nestjs/common';
+import {
+  GUARDS_METADATA,
+  METHOD_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { WarmupAccountsController } from './warmup-accounts.controller';
@@ -99,6 +105,15 @@ describe('WarmupAccountsController', () => {
     controller = module.get<WarmupAccountsController>(WarmupAccountsController);
   });
 
+  it('requires IP whitelist and platform superadmin guards', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      WarmupAccountsController,
+    );
+
+    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
+  });
+
   it('creates warm-up accounts with the local DB user id', async () => {
     const account = makeWarmupAccount();
     warmupAccountsService.create.mockResolvedValue(account);
@@ -157,6 +172,56 @@ describe('WarmupAccountsController', () => {
 
     expect(warmupAccountsService.get).toHaveBeenCalledWith('warmup_1');
     expect(result).toMatchObject({ data: account, serialized: true });
+  });
+
+  it('declares invitation lifecycle routes before the :id wildcard', () => {
+    const routes = (
+      [
+        'inspectInvitation',
+        'sendInvitation',
+        'resendInvitation',
+        'revokeInvitation',
+        'get',
+      ] as const
+    ).map((handler) => ({
+      handler,
+      method: Reflect.getMetadata(
+        METHOD_METADATA,
+        WarmupAccountsController.prototype[handler],
+      ),
+      path: Reflect.getMetadata(
+        PATH_METADATA,
+        WarmupAccountsController.prototype[handler],
+      ),
+    }));
+
+    expect(routes).toEqual([
+      {
+        handler: 'inspectInvitation',
+        method: RequestMethod.GET,
+        path: ':id/invitation',
+      },
+      {
+        handler: 'sendInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/send',
+      },
+      {
+        handler: 'resendInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/resend',
+      },
+      {
+        handler: 'revokeInvitation',
+        method: RequestMethod.POST,
+        path: ':id/invitation/revoke',
+      },
+      {
+        handler: 'get',
+        method: RequestMethod.GET,
+        path: ':id',
+      },
+    ]);
   });
 
   it('inspects invitation lifecycle state through the serializer', async () => {

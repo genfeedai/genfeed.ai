@@ -1,4 +1,7 @@
-import { classifyAnalyticsCollectionError } from './analytics-collection-state';
+import {
+  classifyAnalyticsCollectionError,
+  delayedAnalyticsCollectionFailure,
+} from './analytics-collection-state';
 
 describe('analytics collection failure classification', () => {
   it.each([
@@ -29,6 +32,14 @@ describe('analytics collection failure classification', () => {
       code: 'analytics.account_ambiguous',
       isRetryable: false,
       message: 'too many accounts',
+    });
+  });
+
+  it('represents delayed metrics as a retryable collection failure', () => {
+    expect(delayedAnalyticsCollectionFailure('Twitter')).toEqual({
+      code: 'analytics.metrics_delayed',
+      isRetryable: true,
+      message: 'Twitter has not made analytics available yet.',
     });
   });
 });

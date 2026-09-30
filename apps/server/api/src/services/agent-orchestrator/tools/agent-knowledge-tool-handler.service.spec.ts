@@ -137,6 +137,16 @@ describe('AgentKnowledgeToolHandler', () => {
     ]);
   });
 
+  it('keeps the relevance floor when no sources are named', async () => {
+    const { knowledgeContentRetrievalService, handler } = buildHandler();
+
+    await handler.searchKnowledge({ query: 'pricing' }, ctx);
+
+    expect(
+      knowledgeContentRetrievalService.retrieveBrandContentMemory,
+    ).toHaveBeenCalledWith(expect.objectContaining({ minRelevance: 0.6 }));
+  });
+
   it('refuses to search without a brand or a query', async () => {
     const { knowledgeContentRetrievalService, handler } = buildHandler();
     expect(

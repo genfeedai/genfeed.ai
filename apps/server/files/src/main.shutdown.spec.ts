@@ -8,6 +8,10 @@ const mainSource = readFileSync(
 );
 
 describe('files service shutdown', () => {
+  it('does not register the immediate-exit SIGTERM helper', () => {
+    expect(mainSource).not.toContain('setupGracefulShutdown');
+  });
+
   it('drains HTTP and Nest/BullMQ before exit', () => {
     expect(mainSource).toContain('registerGracefulDrain');
     expect(mainSource).toContain("serviceName: 'files'");

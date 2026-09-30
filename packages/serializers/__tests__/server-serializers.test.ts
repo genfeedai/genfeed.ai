@@ -1,5 +1,8 @@
+import { workflowAttributes } from '@serializers/attributes/automation/workflow.attributes';
 import { EvaluationSerializer } from '@serializers/server/analytics/evaluation.serializer';
 import { WatchlistSerializer } from '@serializers/server/analytics/watchlist.serializer';
+import { BotSerializer } from '@serializers/server/automation/bot.serializer';
+import { WorkflowSerializer } from '@serializers/server/automation/workflow.serializer';
 import {
   SubscriptionPreviewSerializer,
   SubscriptionSerializer,
@@ -100,55 +103,140 @@ import { UserSerializer } from '@serializers/server/users/user.serializer';
 import { describe, expect, it } from 'vitest';
 
 describe('Server Serializers', () => {
+  describe('WorkflowSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof WorkflowSerializer).toBe('object');
+    });
+
+    it('should have a serialize method', () => {
+      expect(typeof WorkflowSerializer.serialize).toBe('function');
+    });
+
+    it('includes the visual workflow attributes required by the cloud editor', () => {
+      expect(workflowAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'edges',
+          'inputVariables',
+          'lifecycle',
+          'lockedNodeIds',
+          'nodes',
+        ]),
+      );
+    });
+
+    it('serializes workflow usage for the most-used list', () => {
+      const lastExecutedAt = new Date('2026-09-20T10:00:00.000Z');
+      const document = WorkflowSerializer.serialize({
+        executionCount: 42,
+        id: 'workflow-1',
+        label: 'Weekly recap',
+        lastExecutedAt,
+      }) as { data: { attributes: Record<string, unknown> } };
+
+      expect(document.data.attributes).toMatchObject({
+        executionCount: 42,
+        label: 'Weekly recap',
+        lastExecutedAt,
+      });
+    });
+  });
+
+  describe('BotSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof BotSerializer).toBe('object');
+    });
+
+    it('should have a serialize method', () => {
+      expect(typeof BotSerializer.serialize).toBe('function');
+    });
+  });
+
   describe('EvaluationSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof EvaluationSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof EvaluationSerializer.serialize).toBe('function');
     });
   });
 
   describe('WatchlistSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof WatchlistSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof WatchlistSerializer.serialize).toBe('function');
     });
   });
 
   describe('ServiceSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof ServiceSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof ServiceSerializer.serialize).toBe('function');
     });
   });
 
   describe('StripeCheckoutSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof StripeCheckoutSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof StripeCheckoutSerializer.serialize).toBe('function');
     });
   });
 
   describe('StripeUrlSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof StripeUrlSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof StripeUrlSerializer.serialize).toBe('function');
     });
   });
 
   describe('ApiKeySerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof ApiKeySerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof ApiKeySerializer.serialize).toBe('function');
     });
   });
 
   describe('ApiKeyFullSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof ApiKeyFullSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof ApiKeyFullSerializer.serialize).toBe('function');
     });
   });
 
   describe('AnalyticSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof AnalyticSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof AnalyticSerializer.serialize).toBe('function');
     });
   });
 
   describe('AnalyticsBrandLeaderboardSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof AnalyticsBrandLeaderboardSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof AnalyticsBrandLeaderboardSerializer.serialize).toBe(
         'function',
@@ -157,18 +245,30 @@ describe('Server Serializers', () => {
   });
 
   describe('AnalyticsBrandStatsSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof AnalyticsBrandStatsSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof AnalyticsBrandStatsSerializer.serialize).toBe('function');
     });
   });
 
   describe('AnalyticsEngagementSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof AnalyticsEngagementSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof AnalyticsEngagementSerializer.serialize).toBe('function');
     });
   });
 
   describe('AnalyticsGrowthSerializer', () => {
+    it('should be a function (serializer)', () => {
+      expect(typeof AnalyticsGrowthSerializer).toBe('object');
+    });
+
     it('should have a serialize method', () => {
       expect(typeof AnalyticsGrowthSerializer.serialize).toBe('function');
     });
@@ -698,6 +798,10 @@ describe('Server Serializers', () => {
   // collection document — breaking the calendar client. It was never imported
   // here, so the "is defined" smoke test never caught it.
   describe('PostListSerializer (#1223)', () => {
+    it('is defined (not undefined — the destructured name must match the type-derived key)', () => {
+      expect(PostListSerializer).toBeTruthy();
+    });
+
     it('should be a function (serializer)', () => {
       expect(typeof PostListSerializer).toBe('object');
     });

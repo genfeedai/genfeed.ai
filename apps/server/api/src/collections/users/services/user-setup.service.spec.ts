@@ -101,6 +101,10 @@ describe('UserSetupService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('initializeUserResources', () => {
     beforeEach(() => {
       // Default "happy path" mocks — no existing resources

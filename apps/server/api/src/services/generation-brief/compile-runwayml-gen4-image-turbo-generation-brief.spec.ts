@@ -110,6 +110,27 @@ describe('compileRunwayGen4ImageTurboGenerationBrief', () => {
     expect(result.evidence.omittedSignals).toEqual([]);
   });
 
+  it('rejects strict required signals RunwayML Gen4 Image Turbo cannot honor', () => {
+    const brief = imageGenerationBriefSchema.parse({
+      constraints: [
+        { kind: 'avoid', required: true, value: 'busy backgrounds' },
+      ],
+      fidelityMode: 'strict',
+      intent: { objective: 'Create a launch image for the new bottle' },
+      mediaKind: 'image',
+      output: {},
+      references: [{ assetId: 'asset_product_123', role: 'product' }],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRunwayGen4ImageTurboGenerationBrief({
+        brief,
+        modelKey: RUNWAY_GEN4_IMAGE_TURBO_MODEL_KEY,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
   it('rejects an unregistered model key', () => {
     const brief = imageGenerationBriefSchema.parse({
       constraints: [],
@@ -126,5 +147,19 @@ describe('compileRunwayGen4ImageTurboGenerationBrief', () => {
         modelKey: 'runwayml/gen4-image-turbo-99',
       }),
     ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('does not mutate the normalized brief', () => {
+    const brief = imageGenerationBriefSchema.parse(
+      readFixture('guided.input.json'),
+    );
+    const original = structuredClone(brief);
+
+    compileRunwayGen4ImageTurboGenerationBrief({
+      brief,
+      modelKey: RUNWAY_GEN4_IMAGE_TURBO_MODEL_KEY,
+    });
+
+    expect(brief).toEqual(original);
   });
 });

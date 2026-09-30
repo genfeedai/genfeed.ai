@@ -77,7 +77,19 @@ describe('CleanExportAccessGuard', () => {
     vi.unstubAllEnvs();
   });
 
+  it('is defined', () => {
+    expect(guard).toBeDefined();
+  });
+
   describe('managed cloud (enforced)', () => {
+    it('allows watermarked (branded) requests regardless of tier', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
+        SubscriptionTier.FREE,
+      );
+      const ctx = buildContext(buildUser(), { watermark: true });
+      expect(guard.canActivate(ctx)).toBe(true);
+    });
+
     it.each([
       {
         data: { type: 'ingredient-exports', attributes: { Watermark: false } },
@@ -96,6 +108,22 @@ describe('CleanExportAccessGuard', () => {
       expect(() => guard.canActivate(buildContext(buildUser(), body))).toThrow(
         ForbiddenException,
       );
+    });
+
+    it('allows a free watermarked JSON:API export', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
+        SubscriptionTier.FREE,
+      );
+      expect(
+        guard.canActivate(
+          buildContext(buildUser(), {
+            data: {
+              type: 'ingredient-exports',
+              attributes: { watermark: true },
+            },
+          }),
+        ),
+      ).toBe(true);
     });
 
     it('throws 401 for a clean-export request with no user in request', () => {
@@ -127,6 +155,18 @@ describe('CleanExportAccessGuard', () => {
           },
         });
       }
+    });
+
+    it('blocks the retired byok tier', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('byok');
+      const ctx = buildContext(buildUser());
+      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
+    });
+
+    it('blocks an unknown/empty tier (default-deny)', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue('');
+      const ctx = buildContext(buildUser());
+      expect(() => guard.canActivate(ctx)).toThrow(ForbiddenException);
     });
 
     it.each([
@@ -173,6 +213,15 @@ describe('CleanExportAccessGuard', () => {
     beforeEach(() => {
       vi.stubEnv('GENFEED_CLOUD', undefined);
     });
+
+    it.each([SubscriptionTier.FREE, 'byok'])(
+      'allows %s tier off cloud (no managed tiers/billing)',
+      (tier) => {
+        vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(tier);
+        const ctx = buildContext(buildUser());
+        expect(guard.canActivate(ctx)).toBe(true);
+      },
+    );
 
     it('allows even with no user off cloud', () => {
       const ctx = buildContext(null);

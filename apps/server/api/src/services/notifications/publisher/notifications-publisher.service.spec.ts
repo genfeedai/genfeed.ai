@@ -1,4 +1,5 @@
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { Status } from '@genfeedai/contracts';
 
 describe('NotificationsPublisherService', () => {
   let service: NotificationsPublisherService;
@@ -13,12 +14,27 @@ describe('NotificationsPublisherService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('publishes video progress to Redis', async () => {
     await service.publishVideoProgress('/path', 50, 'user-1', 'room-1');
     expect(redisService.publish).toHaveBeenCalledWith('video-progress', {
       path: '/path',
       progress: 50,
       room: 'room-1',
+      userId: 'user-1',
+    });
+  });
+
+  it('publishes video complete with correct channel', async () => {
+    const result = { url: 'http://cdn.example.com/video.mp4' };
+    await service.publishVideoComplete('/path', result as never, 'user-1');
+    expect(redisService.publish).toHaveBeenCalledWith('video-complete', {
+      path: '/path',
+      result,
+      room: undefined,
       userId: 'user-1',
     });
   });
@@ -132,6 +148,22 @@ describe('NotificationsPublisherService', () => {
         status: 'ready',
         timestamp: expect.any(String),
         userId: 'user-1',
+      }),
+    );
+  });
+
+  it('publishes media status as COMPLETED', async () => {
+    const result = { url: 'http://cdn.example.com/img.png' };
+    await service.publishMediaStatus(
+      '/path',
+      Status.COMPLETED,
+      result as never,
+      'user-1',
+    );
+    expect(redisService.publish).toHaveBeenCalledWith(
+      'video-complete',
+      expect.objectContaining({
+        result,
       }),
     );
   });

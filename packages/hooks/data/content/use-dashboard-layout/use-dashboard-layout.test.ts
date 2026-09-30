@@ -80,6 +80,16 @@ describe('useDashboardLayout', () => {
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
+  it('does not fetch without a brand id', () => {
+    mockUseBrand.mockReturnValue({ brandId: undefined });
+
+    renderHook(() => useDashboardLayout(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    expect(mockGetService).not.toHaveBeenCalled();
+  });
+
   it('resets the layout and invalidates the query', async () => {
     const { result } = renderHook(() => useDashboardLayout(), {
       wrapper: createQueryWrapper(),

@@ -94,6 +94,10 @@ describe('SocialMonitorService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('prefers official X API replies over Apify', async () => {
     mockTwitterService.getTweetReplies.mockResolvedValueOnce([
       {

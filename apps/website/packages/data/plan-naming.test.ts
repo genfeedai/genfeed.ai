@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { PlanTier } from '@genfeedai/pricing';
 import {
   getPlanByTier,
@@ -25,6 +27,15 @@ const APP_ROOT = process.cwd();
  * spelled the names out by hand; they must interpolate PLAN_COPY instead, so a
  * rename or a price change in @genfeedai/pricing propagates on its own.
  */
+const COPY_SOURCES = [
+  'packages/data/faq.data.ts',
+  'packages/data/products.data.ts',
+  'packages/data/use-cases.data.ts',
+  'packages/ui/marketing/PricingStrip.tsx',
+  'app/(public)/pricing/page.tsx',
+  'app/(public)/pricing/pricing-content.tsx',
+  'scripts/generate-llms-txt.ts',
+];
 
 /** Digits only, so the assertion survives any change to number formatting. */
 function digitsOf(value: string): string {
@@ -32,6 +43,12 @@ function digitsOf(value: string): string {
 }
 
 describe('plan naming', () => {
+  it('exposes exactly one plan per tier', () => {
+    expect(websitePlans.map((plan) => plan.tier).sort()).toEqual(
+      [...TIERS].sort(),
+    );
+  });
+
   it('takes every plan label from PLAN_LABELS', () => {
     for (const plan of websitePlans) {
       expect(plan.label).toBe(PLAN_LABELS[plan.tier]);
@@ -78,5 +95,35 @@ describe('plan naming', () => {
     for (const useCase of useCases) {
       expect(() => getPlanByTier(useCase.pricing.recommended)).not.toThrow();
     }
+  });
+
+  it('keeps plan prices and credit counts out of marketing copy', () => {
+    const banned = new Set<string>();
+
+    for (const plan of websitePlans) {
+      if (plan.price != null && plan.price > 0) {
+        banned.add(`$${plan.price}`);
+        banned.add(`$${plan.price.toLocaleString('en-US')}`);
+      }
+
+      if (plan.includedCredits != null) {
+        banned.add(String(plan.includedCredits));
+        banned.add(plan.includedCredits.toLocaleString('en-US'));
+      }
+    }
+
+    const offenders: string[] = [];
+
+    for (const relativePath of COPY_SOURCES) {
+      const source = readFileSync(join(APP_ROOT, relativePath), 'utf8');
+
+      for (const literal of banned) {
+        if (source.includes(literal)) {
+          offenders.push(`${relativePath} hardcodes "${literal}"`);
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
   });
 });

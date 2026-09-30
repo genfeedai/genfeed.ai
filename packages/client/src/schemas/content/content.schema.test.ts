@@ -36,6 +36,29 @@ describe('content schemas', () => {
       type: ArticleCategory.POST,
     };
 
+    it('accepts valid article', () => {
+      expect(articleFormSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('rejects empty content', () => {
+      expect(
+        articleFormSchema.safeParse({ ...valid, content: '' }).success,
+      ).toBe(false);
+    });
+
+    it('rejects invalid slug', () => {
+      expect(
+        articleFormSchema.safeParse({ ...valid, slug: 'BAD SLUG' }).success,
+      ).toBe(false);
+    });
+
+    it('rejects slug over 200 chars', () => {
+      expect(
+        articleFormSchema.safeParse({ ...valid, slug: 'a'.repeat(201) })
+          .success,
+      ).toBe(false);
+    });
+
     it('rejects summary over 500 chars', () => {
       expect(
         articleFormSchema.safeParse({ ...valid, summary: 'a'.repeat(501) })
@@ -51,6 +74,12 @@ describe('content schemas', () => {
   });
 
   describe('folderSchema', () => {
+    it('accepts valid folder', () => {
+      expect(
+        folderSchema.safeParse({ label: 'Folder', tags: [] }).success,
+      ).toBe(true);
+    });
+
     it('rejects empty label', () => {
       expect(folderSchema.safeParse({ label: '', tags: [] }).success).toBe(
         false,
@@ -59,6 +88,17 @@ describe('content schemas', () => {
   });
 
   describe('linkSchema', () => {
+    it('accepts valid link', () => {
+      expect(
+        linkSchema.safeParse({
+          brandId: 'b',
+          category: 'c',
+          label: 'L',
+          url: 'https://example.com',
+        }).success,
+      ).toBe(true);
+    });
+
     it('rejects invalid URL', () => {
       expect(
         linkSchema.safeParse({
@@ -72,6 +112,23 @@ describe('content schemas', () => {
   });
 
   describe('postSchema', () => {
+    it('accepts valid post', () => {
+      expect(
+        postSchema.safeParse({
+          contentRunId: 'run-1',
+          creativeVersion: 'creative-v2',
+          description: 'D',
+          hookVersion: 'hook-v1',
+          label: 'L',
+          personaId: 'persona-1',
+          publishIntent: 'experiment',
+          scheduledDate: '2024-01-01',
+          scheduleSlot: 'morning',
+          variantId: 'variant-1',
+        }).success,
+      ).toBe(true);
+    });
+
     it('rejects empty description', () => {
       expect(
         postSchema.safeParse({
@@ -95,6 +152,32 @@ describe('content schemas', () => {
   });
 
   describe('postModalSchema', () => {
+    it('accepts valid data', () => {
+      expect(
+        postModalSchema.safeParse({
+          contentRunId: 'run-1',
+          credentialId: 'c',
+          creativeVersion: 'creative-v2',
+          description: 'D',
+          format: 'long-form',
+          hookVersion: 'hook-v1',
+          personaId: 'persona-1',
+          publishIntent: 'experiment',
+          scheduleSlot: 'morning',
+          variantId: 'variant-1',
+        }).success,
+      ).toBe(true);
+    });
+
+    it('accepts an account-free draft', () => {
+      expect(
+        postModalSchema.safeParse({
+          credentialId: '',
+          description: 'D',
+        }).success,
+      ).toBe(true);
+    });
+
     it('requires a date before scheduling a post', () => {
       expect(
         postModalSchema.safeParse({
@@ -137,6 +220,12 @@ describe('content schemas', () => {
   });
 
   describe('threadPostSchema', () => {
+    it('accepts valid', () => {
+      expect(
+        threadPostSchema.safeParse({ description: 'Content' }).success,
+      ).toBe(true);
+    });
+
     it('rejects empty', () => {
       expect(threadPostSchema.safeParse({ description: '' }).success).toBe(
         false,
@@ -145,6 +234,17 @@ describe('content schemas', () => {
   });
 
   describe('threadModalSchema', () => {
+    it('accepts valid thread', () => {
+      expect(
+        threadModalSchema.safeParse({
+          credentialId: 'c',
+          ingredient: 'i',
+          posts: [{ description: 'P' }],
+          scheduledDate: '2024-01-01',
+        }).success,
+      ).toBe(true);
+    });
+
     it('accepts a text-only draft before scheduling', () => {
       expect(
         threadModalSchema.safeParse({
@@ -194,6 +294,22 @@ describe('content schemas', () => {
       width: 1080,
     };
 
+    it('accepts valid prompt', () => {
+      expect(promptTextareaSchema.safeParse(valid).success).toBe(true);
+    });
+
+    it('rejects empty text', () => {
+      expect(
+        promptTextareaSchema.safeParse({ ...valid, text: '' }).success,
+      ).toBe(false);
+    });
+
+    it('rejects invalid quality', () => {
+      expect(
+        promptTextareaSchema.safeParse({ ...valid, quality: 'bad' }).success,
+      ).toBe(false);
+    });
+
     // Background music moved to the Studio editor (#4683) — the video
     // generation prompt bar no longer carries these fields at all.
     it('no longer types background-music fields on the parsed prompt', () => {
@@ -207,6 +323,18 @@ describe('content schemas', () => {
   });
 
   describe('promptAvatarSchema', () => {
+    it('accepts valid', () => {
+      expect(
+        promptAvatarSchema.safeParse({
+          avatarId: 'a',
+          category: 'video',
+          isCaptionEnabled: true,
+          text: 'Hello',
+          voiceId: 'v',
+        }).success,
+      ).toBe(true);
+    });
+
     it('rejects empty avatarId (whitespace only)', () => {
       expect(
         promptAvatarSchema.safeParse({

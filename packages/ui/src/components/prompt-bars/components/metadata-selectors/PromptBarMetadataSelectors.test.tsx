@@ -76,6 +76,18 @@ describe('PromptBarMetadataSelectors', () => {
     setSelectedProfile: vi.fn(),
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<PromptBarMetadataSelectors {...baseProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    render(<PromptBarMetadataSelectors {...baseProps} />);
+    expect(
+      document.querySelector('select[aria-label="Preset"]'),
+    ).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<PromptBarMetadataSelectors {...baseProps} />);
     const rootElement = container.firstChild as HTMLElement;

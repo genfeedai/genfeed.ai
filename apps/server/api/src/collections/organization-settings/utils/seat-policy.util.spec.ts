@@ -17,6 +17,10 @@ describe('seat-policy.util', () => {
       expect(isUnlimitedSeatTier(SubscriptionTier.ENTERPRISE)).toBe(true);
     });
 
+    it('is false for the free tier (solo workspace)', () => {
+      expect(isUnlimitedSeatTier(SubscriptionTier.FREE)).toBe(false);
+    });
+
     it('is false for undefined/null/unknown tiers', () => {
       expect(isUnlimitedSeatTier(undefined)).toBe(false);
       expect(isUnlimitedSeatTier(null)).toBe(false);
@@ -61,9 +65,17 @@ describe('seat-policy.util', () => {
       );
       expect(resolveEffectiveSeatsLimit(null, null)).toBe(DEFAULT_FREE_SEATS);
     });
+
+    it('keeps a finite stored limit for an undefined tier (legacy orgs)', () => {
+      expect(resolveEffectiveSeatsLimit(undefined, 4)).toBe(4);
+    });
   });
 
   describe('constants', () => {
+    it('exposes a solo default of 1 free seat', () => {
+      expect(DEFAULT_FREE_SEATS).toBe(1);
+    });
+
     it('exposes a high, non-billing fair-use ceiling', () => {
       expect(UNLIMITED_SEATS_FAIR_USE_CEILING).toBeGreaterThan(
         DEFAULT_FREE_SEATS,

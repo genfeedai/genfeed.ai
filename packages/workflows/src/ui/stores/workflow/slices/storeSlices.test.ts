@@ -189,6 +189,11 @@ describe('lockingSlice', () => {
 });
 
 describe('selectionSlice', () => {
+  it('setSelectedNodeIds replaces the selection', () => {
+    useWorkflowStore.getState().setSelectedNodeIds(['a', 'b']);
+    expect(useWorkflowStore.getState().selectedNodeIds).toEqual(['a', 'b']);
+  });
+
   it('addToSelection is idempotent', () => {
     useWorkflowStore.getState().addToSelection('a');
     useWorkflowStore.getState().addToSelection('a');

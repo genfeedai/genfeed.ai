@@ -74,6 +74,20 @@ describe('MCP setup page', () => {
     vi.unstubAllEnvs();
   });
 
+  it('publishes a discoverable server card for the remote MCP endpoint', () => {
+    expect(getMcpServerCard()).toMatchObject({
+      name: 'genfeed-mcp-server',
+      serverInfo: {
+        name: 'genfeed-mcp-server',
+        title: 'Genfeed MCP Server',
+      },
+      transport: {
+        endpoint: 'https://mcp.genfeed.ai/mcp',
+        type: 'streamable-http',
+      },
+    });
+  });
+
   it('lists the mcp-surfaced toolsets on the server card, core included', () => {
     const card = getMcpServerCard();
 
@@ -226,6 +240,15 @@ describe('MCP setup page', () => {
       },
     );
 
+    it('falls through to GENFEEDAI_MICROSERVICES_MCP_URL when the public URL is unset', () => {
+      vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', 'http://mcp:3014');
+
+      expect(resolvePublicMcpResource()).toEqual({
+        identifier: 'http://mcp:3014/mcp',
+        sourceKey: 'GENFEEDAI_MICROSERVICES_MCP_URL',
+      });
+    });
+
     it.each([
       ['a relative value', 'mcp.genfeed.ai/mcp'],
       ['a malformed value', 'not a url %%'],
@@ -342,6 +365,23 @@ describe('MCP setup page', () => {
     // The resolver percent-encodes `<` and non-ASCII code points in the
     // path, so no accepted configuration reaches these branches any more;
     // the escaper is kept as defence in depth and tested directly.
+    it('escapes every "<" so a "</script>" sequence cannot close the script element', () => {
+      expect(
+        toInlineScriptStringLiteral(
+          'https://x.test/mcp?x=</script><script>alert(1)</script>',
+        ),
+      ).toBe(
+        '"https://x.test/mcp?x=\\u003C/script>\\u003Cscript>alert(1)\\u003C/script>"',
+      );
+    });
+
+    it('escapes U+2028/U+2029 line/paragraph separators', () => {
+      // A raw one left in script source is a line terminator to some
+      // tooling or older engines.
+      expect(toInlineScriptStringLiteral('a\u2028b\u2029c')).toBe(
+        '"a\\u2028b\\u2029c"',
+      );
+    });
 
     it('is otherwise a JSON string literal', () => {
       expect(toInlineScriptStringLiteral('https://mcp.genfeed.ai/mcp')).toBe(

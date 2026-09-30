@@ -20,6 +20,12 @@ describe('isAllowedReplicateOutputUrl', () => {
     expect(isAllowedReplicateOutputUrl(url)).toBe(false);
   });
 
+  it('rejects plain http even on an allowed host', () => {
+    expect(
+      isAllowedReplicateOutputUrl('http://replicate.delivery/pbxt/out.png'),
+    ).toBe(false);
+  });
+
   it('rejects a suffix-shaped lookalike domain', () => {
     // `endsWith('replicate.delivery')` alone would accept this.
     expect(
@@ -45,4 +51,10 @@ describe('isAllowedReplicateOutputUrl', () => {
       expect(isAllowedReplicateOutputUrl(value)).toBe(false);
     },
   );
+
+  it('ignores host casing', () => {
+    expect(
+      isAllowedReplicateOutputUrl('https://PBXT.Replicate.Delivery/out.png'),
+    ).toBe(true);
+  });
 });

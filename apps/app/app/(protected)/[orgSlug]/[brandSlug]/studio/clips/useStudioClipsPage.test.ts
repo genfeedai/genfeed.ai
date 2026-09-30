@@ -425,6 +425,30 @@ describe('resolveStudioClipIdentityDefaults', () => {
       voiceId: 'org-voice-2',
     });
   });
+
+  it('ignores non-HeyGen voice refs for direct clip generation', () => {
+    const selectedBrand = {
+      agentConfig: {
+        heygenAvatarId: 'brand-avatar-3',
+        defaultVoiceRef: {
+          externalVoiceId: 'elevenlabs-voice-3',
+          provider: 'elevenlabs',
+          source: 'catalog',
+        },
+      },
+    } satisfies Pick<IBrand, 'agentConfig'>;
+
+    expect(
+      resolveStudioClipIdentityDefaults({ selectedBrand, settings: null }),
+    ).toEqual({
+      avatarId: 'brand-avatar-3',
+      avatarProvider: 'heygen',
+      isComplete: false,
+      missing: ['voice'],
+      source: 'brand',
+      voiceId: undefined,
+    });
+  });
 });
 
 describe('avatar provider selection', () => {

@@ -23,6 +23,12 @@ import {
 } from '../src/tier-entitlements';
 
 describe('TIER_PLAN_ENTITLEMENTS', () => {
+  it('covers every SubscriptionTier', () => {
+    for (const tier of Object.values(SubscriptionTier)) {
+      expect(TIER_PLAN_ENTITLEMENTS[tier]).toBeDefined();
+    }
+  });
+
   it('projects the API-only view consistently', () => {
     for (const tier of Object.values(SubscriptionTier)) {
       expect(TIER_API_ENTITLEMENTS[tier]).toEqual({
@@ -41,6 +47,12 @@ describe('getPlanEntitlementForTier', () => {
     expect(getPlanEntitlementForTier(undefined)).toBe(free);
     expect(getPlanEntitlementForTier('')).toBe(free);
     expect(getPlanEntitlementForTier('mystery-tier')).toBe(free);
+  });
+
+  it('resolves known tiers from the raw stored string', () => {
+    expect(getPlanEntitlementForTier(SubscriptionTier.SCALE)).toBe(
+      TIER_PLAN_ENTITLEMENTS[SubscriptionTier.SCALE],
+    );
   });
 });
 
@@ -160,6 +172,14 @@ describe('getUpgradeTierForLimit', () => {
     );
   });
 
+  it('suggests nothing for seats from Pro upward', () => {
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.PRO)).toBeNull();
+    expect(getUpgradeTierForLimit('seats', SubscriptionTier.SCALE)).toBeNull();
+    expect(
+      getUpgradeTierForLimit('seats', SubscriptionTier.ENTERPRISE),
+    ).toBeNull();
+  });
+
   it('suggests Scale when organizations are capped', () => {
     expect(getUpgradeTierForLimit('organizations', SubscriptionTier.FREE)).toBe(
       SubscriptionTier.SCALE,
@@ -172,6 +192,13 @@ describe('getUpgradeTierForLimit', () => {
     ).toBeNull();
     expect(
       getUpgradeTierForLimit('organizations', SubscriptionTier.ENTERPRISE),
+    ).toBeNull();
+  });
+
+  it('suggests nothing for resources that are never capped', () => {
+    expect(getUpgradeTierForLimit('brands', SubscriptionTier.FREE)).toBeNull();
+    expect(
+      getUpgradeTierForLimit('channels', SubscriptionTier.FREE),
     ).toBeNull();
   });
 });

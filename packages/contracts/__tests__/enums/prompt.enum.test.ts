@@ -7,6 +7,10 @@ import {
 
 describe('prompt.enum', () => {
   describe('PromptCategory', () => {
+    it('should have 19 members', () => {
+      expect(Object.values(PromptCategory)).toHaveLength(19);
+    });
+
     it('should have correct values', () => {
       expect(PromptCategory.BRAND_DESCRIPTION).toBe('BRAND_DESCRIPTION');
       expect(PromptCategory.STORYBOARD_SCRIPT_DESCRIPTION).toBe(
@@ -45,6 +49,10 @@ describe('prompt.enum', () => {
   });
 
   describe('PromptStatus', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(PromptStatus)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(PromptStatus.DRAFT).toBe('DRAFT');
       expect(PromptStatus.PROCESSING).toBe('PROCESSING');
@@ -54,6 +62,10 @@ describe('prompt.enum', () => {
   });
 
   describe('PromptTemplateCategory', () => {
+    it('should have 14 members', () => {
+      expect(Object.values(PromptTemplateCategory)).toHaveLength(14);
+    });
+
     it('should have correct values', () => {
       expect(PromptTemplateCategory.ARTICLE_GENERATION).toBe(
         'article-generation',

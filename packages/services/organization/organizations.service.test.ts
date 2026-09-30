@@ -42,6 +42,12 @@ describe('OrganizationsService', () => {
     service = new OrganizationsService(mockToken);
   });
 
+  describe('constructor', () => {
+    it('initializes correctly', () => {
+      expect(service).toBeInstanceOf(OrganizationsService);
+    });
+  });
+
   describe('organization operations', () => {
     it('has findAll method', () => {
       expect(service.findAll).toBeDefined();

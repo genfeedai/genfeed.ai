@@ -92,6 +92,10 @@ describe('GhostPublisherService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should expose correct platform capabilities', () => {
     expect(service.platform).toBe(CredentialPlatform.GHOST);
     expect(service.supportsTextOnly).toBe(true);
@@ -114,6 +118,28 @@ describe('GhostPublisherService', () => {
       expect(ghostService.createPost).toHaveBeenCalledWith(
         'https://myblog.ghost.io',
         'dec:encrypted-token',
+        expect.any(String),
+        expect.any(String),
+        expect.any(String),
+        undefined,
+      );
+    });
+
+    it('should publish as the account on the context, not a sibling account', async () => {
+      const secondAccount = {
+        id: 'second-account-id',
+        accessToken: 'encrypted-token-2',
+        externalId: 'https://second.ghost.io',
+        platform: CredentialPlatform.GHOST,
+      };
+
+      await service.publish(
+        makeContext({ credential: secondAccount as never }),
+      );
+
+      expect(ghostService.createPost).toHaveBeenCalledWith(
+        'https://second.ghost.io',
+        'dec:encrypted-token-2',
         expect.any(String),
         expect.any(String),
         expect.any(String),

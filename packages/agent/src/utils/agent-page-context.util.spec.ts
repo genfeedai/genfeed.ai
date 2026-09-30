@@ -69,6 +69,24 @@ describe('toAgentRequestPageContext', () => {
     });
   });
 
+  it('drops empty collections and non-analytics query objects', () => {
+    expect(
+      toAgentRequestPageContext(
+        {
+          analyticsQuery: { kind: 'other' } as never,
+          researchReferences: [],
+          route: '/studio',
+          socialReferences: [],
+          suggestedActions: [],
+        },
+        'UTC',
+      ),
+    ).toEqual({
+      route: '/studio',
+      timezone: 'UTC',
+    });
+  });
+
   it('attaches the browser timezone by default and keeps an explicit one', () => {
     const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -85,5 +103,14 @@ describe('toAgentRequestPageContext', () => {
         'Europe/Paris',
       ),
     ).toEqual({ route: '/agent', timezone: 'America/New_York' });
+  });
+
+  it('does not send a timezone-only context', () => {
+    expect(
+      toAgentRequestPageContext(
+        { route: ' ', suggestedActions: [] },
+        'Europe/Paris',
+      ),
+    ).toBeUndefined();
   });
 });

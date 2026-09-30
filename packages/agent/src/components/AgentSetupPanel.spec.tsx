@@ -102,6 +102,26 @@ describe('AgentSetupPanel', () => {
     }
   });
 
+  it('invokes onOAuthConnect when a platform is chosen from the dropdown', async () => {
+    const user = userEvent.setup();
+    const onOAuthConnect = vi.fn();
+    renderAgentSetupPanel(
+      <AgentSetupPanel
+        brand={brand}
+        connectedConnections={[]}
+        connectedPlatformsCount={0}
+        onOAuthConnect={onOAuthConnect}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Connect a social channel' }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Twitter' }));
+
+    expect(onOAuthConnect).toHaveBeenCalledWith('twitter');
+  });
+
   it('lists connected accounts and hides them from the connect dropdown', async () => {
     const user = userEvent.setup();
     const connectedConnections: AgentSetupConnection[] = [

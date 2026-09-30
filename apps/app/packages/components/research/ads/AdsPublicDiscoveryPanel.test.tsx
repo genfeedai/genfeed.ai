@@ -105,6 +105,27 @@ describe('explicit public discovery', () => {
     state.brandId = 'brand';
     getService.mockResolvedValue({ discover });
   });
+  it('does not search on mount and submits without an owned credential', async () => {
+    discover.mockResolvedValue({ status: 'empty', advertisers: [] });
+    render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
+    expect(discover).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
+      target: { value: 'coffee' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
+    await screen.findByText(
+      'No matching saved creatives in the available sample.',
+    );
+    expect(discover).toHaveBeenCalledWith(
+      expect.objectContaining({
+        keyword: 'coffee',
+        platform: 'meta',
+        brandId: 'brand',
+      }),
+      expect.any(AbortSignal),
+    );
+    expect(discover.mock.calls[0][0].credentialId).toBeUndefined();
+  });
   it('submits YouTube and video filters without an owned account', async () => {
     discover.mockResolvedValue({ status: 'empty', advertisers: [] });
     render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);

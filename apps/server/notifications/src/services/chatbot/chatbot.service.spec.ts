@@ -61,6 +61,24 @@ describe('ChatBotService', () => {
   });
 
   describe('sendToTwitchChat', () => {
+    it('posts the message to the Twitch helix API', async () => {
+      mockedAxios.post.mockResolvedValue({ data: {} });
+
+      await service.sendToTwitchChat('token-1', 'caster-1', 'hi chat');
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://api.twitch.tv/helix/chat/messages?broadcaster_id=caster-1&sender_id=caster-1',
+        { message: 'hi chat' },
+        {
+          headers: {
+            Authorization: 'Bearer token-1',
+            'Client-Id': 'client',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
     it('uses an explicit sender id when provided', async () => {
       mockedAxios.post.mockResolvedValue({ data: {} });
 
@@ -88,6 +106,24 @@ describe('ChatBotService', () => {
   });
 
   describe('sendToYouTubeChat', () => {
+    it('posts the message to the YouTube live chat API', async () => {
+      mockedAxios.post.mockResolvedValue({ data: {} });
+
+      await service.sendToYouTubeChat('token-1', 'live-1', 'hi chat');
+
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        'https://www.googleapis.com/youtube/v3/liveChat/messages?part=snippet',
+        {
+          snippet: {
+            liveChatId: 'live-1',
+            textMessageDetails: { messageText: 'hi chat' },
+            type: 'textMessageEvent',
+          },
+        },
+        { headers: { Authorization: 'Bearer token-1' } },
+      );
+    });
+
     it('rethrows youtube API failures', async () => {
       mockedAxios.post.mockRejectedValue(new Error('yt down'));
 

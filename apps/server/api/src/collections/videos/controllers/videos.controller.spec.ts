@@ -44,6 +44,7 @@ import { VideoGenerationExecutionService } from '@api/collections/videos/service
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
@@ -78,6 +79,7 @@ describe('VideosController', () => {
   let controller: VideosController;
   let videosService: vi.Mocked<VideosService>;
   let brandsService: vi.Mocked<BrandsService>;
+  let votesService: vi.Mocked<VotesService>;
   let filesClientService: vi.Mocked<FilesClientService>;
   let sharedService: vi.Mocked<SharedService>;
   let replicateService: vi.Mocked<ReplicateService>;
@@ -487,7 +489,7 @@ describe('VideosController', () => {
     controller = testingModule.get(VideosController);
     videosService = testingModule.get(VideosService);
     brandsService = testingModule.get(BrandsService);
-    testingModule.get(VotesService);
+    votesService = testingModule.get(VotesService);
     filesClientService = testingModule.get(FilesClientService);
     sharedService = testingModule.get(SharedService);
     replicateService = testingModule.get(ReplicateService);
@@ -505,6 +507,10 @@ describe('VideosController', () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
   describe('findAll (latest=true shorthand)', () => {
@@ -577,6 +583,23 @@ describe('VideosController', () => {
       expect(branch).not.toHaveProperty('OR');
       expect(branch).not.toHaveProperty('status');
       expect(branch).not.toHaveProperty('organization');
+    });
+
+    it('should cap the latest limit at 50', async () => {
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+        totalDocs: 0,
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+
+      await controller.findAll(mockRequest, mockUser, {
+        ...latestQuery,
+        limit: 100,
+      } as unknown as VideosQueryDto);
+
+      const options = videosService.findAll.mock.calls[0][1] as {
+        limit: number;
+      };
+      expect(options.limit).toBe(50);
     });
   });
 
@@ -688,6 +711,67 @@ describe('VideosController', () => {
 
       expect(videosService.findAll).toHaveBeenCalled();
     });
+
+    it('should filter by folder', async () => {
+      const folderId = 'cmfolder000000000000000001';
+      const query: VideosQueryDto = {
+        ...baseQuery,
+        folder: folderId as string,
+      };
+
+      const mockData = {
+        docs: [mockVideo],
+        totalDocs: 1,
+      };
+
+      videosService.findAll.mockResolvedValue(
+        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
+      );
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(videosService.findAll).toHaveBeenCalled();
+    });
+
+    it('should filter by brand', async () => {
+      const query: VideosQueryDto = {
+        ...baseQuery,
+        brand: mockBrandId as string,
+      };
+
+      const mockData = {
+        docs: [mockVideo],
+        totalDocs: 1,
+      };
+
+      videosService.findAll.mockResolvedValue(
+        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
+      );
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(videosService.findAll).toHaveBeenCalled();
+    });
+
+    it('should handle sort parameter', async () => {
+      const query: VideosQueryDto = {
+        ...baseQuery,
+        sort: '-createdAt',
+      };
+
+      const mockData = {
+        docs: [mockVideo],
+        totalDocs: 1,
+      };
+
+      videosService.findAll.mockResolvedValue(
+        mockData as unknown as AggregatePaginateResult<IngredientDocument>,
+      );
+
+      await controller.findAll(mockRequest, mockUser, query);
+
+      expect(videosService.findAll).toHaveBeenCalled();
+    });
   });
 
   describe('findOne', () => {
@@ -748,6 +832,66 @@ describe('VideosController', () => {
       );
       expect(result).toBeDefined();
       expect(result.data).toMatchObject({ type: 'video' });
+    });
+
+    it('should include vote status', async () => {
+      const mockVote = {
+        entityId: mockVideoId,
+        id: 'cmvote00000000000000000001',
+        userId: mockUserId,
+      };
+
+      votesService.findOne.mockResolvedValue(
+        mockVote as unknown as VoteDocument,
+      );
+
+      const result = await controller.findOne(
+        mockRequest,
+        mockVideoId.toString(),
+        mockUser,
+      );
+
+      expect(votesService.findOne).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should return 404 when video not found', async () => {
+      videosService.findAll.mockResolvedValue({
+        docs: [],
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+      videosService.findOne.mockResolvedValue(null);
+
+      const missingId = 'cmvideo0000000000000000002';
+
+      await expect(
+        controller.findOne(mockRequest, missingId, mockUser),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('should include evaluation data from aggregation', async () => {
+      const mockVideoWithEvaluation = {
+        ...mockVideo,
+        evaluation: {
+          id: 'cmevaluation000000000000001',
+          score: 85,
+          status: 'COMPLETED',
+        },
+      };
+
+      videosService.findAll.mockResolvedValue({
+        docs: [mockVideoWithEvaluation],
+      } as unknown as AggregatePaginateResult<IngredientDocument>);
+      videosService.findOne.mockResolvedValue(
+        mockVideo as unknown as IngredientDocument,
+      );
+
+      const result = await controller.findOne(
+        mockRequest,
+        mockVideoId.toString(),
+        mockUser,
+      );
+
+      expect(result).toBeDefined();
     });
   });
 
@@ -878,6 +1022,17 @@ describe('VideosController', () => {
       expect(videosService.remove).not.toHaveBeenCalled();
     });
 
+    it('should return 404 when remove returns null', async () => {
+      videosService.findOne.mockResolvedValue(
+        mockVideo as unknown as IngredientDocument,
+      );
+      videosService.remove.mockResolvedValue(null);
+
+      await expect(
+        controller.remove(mockRequest, mockVideoId.toString(), mockUser),
+      ).rejects.toThrow(HttpException);
+    });
+
     it('should not remove metadata if video removal fails', async () => {
       videosService.findOne.mockResolvedValue(
         mockVideo as unknown as IngredientDocument,
@@ -920,6 +1075,17 @@ describe('VideosController', () => {
       expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['videos']);
       expect(result).toBeDefined();
+    });
+
+    it('should create a video with Replicate model', async () => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
+      };
+
+      await controller.create(mockRequest, dto, mockUser);
+
+      expect(replicateService.generateTextToVideo).toHaveBeenCalled();
     });
 
     it('rejects Hailuo 2.3 Fast without first_frame_image before Replicate', async () => {
@@ -1043,6 +1209,18 @@ describe('VideosController', () => {
           category: ModelCategory.VIDEO,
         }),
       );
+    });
+
+    it('should use brand default model when no model specified', async () => {
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        model: undefined,
+      };
+
+      await controller.create(mockRequest, dto, mockUser);
+
+      // Should use brand.defaultVideoModel (KLINGAI_V2 from mockBrand)
+      expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
     });
 
     it('should handle multiple outputs for non-batch models', async () => {
@@ -1190,6 +1368,51 @@ describe('VideosController', () => {
       ).rejects.toThrow(HttpException);
     });
 
+    it('should use existing prompt when prompt ID is provided', async () => {
+      const existingPrompt = {
+        enhanced: 'Enhanced prompt text',
+        id: mockPromptId,
+        original: 'Original prompt text',
+      };
+
+      const promptsService = testingModule.get(PromptsService);
+      (promptsService.findOne as vi.Mock).mockResolvedValue(existingPrompt);
+
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        promptId: mockPromptId,
+        text: undefined,
+      };
+
+      await controller.create(mockRequest, dto, mockUser);
+
+      expect(promptsService.findOne).toHaveBeenCalledWith({
+        id: mockPromptId.toString(),
+        organizationId: mockOrgId.toString(),
+      });
+    });
+
+    it('should handle reference images', async () => {
+      const referenceId = 'cmimage0000000000000000001';
+      const dto: CreateVideoDto = {
+        ...baseCreateDto,
+        references: [referenceId],
+      };
+      const ingredientsService = testingModule.get(IngredientsService);
+      (ingredientsService.findOne as vi.Mock).mockResolvedValue({
+        id: referenceId,
+      });
+
+      await controller.create(mockRequest, dto, mockUser);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({
+          sourceIds: [referenceId],
+        }),
+      );
+    });
+
     it('should handle endFrame for video interpolation', async () => {
       const endFrameId = 'cmimage0000000000000000002';
       const dto: CreateVideoDto = {
@@ -1237,6 +1460,19 @@ describe('VideosController', () => {
   });
 
   describe('error handling', () => {
+    it('should handle service errors gracefully', async () => {
+      videosService.findAll.mockRejectedValue(new Error('Database error'));
+
+      await expect(
+        controller.findAll(mockRequest, mockUser, {
+          isDeleted: false,
+          limit: 10,
+          page: 1,
+          sort: 'createdAt: -1',
+        }),
+      ).rejects.toThrow('Database error');
+    });
+
     it('should handle an invalid entity ID in findOne', async () => {
       videosService.findAll.mockRejectedValue(new Error('Invalid entity ID'));
 

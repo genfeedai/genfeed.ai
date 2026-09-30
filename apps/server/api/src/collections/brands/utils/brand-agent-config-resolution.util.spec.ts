@@ -138,6 +138,28 @@ describe('resolveEffectiveBrandAgentConfig', () => {
       result.identityDefaults.organization.defaultAvatarIngredientId,
     ).toBeDefined();
   });
+
+  it('resolves effective identity defaults from brand first, then organization', () => {
+    const result = resolveEffectiveBrandAgentConfig({
+      brand: {
+        agentConfig: {
+          defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
+          defaultVoiceId: testId('id', 2),
+        },
+      } as never,
+      organizationSettings: {
+        defaultAvatarIngredientId: testId('id', 1),
+        defaultAvatarPhotoUrl: 'https://cdn.example.com/org-avatar.png',
+        defaultVoiceId: testId('id', 3),
+      } as never,
+    });
+
+    expect(result.identityDefaults.effective).toMatchObject({
+      defaultAvatarIngredientId: testId('id', 1),
+      defaultAvatarPhotoUrl: 'https://cdn.example.com/brand-avatar.png',
+      defaultVoiceId: testId('id', 2),
+    });
+  });
 });
 
 describe('resolveEffectiveAgentExecutionConfig', () => {

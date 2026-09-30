@@ -695,6 +695,44 @@ describe('BatchProjectReconcileService', () => {
     });
   });
 
+  it('prefers the output id a node returns over earlier linked clips', async () => {
+    useProject(makeProject([makeItem()]));
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        error: null,
+        id: 'child-1',
+        idempotencyKey: batchChildExecutionKey({
+          childWorkflowVersionId: 'version-1',
+          index: 0,
+          parentExecutionId: 'parent-1',
+        }),
+        status: WorkflowExecutionStatus.COMPLETED,
+      },
+    ]);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      category: IngredientCategory.VIDEO,
+      id: 'earlier-clip',
+    });
+    prisma.workflowExecutionNodeResult.findMany.mockResolvedValue([
+      {
+        output: { outputIngredientId: 'stitched-video', videoUrl: 'https://x' },
+      },
+    ]);
+    prisma.ingredient.findMany.mockResolvedValue([
+      { category: IngredientCategory.VIDEO, id: 'stitched-video' },
+    ]);
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ ingredientId: 'stitched-video' })],
+      }),
+      'user-1',
+      'org-1',
+    );
+  });
+
   it.each(['REJECTED', 'CHANGES_REQUESTED'])(
     'withdraws scheduling markers after a later %s decision',
     async (decision) => {
@@ -755,6 +793,14 @@ describe('BatchProjectReconcileService', () => {
     expect(updatedItem('item-1')).toContainEqual(
       expect.objectContaining({ caption: 'Rewritten in the inbox' }),
     );
+  });
+
+  it('does nothing while another reconcile holds the project', async () => {
+    cacheService.withLock.mockResolvedValueOnce(null);
+
+    await service.reconcileProject('project-1', 'org-1');
+
+    expect(prisma.batchProject.findFirst).not.toHaveBeenCalled();
   });
 
   it('sweeps generating projects across organizations and survives one failure', async () => {

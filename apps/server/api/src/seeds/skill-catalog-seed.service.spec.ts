@@ -282,4 +282,17 @@ describe('SkillCatalogSeedService', () => {
       }),
     );
   });
+
+  it('preserves original five identities when seeding content-geo-optimizer', async () => {
+    await service.reconcileCatalog([geo]);
+
+    expect(prisma.skill.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: 'cskillbuiltincontentgeo',
+        config: expect.objectContaining({
+          slug: 'content-geo-optimizer',
+        }),
+      }),
+    });
+  });
 });

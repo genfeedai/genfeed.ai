@@ -1,4 +1,5 @@
 import {
+  resolveOverlayTelemetryUpdate,
   resolveWorkspaceShellTransition,
   shouldRestorePrimaryFocus,
 } from './workspace-shell-transition.util';
@@ -48,6 +49,31 @@ describe('resolveWorkspaceShellTransition', () => {
 });
 
 describe('overlay telemetry and focus helpers', () => {
+  it('records overlay class on open and abandons it on dismiss', () => {
+    expect(
+      resolveOverlayTelemetryUpdate({
+        currentTelemetryClass: null,
+        isOverlayCompleted: false,
+        overlayTelemetryClass: 'library_picker',
+        previousState: 'canvas',
+        state: 'overlay',
+      }),
+    ).toEqual({
+      abandonedTelemetryClass: null,
+      nextCompleted: false,
+      nextTelemetryClass: 'library_picker',
+    });
+    expect(
+      resolveOverlayTelemetryUpdate({
+        currentTelemetryClass: 'library_picker',
+        isOverlayCompleted: false,
+        overlayTelemetryClass: null,
+        previousState: 'overlay',
+        state: 'canvas',
+      }).abandonedTelemetryClass,
+    ).toBe('library_picker');
+  });
+
   it('restores canvas focus unless the overlay trigger still owns it', () => {
     expect(
       shouldRestorePrimaryFocus({

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +11,7 @@ import {
   parseReleaseManifest,
   readPackageVersion,
   resolveReleaseTag,
+  verifyReleaseChecksum,
 } from '../src/index';
 
 describe('release identity', () => {
@@ -63,6 +65,21 @@ describe('release bundle integrity', () => {
     expect(() => parseReleaseManifest(content, 'v0.5.1')).toThrow(
       'does not match',
     );
+  });
+
+  it('verifies the release archive checksum', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'genfeed-create-test-'));
+    const archivePath = join(directory, 'genfeed-selfhosted.tar.gz');
+    const checksumPath = `${archivePath}.sha256`;
+    const archive = 'release bundle fixture';
+    const checksum = createHash('sha256').update(archive).digest('hex');
+
+    await writeFile(archivePath, archive);
+    await writeFile(checksumPath, `${checksum}  genfeed-selfhosted.tar.gz\n`);
+
+    await expect(
+      verifyReleaseChecksum(archivePath, checksumPath),
+    ).resolves.toBeUndefined();
   });
 });
 

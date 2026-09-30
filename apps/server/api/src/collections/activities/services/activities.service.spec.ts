@@ -1,5 +1,9 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { ActionOrigin, ActivityKey } from '@genfeedai/contracts';
+import {
+  ActionOrigin,
+  ActivityKey,
+  ActivitySource,
+} from '@genfeedai/contracts';
 
 describe('ActivitiesService action origin', () => {
   const logger = {
@@ -21,6 +25,34 @@ describe('ActivitiesService action origin', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('exposes legacy records with explicit unknown origin', async () => {
+    const { activity, service } = makeService();
+    activity.findFirst.mockResolvedValue({
+      action: ActivityKey.POST_PUBLISHED,
+      createdAt: new Date(),
+      data: {
+        source: ActivitySource.POST,
+        value: 'Published to x: https://x.com/1',
+      },
+      id: 'activity-legacy',
+      isDeleted: false,
+      updatedAt: new Date(),
+    });
+
+    const activityRecord = await service.findOne({ id: 'activity-legacy' });
+
+    expect(activityRecord).toMatchObject({
+      actorUserId: null,
+      apiKeyId: null,
+      // Promote Prisma action/data into the wire-facing key/value/source fields.
+      isRead: false,
+      key: ActivityKey.POST_PUBLISHED,
+      origin: ActionOrigin.UNKNOWN,
+      source: ActivitySource.POST,
+      value: 'Published to x: https://x.com/1',
+    });
   });
 
   it('preserves the original provenance on idempotent activity updates', async () => {

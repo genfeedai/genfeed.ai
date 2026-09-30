@@ -95,6 +95,61 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     });
   });
 
+  it('scopes the P2002 re-read to organizationId (tenant guard)', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst.mockResolvedValue({
+      error: null,
+      output: null,
+      status: 'running',
+      updatedAt: new Date(),
+    });
+
+    await service.tryClaim({
+      executionId: 'exec-1',
+      nodeId: 'publish',
+      organizationId: 'org-tenant-a',
+    });
+
+    expect(workflowNodeClaim.findFirst).toHaveBeenCalledWith({
+      where: {
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-tenant-a',
+      },
+    });
+  });
+
+  it('skips with running when another worker still owns the node', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst.mockResolvedValue({
+      error: null,
+      output: null,
+      status: 'running',
+      updatedAt: new Date(),
+    });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      action: 'skip',
+      error: undefined,
+      output: undefined,
+      status: 'running',
+    });
+  });
+
   it('atomically reclaims a failed node for execution retry', async () => {
     const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
       clientVersion: 'test',
@@ -206,6 +261,42 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         }),
       }),
     );
+  });
+
+  it('returns the winning worker state when a stale reclaim loses its race', async () => {
+    const conflict = new Prisma.PrismaClientKnownRequestError('Unique', {
+      clientVersion: 'test',
+      code: 'P2002',
+    });
+    workflowNodeClaim.create.mockRejectedValue(conflict);
+    workflowNodeClaim.findFirst
+      .mockResolvedValueOnce({
+        error: 'worker terminated',
+        leaseExpiresAt: new Date(Date.now() - 1),
+        output: { partial: true },
+        status: 'running',
+        updatedAt: new Date(),
+      })
+      .mockResolvedValueOnce({
+        error: null,
+        output: null,
+        status: 'running',
+        updatedAt: new Date(),
+      });
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.tryClaim({
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      action: 'skip',
+      error: undefined,
+      output: undefined,
+      status: 'running',
+    });
   });
 
   it('leaves stale provider-callback claims to continuation recovery', async () => {
@@ -472,6 +563,33 @@ describe('WorkflowNodeClaimService (#2359)', () => {
     }
   });
 
+  it('completes a claim with terminal status and output', async () => {
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.complete({
+      executionId: 'exec-1',
+      nodeId: 'publish',
+      organizationId: 'org-1',
+      output: { postId: 'p1' },
+      status: 'completed',
+    });
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith({
+      data: {
+        error: null,
+        leaseExpiresAt: null,
+        leaseOwnerId: null,
+        output: { postId: 'p1' },
+        status: 'completed',
+      },
+      where: {
+        executionId: 'exec-1',
+        nodeId: 'publish',
+        organizationId: 'org-1',
+      },
+    });
+  });
+
   it('completes a failed claim with error text and tenant-scoped where', async () => {
     workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
 
@@ -497,5 +615,29 @@ describe('WorkflowNodeClaimService (#2359)', () => {
         organizationId: 'org-1',
       },
     });
+  });
+
+  it('completes only the claim still owned by the caller', async () => {
+    workflowNodeClaim.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.complete({
+      executionId: 'exec-1',
+      leaseOwnerId: 'owner-1',
+      nodeId: 'publish',
+      organizationId: 'org-1',
+      status: 'completed',
+    });
+
+    expect(workflowNodeClaim.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          executionId: 'exec-1',
+          leaseOwnerId: 'owner-1',
+          nodeId: 'publish',
+          organizationId: 'org-1',
+          status: 'running',
+        },
+      }),
+    );
   });
 });

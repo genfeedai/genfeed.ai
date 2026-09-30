@@ -147,11 +147,3 @@ export interface MarqueeRailProps {
    */
   gapPx?: number;
 }
-
-export interface HorizontalCarouselProps {
-  gap?: 'sm' | 'md' | 'lg';
-  showNavigation?: boolean;
-  className?: string;
-  itemClassName?: string;
-  children: ReactNode;
-}

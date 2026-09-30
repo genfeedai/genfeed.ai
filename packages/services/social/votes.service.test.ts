@@ -11,6 +11,10 @@ describe('VotesService', () => {
     service = new VotesService(mockToken);
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(VotesService);
+  });
+
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
     expect(service.findOne).toBeDefined();

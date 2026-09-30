@@ -76,6 +76,14 @@ describe('WorkflowValidator', () => {
         nodeId: 'n1',
       });
     });
+
+    it('accumulates errors from multiple invalid nodes', () => {
+      mockGetNodeDefinition.mockReturnValue(undefined);
+      const result = WorkflowValidator.validate({
+        nodes: [makeNode('n1', 'bad1'), makeNode('n2', 'bad2')],
+      });
+      expect(result.errors).toHaveLength(2);
+    });
   });
 
   describe('validateEdges()', () => {
@@ -115,6 +123,15 @@ describe('WorkflowValidator', () => {
         message: expect.stringContaining('Invalid connection'),
       });
     });
+
+    it('returns no errors for valid connection', () => {
+      mockValidateConnection.mockReturnValue(true);
+      const validator = new WorkflowValidator({
+        edges: [makeEdge('e1', 'n1', 'n2')],
+        nodes: [makeNode('n1', 'typeA'), makeNode('n2', 'typeB')],
+      });
+      expect(validator.validateEdges()).toHaveLength(0);
+    });
   });
 
   describe('validateConnectivity()', () => {
@@ -127,6 +144,14 @@ describe('WorkflowValidator', () => {
         message: expect.stringContaining('no incoming connections'),
         nodeId: 'n1',
       });
+    });
+
+    it('does not flag input-category node even with no incoming edges', () => {
+      mockGetNodeDefinition.mockReturnValue(inputNodeDef as never);
+      const validator = new WorkflowValidator({
+        nodes: [makeNode('n1', 'source')],
+      });
+      expect(validator.validateConnectivity()).toHaveLength(0);
     });
 
     it('does not flag processing node that has an incoming edge', () => {

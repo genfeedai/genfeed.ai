@@ -98,6 +98,12 @@ describe('HTTPBaseService (InterceptorService)', () => {
 
       expect(paramsSerializer?.({ page: 2, status: [] })).toBe('page=2');
     });
+
+    it('initializes request and response interceptors', () => {
+      const mockInstance = service.instance;
+      expect(mockInstance.interceptors.request.use).toHaveBeenCalled();
+      expect(mockInstance.interceptors.response.use).toHaveBeenCalled();
+    });
   });
 
   describe('getInstance', () => {
@@ -282,6 +288,38 @@ describe('HTTPBaseService (InterceptorService)', () => {
       const result = service.handleRequest(config);
 
       expect(result.headers['x-genfeed-organization-id']).toBe('org-confirmed');
+    });
+
+    it('omits organization identity while route reconciliation is unresolved', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+      clearRequestOrganizationId();
+
+      const result = service.handleRequest(config);
+
+      expect(result.headers['x-genfeed-organization-id']).toBeUndefined();
+    });
+
+    it('creates abort controller if not exists', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+
+      service.abortController = null;
+      service.handleRequest(config);
+
+      expect(service.abortController).not.toBeNull();
+    });
+
+    it('adds abort signal to config', () => {
+      const config: InternalAxiosRequestConfig = {
+        headers: {},
+      } as InternalAxiosRequestConfig;
+
+      const result = service.handleRequest(config);
+
+      expect(result.signal).toBeDefined();
     });
   });
 

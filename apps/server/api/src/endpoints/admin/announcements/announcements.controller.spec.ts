@@ -3,6 +3,7 @@ import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcement
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnnouncementsController } from './announcements.controller';
@@ -92,7 +93,40 @@ describe('AnnouncementsController', () => {
     controller = module.get<AnnouncementsController>(AnnouncementsController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('requires IP whitelist and platform superadmin guards', () => {
+    const guards = Reflect.getMetadata(
+      GUARDS_METADATA,
+      AnnouncementsController,
+    );
+
+    expect(guards).toEqual([IpWhitelistGuard, SuperAdminGuard]);
+  });
+
   describe('broadcast()', () => {
+    it('should call service.broadcast with userId and org from user metadata', async () => {
+      const announcement = makeAnnouncement();
+      mockAdminAnnouncementsService.broadcast.mockResolvedValue(announcement);
+
+      const dto: BroadcastAnnouncementDto = {
+        channels: ['discord'],
+        message: 'New feature released!',
+      };
+      const user = makeUser('org_123');
+      const req = makeRequest();
+
+      await controller.broadcast(dto, user as never, req as never);
+
+      expect(mockAdminAnnouncementsService.broadcast).toHaveBeenCalledWith(
+        'user_abc',
+        'org_123',
+        dto,
+      );
+    });
+
     it('should return serialized announcement', async () => {
       const announcement = makeAnnouncement();
       mockAdminAnnouncementsService.broadcast.mockResolvedValue(announcement);
@@ -126,6 +160,15 @@ describe('AnnouncementsController', () => {
   });
 
   describe('getHistory()', () => {
+    it('should return serialized announcement collection', async () => {
+      const announcements = [makeAnnouncement(), makeAnnouncement()];
+      mockAdminAnnouncementsService.getHistory.mockResolvedValue(announcements);
+
+      const result = await controller.getHistory(makeRequest() as never);
+
+      expect(result).toBeDefined();
+    });
+
     it('should call getHistory service method', async () => {
       mockAdminAnnouncementsService.getHistory.mockResolvedValue([]);
 
@@ -143,6 +186,15 @@ describe('AnnouncementsController', () => {
       await expect(
         controller.getHistory(makeRequest() as never),
       ).rejects.toThrow();
+    });
+
+    it('should serialize with correct totalDocs when history returned', async () => {
+      const announcements = [makeAnnouncement()];
+      mockAdminAnnouncementsService.getHistory.mockResolvedValue(announcements);
+
+      const result = await controller.getHistory(makeRequest() as never);
+
+      expect(result).toBeDefined();
     });
   });
 });

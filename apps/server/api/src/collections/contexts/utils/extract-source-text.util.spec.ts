@@ -29,6 +29,15 @@ describe('extractHtmlText', () => {
 });
 
 describe('extractPdfText', () => {
+  it('reads uncompressed Tj literals', () => {
+    const pdf = Buffer.from(
+      '%PDF-1.1\nBT /F1 12 Tf (Hello knowledge document) Tj ET\n%%EOF',
+      'latin1',
+    );
+
+    expect(extractPdfText(pdf)).toBe('Hello knowledge document');
+  });
+
   it('reads text from a compressed stream under both inflate limits', () => {
     const payload = deflateSync(Buffer.from('(Compressed hello) Tj', 'latin1'));
     const pdf = Buffer.concat([
@@ -53,6 +62,20 @@ describe('extractPdfText', () => {
       Buffer.from('\nendstream\n%%EOF', 'latin1'),
     ]);
 
+    expect(extractPdfText(pdf)).toBe('seed');
+  });
+
+  it('refuses a Flate stream that inflates past the ingest ceiling', () => {
+    // ~64 MB of zeros compresses to a few KB — a quota-compliant PDF bomb.
+    const bomb = deflateSync(Buffer.alloc(64 * 1024 * 1024, 0x20));
+    const pdf = Buffer.concat([
+      Buffer.from('%PDF-1.1\nBT (seed) Tj ET\nstream\n', 'latin1'),
+      bomb,
+      Buffer.from('\nendstream\n%%EOF', 'latin1'),
+    ]);
+
+    // The bomb is skipped rather than expanded, so the seeded literal is all
+    // that survives — and the call returns instead of exhausting the heap.
     expect(extractPdfText(pdf)).toBe('seed');
   });
 

@@ -133,4 +133,11 @@ describe('useBackgroundTasks', () => {
       '/acme/brand-slug/automation/runs/exec-42',
     );
   });
+
+  it('cleans up subscription on unmount', () => {
+    const { unmount } = renderHook(() => useBackgroundTasks());
+    unmount();
+
+    expect(unsubscribeMock).toHaveBeenCalled();
+  });
 });

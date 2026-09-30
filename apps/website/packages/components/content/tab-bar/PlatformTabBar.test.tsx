@@ -18,6 +18,17 @@ const mockPosts: Partial<IPost>[] = [
 ];
 
 describe('PlatformTabBar', () => {
+  it('should render without crashing', () => {
+    const { container } = render(
+      <PlatformTabBar
+        posts={mockPosts}
+        activePlatform="youtube"
+        onPlatformChange={vi.fn()}
+      />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should handle user interactions correctly', () => {
     const onPlatformChange = vi.fn();
     const onAddPlatform = vi.fn();

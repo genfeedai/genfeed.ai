@@ -43,6 +43,10 @@ describe('FilesPortraitBlurService', () => {
     service = module.get<FilesPortraitBlurService>(FilesPortraitBlurService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('landscapeToPortrait', () => {
     it('generates a blurred portrait video and returns the output path', async () => {
       const result = await service.landscapeToPortrait(
@@ -58,6 +62,16 @@ describe('FilesPortraitBlurService', () => {
         { height: 1920, width: 1080 },
       );
       expect(result).toContain('portrait-blur.mp4');
+    });
+
+    it('defaults to 1080x1920 dimensions', async () => {
+      await service.landscapeToPortrait('videos', 'ingredient-1', 'source.mp4');
+
+      expect(ffmpegService.createPortraitWithBlur).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        { height: 1920, width: 1080 },
+      );
     });
 
     it('logs and rethrows when ffmpeg fails', async () => {

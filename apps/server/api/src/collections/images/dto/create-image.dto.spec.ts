@@ -18,6 +18,10 @@ async function referencesErrorsFor(referenceCount: number) {
 }
 
 describe('CreateImageDto', () => {
+  it('should be defined', () => {
+    expect(CreateImageDto).toBeDefined();
+  });
+
   describe.each([
     MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
     MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
@@ -65,6 +69,11 @@ describe('CreateImageDto', () => {
   });
 
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new CreateImageDto();
+      expect(dto).toBeInstanceOf(CreateImageDto);
+    });
+
     it('accepts a references array at the maximum size', async () => {
       expect(await referencesErrorsFor(10)).toEqual([]);
     });

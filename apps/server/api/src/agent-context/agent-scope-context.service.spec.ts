@@ -84,6 +84,25 @@ describe('AgentScopeContextService', () => {
     brandFindFirst.mockResolvedValue({ id: 'brand-1' });
   });
 
+  describe('assertBrandAuthorized', () => {
+    it('scopes the brand lookup to the organization and soft-delete flag', async () => {
+      await service.assertBrandAuthorized('brand-1', 'org-1');
+
+      expect(brandFindFirst).toHaveBeenCalledWith({
+        select: { id: true },
+        where: { id: 'brand-1', isDeleted: false, organizationId: 'org-1' },
+      });
+    });
+
+    it('rejects a brand that is not in the organization', async () => {
+      brandFindFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.assertBrandAuthorized('brand-x', 'org-1'),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
   describe('prepareForTurn (new thread)', () => {
     it('seeds a version-1 scope with no brand', async () => {
       const result = await service.prepareForTurn({
@@ -122,6 +141,27 @@ describe('AgentScopeContextService', () => {
       });
     });
 
+    it('treats a whitespace-only brand id as absent', async () => {
+      const result = await service.prepareForTurn({
+        organizationId: 'org-1',
+        requestedBrandId: '   ',
+        userId: 'user-1',
+      });
+
+      expect(result.initialBrandId).toBeUndefined();
+      expect(brandFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the policy brand when none is requested', async () => {
+      const result = await service.prepareForTurn({
+        organizationId: 'org-1',
+        policyBrandId: 'brand-policy',
+        userId: 'user-1',
+      });
+
+      expect(result.initialBrandId).toBe('brand-policy');
+    });
+
     it('rejects a requested brand that conflicts with the execution policy', async () => {
       await expect(
         service.prepareForTurn({
@@ -157,6 +197,27 @@ describe('AgentScopeContextService', () => {
       ).rejects.toBeInstanceOf(HttpException);
     });
 
+    it('scopes the thread lookup by org, thread and user', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+
+      await service.prepareForTurn({
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(threadFindFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            id: 'thread-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+            userId: 'user-1',
+          },
+        }),
+      );
+    });
+
     it('returns the explicit thread scope', async () => {
       threadFindFirst.mockResolvedValue(
         makeThread({
@@ -184,6 +245,18 @@ describe('AgentScopeContextService', () => {
         userId: 'user-1',
       });
       expect(result.initialScopeFields).toEqual({});
+    });
+
+    it('marks the scope as version-implicit when no expected version is given', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+
+      const result = await service.prepareForTurn({
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(result.existingScope?.isVersionExplicit).toBe(false);
     });
 
     it('conflicts when the expected context version is stale', async () => {
@@ -271,6 +344,23 @@ describe('AgentScopeContextService', () => {
       isLegacyBrandFallbackEligible: true,
     });
 
+    it('resolves the fallback brand from the execution policy', async () => {
+      threadFindFirst.mockResolvedValue(legacyThread);
+
+      const result = await service.prepareForTurn({
+        organizationId: 'org-1',
+        policyBrandId: 'brand-policy',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(result.existingScope).toMatchObject({
+        brandId: 'brand-policy',
+        isLegacyFallback: true,
+        source: 'legacy_execution_policy',
+      });
+    });
+
     it('resolves the fallback brand from the latest branded message', async () => {
       threadFindFirst.mockResolvedValue(legacyThread);
       messageFindFirst.mockResolvedValue({ brandId: 'brand-msg' });
@@ -310,6 +400,56 @@ describe('AgentScopeContextService', () => {
         brandId: undefined,
         isLegacyFallback: true,
         source: 'legacy_organization_only',
+      });
+    });
+
+    it('increments the fallback counter under a guarded conditional update', async () => {
+      threadFindFirst.mockResolvedValue(legacyThread);
+
+      await service.prepareForTurn({
+        organizationId: 'org-1',
+        policyBrandId: 'brand-policy',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(threadUpdateMany).toHaveBeenCalledWith({
+        data: {
+          legacyBrandFallbackCount: { increment: 1 },
+          legacyBrandFallbackLastBrandId: 'brand-policy',
+          legacyBrandFallbackLastSource: 'legacy_execution_policy',
+          legacyBrandFallbackLastUsedAt: expect.any(Date),
+        },
+        where: {
+          brandId: null,
+          contextVersion: 3,
+          id: 'thread-1',
+          isDeleted: false,
+          isLegacyBrandFallbackEligible: true,
+          legacyBrandFallbackCount: { lt: 20 },
+          organizationId: 'org-1',
+          userId: 'user-1',
+        },
+      });
+    });
+
+    it('refuses once the compatibility budget is exhausted', async () => {
+      threadFindFirst.mockResolvedValue(
+        makeThread({
+          brandId: null,
+          isLegacyBrandFallbackEligible: true,
+          legacyBrandFallbackCount: 20,
+        }),
+      );
+
+      await expect(
+        service.prepareForTurn({
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+          userId: 'user-1',
+        }),
+      ).rejects.toMatchObject({
+        response: { code: 'legacy_agent_context_upgrade_required' },
       });
     });
 
@@ -385,6 +525,21 @@ describe('AgentScopeContextService', () => {
       ).rejects.toBeInstanceOf(HttpException);
     });
 
+    it('conflicts on a stale expected version without writing', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ contextVersion: 9 }));
+
+      await expect(
+        service.mutateBrandScope({
+          brandId: 'brand-1',
+          expectedContextVersion: 3,
+          organizationId: 'org-1',
+          threadId: 'thread-1',
+          userId: 'user-1',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(threadUpdateMany).not.toHaveBeenCalled();
+    });
+
     it('rejects a brand outside the organization', async () => {
       threadFindFirst.mockResolvedValue(makeThread());
       brandFindFirst.mockResolvedValueOnce(null);
@@ -432,6 +587,22 @@ describe('AgentScopeContextService', () => {
       ).rejects.toBeInstanceOf(HttpException);
     });
 
+    it('still rewrites a legacy-eligible thread whose brand already matches', async () => {
+      threadFindFirst.mockResolvedValue(
+        makeThread({ brandId: 'brand-1', isLegacyBrandFallbackEligible: true }),
+      );
+
+      await service.mutateBrandScope({
+        brandId: 'brand-1',
+        expectedContextVersion: 3,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(threadUpdateMany).toHaveBeenCalled();
+    });
+
     it('bumps the version, clears legacy eligibility and appends provenance', async () => {
       threadFindFirst.mockResolvedValue(
         makeThread({
@@ -469,6 +640,44 @@ describe('AgentScopeContextService', () => {
         organizationId: 'org-1',
         userId: 'user-1',
       });
+    });
+
+    it('clears the brand when null is supplied', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-old' }));
+
+      await service.mutateBrandScope({
+        brandId: null,
+        expectedContextVersion: 3,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(threadUpdateMany.mock.calls[0][0].data.brandId).toBeNull();
+      expect(brandFindFirst).not.toHaveBeenCalled();
+    });
+
+    it('caps the provenance trail at 50 entries', async () => {
+      threadFindFirst.mockResolvedValue(
+        makeThread({
+          brandId: 'brand-old',
+          scopeChangeProvenance: Array.from({ length: 60 }, (_, i) => ({
+            id: `prov-${i}`,
+          })),
+        }),
+      );
+
+      await service.mutateBrandScope({
+        brandId: 'brand-1',
+        expectedContextVersion: 3,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(
+        threadUpdateMany.mock.calls[0][0].data.scopeChangeProvenance,
+      ).toHaveLength(50);
     });
 
     it('ignores malformed provenance entries', async () => {
@@ -523,6 +732,27 @@ describe('AgentScopeContextService', () => {
         }),
       ).rejects.toBeInstanceOf(HttpException);
     });
+
+    it('logs a successful scope correction', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-old' }));
+
+      await service.mutateBrandScope({
+        brandId: 'brand-1',
+        expectedContextVersion: 3,
+        organizationId: 'org-1',
+        threadId: 'thread-1',
+        userId: 'user-1',
+      });
+
+      expect(logger.log).toHaveBeenCalledWith(
+        'conversation_shell_scope_correction',
+        expect.objectContaining({
+          organizationId: 'org-1',
+          outcome: 'success',
+          source: 'thread_context_api',
+        }),
+      );
+    });
   });
 
   describe('assertResourceBrand', () => {
@@ -555,6 +785,12 @@ describe('AgentScopeContextService', () => {
         service.assertResourceBrand(makeScope(), null, 'a post'),
       ).toThrow(ForbiddenException);
     });
+
+    it('accepts a resource inside the validated brand scope', () => {
+      expect(() =>
+        service.assertResourceBrand(makeScope(), 'brand-1', 'a post'),
+      ).not.toThrow();
+    });
   });
 
   describe('assertConsequentialBoundary', () => {
@@ -578,6 +814,17 @@ describe('AgentScopeContextService', () => {
       );
     });
 
+    it('exempts a thread_created scope from the explicit-version rule', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+
+      await expect(
+        service.assertConsequentialBoundary(
+          makeScope({ isVersionExplicit: false, source: 'thread_created' }),
+          'tool',
+        ),
+      ).resolves.toBeUndefined();
+    });
+
     it('exempts a legacy fallback scope from the explicit-version rule', async () => {
       threadFindFirst.mockResolvedValue(
         makeThread({
@@ -597,6 +844,20 @@ describe('AgentScopeContextService', () => {
           'workflow',
         ),
       ).resolves.toBeUndefined();
+    });
+
+    it('allows a boundary whose scope still matches the thread', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-1' }));
+
+      await service.assertConsequentialBoundary(makeScope(), 'publish');
+
+      expect(logger.log).toHaveBeenCalledWith(
+        'conversation_shell_consequential_attempt',
+        expect.objectContaining({
+          contextStatus: 'current',
+          outcome: 'allowed',
+        }),
+      );
     });
 
     it('blocks when the thread is no longer readable', async () => {
@@ -623,6 +884,14 @@ describe('AgentScopeContextService', () => {
         'conversation_shell_consequential_attempt',
         expect.objectContaining({ contextStatus: 'stale' }),
       );
+    });
+
+    it('blocks when the thread brand drifted from the scope', async () => {
+      threadFindFirst.mockResolvedValue(makeThread({ brandId: 'brand-other' }));
+
+      await expect(
+        service.assertConsequentialBoundary(makeScope(), 'tool'),
+      ).rejects.toBeInstanceOf(ConflictException);
     });
 
     it('blocks a legacy fallback whose recorded brand drifted', async () => {

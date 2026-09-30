@@ -164,6 +164,26 @@ describe('PostGroupContractService', () => {
     expect(release.firstTagColor).toBe('#ef4444');
   });
 
+  it('leaves firstTagColor empty when the first target is untagged', () => {
+    const release = service.toReleaseGroup(makeGroup(), [
+      makeTarget(),
+      makeTarget({
+        id: 'target-2',
+        tags: [
+          {
+            backgroundColor: '#ef4444',
+            id: 'tag-launch',
+            isDeleted: false,
+            label: 'Launch',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+    ]);
+
+    expect(release.firstTagColor).toBeNull();
+  });
+
   it('projects release status from targets instead of the persisted group value', () => {
     const release = service.toReleaseGroup(
       makeGroup({ status: ReleaseStatus.PUBLISHED }),
@@ -476,6 +496,16 @@ describe('PostGroupContractService', () => {
   });
 
   describe('validateTargetUpdate (#5193)', () => {
+    it('does not re-run the channel contract when neither settings nor visibility change', () => {
+      const validation = service.validateTargetUpdate(
+        makeGroup(),
+        makeTarget(),
+        { order: 2 },
+      );
+
+      expect(validation).toBeUndefined();
+    });
+
     it('validates against the release real media instead of treating every target as media-less', () => {
       // The old check never loaded media/caption at all, so it validated
       // settings/visibility in isolation with an implicit empty media array

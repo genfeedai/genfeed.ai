@@ -29,6 +29,10 @@ describe('thread UI action family ownership', () => {
     },
   );
 
+  it('leaves unsupported actions unowned', () => {
+    expect(resolveThreadUiActionFamily('unsupported_action')).toBeNull();
+  });
+
   it('does not inherit action ownership from the object prototype', () => {
     expect(resolveThreadUiActionFamily('toString')).toBeNull();
   });

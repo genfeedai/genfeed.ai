@@ -115,6 +115,44 @@ describe('MasonryImage', () => {
     vi.mocked(useBrand).mockReturnValue(defaultBrandContext);
   });
 
+  it('should render without crashing', () => {
+    const { container } = render(<MasonryImage image={mockImage} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<MasonryImage image={mockImage} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should apply correct styles and classes', () => {
+    render(<MasonryImage image={mockImage} />);
+
+    expect(screen.getByRole('button')).toHaveClass('rounded-card');
+  });
+
+  it('uses the loaded image dimensions instead of stale square metadata', () => {
+    const { container } = render(
+      <MasonryImage
+        image={{
+          ...mockImage,
+          metadata: { height: 1080, width: 1080 },
+        }}
+      />,
+    );
+    const image = screen.getByRole('img');
+    Object.defineProperties(image, {
+      naturalHeight: { configurable: true, value: 900 },
+      naturalWidth: { configurable: true, value: 1600 },
+    });
+
+    fireEvent.load(image);
+
+    expect(container.querySelector('[data-masonry-item="true"]')).toHaveStyle({
+      aspectRatio: '1600 / 900',
+    });
+  });
+
   it('keeps square mode authoritative after the image loads', () => {
     const { container } = render(<MasonryImage image={mockImage} isSquare />);
     const image = screen.getByRole('img');

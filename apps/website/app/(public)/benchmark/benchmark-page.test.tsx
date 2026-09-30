@@ -229,6 +229,18 @@ describe('benchmark page', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('publishes the full prompt for every runnable task', () => {
+    render(
+      <BenchmarkContent
+        data={{ contestants: CONTESTANTS, season: SEASON, tasks: TASKS }}
+      />,
+    );
+
+    expect(
+      screen.getByText('A sandwich board that reads CLOSED MONDAYS'),
+    ).toBeInTheDocument();
+  });
+
   it('marks video tasks as Season Two drafts rather than listing them as live', () => {
     render(
       <BenchmarkContent

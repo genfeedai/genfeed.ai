@@ -56,6 +56,14 @@ describe('TagsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  it('should populate organization and brand fields (user excluded from populate)', () => {
+    expect(controller.optimizedPopulateFields).toHaveLength(2);
+  });
+
   describe('buildFindAllQuery', () => {
     it('should include global tags OR conditions', () => {
       const inputQuery = { isDeleted: false } as TagsQueryDto;
@@ -83,6 +91,16 @@ describe('TagsController', () => {
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query.where.brandId).toBe(brandId);
+    });
+
+    it('should add search condition with AND when search is provided', () => {
+      const inputQuery = {
+        isDeleted: false,
+        search: 'trending',
+      } as unknown as TagsQueryDto;
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      expect(query.where.AND).toBeDefined();
     });
 
     it('should not include category in search OR conditions (enum field does not support contains)', () => {
@@ -113,6 +131,18 @@ describe('TagsController', () => {
 
       expect(query.where.label).toBeDefined();
       expect(query.where.AND).toBeUndefined();
+    });
+
+    it('should prefer search over label when both are provided', () => {
+      const inputQuery = {
+        isDeleted: false,
+        label: 'specific',
+        search: 'general',
+      } as unknown as TagsQueryDto;
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
+
+      expect(query.where.AND).toBeDefined();
+      expect(query.where.label).toBeUndefined();
     });
   });
 

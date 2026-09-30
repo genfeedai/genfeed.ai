@@ -231,6 +231,21 @@ describe('ApiKeysService', () => {
   });
 
   describe('createWithKey scope validation', () => {
+    it('rejects a wildcard scope before persisting', async () => {
+      const service = createValidationHarness();
+
+      await expect(
+        service.createWithKey({
+          category: ApiKeyCategory.GENFEEDAI,
+          label: 'k',
+          organizationId: 'org-1',
+          scopes: ['*'],
+          userId: 'user-1',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(service.create).not.toHaveBeenCalled();
+    });
+
     it('rejects an unknown scope before persisting', async () => {
       const service = createValidationHarness();
 
@@ -480,6 +495,24 @@ describe('ApiKeysService', () => {
           organizationId: 'org-1',
         },
       });
+    });
+
+    it('rejects a soft-deleted brand', async () => {
+      const { prisma, service } = createBrandHarness();
+      prisma.brand.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.resolveValidDefaultBrandId('org-1', 'brand-deleted'),
+      ).resolves.toBeUndefined();
+    });
+
+    it('assertValidDefaultBrandId is a no-op when defaultBrandId is absent', async () => {
+      const { prisma, service } = createBrandHarness();
+
+      await expect(
+        service.assertValidDefaultBrandId('org-1', undefined),
+      ).resolves.toBeUndefined();
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
     });
 
     it('assertValidDefaultBrandId passes for a valid brand', async () => {

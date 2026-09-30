@@ -53,6 +53,46 @@ describe('flushBufferedEventsForThread', () => {
 });
 
 describe('findRecoveredAssistantMessage', () => {
+  it('ignores a reply produced by another run on the same thread', () => {
+    const messages = [
+      assistant('reply-run-2', 'run-2'),
+      assistant('reply-run-1', 'run-1'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2')?.id,
+    ).toBe('reply-run-2');
+  });
+
+  it('uses the latest assistant reply for the tracked run', () => {
+    const messages: AgentChatMessage[] = [
+      assistant('older-owned-reply', 'run-2'),
+      assistant('latest-owned-reply', 'run-2'),
+      { ...assistant('user-message', 'run-2'), role: 'user' },
+      assistant('foreign-reply', 'run-3'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(messages, new Set(), 'run-2')?.id,
+    ).toBe('latest-owned-reply');
+  });
+
+  it('matches a run’s own stamped reply even when it is already loaded', () => {
+    const messages = [
+      assistant('reply-run-1', 'run-1'),
+      assistant('reply-run-2', 'run-2'),
+    ];
+
+    expect(
+      findRecoveredAssistantMessage(
+        messages,
+        new Set(['reply-run-1', 'reply-run-2']),
+        'run-2',
+        { requireRunId: true },
+      )?.id,
+    ).toBe('reply-run-2');
+  });
+
   it('accepts an unstamped legacy reply written after the run started', () => {
     const messages = [assistant('legacy-reply')];
 
@@ -115,6 +155,13 @@ describe('takeSourceActionUpdate', () => {
     expect(takeSourceActionUpdate([source, next], 'proposal-1')).toEqual({
       card: source,
       replyActions: [next],
+    });
+  });
+
+  it('leaves a reply without the source card untouched', () => {
+    expect(takeSourceActionUpdate(undefined, 'proposal-1')).toEqual({
+      card: null,
+      replyActions: undefined,
     });
   });
 });

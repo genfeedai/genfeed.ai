@@ -103,6 +103,10 @@ describe('enum-label.util', () => {
       expect(toEnumSlug(IngredientStatus.ARCHIVED)).toBe('archived');
     });
 
+    it('is idempotent on already-slugged input', () => {
+      expect(toEnumSlug('image-edit')).toBe('image-edit');
+    });
+
     it('returns null for non-string and empty input', () => {
       expect(toEnumSlug(null)).toBeNull();
       expect(toEnumSlug(undefined)).toBeNull();

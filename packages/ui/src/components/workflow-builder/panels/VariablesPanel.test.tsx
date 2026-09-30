@@ -30,6 +30,11 @@ describe('VariablesPanel', () => {
     variables: mockVariables,
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<VariablesPanel {...defaultProps} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should display all variables', () => {
     render(<VariablesPanel {...defaultProps} />);
     expect(screen.getByText('Prompt')).toBeInTheDocument();
@@ -44,6 +49,22 @@ describe('VariablesPanel', () => {
     fireEvent.click(addButton);
 
     expect(onAdd).toHaveBeenCalled();
+  });
+
+  it('should call onToggleCollapse when header is clicked', () => {
+    const onToggleCollapse = vi.fn();
+    render(
+      <VariablesPanel {...defaultProps} onToggleCollapse={onToggleCollapse} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Input Variables/i }));
+    expect(onToggleCollapse).toHaveBeenCalled();
+  });
+
+  it('should render empty state when no variables', () => {
+    render(<VariablesPanel {...defaultProps} variables={[]} />);
+    // Multiple elements contain "Add Variable" - button and text
+    expect(screen.getAllByText(/Add Variable/i).length).toBeGreaterThan(0);
   });
 
   it('should handle user interactions correctly', () => {

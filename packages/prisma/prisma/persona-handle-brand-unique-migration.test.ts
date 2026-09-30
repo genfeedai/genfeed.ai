@@ -15,6 +15,15 @@ const migrationSource = readFileSync(
 );
 
 describe('persona handle brand unique migration (#3440)', () => {
+  it('creates a partial unique index on live non-null handles', () => {
+    expect(migrationSource).toContain(
+      'CREATE UNIQUE INDEX "personas_org_brand_handle_live_key"',
+    );
+    expect(migrationSource).toMatch(
+      /CREATE UNIQUE INDEX "personas_org_brand_handle_live_key"\nON "personas" \("organizationId", "brandId", "handle"\)\nWHERE "handle" IS NOT NULL AND "isDeleted" = false;/,
+    );
+  });
+
   it('nulls empty and duplicate live handles instead of failing', () => {
     expect(migrationSource).toContain('SET "handle" = NULL');
     expect(migrationSource).toContain('AND btrim("handle") = \'\'');
@@ -22,6 +31,17 @@ describe('persona handle brand unique migration (#3440)', () => {
       'PARTITION BY p."organizationId", p."brandId", lower(p."handle")',
     );
     expect(migrationSource).not.toMatch(/DELETE FROM "personas"/);
+  });
+
+  it('lowercases leftover mixed-case handles', () => {
+    expect(migrationSource).toContain('SET "handle" = lower("handle")');
+  });
+
+  it('documents the mention suggestion index in schema.prisma', () => {
+    expect(schemaSource).toContain('personas_mention_suggest_idx');
+    expect(schemaSource).toContain(
+      '20260824120000_persona_handle_brand_unique',
+    );
   });
 });
 

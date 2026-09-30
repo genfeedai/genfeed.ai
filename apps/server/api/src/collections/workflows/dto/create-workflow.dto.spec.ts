@@ -1,8 +1,13 @@
 import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { testId } from '@helpers/testing/test-id.helper';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 describe('CreateWorkflowDto', () => {
+  it('should be defined', () => {
+    expect(CreateWorkflowDto).toBeDefined();
+  });
+
   describe('validation', () => {
     it.each(['default', 'smoothstep', 'straight'])(
       'retains %s edge style through whitelist validation',
@@ -15,6 +20,20 @@ describe('CreateWorkflowDto', () => {
         expect(dto).toHaveProperty('edgeStyle', edgeStyle);
       },
     );
+
+    it('rejects unsupported edge styles', async () => {
+      const dto = plainToInstance(CreateWorkflowDto, {
+        label: 'Styled graph',
+        edgeStyle: 'unknown',
+      });
+      expect(await validate(dto, { whitelist: true })).toContainEqual(
+        expect.objectContaining({ property: 'edgeStyle' }),
+      );
+    });
+    it('should create an instance', () => {
+      const dto = new CreateWorkflowDto();
+      expect(dto).toBeInstanceOf(CreateWorkflowDto);
+    });
 
     it('should allow visual builder creates without an explicit trigger', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {
@@ -54,6 +73,18 @@ describe('CreateWorkflowDto', () => {
       );
     });
 
+    it('allows clone creates to omit a label derived by the server', async () => {
+      const dto = plainToInstance(CreateWorkflowDto, {
+        sourceWorkflowId: testId('workflow'),
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).not.toContainEqual(
+        expect.objectContaining({ property: 'label' }),
+      );
+    });
+
     it('keeps editor prompt fields through whitelist stripping', async () => {
       const dto = plainToInstance(CreateWorkflowDto, {
         label: 'Prompt workflow',
@@ -80,6 +111,16 @@ describe('CreateWorkflowDto', () => {
         prompt: 'Write a FUD News brief',
         template: 'Hello {{topic}}',
       });
+    });
+
+    it('still requires a label for non-clone creates', async () => {
+      const dto = plainToInstance(CreateWorkflowDto, {});
+
+      const errors = await validate(dto);
+
+      expect(errors).toContainEqual(
+        expect.objectContaining({ property: 'label' }),
+      );
     });
   });
 });

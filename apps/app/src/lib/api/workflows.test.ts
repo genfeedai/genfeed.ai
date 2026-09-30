@@ -47,6 +47,18 @@ describe('workflowsApi', () => {
       });
       expect(result).toEqual([mockWorkflow]);
     });
+
+    it('should pass abort signal when provided', async () => {
+      const { apiClient } = await import('./client');
+      vi.mocked(apiClient.get).mockResolvedValueOnce([]);
+
+      const controller = new AbortController();
+      await workflowsApi.getAll(undefined, controller.signal);
+
+      expect(apiClient.get).toHaveBeenCalledWith('/workflows', {
+        signal: controller.signal,
+      });
+    });
   });
 
   describe('getById', () => {
@@ -89,6 +101,37 @@ describe('workflowsApi', () => {
       );
       expect(result).toEqual(mockWorkflow);
     });
+
+    it('should handle optional fields', async () => {
+      const { apiClient } = await import('./client');
+      vi.mocked(apiClient.post).mockResolvedValueOnce(mockWorkflow);
+
+      const createData = {
+        description: 'With all fields',
+        edgeStyle: 'step',
+        edges: [],
+        groups: [],
+        label: 'Full Workflow',
+        nodes: [],
+      };
+
+      await workflowsApi.create(createData);
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows',
+        {
+          description: 'With all fields',
+          edgeStyle: 'step',
+          edges: [],
+          groups: [],
+          label: 'Full Workflow',
+          nodes: [],
+        },
+        {
+          signal: undefined,
+        },
+      );
+    });
   });
 
   describe('update', () => {
@@ -108,6 +151,37 @@ describe('workflowsApi', () => {
         },
       );
       expect(result.label).toBe('Updated Workflow');
+    });
+
+    it('should update nodes and edges', async () => {
+      const { apiClient } = await import('./client');
+      vi.mocked(apiClient.patch).mockResolvedValueOnce(mockWorkflow);
+
+      const updateData = {
+        edges: [],
+        nodes: [
+          {
+            data: { label: 'Prompt', prompt: '', status: 'idle' },
+            id: 'node-1',
+            position: { x: 0, y: 0 },
+            type: 'prompt',
+          },
+        ],
+      };
+
+      await workflowsApi.update(
+        'workflow-1',
+        updateData as unknown as Parameters<typeof workflowsApi.update>[1],
+      );
+
+      expect(apiClient.patch).toHaveBeenCalledWith(
+        '/workflows/workflow-1',
+        expect.objectContaining({
+          edges: expect.any(Array),
+          nodes: expect.any(Array),
+        }),
+        { signal: undefined },
+      );
     });
   });
 

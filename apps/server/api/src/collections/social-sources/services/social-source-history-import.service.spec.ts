@@ -148,6 +148,20 @@ describe('SocialSourceHistoryImportService', () => {
     );
   });
 
+  it('imports by default when no choice was made at connect', async () => {
+    credential.findFirst.mockResolvedValue({
+      ...connectedCredential,
+      isHistoryImportRequested: null,
+    });
+
+    const result = await service.scheduleForCredential({
+      credentialId: 'cred-1',
+      organizationId: 'org-1',
+    });
+
+    expect(result).toEqual({ sourceId: 'source-1', status: 'scheduled' });
+  });
+
   it('imports on an explicit request even when declined at connect', async () => {
     credential.findFirst.mockResolvedValue({
       ...connectedCredential,

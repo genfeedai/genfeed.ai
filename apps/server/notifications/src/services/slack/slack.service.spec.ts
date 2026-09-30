@@ -20,6 +20,8 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 describe('SlackService', () => {
+  let service: SlackService;
+
   const mockConfigService = {
     get: vi.fn(),
   };
@@ -49,7 +51,51 @@ describe('SlackService', () => {
       ],
     }).compile();
 
-    module.get<SlackService>(SlackService);
+    service = module.get<SlackService>(SlackService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('initialization', () => {
+    it('should log a warning when SLACK token is not configured', async () => {
+      mockConfigService.get.mockReturnValue(undefined);
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SlackService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: LoggerService, useValue: mockLoggerService },
+        ],
+      }).compile();
+
+      module.get<SlackService>(SlackService);
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('not configured'),
+        expect.any(Object),
+      );
+    });
+
+    it('should initialize Slack client when token is present', async () => {
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SlackService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: LoggerService, useValue: mockLoggerService },
+        ],
+      }).compile();
+
+      module.get<SlackService>(SlackService);
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('initialized'),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('sendMessage', () => {
@@ -74,6 +120,26 @@ describe('SlackService', () => {
         expect.any(Object),
       );
       expect(mockPostMessage).not.toHaveBeenCalled();
+    });
+
+    it('should call postMessage with channel and text', async () => {
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
+      mockPostMessage.mockResolvedValue({ ok: true });
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          SlackService,
+          { provide: ConfigService, useValue: mockConfigService },
+          { provide: LoggerService, useValue: mockLoggerService },
+        ],
+      }).compile();
+
+      const s = module.get<SlackService>(SlackService);
+      await s.sendMessage('C123', 'Test message');
+
+      expect(mockPostMessage).toHaveBeenCalledWith(
+        expect.objectContaining({ channel: 'C123', text: 'Test message' }),
+      );
     });
 
     it('should include blocks when provided', async () => {

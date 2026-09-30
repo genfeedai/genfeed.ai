@@ -81,6 +81,23 @@ describe('dashboard presets', () => {
     ).toBe('0');
   });
 
+  it('uses empty_state when chart and top posts are missing', () => {
+    const preset = getDashboardPreset('organization', {
+      analytics: {},
+    });
+
+    const chartEmpty = preset.blocks.find(
+      (block) =>
+        block.id === 'org-timeseries-empty' && block.type === 'empty_state',
+    );
+    expect(chartEmpty).toBeDefined();
+
+    const topPostsEmpty = preset.blocks.find(
+      (block) => block.id === 'top-posts-empty' && block.type === 'empty_state',
+    );
+    expect(topPostsEmpty).toBeDefined();
+  });
+
   it('shows only available secondary superadmin cards', () => {
     const preset = getDashboardPreset('superadmin', {
       analytics: {

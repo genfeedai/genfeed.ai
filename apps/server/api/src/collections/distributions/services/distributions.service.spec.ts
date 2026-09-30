@@ -41,6 +41,10 @@ describe('DistributionsService', () => {
     service = module.get<DistributionsService>(DistributionsService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('createDistribution', () => {
     it('persists a distribution scoped to the organization and user', async () => {
       mockPrismaService.distribution.create.mockResolvedValue({

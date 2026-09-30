@@ -55,6 +55,7 @@ function toApiIntegration(integration: OrgIntegration) {
 
 describe('TelegramBotManager', () => {
   let service: TelegramBotManager;
+  let _configService: Mocked<ConfigService>;
   let httpService: Mocked<HttpService>;
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -123,6 +124,7 @@ describe('TelegramBotManager', () => {
     }).compile();
 
     service = module.get<TelegramBotManager>(TelegramBotManager);
+    _configService = module.get(ConfigService);
     httpService = module.get(HttpService);
     redisService = module.get(RedisService);
 
@@ -175,6 +177,17 @@ describe('TelegramBotManager', () => {
       expect(service.getActiveCount()).toBe(1);
       expect(service.logger.log).toHaveBeenCalledWith(
         'Telegram Bot Manager initialized with 1 bots',
+      );
+    });
+
+    it('should handle initialization with no integrations', async () => {
+      httpService.get.mockReturnValue(of(httpResponse([])));
+
+      await service.initialize();
+
+      expect(service.getActiveCount()).toBe(0);
+      expect(service.logger.log).toHaveBeenCalledWith(
+        'Telegram Bot Manager initialized with 0 bots',
       );
     });
 
@@ -315,6 +328,21 @@ describe('TelegramBotManager', () => {
   });
 
   describe('destroyBotInstance', () => {
+    it('should stop the bot instance', async () => {
+      const botInstance = {
+        bot: mockBot as unknown as Bot,
+        id: 'test-bot',
+        integration: mockIntegration,
+        orgId: 'org-123',
+      };
+
+      mockBot.stop.mockResolvedValue(undefined);
+
+      await service.destroyBotInstance(botInstance);
+
+      expect(mockBot.stop).toHaveBeenCalled();
+    });
+
     it('should handle bot stop errors gracefully', async () => {
       const botInstance = {
         bot: mockBot as unknown as Bot,
@@ -337,6 +365,17 @@ describe('TelegramBotManager', () => {
   });
 
   describe('addIntegration', () => {
+    it('should add a new integration successfully', async () => {
+      mockBot.start.mockResolvedValue(undefined);
+
+      await service.addIntegration(mockIntegration);
+
+      expect(service.getActiveCount()).toBe(1);
+      expect(service.logger.log).toHaveBeenCalledWith(
+        'Adding integration telegram-integration-1 for org org-123',
+      );
+    });
+
     it('should update existing integration when adding duplicate', async () => {
       mockBot.start.mockResolvedValue(undefined);
       mockBot.stop.mockResolvedValue(undefined);
@@ -406,6 +445,21 @@ describe('TelegramBotManager', () => {
   });
 
   describe('fetchAndAddIntegration', () => {
+    it('should fetch integration and add it', async () => {
+      mockBot.start.mockResolvedValue(undefined);
+      httpService.get.mockReturnValue(
+        of(httpResponse(toApiIntegration(mockIntegration))),
+      );
+
+      await service.fetchAndAddIntegration('test-id');
+
+      expect(httpService.get).toHaveBeenCalledWith(
+        expect.stringContaining('/internal/integrations/TELEGRAM/test-id'),
+        expect.any(Object),
+      );
+      expect(service.getActiveCount()).toBe(1);
+    });
+
     it('should handle fetch errors gracefully', async () => {
       httpService.get.mockReturnValue(
         throwError(() => new Error('Fetch failed')),
@@ -452,6 +506,38 @@ describe('TelegramBotManager', () => {
         'Failed to fetch and update integration test-id:',
         expect.objectContaining({ message: 'Fetch failed' }),
       );
+    });
+  });
+
+  describe('fetchActiveIntegrations', () => {
+    it('should fetch integrations from API', async () => {
+      const mockIntegrations = [mockIntegration];
+      httpService.get.mockReturnValue(
+        of(httpResponse(mockIntegrations.map(toApiIntegration))),
+      );
+
+      const result = await service.fetchActiveIntegrations();
+
+      expect(httpService.get).toHaveBeenCalledWith(
+        'http://localhost:3010/v1/internal/integrations/TELEGRAM',
+        expect.objectContaining({
+          headers: { Authorization: 'Bearer test-key' },
+        }),
+      );
+      expect(result).toEqual(mockIntegrations);
+    });
+
+    it('should handle API errors', async () => {
+      const error = new Error('Fetch error');
+      httpService.get.mockReturnValue(throwError(() => error));
+
+      const result = await service.fetchActiveIntegrations();
+
+      expect(service.logger.error).toHaveBeenCalledWith(
+        'Failed to fetch integrations:',
+        expect.objectContaining({ message: error.message }),
+      );
+      expect(result).toEqual([]);
     });
   });
 

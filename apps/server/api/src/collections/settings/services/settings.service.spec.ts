@@ -246,6 +246,12 @@ describe('SettingsService favorite workflows', () => {
       );
     });
 
+    it('rejects a deleted workflow', async () => {
+      await expect(
+        service.assertFavoriteWorkflowIds([deletedWorkflowId], organizationId),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
     it('rejects more than 50 favorites without querying', async () => {
       await expect(
         service.assertFavoriteWorkflowIds(
@@ -273,6 +279,13 @@ describe('SettingsService favorite workflows', () => {
       expect(workflowFindMany).not.toHaveBeenCalled();
     });
 
+    it('rejects null instead of an empty list without querying', async () => {
+      await expect(
+        service.assertFavoriteWorkflowIds(null, organizationId),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(workflowFindMany).not.toHaveBeenCalled();
+    });
+
     it('rejects favorites when no organization is active', async () => {
       await expect(
         service.assertFavoriteWorkflowIds([ownWorkflowId], ''),
@@ -282,6 +295,27 @@ describe('SettingsService favorite workflows', () => {
   });
 
   describe('withLiveFavoriteWorkflowIds', () => {
+    it('drops deleted and foreign favorites and keeps the saved order', async () => {
+      const settings = {
+        favoriteWorkflowIds: [
+          secondOwnWorkflowId,
+          deletedWorkflowId,
+          ownWorkflowId,
+          foreignWorkflowId,
+        ],
+        id: testId('setting'),
+        theme: 'dark',
+      };
+
+      await expect(
+        service.withLiveFavoriteWorkflowIds(settings, organizationId),
+      ).resolves.toEqual({
+        favoriteWorkflowIds: [secondOwnWorkflowId, ownWorkflowId],
+        id: settings.id,
+        theme: 'dark',
+      });
+    });
+
     it('leaves settings without favorites untouched', async () => {
       const settings = { id: testId('setting'), theme: 'dark' };
 
@@ -329,6 +363,15 @@ describe('SettingsService favorite workflows', () => {
       });
     });
 
+    it('rejects invalid favorites before opening a transaction', async () => {
+      await expect(
+        saveFavorites([ownWorkflowId, foreignWorkflowId]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(transaction).not.toHaveBeenCalled();
+      expect(settingUpdate).not.toHaveBeenCalled();
+    });
+
     it('rejects a null favorites list before opening a transaction', async () => {
       await expect(
         service.patchWithFavoriteWorkflowIds(
@@ -368,6 +411,43 @@ describe('SettingsService favorite workflows', () => {
       });
     });
 
+    it('keeps other-organization favorites and replaces only the caller org subset', async () => {
+      storeFavorites([
+        foreignWorkflowId,
+        ownWorkflowId,
+        secondForeignWorkflowId,
+      ]);
+
+      await expect(saveFavorites([secondOwnWorkflowId])).resolves.toEqual([
+        foreignWorkflowId,
+        secondForeignWorkflowId,
+        secondOwnWorkflowId,
+      ]);
+    });
+
+    it('checks stored ids against the caller org only, live and deleted', async () => {
+      storeFavorites([foreignWorkflowId, ownWorkflowId]);
+
+      await saveFavorites([]);
+
+      for (const isDeleted of [false, true]) {
+        expect(workflowFindMany).toHaveBeenCalledWith({
+          select: { id: true },
+          where: {
+            id: { in: [foreignWorkflowId, ownWorkflowId] },
+            isDeleted,
+            organizationId,
+          },
+        });
+      }
+    });
+
+    it('clearing favorites clears only the caller org subset', async () => {
+      storeFavorites([ownWorkflowId, foreignWorkflowId, secondOwnWorkflowId]);
+
+      await expect(saveFavorites([])).resolves.toEqual([foreignWorkflowId]);
+    });
+
     it('drops caller-org favorites whose workflow was deleted', async () => {
       storeFavorites([deletedWorkflowId, foreignWorkflowId]);
 
@@ -375,6 +455,14 @@ describe('SettingsService favorite workflows', () => {
         foreignWorkflowId,
         ownWorkflowId,
       ]);
+    });
+
+    it('stores the submitted ids in their submitted order', async () => {
+      storeFavorites([ownWorkflowId, secondOwnWorkflowId]);
+
+      await expect(
+        saveFavorites([secondOwnWorkflowId, ownWorkflowId]),
+      ).resolves.toEqual([secondOwnWorkflowId, ownWorkflowId]);
     });
 
     it('bounds the stored list by pruning the oldest other-org favorites', async () => {
@@ -516,6 +604,13 @@ describe('SettingsService favorite workflows', () => {
       ).resolves.toEqual({
         favoriteWorkflowIds: [foreignWorkflowId, secondForeignWorkflowId],
       });
+    });
+
+    it('rejects an org B id submitted from org A before any merge', async () => {
+      await expect(
+        saveFavorites([ownWorkflowId, foreignWorkflowId]),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(settingFindFirst).not.toHaveBeenCalled();
     });
   });
 });

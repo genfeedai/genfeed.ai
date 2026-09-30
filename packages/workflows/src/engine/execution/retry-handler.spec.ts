@@ -6,6 +6,7 @@ import {
   TransientExecutionError,
 } from './execution-error';
 import {
+  calculateRetryDelay,
   createRetryHandler,
   isRetryableError,
   sleep,
@@ -26,6 +27,22 @@ class NestLikeHttpError extends Error {
   }
 }
 
+describe('calculateRetryDelay', () => {
+  it('increases delay with attempt number', () => {
+    const d0 = calculateRetryDelay(0);
+    const d1 = calculateRetryDelay(1);
+    expect(d1).toBeGreaterThan(d0);
+  });
+
+  it('respects maxDelayMs', () => {
+    const delay = calculateRetryDelay(100, {
+      ...DEFAULT_RETRY_CONFIG,
+      maxDelayMs: 5000,
+    });
+    expect(delay).toBeLessThanOrEqual(5000);
+  });
+});
+
 describe('sleep', () => {
   it('resolves after delay', async () => {
     const start = Date.now();
@@ -35,6 +52,27 @@ describe('sleep', () => {
 });
 
 describe('isRetryableError', () => {
+  it('retries TransientExecutionError', () => {
+    expect(
+      isRetryableError(new TransientExecutionError('provider timeout')),
+    ).toBe(true);
+  });
+  it('does not retry PermanentExecutionError', () => {
+    expect(
+      isRetryableError(new PermanentExecutionError('invalid payload')),
+    ).toBe(false);
+  });
+  it('does not retry unknown errors', () => {
+    expect(isRetryableError(new Error('something random'))).toBe(false);
+  });
+  it('does not retry non-Error values', () => {
+    expect(isRetryableError('some string')).toBe(false);
+  });
+  it('retries Nest-like 429 via getStatus()', () => {
+    expect(isRetryableError(new NestLikeHttpError(429, 'rate limited'))).toBe(
+      true,
+    );
+  });
   it('does not retry Nest-like 400 via getStatus()', () => {
     expect(isRetryableError(new NestLikeHttpError(400, 'bad request'))).toBe(
       false,

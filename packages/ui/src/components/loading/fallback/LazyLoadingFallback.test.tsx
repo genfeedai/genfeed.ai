@@ -3,6 +3,15 @@ import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { describe, expect, it } from 'vitest';
 
 describe('LazyLoadingFallback', () => {
+  it('renders the skeleton fallback by default', () => {
+    const { container } = render(<LazyLoadingFallback />);
+
+    expect(container.firstChild).toHaveAttribute(
+      'aria-label',
+      'Loading content',
+    );
+  });
+
   it('uses the brand loader for minimal fallbacks', () => {
     const { container } = render(<LazyLoadingFallback variant="minimal" />);
 

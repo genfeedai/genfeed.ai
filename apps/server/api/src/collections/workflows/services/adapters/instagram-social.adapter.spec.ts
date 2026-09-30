@@ -82,6 +82,15 @@ describe('InstagramSocialAdapter', () => {
     });
   });
 
+  describe('trigger checkers', () => {
+    it('does not expose trigger checkers without real backing APIs', () => {
+      expect(adapter.createFollowerChecker).toBeUndefined();
+      expect(adapter.createMentionChecker).toBeUndefined();
+      expect(adapter.createLikeChecker).toBeUndefined();
+      expect(adapter.createRepostChecker).toBeUndefined();
+    });
+  });
+
   describe('brandId fallback logic', () => {
     it('should use explicit brandId when provided for reply', async () => {
       const publisher = adapter.createReplyPublisher();

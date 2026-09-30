@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LogoutPage from './content';
 import '@testing-library/jest-dom/vitest';
@@ -54,5 +54,15 @@ describe('LogoutPage', () => {
       expect(mocks.resetAnalytics).toHaveBeenCalledOnce();
     });
     expect(mocks.push).toHaveBeenCalledWith('/login');
+  });
+
+  it('should render without crashing', () => {
+    const { container } = render(<LogoutPage />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('renders the signing out message', () => {
+    render(<LogoutPage />);
+    expect(screen.getByText(/Signing out/)).toBeInTheDocument();
   });
 });

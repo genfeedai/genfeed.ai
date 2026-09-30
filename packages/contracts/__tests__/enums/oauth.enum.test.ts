@@ -3,6 +3,10 @@ import { OAuthGrantType } from '../../src/enums/oauth.enum';
 
 describe('oauth.enum', () => {
   describe('OAuthGrantType', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(OAuthGrantType)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(OAuthGrantType.AUTHORIZATION_CODE).toBe('authorization_code');
       expect(OAuthGrantType.REFRESH_TOKEN).toBe('refresh_token');

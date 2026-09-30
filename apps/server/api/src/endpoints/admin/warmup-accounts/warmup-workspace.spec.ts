@@ -363,4 +363,13 @@ describe('warm-up workspace handoff', () => {
     expect(tx.creditTransaction.create).not.toHaveBeenCalled();
     expect(tx.activity.create).not.toHaveBeenCalled();
   });
+
+  it('leaves ordinary invitations unchanged', async () => {
+    const { tx, client } = fixture();
+    tx.warmupAccount.findFirst.mockResolvedValue(null);
+    expect(
+      await claimWarmupWorkspace(client, 'invite-1', 'org-1', 'customer-1'),
+    ).toBeUndefined();
+    expect(tx.setting.upsert).not.toHaveBeenCalled();
+  });
 });

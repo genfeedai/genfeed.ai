@@ -67,6 +67,31 @@ describe('MediaUploadService', () => {
       });
     });
 
+    it('should update metadata with valid dimensions', async () => {
+      filesClientService.uploadToS3.mockResolvedValue({
+        duration: 10,
+        hasAudio: true,
+        height: 720,
+        size: 1024,
+        width: 1280,
+      });
+
+      await service.uploadAndUpdateMetadata(
+        'ing-123',
+        'video',
+        'url',
+        'meta-1',
+      );
+
+      expect(metadataService.patch).toHaveBeenCalledWith('meta-1', {
+        duration: 10,
+        hasAudio: true,
+        height: 720,
+        size: 1024,
+        width: 1280,
+      });
+    });
+
     it('should exclude zero dimensions from update', async () => {
       filesClientService.uploadToS3.mockResolvedValue({
         duration: 5,
@@ -88,6 +113,24 @@ describe('MediaUploadService', () => {
         hasAudio: false,
         size: 512,
       });
+    });
+
+    it('should log warning when dimensions are missing', async () => {
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 0,
+        size: 512,
+        width: 0,
+      });
+
+      await service.uploadAndUpdateMetadata(
+        'ing-123',
+        'video',
+        'url',
+        'meta-1',
+        'ext-id',
+      );
+
+      expect(loggerService.warn).toHaveBeenCalled();
     });
   });
 });

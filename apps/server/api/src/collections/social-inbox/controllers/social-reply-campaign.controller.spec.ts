@@ -69,6 +69,14 @@ describe('SocialReplyCampaignController', () => {
     vi.clearAllMocks();
   });
 
+  describe('routing', () => {
+    it('lives on its own top-level path so /messages/:conversationId cannot swallow it', () => {
+      expect(Reflect.getMetadata('path', SocialReplyCampaignController)).toBe(
+        'message-campaigns',
+      );
+    });
+  });
+
   describe('delegation', () => {
     it('passes the derived tenant scope and query through to the service', async () => {
       const query = { platform: 'youtube', status: 'running' };
@@ -153,6 +161,27 @@ describe('SocialReplyCampaignController', () => {
   });
 
   describe('RBAC', () => {
+    it('lets any member read campaigns and recipients', () => {
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          SocialReplyCampaignController.prototype.list,
+        ),
+      ).toBeUndefined();
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          SocialReplyCampaignController.prototype.get,
+        ),
+      ).toBeUndefined();
+      expect(
+        Reflect.getMetadata(
+          'roles',
+          SocialReplyCampaignController.prototype.listRecipients,
+        ),
+      ).toBeUndefined();
+    });
+
     it('lets creators author campaigns but not run them', () => {
       expect(
         Reflect.getMetadata(

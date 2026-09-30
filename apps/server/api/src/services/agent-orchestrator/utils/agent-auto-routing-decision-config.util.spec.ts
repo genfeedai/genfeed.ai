@@ -8,4 +8,13 @@ describe('resolveAgentAutoRoutingDecisionConfig', () => {
       resolveAgentAutoRoutingDecisionConfig(DEFAULT_PLATFORM_FEATURE_SETTINGS),
     ).toEqual({ mode: 'off' });
   });
+
+  it.each(['shadow', 'live'] as const)('reads %s', (mode) => {
+    expect(
+      resolveAgentAutoRoutingDecisionConfig({
+        ...DEFAULT_PLATFORM_FEATURE_SETTINGS,
+        agentAutoRoutingDecisionMode: mode,
+      }).mode,
+    ).toBe(mode);
+  });
 });

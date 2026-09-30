@@ -27,5 +27,19 @@ describe('video-qa node', () => {
       expect(DEFAULT_VIDEO_QA_DATA.characterReferenceUrls).toEqual([]);
       expect(DEFAULT_VIDEO_QA_DATA.productReferenceUrls).toEqual([]);
     });
+
+    it('should default input video and report to null', () => {
+      expect(DEFAULT_VIDEO_QA_DATA.inputVideo).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.report).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.jobId).toBeNull();
+    });
+
+    it('should leave expected contract fields unset', () => {
+      expect(DEFAULT_VIDEO_QA_DATA.expectedDurationSeconds).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.expectedWidth).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.expectedHeight).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.expectedFrameRate).toBeNull();
+      expect(DEFAULT_VIDEO_QA_DATA.hasExpectedAudio).toBeNull();
+    });
   });
 });

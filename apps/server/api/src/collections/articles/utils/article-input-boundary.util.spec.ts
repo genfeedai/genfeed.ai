@@ -12,9 +12,22 @@ describe('article-input-boundary.util', () => {
       expect(readNonEmptyString('article-slug')).toBe('article-slug');
       expect(readNonEmptyString('   ')).toBe('   ');
     });
+
+    it.each([undefined, null, '', 42, false, {}])(
+      'returns undefined for %p',
+      (value) => {
+        expect(readNonEmptyString(value)).toBeUndefined();
+      },
+    );
   });
 
   describe('assertArticleOwnershipIds', () => {
+    it('accepts non-blank ownership identifiers', () => {
+      expect(() =>
+        assertArticleOwnershipIds('user-1', 'organization-1', 'brand-1'),
+      ).not.toThrow();
+    });
+
     it.each([
       ['', 'organization-1', 'brand-1', 'Invalid userId'],
       ['   ', 'organization-1', 'brand-1', 'Invalid userId'],

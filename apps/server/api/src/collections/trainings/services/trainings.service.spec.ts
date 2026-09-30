@@ -257,6 +257,34 @@ describe('TrainingsService', () => {
       ),
     } as unknown as TrainingDocument;
 
+    it('builds the relaunch config from the training nested config, not top-level fields', async () => {
+      ingredientsService.findAll.mockResolvedValueOnce({
+        docs: (mockTraining.sources as unknown as string[]).map((id) => ({
+          id,
+          metadata: { extension: 'jpg' },
+        })),
+      });
+      const createSpy = vi.spyOn(service, 'create').mockResolvedValueOnce({
+        id: 'training-2',
+      } as unknown as TrainingDocument);
+
+      await service.relaunchTrainingWithSources(mockTraining, identity);
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: trainingBrandId,
+          config: expect.objectContaining({
+            category: 'style',
+            model: 'replicate/custom-model',
+            provider: 'replicate',
+            seed: 42,
+            steps: 1200,
+            trigger: 'MYTOK',
+          }),
+        }),
+      );
+    });
+
     it('throws when fewer than 10 source images are found', async () => {
       ingredientsService.findAll.mockResolvedValueOnce({ docs: [] });
 

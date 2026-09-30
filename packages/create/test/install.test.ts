@@ -235,6 +235,16 @@ describe('installRelease', () => {
     expect(existsSync(projectDirectory)).toBe(true);
   });
 
+  it('requires tar to be installed', async () => {
+    childProcessMock.spawnSync.mockReturnValue({ status: 1 });
+
+    await expect(
+      installRelease('ignored', { release: RELEASE_TAG, start: false }),
+    ).rejects.toThrow(
+      'tar is required to extract the Genfeed.ai release bundle.',
+    );
+  });
+
   it('requires Docker Compose to be installed', async () => {
     childProcessMock.spawnSync.mockImplementation((command: string) => ({
       status: command === 'tar' ? 0 : 1,
@@ -318,6 +328,24 @@ describe('installRelease', () => {
     expect(existsSync(projectDirectory)).toBe(false);
   });
 
+  it('reports the terminating signal when a command is killed', async () => {
+    const base = await createTemporaryDirectory('genfeed-install-');
+    const projectDirectory = join(base, 'app');
+    childProcessMock.spawn.mockImplementation((command: string) =>
+      command === 'tar'
+        ? createFakeChild({ code: null, signal: 'SIGKILL' })
+        : createFakeChild(),
+    );
+
+    await expect(
+      installRelease(
+        projectDirectory,
+        { release: RELEASE_TAG, start: false },
+        unreachableFetch,
+      ),
+    ).rejects.toThrow('failed with SIGKILL');
+  });
+
   it('reports an unknown error when a command exits without code or signal', async () => {
     const base = await createTemporaryDirectory('genfeed-install-');
     const projectDirectory = join(base, 'app');
@@ -334,6 +362,24 @@ describe('installRelease', () => {
         unreachableFetch,
       ),
     ).rejects.toThrow('failed with an unknown error');
+  });
+
+  it('rejects when a command cannot be spawned', async () => {
+    const base = await createTemporaryDirectory('genfeed-install-');
+    const projectDirectory = join(base, 'app');
+    childProcessMock.spawn.mockImplementation((command: string) =>
+      command === 'tar'
+        ? createFakeChild({ error: new Error('spawn tar ENOENT') })
+        : createFakeChild(),
+    );
+
+    await expect(
+      installRelease(
+        projectDirectory,
+        { release: RELEASE_TAG, start: false },
+        unreachableFetch,
+      ),
+    ).rejects.toThrow('spawn tar ENOENT');
   });
 
   it('preserves installation files when startup fails', async () => {
@@ -395,6 +441,18 @@ describe('openBrowser', () => {
       'open',
       [APP_URL],
       expect.objectContaining({ detached: true, stdio: 'ignore' }),
+    );
+  });
+
+  it('uses xdg-open on Linux', () => {
+    setPlatform('linux');
+
+    openBrowser(APP_URL);
+
+    expect(childProcessMock.spawn).toHaveBeenCalledWith(
+      'xdg-open',
+      [APP_URL],
+      expect.objectContaining({ detached: true }),
     );
   });
 

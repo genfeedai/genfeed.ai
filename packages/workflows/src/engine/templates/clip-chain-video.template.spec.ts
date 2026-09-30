@@ -232,6 +232,40 @@ describe('ClipChainVideoTemplate', () => {
   });
 
   describe('Graph', () => {
+    it('gates last-frame extract and stitch on per-segment video QA', () => {
+      for (
+        let index = 1;
+        index < DEFAULT_CLIP_CHAIN_SEGMENT_COUNT;
+        index += 1
+      ) {
+        const videoToQa = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
+          (edge) =>
+            edge.source === `video-gen-${index}` &&
+            edge.target === `video-qa-${index}` &&
+            edge.sourceHandle === 'videoUrl' &&
+            edge.targetHandle === 'video',
+        );
+        const qaToExtract = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
+          (edge) =>
+            edge.source === `video-qa-${index}` &&
+            edge.target === `frame-extract-${index}` &&
+            edge.sourceHandle === 'video' &&
+            edge.targetHandle === 'video',
+        );
+        const extractToNext = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
+          (edge) =>
+            edge.source === `frame-extract-${index}` &&
+            edge.target === `video-gen-${index + 1}` &&
+            edge.sourceHandle === 'last_frame' &&
+            edge.targetHandle === 'image',
+        );
+
+        expect(videoToQa).toBeDefined();
+        expect(qaToExtract).toBeDefined();
+        expect(extractToNext).toBeDefined();
+      }
+    });
+
     it('extracts the last frame of every segment including the last', () => {
       const extractNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter((node) =>
         isActionNode(node, 'videoFrameExtract'),
@@ -310,6 +344,28 @@ describe('ClipChainVideoTemplate', () => {
         );
       }
     });
+
+    it('does not mutate the catalog original when creating an instance', () => {
+      const originalPrompt = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
+        (node) => node.id === 'video-gen-1',
+      );
+
+      createClipChainWorkflowInstance({
+        identityDirective: 'A mutated identity',
+        organizationId: 'org-1',
+        segmentPrompts: ['mutated-1', 'mutated-2', 'mutated-3'],
+        userId: 'user-1',
+        workflowId: 'wf-clip-2',
+      });
+
+      expect(
+        actionParameters(
+          CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
+            (node) => node.id === 'video-gen-1',
+          ),
+        ).prompt,
+      ).toBe(actionParameters(originalPrompt).prompt);
+    });
   });
 
   describe('Run-level identity lock (#4653)', () => {
@@ -323,6 +379,12 @@ describe('ClipChainVideoTemplate', () => {
       { assetId: 'product-1', role: 'product' },
       { assetId: 'room-1', role: 'subject' },
     ];
+
+    it('maps character, product, and environment ids to identity roles once', () => {
+      expect(buildClipChainIdentityReferences(identity)).toEqual(
+        expectedReferences,
+      );
+    });
 
     it('requires a character ingredient id for the identity path', () => {
       expect(() =>

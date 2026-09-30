@@ -39,6 +39,12 @@ describe('posts.platform casing migration (#3274)', () => {
     expect(postAnalyticsModel).toContain('@@map("post_analytics")');
   });
 
+  it('lowercases non-null posts.platform rows and stays idempotent', () => {
+    expect(migrationSource).toContain(
+      'UPDATE "posts"\nSET "platform" = lower("platform")\nWHERE "platform" IS NOT NULL\n  AND "platform" <> lower("platform");',
+    );
+  });
+
   it('does not lowercase Prisma enum platform columns', () => {
     expect(migrationSource).not.toContain('UPDATE "credentials"');
     expect(migrationSource).not.toContain('UPDATE "post_analytics"');

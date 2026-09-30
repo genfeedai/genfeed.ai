@@ -3,6 +3,10 @@ import { FileCategory } from '../../src/enums/file.enum';
 
 describe('file.enum', () => {
   describe('FileCategory', () => {
+    it('should have 7 members', () => {
+      expect(Object.values(FileCategory)).toHaveLength(7);
+    });
+
     it('should have correct values', () => {
       expect(FileCategory.IMAGE).toBe('image');
       expect(FileCategory.VIDEO).toBe('video');

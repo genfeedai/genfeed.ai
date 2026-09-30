@@ -82,6 +82,16 @@ describe('ArtifactHistoryOverlay', () => {
     expect(onApprove).not.toHaveBeenCalled();
   });
 
+  it('exposes no open affordance on the current immutable version', () => {
+    setup();
+
+    // The current row is a static card, not a button — only prior versions and
+    // the footer are actionable. This is the single "open" affordance rule.
+    expect(
+      screen.queryByRole('button', { name: /current · immutable/i }),
+    ).toBeNull();
+  });
+
   it('disables approval while a decision is in flight', () => {
     setup({ isApproving: true });
 

@@ -16,6 +16,14 @@ import {
 describe('common-relationships', () => {
   describe('Individual Relationship Constants', () => {
     describe('USER_REL', () => {
+      it('should have type user', () => {
+        expect(USER_REL.type).toBe('user');
+      });
+
+      it('should have id reference', () => {
+        expect(USER_REL.ref).toBe('id');
+      });
+
       it('should have user attributes', () => {
         expect(USER_REL.attributes).toContain('email');
         expect(USER_REL.attributes).toContain('firstName');
@@ -24,6 +32,14 @@ describe('common-relationships', () => {
     });
 
     describe('ORGANIZATION_REL', () => {
+      it('should have type organization', () => {
+        expect(ORGANIZATION_REL.type).toBe('organization');
+      });
+
+      it('should have id reference', () => {
+        expect(ORGANIZATION_REL.ref).toBe('id');
+      });
+
       it('should have organization attributes', () => {
         expect(ORGANIZATION_REL.attributes).toContain('label');
         expect(ORGANIZATION_REL.attributes).toContain('credits');
@@ -31,21 +47,139 @@ describe('common-relationships', () => {
     });
 
     describe('BRAND_REL', () => {
+      it('should have type brand', () => {
+        expect(BRAND_REL.type).toBe('brand');
+      });
+
+      it('should have id reference', () => {
+        expect(BRAND_REL.ref).toBe('id');
+      });
+
       it('should have brand attributes', () => {
         expect(BRAND_REL.attributes).toContain('label');
         expect(BRAND_REL.attributes).toContain('slug');
         expect(BRAND_REL.attributes).toContain('description');
       });
     });
+
+    describe('TAG_REL', () => {
+      it('should have type tag', () => {
+        expect(TAG_REL.type).toBe('tag');
+      });
+
+      it('should have id reference', () => {
+        expect(TAG_REL.ref).toBe('id');
+      });
+    });
+
+    describe('ASSET_REL', () => {
+      it('should have type asset', () => {
+        expect(ASSET_REL.type).toBe('asset');
+      });
+
+      it('should have id reference', () => {
+        expect(ASSET_REL.ref).toBe('id');
+      });
+    });
+
+    describe('EVALUATION_REL', () => {
+      it('should have type evaluation', () => {
+        expect(EVALUATION_REL.type).toBe('evaluation');
+      });
+
+      it('should have id reference', () => {
+        expect(EVALUATION_REL.ref).toBe('id');
+      });
+    });
+
+    describe('FOLDER_REL', () => {
+      it('should have type folder', () => {
+        expect(FOLDER_REL.type).toBe('folder');
+      });
+
+      it('should have id reference', () => {
+        expect(FOLDER_REL.ref).toBe('id');
+      });
+    });
+  });
+
+  describe('Minimal Relationship Constants', () => {
+    describe('ORGANIZATION_MINIMAL_REL', () => {
+      it('should have type organization', () => {
+        expect(ORGANIZATION_MINIMAL_REL.type).toBe('organization');
+      });
+
+      it('should have minimal attributes', () => {
+        expect(ORGANIZATION_MINIMAL_REL.attributes).toEqual(['label']);
+      });
+    });
+
+    describe('BRAND_MINIMAL_REL', () => {
+      it('should have type brand', () => {
+        expect(BRAND_MINIMAL_REL.type).toBe('brand');
+      });
+
+      it('should have minimal attributes', () => {
+        expect(BRAND_MINIMAL_REL.attributes).toEqual(['label', 'slug']);
+      });
+    });
   });
 
   describe('Bundled Relationship Sets', () => {
+    describe('STANDARD_ENTITY_RELS', () => {
+      it('should have user relationship', () => {
+        expect(STANDARD_ENTITY_RELS.user).toBe(USER_REL);
+      });
+
+      it('should have organization relationship', () => {
+        expect(STANDARD_ENTITY_RELS.organization).toBe(ORGANIZATION_REL);
+      });
+
+      it('should have brand relationship', () => {
+        expect(STANDARD_ENTITY_RELS.brand).toBe(BRAND_REL);
+      });
+
+      it('should have tags relationship', () => {
+        expect(STANDARD_ENTITY_RELS.tags).toBe(TAG_REL);
+      });
+
+      it('should have exactly 4 relationships', () => {
+        expect(Object.keys(STANDARD_ENTITY_RELS)).toHaveLength(4);
+      });
+    });
+
     describe('CONTENT_ENTITY_RELS', () => {
       it('should include all standard entity relationships', () => {
         expect(CONTENT_ENTITY_RELS.user).toBe(USER_REL);
         expect(CONTENT_ENTITY_RELS.organization).toBe(ORGANIZATION_REL);
         expect(CONTENT_ENTITY_RELS.brand).toBe(BRAND_REL);
         expect(CONTENT_ENTITY_RELS.tags).toBe(TAG_REL);
+      });
+
+      it('should have evaluation relationship', () => {
+        expect(CONTENT_ENTITY_RELS.evaluation).toBe(EVALUATION_REL);
+      });
+
+      it('should have exactly 5 relationships', () => {
+        expect(Object.keys(CONTENT_ENTITY_RELS)).toHaveLength(5);
+      });
+    });
+
+    describe('MINIMAL_ENTITY_RELS', () => {
+      it('should have user relationship (full)', () => {
+        expect(MINIMAL_ENTITY_RELS.user).toBe(USER_REL);
+      });
+
+      it('should have minimal organization relationship', () => {
+        expect(MINIMAL_ENTITY_RELS.organization).toBe(ORGANIZATION_MINIMAL_REL);
+      });
+
+      it('should have minimal brand relationship', () => {
+        expect(MINIMAL_ENTITY_RELS.brand).toBe(BRAND_MINIMAL_REL);
+      });
+
+      it('should have exactly 3 relationships', () => {
+        expect(Object.keys(MINIMAL_ENTITY_RELS)).toHaveLength(3);
       });
     });
   });
@@ -74,6 +208,13 @@ describe('common-relationships', () => {
         expect(Array.isArray(rel.attributes)).toBe(true);
       },
     );
+
+    test.each(allRelationships)(
+      '$name should have non-empty type',
+      ({ rel }) => {
+        expect(rel.type.length).toBeGreaterThan(0);
+      },
+    );
   });
 
   describe('Spread Usage Pattern', () => {
@@ -88,6 +229,16 @@ describe('common-relationships', () => {
       expect(config.organization).toBe(ORGANIZATION_REL);
       expect(config.brand).toBe(BRAND_REL);
       expect(config.tags).toBe(TAG_REL);
+    });
+
+    it('should allow spreading CONTENT_ENTITY_RELS into config', () => {
+      const config = {
+        attributes: ['url', 'format'],
+        type: 'ingredient',
+        ...CONTENT_ENTITY_RELS,
+      };
+
+      expect(config.evaluation).toBe(EVALUATION_REL);
     });
 
     it('should allow spreading MINIMAL_ENTITY_RELS into config', () => {

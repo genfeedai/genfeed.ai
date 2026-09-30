@@ -24,6 +24,23 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 describe('AgentTextArtifactPreview', () => {
+  it('uses the canonical X platform renderer for a Twitter output', () => {
+    render(
+      <AgentTextArtifactPreview
+        data={{
+          content: 'A concise launch post.',
+          contentFormat: 'social_post',
+          platform: 'twitter',
+          title: 'Launch post',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
+    ).toBeInTheDocument();
+  });
+
   it('opens a newsletter reader preview in a dialog', () => {
     render(
       <AgentTextArtifactPreview

@@ -45,4 +45,13 @@ describe('groupTimelineTurns', () => {
     expect(turns[0]?.items.map((item) => item.entry.id)).toEqual(['u1', 'a1']);
     expect(turns[1]?.items.map((item) => item.entry.id)).toEqual(['u2', 'a2']);
   });
+
+  it('keeps leading assistant rows in a prelude turn', () => {
+    const turns = groupTimelineTurns([
+      assistantMessage('a0'),
+      userMessage('u1'),
+    ]);
+
+    expect(turns.map((turn) => turn.id)).toEqual(['a0', 'u1']);
+  });
 });

@@ -449,6 +449,32 @@ describe('runAbandonedInstagramSelectionCleanup', () => {
     expect(rows[0].isDeleted).toBe(false);
   });
 
+  it('never touches a connected row', async () => {
+    const rows = [abandonedSelectionRow({ isConnected: true })];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.scanned).toBe(0);
+  });
+
+  it('leaves a row that has not yet passed the OAuth state TTL', async () => {
+    const rows = [abandonedSelectionRow({ updatedAt: NOW })];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.scanned).toBe(0);
+  });
+
   it('dry-run reports without mutating anything', async () => {
     const rows = [abandonedSelectionRow()];
     const client = new FakeAbandonedSelectionClient(rows);

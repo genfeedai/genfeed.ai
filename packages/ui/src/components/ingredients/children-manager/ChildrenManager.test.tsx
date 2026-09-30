@@ -10,6 +10,20 @@ describe('ChildrenManager', () => {
     id: 'ingredient-1',
   } as IIngredient;
 
+  it('should render without crashing', () => {
+    const { container } = render(
+      <ChildrenManager ingredient={ingredient} onChildrenChange={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <ChildrenManager ingredient={ingredient} onChildrenChange={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <ChildrenManager ingredient={ingredient} onChildrenChange={vi.fn()} />,

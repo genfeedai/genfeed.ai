@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { Heading } from '@ui/typography/heading';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Heading', () => {
   it('renders without crashing', () => {
@@ -149,6 +149,15 @@ describe('Heading', () => {
     it('level 3 heading is accessible', () => {
       render(<Heading size="lg">H3 Heading</Heading>);
       expect(screen.getByRole('heading', { level: 3 })).toBeInTheDocument();
+    });
+  });
+
+  describe('ref forwarding', () => {
+    it('forwards ref to heading element', () => {
+      const ref = vi.fn();
+      render(<Heading ref={ref}>Title</Heading>);
+      expect(ref).toHaveBeenCalled();
+      expect(ref.mock.calls[0][0]).toBeInstanceOf(HTMLHeadingElement);
     });
   });
 

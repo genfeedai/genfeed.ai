@@ -1,3 +1,4 @@
+import { ApiKeyCategory } from '@genfeedai/contracts';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import {
   ApiKeysService,
@@ -29,7 +30,65 @@ describe('ApiKeysService', () => {
     vi.restoreAllMocks();
   });
 
+  describe('constructor', () => {
+    it('initializes correctly', () => {
+      expect(service).toBeInstanceOf(ApiKeysService);
+    });
+  });
+
   describe('api key management', () => {
+    it('has inherited read and mutation methods', () => {
+      expect(service.findAll).toBeDefined();
+      expect(service.findOne).toBeDefined();
+      expect(service.patch).toBeDefined();
+      expect(service.delete).toBeDefined();
+    });
+
+    it('creates Genfeed API keys by default', async () => {
+      const postSpy = vi
+        .spyOn(service, 'post')
+        .mockResolvedValue({ id: 'key-1' } as never);
+
+      await service.createApiKey({
+        label: 'MCP',
+        scopes: ['videos:read'],
+      });
+
+      expect(postSpy).toHaveBeenCalledWith({
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'MCP',
+        scopes: ['videos:read'],
+      });
+    });
+
+    it('keeps Genfeed category fixed when callers provide another category', async () => {
+      const postSpy = vi
+        .spyOn(service, 'post')
+        .mockResolvedValue({ id: 'key-1' } as never);
+
+      await service.createApiKey({
+        category: ApiKeyCategory.HEYGEN,
+        label: 'MCP',
+        scopes: ['videos:read'],
+      });
+
+      expect(postSpy).toHaveBeenCalledWith({
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'MCP',
+        scopes: ['videos:read'],
+      });
+    });
+
+    it('revokes API keys through delete', async () => {
+      const deleteSpy = vi
+        .spyOn(service, 'delete')
+        .mockResolvedValue({ id: 'key-1' } as never);
+
+      await service.revokeApiKey('key-1');
+
+      expect(deleteSpy).toHaveBeenCalledWith('key-1');
+    });
+
     it('rotates API keys through the rotate endpoint and mapOne flow', async () => {
       const serviceWithInternals =
         service as unknown as ApiKeysServiceInternals;

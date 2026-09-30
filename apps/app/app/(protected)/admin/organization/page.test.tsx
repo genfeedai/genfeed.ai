@@ -13,4 +13,8 @@ describe('app/(protected)/admin/organization/page.tsx', () => {
     expect(source).not.toContain('redirect');
     expect(source).toContain('AdminOrganizationsLanding');
   });
+
+  it('keeps the ?id= organization settings surface', () => {
+    expect(source).toContain('OrganizationConfigPage');
+  });
 });

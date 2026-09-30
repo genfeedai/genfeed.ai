@@ -141,6 +141,25 @@ describe('ContentQualityScorerService', () => {
     });
   });
 
+  describe('fire-and-forget pattern', () => {
+    it('should not block when called without await in catch pattern', async () => {
+      const errors: unknown[] = [];
+      mocks.llmDispatcherService.completeStructured.mockRejectedValue(
+        new Error('Network timeout'),
+      );
+
+      // Simulate the fire-and-forget pattern from agent-tool-executor
+      const promise = service
+        .scoreAndTag('ingredient-err', 'image')
+        .catch((err: unknown) => errors.push(err));
+
+      await promise;
+
+      // Service handles errors internally with fallback score — no propagation
+      expect(errors).toHaveLength(0);
+    });
+  });
+
   describe('quality badge display logic (GenerationActionCard)', () => {
     it('should show quality badge when score is present (score >= 8 = green)', () => {
       const score = 9;

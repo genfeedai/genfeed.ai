@@ -109,6 +109,17 @@ describe('ApiKeysService per-tier rate limiting', () => {
       ).resolves.toBe(0);
     });
 
+    it('cloud: enterprise resolves to null (uncapped)', async () => {
+      const service = createHarness();
+      service.__findUnique.mockResolvedValue({
+        subscriptionTier: SubscriptionTier.ENTERPRISE,
+      });
+
+      await expect(
+        service.resolveEffectiveRateLimit(buildApiKey()),
+      ).resolves.toBeNull();
+    });
+
     it('cloud: missing org setting default-denies (0)', async () => {
       const service = createHarness();
       service.__findUnique.mockResolvedValue(null);

@@ -5,6 +5,16 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentModeDropdown', () => {
+  it('reflects the active mode on the trigger', () => {
+    render(
+      <AgentModeDropdown mode={AgentThreadMode.AUTO} onChange={vi.fn()} />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Agent mode: Auto' }),
+    ).toBeTruthy();
+  });
+
   it('renders exactly Auto, Manual and Plan as options', async () => {
     render(
       <AgentModeDropdown mode={AgentThreadMode.MANUAL} onChange={vi.fn()} />,
@@ -40,6 +50,23 @@ describe('AgentModeDropdown', () => {
     ).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('calls onChange with the selected mode', async () => {
+    const onChange = vi.fn();
+    render(
+      <AgentModeDropdown mode={AgentThreadMode.MANUAL} onChange={onChange} />,
+    );
+
+    fireEvent.pointerDown(
+      screen.getByRole('button', { name: 'Agent mode: Manual' }),
+    );
+
+    fireEvent.click(
+      await screen.findByRole('menuitemradio', { name: /^Plan/ }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith(AgentThreadMode.PLAN);
+  });
+
   it('is keyboard operable', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -61,5 +88,19 @@ describe('AgentModeDropdown', () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith(AgentThreadMode.PLAN);
     });
+  });
+
+  it('disables the trigger when isDisabled is set', () => {
+    render(
+      <AgentModeDropdown
+        isDisabled
+        mode={AgentThreadMode.MANUAL}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Agent mode: Manual' }),
+    ).toBeDisabled();
   });
 });

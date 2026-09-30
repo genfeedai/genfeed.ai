@@ -88,6 +88,10 @@ describe('FilesImageToVideoService', () => {
     service = module.get<FilesImageToVideoService>(FilesImageToVideoService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('generateImageToVideo / createVideoFromImages', () => {
     it('throws when no clip files are found', async () => {
       (fs.readdirSync as Mock).mockReturnValue([]);
@@ -114,6 +118,23 @@ describe('FilesImageToVideoService', () => {
       expect(fs.copyFileSync).toHaveBeenCalled();
       expect(ffmpegService.mergeVideosWithMusic).not.toHaveBeenCalled();
       expect(result).toContain('merged.mp4');
+    });
+
+    it('merges via mergeVideosWithMusic when a single clip has background music', async () => {
+      (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
+      (fs.existsSync as Mock).mockImplementation(
+        (filePath: string) =>
+          filePath.includes('frame-0.mp3') && filePath.includes('musics'),
+      );
+
+      await service.createVideoFromImages(
+        [],
+        { dimensions, slideText: [slideText[0]] },
+        'ingredient-1',
+      );
+
+      expect(ffmpegService.mergeVideosWithMusic).toHaveBeenCalled();
+      expect(fs.copyFileSync).not.toHaveBeenCalled();
     });
 
     it('always merges when there are multiple clips', async () => {
@@ -152,6 +173,21 @@ describe('FilesImageToVideoService', () => {
         expect.any(String),
         { height: 1920, width: 1080 },
         expect.any(Object),
+      );
+    });
+
+    it('cleans up the scaled temp file after processing each clip', async () => {
+      (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
+      (fs.existsSync as Mock).mockReturnValue(true);
+
+      await service.createVideoFromImages(
+        [],
+        { dimensions, slideText: [slideText[0]] },
+        'ingredient-1',
+      );
+
+      expect(fs.unlinkSync).toHaveBeenCalledWith(
+        expect.stringContaining('scaled_0.mp4'),
       );
     });
 
@@ -202,6 +238,23 @@ describe('FilesImageToVideoService', () => {
         expect.any(String),
         expect.any(String),
         expect.objectContaining({ includeAudio: true }),
+      );
+    });
+
+    it('excludes audio when no voice file exists', async () => {
+      (fs.readdirSync as Mock).mockReturnValue(['0.mp4']);
+      (fs.existsSync as Mock).mockReturnValue(false);
+
+      await service.createVideoFromImages(
+        [],
+        { dimensions, slideText: [slideText[0]] },
+        'ingredient-1',
+      );
+
+      expect(ffmpegService.addAudioAndTextToVideo).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        expect.objectContaining({ audioPath: undefined, includeAudio: false }),
       );
     });
 

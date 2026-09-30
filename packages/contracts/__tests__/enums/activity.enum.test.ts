@@ -8,6 +8,58 @@ import {
 
 describe('activity.enum', () => {
   describe('ActivitySource', () => {
+    it('should have the intended members', () => {
+      expect(Object.keys(ActivitySource)).toEqual([
+        'SCRIPT',
+        'SUPERADMIN',
+        'SUBSCRIPTION',
+        'PAY_AS_YOU_GO',
+        'VIDEO_GENERATION',
+        'IMAGE_GENERATION',
+        'MUSIC_GENERATION',
+        'ARTICLE_GENERATION',
+        'AVATAR_GENERATION',
+        'ASSET_GENERATION',
+        'VIDEO_REFRAME',
+        'VIDEO_UPSCALE',
+        'IMAGE_REFRAME',
+        'IMAGE_UPSCALE',
+        'PROMPT_CREATION',
+        'PROMPT_ENHANCEMENT',
+        'PROMPT_REMIX',
+        'ARTICLE_ENHANCEMENT',
+        'ARTICLE_REMIX',
+        'ARTICLE_VIRALITY_ANALYSIS',
+        'ARTICLE_PROMPT_GENERATION',
+        'POST_ENHANCEMENT',
+        'IMAGE_EVALUATION',
+        'VIDEO_EVALUATION',
+        'ARTICLE_EVALUATION',
+        'CONTENT_EVALUATION',
+        'MODELS_TRAINING',
+        'POST',
+        'POST_GENERATION',
+        'TWEET_REPLY',
+        'SOCIAL_INTEGRATION',
+        'WEB',
+        'BOT_GENERATION',
+        'VOICE_GENERATION',
+        'TREND_SCAN',
+        'BRAND_INTERVIEW',
+        'EXPERT_FIRST_SYSTEM',
+        'BRAND_RELOCATION',
+        'REFERRAL',
+        'MEDIA_MODERATION',
+        'AGENT_CHAT',
+        'WORKFLOW_EXECUTION',
+        'AGENT_RUN',
+        'AGENT_REVIEW',
+        'MCP_APPROVAL',
+        'POST_LIFECYCLE',
+        'BRAND_OS_EXPORT',
+      ]);
+    });
+
     it('should have correct values', () => {
       expect(ActivitySource.AGENT_CHAT).toBe('agent-chat');
       expect(ActivitySource.SCRIPT).toBe('system');
@@ -58,6 +110,85 @@ describe('activity.enum', () => {
   });
 
   describe('ActivityKey', () => {
+    it('should have the intended members', () => {
+      expect(Object.keys(ActivityKey)).toEqual([
+        'CREDITS_ADD',
+        'CREDITS_REMOVE',
+        'CREDITS_REMOVE_ALL',
+        'CREDITS_RESET',
+        'IMAGE_PROCESSING',
+        'IMAGE_GENERATED',
+        'IMAGE_FAILED',
+        'VIDEO_PROCESSING',
+        'VIDEO_GENERATED',
+        'VIDEO_COMPLETED',
+        'VIDEO_FAILED',
+        'VIDEO_SCHEDULED',
+        'MUSIC_PROCESSING',
+        'MUSIC_GENERATED',
+        'MUSIC_FAILED',
+        'MODELS_TRAINING_CREATED',
+        'MODELS_TRAINING_FAILED',
+        'MODELS_TRAINING_COMPLETED',
+        'SOCIAL_INTEGRATION_FAILED',
+        'SOCIAL_INTEGRATION_DISCONNECTED',
+        'SOCIAL_HISTORY_IMPORT_SCHEDULED',
+        'SOCIAL_HISTORY_IMPORT_COMPLETED',
+        'SOCIAL_HISTORY_IMPORT_FAILED',
+        'SOCIAL_HISTORY_IMPORT_SKIPPED',
+        'POST_PROCESSING',
+        'POST_GENERATED',
+        'POST_FAILED',
+        'POST_SCHEDULED',
+        'POST_PUBLISHED',
+        'POST_CREATED',
+        'ARTICLE_PROCESSING',
+        'ARTICLE_GENERATED',
+        'ARTICLE_FAILED',
+        'VIDEO_REFRAME_PROCESSING',
+        'VIDEO_REFRAME_COMPLETED',
+        'VIDEO_REFRAME_FAILED',
+        'VIDEO_UPSCALE_PROCESSING',
+        'VIDEO_UPSCALE_COMPLETED',
+        'VIDEO_UPSCALE_FAILED',
+        'IMAGE_REFRAME_PROCESSING',
+        'IMAGE_REFRAME_COMPLETED',
+        'IMAGE_REFRAME_FAILED',
+        'IMAGE_UPSCALE_PROCESSING',
+        'IMAGE_UPSCALE_COMPLETED',
+        'IMAGE_UPSCALE_FAILED',
+        'PROMPT_ENHANCE_PROCESSING',
+        'PROMPT_ENHANCE_COMPLETED',
+        'PROMPT_ENHANCE_FAILED',
+        'VOICE_PROCESSING',
+        'VOICE_GENERATED',
+        'VOICE_FAILED',
+        'PROMPT_REMIX_PROCESSING',
+        'PROMPT_REMIX_COMPLETED',
+        'PROMPT_REMIX_FAILED',
+        'BRAND_RELOCATED',
+        'MEDIA_MODERATION_FLAGGED',
+        'WORKFLOW_EXECUTION_COMPLETED',
+        'WORKFLOW_EXECUTION_FAILED',
+        'AGENT_RUN_COMPLETED',
+        'AGENT_RUN_FAILED',
+        'AGENT_RUN_DELIVERY_FAILED',
+        'AGENT_REVIEW_CHANGED',
+        'AGENT_REVIEW_EXPIRED',
+        'SOCIAL_REPLIES_RECEIVED',
+        'CREDITS_LOW',
+        'WORKFLOW_REVIEW_REQUESTED',
+        'WORKFLOW_REPORT_DELIVERED',
+        'TREND_SUMMARY_READY',
+        'MCP_APPROVAL_REQUESTED',
+        'POST_LIFECYCLE_TRANSITION',
+        'BRAND_OS_EXPORT_DOWNLOAD',
+        'BRAND_OS_EXPORT_PUBLISH',
+        'BRAND_OS_EXPORT_REVOKE',
+        'BRAND_OS_EXPORT_PUBLIC_READ',
+      ]);
+    });
+
     it('should have correct values', () => {
       expect(ActivityKey.CREDITS_ADD).toBe('credits-add');
       expect(ActivityKey.CREDITS_REMOVE).toBe('credits-remove');
@@ -147,6 +278,10 @@ describe('activity.enum', () => {
   });
 
   describe('ActivityStatus', () => {
+    it('should have 3 members', () => {
+      expect(Object.values(ActivityStatus)).toHaveLength(3);
+    });
+
     it('should have correct values', () => {
       expect(ActivityStatus.PROCESSING).toBe('processing');
       expect(ActivityStatus.COMPLETED).toBe('completed');
@@ -155,6 +290,10 @@ describe('activity.enum', () => {
   });
 
   describe('ActivityEntityModel', () => {
+    it('should have 3 members', () => {
+      expect(Object.values(ActivityEntityModel)).toHaveLength(3);
+    });
+
     it('should have correct values', () => {
       expect(ActivityEntityModel.INGREDIENT).toBe('Ingredient');
       expect(ActivityEntityModel.POST).toBe('Post');

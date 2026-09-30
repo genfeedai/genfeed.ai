@@ -303,5 +303,14 @@ describe('Discord Bot Manager Integration Flow', () => {
 
       expect(service.getActiveCount()).toBe(0);
     });
+
+    it('should handle API fetch failure during initialization', async () => {
+      httpService.get.mockReturnValue(of({ data: [] }));
+
+      await service.initialize();
+
+      // Should initialize successfully with no bots
+      expect(service.getActiveCount()).toBe(0);
+    });
   });
 });

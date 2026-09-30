@@ -1,11 +1,14 @@
+import { readFileSync } from 'node:fs';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
 import { BrandsRelationshipsController } from '@api/collections/brands/controllers/relationships/brands-relationships.controller';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { HttpStatus, RequestMethod } from '@nestjs/common';
 import {
+  GUARDS_METADATA,
   HTTP_CODE_METADATA,
   METHOD_METADATA,
   MODULE_METADATA,
@@ -45,6 +48,15 @@ describe('Brands split controllers', () => {
     },
   );
 
+  it.each([BrandsController, BrandsSetupController])(
+    'preserves the shared brands role guard on %s',
+    (controllerClass) => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, controllerClass)).toContain(
+        RolesGuard,
+      );
+    },
+  );
+
   it('registers the setup sibling before the wildcard CRUD controller', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BrandsModule),
@@ -55,5 +67,23 @@ describe('Brands split controllers', () => {
       BrandsController,
       BrandsRelationshipsController,
     ]);
+  });
+
+  it.each(['previewWebsite', 'scrapeBrand', 'addReferenceImages'] as const)(
+    'removes moved handler %s from the CRUD controller',
+    (methodName) => {
+      expect(
+        Reflect.get(BrandsController.prototype, methodName),
+      ).toBeUndefined();
+    },
+  );
+
+  it('keeps the transport-focused CRUD controller below 500 lines', () => {
+    const source = readFileSync(
+      new URL('./brands.controller.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(source.trimEnd().split('\n').length).toBeLessThan(500);
   });
 });

@@ -15,4 +15,14 @@ describe('ActivitiesQueryDto', () => {
     );
     expect(errors.some((error) => error.property === 'activeOnly')).toBe(true);
   });
+  it('should be defined', () => {
+    expect(ActivitiesQueryDto).toBeDefined();
+  });
+
+  describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new ActivitiesQueryDto();
+      expect(dto).toBeInstanceOf(ActivitiesQueryDto);
+    });
+  });
 });

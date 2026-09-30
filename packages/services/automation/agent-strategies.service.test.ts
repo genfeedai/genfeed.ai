@@ -66,6 +66,18 @@ describe('AgentStrategiesService', () => {
     expect(result.id).toBe('strategy_new');
   });
 
+  it('update PATCHes the strategy', async () => {
+    http.patch.mockResolvedValue(
+      axiosResponse(resourceDocument({ label: 'Edit' }, { id: strategyId })),
+    );
+
+    await service.update(strategyId, { postsPerWeek: 3 });
+
+    expect(http.patch).toHaveBeenCalledWith(`/${strategyId}`, {
+      postsPerWeek: 3,
+    });
+  });
+
   it('setActive PATCHes the isActive flag', async () => {
     http.patch.mockResolvedValue(
       axiosResponse(resourceDocument({ isActive: false }, { id: strategyId })),

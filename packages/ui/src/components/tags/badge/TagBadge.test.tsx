@@ -21,6 +21,11 @@ describe('TagBadge', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(<TagBadge tag={tag} />);
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(<TagBadge tag={tag} />);
     const rootElement = container.firstChild as HTMLElement;

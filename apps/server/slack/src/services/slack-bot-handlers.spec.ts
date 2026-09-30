@@ -2,6 +2,7 @@ import {
   IMAGE_MODELS,
   type OrgIntegration,
   type UserSettings,
+  VIDEO_MODELS,
   type WorkflowSession,
 } from '@genfeedai/integrations';
 import type { App } from '@slack/bolt';
@@ -147,6 +148,16 @@ describe('registerSlackBotHandlers', () => {
       expect(next).toHaveBeenCalledTimes(1);
     });
 
+    it('blocks users not on the allowlist', async () => {
+      register();
+      const middleware = app.use.mock.calls[0][0] as CapturedHandler;
+      const next = vi.fn().mockResolvedValue(undefined);
+
+      await middleware({ context: { userId: 'U-stranger' }, next });
+
+      expect(next).not.toHaveBeenCalled();
+    });
+
     it('blocks payloads without a userId even on an open bot', async () => {
       register(makeIntegration({ allowedUserIds: [], isOpenToAllUsers: true }));
       const middleware = app.use.mock.calls[0][0] as CapturedHandler;
@@ -282,6 +293,18 @@ describe('registerSlackBotHandlers', () => {
       );
     });
 
+    it('confirm:edit delegates to handleEdit', async () => {
+      register();
+
+      await actionHandler('confirm:edit')({
+        ack,
+        body: { user: { id: 'U-allowed' } },
+        respond,
+      });
+
+      expect(handlers.handleEdit).toHaveBeenCalledWith('U-allowed', respond);
+    });
+
     it('confirm:cancel deletes the session and replaces the message', async () => {
       register();
 
@@ -321,6 +344,23 @@ describe('registerSlackBotHandlers', () => {
       });
       expect(respond).toHaveBeenCalledWith({
         text: 'Image model set to: *flux-pro*',
+      });
+    });
+
+    it('cfg:img falls back to default settings when none exist', async () => {
+      handlers.getUserSettings.mockReturnValue(undefined);
+      register();
+
+      await actionHandler('/^cfg:img:/')({
+        ack,
+        action: { value: 'cfg:img:midjourney' },
+        body: { user: { id: 'U-allowed' } },
+        respond,
+      });
+
+      expect(handlers.setUserSettings).toHaveBeenCalledWith('U-allowed', {
+        imageModel: 'midjourney',
+        videoModel: VIDEO_MODELS[0],
       });
     });
 
@@ -383,6 +423,19 @@ describe('registerSlackBotHandlers', () => {
 
     it('ignores messages when there is no collecting session', async () => {
       handlers.getSession.mockReturnValue(undefined);
+      register();
+      const say = vi.fn();
+
+      await messageHandler()({
+        message: { text: 'hello', user: 'U-allowed' },
+        say,
+      });
+
+      expect(handlers.setSession).not.toHaveBeenCalled();
+    });
+
+    it('ignores messages when the session is not collecting', async () => {
+      handlers.getSession.mockReturnValue(makeSession({ state: 'running' }));
       register();
       const say = vi.fn();
 
@@ -555,6 +608,19 @@ describe('registerSlackBotHandlers', () => {
 
       expect(session.collectedInputs.get('node-1')).toBe('');
       expect(client.chat.postMessage).not.toHaveBeenCalled();
+    });
+
+    it('routes files.info failures to logFileError', async () => {
+      register();
+      const failure = new Error('slack api down');
+      const client = {
+        chat: { postMessage: vi.fn() },
+        files: { info: vi.fn().mockRejectedValue(failure) },
+      };
+
+      await eventHandler()({ client, event: { file_id: 'F1' } });
+
+      expect(handlers.logFileError).toHaveBeenCalledWith(failure);
     });
   });
 });

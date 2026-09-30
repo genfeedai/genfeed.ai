@@ -201,6 +201,15 @@ describe('ApifyRunBudgetService', () => {
     expect(cacheService.incr).toHaveBeenCalledTimes(2);
   });
 
+  it('sets an expiry on each counter so budgets roll over on their own', async () => {
+    env.APIFY_MAX_RUNS_PER_HOUR = '5';
+    service = build();
+
+    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+
+    expect(cacheService.expire).toHaveBeenCalledTimes(2);
+  });
+
   it('refuses the run once the hourly cap is reached', async () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '2';
     env.APIFY_MAX_RUNS_PER_DAY = '100';
@@ -233,6 +242,32 @@ describe('ApifyRunBudgetService', () => {
 
     expect(second.isAllowed).toBe(false);
     expect(second.reason).toContain('daily');
+  });
+
+  it('budgets each token scope separately', async () => {
+    env.APIFY_MAX_RUNS_PER_HOUR = '1';
+    service = build();
+
+    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    const other = await service.consumeRun(
+      'byok:org-1',
+      'apify/scraper',
+      'byok-token',
+    );
+
+    expect(other.isAllowed).toBe(true);
+  });
+
+  it('does not spend the hourly budget when the daily cap already refused', async () => {
+    env.APIFY_MAX_RUNS_PER_HOUR = '100';
+    env.APIFY_MAX_RUNS_PER_DAY = '1';
+    service = build();
+
+    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+    cacheService.incr.mockClear();
+    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+
+    expect(cacheService.incr).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a non-positive hosted cap', async () => {
@@ -338,6 +373,23 @@ describe('ApifyRunBudgetService', () => {
     );
   });
 
+  it('retains the completed billing-period ledger for post-reset review', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
+    service = build();
+
+    await service.consumeRun('hosted', 'apify/scraper', 'test-token');
+
+    const usageSet = cacheService.initializeCounterBudget.mock.calls.find(
+      ([key]) => String(key).startsWith('apify:billing-period-budget:hosted:'),
+    );
+    const ttl = usageSet?.[2] as number | undefined;
+    const secondsUntilReset = Math.ceil(
+      (Date.parse('2026-09-26T23:59:59.999Z') - Date.now()) / 1000,
+    );
+
+    expect(ttl).toBeGreaterThan(secondsUntilReset + 89 * 24 * 60 * 60);
+  });
+
   it('refuses hosted runs when Apify current-cycle usage reached the ceiling', async () => {
     env.APIFY_MAX_BILLING_PERIOD_USD = '4';
     httpService.get.mockReturnValueOnce(
@@ -367,6 +419,31 @@ describe('ApifyRunBudgetService', () => {
       expect.stringContaining('100%'),
       expect.objectContaining({ threshold: 100 }),
     );
+  });
+
+  it('claims billing threshold alerts once across service instances', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            totalUsageCreditsUsdAfterVolumeDiscount: 2,
+            usageCycle: {
+              endAt: '2026-09-26T23:59:59.999Z',
+              startAt: '2026-08-27T00:00:00.000Z',
+            },
+          },
+        },
+      }),
+    );
+
+    await build().consumeRun('hosted', 'apify/scraper', 'test-token');
+    await build().consumeRun('hosted', 'apify/scraper', 'test-token');
+
+    const thresholdWarnings = loggerService.warn.mock.calls.filter(
+      ([message]) => String(message).includes('50%'),
+    );
+    expect(thresholdWarnings).toHaveLength(1);
   });
 
   it('returns a per-run charge cap and reconciles the reservation to actual usage', async () => {

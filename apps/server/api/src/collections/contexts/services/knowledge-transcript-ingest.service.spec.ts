@@ -155,6 +155,31 @@ describe('KnowledgeTranscriptIngestService', () => {
     });
   });
 
+  it('settles only after the transcript checkpoint is written', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+
+    await service.resolve({
+      kind: KnowledgeSourceKind.AUDIO,
+      organizationId: 'org-1',
+      payload: { isTranscriptGenerationAllowed: true },
+      referenceUrl: 'https://cdn.example.com/ep.mp3',
+      sourceId: 'source-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+
+    const checkpointOrder =
+      prisma.knowledgeSourceVersion.updateMany.mock.invocationCallOrder[1];
+    const settleOrder = credits.settleReservation.mock.invocationCallOrder[0];
+    expect(checkpointOrder).toBeLessThan(settleOrder);
+  });
+
   it('keeps the hold for a saved transcript when settlement fails', async () => {
     fetchMock.mockResolvedValue({
       bytes: Buffer.from('ID3fake-audio'),

@@ -133,6 +133,10 @@ describe('TrendsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getTrends', () => {
     it('should return trends with access control', async () => {
       const mockResult = {
@@ -683,6 +687,20 @@ describe('TrendsController', () => {
         expect.any(Object),
         'org-openrouter-key',
       );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const query: GenerateTrendIdeasDto = {
+        limit: 10,
+        platform: Platform.TWITTER,
+      };
+
+      mockTrendsService.getTrends.mockResolvedValue([mockTrend]);
+      mockTrendsService.generateContentIdeas.mockResolvedValue(new Map());
+
+      await controller.getTrendIdeas(mockReq, mockUser, query);
+
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
 
     describe('brand resolution (#5292 — no "any brand in this org" fallback for API keys)', () => {

@@ -218,6 +218,26 @@ describe('BrandsService', () => {
       });
     });
 
+    it('leaves the agent config untouched for other account types', async () => {
+      delegate.create.mockResolvedValueOnce({
+        ...createBrandDto,
+        id: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: { agentConfig?: unknown };
+      };
+      expect(createInput.data.agentConfig).toBeUndefined();
+    });
+
     it('retries with a deterministic suffix when two creates race on the same slug', async () => {
       const collision = {
         code: 'P2002',
@@ -424,6 +444,16 @@ describe('BrandsService', () => {
       expect(brands[0].credentials).toEqual([
         { externalId: 'ext-1', id: 'cred-1', platform: 'linkedin' },
       ]);
+    });
+
+    it('leaves credentials out by default', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findForOrganization('org-1');
+
+      expect(delegate.findMany.mock.calls[0]?.[0]?.include).not.toHaveProperty(
+        'credentials',
+      );
     });
   });
 
@@ -1781,6 +1811,14 @@ describe('BrandsService', () => {
         where: { id: { not: 'brand_1' }, slug: 'vincent-on-ai' },
       });
     });
+
+    it('is taken when any other brand holds it, deleted or in another organization', async () => {
+      delegate.findFirst.mockResolvedValue({ id: 'brand_deleted' });
+
+      await expect(service.isSlugAvailable('taken', 'brand_1')).resolves.toBe(
+        false,
+      );
+    });
   });
 
   describe('generateUniqueSlug', () => {
@@ -1907,6 +1945,19 @@ describe('BrandsService', () => {
       expect(delegate.updateMany).not.toHaveBeenCalled();
     });
 
+    it('leaves omitted top-level keys unchanged', async () => {
+      withStoredConfig({ enabledSkills: ['research'], persona: 'Original' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        persona: 'Rewritten',
+      });
+
+      expect(persistedConfig()).toEqual({
+        enabledSkills: ['research'],
+        persona: 'Rewritten',
+      });
+    });
+
     it('never clears a key the caller explicitly sent as undefined', async () => {
       withStoredConfig({ enabledSkills: ['research'] });
 
@@ -1918,11 +1969,40 @@ describe('BrandsService', () => {
       expect(persistedConfig().enabledSkills).toEqual(['research']);
     });
 
+    it('clears a key the caller explicitly sent as null', async () => {
+      withStoredConfig({ defaultVoiceId: 'voice-1' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        defaultVoiceId: null as unknown as string,
+      });
+
+      expect(persistedConfig().defaultVoiceId).toBeNull();
+    });
+
     /**
      * `voice.taglines` and `voice.hashtags` are written by brand-kit extraction
      * and read back by `buildBrandContext`, but no UI surfaces them. A card that
      * patches one voice field must not take the rest of `voice` with it.
      */
+    it('merges a partial voice patch instead of replacing the stored voice', async () => {
+      withStoredConfig({
+        voice: {
+          hashtags: ['#build'],
+          taglines: ['Ship it'],
+          tone: 'formal',
+        },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        voice: { tone: 'warm' },
+      });
+
+      expect(persistedConfig().voice).toEqual({
+        hashtags: ['#build'],
+        taglines: ['Ship it'],
+        tone: 'warm',
+      });
+    });
 
     it('drops undefined keys materialised on a nested DTO instance', async () => {
       withStoredConfig({ voice: { taglines: ['Ship it'], tone: 'formal' } });
@@ -1936,6 +2016,23 @@ describe('BrandsService', () => {
       expect(persistedConfig().voice).toEqual({
         taglines: ['Ship it'],
         tone: 'warm',
+      });
+    });
+
+    it('replaces platformOverrides wholesale so cleared overrides stay cleared', async () => {
+      withStoredConfig({
+        platformOverrides: {
+          twitter: { voice: { tone: 'punchy' } },
+          youtube: {},
+        },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        platformOverrides: { twitter: { voice: { tone: 'punchy' } } },
+      });
+
+      expect(persistedConfig().platformOverrides).toEqual({
+        twitter: { voice: { tone: 'punchy' } },
       });
     });
 
@@ -2088,6 +2185,42 @@ describe('BrandsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith(orgId);
+    });
+
+    it('propagates publishing schedule changes to default recurring workflows', async () => {
+      withStoredConfig({
+        schedule: {
+          cronExpression: '0 8 * * *',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        schedule: {
+          cronExpression: '0 12 * * *',
+          enabled: false,
+          timezone: 'Europe/Malta',
+        },
+      });
+
+      // The config is already committed by the time the scheduler is called, so
+      // a scheduler outage takes the degraded path instead of surfacing as a
+      // failed save on an update that in fact persisted.
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        {
+          schedule: {
+            cronExpression: '0 12 * * *',
+            enabled: false,
+            timezone: 'Europe/Malta',
+          },
+        },
+        { isSchedulerRequired: false },
+      );
     });
 
     it('rejects an invalid cron expression with an actionable BadRequestException', async () => {

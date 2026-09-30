@@ -2,6 +2,7 @@ import { WorkflowExecutionStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createWorkflowExecution,
+  getWorkflow,
   getWorkflowExecution,
   listWorkflowExecutions,
   listWorkflows,
@@ -27,6 +28,13 @@ function collection(id: string, attributes: Record<string, unknown> = {}) {
 describe('api/workflows', () => {
   beforeEach(() => vi.clearAllMocks());
 
+  it('lists filtered workflows with a bounded limit', async () => {
+    mockFetch.mockResolvedValue(collection('workflow-1', { label: 'Weekly Content' }));
+    const result = await listWorkflows({ limit: 500 });
+    expect(mockFetch).toHaveBeenCalledWith('/workflows?limit=100', { method: 'GET' });
+    expect(result[0].id).toBe('workflow-1');
+  });
+
   it('requests a later workflow page when provided', async () => {
     mockFetch.mockResolvedValue(collection('workflow-101'));
 
@@ -45,6 +53,18 @@ describe('api/workflows', () => {
       method: 'GET',
       signal: controller.signal,
     });
+  });
+
+  it('gets a workflow', async () => {
+    mockFetch.mockResolvedValue(single('workflow-1'));
+    expect((await getWorkflow('workflow-1')).id).toBe('workflow-1');
+  });
+
+  it('creates a workflow execution', async () => {
+    mockFetch.mockResolvedValue(single('execution-1', { status: 'running' }));
+    const input = { inputValues: { topic: 'launch' }, workflowId: 'workflow-1' };
+    expect((await createWorkflowExecution(input)).id).toBe('execution-1');
+    expect(mockFetch).toHaveBeenCalledWith('/workflow-executions', { body: input, method: 'POST' });
   });
 
   it('forwards cancellation to workflow execution creation', async () => {

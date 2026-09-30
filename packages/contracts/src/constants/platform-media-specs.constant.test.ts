@@ -36,9 +36,41 @@ describe('PLATFORM_MEDIA_SPECS', () => {
       (spec) => [spec.platform, spec.kind, spec] as const,
     ),
   )('%s %s', (platform, kind, spec) => {
+    it('matches the contract shape', () => {
+      expect(platformMediaSpecSchema.safeParse(spec).success).toBe(true);
+    });
+
     it('cites the provider documentation it was transcribed from', () => {
       expect(spec.documentationUrl).toMatch(/^https:\/\//);
       expect(spec.sourcedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('keeps the file-size range coherent when both ends are set', () => {
+      if (
+        spec.minFileSizeBytes !== undefined &&
+        spec.maxFileSizeBytes !== undefined
+      ) {
+        expect(spec.minFileSizeBytes).toBeLessThan(spec.maxFileSizeBytes);
+      }
+    });
+
+    it('carries at least one constraint worth checking', () => {
+      const hasConstraint = [
+        spec.maxDurationSeconds,
+        spec.maxFileSizeBytes,
+        spec.maxFrameRate,
+        spec.maxHeight,
+        spec.maxWidth,
+        spec.minDurationSeconds,
+        spec.minFrameRate,
+        spec.minHeight,
+        spec.minWidth,
+      ].some((value) => value !== undefined);
+      expect(
+        hasConstraint ||
+          spec.containers.length > 0 ||
+          spec.aspectRatios.length > 0,
+      ).toBe(true);
     });
 
     it('keeps every min below its matching max', () => {

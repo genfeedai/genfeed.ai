@@ -41,6 +41,37 @@ const allOff: LensEffectsConfig = {
 };
 
 describe('buildLensEffectsFilterChain', () => {
+  it('returns null when all effects disabled', () => {
+    expect(buildLensEffectsFilterChain(allOff)).toBe('null');
+  });
+
+  it('produces vignette filter', () => {
+    const config: LensEffectsConfig = {
+      ...allOff,
+      vignette: { enabled: true, intensity: 50, softness: 60 },
+    };
+    const chain = buildLensEffectsFilterChain(config);
+    expect(chain).toContain('vignette=');
+  });
+
+  it('produces chromatic aberration filter', () => {
+    const config: LensEffectsConfig = {
+      ...allOff,
+      chromaticAberration: { enabled: true, intensity: 50 },
+    };
+    const chain = buildLensEffectsFilterChain(config);
+    expect(chain).toContain('rgbashift=');
+  });
+
+  it('produces barrel distortion filter', () => {
+    const config: LensEffectsConfig = {
+      ...allOff,
+      barrelDistortion: { amount: 30, enabled: true },
+    };
+    const chain = buildLensEffectsFilterChain(config);
+    expect(chain).toContain('lenscorrection=');
+  });
+
   it('produces bloom filter chain with split and blend', () => {
     const config: LensEffectsConfig = {
       ...allOff,

@@ -47,6 +47,10 @@ describe('WatchlistsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('should return watchlist items for the current brand', async () => {
       const items = [
@@ -105,6 +109,49 @@ describe('WatchlistsController', () => {
   });
 
   describe('create', () => {
+    it('should create a new watchlist item', async () => {
+      const dto = {
+        handle: 'newcreator',
+        label: 'New Creator',
+        platform: 'tiktok',
+      };
+      const created = { id: watchlistId, ...dto };
+      watchlistsService.create.mockResolvedValue(created);
+
+      const result = await controller.create(
+        dto as never,
+        mockRequest,
+        mockUser,
+      );
+
+      expect(watchlistsService.create).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('should return the existing item instead of erroring (upsert)', async () => {
+      const existing = {
+        id: watchlistId,
+        handle: 'existing',
+        platform: 'tiktok',
+      };
+      watchlistsService.findByHandle.mockResolvedValue(existing);
+
+      const dto = {
+        handle: 'existing',
+        label: 'Existing',
+        platform: 'tiktok',
+      };
+
+      const result = await controller.create(
+        dto as never,
+        mockRequest,
+        mockUser,
+      );
+
+      expect(watchlistsService.create).not.toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should set user and organization from metadata when not provided', async () => {
       const dto = {
         handle: 'newcreator',

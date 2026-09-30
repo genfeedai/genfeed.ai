@@ -69,6 +69,14 @@ describe('useSocialWarmupEnrollment', () => {
     expect(result.current.data).toEqual(ENROLLMENT);
   });
 
+  it('does not fetch without a credential', () => {
+    renderHook(() => useSocialWarmupEnrollment(), {
+      wrapper: createQueryWrapper(),
+    });
+
+    expect(mockGetService).not.toHaveBeenCalled();
+  });
+
   it('invalidates the enrollment query after enroll, complete, and reopen', async () => {
     const { result } = renderHook(
       () => useSocialWarmupEnrollment({ credentialId: 'credential-1' }),

@@ -27,9 +27,63 @@ describe('settleMessagesSyncJobs', () => {
       hasSuccess: true,
     });
   });
+
+  it('reports a total failure when every enqueue rejects', async () => {
+    const outcome = await settleMessagesSyncJobs([
+      { platform: 'Instagram', run: () => Promise.reject(new Error('ig')) },
+      { platform: 'X', run: () => Promise.reject(new Error('x')) },
+    ]);
+
+    expect(outcome).toEqual({
+      failedPlatforms: ['Instagram', 'X'],
+      hasSuccess: false,
+    });
+  });
 });
 
 describe('getMessagesSyncFeedback', () => {
+  it('describes a unified inbox sync', () => {
+    expect(
+      getMessagesSyncFeedback({
+        failedPlatforms: [],
+        hasSuccess: true,
+        scope: 'all',
+      }),
+    ).toEqual({
+      error: null,
+      notice:
+        'Inbox sync started. New comments and direct messages will appear here once the background jobs finish.',
+    });
+  });
+
+  it('keeps the success notice when every platform queued', () => {
+    expect(
+      getMessagesSyncFeedback({
+        failedPlatforms: [],
+        hasSuccess: true,
+        scope: 'comments',
+      }),
+    ).toEqual({
+      error: null,
+      notice:
+        'Comment sync started. New comments will appear here once the background jobs finish.',
+    });
+  });
+
+  it('exposes a partial-failure notice that names the failed platforms', () => {
+    expect(
+      getMessagesSyncFeedback({
+        failedPlatforms: ['X'],
+        hasSuccess: true,
+        scope: 'dms',
+      }),
+    ).toEqual({
+      error: null,
+      notice:
+        'Direct message sync started. New threads will appear here once the background jobs finish. Partial failure: X failed to queue.',
+    });
+  });
+
   it('surfaces a total enqueue failure as an error', () => {
     expect(
       getMessagesSyncFeedback({

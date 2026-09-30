@@ -233,6 +233,25 @@ const cases: Array<[string, CardCase]> = [
 ];
 
 describe.each(cases)('%s ui-action outcomes', (_name, card) => {
+  it('shows success only for a completed outcome', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(true);
+    render(card.render(onUiAction));
+
+    await clickAndResolve(onUiAction, card.idleLabel);
+
+    expect(screen.getByText(card.doneText)).toBeInTheDocument();
+  });
+
+  it('keeps the action available after a failed outcome', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(false);
+    render(card.render(onUiAction));
+
+    await clickAndResolve(onUiAction, card.idleLabel);
+
+    expect(screen.queryByText(card.doneText)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: card.idleLabel })).toBeEnabled();
+  });
+
   it('stays in flight on a pending outcome and settles when the run completes', async () => {
     const onUiAction = acceptingHandler();
     render(card.render(onUiAction));
@@ -245,6 +264,24 @@ describe.each(cases)('%s ui-action outcomes', (_name, card) => {
     settleRun('completed');
 
     expect(screen.getByText(card.doneText)).toBeInTheDocument();
+  });
+
+  it('re-enables the action when a pending run fails', async () => {
+    const onUiAction = acceptingHandler();
+    render(card.render(onUiAction));
+
+    await clickAndResolve(onUiAction, card.idleLabel);
+    settleRun('failed');
+
+    expect(screen.queryByText(card.doneText)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: card.idleLabel })).toBeEnabled();
+  });
+
+  it('derives the in-flight state from a still-pending run after a remount', () => {
+    trackRun(card.runAction, card.runPayload);
+    render(card.render(vi.fn()));
+
+    expect(screen.getByRole('button', { name: card.busyLabel })).toBeDisabled();
   });
 
   it('settles a card remounted while its run was pending', () => {

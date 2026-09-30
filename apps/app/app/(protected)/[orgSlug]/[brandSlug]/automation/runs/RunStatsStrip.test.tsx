@@ -50,4 +50,12 @@ describe('RunStatsStrip', () => {
       screen.getAllByText('Statistics may be outdated; retrying.'),
     ).toHaveLength(4);
   });
+
+  it('renders no degraded note when stats are fresh', () => {
+    render(<RunStatsStrip isLoading={false} stats={stats} />);
+
+    expect(
+      screen.queryByText('Statistics may be outdated; retrying.'),
+    ).not.toBeInTheDocument();
+  });
 });

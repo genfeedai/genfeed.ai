@@ -60,6 +60,10 @@ describe('DiscordController', () => {
     controller = module.get<DiscordController>(DiscordController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('connect', () => {
     const user = {
       organizationId: 'test-object-id',

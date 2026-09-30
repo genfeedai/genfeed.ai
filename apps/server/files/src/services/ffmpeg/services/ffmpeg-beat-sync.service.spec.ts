@@ -127,6 +127,32 @@ describe('FFmpegBeatSyncService', () => {
       expect(typeof result.totalClips).toBe('number');
     });
 
+    it('extracts FFmpeg segments for each clip', async () => {
+      await service.createBeatSyncedVideo(
+        videoPaths,
+        musicUrl,
+        beatTimestamps,
+        outputPath,
+        baseOptions,
+      );
+
+      // Should call executeFFmpeg for segment extraction + music overlay
+      expect(mockCore.executeFFmpeg).toHaveBeenCalled();
+    });
+
+    it('uses concatenateVideos for CUT transition type', async () => {
+      await service.createBeatSyncedVideo(
+        videoPaths,
+        musicUrl,
+        beatTimestamps,
+        outputPath,
+        { ...baseOptions, transitionType: BeatSyncTransitionType.CUT },
+      );
+
+      expect(mockMerge.concatenateVideos).toHaveBeenCalled();
+      expect(mockMerge.mergeVideosWithTransitions).not.toHaveBeenCalled();
+    });
+
     it('uses mergeVideosWithTransitions for CROSSFADE', async () => {
       await service.createBeatSyncedVideo(
         videoPaths,
@@ -201,6 +227,20 @@ describe('FFmpegBeatSyncService', () => {
 
       // EVERY_BEAT with 8 beats and beatsPerClip=2 → 4 segments
       expect(result.totalClips).toBeGreaterThan(0);
+    });
+
+    it('returns totalDuration from probed output file', async () => {
+      mockCore.probe.mockResolvedValue({ format: { duration: '7.5' } });
+
+      const result = await service.createBeatSyncedVideo(
+        videoPaths,
+        musicUrl,
+        beatTimestamps,
+        outputPath,
+        baseOptions,
+      );
+
+      expect(result.totalDuration).toBe(7.5);
     });
 
     it('copies single segment directly without merging', async () => {

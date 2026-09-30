@@ -1,6 +1,10 @@
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
 
 describe('CaptionEntity', () => {
+  it('should be defined', () => {
+    expect(CaptionEntity).toBeDefined();
+  });
+
   it('should preserve canonical persistence fields', () => {
     const entity = new CaptionEntity({
       format: 'srt',

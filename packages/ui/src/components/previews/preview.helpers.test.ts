@@ -74,6 +74,13 @@ describe('getCaptionPreviewState', () => {
 });
 
 describe('resolveSignature', () => {
+  it('returns undefined when no signature attachment applies', () => {
+    const release = makeRelease();
+    const target = makeTarget();
+
+    expect(resolveSignature(release, target)).toBeUndefined();
+  });
+
   it('joins release-wide and target-scoped signatures exactly once, in order', () => {
     const target = makeTarget({ id: 'target-1' });
     const release = makeRelease({
@@ -150,6 +157,13 @@ describe('resolveFirstComment', () => {
     const release = makeRelease();
 
     expect(resolveFirstComment(release, target)).toBe('First comment');
+  });
+
+  it('returns undefined when no comment attachment applies', () => {
+    const release = makeRelease();
+    const target = makeTarget();
+
+    expect(resolveFirstComment(release, target)).toBeUndefined();
   });
 });
 

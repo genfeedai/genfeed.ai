@@ -114,6 +114,10 @@ describe('getDefaultVideoResolution', () => {
     );
   });
 
+  it('returns undefined for an unknown model', () => {
+    expect(getDefaultVideoResolution('unknown-model')).toBeUndefined();
+  });
+
   it('returns "standard"/"high" for Sora Pro', () => {
     expect(
       getDefaultVideoResolution(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO),

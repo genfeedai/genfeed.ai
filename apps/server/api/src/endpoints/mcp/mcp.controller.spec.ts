@@ -91,6 +91,10 @@ describe('MCPController', () => {
     analyticsService = module.get(AnalyticsService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createVideo', () => {
     it('should create video through VideosService', async () => {
       const mockVideoData = {
@@ -146,6 +150,16 @@ describe('MCPController', () => {
       await expect(
         controller.getAnalytics(mockRequest, mockBaseQueryDto),
       ).rejects.toThrow('Analytics retrieval failed');
+    });
+  });
+
+  describe('controller methods', () => {
+    it('should have createVideo method defined', () => {
+      expect(controller.createVideo).toBeDefined();
+    });
+
+    it('should have getAnalytics method defined', () => {
+      expect(controller.getAnalytics).toBeDefined();
     });
   });
 });

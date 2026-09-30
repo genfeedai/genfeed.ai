@@ -47,6 +47,22 @@ describe('PollUntilService', () => {
     expect(fn).toHaveBeenCalledTimes(3);
   });
 
+  it('applies backoff capped at maxIntervalMs', async () => {
+    const fn = vi
+      .fn()
+      .mockResolvedValueOnce('pending')
+      .mockResolvedValueOnce('pending')
+      .mockResolvedValue('done');
+
+    const result = await service.poll(fn, (value) => value === 'done', {
+      backoff: 4,
+      intervalMs: 1,
+      maxIntervalMs: 2,
+    });
+
+    expect(result.attempts).toBe(3);
+  });
+
   it('throws PollTimeoutException once the deadline passes', async () => {
     const fn = vi.fn().mockResolvedValue('pending');
 
@@ -81,6 +97,25 @@ describe('PollUntilService', () => {
     expect(fn).not.toHaveBeenCalled();
   });
 
+  it('propagates errors thrown by the polled function', async () => {
+    const fn = vi.fn().mockRejectedValue(new Error('upstream down'));
+
+    await expect(service.poll(fn, () => true)).rejects.toThrowError(
+      'upstream down',
+    );
+  });
+
+  it('rejects immediately when the signal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fn = vi.fn().mockResolvedValue('done');
+
+    await expect(
+      service.poll(fn, () => true, { signal: controller.signal }),
+    ).rejects.toBeInstanceOf(PollAbortException);
+    expect(fn).not.toHaveBeenCalled();
+  });
+
   it('rejects when the signal fires after a poll attempt resolves', async () => {
     const controller = new AbortController();
     const fn = vi.fn().mockImplementation(async () => {
@@ -96,6 +131,23 @@ describe('PollUntilService', () => {
     ).rejects.toBeInstanceOf(PollAbortException);
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects when the signal fires while waiting between attempts', async () => {
+    const controller = new AbortController();
+    const fn = vi.fn().mockResolvedValue('pending');
+
+    const pending = service.poll(fn, () => false, {
+      intervalMs: 5_000,
+      signal: controller.signal,
+      timeoutMs: 60_000,
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    controller.abort();
+
+    await expect(pending).rejects.toBeInstanceOf(PollAbortException);
+  });
 });
 
 describe('poll-until exceptions', () => {
@@ -105,6 +157,12 @@ describe('poll-until exceptions', () => {
     expect(error.message).toBe('Poll aborted');
     expect(error.name).toBe('PollAbortException');
     expect(error).toBeInstanceOf(Error);
+  });
+
+  it('accepts a custom abort message', () => {
+    expect(new PollAbortException('cancelled by user').message).toBe(
+      'cancelled by user',
+    );
   });
 
   it('records the timeout budget on the timeout exception', () => {

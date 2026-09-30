@@ -256,4 +256,19 @@ describe('useAudioRecording', () => {
 
     expect(result.current.recordedFile).toBeNull();
   });
+
+  it('stops stream tracks on unmount', async () => {
+    const { stopTrack, stream } = createMockStream();
+    getUserMedia.mockResolvedValue(stream);
+
+    const { result, unmount } = renderHook(() => useAudioRecording());
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+
+    unmount();
+
+    expect(stopTrack).toHaveBeenCalled();
+  });
 });

@@ -62,6 +62,20 @@ describe('TrainingsProvider', () => {
     });
   });
 
+  it('clears the refresh function when set to null', () => {
+    renderWithProvider();
+
+    act(() => {
+      contextValue.setRefreshTrainings(vi.fn().mockResolvedValue(undefined));
+    });
+    expect(contextValue.refreshTrainings).not.toBeNull();
+
+    act(() => {
+      contextValue.setRefreshTrainings(null);
+    });
+    expect(contextValue.refreshTrainings).toBeNull();
+  });
+
   it('provides callable no-op defaults outside the provider', () => {
     const { result } = renderHook(() => useTrainingsContext());
 

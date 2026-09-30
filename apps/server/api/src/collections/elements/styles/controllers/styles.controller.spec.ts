@@ -85,6 +85,10 @@ describe('ElementsStylesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
       const inputQuery = {};

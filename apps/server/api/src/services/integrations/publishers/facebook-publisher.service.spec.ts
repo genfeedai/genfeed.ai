@@ -28,6 +28,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FacebookPublisherService', () => {
   let service: FacebookPublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let facebookService: vi.Mocked<FacebookService>;
   let postsService: vi.Mocked<PostsService>;
@@ -177,9 +178,40 @@ describe('FacebookPublisherService', () => {
     }).compile();
 
     service = module.get<FacebookPublisherService>(FacebookPublisherService);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     facebookService = module.get(FacebookService) as vi.Mocked<FacebookService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
+  });
+
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should have correct platform', () => {
+      expect(service.platform).toBe(CredentialPlatform.FACEBOOK);
+    });
+
+    it('should NOT support text-only posts', () => {
+      expect(service.supportsTextOnly).toBe(false);
+    });
+
+    it('should support images', () => {
+      expect(service.supportsImages).toBe(true);
+    });
+
+    it('should support videos', () => {
+      expect(service.supportsVideos).toBe(true);
+    });
+
+    it('should NOT support carousel', () => {
+      expect(service.supportsCarousel).toBe(false);
+    });
+
+    it('should support threads', () => {
+      expect(service.supportsThreads).toBe(true);
+    });
   });
 
   describe('validatePost caption length', () => {
@@ -192,6 +224,15 @@ describe('FacebookPublisherService', () => {
         `https://api.test.com/ingredients/images/${mockIngredientId}`,
       ],
     };
+
+    it('should pass a caption exactly at the 63206-character Facebook limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(63_206),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
 
     it('should fail an over-limit caption with a structured caption_too_long error', () => {
       const context = createPublishContext({
@@ -287,6 +328,20 @@ describe('FacebookPublisherService', () => {
         expect(facebookService.uploadImage).toHaveBeenCalledWith(
           otherPage.id,
           otherPage.accessToken,
+          expect.any(String),
+          expect.any(String),
+        );
+      });
+
+      it('should fall back to the credential page when unset', async () => {
+        // Releases scheduled before the setting existed carry no settings.
+        facebookService.uploadImage.mockResolvedValue('fb-post-1');
+
+        await service.publish(createPublishContext(mockImagePost));
+
+        expect(facebookService.uploadImage).toHaveBeenCalledWith(
+          mockPageId,
+          mockPageResponse.accessToken,
           expect.any(String),
           expect.any(String),
         );
@@ -464,6 +519,16 @@ describe('FacebookPublisherService', () => {
     });
   });
 
+  describe('buildPostUrl', () => {
+    it('should build correct Facebook URL', () => {
+      const externalId = '123456789_987654321';
+
+      const result = service.buildPostUrl(externalId, mockCredential);
+
+      expect(result).toBe(`https://www.facebook.com/${externalId}`);
+    });
+  });
+
   describe('publishThreadChildren', () => {
     const mockParentExternalId = 'fb-post-parent123';
 
@@ -506,6 +571,164 @@ describe('FacebookPublisherService', () => {
       expect(facebookService.postComment).toHaveBeenCalledTimes(3);
       expect(postsService.patch).toHaveBeenCalledTimes(3);
     });
+
+    it('should attach the image this channel accepts on a comment', async () => {
+      const context = createPublishContext(mockImagePost);
+      const imageChildren = [
+        {
+          id: testId('child', 4),
+          category: PostCategory.IMAGE,
+          description: '<p>Image</p>',
+          ingredients: [mockIngredientId],
+          order: 1,
+        },
+      ];
+
+      facebookService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        imageChildren,
+        mockParentExternalId,
+      );
+
+      expect(facebookService.postComment).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        mockParentExternalId,
+        'Image',
+        expect.anything(),
+        expect.objectContaining({
+          attachmentUrl: expect.stringContaining(`/images/${mockIngredientId}`),
+        }),
+      );
+    });
+
+    it('should sort children by order before posting', async () => {
+      const context = createPublishContext(mockImagePost);
+      const unorderedChildren = [
+        {
+          id: testId('child', 5),
+          category: PostCategory.TEXT,
+          description: '<p>Second</p>',
+          order: 2,
+        },
+        {
+          id: testId('child', 6),
+          category: PostCategory.TEXT,
+          description: '<p>First</p>',
+          order: 1,
+        },
+      ];
+
+      facebookService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        unorderedChildren,
+        mockParentExternalId,
+      );
+
+      // First call should be for order 1
+      expect(postsService.patch.mock.calls[0][0]).toBe(
+        unorderedChildren[1].id.toString(),
+      );
+    });
+
+    it('should mark child as failed when comment post fails', async () => {
+      const context = createPublishContext(mockImagePost);
+      const singleChild = [mockChildren[0]];
+
+      facebookService.postComment.mockResolvedValue({ commentId: '' });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        singleChild,
+        mockParentExternalId,
+      );
+
+      expect(postsService.patch).toHaveBeenCalledWith(
+        singleChild[0].id.toString(),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      );
+    });
+
+    it('should continue with other children when one fails', async () => {
+      const context = createPublishContext(mockImagePost);
+      const textChildren = mockChildren.filter(
+        (c) => c.category === PostCategory.TEXT,
+      );
+
+      facebookService.postComment
+        .mockRejectedValueOnce(new Error('API error'))
+        .mockResolvedValueOnce({ commentId: 'comment-2' });
+
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        textChildren,
+        mockParentExternalId,
+      );
+
+      // Both children should be patched
+      expect(postsService.patch).toHaveBeenCalledTimes(2);
+    });
+
+    it('should update child with externalId and PUBLIC status on success', async () => {
+      const context = createPublishContext(mockImagePost);
+      const singleChild = [mockChildren[0]];
+
+      facebookService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        singleChild,
+        mockParentExternalId,
+      );
+
+      expect(postsService.patch).toHaveBeenCalledWith(
+        singleChild[0].id.toString(),
+        expect.objectContaining({
+          externalId: 'comment-123',
+          publicationDate: expect.any(Date),
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        }),
+      );
+    });
+
+    it('should log completion of comment posting', async () => {
+      const context = createPublishContext(mockImagePost);
+      const singleChild = [mockChildren[0]];
+
+      facebookService.postComment.mockResolvedValue({
+        commentId: 'comment-123',
+      });
+      postsService.patch.mockResolvedValue({} as unknown as PostDocument);
+
+      await service.publishThreadChildren(
+        context,
+        singleChild,
+        mockParentExternalId,
+      );
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('completed posting comments'),
+        expect.any(Object),
+      );
+    });
   });
 
   describe('validation', () => {
@@ -543,11 +766,57 @@ describe('FacebookPublisherService', () => {
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not support carousel posts');
     });
+
+    it('should pass validation for single image posts', () => {
+      const context = createPublishContext(mockImagePost);
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['https://api.test.com/ingredients/images/123'],
+      };
+
+      const result = service['validatePost'](context, mediaInfo);
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('should pass validation for video posts', () => {
+      const context = createPublishContext(mockVideoPost);
+      const mediaInfo: MediaInfo = {
+        hasIngredients: true,
+        ingredientIds: [mockIngredientId.toString()],
+        isCarousel: false,
+        isImagePost: false,
+        mediaUrls: ['https://api.test.com/ingredients/videos/123'],
+      };
+
+      const result = service['validatePost'](context, mediaInfo);
+
+      expect(result.valid).toBe(true);
+    });
   });
 
   describe('logging', () => {
     beforeEach(() => {
       facebookService.getUserPages.mockResolvedValue([mockPageResponse]);
+    });
+
+    it('should log publish attempt', async () => {
+      const context = createPublishContext(mockImagePost);
+
+      facebookService.uploadImage.mockResolvedValue('fb-post-123');
+
+      await service.publish(context);
+
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('publishing to'),
+        expect.objectContaining({
+          category: mockImagePost.category,
+          postId: context.postId,
+        }),
+      );
     });
 
     it('should log error on publish failure', async () => {

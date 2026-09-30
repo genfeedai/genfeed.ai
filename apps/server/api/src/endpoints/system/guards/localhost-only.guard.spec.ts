@@ -63,6 +63,54 @@ describe('LocalhostOnlyGuard', () => {
     loggerService = module.get(LoggerService);
   });
 
+  it('allows direct localhost requests', () => {
+    expect(guard.canActivate(makeContext({}))).toBe(true);
+  });
+
+  it('allows localhost origin requests when transport is local', () => {
+    expect(
+      guard.canActivate(
+        makeContext({
+          origin: 'http://localhost:3000',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('allows local subdomain origins and hosts', () => {
+    expect(
+      guard.canActivate(
+        makeContext({
+          host: 'genfeed.localhost:3010',
+          origin: 'http://genfeed.localhost:3000',
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects the retired local.genfeed.ai host', () => {
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          host: 'local.genfeed.ai:3010',
+          origin: 'http://local.genfeed.ai:3000',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
+  it('does not treat arbitrary local-prefixed domains as loopback', () => {
+    expect(() =>
+      guard.canActivate(
+        makeContext({
+          host: 'local.evil.example:3010',
+          ip: '52.10.10.10',
+          origin: 'http://local.evil.example:3000',
+        }),
+      ),
+    ).toThrow(ForbiddenException);
+  });
+
   it('allows forwarded localhost ip addresses', () => {
     expect(
       guard.canActivate(

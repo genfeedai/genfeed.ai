@@ -29,7 +29,49 @@ afterEach(() => {
 });
 
 describe('apiClient', () => {
+  describe('get', () => {
+    it('should make GET request and return parsed JSON', async () => {
+      const mockResponse = { data: 'test' };
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
+
+      const result = await apiClient.get<typeof mockResponse>('/test-endpoint');
+
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test-endpoint`, {
+        headers: { 'Content-Type': 'application/json' },
+        method: 'GET',
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should handle abort signal', async () => {
+      const controller = new AbortController();
+      controller.abort();
+
+      fetchMock.mockRejectedValueOnce(
+        new DOMException('Aborted', 'AbortError'),
+      );
+
+      await expect(
+        apiClient.get('/test', { signal: controller.signal }),
+      ).rejects.toThrow();
+    });
+  });
+
   describe('post', () => {
+    it('should make POST request with JSON body', async () => {
+      const mockResponse = { data: 'test' };
+      const data = { name: 'test' };
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
+
+      await apiClient.post('/test', data);
+
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test`, {
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
+    });
+
     it('should handle undefined body', async () => {
       const mockResponse = { data: 'test' };
       fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
@@ -92,6 +134,14 @@ describe('apiClient', () => {
   });
 
   describe('error handling', () => {
+    it('should throw ApiError on non-ok response', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse({ message: 'Not found' }, { status: 404 }),
+      );
+
+      await expect(apiClient.get('/not-found')).rejects.toThrow(ApiError);
+    });
+
     it('should include status code in ApiError', async () => {
       fetchMock.mockResolvedValueOnce(
         createJsonResponse({ message: 'Server error' }, { status: 500 }),
@@ -103,6 +153,30 @@ describe('apiClient', () => {
         expect(error).toBeInstanceOf(ApiError);
         expect((error as ApiError).statusCode).toBe(500);
         expect((error as ApiError).message).toBe('Server error');
+      }
+    });
+
+    it('should include error data in ApiError', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse(
+          {
+            code: 'VALIDATION_ERROR',
+            details: ['field required'],
+            message: 'Validation failed',
+          },
+          { status: 400 },
+        ),
+      );
+
+      try {
+        await apiClient.post('/test', {});
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        expect((error as ApiError).data).toEqual(
+          expect.objectContaining({
+            code: 'VALIDATION_ERROR',
+          }),
+        );
       }
     });
   });
@@ -133,6 +207,21 @@ describe('authorization', () => {
     });
   });
 
+  it('attaches the session bearer token once a resolver is registered', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows');
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
+    });
+  });
+
   it('omits the header when the resolver has no token to give', async () => {
     registerApiAuthTokenGetter(async () => null);
     fetchMock.mockResolvedValueOnce(createJsonResponse({}));
@@ -142,6 +231,27 @@ describe('authorization', () => {
     expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
       headers: { 'Content-Type': 'application/json' },
       method: 'GET',
+    });
+  });
+
+  it('extends caller headers instead of replacing the defaults', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.post(
+      '/workflows/run',
+      { id: 'workflow-1' },
+      { headers: { 'X-Replicate-Api-Key': 'byok' } },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows/run`, {
+      body: JSON.stringify({ id: 'workflow-1' }),
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+        'X-Replicate-Api-Key': 'byok',
+      },
+      method: 'POST',
     });
   });
 
@@ -164,6 +274,23 @@ describe('authorization', () => {
       method: 'POST',
     });
   });
+
+  it('lets the generated bearer token win over a lowercase override', async () => {
+    registerApiAuthTokenGetter(async () => 'session-token');
+    fetchMock.mockResolvedValueOnce(createJsonResponse({}));
+
+    await apiClient.get('/workflows', {
+      headers: { authorization: 'Bearer stale' },
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/workflows`, {
+      headers: {
+        Authorization: 'Bearer session-token',
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
+    });
+  });
 });
 
 describe('ApiError', () => {
@@ -176,5 +303,12 @@ describe('ApiError', () => {
     expect(error.message).toBe('Not found');
     expect(error.data).toEqual({ detail: 'Resource missing' });
     expect(error.name).toBe('ApiError');
+  });
+
+  it('should be instanceof Error', () => {
+    const error = new ApiError(500, 'Server error');
+
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toBeInstanceOf(ApiError);
   });
 });

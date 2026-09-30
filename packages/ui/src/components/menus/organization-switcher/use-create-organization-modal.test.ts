@@ -102,6 +102,23 @@ describe('useCreateOrganizationModal', () => {
     expect(reloadMock).toHaveBeenCalledTimes(1);
   });
 
+  it('omits an empty description on submit', async () => {
+    const { result } = renderHook(() =>
+      useCreateOrganizationModal(getOrgsService),
+    );
+
+    act(() => result.current.setLabel('Acme'));
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockCreateOrganization).toHaveBeenCalledWith({
+      description: undefined,
+      label: 'Acme',
+    });
+  });
+
   it('surfaces a create failure and clears the submitting flag', async () => {
     mockCreateOrganization.mockRejectedValueOnce(new Error('boom'));
     const { result } = renderHook(() =>

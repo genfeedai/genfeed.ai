@@ -22,6 +22,20 @@ describe('model-capabilities.constant', () => {
     }
   });
 
+  it('model keys are valid ModelKey values', () => {
+    const enumValues = new Set(Object.values(MODEL_KEYS));
+    for (const key of Object.keys(MODEL_OUTPUT_CAPABILITIES)) {
+      expect(enumValues.has(key as string)).toBe(true);
+    }
+  });
+
+  it('categories are valid ModelCategory values', () => {
+    const validCategories = new Set(Object.values(ModelCategory));
+    for (const cap of Object.values(MODEL_OUTPUT_CAPABILITIES)) {
+      expect(validCategories.has(cap.category as ModelCategory)).toBe(true);
+    }
+  });
+
   it('routes BGE as the text embedding capability', () => {
     expect(
       MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.OPENROUTER_BAAI_BGE_LARGE_EN_V1_5],
@@ -50,6 +64,38 @@ describe('model-capabilities.constant', () => {
     expect(capability).not.toHaveProperty('hasEndFrame');
     expect(capability).not.toHaveProperty('hasResolutionOptions');
     expect(capability).not.toHaveProperty('hasVideoReferences');
+  });
+
+  it('advertises the fal-published MiniMax H3 Max Director ceiling controls', () => {
+    expect(
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR],
+    ).toMatchObject({
+      aspectRatios: ['16:9', '9:16', '1:1'],
+      category: ModelCategory.VIDEO,
+      defaultDuration: 900,
+      durations: [60, 120, 180, 300, 600, 900],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+    });
+  });
+
+  it('advertises the fal-published MiniMax H3 Max controls', () => {
+    expect(
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_MINIMAX_H3_MAX],
+    ).toMatchObject({
+      aspectRatios: ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'],
+      category: ModelCategory.VIDEO,
+      defaultDuration: 5,
+      durations: [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasInterpolation: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      maxReferences: 1,
+    });
   });
 });
 
@@ -85,6 +131,32 @@ describe('music settings contract', () => {
     });
   });
 
+  it('requires explicit capability flags', () => {
+    const key = 'test-music-with-missing-flags';
+    MODEL_OUTPUT_CAPABILITIES[key] = {
+      category: ModelCategory.MUSIC,
+      durations: [10],
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    };
+    try {
+      expect(
+        normalizeMusicSettings(key, {
+          duration: 10,
+          instrumental: true,
+          lyrics: 'stale',
+        }),
+      ).toEqual({
+        duration: undefined,
+        instrumental: undefined,
+        lyrics: undefined,
+      });
+    } finally {
+      delete MODEL_OUTPUT_CAPABILITIES[key];
+    }
+  });
+
   it.each([
     [90, 30],
     [1, 5],
@@ -100,6 +172,16 @@ describe('music settings contract', () => {
         lyrics: 'stale',
       }),
     ).toEqual({ duration: expected, instrumental: true, lyrics: undefined });
+  });
+
+  it('resolves a valid music key with its exact registry spelling', () => {
+    expect(resolveMusicSettings(MODEL_KEYS.FAL_ELEVENLABS_MUSIC)).toMatchObject(
+      {
+        hasDurationEditing: true,
+        hasInstrumentalToggle: true,
+        hasLyrics: true,
+      },
+    );
   });
 
   it('uses Eleven Music defaults and clears instrumental lyrics', () => {

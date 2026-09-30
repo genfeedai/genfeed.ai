@@ -72,6 +72,19 @@ describe('useModelFavorites', () => {
     });
   });
 
+  it('hydrates favorites from localStorage when no current user is available', async () => {
+    globalThis.localStorage.setItem(
+      MODEL_FAVORITES_STORAGE_KEY,
+      JSON.stringify(['model-a', 'model-b']),
+    );
+
+    const { result } = renderHook(() => useModelFavorites());
+
+    await waitFor(() => {
+      expect(result.current.favoriteModelKeys).toEqual(['model-a', 'model-b']);
+    });
+  });
+
   it('uses persisted user settings as the source of truth', async () => {
     globalThis.localStorage.setItem(
       MODEL_FAVORITES_STORAGE_KEY,

@@ -582,10 +582,27 @@ describe('AppProtectedLayout', () => {
     },
   );
 
+  it('hides the shell low credits banner on promptbar routes', () => {
+    mockPathname.value = '/studio/storyboard';
+    render(<AppProtectedLayout />);
+    expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
+    // The impersonation banner has no route carve-outs: it must survive
+    // every route the impersonated session can reach.
+    expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
+  });
+
   it('keeps the shell low credits banner on the Studio Editor surface', () => {
     mockPathname.value = '/studio/editor/new';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the shell low credits banner on non-promptbar routes', () => {
+    mockPathname.value = '/workspace';
+    render(<AppProtectedLayout />);
+    expect(lowCreditsBannerSpy).toHaveBeenCalled();
+    expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
   });
 
   it('wires the permanent workspace shell through the protected app shell', () => {
@@ -626,6 +643,36 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
+  it('keeps product analytics grouped with the active organization', () => {
+    const { rerender } = render(<AppProtectedLayout />);
+
+    expect(identifyAnalyticsOrganizationSpy).toHaveBeenLastCalledWith(
+      'org-123',
+    );
+
+    mockBrandState.organizationId = 'org-456';
+    rerender(<AppProtectedLayout />);
+
+    expect(identifyAnalyticsOrganizationSpy).toHaveBeenLastCalledWith(
+      'org-456',
+    );
+  });
+
+  it('keeps the header brand switcher in SaaS mode', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('sidebar-brand-switcher')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ headerSlot: expect.anything() }),
+    );
+  });
+
   it('hides the header brand switcher on every flat personal settings page (#4659)', () => {
     mockRouteParams.brandSlug = undefined;
     mockRouteParams.orgSlug = undefined;
@@ -637,6 +684,36 @@ describe('AppProtectedLayout', () => {
       '/settings/progress',
       '/settings/help',
       '/settings/about',
+    ]) {
+      mockPathname.value = pathname;
+      appSidebarSpy.mockClear();
+
+      const { unmount } = render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+
+      expect(
+        screen.queryByTestId('sidebar-brand-switcher'),
+      ).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('hides the header brand switcher on every org-scoped copy of a personal settings page (#4659 review)', () => {
+    // Before the fix, scope was derived from route params alone, so any
+    // org-scoped page (including these personal-account copies) counted as
+    // ORGANIZATION and kept the org switcher — the PRD and ADR both say
+    // neither switcher renders on a personal-account page, org-scoped or not.
+    mockRouteParams.brandSlug = undefined;
+    mockRouteParams.orgSlug = 'acme';
+
+    for (const pathname of [
+      '/acme/~/settings/personal',
+      '/acme/~/settings/notifications',
+      '/acme/~/settings/progress',
+      '/acme/~/settings/help',
     ]) {
       mockPathname.value = pathname;
       appSidebarSpy.mockClear();
@@ -669,6 +746,22 @@ describe('AppProtectedLayout', () => {
     // is the switcher there.
     expect(
       screen.queryByTestId('sidebar-brand-switcher'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the workspace quick actions on non-conversation routes', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /New Thread/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -725,6 +818,24 @@ describe('AppProtectedLayout', () => {
     });
 
     expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the permanent topbar and app rail on Studio routes', () => {
+    mockPathname.value = '/studio/storyboard';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bannerComponent: expect.anything(),
+        railComponent: expect.anything(),
+        topbarComponent: expect.any(Function),
+      }),
+    );
   });
 
   it('mounts the universal shell around canonical Studio content', () => {
@@ -839,6 +950,43 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy.mock.calls.at(-1)?.[0].sectionLabel).toBeUndefined();
   });
 
+  it('keeps conversation header actions inside the agent sidebar list (no parent lift)', () => {
+    mockPathname.value = '/agent/new';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Conversation header action' }),
+    ).toBeInTheDocument();
+    // Must not surface via the legacy AppSidebar conversationActions slot —
+    // that lift recreated the nav panel and remounted the thread list.
+    expect(
+      screen.queryByTestId('conversation-actions-slot'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks the focused agent route as the Agent app', async () => {
+    mockPathname.value = '/agent/new';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(await screen.findByTestId('agent-thread-list')).toBeInTheDocument();
+    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
+    expect(appLayoutSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'agent',
+      }),
+    );
+  });
+
   it.each([
     ['/workspace', 'Workspace'],
     ['/studio/storyboard', 'Storyboard'],
@@ -882,12 +1030,7 @@ describe('AppProtectedLayout', () => {
       'Analytics',
       'Trend Detail',
     ],
-    ['/org-123/brand-123/automation/templates', 'Automation', 'Workflows'],
-    [
-      '/org-123/brand-123/automation/workflows/templates',
-      'Automation',
-      'Workflows',
-    ],
+    ['/org-123/brand-123/automation/workflows', 'Automation', 'Workflows'],
     [
       '/org-123/brand-123/automation/workflows/new',
       'Automation',
@@ -981,6 +1124,23 @@ describe('AppProtectedLayout', () => {
     );
   });
 
+  it('disables catalog providers on org-empty focused onboarding routes', () => {
+    mockPathname.value = '/org-123/~/agent/onboarding';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(protectedProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeElementsProvider: false,
+        includePromptBarProvider: false,
+      }),
+    );
+  });
+
   it('keeps the topbar frame on a canvas route while the shell body is still booting', () => {
     // No auth yet means no agent API service, so the shell body cannot mount.
     // Canvas routes still own the left rail, while the application keeps the
@@ -1009,6 +1169,46 @@ describe('AppProtectedLayout', () => {
         topbarComponent: expect.any(Function),
       }),
     );
+  });
+
+  it('disables prompt bar and elements providers on workspace home routes', () => {
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(protectedProvidersSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        includeApiStatusCheck: false,
+        includeElementsProvider: false,
+        includePromptBarProvider: false,
+      }),
+    );
+  });
+
+  it('uses the workspace navigation on the Workspace surface', () => {
+    mockPathname.value = '/workspace';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'workspace',
+        items: expect.arrayContaining([
+          expect.objectContaining({ href: '/workspace', label: 'Workspace' }),
+        ]),
+        sectionLabel: 'Workspace',
+        showPrimaryItems: true,
+      }),
+    );
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
   });
 
   it('gives Messages a module-owned navigation panel for its mailbox list', () => {
@@ -1061,6 +1261,39 @@ describe('AppProtectedLayout', () => {
         showPrimaryItems: false,
       }),
     );
+  });
+
+  it('gives workflow routes their own nav column', () => {
+    mockPathname.value = '/org-123/brand-123/automation/workflows';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'automation',
+        sectionLabel: 'Automation',
+      }),
+    );
+    expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
+  });
+
+  it('keeps the sidebar quick actions on non-workspace section surfaces', () => {
+    mockPathname.value = '/org-123/brand-123/automation/workflows';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Search' })).toBeInTheDocument();
   });
 
   it('gives Studio routes their own nav column', () => {
@@ -1143,6 +1376,51 @@ describe('AppProtectedLayout', () => {
     );
   });
 
+  it('forwards collapse state and control into the dedicated Library sidebar', () => {
+    const onToggleCollapse = vi.fn();
+
+    render(
+      <AppProtectedLayoutSidebar
+        currentApp="library"
+        isCollapsed
+        onToggleCollapse={onToggleCollapse}
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isArtifactsRoute={false}
+        isConversationRoute={false}
+        isFocusedOnboardingRoute={false}
+        isLibraryRoute
+        isOrgRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
+        isSettingsRoute={false}
+        isStudioRoute={false}
+        isAutomationRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[]}
+        studioMenuItems={[]}
+        automationMenuItems={[]}
+        messagesMenuItems={[]}
+      />,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        isCollapsed: true,
+        onToggleCollapse,
+        sectionLabel: 'Library',
+      }),
+    );
+  });
+
   it('mounts the same New Task + shared command palette search trigger on the settings sidebar as everywhere else', () => {
     render(
       <AppProtectedLayoutSidebar
@@ -1183,6 +1461,145 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         renderTopSlot: expect.any(Function),
+      }),
+    );
+  });
+
+  it('lets a module swap its own nav panel in for the surface menu items', () => {
+    render(
+      <AppProtectedLayoutSidebar
+        currentApp="library"
+        isAdminRoute={false}
+        isAnalyticsRoute={false}
+        isArtifactsRoute={false}
+        isConversationRoute={false}
+        isFocusedOnboardingRoute={false}
+        isLibraryRoute
+        isOrgRoute={false}
+        isPublishingRoute={false}
+        isDiscoveryRoute={false}
+        isSettingsRoute={false}
+        isStudioRoute={false}
+        isAutomationRoute={false}
+        adminMenuItems={[]}
+        analyticsMenuItems={[]}
+        libraryMenuItems={[{ href: '/library/images', label: 'Images' }]}
+        menuItems={[]}
+        orgMenuItems={[]}
+        publishingMenuItems={[]}
+        discoveryMenuItems={[]}
+        secondaryMenuItems={[]}
+        settingsMenuItems={[]}
+        studioMenuItems={[]}
+        automationMenuItems={[]}
+        messagesMenuItems={[]}
+        navPanel={{
+          render: () => <div data-testid="module-nav-panel" />,
+          sectionLabel: 'Collections',
+        }}
+      />,
+    );
+
+    // The surface keeps its identity — only the column body changes hands.
+    expect(screen.getByTestId('module-nav-panel')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'library',
+        items: [],
+        renderBody: expect.any(Function),
+        sectionLabel: 'Collections',
+        showPrimaryItems: false,
+      }),
+    );
+  });
+
+  it('keeps the studio sidebar to production surfaces only', () => {
+    mockPathname.value = '/studio/storyboard';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.arrayContaining([
+          expect.objectContaining({ href: '/studio/generate' }),
+          expect.objectContaining({ href: '/studio/storyboard' }),
+          expect.objectContaining({ href: '/studio/clips' }),
+          expect.objectContaining({ href: '/studio/batch' }),
+        ]),
+      }),
+    );
+
+    // One prompt bar at `/studio/generate` replaced the per-type tabs, and no
+    // Studio nav entry hands the operator off to another module app.
+    for (const retiredHref of [
+      '/studio/image',
+      '/studio/video',
+      '/studio/avatar',
+      '/studio/music',
+      '/studio/audio',
+      '/library/voices',
+    ]) {
+      expect(appSidebarSpy).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({ href: retiredHref }),
+          ]),
+        }),
+      );
+    }
+  });
+
+  it('renders a dedicated discovery sidebar on discovery routes', () => {
+    mockPathname.value = '/discovery/overview';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currentApp: 'discovery',
+        items: [
+          { href: '/discovery/overview', label: 'Overview' },
+          { href: '/discovery/overview?source=following', label: 'Following' },
+          { href: '/discovery/ads', label: 'Ads' },
+        ],
+        sectionLabel: 'Discovery',
+      }),
+    );
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.not.arrayContaining([
+          expect.objectContaining({
+            href: '/workspace',
+            label: 'Workspace',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('keeps agent-specific navigation out of the base sidebar menu items', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: expect.not.arrayContaining([
+          expect.objectContaining({
+            href: '/agent',
+            label: 'Conversations',
+          }),
+        ]),
       }),
     );
   });

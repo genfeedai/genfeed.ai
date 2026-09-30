@@ -236,6 +236,10 @@ describe('OrganizationsSettingsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getSettings', () => {
     const organizationId = testId('org');
 
@@ -246,6 +250,21 @@ describe('OrganizationsSettingsController', () => {
       expect(
         organizationSettingsService.ensureForOrganization,
       ).not.toHaveBeenCalled();
+    });
+
+    it('reads the URL organization for a superadmin active in another org', async () => {
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      await controller.getSettings(
+        superAdminRequest(organizationA),
+        organizationB,
+      );
+
+      expect(
+        organizationSettingsService.ensureForOrganization,
+      ).toHaveBeenCalledWith(organizationB);
     });
 
     it('serializes the setting returned by the canonical get-or-create policy', async () => {
@@ -332,6 +351,30 @@ describe('OrganizationsSettingsController', () => {
           expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
         },
       );
+
+      it.each(billingPatches)(
+        'lets a superadmin set %o',
+        async (billingPatch) => {
+          mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+            mockOrganizationSettings,
+          );
+          mockOrganizationSettingsService.patch.mockResolvedValue({
+            ...mockOrganizationSettings,
+            ...billingPatch,
+          });
+
+          await controller.updateSettings(
+            superAdminRequest(organizationA),
+            organizationA,
+            billingPatch,
+          );
+
+          expect(organizationSettingsService.patch).toHaveBeenCalledWith(
+            mockOrganizationSettings.id,
+            billingPatch,
+          );
+        },
+      );
     });
 
     describe('target organization', () => {
@@ -378,6 +421,25 @@ describe('OrganizationsSettingsController', () => {
           mockOrganizationSettingsService.ensureForOrganization,
         ).not.toHaveBeenCalled();
         expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      });
+
+      it('patches the active organization for a member addressing it', async () => {
+        mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+        mockOrganizationSettingsService.patch.mockResolvedValue(
+          mockOrganizationSettings,
+        );
+
+        await controller.updateSettings(
+          memberRequest(organizationA),
+          organizationA,
+          updateDto,
+        );
+
+        expect(
+          organizationSettingsService.ensureForOrganization,
+        ).toHaveBeenCalledWith(organizationA);
       });
     });
 
@@ -563,6 +625,22 @@ describe('OrganizationsSettingsController', () => {
       ).rejects.toMatchObject({ status: 403 });
       expect(mockByokService.getStatus).not.toHaveBeenCalled();
     });
+
+    it('saves a superadmin BYOK key on the URL organization', async () => {
+      await controller.saveByokProviderKey(
+        superAdminRequest(organizationA),
+        organizationB,
+        ByokProvider.OPENAI,
+        { apiKey: ' sk-test ' },
+      );
+
+      expect(mockByokService.saveKey).toHaveBeenCalledWith(
+        organizationB,
+        ByokProvider.OPENAI,
+        'sk-test',
+        undefined,
+      );
+    });
   });
 
   describe('bootstrap snapshot invalidation (#5416)', () => {
@@ -587,6 +665,24 @@ describe('OrganizationsSettingsController', () => {
         accessBootstrapCacheService.get(bootstrapUserId, organizationB),
       ).resolves.toEqual(bootstrapSnapshot);
     }
+
+    it('drops the saved organization bootstrap snapshot after a settings save', async () => {
+      await warmBootstrapSnapshots();
+      mockOrganizationSettingsService.ensureForOrganization.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+      mockOrganizationSettingsService.patch.mockResolvedValue(
+        mockOrganizationSettings,
+      );
+
+      await controller.updateSettings(
+        memberRequest(organizationA),
+        organizationA,
+        { isWhitelabelEnabled: true },
+      );
+
+      await expectOnlyOrganizationASnapshotDropped();
+    });
 
     it('keeps the snapshot when the settings save is rejected', async () => {
       await warmBootstrapSnapshots();
@@ -618,6 +714,24 @@ describe('OrganizationsSettingsController', () => {
         organizationA,
         ByokProvider.OPENAI,
       );
+      await expectOnlyOrganizationASnapshotDropped();
+    });
+
+    it('drops the snapshot after recording a webhook test delivery', async () => {
+      await warmBootstrapSnapshots();
+      mockWebhookDispatchService.sendTestDelivery.mockResolvedValue({
+        deliveryId: 'webhook-test:abc',
+        event: 'target.published',
+        isTest: true,
+        status: 'queued',
+      });
+
+      await controller.testWebhookDelivery(
+        memberRequest(organizationA),
+        organizationA,
+        { event: 'target.published' },
+      );
+
       await expectOnlyOrganizationASnapshotDropped();
     });
   });

@@ -110,6 +110,10 @@ describe('TemplatesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
     it('should create a template', async () => {
       const dto: CreateTemplateDto = {
@@ -308,6 +312,18 @@ describe('TemplatesController', () => {
         expect.any(Function),
         'org-openrouter-key',
       );
+    });
+
+    it('still runs the credits preflight when the guard did not bypass', async () => {
+      const dto: SuggestTemplatesDto = {
+        goal: 'increase engagement',
+        industry: 'tech',
+        platform: 'instagram',
+      };
+      mockTemplatesService.suggestTemplates.mockResolvedValue([mockTemplate]);
+
+      await controller.suggestTemplates(mockReq, dto, mockUser);
+      expect(modelsService.findOne).toHaveBeenCalled();
     });
   });
 

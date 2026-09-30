@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
+import { DEFAULT_GENERATION_MARGIN_MULTIPLIER } from '@genfeedai/pricing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -50,6 +51,17 @@ describe('VideoGenerationCreditsService', () => {
     );
   });
 
+  it('skips authorization when the request is not deferred', async () => {
+    await service.ensureDeferredCredits(
+      { outputs: 2, resolution: 'high' } as never,
+      'kling/model',
+      'org-1',
+      {} as never,
+    );
+
+    expect(modelsService.findOne).not.toHaveBeenCalled();
+  });
+
   it('authorizes high-resolution non-batch fan-out and throws 402 when short', async () => {
     creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
       false,
@@ -71,6 +83,33 @@ describe('VideoGenerationCreditsService', () => {
     expect(error.getResponse()).toEqual({
       detail: 'Insufficient credits: 40 required, 5 available',
       title: 'Insufficient credits',
+    });
+  });
+
+  it('settles deferred credits with the pricing audit stamp', async () => {
+    modelsService.findOne.mockResolvedValue({
+      cost: 10,
+      pricingType: 'per-second',
+      providerCostUsd: 0.24,
+    });
+    const request = { creditsConfig: { deferred: true } };
+
+    await service.ensureDeferredCredits(
+      { duration: 5 } as never,
+      'kling/model',
+      'org-1',
+      request as never,
+    );
+
+    expect(request.creditsConfig).toEqual({
+      amount: 10,
+      deferred: false,
+      modelKey: 'kling/model',
+      pricingMetadata: {
+        marginMultiplier: DEFAULT_GENERATION_MARGIN_MULTIPLIER,
+        pricingType: 'per-second',
+        providerCostUsd: 0.24,
+      },
     });
   });
 

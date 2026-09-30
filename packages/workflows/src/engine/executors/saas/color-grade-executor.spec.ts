@@ -15,6 +15,29 @@ const ctx: ExecutionContext = {
 };
 
 describe('buildFfmpegFilterChain', () => {
+  it('builds basic eq filter', () => {
+    const chain = buildFfmpegFilterChain({
+      contrast: 50,
+      grain: 0,
+      saturation: 50,
+      sharpness: 0,
+      vignette: 0,
+      warmth: 50,
+    });
+    expect(chain).toContain('eq=');
+  });
+  it('includes vignette when > 0', () => {
+    expect(
+      buildFfmpegFilterChain({
+        contrast: 50,
+        grain: 0,
+        saturation: 50,
+        sharpness: 0,
+        vignette: 50,
+        warmth: 50,
+      }),
+    ).toContain('vignette');
+  });
   it('includes grain when > 0', () => {
     expect(
       buildFfmpegFilterChain({

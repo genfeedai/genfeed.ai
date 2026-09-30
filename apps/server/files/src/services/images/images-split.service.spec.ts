@@ -72,6 +72,12 @@ describe('ImagesSplitService', () => {
     (sharp as Mock).mockReturnValue(mockSharpInstance);
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   describe('splitImage', () => {
     it('should split image into 2x2 grid', async () => {
       const buffer = Buffer.from('test-image');
@@ -92,6 +98,46 @@ describe('ImagesSplitService', () => {
 
       expect(result).toHaveLength(9);
       expect(result[8].index).toBe(8);
+    });
+
+    it('should split image into 2x4 grid (non-square)', async () => {
+      const buffer = Buffer.from('test-image');
+
+      const result = await service.splitImage(buffer, 2, 4);
+
+      expect(result).toHaveLength(8);
+    });
+
+    it('should apply default border inset of 10 pixels', async () => {
+      const buffer = Buffer.from('test-image');
+
+      await service.splitImage(buffer, 2, 2);
+
+      // Cell width = 1000/2 = 500, with 10px inset: left=10, width=480
+      expect(mockSharpInstance.extract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          height: 480,
+          left: 10,
+          top: 10,
+          width: 480,
+        }),
+      );
+    });
+
+    it('should apply custom border inset', async () => {
+      const buffer = Buffer.from('test-image');
+      const customInset = 20;
+
+      await service.splitImage(buffer, 2, 2, customInset);
+
+      expect(mockSharpInstance.extract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          height: 460,
+          left: 20,
+          top: 20,
+          width: 460,
+        }),
+      );
     });
 
     it('should clamp border inset if too large', async () => {
@@ -169,10 +215,47 @@ describe('ImagesSplitService', () => {
       );
     });
 
+    it('should log completion with total frame count', async () => {
+      const buffer = Buffer.from('test-image');
+
+      await service.splitImage(buffer, 3, 3);
+
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        expect.stringContaining('Successfully split image into 9 frames'),
+        'ImagesSplitService',
+      );
+    });
+
+    it('should throw error if image dimensions cannot be read', async () => {
+      mockSharpInstance.metadata.mockResolvedValue({
+        height: undefined,
+        width: undefined,
+      });
+
+      const buffer = Buffer.from('test-image');
+
+      await expect(service.splitImage(buffer, 2, 2)).rejects.toThrow(
+        'Unable to read image dimensions',
+      );
+    });
+
     it('should throw error if width is missing', async () => {
       mockSharpInstance.metadata.mockResolvedValue({
         height: 1000,
         width: undefined,
+      });
+
+      const buffer = Buffer.from('test-image');
+
+      await expect(service.splitImage(buffer, 2, 2)).rejects.toThrow(
+        'Unable to read image dimensions',
+      );
+    });
+
+    it('should throw error if height is missing', async () => {
+      mockSharpInstance.metadata.mockResolvedValue({
+        height: undefined,
+        width: 1000,
       });
 
       const buffer = Buffer.from('test-image');
@@ -207,6 +290,14 @@ describe('ImagesSplitService', () => {
       await expect(service.splitImage(buffer, 2, 2)).rejects.toThrow(
         'String error',
       );
+    });
+
+    it('should output JPEG with 95 quality', async () => {
+      const buffer = Buffer.from('test-image');
+
+      await service.splitImage(buffer, 2, 2);
+
+      expect(mockSharpInstance.jpeg).toHaveBeenCalledWith({ quality: 95 });
     });
 
     it('should calculate correct positions for each cell in grid', async () => {

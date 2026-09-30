@@ -355,6 +355,25 @@ describe('Deserializer Helper', () => {
       expect(result.author).toHaveProperty('email', 'john@example.com');
     });
 
+    test('should handle data without relationships', () => {
+      const data = {
+        data: {
+          attributes: {
+            email: 'john@example.com',
+            name: 'John Doe',
+          },
+          id: '123',
+          type: 'user',
+        },
+      };
+
+      const result = getDeserializer(data);
+
+      expect(result).toHaveProperty('id', '123');
+      expect(result).toHaveProperty('name', 'John Doe');
+      expect(result).toHaveProperty('email', 'john@example.com');
+    });
+
     test('should handle multiple relationships', () => {
       const data = {
         data: {

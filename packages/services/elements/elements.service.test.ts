@@ -33,4 +33,14 @@ describe('ElementsService', () => {
   it('is a class with static methods', () => {
     expect(typeof ElementsService.findAllElements).toBe('function');
   });
+
+  it('findAllElements is a static async function', async () => {
+    const result = await ElementsService.findAllElements('test-token');
+    expect(result).toBeDefined();
+  });
+
+  it('does not require instantiation', () => {
+    // ElementsService methods are all static
+    expect(ElementsService.findAllElements).toBeDefined();
+  });
 });

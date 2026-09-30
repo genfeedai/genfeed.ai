@@ -1,13 +1,62 @@
 import { ButtonVariant } from '@genfeedai/contracts';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Button from '@ui/buttons/base/Button';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('Button', () => {
+  it('renders with label', () => {
+    render(<Button label="Test Button" />);
+    expect(screen.getByText('Test Button')).toBeInTheDocument();
+  });
+
+  it('renders with icon', () => {
+    const icon = <span data-testid="icon">🎯</span>;
+    render(<Button label="Test Button" icon={icon} />);
+    expect(screen.getByTestId('icon')).toBeInTheDocument();
+  });
+
+  it('handles click events', () => {
+    const activateButton = vi.fn();
+    render(<Button label="Test Button" onClick={activateButton} />);
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(activateButton).toHaveBeenCalledTimes(1);
+  });
+
+  it('handles mouse down events', () => {
+    const handleMouseDown = vi.fn();
+    render(<Button label="Test Button" onMouseDown={handleMouseDown} />);
+
+    fireEvent.mouseDown(screen.getByRole('button'));
+    expect(handleMouseDown).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows spinner when loading', () => {
+    render(<Button label="Test Button" isLoading={true} />);
+    expect(screen.getByRole('button')).toBeDisabled();
+    // Spinner should be present (assuming Spinner component renders something visible)
+  });
+
+  it('is disabled when isDisabled is true', () => {
+    render(<Button label="Test Button" isDisabled={true} />);
+    expect(screen.getByRole('button')).toBeDisabled();
+  });
+
   it('shows ping indicator when enabled', () => {
     render(<Button label="Test Button" isPingEnabled={true} />);
     const pingElement = document.querySelector('.animate-ping');
     expect(pingElement).toBeInTheDocument();
+  });
+
+  it('applies custom className', () => {
+    render(<Button label="Test Button" className="custom-class" />);
+    expect(screen.getByRole('button')).toHaveClass('custom-class');
+  });
+
+  it('applies wrapper className', () => {
+    render(<Button label="Test Button" wrapperClassName="wrapper-class" />);
+    const wrapper = document.querySelector('.wrapper-class');
+    expect(wrapper).toBeInTheDocument();
   });
 
   it('shows tooltip when provided', () => {
@@ -19,6 +68,50 @@ describe('Button', () => {
     const button = container.querySelector('button');
     expect(button).toBeInTheDocument();
     expect(button).toHaveTextContent('Test Button');
+  });
+
+  it('sets correct type attribute', () => {
+    render(<Button label="Test Button" type="submit" />);
+    expect(screen.getByRole('button')).toHaveAttribute('type', 'submit');
+  });
+
+  it('sets aria-label when provided', () => {
+    render(<Button label="Test Button" ariaLabel="Accessible button" />);
+    expect(screen.getByRole('button')).toHaveAttribute(
+      'aria-label',
+      'Accessible button',
+    );
+  });
+
+  it('calls onClick handler when clicked for non-submit buttons', () => {
+    const activateButton = vi.fn();
+    render(
+      <Button label="Test Button" onClick={activateButton} type="button" />,
+    );
+
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(activateButton).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onClick handler for submit buttons', () => {
+    const activateButton = vi.fn();
+    render(
+      <Button label="Test Button" onClick={activateButton} type="submit" />,
+    );
+
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(activateButton).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onMouseDown handler when mouse down', () => {
+    const handleMouseDown = vi.fn();
+    render(<Button label="Test Button" onMouseDown={handleMouseDown} />);
+
+    const button = screen.getByRole('button');
+    fireEvent.mouseDown(button);
+    expect(handleMouseDown).toHaveBeenCalledTimes(1);
   });
 
   it('preserves native reset behavior', () => {
@@ -36,6 +129,22 @@ describe('Button', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
 
     expect(input.value).toBe('original');
+  });
+
+  it('supports rendering without wrapper', () => {
+    render(<Button label="No Wrapper" withWrapper={false} />);
+    const button = screen.getByRole('button');
+    expect(button.parentElement?.className).not.toContain('indicator');
+  });
+
+  it('renders custom children when provided', () => {
+    render(
+      <Button withWrapper={false}>
+        <span data-testid="custom-child">Custom</span>
+      </Button>,
+    );
+
+    expect(screen.getByTestId('custom-child')).toBeInTheDocument();
   });
 
   it('omits default styling when using unstyled variant', () => {

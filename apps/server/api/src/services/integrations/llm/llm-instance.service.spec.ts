@@ -94,6 +94,10 @@ describe('LlmInstanceService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('ensureRunning', () => {
     it('should be a no-op when GPU_LLM_INSTANCE_ID is not configured', async () => {
       configGetMock.mockImplementation((key: string) => {

@@ -454,6 +454,17 @@ describe.each<Outage>(['none', 'timeout'])(
           );
         },
       );
+
+      it('changes nothing while every gate is in shadow', async () => {
+        const { service } = assessment(ALL_SHADOW);
+
+        await expect(service.assessPublishMedia(request)).resolves.toEqual({
+          isBlocking: false,
+          isPerceptionPending: false,
+          reasons: [],
+          warnings: [],
+        });
+      });
     });
   },
 );

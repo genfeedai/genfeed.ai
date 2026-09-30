@@ -33,6 +33,19 @@ const completedPayload = {
 };
 
 describe('generationWebhookPayloadSchema', () => {
+  test.each(GENERATION_WEBHOOK_KINDS)(
+    'accepts a versioned completed payload for %s',
+    (kind) => {
+      const result = generationWebhookPayloadSchema.safeParse({
+        ...completedPayload,
+        eventId: `generation:generation.completed:${kind}:ingredient_123:completed`,
+        generation: { ...completedPayload.generation, kind },
+      });
+
+      expect(result.success).toBe(true);
+    },
+  );
+
   test('rejects a completed payload carrying a failed generation status', () => {
     const result = generationWebhookPayloadSchema.safeParse({
       ...completedPayload,
@@ -53,6 +66,15 @@ describe('generationWebhookPayloadSchema', () => {
         output: null,
         status: 'failed',
       },
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  test('rejects an unknown generation kind', () => {
+    const result = generationWebhookPayloadSchema.safeParse({
+      ...completedPayload,
+      generation: { ...completedPayload.generation, kind: 'audio' },
     });
 
     expect(result.success).toBe(false);

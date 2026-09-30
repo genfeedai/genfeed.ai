@@ -75,6 +75,10 @@ describe('CacheClientService', () => {
     return registration[1];
   }
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should register error, connect and ready event handlers on construction', () => {
     const calls = mockRedisClient.on.mock.calls.map((c: [string]) => c[0]);
     expect(calls).toContain('error');
@@ -227,6 +231,12 @@ describe('CacheClientService', () => {
       expect.stringContaining('failed to connect'),
       expect.anything(),
     );
+  });
+
+  it('should warn and not throw when connection rejects immediately', async () => {
+    mockRedisClient.connect.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    await expect(service.onModuleInit()).resolves.toBeUndefined();
+    expect(mockLogger.warn).toHaveBeenCalled();
   });
 
   /* ---------- onModuleDestroy ---------- */

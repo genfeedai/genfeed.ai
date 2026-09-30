@@ -3,6 +3,8 @@ import agent from './en/agent.json';
 import common from './en/common.json';
 import pages from './en/pages.json';
 
+const CAMPAIGN_WORD = /\bcampaigns?\b/i;
+
 function collectLeaves(
   value: unknown,
   path: string,
@@ -21,6 +23,19 @@ function collectLeaves(
 }
 
 describe('Campaign terminology catalogs', () => {
+  it('keeps Campaign out of Program, outreach sequence, and reply drip copy', () => {
+    const forbidden = [
+      ...collectLeaves(common.agentCampaign, 'common.agentCampaign'),
+      ...collectLeaves(common.outreachCampaign, 'common.outreachCampaign'),
+      ...collectLeaves(pages.outreachCampaign, 'pages.outreachCampaign'),
+      ...collectLeaves(pages.replyDrip, 'pages.replyDrip'),
+      ...collectLeaves(agent.outreachSequence, 'agent.outreachSequence'),
+      ...collectLeaves(agent.tools, 'agent.tools'),
+    ].filter((entry) => CAMPAIGN_WORD.test(entry.value));
+
+    expect(forbidden).toEqual([]);
+  });
+
   it('uses Program, outreach sequence, and reply drip as the reserved words', () => {
     expect(common.agentCampaign.campaignLabel).toBe('Program Label *');
     expect(pages.outreachCampaign.createTitle).toBe('Create outreach sequence');

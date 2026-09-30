@@ -64,6 +64,12 @@ describe('YoutubeQueueService', () => {
     vi.clearAllMocks();
   });
 
+  describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+  });
+
   describe('addUploadUnlistedJob', () => {
     it('should add unlisted upload job with high priority', async () => {
       const result = await service.addUploadUnlistedJob(mockJobData);
@@ -199,6 +205,14 @@ describe('YoutubeQueueService', () => {
 
       expect(result).toEqual(mockJob);
       expect(mockQueue.getJob).toHaveBeenCalledWith('job-001');
+    });
+
+    it('should return undefined for non-existent job', async () => {
+      mockQueue.getJob.mockResolvedValue(undefined);
+
+      const result = await service.getJob('non-existent');
+
+      expect(result).toBeUndefined();
     });
   });
 

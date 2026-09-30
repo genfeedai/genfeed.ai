@@ -1,6 +1,9 @@
 import type { IPublishingProviderReadiness } from '@genfeedai/contracts/interfaces';
 import type { ClientService } from '@mcp/services/client.service';
-import { handleSchedulerTool } from '@mcp/tools/scheduler.tool';
+import {
+  handleSchedulerTool,
+  SCHEDULER_TOOL_NAMES,
+} from '@mcp/tools/scheduler.tool';
 
 function buildClient() {
   return {
@@ -52,6 +55,21 @@ function call(
   return handleSchedulerTool(client as unknown as ClientService, name, args);
 }
 
+describe('SCHEDULER_TOOL_NAMES', () => {
+  it('lists the scheduler release and capability tools', () => {
+    expect([...SCHEDULER_TOOL_NAMES].sort()).toEqual([
+      'control_scheduled_release',
+      'create_scheduled_release',
+      'get_scheduled_release',
+      'get_scheduler_capability',
+      'list_brand_publishing_readiness',
+      'list_scheduler_capabilities',
+      'update_scheduled_release',
+      'validate_scheduler_target',
+    ]);
+  });
+});
+
 describe('handleSchedulerTool', () => {
   it('creates a release and forwards the idempotency key separately', async () => {
     const client = buildClient();
@@ -97,6 +115,22 @@ describe('handleSchedulerTool', () => {
     expect(client.getScheduledRelease).toHaveBeenCalledWith('release-1');
   });
 
+  it('updates release fields without a target ID', async () => {
+    const client = buildClient();
+
+    await call(client, 'update_scheduled_release', {
+      changes: { title: 'Updated' },
+      releaseId: 'release-1',
+      scope: 'release',
+    });
+
+    expect(client.updateScheduledRelease).toHaveBeenCalledWith(
+      'release-1',
+      { title: 'Updated' },
+      undefined,
+    );
+  });
+
   it('updates a target only when targetId is provided', async () => {
     const client = buildClient();
 
@@ -127,6 +161,19 @@ describe('handleSchedulerTool', () => {
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
   });
 
+  it('rejects lifecycle fields from release updates', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { status: 'published' },
+        releaseId: 'release-1',
+        scope: 'release',
+      }),
+    ).rejects.toThrow(/not editable for release scope: status/);
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+  });
+
   it('rejects ownership fields from release updates', async () => {
     const client = buildClient();
 
@@ -137,6 +184,20 @@ describe('handleSchedulerTool', () => {
         scope: 'release',
       }),
     ).rejects.toThrow(/not editable for release scope: brandId/);
+    expect(client.updateScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('rejects release fields from target updates', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'update_scheduled_release', {
+        changes: { title: 'Wrong scope' },
+        releaseId: 'release-1',
+        scope: 'target',
+        targetId: 'target-1',
+      }),
+    ).rejects.toThrow(/not editable for target scope: title/);
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
   });
 
@@ -259,6 +320,15 @@ describe('handleSchedulerTool', () => {
     },
   );
 
+  it('rejects brand publishing readiness discovery without a brand ID', async () => {
+    const client = buildClient();
+
+    await expect(
+      call(client, 'list_brand_publishing_readiness', {}),
+    ).rejects.toThrow(/brandId is required/);
+    expect(client.listBrandPublishingReadiness).not.toHaveBeenCalled();
+  });
+
   it('describes an empty capability list without calling mutating methods', async () => {
     const client = buildClient();
     client.listSchedulerCapabilities.mockResolvedValue([]);
@@ -281,6 +351,15 @@ describe('handleSchedulerTool', () => {
     expect(client.createScheduledRelease).not.toHaveBeenCalled();
     expect(client.updateScheduledRelease).not.toHaveBeenCalled();
     expect(client.controlScheduledRelease).not.toHaveBeenCalled();
+  });
+
+  it('rejects get_scheduler_capability without a platform', async () => {
+    const client = buildClient();
+
+    await expect(call(client, 'get_scheduler_capability', {})).rejects.toThrow(
+      /platform is required/,
+    );
+    expect(client.getSchedulerCapability).not.toHaveBeenCalled();
   });
 
   it('validates a proposed target without mutating scheduler state', async () => {

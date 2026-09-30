@@ -72,6 +72,10 @@ describe('TelegramService', () => {
     service = module.get<TelegramService>(TelegramService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('verifyAndSaveAuth', () => {
     const orgId = 'test-object-id';
     const brandId = 'test-object-id';
@@ -203,6 +207,27 @@ describe('TelegramService', () => {
       } catch (e) {
         expect((e as HttpException).getStatus()).toBe(HttpStatus.UNAUTHORIZED);
       }
+    });
+
+    it('should build externalName from first_name and last_name when username exists', async () => {
+      vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
+      vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
+      vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
+      mockCredentialsService.createPendingForBrand.mockResolvedValue({
+        id: 'pending-credential-id',
+      });
+      mockCredentialsService.connectAccount.mockResolvedValue({ id: 'new' });
+
+      await service.verifyAndSaveAuth(orgId, brandId, userId, validAuthData);
+
+      expect(mockCredentialsService.connectAccount).toHaveBeenCalledWith(
+        'pending-credential-id',
+        orgId,
+        expect.objectContaining({
+          name: 'John Doe',
+        }),
+        expect.any(Object),
+      );
     });
 
     it('should wrap unexpected errors in INTERNAL_SERVER_ERROR', async () => {

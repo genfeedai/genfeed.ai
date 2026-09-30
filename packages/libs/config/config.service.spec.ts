@@ -141,6 +141,11 @@ describe('ConfigService', () => {
       expect(apiUrl).toBe('http://localhost:3010');
     });
 
+    it('should return undefined for non-existent key', () => {
+      const value = configService.get('NON_EXISTENT_KEY');
+      expect(value).toBeUndefined();
+    });
+
     it('should compute ingredientsEndpoint from GENFEEDAI_CDN_URL', () => {
       const ingredientsEndpoint = configService.ingredientsEndpoint;
       expect(ingredientsEndpoint).toBe('http://localhost:3002/ingredients');
@@ -160,6 +165,10 @@ describe('ConfigService', () => {
       delete env.GENFEEDAI_CDN_URL;
 
       expect(new ConfigService().cdnUrl).toBe('https://cdn.genfeed.ai');
+    });
+
+    it('should leave DB_MODE undefined when it is not configured', () => {
+      expect(configService.get('DB_MODE')).toBeUndefined();
     });
 
     it('should return the configured DB_MODE', () => {

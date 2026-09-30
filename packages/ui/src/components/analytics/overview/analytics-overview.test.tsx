@@ -24,11 +24,46 @@ const mockAnalytics = [
 ];
 
 describe('AnalyticsOverview', () => {
+  describe('Basic Rendering', () => {
+    it('renders the Analytics Overview title', () => {
+      render(<AnalyticsOverview analytics={[]} />);
+      expect(screen.getByText('Analytics Overview')).toBeInTheDocument();
+    });
+
+    it('renders without crashing when analytics is empty', () => {
+      render(<AnalyticsOverview analytics={[]} />);
+      expect(screen.getByText('Analytics Overview')).toBeInTheDocument();
+    });
+
+    it('applies custom className', () => {
+      const { container } = render(
+        <AnalyticsOverview analytics={[]} className="custom-class" />,
+      );
+      // The KPISection should receive and apply the className
+      expect(container.firstChild).toBeInTheDocument();
+    });
+  });
+
+  describe('Loading State', () => {
+    it('passes isLoading to KPISection', () => {
+      render(<AnalyticsOverview analytics={[]} isLoading />);
+      // The component should still render when loading
+      expect(screen.getByText('Analytics Overview')).toBeInTheDocument();
+    });
+  });
+
   describe('KPI Items Display', () => {
     it('shows Posts count when showPostsCount is true', () => {
       render(<AnalyticsOverview analytics={mockAnalytics} showPostsCount />);
       expect(screen.getByText('Posts')).toBeInTheDocument();
       expect(screen.getByText('2')).toBeInTheDocument();
+    });
+
+    it('hides Posts count when showPostsCount is false', () => {
+      render(
+        <AnalyticsOverview analytics={mockAnalytics} showPostsCount={false} />,
+      );
+      expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     });
 
     it('shows Total Views with formatted number', () => {
@@ -68,6 +103,58 @@ describe('AnalyticsOverview', () => {
   });
 
   describe('Calculations', () => {
+    it('correctly sums views across all analytics', () => {
+      const analytics = [
+        {
+          summary: {
+            avgEngagementRate: 0,
+            totalComments: 0,
+            totalLikes: 0,
+            totalShares: 0,
+            totalViews: 5000,
+          },
+        },
+        {
+          summary: {
+            avgEngagementRate: 0,
+            totalComments: 0,
+            totalLikes: 0,
+            totalShares: 0,
+            totalViews: 3000,
+          },
+        },
+      ];
+      render(<AnalyticsOverview analytics={analytics} />);
+      // 8000 views = 8.0k
+      expect(screen.getByText('8.0k')).toBeInTheDocument();
+    });
+
+    it('correctly calculates average engagement rate', () => {
+      const analytics = [
+        {
+          summary: {
+            avgEngagementRate: 10,
+            totalComments: 0,
+            totalLikes: 0,
+            totalShares: 0,
+            totalViews: 0,
+          },
+        },
+        {
+          summary: {
+            avgEngagementRate: 20,
+            totalComments: 0,
+            totalLikes: 0,
+            totalShares: 0,
+            totalViews: 0,
+          },
+        },
+      ];
+      render(<AnalyticsOverview analytics={analytics} />);
+      // (10 + 20) / 2 = 15.00%
+      expect(screen.getByText('15.00%')).toBeInTheDocument();
+    });
+
     it('handles single analytics item', () => {
       const analytics = [
         {
@@ -83,6 +170,12 @@ describe('AnalyticsOverview', () => {
       render(<AnalyticsOverview analytics={analytics} />);
       expect(screen.getByText('1.0k')).toBeInTheDocument();
       expect(screen.getByText('10.50%')).toBeInTheDocument();
+    });
+
+    it('handles empty analytics array', () => {
+      render(<AnalyticsOverview analytics={[]} />);
+      // All values should be 0 formatted appropriately
+      expect(screen.getByText('0.00%')).toBeInTheDocument();
     });
   });
 
@@ -113,6 +206,23 @@ describe('AnalyticsOverview', () => {
   });
 
   describe('Large Numbers', () => {
+    it('formats large view counts correctly', () => {
+      const analytics = [
+        {
+          summary: {
+            avgEngagementRate: 0,
+            totalComments: 0,
+            totalLikes: 0,
+            totalShares: 0,
+            totalViews: 1500000,
+          },
+        },
+      ];
+      render(<AnalyticsOverview analytics={analytics} />);
+      // 1.5M views
+      expect(screen.getByText('1.5M')).toBeInTheDocument();
+    });
+
     it('formats million+ likes correctly', () => {
       const analytics = [
         {

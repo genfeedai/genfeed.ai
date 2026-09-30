@@ -65,9 +65,24 @@ vi.mock('next/link', () => ({
 }));
 
 describe('AgentSidebarContent', () => {
+  it('renders a semantic link back to overview', () => {
+    render(<AgentSidebarContent apiService={{} as never} />);
+
+    expect(
+      screen.getByRole('link', { name: 'Back to overview' }),
+    ).toHaveAttribute('href', '/test-org/test-brand/overview');
+  });
+
   // Starting a conversation is a sidebar row ("New Conversation") beside
   // Search, the same shape every other surface uses, so the panel no longer
   // carries a compact "+" of its own.
+  it('does not carry its own new-thread action', () => {
+    render(<AgentSidebarContent apiService={{} as never} />);
+
+    expect(
+      screen.queryByRole('link', { name: 'New agent thread' }),
+    ).not.toBeInTheDocument();
+  });
 
   it('keeps the sidebar focused on agent actions and threads', () => {
     render(<AgentSidebarContent apiService={{} as never} />);

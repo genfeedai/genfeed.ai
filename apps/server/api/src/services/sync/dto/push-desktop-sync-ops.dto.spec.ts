@@ -31,6 +31,12 @@ describe('PushDesktopSyncOpsDto', () => {
     pipe = new ValidationPipe();
   });
 
+  it(`accepts an ops array at the ${MAX_SYNC_OPS} limit`, async () => {
+    await expect(
+      pipe.transform(buildBody(MAX_SYNC_OPS), metadata),
+    ).resolves.toBeInstanceOf(PushDesktopSyncOpsDto);
+  });
+
   it('rejects an over-limit ops array with a 400', async () => {
     const error = await pipe
       .transform(buildBody(MAX_SYNC_OPS + 1), metadata)

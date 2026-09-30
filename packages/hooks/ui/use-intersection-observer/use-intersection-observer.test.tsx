@@ -41,6 +41,16 @@ describe('useIntersectionObserver', () => {
     expect(result.current.isIntersecting).toBe(false);
   });
 
+  it('should support triggerOnce option', () => {
+    const { result } = renderHook(() =>
+      useIntersectionObserver({
+        triggerOnce: true,
+      }),
+    );
+
+    expect(result.current.ref).toBeDefined();
+  });
+
   it('does not fail when IntersectionObserver is unavailable', () => {
     vi.stubGlobal('IntersectionObserver', undefined);
 

@@ -103,6 +103,65 @@ describe('compileRemainingVideoGenerationBrief', () => {
     );
   });
 
+  it('requires a first frame for Kling v2.1', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'the product turns to camera' },
+      mediaKind: 'video',
+      output: { durationSeconds: 5 },
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1),
+        modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('maps first_frame onto start_image for Kling', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'the product turns to camera' },
+      mediaKind: 'video',
+      output: { aspectRatio: '9:16', durationSeconds: 5 },
+      references: [{ assetId: 'frame-1', role: 'first_frame' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+    });
+
+    expect(result.dispatch.start_image).toBe('frame-1');
+  });
+
+  it('omits seeds for Sora profiles that do not expose a seed field', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'waves hitting a cliff at dusk' },
+      mediaKind: 'video',
+      output: { aspectRatio: '16:9', durationSeconds: 8 },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_OPENAI_SORA_2),
+      modelKey: MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
+      seed: 42,
+    });
+
+    expect(result.dispatch).not.toHaveProperty('seed');
+  });
+
   it('rejects a last frame when the selected profile exposes only a start image', () => {
     const modelKey = MODEL_KEYS.FAL_KLING_VIDEO_V3_PRO;
     const family = familyFor(modelKey);
@@ -163,6 +222,91 @@ describe('compileRemainingVideoGenerationBrief', () => {
         modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       }),
     ).toThrow('requires a first-frame reference');
+  });
+
+  it('maps Kling v3 native quality onto mode', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a cinematic launch sequence' },
+      mediaKind: 'video',
+      output: { resolution: '4k' },
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+    });
+
+    expect(result.dispatch.mode).toBe('4k');
+  });
+
+  it('rejects a resolution the selected model does not advertise', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'off',
+      intent: { objective: 'a cinematic launch sequence' },
+      mediaKind: 'video',
+      output: { resolution: '360p' },
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST),
+        modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+      }),
+    ).toThrow(GenerationBriefCompileError);
+  });
+
+  it('dispatches Seedance native video references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the movement language of the clip' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [{ assetId: 'video-1', role: 'reference_video' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch.reference_videos).toEqual(['video-1']);
+  });
+
+  it('dispatches Seedance 2.5 last-frame interpolation through the documented field', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Move between the supplied keyframes' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'end-frame', role: 'last_frame' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      aspect_ratio: 'adaptive',
+      image: 'start-frame',
+      last_frame_image: 'end-frame',
+    });
   });
 
   it('rejects Seedance frames combined with a video reference', () => {
@@ -398,6 +542,26 @@ describe('compileRemainingVideoGenerationBrief', () => {
     ).toThrow(GenerationBriefCompileError);
   });
 
+  it('dispatches Kling Omni video references outside 4K mode', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the movement language of the clip' },
+      mediaKind: 'video',
+      output: { resolution: 'pro' },
+      references: [{ assetId: 'video-1', role: 'reference_video' }],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+      modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+    });
+
+    expect(result.dispatch.reference_video).toBe('video-1');
+  });
+
   it('rejects more than one Kling Omni video reference', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],
@@ -419,6 +583,33 @@ describe('compileRemainingVideoGenerationBrief', () => {
         modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
       }),
     ).toThrow('at most 1 video reference');
+  });
+
+  it('applies Kling Omni reduced image-reference cap when video is present', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'Follow the character and movement references' },
+      mediaKind: 'video',
+      output: { resolution: 'pro' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        ...Array.from({ length: 5 }, (_, index) => ({
+          assetId: `image-reference-${index + 1}`,
+          role: 'subject' as const,
+        })),
+        { assetId: 'video-reference', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief,
+        family: familyFor(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO),
+        modelKey: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      }),
+    ).toThrow('at most 4 image references');
   });
 
   it('compiles only fal-published Gemini Omni Flash fields', () => {
@@ -536,6 +727,35 @@ describe('compileRemainingVideoGenerationBrief', () => {
       prompt_expansion_mode: 'balanced',
       resolution: '768P',
       seed: 42,
+    });
+  });
+
+  it('forwards MiniMax H3 Max 1080P from the published contract', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'an airship crossing a desert at sunset' },
+      mediaKind: 'video',
+      output: {
+        aspectRatio: '16:9',
+        durationSeconds: 8,
+        resolution: '1080P',
+      },
+      references: [],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.FAL_MINIMAX_H3_MAX),
+      modelKey: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      aspect_ratio: '16:9',
+      duration: 8,
+      prompt: 'an airship crossing a desert at sunset',
+      resolution: '1080P',
     });
   });
 });

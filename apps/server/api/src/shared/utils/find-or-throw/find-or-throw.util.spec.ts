@@ -60,6 +60,15 @@ describe('findOrThrow', () => {
 });
 
 describe('findUniqueOrThrow', () => {
+  it('returns the record when found', async () => {
+    const record = { id: 'user_1' };
+    const delegate = { findUnique: vi.fn().mockResolvedValue(record) };
+
+    await expect(
+      findUniqueOrThrow(delegate, { where: { id: 'user_1' } }, 'User'),
+    ).resolves.toBe(record);
+  });
+
   it('throws the canonical NotFoundException when missing', async () => {
     const delegate = { findUnique: vi.fn().mockResolvedValue(null) };
 

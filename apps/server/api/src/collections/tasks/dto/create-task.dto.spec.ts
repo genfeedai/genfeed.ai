@@ -7,6 +7,10 @@ const brandId = testId('brand');
 const entityId = testId('entity');
 
 describe('CreateTaskDto', () => {
+  it('should be defined', () => {
+    expect(CreateTaskDto).toBeDefined();
+  });
+
   describe('validation', () => {
     it('accepts a valid task payload with linked entities', async () => {
       const dto = plainToInstance(CreateTaskDto, {

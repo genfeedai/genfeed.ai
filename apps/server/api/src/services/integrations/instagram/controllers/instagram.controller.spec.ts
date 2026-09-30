@@ -720,6 +720,32 @@ describe('InstagramController', () => {
       );
     });
 
+    it('never embeds the reconnect credential id in the OAuth state', async () => {
+      const mockBrand = {
+        id: brandId,
+        organizationId: orgId,
+        userId: instagramUserId,
+      };
+      brandsFindOneMock.mockResolvedValue(mockBrand);
+      credentialsResolveBrandAccountMock.mockResolvedValue({
+        externalId: 'ig-account-id',
+        id: 'reconnect-target-id',
+      });
+      credentialsBeginOAuthForBrandMock.mockResolvedValue({
+        credential: { id: 'test-object-id' },
+        state: 'opaque-oauth-state',
+      });
+
+      const result = await controller.connect(
+        {} as unknown as Request,
+        { organizationId: orgId, userId: instagramUserId } as unknown as User,
+        { brandId, credentialId: 'reconnect-target-id' },
+      );
+
+      const url = (result.data as unknown as { url: string }).url;
+      expect(url).not.toContain('reconnect-target-id');
+    });
+
     it('leaves an unmatched reconnect intent ambiguous, even with a single remaining account', async () => {
       mockSuccessfulTokenExchange();
       instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([

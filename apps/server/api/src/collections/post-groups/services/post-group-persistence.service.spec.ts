@@ -541,6 +541,27 @@ describe('PostGroupPersistenceService', () => {
     ]);
   });
 
+  it('excludes workflow-executed targets from the agent source filter', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ id: 'group-target' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        groupId: 'group-target',
+        workflowExecutionId: 'execution-1',
+      }),
+    ]);
+
+    const result = await service.listReleaseGroups({
+      endDate: new Date('2026-07-27T00:00:00.000Z'),
+      organizationId: 'org-1',
+      sources: [ReleaseTargetSource.AGENT],
+      startDate: new Date('2026-07-20T00:00:00.000Z'),
+    });
+
+    expect(result).toMatchObject({ docs: [], totalDocs: 0 });
+  });
+
   it('returns an empty page when no target matches the filters', async () => {
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({ id: 'group-target' }),
@@ -574,6 +595,27 @@ describe('PostGroupPersistenceService', () => {
     // One id-only window prefilter plus one hydration read per table.
     expect(prisma.postGroup.findMany).toHaveBeenCalledTimes(2);
     expect(prisma.post.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('projects firstTagColor from the first target post tags', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        tags: [
+          {
+            backgroundColor: '#ef4444',
+            id: 'tag-launch',
+            isDeleted: false,
+            label: 'Launch',
+            textColor: '#ffffff',
+          },
+        ],
+      }),
+    ]);
+
+    const result = await service.listReleaseGroups({ organizationId: 'org-1' });
+
+    expect(result.docs[0]?.firstTagColor).toBe('#ef4444');
   });
 
   it('skips the window prefilter and reads each table once for unwindowed lists', async () => {

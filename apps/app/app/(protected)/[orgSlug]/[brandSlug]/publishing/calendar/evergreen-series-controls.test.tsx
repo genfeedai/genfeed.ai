@@ -222,6 +222,22 @@ describe('EvergreenSeriesControls', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
+  it('edits the next future occurrence through the dedicated command', async () => {
+    render(<EvergreenSeriesControls groupId="release-1" />);
+
+    const dateInput = await screen.findByLabelText('Next occurrence');
+    fireEvent.change(dateInput, { target: { value: '2026-08-12T09:00' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save future schedule' }),
+    );
+
+    await waitFor(() => {
+      expect(mocks.editFuture).toHaveBeenCalledWith('release-1', {
+        scheduledDate: '2026-08-12T09:00:00.000Z',
+      });
+    });
+  });
+
   it('preserves the release timezone for display, preview, and edits', async () => {
     mocks.getOne.mockResolvedValue({
       ...release,

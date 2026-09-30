@@ -3,6 +3,10 @@ import { MediaCategory } from '../../src/enums/social-media.enum';
 
 describe('social-media.enum', () => {
   describe('MediaCategory', () => {
+    it('should have 6 members', () => {
+      expect(Object.values(MediaCategory)).toHaveLength(6);
+    });
+
     it('should have correct values', () => {
       expect(MediaCategory.TEXT).toBe('text');
       expect(MediaCategory.IMAGE).toBe('image');

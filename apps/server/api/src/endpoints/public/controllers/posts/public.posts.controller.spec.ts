@@ -103,6 +103,10 @@ describe('PublicPostsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findPublicPosts', () => {
     it('should return public posts list', async () => {
       const query = createBaseQuery();
@@ -194,6 +198,32 @@ describe('PublicPostsController', () => {
         isDeleted: false,
       });
       expect(callArgs.where.scope).toBeUndefined();
+    });
+
+    it('should handle invalid account id gracefully', async () => {
+      const query = createBaseQuery();
+      const invalidAccountId = 'invalid-id';
+      const mockPosts = {
+        docs: [],
+        page: 1,
+        totalDocs: 0,
+      };
+
+      postsService.findAll.mockResolvedValue(
+        mockPosts as unknown as AggregatePaginateResult<PostDocument>,
+      );
+
+      await controller.findPublicPosts(
+        mockRequest,
+        query,
+        undefined,
+        invalidAccountId,
+      );
+
+      const callArgs = postsService.findAll.mock.calls[0][0] as {
+        where: Record<string, unknown>;
+      };
+      expect(callArgs.where.brandId).toBeUndefined();
     });
   });
 

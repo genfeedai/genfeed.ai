@@ -24,6 +24,15 @@ describe('Alert', () => {
     expect(alert).toHaveAttribute('aria-live', 'polite');
   });
 
+  it.each(['destructive', 'warning'] as const)(
+    'uses an assertive alert region for %s severity',
+    (variant) => {
+      render(<Alert variant={variant}>{variant}</Alert>);
+
+      expect(screen.getByRole('alert')).not.toHaveAttribute('aria-live');
+    },
+  );
+
   it('keeps icon, title, and description in the shadcn grid contract', () => {
     render(
       <Alert>

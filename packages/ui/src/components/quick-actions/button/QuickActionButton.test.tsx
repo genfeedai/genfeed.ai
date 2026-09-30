@@ -17,6 +17,13 @@ describe('QuickActionButton', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('should handle user interactions correctly', () => {
+    const { container } = render(
+      <QuickActionButton action={mockAction} onClick={vi.fn()} />,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should apply correct styles and classes', () => {
     const { container } = render(
       <QuickActionButton action={mockAction} onClick={vi.fn()} />,

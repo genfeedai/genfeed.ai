@@ -73,6 +73,17 @@ describe('integration HTTP client', () => {
     ).toBe(500);
   });
 
+  it('resolves to undefined for a 204 No Content response without throwing', async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 204 }));
+    const client = new IntegrationHttpClient({ fetch: fetchImpl });
+
+    await expect(
+      client.request({ url: 'https://example.com/revoke' }),
+    ).resolves.toBeUndefined();
+  });
+
   it('resolves to undefined for an empty body advertised via Content-Length: 0', async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

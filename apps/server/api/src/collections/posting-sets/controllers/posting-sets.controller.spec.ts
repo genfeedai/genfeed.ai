@@ -1,6 +1,14 @@
 import { PostingSetsController } from '@api/collections/posting-sets/controllers/posting-sets.controller';
 import type { PostingSetsService } from '@api/collections/posting-sets/services/posting-sets.service';
+import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { ApiKeyScope } from '@genfeedai/contracts';
 import { ForbiddenException } from '@nestjs/common';
+
+const MUTATION_SCOPES = [
+  ApiKeyScope.POSTS_DRAFT,
+  ApiKeyScope.POSTS_CREATE,
+  ApiKeyScope.POSTS_SCHEDULE,
+];
 
 vi.mock('@genfeedai/serializers', async (importOriginal) => {
   const actual =
@@ -73,6 +81,19 @@ describe('PostingSetsController', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(service.updateScoped).not.toHaveBeenCalled();
+  });
+
+  it('declares posting write scopes on every mutation and expansion route', () => {
+    for (const handler of [
+      PostingSetsController.prototype.create,
+      PostingSetsController.prototype.update,
+      PostingSetsController.prototype.remove,
+      PostingSetsController.prototype.expand,
+    ]) {
+      expect(Reflect.getMetadata(API_KEY_SCOPES_KEY, handler)).toEqual(
+        MUTATION_SCOPES,
+      );
+    }
   });
 
   it('passes tenant scope through read, update, remove, and expand', async () => {

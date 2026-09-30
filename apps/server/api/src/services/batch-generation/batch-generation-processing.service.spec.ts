@@ -607,6 +607,20 @@ describe('BatchGenerationProcessingService resume', () => {
     service = module.get(BatchGenerationProcessingService);
   });
 
+  it('reclaims a PROCESSING batch whose lease has gone stale', async () => {
+    await service.processBatch('batch-1', 'org-1');
+
+    const reclaim = batchDelegate.updateMany.mock.calls[1]?.[0];
+    expect(reclaim?.where).toEqual(
+      expect.objectContaining({
+        id: 'batch-1',
+        organizationId: 'org-1',
+        status: BatchStatus.PROCESSING,
+        updatedAt: { lt: expect.any(Date) },
+      }),
+    );
+  });
+
   it('regenerates only the item the dead run left in flight', async () => {
     await service.processBatch('batch-1', 'org-1');
 

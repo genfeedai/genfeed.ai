@@ -92,6 +92,10 @@ describe('WhisperService', () => {
     service = module.get<WhisperService>(WhisperService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('transcribeAudio', () => {
     it('should transcribe audio from a file buffer', async () => {
       const file = {

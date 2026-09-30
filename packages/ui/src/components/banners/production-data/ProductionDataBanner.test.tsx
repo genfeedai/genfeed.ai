@@ -88,6 +88,22 @@ describe('ProductionDataBanner', () => {
     ).toBeDefined();
   });
 
+  it('does not show banner when db-mode is development', async () => {
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ mode: 'development' }), { status: 200 }),
+      );
+
+    render(<ProductionDataBanner />);
+
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalled();
+    });
+
+    expect(screen.queryByTestId('production-data-banner')).toBeNull();
+  });
+
   it('does not fetch or show the banner when not on localhost', async () => {
     vi.spyOn(productionDataBannerRuntime, 'getHostname').mockReturnValue(
       'app.genfeed.ai',
@@ -142,6 +158,18 @@ describe('ProductionDataBanner', () => {
   it('does not fetch db-mode when the mocked Playwright cookie is set', async () => {
     vi.spyOn(productionDataBannerRuntime, 'getCookieHeader').mockReturnValue(
       '__playwright_test=true',
+    );
+    const fetchSpy = mockDbModeFetch();
+    fetchSpy.mockClear();
+
+    render(<ProductionDataBanner />);
+
+    await expectNoDbModeFetch(fetchSpy);
+  });
+
+  it('does not fetch db-mode when the authenticated Playwright banner cookie is set', async () => {
+    vi.spyOn(productionDataBannerRuntime, 'getCookieHeader').mockReturnValue(
+      '__genfeed_playwright_banner=1',
     );
     const fetchSpy = mockDbModeFetch();
     fetchSpy.mockClear();

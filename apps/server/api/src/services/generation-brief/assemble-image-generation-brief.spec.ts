@@ -3,6 +3,30 @@ import { resolveImageGenerationFidelityMode } from '@api/services/generation-bri
 import { describe, expect, it } from 'vitest';
 
 describe('assembleImageGenerationBrief', () => {
+  it('preserves semantic run references instead of collapsing them to subjects', () => {
+    const brief = assembleImageGenerationBrief({
+      fidelityMode: 'guided',
+      objective: 'Create a product scene',
+      references: [
+        { assetId: 'character-sheet', role: 'character' },
+        {
+          assetId: 'product-still',
+          description: 'Matte black bottle with gold cap',
+          role: 'product',
+        },
+      ],
+    });
+
+    expect(brief.references).toEqual([
+      { assetId: 'character-sheet', role: 'character' },
+      {
+        assetId: 'product-still',
+        description: 'Matte black bottle with gold cap',
+        role: 'product',
+      },
+    ]);
+  });
+
   it('normalizes an unbranded image request into a versioned brief', () => {
     const brief = assembleImageGenerationBrief({
       fidelityMode: resolveImageGenerationFidelityMode({}),

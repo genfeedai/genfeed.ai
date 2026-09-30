@@ -120,6 +120,10 @@ describe('S3Service', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should initialize S3 client with correct configuration', () => {
     expect(configService.get).toHaveBeenCalledWith('AWS_REGION');
     expect(configService.get).toHaveBeenCalledWith('AWS_ACCESS_KEY_ID');

@@ -87,6 +87,10 @@ describe('FilesService', () => {
     (fs.existsSync as Mock).mockReturnValue(true);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getPath', () => {
     it('should create directory if it does not exist', () => {
       const type = 'images';
@@ -153,6 +157,23 @@ describe('FilesService', () => {
       );
       expect(mockSharpInstance.toBuffer).toHaveBeenCalled();
       expect(result).toBe(mockResizedBuffer);
+    });
+
+    it('should handle resize errors', async () => {
+      const target = { height: 600, width: 800 };
+      const mockError = new Error('Resize failed');
+
+      const mockSharpInstance = {
+        resize: vi.fn().mockReturnThis(),
+        rotate: vi.fn().mockReturnThis(),
+        toBuffer: vi.fn().mockRejectedValue(mockError),
+      };
+
+      (sharp as unknown as Mock).mockReturnValue(mockSharpInstance);
+
+      await expect(service.resizeImage(mockBuffer, target)).rejects.toThrow(
+        'Resize failed',
+      );
     });
   });
 
@@ -297,6 +318,19 @@ describe('FilesService', () => {
       expect(spawn).toHaveBeenCalled();
       expect(result).toBe('/tmp/output/video_watermark.mp4');
     });
+
+    it('uses a custom watermark text when provided', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      await service.addWatermark(
+        '/tmp/output/video.mp4',
+        { height: 1080, width: 1920 },
+        'MyBrand',
+      );
+
+      const args = (spawn as Mock).mock.calls[0][1] as string[];
+      expect(args.join(' ')).toContain('MyBrand');
+    });
   });
 
   describe('addTextOverlay', () => {
@@ -400,6 +434,18 @@ describe('FilesService', () => {
   });
 
   describe('convertToPortrait', () => {
+    it('crops and scales the video to portrait dimensions', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.convertToPortrait(
+        'videos',
+        mockIngredientId,
+        'source.mp4',
+      );
+
+      expect(result).toContain('portrait.mp4');
+    });
+
     it('accepts custom dimensions', async () => {
       mockSuccessfulFfmpegProcess();
 
@@ -537,6 +583,17 @@ describe('FilesService', () => {
       expect(result).toEqual(['image1.png', 'image2.png', 'image10.png']);
     });
 
+    it('should handle empty directory', () => {
+      const imagesPath = '/tmp/images';
+      const extension = 'png';
+
+      (fs.readdirSync as Mock).mockReturnValue([]);
+
+      const result = service.getSortedFiles(imagesPath, extension);
+
+      expect(result).toEqual([]);
+    });
+
     it('should handle files without numbers', () => {
       const imagesPath = '/tmp/images';
       const extension = 'png';
@@ -608,6 +665,10 @@ describe('FilesService', () => {
 
       expect(() => service.cleanupTempFiles(mockIngredientId)).not.toThrow();
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('defaults isDeleteTempFilesEnabled to true', () => {
+      expect(service.isDeleteTempFilesEnabled).toBe(true);
     });
   });
 });

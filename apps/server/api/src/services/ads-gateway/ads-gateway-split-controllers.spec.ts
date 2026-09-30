@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { GoogleAdsAdapter } from '@api/services/ads-gateway/adapters/google-ads.adapter';
 import { MetaAdsAdapter } from '@api/services/ads-gateway/adapters/meta-ads.adapter';
 import { TikTokAdsAdapter } from '@api/services/ads-gateway/adapters/tiktok-ads.adapter';
@@ -10,6 +11,7 @@ import { AdsGatewayRequestContextService } from '@api/services/ads-gateway/ads-g
 import { AdsGatewayWriteController } from '@api/services/ads-gateway/ads-gateway-write.controller';
 import { RequestMethod } from '@nestjs/common';
 import {
+  GUARDS_METADATA,
   METHOD_METADATA,
   MODULE_METADATA,
   PATH_METADATA,
@@ -59,6 +61,15 @@ describe('Ads Gateway split controllers', () => {
     },
   );
 
+  it.each([AdsGatewayWriteController, AdsGatewayController])(
+    'preserves the shared role guard on %s',
+    (controllerClass) => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, controllerClass)).toContain(
+        RolesGuard,
+      );
+    },
+  );
+
   it('registers the write sibling before the read controller and shares context orchestration', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AdsGatewayModule),
@@ -94,6 +105,15 @@ describe('Ads Gateway split controllers', () => {
     expect(routeSignatures).toHaveLength(13);
     expect(new Set(routeSignatures).size).toBe(routeSignatures.length);
   });
+
+  it.each(WRITE_ROUTES.map(([methodName]) => methodName))(
+    'removes moved handler %s from AdsGatewayController',
+    (methodName) => {
+      expect(
+        Reflect.get(AdsGatewayController.prototype, methodName),
+      ).toBeUndefined();
+    },
+  );
 
   it('keeps the two controllers and shared context service within their line budgets', () => {
     const sources = [

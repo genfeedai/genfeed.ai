@@ -114,6 +114,34 @@ describe('VoiceCloneCard', () => {
     );
   });
 
+  it('generates requested speech from the selected voice instead of only saving a default', async () => {
+    const generateVoice = vi
+      .fn()
+      .mockResolvedValue({ id: 'generated-voice-1', status: 'PROCESSING' });
+    render(
+      <VoiceCloneCard
+        action={makeAction({
+          title: 'Generate Voice',
+          voiceoverText: 'Welcome to FUD News',
+        })}
+        apiService={makeApiService({ generateVoice })}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: /use selected voice/i }),
+      );
+    });
+
+    expect(generateVoice).toHaveBeenCalledWith({
+      sourceActionId: 'voice-card-1',
+      text: 'Welcome to FUD News',
+      voiceId: 'voice-1',
+      waitForCompletion: false,
+    });
+  });
+
   it('stops voice generation reconciliation after repeated API failures', async () => {
     vi.useFakeTimers();
     const getGeneratedAsset = vi

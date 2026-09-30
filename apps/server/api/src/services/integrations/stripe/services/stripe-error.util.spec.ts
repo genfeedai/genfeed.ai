@@ -18,6 +18,11 @@ describe('stripe-error.util', () => {
         'resource_missing',
       );
     });
+
+    it('returns undefined for non-objects', () => {
+      expect(getStripeErrorCode('nope')).toBeUndefined();
+      expect(getStripeErrorCode(null)).toBeUndefined();
+    });
   });
 
   describe('isStripeResourceMissingError', () => {

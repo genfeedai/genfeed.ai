@@ -193,6 +193,25 @@ describe('Tabs', () => {
     expect(profileButton).toBeDisabled();
   });
 
+  it('does not call onTabChange for disabled tabs', async () => {
+    const user = userEvent.setup();
+    const handleTabChange = vi.fn();
+    render(
+      <Tabs
+        tabs={[
+          { id: 'home', label: 'Home' },
+          { id: 'profile', isDisabled: true, label: 'Profile' },
+        ]}
+        activeTab="home"
+        onTabChange={handleTabChange}
+      />,
+    );
+
+    const profileButton = screen.getByRole('tab', { name: /profile/i });
+    await user.click(profileButton);
+    expect(handleTabChange).not.toHaveBeenCalled();
+  });
+
   it('renders tabs with icons', () => {
     const handleTabChange = vi.fn();
     const HomeIcon = () => <span data-testid="home-icon">H</span>;

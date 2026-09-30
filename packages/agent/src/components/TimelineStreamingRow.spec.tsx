@@ -47,6 +47,40 @@ describe('TimelineStreamingRow', () => {
     vi.useFakeTimers();
   });
 
+  it('shows productized research progress instead of raw reasoning text', () => {
+    render(
+      <TimelineStreamingRow
+        entry={buildEntry({
+          streamState: {
+            activeToolCalls: [
+              {
+                id: 'tool-1',
+                name: 'get_sources',
+                startedAt: '2026-03-23T12:00:00.000Z',
+                status: 'running',
+              },
+            ],
+            isStreaming: true,
+            streamingContent: '',
+            streamingReasoning:
+              'Searching across sources for evidence.\nThen comparing results line by line.',
+          },
+        })}
+      />,
+    );
+
+    // T3 density: a running tool paints the turn as a work entry, so the
+    // status header is suppressed and raw reasoning text never renders.
+    expect(screen.getByText('Get Sources')).toBeTruthy();
+    expect(screen.queryByText('get_sources')).toBeNull();
+    expect(
+      screen.queryByText('Then comparing results line by line.'),
+    ).toBeNull();
+    expect(
+      screen.queryByText('Searching across sources for evidence.'),
+    ).toBeNull();
+  });
+
   it('shows waiting-for-input state from active work events', () => {
     render(
       <TimelineStreamingRow

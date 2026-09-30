@@ -23,11 +23,29 @@ describe('truncateHeadline', () => {
     expect(Array.from(result)).toHaveLength(10);
   });
 
+  it('keeps an emoji whole when it lands at the truncation boundary', () => {
+    expect(truncateHeadline('12345678🚀xy', 10)).toBe('12345678🚀…');
+  });
+
+  it('preserves the word-boundary policy for mixed text and emoji', () => {
+    expect(truncateHeadline('Launch 🚀 update now please', 20)).toBe(
+      'Launch 🚀 update…',
+    );
+  });
+
   it('falls back to a hard slice when there is no word break to back up to', () => {
     const result = truncateHeadline('x'.repeat(400));
 
     expect(result).toBe(`${'x'.repeat(HEADLINE_CAP - 1)}…`);
     expect(result.length).toBe(HEADLINE_CAP);
+  });
+
+  it('never emits a headline longer than the cap', () => {
+    for (const length of [149, 150, 151, 200, 1000]) {
+      const result = truncateHeadline('ab '.repeat(length));
+
+      expect(Array.from(result).length).toBeLessThanOrEqual(HEADLINE_CAP);
+    }
   });
 });
 
@@ -48,5 +66,11 @@ describe('getHeadlineSize', () => {
   it('sizes emoji by Unicode code point count', () => {
     expect(getHeadlineSize('🚀'.repeat(48))).toBe(92);
     expect(getHeadlineSize('🚀'.repeat(49))).toBe(78);
+  });
+
+  it('never drops below the size the longest allowed headline was verified at', () => {
+    const longest = truncateHeadline('lorem ipsum dolor '.repeat(40));
+
+    expect(getHeadlineSize(longest)).toBe(58);
   });
 });

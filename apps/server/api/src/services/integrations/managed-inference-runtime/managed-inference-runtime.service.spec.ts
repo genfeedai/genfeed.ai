@@ -20,6 +20,7 @@ vi.mock('axios', () => ({
 
 describe('ManagedInferenceRuntimeService', () => {
   let service: ManagedInferenceRuntimeService;
+  let _configService: Mocked<ConfigService>;
   let loggerService: Mocked<LoggerService>;
   let customerInstancesService: {
     findRunningForOrg: ReturnType<typeof vi.fn>;
@@ -71,6 +72,7 @@ describe('ManagedInferenceRuntimeService', () => {
     service = module.get<ManagedInferenceRuntimeService>(
       ManagedInferenceRuntimeService,
     );
+    _configService = module.get(ConfigService);
     loggerService = module.get(LoggerService);
   };
 
@@ -79,6 +81,10 @@ describe('ManagedInferenceRuntimeService', () => {
   });
 
   afterEach(() => vi.resetAllMocks());
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
 
   // ── getInstanceUrl ───────────────────────────────────────────────────────
   describe('getInstanceUrl', () => {
@@ -92,6 +98,17 @@ describe('ManagedInferenceRuntimeService', () => {
       expect(service.getInstanceUrl('videos')).toBe(
         'http://videos.fleet.local',
       );
+    });
+
+    it('returns null when URL is not configured', async () => {
+      await createModule({
+        GPU_IMAGES_URL: '',
+        GPU_VIDEOS_URL: '',
+        GPU_VOICES_URL: '',
+      });
+      expect(service.getInstanceUrl('images')).toBeNull();
+      expect(service.getInstanceUrl('voices')).toBeNull();
+      expect(service.getInstanceUrl('videos')).toBeNull();
     });
   });
 

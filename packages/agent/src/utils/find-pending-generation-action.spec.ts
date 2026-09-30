@@ -36,6 +36,20 @@ describe('findPendingGenerationAction', () => {
       ])?.id,
     ).toBe('root');
   });
+  it('returns the newest unresolved generation request', () => {
+    const action = findPendingGenerationAction([
+      message('message-1', [
+        {
+          generationType: 'image',
+          id: 'generation-1',
+          title: 'Configure image',
+          type: 'generation_action_card',
+        },
+      ]),
+    ]);
+
+    expect(action?.id).toBe('generation-1');
+  });
 
   it('hides a request after a later output resolves it', () => {
     const action = findPendingGenerationAction([

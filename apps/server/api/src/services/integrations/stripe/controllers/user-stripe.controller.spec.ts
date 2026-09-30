@@ -159,6 +159,10 @@ describe('UserStripeController', () => {
     controller = module.get<UserStripeController>(UserStripeController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createCheckoutSession', () => {
     const dto = { stripePriceId: 'price_credits_100' };
 

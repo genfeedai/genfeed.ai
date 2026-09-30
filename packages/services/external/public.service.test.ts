@@ -233,6 +233,16 @@ describe('PublicService', () => {
     });
 
     describe('findAllPublicArticles', () => {
+      it('never asks for more than the API accepts', async () => {
+        http.get.mockResolvedValue(axiosResponse(collectionDocument([])));
+
+        await service.findAllPublicArticles({ sortBy: 'publishedAt' });
+
+        for (const call of http.get.mock.calls) {
+          expect(call[1]?.params?.limit).toBeLessThanOrEqual(MAX_PAGE_SIZE);
+        }
+      });
+
       it('walks pages until a short page ends the corpus', async () => {
         const fullPage = Array.from({ length: MAX_PAGE_SIZE }, (_, index) => ({
           id: `article_${index}`,

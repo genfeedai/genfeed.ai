@@ -1,5 +1,6 @@
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import { RemixClient } from '@mcp/services/client/remix.client';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 
 function setup(kind = 'image') {
   const view = {
@@ -196,4 +197,21 @@ describe('RemixClient canonical routes', () => {
     ).rejects.toThrow();
     expect(scene.http.post).not.toHaveBeenCalled();
   });
+
+  it.each([400, 403, 404, 409])(
+    'preserves upstream %i as an error, never a success result',
+    async (status) => {
+      const { client, http } = setup();
+      http.get.mockRejectedValue({
+        response: {
+          status,
+          data: { errors: [{ detail: 'Canonical failure' }] },
+        },
+      });
+      await expect(
+        client.getRemixRun({ runId: 'foreign-run' }),
+      ).rejects.toBeInstanceOf(McpUpstreamError);
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
 });

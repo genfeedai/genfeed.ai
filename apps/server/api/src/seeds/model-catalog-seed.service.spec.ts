@@ -80,6 +80,16 @@ describe('ModelCatalogSeedService', () => {
     );
   });
 
+  it('is idempotent — a second run issues the same upserts', async () => {
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+    const first = upsertCalls();
+
+    prisma.model.upsert.mockClear();
+    await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+    expect(upsertCalls()).toEqual(first);
+  });
+
   it('never overwrites an existing price with an unpriced catalog entry', async () => {
     // `isFree` rows are also cost 0 but curated that way — pick a genuinely
     // unpriced one so this asserts the uncurated guard, not the free exception.
@@ -146,6 +156,17 @@ describe('ModelCatalogSeedService', () => {
     if (!gptImage) {
       throw new Error('Expected GPT Image 1.5 in the real catalog');
     }
+
+    it('creates GPT Image 1.5 as active and public with LEGACY lifecycle', async () => {
+      await service.reconcileCatalog([gptImage]);
+
+      expect(callForKey(gptImage.key)?.create).toMatchObject({
+        isActive: true,
+        isLegacy: false,
+        isPublic: true,
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+    });
 
     it('activates first curation and adopts the catalog lifecycle', async () => {
       const entry = { ...gptImage, isDefault: false };
@@ -229,6 +250,19 @@ describe('ModelCatalogSeedService', () => {
         expect(call?.update).not.toHaveProperty('isPublic');
       },
     );
+
+    it('retains catalog-private visibility on first curation', async () => {
+      const entry = { ...gptImage, isDefault: false, isPublic: false };
+      prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(entry.key)?.update).toMatchObject({
+        isActive: true,
+        isPublic: false,
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+    });
   });
 
   describe('lifecycle propagation', () => {
@@ -289,6 +323,46 @@ describe('ModelCatalogSeedService', () => {
         });
       },
     );
+
+    it('still moves an operator-demoted row further down when the catalog retires it', async () => {
+      const entry = {
+        ...gptImage2,
+        isDefault: false,
+        lifecycle: ModelLifecycle.RETIRED,
+      };
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+        isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(entry.key)?.update).toMatchObject({
+        lifecycle: ModelLifecycle.RETIRED,
+      });
+    });
+
+    it('propagates lifecycle onto a row without an operator demotion', async () => {
+      const entry = {
+        ...gptImage2,
+        isDefault: false,
+        lifecycle: ModelLifecycle.LEGACY,
+      };
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+        isLegacy: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(entry.key)?.update).toMatchObject({
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+    });
 
     it('writes the same lifecycle on create and update', async () => {
       await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);

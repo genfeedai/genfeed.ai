@@ -1,6 +1,6 @@
 import { AgentIconStrip } from '@genfeedai/agent/components/AgentIconStrip';
 import { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('AgentIconStrip', () => {
@@ -13,5 +13,16 @@ describe('AgentIconStrip', () => {
     expect(
       screen.getByRole('button', { name: 'Expand agent sidebar' }),
     ).toBeInTheDocument();
+  });
+
+  it('calls onExpand when the affordance is clicked', () => {
+    const onExpand = vi.fn();
+    render(<AgentIconStrip onExpand={onExpand} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expand agent sidebar' }),
+    );
+
+    expect(onExpand).toHaveBeenCalledTimes(1);
   });
 });

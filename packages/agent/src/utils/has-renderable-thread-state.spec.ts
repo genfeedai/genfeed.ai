@@ -17,6 +17,10 @@ const EMPTY: RenderableThreadStateInput = {
 };
 
 describe('hasRenderableThreadState', () => {
+  it('is empty when every source is empty', () => {
+    expect(hasRenderableThreadState(EMPTY)).toBe(false);
+  });
+
   it.each<[keyof RenderableThreadStateInput, number | boolean]>([
     ['messageCount', 1],
     ['hasLatestProposedPlan', true],
@@ -28,5 +32,17 @@ describe('hasRenderableThreadState', () => {
     ['streamingReasoningLength', 1],
   ])('renders when %s is set', (key, value) => {
     expect(hasRenderableThreadState({ ...EMPTY, [key]: value })).toBe(true);
+  });
+
+  it('keeps a pending generation card on screen before it is folded into a message', () => {
+    // First prompt: the stream ended, the card arrived via tool_complete, and
+    // the assistant message has not been appended yet — never show empty state.
+    expect(
+      hasRenderableThreadState({
+        ...EMPTY,
+        isStreaming: false,
+        pendingUiActionCount: 1,
+      }),
+    ).toBe(true);
   });
 });

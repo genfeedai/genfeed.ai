@@ -144,6 +144,33 @@ describe('system workflow metadata contract', () => {
     });
   }
 
+  it('normalizes duplicate metadata stored before upgrade tracking', () => {
+    const legacyDuplicate = {
+      canonicalId: 'scheduled-post-publishing',
+      credentialPolicy: 'tenant-connected-account',
+      duplicatedAt: '2026-07-01T12:00:00.000Z',
+      productizationIssue: 1011,
+      sourceIssue: 1029,
+      sourceWorkflowId: 'workflow-source-1',
+    };
+
+    expect(
+      getSystemWorkflowDuplicateMetadata({
+        duplicatedFromSystemWorkflow: legacyDuplicate,
+      }),
+    ).toEqual({
+      ...legacyDuplicate,
+      currentSystemWorkflowChangeSummary:
+        SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+      currentSystemWorkflowVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+      sourceWorkflowChangeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+      sourceWorkflowVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+      upgradeEligible: false,
+      upgradePolicy: 'manual',
+      upgradeStatus: 'current',
+    });
+  });
+
   it('normalizes legacy identity-only duplicate metadata', () => {
     expect(
       getSystemWorkflowDuplicateMetadata({

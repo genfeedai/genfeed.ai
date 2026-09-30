@@ -86,6 +86,17 @@ describe('ComfyUIService', () => {
       const result = await service.ping();
       expect(result).toBe(false);
     });
+
+    it.each([201, 204, 503])(
+      'should return false on status %s',
+      async (status) => {
+        httpGetMock.mockReturnValue(of({ data: {}, status }));
+
+        const result = await service.ping();
+        // ping only checks status === 200
+        expect(result).toBe(false);
+      },
+    );
   });
 
   describe('generateImage', () => {
@@ -164,6 +175,16 @@ describe('ComfyUIService', () => {
       expect(httpGetMock).toHaveBeenCalledWith(
         `${COMFYUI_URL}/history/${promptId}`,
       );
+    });
+
+    it.each([201, 400])('should reject queue status %s', async (status) => {
+      httpPostMock.mockReturnValueOnce(of({ data: {}, status }));
+
+      await expect(
+        service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+          prompt: 'fail',
+        }),
+      ).rejects.toThrow(`ComfyUI /prompt failed (${status})`);
     });
 
     it.each(['history', 'view'])(

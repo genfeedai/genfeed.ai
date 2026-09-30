@@ -1,7 +1,8 @@
 import { ReplicateVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/replicate-video-generation-provider.adapter';
 import type { DispatchVideoGenerationParams } from '@api/collections/videos/services/video-generation.types';
+import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
-import { ErrorCode } from '@genfeedai/contracts';
+import { AgentFailureReason, ErrorCode } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
@@ -95,5 +96,53 @@ describe('ReplicateVideoGenerationProviderAdapter Hailuo first-frame', () => {
       promptParams,
       undefined,
     );
+  });
+
+  it('forwards a resolved BYOK apiKeyOverride to the Replicate dispatch call (#5294)', async () => {
+    const replicateService = {
+      generateTextToVideo: vi.fn().mockResolvedValue('pred_byok'),
+    };
+    const adapter = new ReplicateVideoGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+    const promptParams = {
+      first_frame_image: 'https://cdn.example.com/first-frame.jpg',
+      prompt: 'A cinematic product reveal',
+    };
+
+    await adapter.generate(
+      buildParams({ apiKeyOverride: 'org-replicate-key', promptParams }),
+    );
+
+    expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+      MODEL_KEYS.REPLICATE_MINIMAX_HAILUO_2_3_FAST,
+      promptParams,
+      'org-replicate-key',
+    );
+  });
+
+  it('propagates a typed insufficient-credit error from runModel unchanged', async () => {
+    const providerError = new ReplicateProviderError(
+      AgentFailureReason.INSUFFICIENT_CREDITS,
+      'Replicate rejected the request due to insufficient credit.',
+      { isRetryable: false, statusCode: 402 },
+    );
+    const replicateService = {
+      generateTextToVideo: vi.fn().mockRejectedValue(providerError),
+    };
+    const adapter = new ReplicateVideoGenerationProviderAdapter(
+      replicateService as unknown as ReplicateService,
+    );
+
+    await expect(
+      adapter.generate(
+        buildParams({
+          promptParams: {
+            first_frame_image: 'https://cdn.example.com/first-frame.jpg',
+            prompt: 'A cinematic product reveal',
+          },
+        }),
+      ),
+    ).rejects.toBe(providerError);
   });
 });

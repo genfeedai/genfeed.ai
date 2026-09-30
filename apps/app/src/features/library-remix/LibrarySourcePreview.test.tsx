@@ -58,6 +58,22 @@ function ingredient(
 }
 
 describe('LibrarySourcePreview', () => {
+  it('loads image media lazily', () => {
+    render(
+      <LibrarySourcePreview
+        record={ingredient(
+          IngredientCategory.IMAGE,
+          'https://cdn.example/image.jpg',
+        )}
+      />,
+    );
+
+    expect(screen.getByRole('img', { name: 'image source' })).toHaveAttribute(
+      'data-loading',
+      'lazy',
+    );
+  });
+
   it('preloads video metadata without autoplay', () => {
     render(
       <LibrarySourcePreview

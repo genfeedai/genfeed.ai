@@ -3,6 +3,15 @@ import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContain
 import { describe, expect, it } from 'vitest';
 
 describe('PromptBarContainer', () => {
+  it('should render without crashing', () => {
+    const { container } = render(
+      <PromptBarContainer>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
   it('should use fixed mode by default', () => {
     const { container } = render(
       <PromptBarContainer>
@@ -82,6 +91,17 @@ describe('PromptBarContainer', () => {
     expect(topStack).toHaveTextContent('banner');
   });
 
+  it('leaves the prompt slot transparent so the glass surface can sample the canvas', () => {
+    const { container } = render(
+      <PromptBarContainer>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const block = container.querySelector('[data-composer-bg-block]');
+    expect(block).not.toBeInTheDocument();
+  });
+
   it('does not insert opaque blocks between attached content and the prompt bar', () => {
     const { container } = render(
       <PromptBarContainer topContent={<div>banner</div>}>
@@ -119,5 +139,16 @@ describe('PromptBarContainer', () => {
     expect(fade?.className).toContain('to-transparent');
     expect(fade?.className).not.toContain('h-28');
     expect(fade?.className).not.toContain('via-background/55');
+  });
+
+  it('does not paint a dark block below the prompt', () => {
+    const { container } = render(
+      <PromptBarContainer showTopFade>
+        <div>content</div>
+      </PromptBarContainer>,
+    );
+
+    const scrim = container.querySelector('[data-composer-bottom-scrim]');
+    expect(scrim).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,28 @@ import {
 } from './action-node';
 
 describe('createExecutableActionNode', () => {
+  it('builds the one action-backed executable node envelope', () => {
+    expect(
+      createExecutableActionNode({
+        actionId: 'videoGen',
+        id: 'video',
+        inputs: ['prompt'],
+        isLocked: false,
+        parameters: { duration: 8 },
+      }),
+    ).toEqual({
+      config: {
+        actionId: 'videoGen',
+        parameters: { duration: 8 },
+      },
+      id: 'video',
+      inputs: ['prompt'],
+      isLocked: false,
+      label: 'Generate Video',
+      type: 'genfeedAction',
+    });
+  });
+
   it('fails closed for an action absent from the shared catalog', () => {
     expect(() =>
       createExecutableActionNode({
@@ -30,6 +52,18 @@ describe('createExecutableActionNode', () => {
         type: 'delay',
       }),
     ).toBe('delay');
+  });
+
+  it('rejects raw product nodes instead of treating their type as an action', () => {
+    expect(() =>
+      getExecutableNodeOperationId({
+        config: {},
+        id: 'legacy-video',
+        inputs: [],
+        label: 'Legacy video',
+        type: 'generateVideo',
+      }),
+    ).toThrow('must use the Genfeed action envelope');
   });
 
   it('rejects action envelopes whose catalog identity is unknown', () => {

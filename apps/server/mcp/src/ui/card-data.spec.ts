@@ -165,4 +165,17 @@ describe('MCP Apps card contract', () => {
   ])('rejects unsafe URLs: %s', (value) => {
     expect(safeCardUrl(value)).toBeUndefined();
   });
+
+  it('restricts media CSP to configured origins with no API connectivity', () => {
+    expect(
+      cardResource([
+        'https://media.example.com/path',
+        'https://media.example.com/other',
+        'javascript:bad',
+      ])._meta.ui.csp,
+    ).toEqual({
+      connectDomains: [],
+      resourceDomains: ['https://media.example.com'],
+    });
+  });
 });

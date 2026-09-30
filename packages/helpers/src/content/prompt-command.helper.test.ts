@@ -5,6 +5,22 @@ import { extractRequestedSkillSlugs } from './prompt-command.helper';
 const SLUGS = ['brand-interview', 'cinematic-prompting', 'model-selector'];
 
 describe('extractRequestedSkillSlugs', () => {
+  it('returns the prompt untouched when nothing was picked', () => {
+    expect(extractRequestedSkillSlugs('write me a post', SLUGS)).toEqual({
+      content: 'write me a post',
+      skillSlugs: [],
+    });
+  });
+
+  it('strips a picked skill off the front of the prompt', () => {
+    expect(
+      extractRequestedSkillSlugs('/brand-interview grill me on voice', SLUGS),
+    ).toEqual({
+      content: 'grill me on voice',
+      skillSlugs: ['brand-interview'],
+    });
+  });
+
   it('collects several picked skills in the order they were typed', () => {
     expect(
       extractRequestedSkillSlugs(

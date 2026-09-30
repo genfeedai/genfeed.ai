@@ -82,6 +82,25 @@ describe('LocalStorageProvider path containment', () => {
       expect(mockWriteFile).not.toHaveBeenCalled();
       expect(mockMkdir).not.toHaveBeenCalled();
     });
+
+    it('writes inside the storage root for an ordinary path', async () => {
+      await provider.upload(Buffer.from('payload'), 'nested/ok.txt');
+
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        `${BASE_DIR}/nested/ok.txt`,
+        expect.any(Buffer),
+      );
+    });
+  });
+
+  describe('uploadFromFile', () => {
+    it.each(ESCAPING_PATHS)('rejects %s', async (filePath) => {
+      await expect(
+        provider.uploadFromFile(filePath, '/tmp/source.txt', '/tmp'),
+      ).rejects.toThrow(/must stay within/);
+
+      expect(mockCopyFile).not.toHaveBeenCalled();
+    });
   });
 
   describe('download', () => {
@@ -110,6 +129,12 @@ describe('LocalStorageProvider path containment', () => {
 
       expect(mockUnlink).not.toHaveBeenCalled();
     });
+
+    it('unlinks inside the storage root for an ordinary path', async () => {
+      await provider.delete('nested/ok.txt');
+
+      expect(mockUnlink).toHaveBeenCalledWith(`${BASE_DIR}/nested/ok.txt`);
+    });
   });
 
   describe('list', () => {
@@ -117,6 +142,14 @@ describe('LocalStorageProvider path containment', () => {
       await expect(provider.list(prefix)).rejects.toThrow(/must stay within/);
 
       expect(mockReaddir).not.toHaveBeenCalled();
+    });
+
+    it('reads the resolved directory for an ordinary prefix', async () => {
+      await provider.list('images');
+
+      expect(mockReaddir).toHaveBeenCalledWith(`${BASE_DIR}/images`, {
+        withFileTypes: true,
+      });
     });
   });
 
@@ -180,6 +213,15 @@ describe('LocalStorageProvider rooted at the desktop userData directory', () => 
 
     expect(mockWriteFile).toHaveBeenCalledWith(
       `${USER_DATA_BASE_DIR}/ingredients/images/photo.png`,
+      expect.any(Buffer),
+    );
+  });
+
+  it('writes inside the userData root for an ordinary path', async () => {
+    await provider.upload(Buffer.from('payload'), 'ingredients/photo.png');
+
+    expect(mockWriteFile).toHaveBeenCalledWith(
+      `${USER_DATA_BASE_DIR}/ingredients/photo.png`,
       expect.any(Buffer),
     );
   });

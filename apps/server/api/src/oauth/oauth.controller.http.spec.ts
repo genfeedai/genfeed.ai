@@ -148,6 +148,19 @@ describe('OAuth endpoints real HTTP pipeline', () => {
       expect(result.headers['cache-control']).toBe('no-store');
     });
 
+    it('ignores unrecognized client metadata instead of rejecting it (RFC 7591 §2)', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/oauth/register')
+        .send({
+          client_uri: 'https://cursor.com',
+          logo_uri: 'https://cursor.com/logo.png',
+          redirect_uris: [CURSOR_REDIRECT],
+          scope: 'mcp',
+          software_id: 'cursor-mcp',
+        })
+        .expect(201);
+    });
+
     it('rejects an unsafe redirect with an RFC 7591 body, not JSON:API', async () => {
       const result = await request(app.getHttpServer())
         .post('/v1/oauth/register')
@@ -159,6 +172,18 @@ describe('OAuth endpoints real HTTP pipeline', () => {
         error_description: 'Redirect URI scheme "javascript" is not allowed',
       });
       expect(result.headers['cache-control']).toBe('no-store');
+    });
+
+    it('reports a malformed body as invalid_client_metadata', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/register')
+        .send({ client_name: 'No redirects' })
+        .expect(400);
+
+      expect(result.body).toEqual({
+        error: 'invalid_client_metadata',
+        error_description: expect.stringContaining('redirect_uris'),
+      });
     });
 
     it('answers the rate limiter with an OAuth error and Retry-After (#4951)', async () => {
@@ -174,6 +199,15 @@ describe('OAuth endpoints real HTTP pipeline', () => {
         error_description: expect.stringContaining('retry after 60 seconds'),
       });
       expect(result.headers['retry-after']).toBe('60');
+    });
+
+    it('allows the raised per-IP budget for shared hosted-client egress (#4951)', async () => {
+      rateLimitCache.incr.mockResolvedValue(60);
+
+      await request(app.getHttpServer())
+        .post('/v1/oauth/register')
+        .send({ redirect_uris: [CURSOR_REDIRECT] })
+        .expect(201);
     });
   });
 
@@ -309,6 +343,16 @@ describe('OAuth endpoints real HTTP pipeline', () => {
       });
     });
 
+    it('matches OAuth paths case-insensitively, like Express routing', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/OAuth/Register')
+        .set('Content-Type', 'application/json')
+        .send('{')
+        .expect(400);
+
+      expect(result.body.error).toBe('invalid_client_metadata');
+    });
+
     it('keeps an oversized body a 413 client error, not a 500', async () => {
       const result = await request(app.getHttpServer())
         .post('/v1/oauth/register')
@@ -356,6 +400,15 @@ describe('OAuth endpoints real HTTP pipeline', () => {
         ).toBeUndefined();
       },
     );
+
+    it('keeps the session-bearing consent decision on the credentialed allowlist', async () => {
+      const result = await request(app.getHttpServer())
+        .options('/v1/oauth/authorize/decision')
+        .set('Origin', 'https://inspector.example.dev')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(result.headers['access-control-allow-origin']).toBeUndefined();
+    });
 
     it('still admits the Genfeed app origin with credentials elsewhere', async () => {
       const result = await request(app.getHttpServer())

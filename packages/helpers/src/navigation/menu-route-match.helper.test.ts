@@ -2,6 +2,16 @@ import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.he
 import { describe, expect, it } from 'vitest';
 
 describe('matchesMenuSearchParams', () => {
+  it('matches declared navigation filters while ignoring unrelated params', () => {
+    const params = new URLSearchParams(
+      'publicationState=posted&platform=linkedin&taskId=task-1',
+    );
+
+    expect(
+      matchesMenuSearchParams(params, { publicationState: 'posted' }),
+    ).toBe(true);
+  });
+
   it('supports an explicit absent-parameter contract', () => {
     expect(
       matchesMenuSearchParams(new URLSearchParams('search=launch'), {

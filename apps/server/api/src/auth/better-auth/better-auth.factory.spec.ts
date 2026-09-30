@@ -513,6 +513,19 @@ describe('buildBetterAuthUserDatabaseHooks', () => {
 });
 
 describe('assertSignupMagicLinkCanCreateUser', () => {
+  it('does not query for normal login magic links', async () => {
+    const prisma = createPrismaMock();
+
+    await expect(
+      assertSignupMagicLinkCanCreateUser({
+        email: 'existing@example.com',
+        prisma: prisma as unknown as PrismaForBetterAuth,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+  });
+
   it('allows signup magic links for emails without an active user', async () => {
     const prisma = createPrismaMock();
     prisma.user.findFirst.mockResolvedValue(null);
@@ -598,6 +611,12 @@ describe('buildRateLimitStorage', () => {
     expect(call.key).toBe('ba:ratelimit:ip:1.2.3.4');
     expect(call.value).toBe(JSON.stringify(sampleRateLimit));
     expect(call.ttlSeconds).toBe(RATE_LIMIT_TTL_SECONDS);
+  });
+
+  it('returns null when the counter is absent (fail-open path)', async () => {
+    const storage = buildRateLimitStorage(createFakeRateLimitStore());
+
+    expect(await storage.get('missing')).toBeNull();
   });
 });
 

@@ -6,8 +6,12 @@ import {
   type ReactNode,
 } from 'react';
 import { describe, expect, it } from 'vitest';
-import UseCasesPage, { generateMetadata, generateStaticParams } from './page';
-import { formatUseCaseSlug } from './use-case-loader';
+import UseCasesPage, {
+  buildUseCaseBreadcrumbJsonLd,
+  generateMetadata,
+  generateStaticParams,
+} from './page';
+import { formatUseCaseSlug, getUseCaseBySlugCached } from './use-case-loader';
 
 const EMPTY_PARENT = Promise.resolve({}) as unknown as Parameters<
   typeof generateMetadata
@@ -28,12 +32,48 @@ function readJsonLdScripts(element: ReactNode): unknown[] {
     .map((script) => JSON.parse(String(script.props.children)));
 }
 
+describe('formatUseCaseSlug', () => {
+  it('title-cases every dash-separated word', () => {
+    expect(formatUseCaseSlug('social-media-managers')).toBe(
+      'Social Media Managers',
+    );
+  });
+
+  it('leaves a single word capitalised', () => {
+    expect(formatUseCaseSlug('agencies')).toBe('Agencies');
+  });
+});
+
+describe('getUseCaseBySlugCached', () => {
+  it('resolves a known slug and returns undefined for an unknown one', async () => {
+    await expect(getUseCaseBySlugCached(KNOWN_SLUG)).resolves.toBeTruthy();
+    await expect(getUseCaseBySlugCached('nope')).resolves.toBeUndefined();
+  });
+});
+
 describe('generateStaticParams', () => {
   it('emits one param entry per use-case slug', () => {
     const slugs = getAllUseCaseSlugs();
 
     expect(slugs.length).toBeGreaterThan(0);
     expect(generateStaticParams()).toEqual(slugs.map((slug) => ({ slug })));
+  });
+});
+
+describe('buildUseCaseBreadcrumbJsonLd', () => {
+  it('links home then the audience page', () => {
+    const jsonLd = buildUseCaseBreadcrumbJsonLd(
+      'Agencies',
+      'https://genfeed.ai/use-cases/agencies',
+    ) as { itemListElement: Array<{ item: string; name: string }> };
+
+    expect(jsonLd.itemListElement).toEqual([
+      expect.objectContaining({ item: 'https://genfeed.ai', name: 'Home' }),
+      expect.objectContaining({
+        item: 'https://genfeed.ai/use-cases/agencies',
+        name: 'For Agencies',
+      }),
+    ]);
   });
 });
 

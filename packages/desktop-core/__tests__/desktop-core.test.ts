@@ -79,8 +79,20 @@ describe('workspace path builders', () => {
 describe('resolvePathInsideRoot', () => {
   const root = path.join(path.sep, 'workspaces', 'acme');
 
+  it('resolves a relative path inside the root', () => {
+    expect(resolvePathInsideRoot(root, 'notes/todo.md')).toBe(
+      path.join(root, 'notes', 'todo.md'),
+    );
+  });
+
   it('returns the root itself for "."', () => {
     expect(resolvePathInsideRoot(root, '.')).toBe(root);
+  });
+
+  it('throws when the path escapes the root via ..', () => {
+    expect(() => resolvePathInsideRoot(root, '../outside.txt')).toThrow(
+      'Path escapes workspace root',
+    );
   });
 
   it('throws for sibling directories sharing the root prefix', () => {

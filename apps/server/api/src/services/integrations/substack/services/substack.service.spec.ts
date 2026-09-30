@@ -67,6 +67,34 @@ describe('SubstackService', () => {
     });
   });
 
+  it('throws BadRequestException for http:// webhook urls', async () => {
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookUrl: 'http://hooks.example.com/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException for private IPv4 webhook urls', async () => {
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookUrl: 'https://127.0.0.1:3000/hook',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('throws BadRequestException for AWS metadata endpoint 169.254.169.254', async () => {
     const service = new SubstackService(
       { post: vi.fn() } as never,
@@ -77,6 +105,23 @@ describe('SubstackService', () => {
       service.deliverDraftWebhook({
         payload: { event: 'newsletter.draft.ready' },
         webhookUrl: 'https://169.254.169.254/latest/meta-data/',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('throws BadRequestException when Authorization header is supplied', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+
+    const service = new SubstackService(
+      { post: vi.fn() } as never,
+      { error: vi.fn() } as never,
+    );
+
+    await expect(
+      service.deliverDraftWebhook({
+        payload: { event: 'newsletter.draft.ready' },
+        webhookHeaders: { Authorization: 'Bearer token' },
+        webhookUrl: 'https://hooks.example.com/hook',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });

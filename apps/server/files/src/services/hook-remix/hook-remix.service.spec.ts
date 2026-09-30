@@ -1,3 +1,5 @@
+import path from 'node:path';
+import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { HookRemixService } from '@files/services/hook-remix/hook-remix.service';
 import { UploadService } from '@files/services/upload/upload.service';
@@ -29,6 +31,16 @@ global.fetch = vi.fn();
 describe('HookRemixService', () => {
   let service: HookRemixService;
   let ytDlpService: { downloadVideo: ReturnType<typeof vi.fn> };
+  let ffmpegService: {
+    concatenateVideos: ReturnType<typeof vi.fn>;
+    trimVideo: ReturnType<typeof vi.fn>;
+  };
+  let uploadService: { uploadToS3: ReturnType<typeof vi.fn> };
+  let logger: {
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
 
   const baseJobData = {
     ctaVideoUrl: 'https://cdn.example.com/cta.mp4',
@@ -82,9 +94,9 @@ describe('HookRemixService', () => {
 
     service = module.get(HookRemixService);
     ytDlpService = module.get(YtDlpService);
-    module.get(FFmpegService);
-    module.get(UploadService);
-    module.get(LoggerService);
+    ffmpegService = module.get(FFmpegService);
+    uploadService = module.get(UploadService);
+    logger = module.get(LoggerService);
 
     (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
       arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(8)),
@@ -96,13 +108,74 @@ describe('HookRemixService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('processHookRemix', () => {
+    it('downloads the source YouTube video', async () => {
+      await service.processHookRemix(baseJobData);
+      expect(ytDlpService.downloadVideo).toHaveBeenCalledWith(
+        baseJobData.youtubeUrl,
+        path.join(
+          FILES_TMP_ROOT,
+          'hook-remix',
+          baseJobData.jobId,
+          'source.mp4',
+        ),
+      );
+    });
+
     it('rejects a traversal job ID before touching the filesystem', async () => {
       await expect(
         service.processHookRemix({ ...baseJobData, jobId: '../escape' }),
       ).rejects.toThrow(BadRequestException);
 
       expect(ytDlpService.downloadVideo).not.toHaveBeenCalled();
+    });
+
+    it('accepts a legitimate job ID under the fixed nested root', async () => {
+      await service.processHookRemix(baseJobData);
+
+      expect(ytDlpService.downloadVideo).toHaveBeenCalledWith(
+        baseJobData.youtubeUrl,
+        path.join(
+          FILES_TMP_ROOT,
+          'hook-remix',
+          baseJobData.jobId,
+          'source.mp4',
+        ),
+      );
+    });
+
+    it('trims video to specified hook duration', async () => {
+      await service.processHookRemix(baseJobData);
+      expect(ffmpegService.trimVideo).toHaveBeenCalledWith(
+        expect.stringContaining('source.mp4'),
+        expect.stringContaining('hook.mp4'),
+        0,
+        baseJobData.hookDurationSeconds,
+      );
+    });
+
+    it('concatenates hook and CTA clips', async () => {
+      await service.processHookRemix(baseJobData);
+      expect(ffmpegService.concatenateVideos).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.stringContaining('hook.mp4'),
+          expect.stringContaining('cta.mp4'),
+        ]),
+        expect.stringContaining('output.mp4'),
+      );
+    });
+
+    it('uploads the final video to S3', async () => {
+      await service.processHookRemix(baseJobData);
+      expect(uploadService.uploadToS3).toHaveBeenCalledWith(
+        `${baseJobData.organizationId}/hook-remix/${baseJobData.jobId}.mp4`,
+        'hook-remix',
+        expect.objectContaining({ type: 'file' }),
+      );
     });
 
     it('returns success result with S3 URL', async () => {
@@ -129,6 +202,15 @@ describe('HookRemixService', () => {
       const result = await service.processHookRemix(baseJobData);
       expect(result.success).toBe(false);
       expect(result.error).toContain('Failed to download CTA clip');
+    });
+
+    it('logs error when processing fails', async () => {
+      ytDlpService.downloadVideo.mockRejectedValue(new Error('Timeout'));
+      await service.processHookRemix(baseJobData);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('[HookRemix] Failed'),
+        expect.any(Error),
+      );
     });
   });
 });

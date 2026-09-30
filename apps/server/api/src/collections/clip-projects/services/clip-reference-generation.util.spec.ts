@@ -101,6 +101,20 @@ describe('clip reference generation policy', () => {
     );
   });
 
+  it.each(['argil', 'did', 'tavus', 'musetalk'] as const)(
+    'blocks strict reference use for unsupported avatar provider %s',
+    (provider) => {
+      expect(() =>
+        resolveSelectedClipReference({
+          mode: 'avatar',
+          policy: 'strict',
+          project: makeProject(),
+          provider,
+        }),
+      ).toThrow(BadRequestException);
+    },
+  );
+
   it('blocks unsupported strict raw-cut requests', () => {
     expect(() =>
       resolveSelectedClipReference({

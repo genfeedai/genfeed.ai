@@ -374,6 +374,17 @@ describe('LoginPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('unsubscribes from desktop session changes on unmount', () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const { unmount } = render(<LoginPage />);
+
+    expect(desktopRuntimeMocks.onDidChangeSession).toHaveBeenCalledOnce();
+
+    unmount();
+
+    expect(desktopRuntimeMocks.unsubscribe).toHaveBeenCalledOnce();
+  });
+
   it('navigates only after the Better Auth browser session is confirmed', async () => {
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
     window.history.replaceState(
@@ -505,6 +516,20 @@ describe('LoginPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('starts Google sign-in with the default callback URL', async () => {
+    render(<LoginPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/'),
+        errorCallbackURL: `${window.location.origin}/login`,
+        provider: 'google',
+      });
+    });
+  });
+
   it('preserves callbackUrl when starting Google sign-in', async () => {
     window.history.replaceState({}, '', '/login?return_to=%2Fonboarding');
 
@@ -552,6 +577,28 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Check your email')).toBeInTheDocument();
   });
 
+  it('preserves callbackUrl when requesting a magic link', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/login/magic-link?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+
+    render(<LoginBetterAuth mode="magic-link" />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'cli@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/oauth/cli?port=4321'),
+        email: 'cli@example.com',
+      });
+    });
+  });
+
   it('submits the email password page form', async () => {
     render(<LoginBetterAuth mode="password" />);
 
@@ -570,5 +617,22 @@ describe('LoginPage', () => {
         password: 'correct horse battery staple',
       });
     });
+  });
+
+  it('links password sign-in users to forgot password with callbackUrl preserved', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/login/password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+
+    render(<LoginBetterAuth mode="password" />);
+
+    expect(
+      screen.getByRole('link', { name: 'Forgot password?' }),
+    ).toHaveAttribute(
+      'href',
+      '/forgot-password?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
   });
 });

@@ -89,4 +89,20 @@ describe('PostsRetryController', () => {
     expect(postsService.findOne).not.toHaveBeenCalled();
     expect(postsService.patch).not.toHaveBeenCalled();
   });
+
+  it('allows API-key retry with the schedule scope', async () => {
+    const post = { id: postId };
+    postRetryService.retryPost.mockResolvedValue(post);
+
+    await controller.retryPost(request, postId, {
+      ...user,
+      isApiKey: true,
+      scopes: [ApiKeyScope.POSTS_SCHEDULE],
+    } as User);
+
+    expect(postRetryService.retryPost).toHaveBeenCalledWith(
+      postId,
+      organizationId,
+    );
+  });
 });

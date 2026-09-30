@@ -70,4 +70,26 @@ describe('SkillFilters', () => {
 
     expect(onSearchQueryChange).toHaveBeenCalledWith('script');
   });
+
+  it('calls onRefresh when the refresh button is clicked', () => {
+    const onRefresh = vi.fn();
+    render(
+      <SkillFilters
+        agentHref="/acme-org/acme-creator/agent"
+        modalityFilter="all"
+        onModalityFilterChange={vi.fn()}
+        onRefresh={onRefresh}
+        onSearchQueryChange={vi.fn()}
+        onSourceFilterChange={vi.fn()}
+        onStageFilterChange={vi.fn()}
+        searchQuery=""
+        sourceFilter="all"
+        stageFilter="all"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
+
+    expect(onRefresh).toHaveBeenCalled();
+  });
 });

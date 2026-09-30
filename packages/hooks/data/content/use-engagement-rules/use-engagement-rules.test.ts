@@ -64,6 +64,12 @@ describe('useEngagementRules', () => {
     expect(mockGetService).not.toHaveBeenCalled();
   });
 
+  it('does not fetch without a post group and target', () => {
+    renderHook(() => useEngagementRules(), { wrapper: createQueryWrapper() });
+
+    expect(mockGetService).not.toHaveBeenCalled();
+  });
+
   it('refresh triggers a refetch', async () => {
     const { result } = renderHook(
       () =>

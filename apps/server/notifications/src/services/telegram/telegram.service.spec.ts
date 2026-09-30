@@ -71,7 +71,21 @@ describe('TelegramService', () => {
     shouldThrowOnConstruct = false;
   });
 
+  it('should be defined', async () => {
+    const service = await createService({ isEnabled: false });
+    expect(service).toBeDefined();
+  });
+
   describe('initialization', () => {
+    it('should log when Telegram is not enabled', async () => {
+      await createService({ isEnabled: false });
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('skipping initialization'),
+        expect.any(Object),
+      );
+    });
+
     it('should warn when enabled but token is missing', async () => {
       await createService({
         isEnabled: true,
@@ -80,6 +94,18 @@ describe('TelegramService', () => {
 
       expect(mockLoggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('TELEGRAM_BOT_TOKEN is missing'),
+        expect.any(Object),
+      );
+    });
+
+    it('should initialize bot when enabled with a token', async () => {
+      await createService({
+        isEnabled: true,
+        values: { TELEGRAM_BOT_TOKEN: 'bot-token' },
+      });
+
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('initialized'),
         expect.any(Object),
       );
     });
@@ -101,6 +127,11 @@ describe('TelegramService', () => {
   });
 
   describe('isAdmin', () => {
+    it('should return true for admin users', async () => {
+      const service = await createService({ isEnabled: false });
+      expect(service.isAdmin(123)).toBe(true);
+    });
+
     it('should return false for non-admin users', async () => {
       const service = await createService({ isEnabled: false });
       expect(service.isAdmin(999)).toBe(false);

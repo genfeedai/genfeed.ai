@@ -50,6 +50,19 @@ describe('AssetDeepLink', () => {
     mocks.findOne.mockResolvedValue(ingredient);
   });
 
+  it('opens the exact asset in the current brand and aborts on unmount', async () => {
+    const { unmount } = render(<AssetDeepLink />);
+    await waitFor(() => expect(mocks.open).toHaveBeenCalledWith(ingredient));
+    expect(mocks.findOne).toHaveBeenCalledWith(
+      'asset-1',
+      {},
+      expect.any(AbortSignal),
+    );
+    const signal = mocks.findOne.mock.calls[0][2];
+    unmount();
+    expect(signal.aborted).toBe(true);
+  });
+
   it.each([
     { ...ingredient, brandId: 'other-brand' },
     { ...ingredient, organizationId: 'other-org' },

@@ -15,6 +15,18 @@ describe('GenerateAssetDto', () => {
     text: 'Create a logo about SQL',
   };
 
+  it('accepts free text and strips unknown query-shaped properties', async () => {
+    await expect(
+      pipe.transform(
+        {
+          ...validBody,
+          where: { $or: [] },
+        },
+        metadata,
+      ),
+    ).resolves.toEqual(validBody);
+  });
+
   it.each([
     { text: { $ne: null } },
     { text: ['Create a logo'] },
@@ -29,5 +41,16 @@ describe('GenerateAssetDto', () => {
     await expect(
       pipe.transform({ ...validBody, ...invalid }, metadata),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('should be defined', () => {
+    expect(GenerateAssetDto).toBeDefined();
+  });
+
+  describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new GenerateAssetDto();
+      expect(dto).toBeInstanceOf(GenerateAssetDto);
+    });
   });
 });

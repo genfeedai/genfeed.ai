@@ -124,6 +124,27 @@ describe('SignUpForm', () => {
     ).toBeNull();
   });
 
+  it('preserves sign-up handoff params when linking to the magic-link screen', () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/sign-up?plan=pro&callbackUrl=%2Fonboarding',
+    );
+
+    render(<SignUpForm />);
+
+    expect(screen.getByRole('link', { name: 'Magic Link' })).toHaveAttribute(
+      'href',
+      '/sign-up/magic-link?plan=pro&callbackUrl=%2Fonboarding',
+    );
+  });
+
+  it('focuses the email input on the magic-link screen', () => {
+    render(<SignUpBetterAuth mode="magic-link" />);
+
+    expect(getEmailInput()).toHaveFocus();
+  });
+
   it('sends a sign-up magic link with signup metadata and the callback URL', async () => {
     window.history.replaceState({}, '', '/sign-up?callbackUrl=%2Fonboarding');
 
@@ -151,6 +172,55 @@ describe('SignUpForm', () => {
       },
     );
     expect(await screen.findByText('Check your email')).toBeInTheDocument();
+  });
+
+  it('defaults sign-up magic links to post-signup with handoff params', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/sign-up?plan=payg&brandDomain=https://www.acme.co&brandName=Acme',
+    );
+
+    render(<SignUpBetterAuth mode="magic-link" />);
+
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'new@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(
+          '/onboarding/post-signup?plan=payg&brandDomain=acme.co&brandName=Acme',
+        ),
+        email: 'new@example.com',
+        metadata: { intent: 'signup' },
+      });
+    });
+  });
+
+  it('preserves an opaque Brand OS token in the post-signup callback only', async () => {
+    const token = 'a'.repeat(43);
+    window.history.replaceState(
+      {},
+      '',
+      `/sign-up/magic-link?brandOsToken=${token}`,
+    );
+    render(<SignUpBetterAuth mode="magic-link" />);
+    fireEvent.change(getEmailInput(), {
+      target: { value: 'brand@example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send link' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.magicLink).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback(
+          `/onboarding/post-signup?brandOsToken=${token}`,
+        ),
+        email: 'brand@example.com',
+        metadata: { intent: 'signup' },
+      });
+    });
   });
 
   it('persists cloud handoff query params into onboarding localStorage keys', async () => {
@@ -182,6 +252,57 @@ describe('SignUpForm', () => {
     );
     expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.source)).toBe(
       'oss-onboarding',
+    );
+  });
+
+  it('starts Google sign-up with the callback URL, and does not count the free payg handoff as plan intent', async () => {
+    window.history.replaceState({}, '', '/sign-up?plan=payg');
+
+    render(<SignUpForm />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/onboarding/post-signup?plan=payg'),
+        provider: 'google',
+      });
+    });
+    // genfeedai/genfeed.ai#4969: `?plan=payg` is the free pay-as-you-go
+    // handoff, not a paid plan — it must never count as plan intent, or the
+    // signup->checkout funnel alert skews toward a near-zero conversion rate.
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: false,
+        method: 'google',
+      },
+    );
+  });
+
+  it('counts a real paid plan handoff as plan intent (genfeedai/genfeed.ai#4969)', async () => {
+    window.history.replaceState({}, '', '/sign-up?plan=hosted');
+
+    render(<SignUpForm />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Google' }));
+
+    await waitFor(() => {
+      expect(authClientMocks.social).toHaveBeenCalledWith({
+        callbackURL: absoluteCallback('/onboarding/post-signup?plan=hosted'),
+        provider: 'google',
+      });
+    });
+    expect(authClientMocks.captureAnalyticsEvent).toHaveBeenCalledWith(
+      'signup_started',
+      {
+        hasCloudHandoff: false,
+        hasCreditsIntent: false,
+        hasPlanIntent: true,
+        method: 'google',
+      },
     );
   });
 

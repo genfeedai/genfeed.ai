@@ -71,6 +71,10 @@ describe('AgentMemoryCaptureService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('capture', () => {
     it('always creates a memory record and returns it', async () => {
       const result = await service.capture(userId, orgId, {
@@ -104,6 +108,16 @@ describe('AgentMemoryCaptureService', () => {
           scope: KnowledgeMemoryScope.BRAND,
         }),
       );
+    });
+
+    it('does not write brand insight when brandId is absent', async () => {
+      await service.capture(userId, orgId, {
+        content: 'No brand',
+        kind: 'winner',
+        scope: KnowledgeMemoryScope.BRAND,
+      });
+
+      expect(brandMemoryService.addInsight).not.toHaveBeenCalled();
     });
 
     it('writes brand insight when brandId + scope=brand is provided', async () => {

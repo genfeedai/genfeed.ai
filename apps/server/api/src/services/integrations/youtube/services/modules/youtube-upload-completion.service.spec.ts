@@ -52,6 +52,18 @@ describe('YoutubeUploadCompletionService', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('should subscribe to youtube:upload:complete on module init', async () => {
+    await service.onModuleInit();
+    expect(redisService.subscribe).toHaveBeenCalledWith(
+      'youtube:upload:complete',
+      expect.any(Function),
+    );
+  });
+
   it('should update post status to PUBLIC when status is "public"', async () => {
     await service.onModuleInit();
 
@@ -89,6 +101,90 @@ describe('YoutubeUploadCompletionService', () => {
         url: 'https://youtube.com/watch?v=yt-vid-1',
       }),
     );
+  });
+
+  it('should update post status to PRIVATE when status is "private"', async () => {
+    await service.onModuleInit();
+
+    const data = {
+      organizationId: 'org-1',
+      postId: 'post-456',
+      result: {
+        externalId: 'yt-vid-2',
+        videoUrl: 'https://youtube.com/watch?v=yt-vid-2',
+      },
+      status: 'private',
+      timestamp: new Date().toISOString(),
+      userId: 'user-1',
+    };
+
+    await capturedHandler(data);
+
+    await vi.waitFor(() => {
+      expect(postsService.patch).toHaveBeenCalledWith(
+        'post-456',
+        expect.objectContaining({
+          externalId: 'yt-vid-2',
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.PRIVATE,
+        }),
+      );
+    });
+  });
+
+  it('should update post status to UNLISTED when status is "unlisted"', async () => {
+    await service.onModuleInit();
+
+    const data = {
+      organizationId: 'org-1',
+      postId: 'post-789',
+      result: {
+        externalId: 'yt-vid-3',
+        videoUrl: 'https://youtube.com/watch?v=yt-vid-3',
+      },
+      status: 'unlisted',
+      timestamp: new Date().toISOString(),
+      userId: 'user-1',
+    };
+
+    await capturedHandler(data);
+
+    await vi.waitFor(() => {
+      expect(postsService.patch).toHaveBeenCalledWith(
+        'post-789',
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.UNLISTED,
+        }),
+      );
+    });
+  });
+
+  it('should set publicationDate for published statuses (public, private, unlisted)', async () => {
+    await service.onModuleInit();
+
+    const data = {
+      organizationId: 'org-1',
+      postId: 'post-pub',
+      result: {
+        externalId: 'yt-pub',
+        videoUrl: 'https://youtube.com/watch?v=yt-pub',
+      },
+      status: 'public',
+      timestamp: new Date().toISOString(),
+      userId: 'user-1',
+    };
+
+    await capturedHandler(data);
+
+    await vi.waitFor(() => {
+      expect(postsService.patch).toHaveBeenCalledWith(
+        'post-pub',
+        expect.objectContaining({
+          publicationDate: expect.any(Date),
+        }),
+      );
+    });
   });
 
   it('should update post status to FAILED and include error when status is "failed"', async () => {
@@ -157,6 +253,33 @@ describe('YoutubeUploadCompletionService', () => {
     ).not.toHaveBeenCalled();
   });
 
+  it('should not set publicationDate for scheduled status', async () => {
+    await service.onModuleInit();
+
+    const data = {
+      organizationId: 'org-1',
+      postId: 'post-sched-2',
+      result: {
+        externalId: 'yt-sched-2',
+        videoUrl: 'https://youtube.com/watch?v=yt-sched-2',
+      },
+      status: 'scheduled',
+      timestamp: new Date().toISOString(),
+      userId: 'user-1',
+    };
+
+    await capturedHandler(data);
+
+    await vi.waitFor(() => {
+      expect(postsService.patch).toHaveBeenCalled();
+      const patchCall = postsService.patch.mock.calls[0][1] as Record<
+        string,
+        unknown
+      >;
+      expect(patchCall.publicationDate).toBeUndefined();
+    });
+  });
+
   it('should handle error in postsService.patch gracefully without rethrowing', async () => {
     postsService.patch.mockRejectedValueOnce(new Error('DB connection lost'));
     await service.onModuleInit();
@@ -178,6 +301,32 @@ describe('YoutubeUploadCompletionService', () => {
 
     await vi.waitFor(() => {
       expect(postsService.patch).toHaveBeenCalled();
+    });
+  });
+
+  it('should set externalId to undefined when result is null', async () => {
+    await service.onModuleInit();
+
+    const data = {
+      error: 'Something broke',
+      organizationId: 'org-1',
+      postId: 'post-no-result',
+      result: null,
+      status: 'failed',
+      timestamp: new Date().toISOString(),
+      userId: 'user-1',
+    };
+
+    await capturedHandler(data);
+
+    await vi.waitFor(() => {
+      expect(postsService.patch).toHaveBeenCalledWith(
+        'post-no-result',
+        expect.objectContaining({
+          error: 'Something broke',
+          externalId: undefined,
+        }),
+      );
     });
   });
 });

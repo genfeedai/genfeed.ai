@@ -68,6 +68,13 @@ describe('IngredientsModule export entitlement wiring', () => {
     await app?.close();
     vi.unstubAllEnvs();
   });
+  it('rejects a free-tier clean export before calling the renderer', async () => {
+    await request(app.getHttpServer())
+      .post('/ingredients/asset/export')
+      .send({ watermark: false })
+      .expect(403);
+    expect(exportMedia).not.toHaveBeenCalled();
+  });
   it('keeps watermarked exports available to the free tier', async () => {
     await request(app.getHttpServer())
       .post('/ingredients/asset/export')

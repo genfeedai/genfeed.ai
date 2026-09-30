@@ -16,6 +16,33 @@ function mockLookup(result: 'ok' | 'miss'): {
 }
 
 describe('resolvePublishingContentKindFromId', () => {
+  it('returns post when the id exists in posts', async () => {
+    const kind = await resolvePublishingContentKindFromId('post-1', {
+      articles: mockLookup('miss'),
+      newsletters: mockLookup('miss'),
+      posts: mockLookup('ok'),
+    });
+    expect(kind).toBe('post');
+  });
+
+  it('returns article when only articles has the id (no query param needed)', async () => {
+    const kind = await resolvePublishingContentKindFromId('article-1', {
+      articles: mockLookup('ok'),
+      newsletters: mockLookup('miss'),
+      posts: mockLookup('miss'),
+    });
+    expect(kind).toBe('article');
+  });
+
+  it('returns newsletter when only newsletters has the id', async () => {
+    const kind = await resolvePublishingContentKindFromId('nl-1', {
+      articles: mockLookup('miss'),
+      newsletters: mockLookup('ok'),
+      posts: mockLookup('miss'),
+    });
+    expect(kind).toBe('newsletter');
+  });
+
   it('prefers post over article if both somehow match', async () => {
     const kind = await resolvePublishingContentKindFromId('shared-id', {
       articles: mockLookup('ok'),
@@ -23,5 +50,28 @@ describe('resolvePublishingContentKindFromId', () => {
       posts: mockLookup('ok'),
     });
     expect(kind).toBe('post');
+  });
+
+  it('stops at the first hit instead of probing the other tables', async () => {
+    const articles = mockLookup('miss');
+    const newsletters = mockLookup('miss');
+
+    await resolvePublishingContentKindFromId('post-1', {
+      articles,
+      newsletters,
+      posts: mockLookup('ok'),
+    });
+
+    expect(articles.findOne).not.toHaveBeenCalled();
+    expect(newsletters.findOne).not.toHaveBeenCalled();
+  });
+
+  it('returns null when nothing matches', async () => {
+    const kind = await resolvePublishingContentKindFromId('missing', {
+      articles: mockLookup('miss'),
+      newsletters: mockLookup('miss'),
+      posts: mockLookup('miss'),
+    });
+    expect(kind).toBeNull();
   });
 });

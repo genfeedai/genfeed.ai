@@ -6,6 +6,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentThreadStatus } from '@genfeedai/contracts';
@@ -59,6 +60,15 @@ describe('AgentThreadsService Prisma row contract', () => {
     );
   });
 
+  it('keeps canonical relation ids required', () => {
+    expectTypeOf<
+      Pick<AgentRoomDocument, 'organizationId' | 'userId'>
+    >().toEqualTypeOf<{
+      organizationId: string;
+      userId: string;
+    }>();
+  });
+
   it('narrows the thread query to a single entry point when source is set', async () => {
     await service.getUserThreads(
       'user-1',
@@ -83,6 +93,13 @@ describe('AgentThreadsService Prisma row contract', () => {
     // many newer standard threads sit in front of it.
     expect(call).not.toHaveProperty('take');
     expect(call).not.toHaveProperty('skip');
+  });
+
+  it('leaves the thread query unfiltered by source when source is omitted', async () => {
+    await service.getUserThreads('user-1', 'org-1', AgentThreadStatus.ACTIVE);
+
+    const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
+    expect(call.where).not.toHaveProperty('source');
   });
 
   it('returns the canonical delegate update row unchanged', async () => {
@@ -217,6 +234,44 @@ describe('AgentThreadsService Prisma row contract', () => {
       expect.objectContaining({
         lastActivityAt: '2026-08-19T12:00:00.000Z',
         lastAssistantPreview: 'Your publish-ready draft is complete.',
+      }),
+    );
+  });
+
+  it('never projects a terminal workflow execution as running', async () => {
+    delegate.findMany.mockResolvedValue([
+      {
+        id: 'thread-1',
+        organizationId: 'org-1',
+        title: 'Finished turn',
+        userId: 'user-1',
+      },
+    ]);
+    snapshotDelegate.findMany.mockResolvedValue([
+      {
+        data: {
+          activeRun: {
+            runId: 'run-1',
+            status: 'running',
+          },
+        },
+        threadId: 'thread-1',
+      },
+    ]);
+    queryRaw.mockResolvedValue([
+      { id: 'execution-1', status: 'COMPLETED', threadId: 'thread-1' },
+    ]);
+
+    const result = await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+    );
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        runStatus: 'completed',
+        runtimeState: 'completed',
       }),
     );
   });

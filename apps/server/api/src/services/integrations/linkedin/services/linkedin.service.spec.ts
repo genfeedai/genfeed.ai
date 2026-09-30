@@ -114,10 +114,26 @@ describe('LinkedInService', () => {
     service = module.get<LinkedInService>(LinkedInService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('resolveLinkedInVisibility', () => {
     it('maps the connections choice to LinkedIn vocabulary', () => {
       expect(resolveLinkedInVisibility({ visibility: 'CONNECTIONS' })).toBe(
         'CONNECTIONS',
+      );
+    });
+
+    it('defaults to public when the setting is unset', () => {
+      // Every share was public before the setting existed, so an unset value
+      // has to keep publishing the way it always did.
+      expect(resolveLinkedInVisibility({})).toBe('PUBLIC');
+    });
+
+    it('falls back to public for a value LinkedIn does not accept', () => {
+      expect(resolveLinkedInVisibility({ visibility: 'FRIENDS' })).toBe(
+        'PUBLIC',
       );
     });
   });
@@ -132,6 +148,17 @@ describe('LinkedInService', () => {
       expect(url).toContain('redirect_uri=');
       expect(url).toContain('scope=');
       expect(url).toContain('state=');
+    });
+
+    it('should call authClient.generateMemberAuthorizationUrl with correct scopes', () => {
+      service.generateAuthUrl('some-state');
+
+      expect(
+        mockAuthClientInstance.generateMemberAuthorizationUrl,
+      ).toHaveBeenCalledWith(
+        ['openid', 'profile', 'email', 'w_member_social'],
+        'some-state',
+      );
     });
 
     it('throws 503 when LinkedIn app credentials are missing', () => {
@@ -271,6 +298,36 @@ describe('LinkedInService', () => {
     const orgId = 'test-object-id';
     const brandId = 'test-object-id';
 
+    it('should refresh token and update credential', async () => {
+      const credId = 'test-object-id';
+      mockCredentialsService.findOne.mockResolvedValue({
+        id: credId,
+        refreshToken: 'encrypted-refresh-token',
+      });
+      mockAuthClientInstance.exchangeRefreshTokenForAccessToken.mockResolvedValue(
+        {
+          access_token: 'new-access-token',
+          expires_in: 5184000,
+          refresh_token: 'new-refresh-token',
+        },
+      );
+      mockCredentialsService.patch.mockResolvedValue({
+        id: credId,
+        accessToken: 'new-access-token',
+        isConnected: true,
+      });
+
+      await service.refreshToken(orgId, brandId);
+
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(
+        credId,
+        expect.objectContaining({
+          accessToken: 'new-access-token',
+          isConnected: true,
+        }),
+      );
+    });
+
     it('refreshes the account named by credentialId', async () => {
       // A brand may hold several LinkedIn accounts; token repair addresses the
       // named one instead of whichever happens to be the brand default.
@@ -304,6 +361,18 @@ describe('LinkedInService', () => {
       await expect(service.refreshToken(orgId, brandId)).rejects.toThrow(
         'LinkedIn credential not found',
       );
+    });
+
+    it('should return existing credentials when no refresh token', async () => {
+      const cred = {
+        id: 'test-object-id',
+        accessToken: 'existing-token',
+        refreshToken: null,
+      };
+      mockCredentialsService.findOne.mockResolvedValue(cred);
+
+      const result = await service.refreshToken(orgId, brandId);
+      expect(result).toEqual(cred);
     });
 
     it('should mark credential as disconnected on refresh failure', async () => {

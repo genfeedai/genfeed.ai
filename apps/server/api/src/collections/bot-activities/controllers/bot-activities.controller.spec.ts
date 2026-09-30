@@ -56,6 +56,10 @@ describe('BotActivitiesController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('findAll', () => {
     it('should return paginated activities from the service', async () => {
       const mockActivities = [{ id: '1' }, { id: '2' }];

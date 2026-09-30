@@ -16,6 +16,19 @@ describe('Generation harness strict inputs', () => {
     expect(errors).toEqual([]);
   });
 
+  it.each(['true', 'false', 1, undefined])(
+    'rejects preference %s',
+    async (isEnabled) => {
+      const errors = await validate(
+        plainToInstance(UpdateGenerationHarnessSettingsDto, {
+          scope: 'organization',
+          isEnabled,
+        }),
+      );
+      expect(errors.some((error) => error.property === 'isEnabled')).toBe(true);
+    },
+  );
+
   it.each([CreateImageDto, CreateVideoDto])(
     'rejects string and null per-call overrides',
     async (Dto) => {

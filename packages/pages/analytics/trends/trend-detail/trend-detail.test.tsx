@@ -85,6 +85,14 @@ describe('TrendDetail', () => {
     expect(screen.getByText('Virality Score')).toBeInTheDocument();
   });
 
+  it('prefixes a positive growth rate', async () => {
+    render(<TrendDetail trendId="trend-1" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('+25%')).toBeInTheDocument();
+    });
+  });
+
   it('renders N/A for metadata the trend does not carry', async () => {
     getTrendByIdMock.mockResolvedValue({
       ...trendDetailFixture,
@@ -105,6 +113,16 @@ describe('TrendDetail', () => {
       expect(screen.getByText('#aiagents')).toBeInTheDocument();
     });
     expect(screen.getByText('#tooling')).toBeInTheDocument();
+  });
+
+  it('renders the sample content when present', async () => {
+    render(<TrendDetail trendId="trend-1" />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Everyone is shipping agents this week.'),
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows the shell chrome before the request resolves', () => {

@@ -3,6 +3,7 @@ import {
   getWorkspaceShellOverlayRegistration,
   PROTECTED_ROUTE_INVENTORY,
   resolveWorkspaceShellRoute,
+  resolveWorkspaceShellSafeFallback,
 } from './workspace-shell-registry';
 
 const ROUTE_PARAM_FIXTURES: Readonly<Record<string, string>> = {
@@ -112,12 +113,7 @@ describe('workspace shell trusted registry', () => {
       'Analytics',
       'Instagram Trends',
     ],
-    ['/acme/moonrise/automation/templates', 'Automation', 'Workflows'],
-    [
-      '/acme/moonrise/automation/workflows/templates',
-      'Automation',
-      'Workflows',
-    ],
+    ['/acme/moonrise/automation/workflows', 'Automation', 'Workflows'],
     ['/acme/moonrise/automation/workflows/new', 'Automation', 'New Workflow'],
     [
       '/acme/moonrise/automation/workflows/workflow-1',
@@ -147,6 +143,56 @@ describe('workspace shell trusted registry', () => {
       });
     },
   );
+
+  it('nests agent detail under Team', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automation/agents/agent-1')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Agent',
+      parentHref: '/automation/agents',
+      parentLabel: 'Team',
+      rootLabel: 'Automation',
+    });
+  });
+
+  it('keeps Publish Campaigns nested under Publishing', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/campaigns/cmp-1')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Campaign',
+      parentHref: '/publishing/campaigns',
+      parentLabel: 'Campaigns',
+      rootLabel: 'Publishing',
+    });
+  });
+
+  it('keeps the new-post composer nested under Posts', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/new')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'New post',
+      parentHref: '/publishing/posts',
+      parentLabel: 'Posts',
+      rootHref: '/publishing/overview',
+      rootLabel: 'Publishing',
+    });
+  });
+
+  it('keeps the content desk breadcrumb nested under Posts for /acme/moonrise/publishing/posts/post-1', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/post-1')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Content',
+      parentHref: '/publishing/posts',
+      parentLabel: 'Posts',
+      rootHref: '/publishing/overview',
+      rootLabel: 'Publishing',
+    });
+  });
 
   it.each([
     ['/:orgSlug/:brandSlug/library/assets', 'canvas'],
@@ -184,6 +230,56 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
+  it('registers bare /:org/:brand as a Workspace landing, not a 404', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise')).toMatchObject({
+      canonicalUrl: '/:orgSlug/:brandSlug',
+      mode: 'canvas',
+      productClass: 'control-plane',
+      safeFallback: '/:orgSlug/:brandSlug/workspace',
+      scope: 'brand',
+      surfaceKey: 'workspace-overview',
+    });
+  });
+
+  it('registers /acme/moonrise/publishing/posts/post-1 as the Publishing control-plane surface, not the artifact editor', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/posts/post-1'),
+    ).toMatchObject({
+      mode: 'canvas',
+      productClass: 'control-plane',
+      safeFallback: '/:orgSlug/:brandSlug/publishing/overview',
+      surfaceKey: 'publishing',
+    });
+  });
+
+  it('registers Brand Knowledge under brand settings, not the asset library', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/settings/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
+    });
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/library/knowledge'),
+    ).toMatchObject({
+      surfaceKey: 'brand-settings',
+    });
+  });
+
+  it('keeps current surfaces and removes deprecated aliases', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automation/autopilot'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automation/strategies'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automation/configuration'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/automation/skills'),
+    ).toBeNull();
+  });
+
   it('activates the Studio adapter across production surfaces only', () => {
     for (const surface of ['batch', 'batch/project-1', 'clips', 'storyboard']) {
       expect(
@@ -214,6 +310,22 @@ describe('workspace shell trusted registry', () => {
     expect(resolveWorkspaceShellRoute('/acme/~/studio/editor')).toMatchObject({
       scope: 'organization',
       surfaceKey: 'studio-editor',
+    });
+  });
+
+  it('has no standalone editor route left in the inventory', () => {
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/moonrise/editor/new')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
+  });
+
+  it('keeps contextual Remix as an action deep-link (Discovery + Publishing switcher)', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publishing/remix'),
+    ).toMatchObject({
+      productClass: 'contextual-action',
+      surfaceKey: 'publishing',
+      switcherItems: ['discovery', 'publishing'],
     });
   });
 
@@ -280,6 +392,12 @@ describe('workspace shell trusted registry', () => {
           route.canonicalUrl === '/:orgSlug/:brandSlug/publishing/composer',
       ),
     ).toBe(false);
+  });
+
+  it('keeps the organization-settings hard-cut family outside the registry', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/settings/organization'),
+    ).toBeNull();
   });
 
   it('registers organization and brand Workspace overviews independently', () => {
@@ -366,6 +484,62 @@ describe('workspace shell trusted registry', () => {
     });
   });
 
+  it('does not treat reserved application prefixes as scoped routes', () => {
+    expect(resolveWorkspaceShellRoute('/connect/~/overview')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/connect/example/publishing'),
+    ).toBeNull();
+    expect(resolveWorkspaceShellRoute('/settings/~/overview')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/settings/example/publishing'),
+    ).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/~/overview')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/admin/example/publishing')).toBeNull();
+  });
+
+  it('interpolates a safe fallback without widening scope', () => {
+    const route = resolveWorkspaceShellRoute(
+      '/acme/moonrise/analytics/trends/detail/trend-1',
+    );
+
+    expect(route).not.toBeNull();
+    if (!route) {
+      throw new Error('Expected analytics detail route to be registered.');
+    }
+    expect(resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/moonrise/analytics',
+    );
+  });
+
+  it('registers Messages as embedded with its canonical route as fallback', () => {
+    const route = resolveWorkspaceShellRoute('/acme/moonrise/messages');
+
+    expect(route).toMatchObject({
+      adapter: { status: 'embedded' },
+      canonicalUrl: '/:orgSlug/:brandSlug/messages',
+      safeFallback: '/:orgSlug/:brandSlug/messages',
+      surfaceKey: 'messages',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/moonrise/messages',
+    );
+  });
+
+  it('registers organization-scoped Messages as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/messages');
+
+    expect(route).toMatchObject({
+      adapter: { key: 'messages', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/messages',
+      safeFallback: '/:orgSlug/~/messages',
+      scope: 'organization',
+      surfaceKey: 'messages',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/~/messages',
+    );
+  });
+
   it('registers first-login onboarding as a conversation, not a canvas inspector host', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/~/agent/onboarding'),
@@ -389,6 +563,52 @@ describe('workspace shell trusted registry', () => {
       surfaceKey: 'agent-onboarding',
       telemetryClass: 'management',
     });
+  });
+
+  it('does not publish brand-only Messages destinations at org scope', () => {
+    expect(resolveWorkspaceShellRoute('/acme/~/messages/outreach')).toBeNull();
+    expect(resolveWorkspaceShellRoute('/acme/~/messages/replies')).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/~/messages/reply-drip'),
+    ).toBeNull();
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/messages/outreach'),
+    ).not.toBeNull();
+  });
+
+  it('registers organization-scoped Discovery as an embedded surface', () => {
+    const route = resolveWorkspaceShellRoute('/acme/~/discovery/overview');
+
+    expect(route).toMatchObject({
+      adapter: { key: 'discovery', status: 'embedded' },
+      canonicalUrl: '/:orgSlug/~/discovery/overview',
+      safeFallback: '/:orgSlug/~/discovery/overview',
+      scope: 'organization',
+      surfaceKey: 'discovery',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/~/discovery/overview',
+    );
+  });
+
+  it('marks Analytics canvases ready for the product-owned adapter', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/analytics/posts')?.adapter,
+    ).toEqual({ key: 'analytics', status: 'ready' });
+  });
+
+  it('registers Discovery as an embedded adapter with its canonical fallback', () => {
+    const route = resolveWorkspaceShellRoute('/acme/moonrise/discovery/ads');
+
+    expect(route).toMatchObject({
+      adapter: { key: 'discovery', status: 'embedded' },
+      mode: 'canvas',
+      safeFallback: '/:orgSlug/:brandSlug/discovery/overview',
+      surfaceKey: 'discovery',
+    });
+    expect(route && resolveWorkspaceShellSafeFallback(route)).toBe(
+      '/acme/moonrise/discovery/overview',
+    );
   });
 
   it('keeps notifications and trusted overlays explicit', () => {

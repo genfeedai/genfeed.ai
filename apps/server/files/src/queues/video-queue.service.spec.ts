@@ -35,6 +35,31 @@ describe('VideoQueueService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  it('uses the request id for deterministic caption jobs', async () => {
+    const data = {
+      createdAt: new Date(),
+      id: 'raw-cut-caption-clip-1',
+      ingredientId: 'clip-1',
+      metadata: { websocketUrl: '/clips/clip-1' },
+      organizationId: 'org-1',
+      params: {},
+      type: JOB_TYPES.ADD_CAPTIONS,
+      userId: 'user-1',
+    } as VideoJobData;
+
+    await service.addCaptionsJob(data);
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.ADD_CAPTIONS,
+      data,
+      expect.objectContaining({ jobId: 'raw-cut-caption-clip-1' }),
+    );
+  });
+
   it('uses the request id for deterministic clip trim jobs', async () => {
     const data = {
       createdAt: new Date(),
@@ -53,6 +78,48 @@ describe('VideoQueueService', () => {
       JOB_TYPES.CLIP_TRIM,
       data,
       expect.objectContaining({ jobId: 'raw-cut-trim-clip-1' }),
+    );
+  });
+
+  it('does not deduplicate ordinary jobs by their request id', async () => {
+    const data = {
+      createdAt: new Date(),
+      id: 'video-123',
+      ingredientId: 'ingredient-1',
+      metadata: { websocketUrl: '/ingredients/ingredient-1' },
+      organizationId: 'org-1',
+      params: {},
+      type: JOB_TYPES.ADD_CAPTIONS,
+      userId: 'user-1',
+    } as VideoJobData;
+
+    await service.addCaptionsJob(data);
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.ADD_CAPTIONS,
+      data,
+      expect.not.objectContaining({ jobId: expect.anything() }),
+    );
+  });
+
+  it('does not deduplicate ordinary audio extraction jobs by request id', async () => {
+    const data = {
+      createdAt: new Date(),
+      id: 'clip-audio-project-1',
+      ingredientId: 'project-1',
+      metadata: { websocketUrl: '/clips/project-1' },
+      organizationId: 'org-1',
+      params: { inputPath: 'https://cdn.test/source.mp4' },
+      type: JOB_TYPES.VIDEO_TO_AUDIO,
+      userId: 'user-1',
+    } as VideoJobData;
+
+    await service.addVideoToAudioJob(data);
+
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      expect.not.objectContaining({ jobId: expect.anything() }),
     );
   });
 
@@ -124,6 +191,19 @@ describe('VideoQueueService', () => {
       );
     },
   );
+
+  it('preserves existing raw-cut audio job identities', async () => {
+    const data = sourceData({
+      id: 'raw-cut-audio-source',
+      ingredientId: 'source',
+    });
+    await service.addVideoToAudioJob(data);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      JOB_TYPES.VIDEO_TO_AUDIO,
+      data,
+      expect.objectContaining({ jobId: data.id }),
+    );
+  });
 
   it('does not extend source deduplication to other video jobs', async () => {
     const data = sourceData({ type: JOB_TYPES.ADD_CAPTIONS });

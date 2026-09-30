@@ -147,6 +147,26 @@ describe('toStudioGenerateJob', () => {
     expect(toStudioGenerateJob(buildIngredient())?.parentId).toBeUndefined();
   });
 
+  it('renders a GIF made from a Generate video as an image card', () => {
+    expect(
+      toStudioGenerateJob(buildIngredient({ category: IngredientCategory.GIF }))
+        ?.type,
+    ).toBe('image');
+  });
+
+  it('uses persisted dimensions instead of model getter defaults', () => {
+    const ingredient = buildIngredient({ height: 720, width: 1280 });
+    Object.defineProperties(ingredient, {
+      metadataHeight: { get: () => 1920 },
+      metadataWidth: { get: () => 1080 },
+    });
+
+    expect(toStudioGenerateJob(ingredient)).toMatchObject({
+      height: 720,
+      width: 1280,
+    });
+  });
+
   it('drops an ingredient the playground does not own', () => {
     expect(
       toStudioGenerateJob(
@@ -204,6 +224,44 @@ describe('mergeStudioGenerateJobs', () => {
     expect(merged[0]?.ingredient).toBe(refreshedIngredient);
   });
 
+  it('keeps the client run id and recipe when the gallery hydrates the row', () => {
+    const storedIngredient = buildIngredient({ id: 'a' });
+    const merged = mergeStudioGenerateJobs(
+      [
+        buildJob({
+          id: 'a',
+          recipe: {
+            blacklist: [],
+            brandingMode: 'brand',
+            isAudioEnabled: false,
+            outputs: 4,
+            references: [],
+            style: 'editorial',
+            tags: [],
+            text: 'Enriched',
+            type: 'image',
+          },
+          runId: 'run-1',
+          status: IngredientStatus.PROCESSING,
+        }),
+      ],
+      [
+        buildJob({
+          id: 'a',
+          ingredient: storedIngredient,
+          prompt: 'Raw box',
+          status: IngredientStatus.PROCESSING,
+        }),
+      ],
+    );
+
+    expect(merged[0]).toMatchObject({
+      ingredient: storedIngredient,
+      recipe: expect.objectContaining({ text: 'Enriched' }),
+      runId: 'run-1',
+    });
+  });
+
   it('sorts newest first across both sources', () => {
     const merged = mergeStudioGenerateJobs(
       [buildJob({ createdAt: 30, id: 'live' })],
@@ -235,6 +293,14 @@ describe('filterStudioGenerateJobs', () => {
     ).toEqual(['b']);
   });
 
+  it('searches prompts case-insensitively', () => {
+    expect(
+      filterStudioGenerateJobs(jobs, { search: '  SOFA ' }).map(
+        (job) => job.id,
+      ),
+    ).toEqual(['a']);
+  });
+
   it('combines the type pill with the search field', () => {
     expect(
       filterStudioGenerateJobs(jobs, { search: 'sofa', type: 'video' }),
@@ -243,6 +309,18 @@ describe('filterStudioGenerateJobs', () => {
 });
 
 describe('resolveJsonApiIngredientId', () => {
+  it('reads the id out of a JSON:API single-resource document', () => {
+    expect(
+      resolveJsonApiIngredientId({
+        data: {
+          attributes: { status: 'PROCESSING' },
+          id: 'ing-9',
+          type: 'ingredients',
+        },
+      }),
+    ).toBe('ing-9');
+  });
+
   it('accepts a bare ingredient object and a numeric id', () => {
     expect(resolveJsonApiIngredientId({ id: 'ing-3' })).toBe('ing-3');
     expect(resolveJsonApiIngredientId({ data: { id: 7 } })).toBe('7');
@@ -311,5 +389,22 @@ describe('resolveStudioAssetFacts', () => {
       durationSeconds: undefined,
       modelLabel: 'flux-dev',
     });
+  });
+
+  it('never reports the Ingredient model getter defaults as facts', () => {
+    // The hydrated model answers 8s and 1080×1920 when metadata is missing.
+    const ingredient = Object.defineProperties(buildIngredient(), {
+      aspectRatio: { get: () => '9:16' },
+      metadataDuration: { get: () => 8 },
+      metadataHeight: { get: () => 1920 },
+      metadataWidth: { get: () => 1080 },
+    });
+
+    const facts = resolveStudioAssetFacts(
+      buildJob({ ingredient, type: 'image' }),
+    );
+
+    expect(facts.aspectRatio).toBeUndefined();
+    expect(facts.durationSeconds).toBeUndefined();
   });
 });

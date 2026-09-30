@@ -61,6 +61,7 @@ import {
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { type ExecutionContext, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -294,6 +295,10 @@ describe('BatchInterpolationController', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('createBatchInterpolation', () => {
     describe('happy path', () => {
       it.each([undefined, 9])(
@@ -441,6 +446,20 @@ describe('BatchInterpolationController', () => {
           expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
         },
       );
+
+      it('does not dispatch unpriced fixed-frame per-second models', async () => {
+        modelsService.findOne.mockResolvedValue({
+          ...mockModel,
+          pricingType: 'per-second',
+          defaultDuration: null,
+        });
+        promptBuilderService.buildPrompt.mockResolvedValue({
+          input: { num_frames: 81 },
+        });
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      });
 
       it('rejects unsupported BYOK providers without using platform billing', async () => {
         const req = {
@@ -916,6 +935,32 @@ describe('BatchInterpolationController', () => {
         expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
       });
 
+      it('should publish a background task update after starting generation', async () => {
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(
+          websocketService.publishBackgroundTaskUpdate,
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({
+            progress: 0,
+            room: getUserRoomName(mockUser.id),
+            status: 'processing',
+            userId: mockUser.id,
+          }),
+        );
+      });
+
+      it('should update metadata with external generation ID', async () => {
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(metadataService.patch).toHaveBeenCalledWith(
+          mockMetadataData.id.toString(),
+          expect.objectContaining({
+            externalId: 'replicate-generation-id-123',
+          }),
+        );
+      });
+
       it('should handle loop mode by appending a loop-back pair', async () => {
         const loopDto: BatchInterpolationDto = {
           ...mockDto,
@@ -957,6 +1002,14 @@ describe('BatchInterpolationController', () => {
     });
 
     describe('model not found', () => {
+      it('should throw 404 when model does not exist', async () => {
+        modelsService.findOne.mockResolvedValue(null);
+
+        await expect(
+          controller.createBatchInterpolation(mockReq, mockDto, mockUser),
+        ).rejects.toThrow(HttpException);
+      });
+
       it('should throw NOT_FOUND status when model is missing', async () => {
         modelsService.findOne.mockResolvedValue(null);
 
@@ -1002,6 +1055,31 @@ describe('BatchInterpolationController', () => {
     });
 
     describe('generation failure', () => {
+      it('should mark job as failed when replicate returns null', async () => {
+        replicateService.generateTextToVideo.mockResolvedValue(null);
+
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+          pairIndex: 0,
+          status: 'failed',
+        });
+      });
+
+      it('should call failedGenerationService when generation returns null', async () => {
+        replicateService.generateTextToVideo.mockResolvedValue(null);
+
+        await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
+
+        expect(
+          failedGenerationService.handleFailedVideoGeneration,
+        ).toHaveBeenCalled();
+      });
+
       it('should mark pair as failed when frame URLs are missing', async () => {
         mockBuildReferenceImageUrls.mockReset().mockResolvedValue([]);
 

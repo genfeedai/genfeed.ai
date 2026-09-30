@@ -132,6 +132,12 @@ describe('commands.registry', () => {
   });
 
   describe('createGenerationCommands', () => {
+    it('should have correct number of generation commands', () => {
+      const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
+
+      expect(generationCommands.length).toBe(4);
+    });
+
     it('should have video generation command', () => {
       const generationCommands = createGenerationCommands(TEST_ORG, TEST_BRAND);
       const videoCmd = generationCommands.find((c) => c.id === 'gen-video');
@@ -196,6 +202,12 @@ describe('commands.registry', () => {
   });
 
   describe('createContentCommands', () => {
+    it('should have correct number of content commands', () => {
+      const contentCommands = createContentCommands(TEST_ORG, TEST_BRAND);
+
+      expect(contentCommands.length).toBe(3);
+    });
+
     it('should have search command', () => {
       const contentCommands = createContentCommands(TEST_ORG, TEST_BRAND);
       const searchCmd = contentCommands.find((c) => c.id === 'content-search');
@@ -280,6 +292,12 @@ describe('commands.registry', () => {
   });
 
   describe('createGeneralHelpCommands', () => {
+    it('should have correct number of general help commands', () => {
+      const helpCommands = createGeneralHelpCommands();
+
+      expect(helpCommands.length).toBe(2);
+    });
+
     it('should have documentation command', () => {
       const helpCommands = createGeneralHelpCommands();
       const docsCmd = helpCommands.find((c) => c.id === 'help-docs');
@@ -333,6 +351,12 @@ describe('commands.registry', () => {
   });
 
   describe('createOrgHelpCommands', () => {
+    it('should have correct number of org help commands', () => {
+      const helpCommands = createOrgHelpCommands(TEST_ORG);
+
+      expect(helpCommands.length).toBe(1);
+    });
+
     it('should have shortcuts command', () => {
       const helpCommands = createOrgHelpCommands(TEST_ORG);
       const shortcutsCmd = helpCommands.find((c) => c.id === 'help-shortcuts');
@@ -353,6 +377,10 @@ describe('commands.registry', () => {
   });
 
   describe('quickActionCommands', () => {
+    it('should have correct number of quick action commands', () => {
+      expect(quickActionCommands.length).toBe(2);
+    });
+
     it('should have logout command', () => {
       const logoutCmd = quickActionCommands.find(
         (c) => c.id === 'action-logout',
@@ -396,6 +424,21 @@ describe('commands.registry', () => {
   });
 
   describe('createDefaultCommands', () => {
+    it('should combine all command groups when org and brand are both known', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const expectedLength =
+        createGenerationCommands(TEST_ORG, TEST_BRAND).length +
+        createContentCommands(TEST_ORG, TEST_BRAND).length +
+        createOrgHelpCommands(TEST_ORG).length +
+        createGeneralHelpCommands().length +
+        quickActionCommands.length;
+
+      expect(defaultCommands.length).toBe(expectedLength);
+    });
+
     it('should include commands from all categories when org and brand are both known', () => {
       const defaultCommands = createDefaultCommands({
         brandSlug: TEST_BRAND,
@@ -464,6 +507,17 @@ describe('commands.registry', () => {
         expect(cmd.icon).toBeDefined();
       });
     });
+
+    it('all commands should have unique IDs', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const ids = defaultCommands.map((c) => c.id);
+      const uniqueIds = [...new Set(ids)];
+
+      expect(ids.length).toBe(uniqueIds.length);
+    });
   });
 
   describe('registerDefaultCommands', () => {
@@ -482,6 +536,27 @@ describe('commands.registry', () => {
       );
       expect(registeredCommands.map((command) => command.category)).toEqual(
         defaultCommands.map((command) => command.category),
+      );
+    });
+
+    it('should call CommandPaletteService.registerCommands', () => {
+      registerDefaultCommands({ brandSlug: TEST_BRAND, orgSlug: TEST_ORG });
+
+      expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return the registered command ids for cleanup', () => {
+      const registeredIds = registerDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+
+      expect(registeredIds).toEqual(
+        defaultCommands.map((command) => command.id),
       );
     });
   });

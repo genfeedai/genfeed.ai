@@ -67,6 +67,16 @@ describe('createWorkflowApiService', () => {
     );
   });
 
+  it('omits the Authorization header without a token', async () => {
+    const service = createWorkflowApiService(baseUrl, () => null);
+    mockFetchOnce(makeApiState());
+
+    await service.getWorkflow('wf-1');
+
+    const call = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call?.[1]?.headers).not.toHaveProperty('Authorization');
+  });
+
   it('createWorkflow POSTs the agent and conversation ids', async () => {
     const service = createWorkflowApiService(baseUrl, () => null);
     mockFetchOnce(makeApiState());
@@ -154,6 +164,19 @@ describe('createWorkflowApiService', () => {
 
     await expect(service.getWorkflow('wf-1')).rejects.toThrow(
       'Workflow API error: 500 Server Error',
+    );
+  });
+
+  it('forwards an AbortSignal to fetch', async () => {
+    const service = createWorkflowApiService(baseUrl, () => null);
+    const controller = new AbortController();
+    mockFetchOnce(makeApiState());
+
+    await service.getWorkflow('wf-1', controller.signal);
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ signal: controller.signal }),
     );
   });
 });

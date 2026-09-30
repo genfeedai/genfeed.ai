@@ -82,6 +82,10 @@ describe('SubscriptionGuard', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(guard).toBeDefined();
+  });
+
   it('throws 401 when no user in request', () => {
     const ctx = buildContext(null);
     expect(() => guard.canActivate(ctx)).toThrow(
@@ -95,6 +99,11 @@ describe('SubscriptionGuard', () => {
     );
   });
 
+  it('throws 401 when user is undefined', () => {
+    const ctx = buildContext(undefined);
+    expect(() => guard.canActivate(ctx)).toThrow(HttpException);
+  });
+
   it('defers authenticated Free metered requests to credit admission', () => {
     vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
       SubscriptionTier.FREE,
@@ -105,6 +114,19 @@ describe('SubscriptionGuard', () => {
     });
     expect(guard.canActivate(ctx)).toBe(true);
     expect(authProviderUtil.getStripeSubscriptionStatus).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication even when the route has credits metadata', () => {
+    expect(() =>
+      guard.canActivate(
+        buildContext(undefined, { amount: 10, description: 'Metered request' }),
+      ),
+    ).toThrow(
+      new HttpException(
+        { detail: 'Authentication required', title: 'Unauthorized' },
+        HttpStatus.UNAUTHORIZED,
+      ),
+    );
   });
 
   it('resolves class credits metadata with handler metadata taking precedence', () => {
@@ -144,6 +166,48 @@ describe('SubscriptionGuard', () => {
     expect(guard.canActivate(ctx)).toBe(true);
   });
 
+  it('allows users with TRIALING subscription', () => {
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
+      SubscriptionStatus.TRIALING,
+    );
+    const ctx = buildContext(buildUser());
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
+  it('rejects a cancelled subscription left on the retired byok tier', () => {
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
+      SubscriptionStatus.CANCELLED,
+    );
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue('byok');
+    const ctx = buildContext(buildUser());
+    expect(() => guard.canActivate(ctx)).toThrow(HttpException);
+  });
+
+  it('throws 403 when subscription is inactive', () => {
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
+      SubscriptionStatus.CANCELLED,
+    );
+    const ctx = buildContext(buildUser());
+    expect(() => guard.canActivate(ctx)).toThrow(
+      new HttpException(
+        {
+          detail:
+            'An active subscription is required to use this feature. Please subscribe to a plan.',
+          title: 'Active subscription required',
+        },
+        HttpStatus.FORBIDDEN,
+      ),
+    );
+  });
+
+  it('throws 403 with PAST_DUE subscription', () => {
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
+      SubscriptionStatus.PAST_DUE,
+    );
+    const ctx = buildContext(buildUser());
+    expect(() => guard.canActivate(ctx)).toThrow(HttpException);
+  });
+
   it('logs warning before throwing 403', () => {
     vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
       'none',
@@ -153,6 +217,15 @@ describe('SubscriptionGuard', () => {
     expect(mockLogger.warn).toHaveBeenCalledWith(
       'SubscriptionGuard: No active subscription',
       expect.objectContaining({ userId: 'user_123' }),
+    );
+  });
+
+  it('throws 403 when no subscription status set', () => {
+    vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue('');
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue('');
+    const ctx = buildContext(buildUser());
+    expect(() => guard.canActivate(ctx)).toThrow(
+      new HttpException(expect.anything(), HttpStatus.FORBIDDEN),
     );
   });
 });

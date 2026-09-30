@@ -198,6 +198,14 @@ describe('ThreadsService (coverage)', () => {
   // createTextContainer
   // ---------------------------------------------------------------------------
   describe('createTextContainer', () => {
+    it('should throw when credential is not found', async () => {
+      mockCredentialMissing();
+
+      await expect(
+        service.createTextContainer('org-1', 'brand-1', 'hello'),
+      ).rejects.toThrow('Threads credential not found');
+    });
+
     it('should create a text container without replyToId', async () => {
       mockCredentialFound();
       httpService.post.mockReturnValue(
@@ -412,6 +420,14 @@ describe('ThreadsService (coverage)', () => {
   // createCarouselContainer (error: item count > 20, HTTP error)
   // ---------------------------------------------------------------------------
   describe('createCarouselContainer', () => {
+    it('should throw when more than 20 items are provided', async () => {
+      const tooMany = Array.from({ length: 21 }, (_, i) => `item-${i}`);
+
+      await expect(
+        service.createCarouselContainer('org-1', 'brand-1', tooMany),
+      ).rejects.toThrow('between 2 and 20');
+    });
+
     it('should create carousel without optional text/replyToId', async () => {
       mockCredentialFound();
       httpService.post.mockReturnValue(of({ data: { id: 'carousel-bare' } }));
@@ -513,6 +529,29 @@ describe('ThreadsService (coverage)', () => {
       ).rejects.toThrow('Threads credential not found');
     });
 
+    it('should return status and errorMessage from the API', async () => {
+      mockCredentialFound();
+      httpService.get.mockReturnValue(
+        of({
+          data: {
+            error_message: 'something went wrong',
+            status: ThreadsContainerStatus.ERROR,
+          },
+        }),
+      );
+
+      const result = await service.getContainerStatus(
+        'org-1',
+        'brand-1',
+        'container-1',
+      );
+
+      expect(result).toEqual({
+        errorMessage: 'something went wrong',
+        status: ThreadsContainerStatus.ERROR,
+      });
+    });
+
     it('should return status only when errorMessage is absent', async () => {
       mockCredentialFound();
       httpService.get.mockReturnValue(
@@ -575,6 +614,25 @@ describe('ThreadsService (coverage)', () => {
         undefined,
       );
       expect(result).toEqual({ threadId: 'text-thread-1' });
+    });
+
+    it('should pass replyToId through to createTextContainer', async () => {
+      vi.spyOn(service, 'createTextContainer').mockResolvedValue({
+        containerId: 'text-container-reply',
+      });
+      vi.spyOn(service, 'publishContainer').mockResolvedValue({
+        threadId: 'text-thread-reply',
+      });
+
+      await service.publishText('org-1', 'brand-1', 'Reply post', 'parent-1');
+
+      expect(service.createTextContainer).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'Reply post',
+        'parent-1',
+        undefined,
+      );
     });
 
     it('should propagate errors from createTextContainer', async () => {
@@ -754,6 +812,17 @@ describe('ThreadsService (coverage)', () => {
       ).rejects.toThrow('between 2 and 20');
     });
 
+    it('should throw when more than 20 media items are provided', async () => {
+      const tooMany = Array.from({ length: 21 }, (_, i) => ({
+        mediaType: ThreadsMediaType.IMAGE,
+        url: `https://example.com/${i}.jpg`,
+      }));
+
+      await expect(
+        service.publishCarousel('org-1', 'brand-1', tooMany),
+      ).rejects.toThrow('between 2 and 20');
+    });
+
     it('should propagate errors from createImageContainer during carousel assembly', async () => {
       vi.spyOn(service, 'createImageContainer').mockRejectedValue(
         new Error('image container error'),
@@ -784,6 +853,25 @@ describe('ThreadsService (coverage)', () => {
       await expect(
         service.getThreadInsights('org-1', 'brand-1', 'thread-1'),
       ).rejects.toThrow('Threads credential not found');
+    });
+
+    it('should return all zero metrics when data is empty', async () => {
+      mockCredentialFound();
+      httpService.get.mockReturnValue(of({ data: { data: [] } }));
+
+      const result = await service.getThreadInsights(
+        'org-1',
+        'brand-1',
+        'thread-1',
+      );
+
+      expect(result).toEqual({
+        likes: 0,
+        quotes: 0,
+        replies: 0,
+        reposts: 0,
+        views: 0,
+      });
     });
 
     it('should return all zero metrics when data property is absent', async () => {
@@ -831,6 +919,23 @@ describe('ThreadsService (coverage)', () => {
         reposts: 10,
         views: 1000,
       });
+    });
+
+    it('should accept a credentialId override', async () => {
+      // An explicit credential override remains organization-scoped.
+      credentialsService.findOne.mockResolvedValue(MOCK_CREDENTIAL);
+      httpService.get.mockReturnValue(of({ data: { data: [] } }));
+
+      await service.getThreadInsights(
+        'org-1',
+        'brand-1',
+        'thread-1',
+        'cred-override',
+      );
+
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith(
+        expect.objectContaining({ credentialId: 'cred-override' }),
+      );
     });
 
     it('should throw on HTTP error', async () => {

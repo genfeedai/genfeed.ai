@@ -3,6 +3,17 @@ import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import type { ArgumentMetadata } from '@nestjs/common';
 
 describe('UpdateMusicDto', () => {
+  it('should be defined', () => {
+    expect(UpdateMusicDto).toBeDefined();
+  });
+
+  describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new UpdateMusicDto();
+      expect(dto).toBeInstanceOf(UpdateMusicDto);
+    });
+  });
+
   describe('storage identity', () => {
     // Music rows are ingredients. The DTO does not declare s3Key or cdnUrl,
     // so the whitelisting pipe strips them before the controller sees them.

@@ -169,6 +169,16 @@ describe('PostGroupReadinessService', () => {
       platform: CredentialPlatform.TWITTER,
     };
 
+    it('passes a publish-capable channel through', async () => {
+      const readiness = await service.resolveForCredentials(tx, 'org-1', [
+        'cred-x',
+      ]);
+
+      expect(() =>
+        service.assertSchedulable(target, readiness.get('cred-x')),
+      ).not.toThrow();
+    });
+
     it('lets a degraded channel schedule rather than failing the mutation', async () => {
       tx.credential.findMany.mockResolvedValue([
         makeRow({
@@ -209,6 +219,12 @@ describe('PostGroupReadinessService', () => {
           title: 'Channel not ready to publish',
         });
       }
+    });
+
+    it('throws when readiness could not be resolved for the target', () => {
+      expect(() => service.assertSchedulable(target, undefined)).toThrow(
+        BadRequestException,
+      );
     });
 
     /**

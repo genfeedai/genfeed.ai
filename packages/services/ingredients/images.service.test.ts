@@ -130,7 +130,24 @@ describe('ImagesService', () => {
     vi.clearAllMocks();
   });
 
+  it('initializes correctly', () => {
+    expect(service).toBeInstanceOf(ImagesService);
+  });
+
+  it('has CRUD methods', () => {
+    expect(service.findAll).toBeDefined();
+    expect(service.findOne).toBeDefined();
+    expect(service.post).toBeDefined();
+    expect(service.patch).toBeDefined();
+    expect(service.delete).toBeDefined();
+  });
+
   describe('getInstance', () => {
+    it('returns an ImagesService instance', () => {
+      const instance = ImagesService.getInstance(mockToken);
+      expect(instance).toBeInstanceOf(ImagesService);
+    });
+
     it('returns the same instance for the same token', () => {
       const instance1 = ImagesService.getInstance(mockToken);
       const instance2 = ImagesService.getInstance(mockToken);
@@ -152,6 +169,14 @@ describe('ImagesService', () => {
       await service.post(imageData);
 
       expect(mockPost).toHaveBeenCalledWith('', imageData);
+    });
+
+    it('returns mapped image result', async () => {
+      const mockImage = { id: 'img-1', url: 'https://example.com/img.jpg' };
+      mockPost.mockResolvedValue({ data: { data: mockImage } });
+
+      const result = await service.post({ url: 'https://example.com/img.jpg' });
+      expect(result).toBeDefined();
     });
   });
 

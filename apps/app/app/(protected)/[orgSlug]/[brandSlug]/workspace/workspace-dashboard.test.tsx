@@ -273,6 +273,14 @@ describe('workspace dashboard sections', () => {
     expect(within(cards[2]).getByText('Cancelled')).toBeVisible();
   });
 
+  it('returns no agent cards when there are no executions', () => {
+    const { container } = render(
+      <DashboardAgentCards activeExecutions={[]} executions={[]} />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it('renders stats with trend fallbacks', () => {
     render(
       <DashboardStatsStrip
@@ -409,6 +417,34 @@ describe('workspace dashboard sections', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the trends panel with the configured viewAllHref', () => {
+    render(
+      <WorkspaceDashboard
+        activeExecutions={[]}
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        executions={[]}
+        stats={makeStats()}
+        trendsHref="/org/brand/discovery/overview"
+        trendItems={[]}
+        // One task is enough signal to get past the first-run block below.
+        workspaceTasks={[makeTask() as never]}
+      />,
+    );
+
+    const trendsPanel = screen.getByTestId('overview-trends-panel');
+    expect(trendsPanel.querySelector('a')).toHaveAttribute(
+      'href',
+      '/org/brand/discovery/overview',
+    );
+  });
+
   it('collapses an empty brand into a single guided first-run block', () => {
     render(
       <WorkspaceDashboard
@@ -434,5 +470,29 @@ describe('workspace dashboard sections', () => {
     expect(screen.queryByTestId('dashboard-stats-strip')).toBeNull();
     expect(screen.queryByTestId('overview-trends-panel')).toBeNull();
     expect(screen.queryByText('Recent Activity')).toBeNull();
+  });
+
+  it('keeps the composed dashboard while data is still loading', () => {
+    render(
+      <WorkspaceDashboard
+        activeExecutions={[]}
+        isTasksLoading
+        reviewInbox={{
+          approvedCount: 0,
+          changesRequestedCount: 0,
+          pendingCount: 0,
+          readyCount: 0,
+          recentItems: [],
+          rejectedCount: 0,
+        }}
+        executions={[]}
+        stats={makeStats()}
+        trendItems={[]}
+        workspaceTasks={[]}
+      />,
+    );
+
+    expect(screen.queryByTestId('workspace-dashboard-first-run')).toBeNull();
+    expect(screen.getByTestId('dashboard-stats-strip')).toBeVisible();
   });
 });

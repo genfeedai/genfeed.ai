@@ -61,6 +61,32 @@ describe('IngredientsService — asset-gate interception', () => {
     service = module.get<IngredientsService>(IngredientsService);
   });
 
+  describe('patch', () => {
+    it('marks the org on a GENERATED transition', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: 'ing-1',
+        organizationId: 'org-1',
+        status: 'GENERATED',
+      });
+
+      await service.patch('ing-1', { status: IngredientStatus.GENERATED });
+
+      expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-1');
+    });
+
+    it('does NOT mark on a non-GENERATED patch', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: 'ing-1',
+        organizationId: 'org-1',
+        status: 'PROCESSING',
+      });
+
+      await service.patch('ing-1', { status: IngredientStatus.PROCESSING });
+
+      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+    });
+  });
+
   describe('create', () => {
     it('marks the org when an asset is created directly as GENERATED', async () => {
       delegate.create.mockResolvedValue({
@@ -81,6 +107,23 @@ describe('IngredientsService — asset-gate interception', () => {
       } as never);
 
       expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-2');
+    });
+
+    it('does NOT mark when created as a draft', async () => {
+      delegate.create.mockResolvedValue({
+        id: 'ing-3',
+        organizationId: 'org-3',
+        status: 'DRAFT',
+      });
+      delegate.findFirst.mockResolvedValue({
+        id: 'ing-3',
+        organizationId: 'org-3',
+        status: 'DRAFT',
+      });
+
+      await service.create({ brand: 'brand-1' } as never);
+
+      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
     });
   });
 
@@ -103,6 +146,27 @@ describe('IngredientsService — asset-gate interception', () => {
       expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-a');
       expect(markFirstAssetGenerated).toHaveBeenCalledWith('org-b');
       expect(markFirstAssetGenerated).toHaveBeenCalledTimes(2);
+    });
+
+    it('does NOT mark when no rows changed', async () => {
+      delegate.findMany.mockResolvedValue([{ organizationId: 'org-a' }]);
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await service.patchAll(
+        { id: 'missing' },
+        { status: IngredientStatus.GENERATED },
+      );
+
+      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+    });
+
+    it('does NOT mark or pre-read on a non-GENERATED bulk update', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 5 });
+
+      await service.patchAll({ brandId: 'brand-1' }, { isDeleted: true });
+
+      expect(delegate.findMany).not.toHaveBeenCalled();
+      expect(markFirstAssetGenerated).not.toHaveBeenCalled();
     });
   });
 });

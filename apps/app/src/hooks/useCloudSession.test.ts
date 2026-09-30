@@ -34,6 +34,19 @@ describe('useCloudSession', () => {
     });
   });
 
+  it('is not connected when signed in without a user id (desktop offline bypass)', () => {
+    mocks.useOptionalAuth.mockReturnValue({
+      isSignedIn: true,
+      userId: null,
+    });
+
+    const { result } = renderHook(() => useCloudSession());
+
+    expect(result.current.isConnected).toBe(false);
+    expect(result.current.userId).toBeNull();
+    expect(result.current.isCapable).toBe(false);
+  });
+
   it('is connected only when signed in with a real user id', () => {
     mocks.useOptionalAuth.mockReturnValue({
       isSignedIn: true,

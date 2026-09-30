@@ -105,6 +105,10 @@ describe('MasterPromptGeneratorService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should parse brand voice analysis from JSON response', async () => {
     const voiceJson = JSON.stringify(makeProfileResponse());
     mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
@@ -119,6 +123,20 @@ describe('MasterPromptGeneratorService', () => {
     expect(result.values).toEqual(['innovation', 'quality']);
     expect(result.hashtags).toEqual(['tech', 'ai']);
     expect(result.taglines).toEqual(['Build faster']);
+  });
+
+  it('should extract JSON from markdown code blocks', async () => {
+    const response = `\`\`\`json\n${JSON.stringify({
+      ...makeProfileResponse(),
+      style: 'Fun',
+      tone: 'Casual',
+    })}\n\`\`\``;
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      response,
+    );
+
+    const result = await service.analyzeBrandVoice(makeBrandData());
+    expect(result.tone).toBe('Casual');
   });
 
   it('should return defaults when AI returns null', async () => {
@@ -222,6 +240,21 @@ describe('MasterPromptGeneratorService', () => {
     expect(
       mockReplicateService.generateTextCompletionSync,
     ).toHaveBeenCalledWith(DEFAULT_TEXT_MODEL, expect.any(Object), undefined);
+  });
+
+  it('does not charge when the generated profile is invalid', async () => {
+    mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+      '{"tone":"confident"}',
+    );
+
+    await service.analyzeBrandVoice(makeBrandData(), {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+
+    expect(
+      mockCreditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('should parse master prompts from JSON array response', async () => {

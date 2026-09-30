@@ -6,7 +6,7 @@ import {
   type TelegramAuthData,
   TelegramService,
 } from '@api/services/integrations/telegram/services/telegram.service';
-import { HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('TelegramController', () => {
@@ -68,13 +68,76 @@ describe('TelegramController', () => {
     controller = module.get<TelegramController>(TelegramController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('verify', () => {
+    it('should call verifyAndSaveAuth with correct arguments', async () => {
+      await controller.verify(mockUser, brandId, validAuthData);
+      expect(telegramService.verifyAndSaveAuth).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        userId,
+        validAuthData,
+      );
+    });
+
+    it('only links a brand that belongs to the caller organization', async () => {
+      await controller.verify(mockUser, brandId, validAuthData);
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        id: brandId,
+        organizationId: orgId,
+      });
+    });
+
     it('rejects a brand outside the caller organization without linking', async () => {
       brandsService.findOne.mockResolvedValueOnce(null);
       await expect(
         controller.verify(mockUser, brandId, validAuthData),
       ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
       expect(telegramService.verifyAndSaveAuth).not.toHaveBeenCalled();
+    });
+
+    it('should return the saved credential', async () => {
+      const result = await controller.verify(mockUser, brandId, validAuthData);
+      expect(result).toEqual(mockCredential);
+    });
+
+    it('should propagate errors from service', async () => {
+      telegramService.verifyAndSaveAuth.mockRejectedValueOnce(
+        new HttpException(
+          { detail: 'Invalid Signature', title: 'Unauthorized' },
+          HttpStatus.UNAUTHORIZED,
+        ),
+      );
+      await expect(
+        controller.verify(mockUser, brandId, validAuthData),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('should propagate BAD_REQUEST for missing fields', async () => {
+      telegramService.verifyAndSaveAuth.mockRejectedValueOnce(
+        new HttpException(
+          { detail: 'Missing required fields', title: 'Invalid Auth Data' },
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+      await expect(
+        controller.verify(mockUser, brandId, validAuthData),
+      ).rejects.toThrow(HttpException);
+    });
+
+    it('should propagate expired auth error', async () => {
+      telegramService.verifyAndSaveAuth.mockRejectedValueOnce(
+        new HttpException(
+          { detail: 'Auth data expired', title: 'Expired Authentication' },
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+      await expect(
+        controller.verify(mockUser, brandId, validAuthData),
+      ).rejects.toThrow(HttpException);
     });
 
     it('should pass identity.userId as userId', async () => {

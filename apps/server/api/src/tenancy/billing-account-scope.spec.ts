@@ -1,5 +1,5 @@
 import { runWithTenantContext } from '@libs/prisma/tenant-context';
-import { ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { describe, expect, it } from 'vitest';
 import {
   type BillingAccountAccessClient,
@@ -66,6 +66,27 @@ describe('resolveBillingAccountAccess — tenant context enforcement (#5217, MAJ
   // index — see billing_account_organizations_active_org_key), so this
   // defensive branch can never be exercised against the real schema. A fake
   // client is the only way to prove the code still refuses to guess.
+  it('rejects when more than one LINKED row is returned (ambiguous)', async () => {
+    await expect(
+      resolveBillingAccountAccess(
+        'org-1',
+        fakeClient({
+          billingAccountOrganization: {
+            findMany: async () => [
+              { billingAccountId: 'billing-1' },
+              { billingAccountId: 'billing-2' },
+            ],
+          },
+          organization: {
+            findFirst: async ({ where }) => ({
+              billingAccountId: null,
+              id: where.id,
+            }),
+          },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+  });
 });
 
 describe('isBillingAccountScope', () => {

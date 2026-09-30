@@ -41,6 +41,23 @@ describe('AgentConversationRouteHost', () => {
     shellUnmountSpy.mockClear();
   });
 
+  it('exposes the documented default export', () => {
+    expect(typeof AgentConversationRouteHost).toBe('function');
+    expect(AgentConversationRouteHost.name).toBe('AgentConversationRouteHost');
+  });
+
+  it('renders the conversation shell ahead of the route page on /agent', () => {
+    const { getByTestId } = renderHost('/test-org/~/agent');
+
+    const shell = getByTestId('conversation-shell');
+    const page = getByTestId('route-page');
+
+    expect(shell).toHaveTextContent('none');
+    expect(
+      shell.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('keeps one mounted shell while the thread route changes', () => {
     const { rerender, getByTestId } = renderHost('/test-org/~/agent/thread-1');
     expect(getByTestId('conversation-shell')).toHaveTextContent('thread-1');
@@ -67,6 +84,28 @@ describe('AgentConversationRouteHost', () => {
     expect(getByTestId('conversation-shell')).toHaveTextContent('none');
     expect(shellMountSpy).toHaveBeenCalledTimes(1);
     expect(shellUnmountSpy).not.toHaveBeenCalled();
+  });
+
+  it('wraps onboarding conversations in the focused onboarding frame', () => {
+    const { getByTestId } = renderHost('/test-org/~/agent/onboarding/thread-9');
+
+    const shell = getByTestId('conversation-shell');
+    expect(shell).toHaveTextContent('thread-9');
+    expect(shell.parentElement).toHaveClass(
+      'relative',
+      'flex',
+      'h-full',
+      'min-h-0',
+      'flex-1',
+      'flex-col',
+      'overflow-hidden',
+    );
+  });
+
+  it('passes no thread id for malformed thread segments', () => {
+    renderHost('/test-org/~/agent/undefined');
+
+    expect(shellRenderSpy).toHaveBeenLastCalledWith(undefined);
   });
 
   it('keeps the conversation shell mounted when pathname is unresolved', () => {

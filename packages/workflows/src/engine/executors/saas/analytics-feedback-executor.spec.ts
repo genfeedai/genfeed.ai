@@ -116,6 +116,13 @@ describe('AnalyticsFeedbackExecutor release evidence', () => {
       },
     });
   });
+
+  it.each([[null], [undefined]])(
+    'returns null evidence for %s comparisons',
+    (value) => {
+      expect(toAnalyticsFeedbackReleaseEvidence(value)).toBeNull();
+    },
+  );
 });
 
 describe('AnalyticsFeedbackExecutor.validate', () => {

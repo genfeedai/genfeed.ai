@@ -10,6 +10,41 @@ describe('applyDashboardOperation', () => {
     });
   });
 
+  it('stores validated dashboard blocks for replace operations', () => {
+    applyDashboardOperation('replace', [
+      {
+        id: 'views',
+        title: 'Views',
+        type: 'metric_card',
+        value: 1200,
+      },
+    ]);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'views',
+        type: 'metric_card',
+        value: 1200,
+      }),
+    ]);
+  });
+
+  it('fails closed when a dashboard operation contains unsupported blocks', () => {
+    applyDashboardOperation('replace', [
+      {
+        id: 'unsafe',
+        type: 'script',
+      },
+    ]);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'dashboard-renderer-unsupported-tree',
+        type: 'empty_state',
+      }),
+    ]);
+  });
+
   it('accepts registered OpenUI dashboard documents', () => {
     applyDashboardOperation('replace', {
       components: [
@@ -80,6 +115,20 @@ describe('applyDashboardOperation', () => {
     expect(useAgentDashboardStore.getState().blocks).toEqual([
       expect.objectContaining({
         id: 'keep',
+      }),
+    ]);
+  });
+
+  it('fails closed on circular payloads without overflowing the stack', () => {
+    const circular: Record<string, unknown> = {};
+    circular.blocks = circular;
+
+    applyDashboardOperation('replace', circular);
+
+    expect(useAgentDashboardStore.getState().blocks).toEqual([
+      expect.objectContaining({
+        id: 'dashboard-renderer-unsupported-tree',
+        type: 'empty_state',
       }),
     ]);
   });

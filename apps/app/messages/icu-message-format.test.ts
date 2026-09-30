@@ -1,3 +1,4 @@
+import { parse } from '@formatjs/icu-messageformat-parser';
 import {
   ActivityKey,
   getCreditActivityChangeDescriptor,
@@ -5,7 +6,10 @@ import {
 } from '@genfeedai/contracts';
 import { createTranslator } from 'next-intl';
 import { describe, expect, it } from 'vitest';
+import agent from './en/agent.json';
 import common from './en/common.json';
+import pages from './en/pages.json';
+import ui from './en/ui.json';
 
 function collectLeaves(
   value: unknown,
@@ -25,6 +29,30 @@ function collectLeaves(
 }
 
 describe('ICU message catalogs', () => {
+  it('parses every message in apps/app/messages/* without a FormatJS error', () => {
+    const catalogs: Array<[string, unknown]> = [
+      ['agent', agent],
+      ['common', common],
+      ['pages', pages],
+      ['ui', ui],
+    ];
+
+    const failures = catalogs.flatMap(([catalogName, catalog]) =>
+      collectLeaves(catalog, catalogName)
+        .map(({ path, value }) => {
+          try {
+            parse(value);
+            return null;
+          } catch (error) {
+            return `${path}: ${(error as Error).message}`;
+          }
+        })
+        .filter((failure): failure is string => failure !== null),
+    );
+
+    expect(failures).toEqual([]);
+  });
+
   it('keeps the byok-usage credit category as an ICU-safe selector', () => {
     expect(common.activity.credits.remove).toContain('byok_usage');
     expect(common.activity.credits.change).toContain('byok_usage');
@@ -41,6 +69,23 @@ describe('BYOK usage credit activity rendering', () => {
     locale: 'en',
     messages: { common },
     namespace: 'common',
+  });
+
+  it('shows the BYOK-specific text for activity.credits.remove', () => {
+    const value = JSON.stringify({
+      category: 'byok-usage',
+      description: '[BYOK] Image generation',
+      value: 1,
+    });
+    const descriptor = getCreditActivityMessageDescriptor(
+      ActivityKey.CREDITS_REMOVE,
+      value,
+      'system',
+    );
+
+    expect(translate(descriptor.id, descriptor.params)).toBe(
+      'Image generation (your API key)',
+    );
   });
 
   it('shows "No credits charged" for activity.credits.change', () => {

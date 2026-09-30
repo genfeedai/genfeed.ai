@@ -3,7 +3,16 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 
 describe('UpdateOrganizationSettingDto', () => {
+  it('should be defined', () => {
+    expect(UpdateOrganizationSettingDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new UpdateOrganizationSettingDto();
+      expect(dto).toBeInstanceOf(UpdateOrganizationSettingDto);
+    });
+
     it('accepts a partial update of only the daily publishing caps', async () => {
       const dto = plainToInstance(UpdateOrganizationSettingDto, {
         quotaInstagram: 0,

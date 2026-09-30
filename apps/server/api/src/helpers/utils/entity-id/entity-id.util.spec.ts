@@ -20,6 +20,12 @@ describe('EntityIdUtil', () => {
       );
     });
 
+    it('should throw error for null', () => {
+      expect(() => EntityIdUtil.validate('', 'id')).toThrow(
+        ValidationException,
+      );
+    });
+
     it('should throw error for an invalid entity id', () => {
       expect(() => EntityIdUtil.validate('invalid-id')).toThrow(
         ValidationException,
@@ -94,6 +100,18 @@ describe('EntityIdUtil', () => {
       expect(result).toEqual(expect.any(String));
     });
 
+    it('should return null for invalid string', () => {
+      const result = EntityIdUtil.toValidId('invalid-id');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for empty string', () => {
+      const result = EntityIdUtil.toValidId('');
+
+      expect(result).toBeNull();
+    });
+
     it('should return null for non-string', () => {
       const result = EntityIdUtil.toValidId('123');
 
@@ -128,6 +146,21 @@ describe('EntityIdUtil', () => {
         null,
         'parent',
       );
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for undefined value', async () => {
+      const result = await EntityIdUtil.convertRelationshipField(
+        undefined,
+        'parent',
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for empty string', async () => {
+      const result = await EntityIdUtil.convertRelationshipField('', 'parent');
 
       expect(result).toBeNull();
     });

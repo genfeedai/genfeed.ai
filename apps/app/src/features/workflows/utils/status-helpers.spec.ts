@@ -5,6 +5,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   formatLifecycleLabel,
+  getLifecycleBadgeClass,
   getStatusBorderColor,
   getStatusColor,
   getStatusIcon,
@@ -20,6 +21,8 @@ describe('getStatusIcon', () => {
     expect(getStatusIcon(WorkflowExecutionStatus.RUNNING)).toBe('⏳'));
   it('cancelled', () =>
     expect(getStatusIcon(WorkflowExecutionStatus.CANCELLED)).toBe('🚫'));
+  it('default', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.PENDING)).toBe('⏸️'));
 });
 
 describe('getStatusColor', () => {
@@ -66,6 +69,23 @@ describe('getStatusBorderColor', () => {
     ));
 });
 
+describe('getLifecycleBadgeClass', () => {
+  it('published', () =>
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.PUBLISHED)).toContain(
+      'success',
+    ));
+  it('archived', () =>
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.ARCHIVED)).toBe(
+      'border border-border bg-foreground/[0.04] text-foreground/55',
+    ));
+  it('draft/default', () =>
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.DRAFT)).toContain(
+      'warning',
+    ));
+  it('undefined', () =>
+    expect(getLifecycleBadgeClass(undefined)).toContain('warning'));
+});
+
 describe('formatLifecycleLabel', () => {
   it('published', () =>
     expect(formatLifecycleLabel(WorkflowLifecycle.PUBLISHED)).toBe(
@@ -78,6 +98,11 @@ describe('formatLifecycleLabel', () => {
 });
 
 describe('isNonDefaultWorkflowLifecycle', () => {
+  it('hides draft', () => {
+    expect(isNonDefaultWorkflowLifecycle(WorkflowLifecycle.DRAFT)).toBe(false);
+    expect(isNonDefaultWorkflowLifecycle(undefined)).toBe(false);
+  });
+
   it('keeps published and archived', () => {
     expect(isNonDefaultWorkflowLifecycle(WorkflowLifecycle.PUBLISHED)).toBe(
       true,

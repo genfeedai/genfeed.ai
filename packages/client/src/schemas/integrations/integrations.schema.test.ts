@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 describe('integration schemas', () => {
   describe('integrationSchema', () => {
+    it('accepts empty object', () => {
+      expect(integrationSchema.safeParse({}).success).toBe(true);
+    });
+
     it('accepts optional keys', () => {
       expect(
         integrationSchema.safeParse({ elevenlabs: 'k1', klingai: 'k2' })
@@ -17,6 +21,22 @@ describe('integration schemas', () => {
       expect(
         webhookSettingsSchema.safeParse({ isWebhookEnabled: false }).success,
       ).toBe(true);
+    });
+
+    it('accepts enabled with valid URL', () => {
+      expect(
+        webhookSettingsSchema.safeParse({
+          isWebhookEnabled: true,
+          webhookEndpoint: 'https://example.com/wh',
+          webhookEventTypes: ['target.published'],
+        }).success,
+      ).toBe(true);
+    });
+
+    it('rejects enabled without URL', () => {
+      expect(
+        webhookSettingsSchema.safeParse({ isWebhookEnabled: true }).success,
+      ).toBe(false);
     });
 
     it('rejects enabled with invalid URL', () => {

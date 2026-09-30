@@ -83,6 +83,10 @@ describe('GhostController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // ── connect ──────────────────────────────────────────────────────────────
 
   describe('connect', () => {

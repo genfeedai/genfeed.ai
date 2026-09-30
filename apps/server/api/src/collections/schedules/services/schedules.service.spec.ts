@@ -88,7 +88,26 @@ describe('SchedulesService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('channel capabilities', () => {
+    it('should expose supported scheduler channels', () => {
+      expect(
+        service
+          .listChannelCapabilities()
+          .map((capability) => capability.platform),
+      ).toEqual([
+        CredentialPlatform.YOUTUBE,
+        CredentialPlatform.TIKTOK,
+        CredentialPlatform.INSTAGRAM,
+        CredentialPlatform.TWITTER,
+        CredentialPlatform.LINKEDIN,
+        CredentialPlatform.BEEHIIV,
+      ]);
+    });
+
     it('should expose hidden channel stubs when requested', () => {
       expect(
         service

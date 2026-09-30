@@ -128,6 +128,10 @@ describe('PresignedUploadService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('getPresignedUploadUrl', () => {
     it('should generate presigned URL for image upload', async () => {
       const body = {
@@ -308,6 +312,71 @@ describe('PresignedUploadService', () => {
       );
     });
 
+    it('should default to image category when not specified', async () => {
+      const body = {
+        contentType: 'image/png',
+        filename: 'test.png',
+      };
+
+      const mockIngredient = createIngredientEntity({
+        category: IngredientCategory.IMAGE,
+      });
+
+      sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+        metadataData: createMetadataEntity(),
+      });
+
+      filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/images/test',
+        s3Key: 'ingredients/images/test',
+        uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
+      });
+
+      await service.getPresignedUploadUrl(mockUser, body);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({
+          category: CategoryPrismaUtil.toIngredientCategory(
+            IngredientCategory.IMAGE,
+          ),
+        }),
+      );
+    });
+
+    it('should extract file extension correctly', async () => {
+      const body = {
+        category: IngredientCategory.IMAGE,
+        contentType: 'application/pdf',
+        filename: 'document.pdf',
+      };
+
+      const mockIngredient = createIngredientEntity({
+        category: IngredientCategory.IMAGE,
+      });
+
+      sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+        metadataData: createMetadataEntity(),
+      });
+
+      filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/images/test',
+        s3Key: 'ingredients/images/test',
+        uploadUrl: 'https://s3.amazonaws.com/bucket/upload',
+      });
+
+      await service.getPresignedUploadUrl(mockUser, body);
+
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        mockUser,
+        expect.objectContaining({
+          extension: 'pdf',
+        }),
+      );
+    });
+
     it('should default to jpg when no extension found', async () => {
       const body = {
         contentType: 'image/jpeg',
@@ -449,6 +518,34 @@ describe('PresignedUploadService', () => {
       },
     );
 
+    it.each(['download', 'upload'])(
+      'should recover a legacy video key when %s fails',
+      async (stage) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({
+            category: IngredientCategory.VIDEO,
+          }),
+        );
+        if (stage === 'download') {
+          filesClientService.getPresignedDownloadUrl.mockRejectedValue(
+            new Error('Download failed'),
+          );
+        } else {
+          filesClientService.uploadToS3.mockRejectedValue(
+            new Error('Upload failed'),
+          );
+        }
+        await service.confirmUpload(mockUser, mockIngredientId);
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          {
+            s3Key: `ingredients/videos/${mockIngredientId}`,
+            status: IngredientStatus.UPLOADED,
+          },
+        );
+      },
+    );
+
     it('should throw NOT_FOUND when ingredient not found', async () => {
       const ingredientId = mockIngredientId.toString();
 
@@ -547,6 +644,39 @@ describe('PresignedUploadService', () => {
         expect.objectContaining({
           type: 'url',
         }),
+      );
+    });
+
+    it('should handle a populated metadata relation', async () => {
+      const ingredientId = mockIngredientId.toString();
+
+      const mockIngredient = createIngredientDocument({
+        category: IngredientCategory.IMAGE,
+        metadata: { id: mockMetadataId } as never,
+      });
+
+      ingredientsService.findOne.mockResolvedValue(mockIngredient);
+      filesClientService.getPresignedDownloadUrl.mockResolvedValue(
+        'https://s3.amazonaws.com/test',
+      );
+      filesClientService.uploadToS3.mockResolvedValue({
+        height: 600,
+        size: 1024000,
+        width: 800,
+      });
+      ingredientsService.patch.mockResolvedValue(
+        createIngredientDocument({
+          ...mockIngredient,
+          status: IngredientStatus.UPLOADED,
+        }),
+      );
+      metadataService.patch.mockResolvedValue(createMetadataEntity());
+
+      await service.confirmUpload(mockUser, ingredientId);
+
+      expect(metadataService.patch).toHaveBeenCalledWith(
+        mockMetadataId,
+        expect.any(Object),
       );
     });
   });

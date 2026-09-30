@@ -32,6 +32,10 @@ describe('parseSocialPostUrl', () => {
     it('returns null for profile URLs — the silent-follow regression', () => {
       expect(parseSocialPostUrl('https://x.com/openai')).toBeNull();
     });
+
+    it('returns null for non-numeric status ids', () => {
+      expect(parseSocialPostUrl('https://x.com/openai/status/abc')).toBeNull();
+    });
   });
 
   describe('Instagram', () => {
@@ -88,6 +92,15 @@ describe('parseSocialPostUrl', () => {
       expect(parseSocialPostUrl('@openai')).toBeNull();
       expect(parseSocialPostUrl('openai')).toBeNull();
       expect(parseSocialPostUrl('')).toBeNull();
+    });
+
+    it('returns null for unknown hosts even with post-like paths', () => {
+      expect(
+        parseSocialPostUrl('https://evil.example.com/openai/status/1'),
+      ).toBeNull();
+      expect(
+        parseSocialPostUrl('https://x.com.evil.example.com/a/status/1'),
+      ).toBeNull();
     });
 
     it('returns null for malformed URLs', () => {

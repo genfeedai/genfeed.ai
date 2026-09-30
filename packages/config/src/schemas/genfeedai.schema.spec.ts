@@ -24,6 +24,18 @@ describe('Genfeed URL schema', () => {
     ).toBeUndefined();
   });
 
+  it('allows self-hosted deployments to use service URL fallbacks', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '');
+    vi.resetModules();
+    const { genfeedaiUrlsSchema } = await import('./genfeedai.schema');
+    const schema = Joi.object({
+      GENFEEDAI_API_PUBLIC_URL: genfeedaiUrlsSchema.GENFEEDAI_API_PUBLIC_URL,
+      GENFEEDAI_MCP_PUBLIC_URL: genfeedaiUrlsSchema.GENFEEDAI_MCP_PUBLIC_URL,
+    });
+
+    expect(schema.validate({}).error).toBeUndefined();
+  });
+
   describe('MCP resource URL startup validation (#4553)', () => {
     async function loadMcpSchema(isCloud: boolean) {
       vi.stubEnv('GENFEED_CLOUD', isCloud ? 'true' : '');

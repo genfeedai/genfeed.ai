@@ -101,6 +101,19 @@ describe('OrganizationAutomationOverviewPage', () => {
     mocks.brandState.brands = [];
   });
 
+  it('renders a card per brand under a Brands section', () => {
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+      { id: 'brand_2', label: 'Solar', slug: 'solar' },
+    ];
+
+    render(<OrganizationAutomationOverviewPage />);
+
+    expect(getBrandGridItems()).toHaveLength(2);
+    expect(screen.getByRole('region', { name: 'Brands' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Moonrise' })).toBeVisible();
+  });
+
   it('shows one visible action per card and no nested link grid', () => {
     mocks.brandState.brands = [
       { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
@@ -187,6 +200,27 @@ describe('OrganizationAutomationOverviewPage', () => {
       expect(menu).toContainElement(document.activeElement as HTMLElement),
     );
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('closes the overflow on Escape and returns focus to its trigger', async () => {
+    const user = userEvent.setup();
+    mocks.brandState.brands = [
+      { id: 'brand_1', label: 'Moonrise', slug: 'moonrise' },
+    ];
+
+    render(<OrganizationAutomationOverviewPage />);
+
+    const trigger = screen.getByRole('button', {
+      name: 'More automation for Moonrise',
+    });
+    await tabTo(user, trigger);
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    expect(trigger).toHaveFocus();
   });
 
   it('activates a surface link from the keyboard and closes the overflow', async () => {

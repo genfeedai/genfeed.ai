@@ -47,7 +47,31 @@ describe('OpusProWebhookService', () => {
     loggerService = module.get(LoggerService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('extractVideoUrl', () => {
+    it('should return videoUrl when present', () => {
+      const payload = {
+        videoUrl: 'https://cdn.opuspro.ai/video.mp4',
+      } as OpusProWebhookPayload;
+
+      expect(service.extractVideoUrl(payload)).toBe(
+        'https://cdn.opuspro.ai/video.mp4',
+      );
+    });
+
+    it('should fall back to video_url when videoUrl is absent', () => {
+      const payload = {
+        video_url: 'https://cdn.opuspro.ai/video_url.mp4',
+      } as OpusProWebhookPayload;
+
+      expect(service.extractVideoUrl(payload)).toBe(
+        'https://cdn.opuspro.ai/video_url.mp4',
+      );
+    });
+
     it('should return undefined when neither videoUrl nor video_url is present', () => {
       const payload = { status: 'completed' } as OpusProWebhookPayload;
 
@@ -79,6 +103,33 @@ describe('OpusProWebhookService', () => {
       ).rejects.toThrow(BadRequestException);
 
       expect(microservicesService.notifyWebhook).not.toHaveBeenCalled();
+    });
+
+    it('should notify the microservice for every payload', async () => {
+      const mockId = testId('metadata');
+      const payload: OpusProWebhookPayload = {
+        callback_id: 'cb_001',
+        status: 'processing',
+      } as OpusProWebhookPayload;
+
+      microservicesService.notifyWebhook.mockResolvedValue(undefined);
+      metadataService.findOne.mockResolvedValue({
+        id: mockId,
+      } as never);
+
+      await service.handleCallback(payload);
+
+      expect(microservicesService.notifyWebhook).toHaveBeenCalledWith(
+        'opuspro',
+        'processing',
+        expect.objectContaining({
+          callback_id: 'cb_001',
+          metadata: expect.objectContaining({
+            callbackId: 'cb_001',
+            timestamp: expect.any(String),
+          }),
+        }),
+      );
     });
 
     it('should warn and return early when callback_id is absent', async () => {
@@ -174,6 +225,21 @@ describe('OpusProWebhookService', () => {
           error: 'Opus Pro generation failed',
         }),
       );
+    });
+
+    it('should NOT patch metadata when status is neither completed nor failed', async () => {
+      const mockId = testId('metadata');
+      const payload: OpusProWebhookPayload = {
+        callback_id: 'cb_processing',
+        status: 'processing',
+      } as OpusProWebhookPayload;
+
+      microservicesService.notifyWebhook.mockResolvedValue(undefined);
+      metadataService.findOne.mockResolvedValue({ id: mockId } as never);
+
+      await service.handleCallback(payload);
+
+      expect(metadataService.patch).not.toHaveBeenCalled();
     });
 
     it('should log completion after successful handling', async () => {

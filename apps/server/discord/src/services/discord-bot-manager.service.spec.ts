@@ -205,6 +205,15 @@ describe('DiscordBotManager', () => {
     manager = createManager();
   });
 
+  it('should be defined', () => {
+    expect(manager).toBeDefined();
+  });
+
+  it('should initialize and subscribe to redis events', async () => {
+    await manager.initialize();
+    expect(mockRedisService.subscribe).toHaveBeenCalled();
+  });
+
   it('should fetch active integrations during init', async () => {
     await manager.initialize();
     // BotInternalApiClient.fetchActiveIntegrations is called internally;
@@ -213,11 +222,41 @@ describe('DiscordBotManager', () => {
     expect(manager.getActiveCount()).toBe(0);
   });
 
+  it('should return 0 active bots initially', () => {
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
   it('should create a bot instance with discord client', async () => {
     const instance = await manager.createBotInstance(mockIntegration);
     expect(instance).toHaveProperty('client');
     expect(instance).toHaveProperty('id', 'int-1');
     expect(instance).toHaveProperty('orgId', 'org-1');
+  });
+
+  it('should destroy bot instance without throwing', async () => {
+    const instance = await manager.createBotInstance(mockIntegration);
+    await expect(manager.destroyBotInstance(instance)).resolves.not.toThrow();
+  });
+
+  it('should shutdown and clear bots', async () => {
+    await manager.shutdown();
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
+  it('should handle empty integrations array from API', async () => {
+    (firstValueFrom as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: [],
+    });
+    await manager.initialize();
+    expect(manager.getActiveCount()).toBe(0);
+  });
+
+  it('should handle API failure during fetchActiveIntegrations gracefully', async () => {
+    (firstValueFrom as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('ECONNREFUSED'),
+    );
+    await manager.initialize();
+    expect(manager.getActiveCount()).toBe(0);
   });
 
   it('should sendToChannel return null when no bot found', async () => {

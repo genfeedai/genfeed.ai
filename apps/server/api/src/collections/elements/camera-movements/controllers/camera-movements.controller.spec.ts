@@ -7,6 +7,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CameraMovementSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -101,6 +102,10 @@ describe('ElementsCameraMovementsController', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('create', () => {
     it('should create a camera movement for superadmin', async () => {
       const createDto: CreateElementCameraMovementDto = {
@@ -169,6 +174,19 @@ describe('ElementsCameraMovementsController', () => {
       expect(cameraMovementsService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it('should throw error if camera movement not found', async () => {
+      const id = 'cmcameramovement000000000001';
+      const updateDto: UpdateElementCameraMovementDto = {
+        label: 'Updated Camera Movement',
+      } as unknown as UpdateElementCameraMovementDto;
+
+      cameraMovementsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.update(mockRequest, mockSuperAdminUser, id, updateDto),
+      ).rejects.toThrow(HttpException);
+    });
   });
 
   describe('remove', () => {
@@ -200,6 +218,45 @@ describe('ElementsCameraMovementsController', () => {
   });
 
   describe('findAll', () => {
+    it('should return paginated camera movements', async () => {
+      const mockMovements = {
+        docs: [
+          {
+            id: 'cmcameramovement000000000001',
+            key: 'movement-1',
+            label: 'Movement 1',
+          },
+          {
+            id: 'cmcameramovement000000000002',
+            key: 'movement-2',
+            label: 'Movement 2',
+          },
+        ],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 2,
+        totalPages: 1,
+      };
+
+      cameraMovementsService.findAll.mockResolvedValue(mockMovements as never);
+
+      const query = createBaseQuery();
+
+      const result = await controller.findAll(
+        mockRequest,
+        mockSuperAdminUser,
+        query,
+      );
+
+      expect(cameraMovementsService.findAll).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should handle empty results', async () => {
       const mockMovements = {
         docs: [],

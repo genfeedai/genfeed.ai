@@ -162,6 +162,43 @@ describe('ActivitiesList', () => {
     expect(screen.getByText('—')).toBeInTheDocument();
   });
 
+  it('renders the activities container', () => {
+    const { container } = render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(container.firstChild).toBeInTheDocument();
+  });
+
+  it('renders a row for every activity returned by the hook', () => {
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('A plain detail line')).toBeInTheDocument();
+  });
+
+  it('dims rows that have already been read', () => {
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    const readRow = screen.getByText('A plain detail line').closest('tr');
+    expect(readRow).toHaveClass('opacity-50');
+  });
+
   it('offers a bulk mark-all-read action while unread activities exist', async () => {
     const user = userEvent.setup();
     render(
@@ -180,6 +217,22 @@ describe('ActivitiesList', () => {
     await waitFor(() => {
       expect(mockMarkActivitiesAsRead).toHaveBeenCalledWith();
     });
+  });
+
+  it('disables the bulk action when every activity is already read', () => {
+    mockActivities = [buildActivity({ id: 'activity-2', isRead: true })];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: /mark all read/i }),
+    ).toBeDisabled();
   });
 
   it('shows the generated asset from the ingredient id', () => {
@@ -235,5 +288,19 @@ describe('ActivitiesList', () => {
       'href',
       '/acme/news/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
     );
+  });
+
+  it('shows the empty state when there is no activity', () => {
+    mockActivities = [];
+
+    render(
+      <ActivitiesList
+        scope={PageScope.ORGANIZATION}
+        isStatsEnabled={false}
+        isFiltersEnabled={false}
+      />,
+    );
+
+    expect(screen.getByText('No activity yet')).toBeInTheDocument();
   });
 });

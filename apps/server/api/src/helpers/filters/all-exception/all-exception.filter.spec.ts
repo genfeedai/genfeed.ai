@@ -106,6 +106,10 @@ describe('AllExceptionFilter', () => {
     filter = new AllExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
+  it('should be defined', () => {
+    expect(filter).toBeDefined();
+  });
+
   it('should handle generic exceptions', () => {
     const exception = new Error('Test error');
 
@@ -129,6 +133,14 @@ describe('AllExceptionFilter', () => {
         ]),
       }),
     );
+  });
+
+  it('should capture exception to Sentry', () => {
+    const exception = new Error('Test error');
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(exception);
   });
 
   it('should not capture exceptions that resolve to a 4xx status', () => {

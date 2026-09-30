@@ -22,6 +22,13 @@ describe('serializeWorkspaceTaskDate', () => {
       '2026-08-01T10:00:00.000Z',
     );
   });
+
+  it('returns undefined for empty strings, null, undefined, and numbers', () => {
+    expect(serializeWorkspaceTaskDate('')).toBeUndefined();
+    expect(serializeWorkspaceTaskDate(null)).toBeUndefined();
+    expect(serializeWorkspaceTaskDate(undefined)).toBeUndefined();
+    expect(serializeWorkspaceTaskDate(1754042400000)).toBeUndefined();
+  });
 });
 
 describe('serializeWorkspaceTaskProgress', () => {

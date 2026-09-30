@@ -170,6 +170,31 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
     );
   });
 
+  it('does not seed a duplicate livestream bot workflow', async () => {
+    prisma.workflow.findFirst.mockImplementation(({ where }) => {
+      const sourceTemplateId = where.metadata.equals;
+      return Promise.resolve({
+        id: `workflow-${sourceTemplateId}`,
+        metadata: {
+          sourceIssue: 793,
+          sourceTemplateChangeSummary: SYSTEM_WORKFLOW_TEMPLATE_CHANGE_SUMMARY,
+          sourceTemplateId,
+          sourceTemplateVersion: SYSTEM_WORKFLOW_TEMPLATE_VERSION,
+          sourceType: 'seeded-template',
+          systemWorkflow: buildSystemWorkflowMetadata({
+            canonicalId: sourceTemplateId,
+            sourceIssue: 793,
+          }),
+        },
+      });
+    });
+
+    await service.ensureLivestreamBotWorkflows('user-1', 'org-1');
+
+    expect(prisma.workflow.update).not.toHaveBeenCalled();
+    expect(workflowsService.create).not.toHaveBeenCalled();
+  });
+
   it('repairs legacy seeded workflow metadata without creating a duplicate', async () => {
     prisma.workflow.findFirst.mockResolvedValue({
       id: 'workflow-1',

@@ -10,6 +10,7 @@ import {
   groupAgentThreadsByBrand,
   keepNewerRunStatus,
   ORGANIZATION_THREAD_GROUP_LABEL,
+  resolveThreadListPreview,
 } from './agent-thread-list.helpers';
 
 function createThread(
@@ -162,6 +163,67 @@ describe('groupAgentThreadsByBrand', () => {
       'curie-new',
       'curie-old',
     ]);
+  });
+
+  it('uses the organization label when a thread has no brand', () => {
+    const groups = groupAgentThreadsByBrand(
+      [createThread('org', { brandId: null, title: 'Workspace chat' })],
+      { searchQuery: '' },
+    );
+
+    expect(groups).toEqual([
+      expect.objectContaining({
+        brandId: null,
+        label: ORGANIZATION_THREAD_GROUP_LABEL,
+      }),
+    ]);
+  });
+
+  it('keeps pinned threads first inside a brand group', () => {
+    const groups = groupAgentThreadsByBrand(
+      [
+        createThread('later', {
+          brandId: 'brand-curie',
+          brandLabel: 'Curie',
+          title: 'Later',
+          updatedAt: '2026-08-19T12:00:00.000Z',
+        }),
+        createThread('pinned', {
+          brandId: 'brand-curie',
+          brandLabel: 'Curie',
+          isPinned: true,
+          title: 'Pinned',
+          updatedAt: '2026-08-01T08:00:00.000Z',
+        }),
+      ],
+      { searchQuery: '' },
+    );
+
+    expect(groups[0]?.threads.map(({ id }) => id)).toEqual(['pinned', 'later']);
+  });
+});
+
+describe('resolveThreadListPreview', () => {
+  it('uses the latest assistant output as the row description', () => {
+    expect(
+      resolveThreadListPreview(
+        createThread('preview', {
+          lastAssistantPreview: 'Three portraits are ready',
+          lastMessage: 'older user prompt',
+        }),
+      ),
+    ).toBe('Three portraits are ready');
+  });
+
+  it('does not fall back to source or platform noise', () => {
+    expect(
+      resolveThreadListPreview(
+        createThread('empty', {
+          platform: 'instagram',
+          source: 'agent',
+        }),
+      ),
+    ).toBeNull();
   });
 });
 

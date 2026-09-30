@@ -152,6 +152,24 @@ describe('buildValidatedEditorExportContract', () => {
     ).toThrow('video or text clip');
   });
 
+  it('accepts percentage boundary values', () => {
+    const boundaryTracks = structuredClone(tracks);
+    boundaryTracks[0].clips[0].volume = 0;
+    boundaryTracks[0].volume = 100;
+    const boundaryTextOverlay = boundaryTracks[1].clips[0].textOverlay;
+    if (!boundaryTextOverlay) {
+      throw new Error('Expected text overlay fixture');
+    }
+    boundaryTextOverlay.position = { x: 0, y: 100 };
+
+    expect(
+      buildValidatedEditorExportContract({
+        ...project,
+        tracks: boundaryTracks,
+      }).snapshot.tracks,
+    ).toHaveLength(3);
+  });
+
   it('reports actionable paths for malformed settings, timing, and assets', () => {
     const invalidTracks = structuredClone(tracks);
     invalidTracks[0].clips[0].ingredientId = '';

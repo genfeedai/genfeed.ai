@@ -55,6 +55,24 @@ describe('SkillsTable', () => {
     ).toBeChecked();
   });
 
+  it('calls onSkillSelect when a row is clicked', () => {
+    const onSkillSelect = vi.fn();
+    render(
+      <SkillsTable
+        enabledSlugs={[]}
+        isLoading={false}
+        pendingSlugs={new Set()}
+        onSkillSelect={onSkillSelect}
+        onToggleSkill={vi.fn()}
+        skills={skillsFixture}
+      />,
+    );
+
+    fireEvent.click(screen.getByText('YouTube Script Setup'));
+
+    expect(onSkillSelect).toHaveBeenCalledWith('skill-1');
+  });
+
   it('calls onToggleSkill without triggering row selection', () => {
     const onSkillSelect = vi.fn();
     const onToggleSkill = vi.fn();

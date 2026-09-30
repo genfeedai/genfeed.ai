@@ -63,4 +63,28 @@ describe('skill DTOs', () => {
     });
     await expect(validate(customized)).resolves.toEqual([]);
   });
+
+  it('rejects client-created built-in skills', async () => {
+    const created = plainToInstance(CreateSkillDto, {
+      ...validPayload,
+      isBuiltIn: true,
+    });
+
+    const errors = await validate(created);
+
+    expect(errors.map((error) => error.property)).toContain('isBuiltIn');
+  });
+
+  it('rejects null status and slug values on partial updates', async () => {
+    const updated = plainToInstance(UpdateSkillDto, {
+      slug: null,
+      status: null,
+    });
+
+    const errors = await validate(updated);
+
+    expect(errors.map((error) => error.property)).toEqual(
+      expect.arrayContaining(['slug', 'status']),
+    );
+  });
 });

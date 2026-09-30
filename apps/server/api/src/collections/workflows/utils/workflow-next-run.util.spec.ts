@@ -14,6 +14,35 @@ describe('withNextRunAt', () => {
     expect(nextRun.getTime()).toBeGreaterThan(Date.now());
   });
 
+  it('defaults the timezone to UTC when absent', () => {
+    const decorated = withNextRunAt({
+      isScheduleEnabled: true,
+      schedule: '30 12 * * 1-5',
+      timezone: null,
+    });
+
+    expect(decorated.nextRunAt).not.toBeNull();
+  });
+
+  it('returns null for a disabled schedule', () => {
+    const decorated = withNextRunAt({
+      isScheduleEnabled: false,
+      schedule: '0 9 * * *',
+      timezone: 'UTC',
+    });
+
+    expect(decorated.nextRunAt).toBeNull();
+  });
+
+  it('returns null when no schedule is set', () => {
+    const decorated = withNextRunAt({
+      isScheduleEnabled: true,
+      schedule: null,
+    });
+
+    expect(decorated.nextRunAt).toBeNull();
+  });
+
   it('returns null instead of throwing for an unparsable stored cron', () => {
     const decorated = withNextRunAt({
       isScheduleEnabled: true,

@@ -32,6 +32,29 @@ describe('AgentOptionPicker', () => {
     Element.prototype.scrollIntoView = vi.fn();
   });
 
+  it('shows one selected summary and selects a rich dropdown option', async () => {
+    const onValueChange = vi.fn();
+
+    render(
+      <AgentOptionPicker
+        label="Choose an agent template"
+        onValueChange={onValueChange}
+        options={options}
+        value="script-writer"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Choose an agent template: Script Writer',
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole('option', { name: /Video Creator/i }),
+    );
+    expect(onValueChange).toHaveBeenCalledWith('video-creator');
+  });
+
   it('focuses search and starts keyboard navigation on the selected option', async () => {
     const onValueChange = vi.fn();
 

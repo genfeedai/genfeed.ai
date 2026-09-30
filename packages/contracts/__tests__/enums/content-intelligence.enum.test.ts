@@ -8,6 +8,10 @@ import {
 
 describe('content-intelligence.enum', () => {
   describe('CreatorAnalysisStatus', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(CreatorAnalysisStatus)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(CreatorAnalysisStatus.PENDING).toBe('pending');
       expect(CreatorAnalysisStatus.SCRAPING).toBe('scraping');
@@ -18,6 +22,10 @@ describe('content-intelligence.enum', () => {
   });
 
   describe('ContentPatternType', () => {
+    it('should have 5 members', () => {
+      expect(Object.values(ContentPatternType)).toHaveLength(5);
+    });
+
     it('should have correct values', () => {
       expect(ContentPatternType.HOOK).toBe('hook');
       expect(ContentPatternType.TEMPLATE).toBe('template');
@@ -28,6 +36,10 @@ describe('content-intelligence.enum', () => {
   });
 
   describe('ContentPatternCategory', () => {
+    it('should have 8 members', () => {
+      expect(Object.values(ContentPatternCategory)).toHaveLength(8);
+    });
+
     it('should have correct values', () => {
       expect(ContentPatternCategory.STORY).toBe('story');
       expect(ContentPatternCategory.CONTRARIAN).toBe('contrarian');
@@ -41,6 +53,10 @@ describe('content-intelligence.enum', () => {
   });
 
   describe('ContentIntelligencePlatform', () => {
+    it('should have 4 members', () => {
+      expect(Object.values(ContentIntelligencePlatform)).toHaveLength(4);
+    });
+
     it('should have correct values', () => {
       expect(ContentIntelligencePlatform.LINKEDIN).toBe('linkedin');
       expect(ContentIntelligencePlatform.TWITTER).toBe('twitter');

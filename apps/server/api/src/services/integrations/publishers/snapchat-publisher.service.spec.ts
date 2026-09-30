@@ -95,6 +95,10 @@ describe('SnapchatPublisherService', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it('should expose correct platform capabilities', () => {
     expect(service.platform).toBe(CredentialPlatform.SNAPCHAT);
     expect(service.supportsTextOnly).toBe(false);
@@ -125,6 +129,16 @@ describe('SnapchatPublisherService', () => {
       });
       expect(result.valid).toBe(false);
       expect(result.error).toMatch(/carousel/i);
+    });
+
+    it('should pass for single image post', () => {
+      const result = service.validatePost(makeContext(), {
+        hasIngredients: true,
+        isCarousel: false,
+        isImagePost: true,
+        mediaUrls: ['url1'],
+      });
+      expect(result.valid).toBe(true);
     });
   });
 
@@ -203,6 +217,13 @@ describe('SnapchatPublisherService', () => {
       await expect(service.publish(makeContext())).rejects.toThrow(
         'Snap API error',
       );
+    });
+  });
+
+  describe('buildPostUrl', () => {
+    it('should build spotlight URL from externalId', () => {
+      const url = service.buildPostUrl('story-789', mockCredential as never);
+      expect(url).toBe('https://www.snapchat.com/spotlight/story-789');
     });
   });
 });

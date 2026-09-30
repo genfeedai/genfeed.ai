@@ -147,6 +147,25 @@ describe('CliAuthPage', () => {
     });
   });
 
+  it('renders a Better Auth sign-in handoff with a port-preserving redirect', async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    useAuthMock.mockReturnValue({
+      getToken: vi.fn(),
+      isLoaded: true,
+      isSignedIn: false,
+    });
+
+    render(<CliAuthPage />);
+
+    const signInLink = await screen.findByRole('link', {
+      name: 'Sign in to continue',
+    });
+    expect(signInLink).toHaveAttribute(
+      'href',
+      '/login?callbackUrl=%2Foauth%2Fcli%3Fport%3D4321',
+    );
+  });
+
   it('renders an account-creation handoff for CLI signup intent', async () => {
     useSearchParamsMock.mockReturnValue(
       new URLSearchParams('port=4321&intent=signup'),

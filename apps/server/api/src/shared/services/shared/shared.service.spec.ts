@@ -181,6 +181,20 @@ describe('SharedService', () => {
       );
     });
 
+    it('derives a compact metadata label from a multiline prompt', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        generationPrompt: 'SCENE:\nA boxer in a dark arena',
+      });
+
+      expect(metadataService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extension: MetadataExtension.JPEG,
+          label: 'SCENE: A boxer in a dark arena',
+        }),
+      );
+    });
+
     it.each([
       ['jpg', MetadataExtension.JPG],
       ['jpeg', MetadataExtension.JPEG],
@@ -238,6 +252,23 @@ describe('SharedService', () => {
 
       expect(metadataService.create).not.toHaveBeenCalled();
       expect(ingredientsService.create).not.toHaveBeenCalled();
+    });
+
+    it('does not require the media owner userId to be an entity id', async () => {
+      const userId = 'Ia5LDdyqVLQPVNE2oKjknCVuP2ti8LoQ';
+      const signedInUser = {
+        ...mockUser,
+        id: userId,
+        userId,
+      } as unknown as User;
+
+      await service.createMediaDocuments(signedInUser, {
+        category: IngredientCategory.IMAGE,
+      });
+
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ userId }),
+      );
     });
 
     it('soft-deletes metadata when ingredient persistence fails', async () => {

@@ -21,6 +21,13 @@ describe('formatAgentError', () => {
     },
   );
 
+  it('never exposes localhost health checks in production recovery copy', () => {
+    const formatted = formatAgentError({ source: 'network', status: 0 });
+    expect(`${formatted.summary} ${formatted.recovery}`).not.toMatch(
+      /localhost|127\.0\.0\.1/i,
+    );
+  });
+
   it('classifies the message inside a structured API error instead of rendering its transport envelope', () => {
     const formatted = formatAgentError({
       message: 'Generation failed: 500',
@@ -104,6 +111,12 @@ describe('formatAgentError', () => {
     expect(formatted.summary).toMatch(/provider endpoint.*privacy policy/i);
     expect(formatted.recovery).toMatch(/Admin.*Models/i);
     expect(formatted.isConfigurationError).toBe(true);
+  });
+
+  it('preserves model-route recovery for a structured provider 404', () => {
+    expect(formatAgentError({ source: 'provider', status: 404 }).title).toBe(
+      'Chat model unavailable',
+    );
   });
 
   it('maps bare Generation failed: 500 to connection-interrupted (local API reload)', () => {
@@ -205,6 +218,47 @@ describe('formatAgentError', () => {
     expect(formatAgentError('socket hang up').title).toBe(
       'Connection interrupted',
     );
+  });
+
+  it('classifies stream recovery timeouts', () => {
+    expect(
+      formatAgentError('Agent run did not finish before the recovery timeout.')
+        .title,
+    ).toBe('Run timed out');
+  });
+
+  it('classifies Prisma invalid-invocation dumps', () => {
+    expect(
+      formatAgentError(
+        'Invalid `prisma.post.create()` invocation:\n{ data: { visibility: "public" } }\nUnknown argument `visibility`.',
+      ).title,
+    ).toBe('Data save failed');
+  });
+
+  it('still extracts a Failed at: context line as safe detail', () => {
+    const formatted = formatAgentError(
+      ['rate limit exceeded', 'Failed at: generate_image', ''].join('\n'),
+    );
+
+    expect(formatted.detail).toBe('Failed at: generate_image');
+  });
+
+  it('ignores a Failed at: line with nothing after the label', () => {
+    expect(
+      formatAgentError(['rate limit exceeded', 'Failed at:'].join('\n')).detail,
+    ).toBeNull();
+  });
+
+  it('scans a padding-only Failed at: line in linear time', () => {
+    // `\s*[^\r\n]+` overlapped on spaces, so a line of pure padding forced the
+    // engine to retry every split of it. Budget is generous — the old form took
+    // seconds on this input, the new one is sub-millisecond.
+    const started = performance.now();
+    formatAgentError(
+      ['rate limit exceeded', `Failed at:${' '.repeat(40_000)}`].join('\n'),
+    );
+
+    expect(performance.now() - started).toBeLessThan(1_000);
   });
 
   it('still classifies an already-formatted provider auth error', () => {

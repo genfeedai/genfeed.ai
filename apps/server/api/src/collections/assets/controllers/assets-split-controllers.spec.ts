@@ -135,6 +135,15 @@ describe('Assets split controllers', () => {
     ).toEqual([CreditsInterceptor]);
   });
 
+  it('moves ingestion handlers off the generation controller', () => {
+    expect(
+      Reflect.get(AssetsOperationsController.prototype, 'createUpload'),
+    ).toBeUndefined();
+    expect(
+      Reflect.get(AssetsOperationsController.prototype, 'createFromIngredient'),
+    ).toBeUndefined();
+  });
+
   it('registers static operation controllers before the wildcard CRUD controller', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, AssetsModule),

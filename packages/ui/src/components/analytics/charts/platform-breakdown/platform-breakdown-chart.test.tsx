@@ -204,6 +204,65 @@ describe('PlatformBreakdownChart', () => {
     });
   });
 
+  describe('All Platforms', () => {
+    const allPlatforms = [
+      {
+        expectedColor: 'var(--platform-instagram)',
+        platform: 'instagram',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-tiktok)',
+        platform: 'tiktok',
+        value: 100,
+      },
+      {
+        expectedColor: 'hsl(var(--destructive))',
+        platform: 'youtube',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-facebook)',
+        platform: 'facebook',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-twitter)',
+        platform: 'twitter',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-linkedin)',
+        platform: 'linkedin',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-reddit)',
+        platform: 'reddit',
+        value: 100,
+      },
+      {
+        expectedColor: 'var(--platform-pinterest)',
+        platform: 'pinterest',
+        value: 100,
+      },
+      {
+        expectedColor: 'hsl(var(--foreground))',
+        platform: 'medium',
+        value: 100,
+      },
+    ];
+
+    it.each(allPlatforms)(
+      'renders $platform with correct color',
+      ({ platform, value, expectedColor }) => {
+        render(<PlatformBreakdownChart data={[{ platform, value }]} />);
+        const cell = screen.getByTestId('cell');
+        expect(cell).toHaveAttribute('data-fill', expectedColor);
+      },
+    );
+  });
+
   describe('Case Insensitivity', () => {
     it('handles uppercase platform names', () => {
       const upperData = [{ platform: 'INSTAGRAM', value: 1000 }];

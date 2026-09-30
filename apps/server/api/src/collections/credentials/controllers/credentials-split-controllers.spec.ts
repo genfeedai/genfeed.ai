@@ -4,9 +4,11 @@ import { CredentialsPublishingController } from '@api/collections/credentials/co
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { CredentialPublishingOperationsService } from '@api/collections/credentials/services/credential-publishing-operations.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import { RequestMethod } from '@nestjs/common';
 import {
+  GUARDS_METADATA,
   METHOD_METADATA,
   MODULE_METADATA,
   PATH_METADATA,
@@ -82,6 +84,15 @@ describe('Credentials split controllers', () => {
     );
   });
 
+  it.each([CredentialsPublishingController, CredentialsController])(
+    'preserves the shared credentials role guard on %s',
+    (controllerClass) => {
+      expect(Reflect.getMetadata(GUARDS_METADATA, controllerClass)).toContain(
+        RolesGuard,
+      );
+    },
+  );
+
   it.each([
     'replacePostingTimes',
     'addPostingTime',
@@ -98,6 +109,15 @@ describe('Credentials split controllers', () => {
     },
   );
 
+  it.each(MOVED_ROUTES)(
+    'removes moved handler %s from the legacy controller',
+    (methodName) => {
+      expect(
+        Reflect.get(CredentialsController.prototype, methodName),
+      ).toBeUndefined();
+    },
+  );
+
   it('registers the publishing sibling before the wildcard legacy controller', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, CredentialsModule),
@@ -105,6 +125,18 @@ describe('Credentials split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, CredentialsModule),
     ).toEqual([CredentialPublishingOperationsService]);
+  });
+
+  it('reduces the legacy controller from 18 to 11 constructor dependencies', () => {
+    // 12 -> 11: `findAllInstagramPages` no longer looks up the credential's
+    // brand at all — it reads accounts straight from the credential's own
+    // token via `listAuthorizedInstagramAccounts`, the same source of truth
+    // `InstagramController.resolveAuthorizedAccount`/`selectAccount` use, so
+    // BrandsService's only remaining caller here disappeared (see #4695,
+    // commit 2550287b4).
+    expect(
+      Reflect.getMetadata('design:paramtypes', CredentialsController),
+    ).toHaveLength(11);
   });
 
   it.each([

@@ -210,6 +210,37 @@ describe('ReleaseGroupsService', () => {
     expect(mockDeserializeResource).toHaveBeenCalledWith(document);
   });
 
+  it('reschedules one channel target through the nested target endpoint', async () => {
+    const document = { data: { id: 'release-1' } };
+    mockPatch.mockResolvedValue({ data: document });
+    mockDeserializeResource.mockReturnValue({ id: 'release-1' });
+
+    await new ReleaseGroupsService('token').updateTarget(
+      'release-1',
+      'target-9',
+      { scheduledDate: '2026-08-02T11:00:00.000Z' },
+    );
+
+    expect(mockPatch).toHaveBeenCalledWith('/release-1/targets/target-9', {
+      scheduledDate: '2026-08-02T11:00:00.000Z',
+    });
+  });
+
+  it('expresses a manual retry as a transition back to scheduled', async () => {
+    mockPatch.mockResolvedValue({ data: { data: { id: 'release-1' } } });
+    mockDeserializeResource.mockReturnValue({ id: 'release-1' });
+
+    await new ReleaseGroupsService('token').updateTarget(
+      'release-1',
+      'target-9',
+      { executionState: TargetExecutionState.SCHEDULED },
+    );
+
+    expect(mockPatch).toHaveBeenCalledWith('/release-1/targets/target-9', {
+      executionState: TargetExecutionState.SCHEDULED,
+    });
+  });
+
   it('publishes a TikTok target through the native app handoff action', async () => {
     const document = { data: { id: 'release-1' } };
     mockPatch.mockResolvedValue({ data: document });

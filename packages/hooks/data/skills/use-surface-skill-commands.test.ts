@@ -51,6 +51,16 @@ describe('useSurfaceSkillCommands', () => {
     listSkillsMock.mockResolvedValue([]);
   });
 
+  it('requests the catalog for the given surface', async () => {
+    renderHook(() => useSurfaceSkillCommands({ surface: SkillSurface.STUDIO }));
+
+    await waitFor(() =>
+      expect(listSkillsMock).toHaveBeenCalledWith({
+        surface: SkillSurface.STUDIO,
+      }),
+    );
+  });
+
   it('turns a skill into a command keyed by its slug', async () => {
     listSkillsMock.mockResolvedValue([makeSkill()]);
 
@@ -100,6 +110,48 @@ describe('useSurfaceSkillCommands', () => {
       expect(result.current.skillCommands.map((c) => c.name)).toEqual([
         'alpha',
         'zebra',
+      ]),
+    );
+  });
+
+  it('does not list a skill a base command already fronts', async () => {
+    listSkillsMock.mockResolvedValue([
+      makeSkill({ name: 'Brand Interview', slug: 'brand-interview' }),
+      makeSkill(),
+    ]);
+
+    const { result } = renderHook(() =>
+      useSurfaceSkillCommands({
+        baseCommands: BASE_COMMANDS,
+        surface: SkillSurface.AGENT,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.commands.map((c) => c.name)).toEqual([
+        'interview',
+        'hook-writer',
+      ]),
+    );
+  });
+
+  it('still reports a fronted slug as insertable', async () => {
+    listSkillsMock.mockResolvedValue([
+      makeSkill({ name: 'Brand Interview', slug: 'brand-interview' }),
+      makeSkill(),
+    ]);
+
+    const { result } = renderHook(() =>
+      useSurfaceSkillCommands({
+        baseCommands: BASE_COMMANDS,
+        surface: SkillSurface.AGENT,
+      }),
+    );
+
+    await waitFor(() =>
+      expect(result.current.skillSlugs).toEqual([
+        'brand-interview',
+        'hook-writer',
       ]),
     );
   });

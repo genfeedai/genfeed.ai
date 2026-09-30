@@ -15,6 +15,7 @@ import {
 } from '@api/collections/workflows/templates/daily-publishing-workflow.template';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { getActionDefinition } from '@genfeedai/actions';
 import type { ModuleRef } from '@nestjs/core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -221,6 +222,20 @@ describe('daily account publishing', () => {
       outcome: 'existing-failed-slot',
     });
     expect(prisma.post.upsert).not.toHaveBeenCalled();
+  });
+  it('resolves exactly one explicit contract for every daily action', () => {
+    for (const stage of [
+      'resolve',
+      'refresh',
+      'collect-analytics',
+      'select',
+      'generate',
+      'evaluate',
+      'schedule',
+    ])
+      expect(
+        getActionDefinition(`daily-publishing.${stage}`)?.inputSchema,
+      ).toBeDefined();
   });
   it.each(['twitter', 'linkedin'])(
     'collects each %s post separately and continues after an individual failure',

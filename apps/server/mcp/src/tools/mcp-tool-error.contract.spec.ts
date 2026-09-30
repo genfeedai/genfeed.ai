@@ -69,6 +69,20 @@ describe('MCP tool error contract', () => {
     ).toBe(appUrl(APP_ROUTES.SETTINGS.SUBSCRIPTION));
   });
 
+  it('returns insufficient_credits for the ledger exception', () => {
+    const error = classifyMcpToolFailure({
+      domainCode: 'INSUFFICIENT_CREDITS',
+      message: 'Insufficient credits: 10 required, 3 available',
+      status: 422,
+    });
+
+    expect(error).toEqual({
+      code: 'insufficient_credits',
+      message: 'Insufficient credits: 10 required, 3 available',
+      nextStepUrl: appUrl(APP_ROUTES.SETTINGS.CREDITS),
+    });
+  });
+
   it('returns rate_limited with retryAfterSeconds and no invented URL', () => {
     const error = classifyMcpToolFailure({
       message: 'Rate limit exceeded. Retry after 42s.',

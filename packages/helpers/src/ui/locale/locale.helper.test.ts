@@ -35,6 +35,10 @@ function mockRequest({
 }
 
 describe('negotiateAcceptLanguage', () => {
+  it('returns undefined when the header is absent', () => {
+    expect(negotiateAcceptLanguage(null)).toBeUndefined();
+  });
+
   it('matches an exact allowlisted tag', () => {
     expect(negotiateAcceptLanguage('en')).toBe('en');
     expect(negotiateAcceptLanguage('en-XA')).toBe('en-XA');
@@ -50,6 +54,18 @@ describe('negotiateAcceptLanguage', () => {
 
   it('skips unlisted languages ranked above an allowlisted one', () => {
     expect(negotiateAcceptLanguage('de,fr;q=0.8,en;q=0.3')).toBe('en');
+  });
+
+  it('never selects a tag explicitly refused with q=0', () => {
+    expect(negotiateAcceptLanguage('en;q=0')).toBeUndefined();
+  });
+
+  it('ignores a wildcard rather than treating it as a match', () => {
+    expect(negotiateAcceptLanguage('*')).toBeUndefined();
+  });
+
+  it('returns undefined when nothing in the header is allowlisted', () => {
+    expect(negotiateAcceptLanguage('de,fr;q=0.8')).toBeUndefined();
   });
 
   it('tolerates whitespace and a malformed quality value', () => {

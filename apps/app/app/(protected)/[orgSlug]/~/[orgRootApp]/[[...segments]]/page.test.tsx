@@ -452,6 +452,26 @@ describe('OrgRootAppPage', () => {
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
+  it('falls back to Agent for the bare Studio destination when the persisted brand belongs to another organization', async () => {
+    loadProtectedBootstrapMock.mockResolvedValue({
+      brandId: 'brand-1',
+      brands: [
+        {
+          id: 'brand-1',
+          organization: { slug: 'other-org' },
+          slug: 'moonrise',
+        },
+      ],
+    });
+
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
   it('redirects bare org Publishing to its canonical overview', async () => {
     await expect(
       OrgRootAppPage({
@@ -498,6 +518,21 @@ describe('OrgRootAppPage', () => {
       scope: PageScope.ORGANIZATION,
       searchParams,
     });
+  });
+
+  it('returns not found for the retired org publishing calendar route', async () => {
+    // The calendar is the Posts desk's calendar view
+    // (`/publishing/posts?view=calendar`); the old route is hard-cut.
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publishing',
+          orgSlug: 'acme',
+          segments: ['calendar'],
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+    expect(redirectMock).not.toHaveBeenCalled();
   });
 
   it.each([['content', '/acme/~/publishing/posts?']])(
@@ -621,6 +656,22 @@ describe('OrgRootAppPage', () => {
     expect(screen.getByTestId('posts-list-page')).toBeInTheDocument();
   });
 
+  it.each(['pending', 'processing', 'published', 'scheduled', 'failed'])(
+    'returns not found for the retired org /publishing/%s route',
+    async (segment) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({
+            orgRootApp: 'publishing',
+            orgSlug: 'acme',
+            segments: [segment],
+          }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+      expect(renderPostsListPageMock).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     ['overview', 'extra'],
     ['posts', 'content-1', 'extra'],
@@ -641,6 +692,19 @@ describe('OrgRootAppPage', () => {
           }),
         }),
       ).rejects.toThrow('NEXT_NOT_FOUND');
+    },
+  );
+
+  it.each(['write', 'compose'])(
+    'returns not found for retired org %s route',
+    async (orgRootApp) => {
+      await expect(
+        OrgRootAppPage({
+          params: Promise.resolve({ orgRootApp, orgSlug: 'acme' }),
+        }),
+      ).rejects.toThrow('NEXT_NOT_FOUND');
+
+      expect(notFoundMock).toHaveBeenCalled();
     },
   );
 
@@ -759,5 +823,31 @@ describe('OrgRootAppPage', () => {
       'data-id',
       'project-1',
     );
+  });
+
+  it('returns not found for the retired org editor root', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'editor',
+          orgSlug: 'acme',
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(notFoundMock).toHaveBeenCalled();
+  });
+
+  it('returns not found for unknown org-root routes', async () => {
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'unknown',
+          orgSlug: 'acme',
+        }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(notFoundMock).toHaveBeenCalled();
   });
 });

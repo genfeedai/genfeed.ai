@@ -14,6 +14,10 @@ describe('AgentChatBodyDto', () => {
     pipe = new ValidationPipe();
   });
 
+  it('should be defined', () => {
+    expect(AgentChatBodyDto).toBeDefined();
+  });
+
   it('emits a runtime metatype the pipe validates against', () => {
     // A class with class-validator decorators emits `design:paramtypes`, so the
     // global ValidationPipe treats it as a validatable type. An interface would
@@ -79,6 +83,26 @@ describe('AgentChatBodyDto', () => {
 
       expect(result).toEqual(value);
     });
+
+    it('accepts a null brandId via @IsOptional', async () => {
+      const value = { brandId: null, content: 'hi' };
+
+      const result = (await pipe.transform(value, metadata)) as Record<
+        string,
+        unknown
+      >;
+
+      expect(result.brandId).toBeNull();
+    });
+
+    it.each(['auto', 'image', 'video'])(
+      'accepts %s generation mode',
+      async (generationMode) => {
+        const value = { content: 'Generate something', generationMode };
+
+        await expect(pipe.transform(value, metadata)).resolves.toEqual(value);
+      },
+    );
   });
 
   describe('invalid bodies', () => {

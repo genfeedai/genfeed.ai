@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { ControllersModule } from '@files/controllers/controllers.module';
 import { EditorRenderJobsController } from '@files/controllers/editor-render-jobs.controller';
 import { FilesController } from '@files/controllers/files.controller';
 import { FilesAudioOverlayController } from '@files/controllers/files-audio-overlay.controller';
@@ -8,7 +9,22 @@ import { FilesProcessingController } from '@files/controllers/files-processing.c
 import { FilesStorageController } from '@files/controllers/files-storage.controller';
 import { FilesWatermarkExportController } from '@files/controllers/files-watermark-export.controller';
 import { RequestMethod } from '@nestjs/common';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  METHOD_METADATA,
+  MODULE_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
+
+const controllers = [
+  [EditorRenderJobsController, 'files/job'],
+  [FilesAudioOverlayController, 'files'],
+  [FilesController, 'files'],
+  [FilesMetadataController, 'files'],
+  [FilesPerceptionController, 'files'],
+  [FilesProcessingController, 'files'],
+  [FilesStorageController, 'files'],
+  [FilesWatermarkExportController, 'files'],
+] as const;
 
 const routes = [
   [
@@ -116,6 +132,13 @@ const routes = [
 ] as const;
 
 describe('files controller boundaries', () => {
+  it.each(controllers)(
+    '%s keeps its files route prefix',
+    (controller, expectedPath) => {
+      expect(Reflect.getMetadata(PATH_METADATA, controller)).toBe(expectedPath);
+    },
+  );
+
   it.each(routes)(
     'preserves route metadata for %s',
     (handler, method, path) => {
@@ -123,6 +146,32 @@ describe('files controller boundaries', () => {
       expect(Reflect.getMetadata(PATH_METADATA, handler)).toBe(path);
     },
   );
+
+  it('moves audio overlay off the source processing controller', () => {
+    expect(
+      Reflect.get(FilesProcessingController.prototype, 'audioOverlay'),
+    ).toBeUndefined();
+  });
+
+  it('registers the audio overlay sibling before the source processing controller', () => {
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, ControllersModule),
+    ).toEqual([
+      EditorRenderJobsController,
+      FilesController,
+      FilesMetadataController,
+      FilesPerceptionController,
+      FilesAudioOverlayController,
+      FilesProcessingController,
+      FilesStorageController,
+      // FilesWatermarkExportController registers last: its only route
+      // (`files/watermark-export`) is a static segment no earlier
+      // controller's wildcard/param routes (e.g. `download/:type/*key`)
+      // can shadow, so it cannot disturb the audio-overlay/processing order
+      // above.
+      FilesWatermarkExportController,
+    ]);
+  });
 
   it('keeps the split production surfaces within their line budgets', () => {
     const sourceController = readFileSync(

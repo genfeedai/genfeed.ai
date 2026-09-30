@@ -126,6 +126,23 @@ describe('BrandSettingsKitPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('puts evidence review before manual changes and reference management', () => {
+    render(<BrandSettingsKitPage />);
+
+    const review = screen.getByTestId('review-card');
+    const manual = screen.getByTestId('manual-card');
+    const references = screen.getByTestId('references-card');
+    expect(screen.getByTestId('watermark-settings')).toBeInTheDocument();
+
+    expect(
+      review.compareDocumentPosition(manual) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      manual.compareDocumentPosition(references) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('loads the tenant-bound handoff and emits sanitized deduped milestones', () => {
     render(<BrandSettingsKitPage />);
 
@@ -145,6 +162,14 @@ describe('BrandSettingsKitPage', () => {
     );
   });
 
+  it('does not bounce Brand Knowledge out of settings', () => {
+    render(<BrandSettingsKitPage />);
+
+    expect(
+      screen.queryByRole('link', { name: /open knowledge/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Brand Knowledge')).not.toBeInTheDocument();
+  });
   it('keeps legacy scan and manual cards available to members without revision persistence callbacks', () => {
     mocks.role = 'member';
     try {

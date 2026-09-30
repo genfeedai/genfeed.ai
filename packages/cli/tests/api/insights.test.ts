@@ -31,6 +31,16 @@ describe('api/insights', () => {
     expect(result).toEqual([{ id: 'insight-1' }]);
   });
 
+  it('lists insights with a custom limit', async () => {
+    mockGet.mockResolvedValue({ data: [] });
+    mockFlattenCollection.mockReturnValue([]);
+
+    const { getInsights } = await import('../../src/api/insights');
+    await getInsights(20);
+
+    expect(mockGet).toHaveBeenCalledWith('/insights?limit=20');
+  });
+
   it('requests a forecast with topic and platform', async () => {
     mockPost.mockResolvedValue({ data: { id: 'forecast' } });
     mockFlattenSingle.mockReturnValue({ confidence: 0.8, topic: 'ai' });
@@ -76,6 +86,18 @@ describe('api/insights', () => {
 
     expect(mockGet).toHaveBeenCalledWith('/insights/times?platform=instagram&timezone=UTC');
     expect(result[0].hour).toBe(9);
+  });
+
+  it('fetches posting times for a custom platform and timezone', async () => {
+    mockGet.mockResolvedValue({ data: [] });
+    mockFlattenCollection.mockReturnValue([]);
+
+    const { getPostingTimes } = await import('../../src/api/insights');
+    await getPostingTimes('linkedin', 'Europe/Amsterdam');
+
+    expect(mockGet).toHaveBeenCalledWith(
+      '/insights/times?platform=linkedin&timezone=Europe/Amsterdam'
+    );
   });
 
   it('fetches growth prediction with the default platform', async () => {

@@ -51,6 +51,10 @@ describe('OpusProController', () => {
     controller = module.get(OpusProController);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getStatus', () => {
     it('should return isConnected=true when getAccountInfo succeeds', async () => {
       opusProService.getAccountInfo.mockResolvedValue({ plan: 'pro' });
@@ -97,6 +101,14 @@ describe('OpusProController', () => {
       await expect(controller.getTemplates(mockUser)).rejects.toMatchObject({
         status: HttpStatus.INTERNAL_SERVER_ERROR,
       });
+    });
+
+    it('should pass organizationId from authProvider metadata to service', async () => {
+      opusProService.getTemplates.mockResolvedValue([]);
+
+      await controller.getTemplates(mockUser);
+
+      expect(opusProService.getTemplates).toHaveBeenCalledWith(organizationId);
     });
   });
 
@@ -157,6 +169,17 @@ describe('OpusProController', () => {
       expect(result.data.attributes.status).toBe('completed');
       expect(result.data.attributes.videoUrl).toBe('https://cdn/v.mp4');
       expect(result.data.attributes.provider).toBe('opuspro');
+    });
+
+    it('should pass videoId parameter to service', async () => {
+      opusProService.getVideoStatus.mockResolvedValue({ status: 'pending' });
+
+      await controller.getVideoStatus(mockUser, 'vid-xyz');
+
+      expect(opusProService.getVideoStatus).toHaveBeenCalledWith(
+        'vid-xyz',
+        expect.any(String),
+      );
     });
 
     it('should throw HttpException on service error', async () => {

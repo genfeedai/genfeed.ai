@@ -53,6 +53,22 @@ describe('PatternPlaybookSerializer', () => {
   it('returns null for a missing document', () => {
     expect(PatternPlaybookSerializer.serialize(null)).toBeNull();
   });
+
+  it('unwraps a toObject() document before flattening data', () => {
+    const output = PatternPlaybookSerializer.serialize({
+      toObject: () => ({
+        data: { name: 'Unwrapped' },
+        id: 'playbook-2',
+        sourceCreators: ['creator-9'],
+      }),
+    }) as ResourceObject;
+
+    expect(output).toMatchObject({
+      attributes: { name: 'Unwrapped', sourceCreators: ['creator-9'] },
+      id: 'playbook-2',
+      type: 'pattern-playbook',
+    });
+  });
 });
 
 describe('ContentPatternSerializer', () => {

@@ -40,4 +40,8 @@ describe('SourcePostsService canonical identity contract', () => {
       { params: { brandId: 'brand-1' } },
     );
   });
+
+  it('does not expose a native twitter action client (#2665)', () => {
+    expect(service).not.toHaveProperty('publishTwitterAction');
+  });
 });

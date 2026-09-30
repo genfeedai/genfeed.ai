@@ -258,6 +258,17 @@ describe('CORS Configuration', () => {
   });
 
   describe('shouldAllowLocalCorsOrigins', () => {
+    it.each(['development', 'test'])('allows %s runtimes', (nodeEnv) => {
+      expect(shouldAllowLocalCorsOrigins(nodeEnv)).toBe(true);
+    });
+
+    it.each(['production', 'staging', undefined])(
+      'rejects deployed or unknown runtime %s',
+      (nodeEnv) => {
+        expect(shouldAllowLocalCorsOrigins(nodeEnv)).toBe(false);
+      },
+    );
+
     it('admits the hermetic browser origin in test without widening production', () => {
       const appOrigin = 'http://localhost:3000';
       const accepts = (nodeEnv: string) =>

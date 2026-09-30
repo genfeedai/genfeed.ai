@@ -50,4 +50,12 @@ describe('BookingSection', () => {
       surface: 'done_for_you',
     });
   });
+
+  it('stops listening once it unmounts', () => {
+    const { unmount } = render(<BookingSection />);
+    unmount();
+
+    postFrom('https://calendly.com', 'calendly.event_scheduled');
+    expect(capture).not.toHaveBeenCalled();
+  });
 });

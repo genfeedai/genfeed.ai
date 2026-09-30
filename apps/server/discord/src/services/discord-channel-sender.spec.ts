@@ -71,6 +71,24 @@ describe('sendDiscordChannelMessage', () => {
     );
   });
 
+  it('should warn and return null when the channel is not a guild text channel', async () => {
+    const logger = createLogger();
+    const client = createClient(
+      vi.fn().mockResolvedValue({ id: 'ch-1', type: 2 }),
+    );
+
+    const result = await sendDiscordChannelMessage(
+      client,
+      'org-1',
+      'ch-1',
+      'hello',
+      logger,
+    );
+
+    expect(result).toBeNull();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
   it('should send the message and return the message url', async () => {
     const logger = createLogger();
     const send = vi.fn().mockResolvedValue({ id: 'msg-1' });

@@ -5,6 +5,7 @@ import { FeaturedWorkflowsService } from '@api/collections/workflows/services/fe
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { MemberRole } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -182,6 +183,37 @@ describe('WorkflowMarketplaceController', () => {
       expect(result.data).toEqual([]);
     });
 
+    it('serializes usage fields alongside the workflow summary', async () => {
+      mockWorkflowsService.findMostUsed.mockResolvedValue([
+        {
+          edges: [],
+          executionCount: 42,
+          id: 'workflow-1',
+          isScheduleEnabled: false,
+          label: 'Weekly recap',
+          lastExecutedAt: new Date('2026-09-20T10:00:00.000Z'),
+          nodes: [],
+          organizationId: 'org-1',
+        },
+      ]);
+
+      const result = await controller.getMostUsed(mockRequest, user, {
+        limit: 5,
+      });
+
+      expect(result.data).toEqual([
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            executionCount: 42,
+            label: 'Weekly recap',
+            lastExecutedAt: new Date('2026-09-20T10:00:00.000Z'),
+          }),
+          id: 'workflow-1',
+          type: 'workflow',
+        }),
+      ]);
+    });
+
     it('rejects a limit above 12', async () => {
       const dto = plainToInstance(MostUsedWorkflowsQueryDto, { limit: '13' });
       const errors = await validate(dto);
@@ -251,6 +283,17 @@ describe('WorkflowMarketplaceController', () => {
           }),
           expect.anything(),
         );
+      });
+
+      it('admits an active member of the organization', async () => {
+        mockMembersService.findOne.mockResolvedValue({
+          id: testId('member'),
+          role: { id: testId('role'), key: MemberRole.CREATOR },
+        });
+
+        await expect(
+          createMostUsedGuard().canActivate(createMostUsedContext()),
+        ).resolves.toBe(true);
       });
     });
 

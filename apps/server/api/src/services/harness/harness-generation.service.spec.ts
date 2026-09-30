@@ -105,6 +105,34 @@ describe('HarnessGenerationService#resolveBrief', () => {
     expect(brief).toBeNull();
   });
 
+  it('logs an operator receipt with the packs that contributed', async () => {
+    const { service, logger } = createService({
+      contentHarnessService: {
+        composeBrief: vi.fn().mockResolvedValue({
+          ...EMPTY_BRIEF,
+          appliedPacks: ['core-baseline', 'acme-tone'],
+          packs: ['core-baseline', 'platform-x', 'acme-tone'],
+        }),
+      },
+    });
+
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      contentType: 'image',
+      organizationId: 'org-1',
+    });
+
+    expect(logger.log).toHaveBeenCalledWith(
+      'HarnessGenerationService applied content harness packs',
+      {
+        appliedPacks: ['core-baseline', 'acme-tone'],
+        brandId: 'brand-1',
+        contentType: 'image',
+        organizationId: 'org-1',
+      },
+    );
+  });
+
   it('passes the persona through to composeBrief (parity with the old direct-call path)', async () => {
     const { service, contentHarnessService } = createService();
     const persona = {
@@ -178,6 +206,51 @@ describe('HarnessGenerationService#resolveBrief', () => {
   });
 
   describe('topic gate (includeContentMemory ?? Boolean(topic?.trim()))', () => {
+    it('skips brand content memory retrieval when no topic and includeContentMemory is unset', async () => {
+      const { service, knowledgeContentRetrievalService } = createService();
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        organizationId: 'org-1',
+      });
+
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('retrieves brand content memory by default when a topic is present', async () => {
+      const { service, knowledgeContentRetrievalService } = createService();
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        organizationId: 'org-1',
+        topic: 'AI tools',
+      });
+
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).toHaveBeenCalled();
+    });
+
+    it('honors an explicit includeContentMemory: false even when a topic is present', async () => {
+      const { service, knowledgeContentRetrievalService } = createService();
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        includeContentMemory: false,
+        organizationId: 'org-1',
+        topic: 'AI tools',
+      });
+
+      expect(
+        knowledgeContentRetrievalService.retrieveBrandContentMemory,
+      ).not.toHaveBeenCalled();
+    });
+
     it('does not retrieve memory for an explicit includeContentMemory: true without a topic', async () => {
       const { service, knowledgeContentRetrievalService } = createService();
 
@@ -265,6 +338,60 @@ describe('HarnessGenerationService#resolveBrief', () => {
         }),
       );
     });
+
+    it('keeps weakly similar passages of explicitly selected sources', async () => {
+      const resolve = vi
+        .fn()
+        .mockResolvedValue({ knowledgeSourceIds: ['source-1'] });
+      const contextsService = {
+        retrieveBrandContentMemory: vi.fn().mockResolvedValue([
+          {
+            citation: {
+              kind: 'TEXT',
+              purpose: 'INSPIRATION',
+              sourceId: 'source-1',
+              title: 'Brand facts',
+              version: 1,
+              versionId: 'version-1',
+            },
+            content: 'We ship every Thursday.',
+            relevance: 0.55,
+          },
+        ]),
+      };
+      const contentHarnessService = {
+        composeBrief: vi.fn().mockResolvedValue(EMPTY_BRIEF),
+      };
+      const service = new HarnessGenerationService(
+        contentHarnessService as never,
+        { warn: vi.fn() } as never,
+        { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
+        {
+          resolveContributionForBrand: vi.fn().mockResolvedValue(null),
+        } as never,
+        contextsService as never,
+        {
+          get: vi.fn((token: unknown) =>
+            token === KnowledgeSelectionService ? { resolve } : undefined,
+          ),
+        } as never,
+      );
+
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        contentType: 'post',
+        knowledgeSelection: { sourceIds: ['source-1'] },
+        organizationId: 'org-1',
+        topic: 'ship day',
+      });
+
+      const [{ sources }] = contentHarnessService.composeBrief.mock.calls[0];
+      expect(sources).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ content: 'We ship every Thursday.' }),
+        ]),
+      );
+    });
   });
 });
 
@@ -347,5 +474,35 @@ describe('approved Brand OS identity', () => {
     expect(input.voiceProfile.hashtags).toBeUndefined();
     expect(input.voiceProfile.taglines).toBeUndefined();
     expect(JSON.stringify(input)).not.toContain('Legacy override');
+  });
+  it('falls back to profile identity only when no approval exists', async () => {
+    const { service, contentHarnessService } = createService();
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      contentType: 'post',
+    });
+    expect(contentHarnessService.composeBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandName: 'Test Brand',
+        brandOsRevisionId: undefined,
+        identityContribution: undefined,
+      }),
+    );
+  });
+  it('does not silently reconstruct identity after an approval lookup failure', async () => {
+    const { service, contentHarnessService } = createService({
+      brandOsRevisionsService: {
+        findApproved: vi.fn().mockRejectedValue(new Error('unavailable')),
+      },
+    });
+    expect(
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        contentType: 'post',
+      }),
+    ).toBeNull();
+    expect(contentHarnessService.composeBrief).not.toHaveBeenCalled();
   });
 });

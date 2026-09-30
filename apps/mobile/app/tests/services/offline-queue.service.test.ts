@@ -120,6 +120,19 @@ describe('offlineQueueService', () => {
     );
   });
 
+  it('rejects queue mutations when persistence fails', async () => {
+    const storageError = new Error('Storage unavailable');
+    asyncStorage.setItem.mockRejectedValueOnce(storageError);
+
+    await expect(
+      offlineQueueService.addAction({
+        endpoint: '/ideas',
+        method: 'POST',
+        type: 'CREATE_IDEA',
+      }),
+    ).rejects.toBe(storageError);
+  });
+
   it('finishes processing when the updated queue cannot be persisted', async () => {
     const processingComplete = vi.fn();
     const storageError = new Error('Storage unavailable');

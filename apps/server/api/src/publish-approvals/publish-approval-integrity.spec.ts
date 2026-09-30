@@ -2,6 +2,30 @@ import { createHash } from 'node:crypto';
 import { digestPublishApprovalValue } from './publish-approval-integrity';
 
 describe('digestPublishApprovalValue', () => {
+  it('prefixes the digest with the versioned algorithm marker', () => {
+    expect(digestPublishApprovalValue({ a: 1 })).toMatch(
+      /^sha256:v1:[0-9a-f]{64}$/,
+    );
+  });
+
+  it('is stable across key ordering', () => {
+    expect(digestPublishApprovalValue({ a: 1, b: 2 })).toBe(
+      digestPublishApprovalValue({ b: 2, a: 1 }),
+    );
+  });
+
+  it('is sensitive to array ordering', () => {
+    expect(digestPublishApprovalValue([1, 2])).not.toBe(
+      digestPublishApprovalValue([2, 1]),
+    );
+  });
+
+  it('distinguishes nested structures from their flattened spelling', () => {
+    expect(digestPublishApprovalValue({ a: { b: 1 } })).not.toBe(
+      digestPublishApprovalValue({ 'a.b': 1 }),
+    );
+  });
+
   it('digests primitives and null', () => {
     const expected = `sha256:v1:${createHash('sha256')
       .update('"hello"')

@@ -47,6 +47,10 @@ describe('StreaksController', () => {
 
   afterEach(() => vi.clearAllMocks());
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   // ── assertUserOrgAccess ───────────────────────────────────────────────────
 
   describe('org access guard', () => {

@@ -47,6 +47,18 @@ describe('PromptBarFrameControls', () => {
     watchedWidth: 1920,
   };
 
+  it('should render without crashing', () => {
+    const { container } = render(<PromptBarFrameControls {...defaultProps} />);
+    expect(
+      container.querySelector('[data-testid="reference-button"]'),
+    ).toBeInTheDocument();
+  });
+
+  it('should render end frame button when enabled', () => {
+    render(<PromptBarFrameControls {...defaultProps} />);
+    expect(screen.getByTestId('end-frame-button')).toBeInTheDocument();
+  });
+
   it('should call openGallery when start frame button is clicked', () => {
     render(<PromptBarFrameControls {...defaultProps} />);
 

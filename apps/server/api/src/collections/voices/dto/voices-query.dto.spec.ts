@@ -2,7 +2,16 @@ import { VoicesQueryDto } from '@api/collections/voices/dto/voices-query.dto';
 import { plainToInstance } from 'class-transformer';
 
 describe('VoicesQueryDto', () => {
+  it('should be defined', () => {
+    expect(VoicesQueryDto).toBeDefined();
+  });
+
   describe('validation', () => {
+    it('should create an instance', () => {
+      const dto = new VoicesQueryDto();
+      expect(dto).toBeInstanceOf(VoicesQueryDto);
+    });
+
     it('normalizes repeated status query keys into an array', () => {
       const dto = plainToInstance(VoicesQueryDto, {
         status: ['generated', 'processing'],

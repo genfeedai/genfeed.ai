@@ -165,4 +165,8 @@ describe('formatZonedIsoTimestamp', () => {
       '2026-01-16T05:00:00+05:30',
     );
   });
+
+  it('returns null for an unknown timezone', () => {
+    expect(formatZonedIsoTimestamp(now, 'Not/AZone')).toBeNull();
+  });
 });

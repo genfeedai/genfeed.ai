@@ -85,7 +85,24 @@ describe('IngredientsService', () => {
     service = module.get<IngredientsService>(IngredientsService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('create', () => {
+    it('should create an ingredient successfully', async () => {
+      const createDto: CreateIngredientDto = {
+        brandId,
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
+      };
+
+      const result = await service.create(createDto);
+
+      expect(ingredientDelegate.create).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
     it('should handle creation errors', async () => {
       const createDto: CreateIngredientDto = {
         brandId,
@@ -139,6 +156,74 @@ describe('IngredientsService', () => {
         expect.objectContaining({ where: { id } }),
       );
       expect(result).toBeDefined();
+    });
+
+    it('normalizes app-form category to Prisma UPPERCASE before calling prisma.ingredient.update', async () => {
+      const id = 'ing-1';
+      // IngredientStatus.GENERATED = 'generated' (app-form lowercase)
+      const updateDto: UpdateIngredientDto = {
+        status: IngredientStatus.GENERATED, // 'generated' → should become 'GENERATED'
+        category: IngredientCategory.VIDEO, // 'video' → should become 'VIDEO'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id },
+          data: expect.objectContaining({
+            status: 'GENERATED',
+            category: 'VIDEO',
+          }),
+        }),
+      );
+    });
+
+    it('normalizes kebab category image-edit to IMAGE_EDIT before calling prisma.ingredient.update', async () => {
+      const id = 'ing-2';
+      const updateDto: UpdateIngredientDto = {
+        category: IngredientCategory.IMAGE_EDIT, // 'image-edit' → 'IMAGE_EDIT'
+      };
+
+      await service.patch(id, updateDto);
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ category: 'IMAGE_EDIT' }),
+        }),
+      );
+    });
+
+    it('replaces source and tag relations with deduplicated canonical IDs', async () => {
+      const sourceId = 'cmsource000000000000000001';
+      const tagId = 'cmtag000000000000000000001';
+
+      await service.patch('ingredient-1', {
+        sources: [sourceId, sourceId],
+        tags: [tagId, tagId],
+      });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [{ id: sourceId }] },
+            tags: { set: [{ id: tagId }] },
+          }),
+        }),
+      );
+    });
+
+    it('clears source and tag relations when empty arrays are supplied', async () => {
+      await service.patch('ingredient-1', { sources: [], tags: [] });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [] },
+            tags: { set: [] },
+          }),
+        }),
+      );
     });
 
     it('does not mutate source or tag relations when they are omitted', async () => {
@@ -203,6 +288,25 @@ describe('IngredientsService', () => {
       expect(ingredientDelegate.updateMany).not.toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ brand: expect.anything() }),
+        }),
+      );
+    });
+  });
+
+  describe('patchAll', () => {
+    it('normalizes app-form status to Prisma UPPERCASE before calling prisma.ingredient.updateMany', async () => {
+      const updateManyMock = vi.fn().mockResolvedValue({ count: 2 });
+      ingredientDelegate.updateMany = updateManyMock;
+
+      await service.patchAll(
+        { category: IngredientCategory.IMAGE }, // 'image' → 'IMAGE'
+        { status: IngredientStatus.GENERATED }, // 'generated' → 'GENERATED'
+      );
+
+      expect(updateManyMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ category: 'IMAGE' }),
+          data: expect.objectContaining({ status: 'GENERATED' }),
         }),
       );
     });
@@ -300,6 +404,30 @@ describe('IngredientsService', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('should find one ingredient', async () => {
+      const params = { id: 'test-id' };
+
+      const result = await service.findOne(params);
+
+      expect(ingredientDelegate.findFirst).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('falls back to the metadata link for external media without a key', async () => {
+      ingredientDelegate.findFirst.mockResolvedValueOnce({
+        ...mockIngredient,
+        cdnUrl: null,
+        metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+        s3Key: null,
+      });
+
+      const result = await service.findOne({ id: 'test-id' });
+
+      expect(result?.cdnUrl).toBe('https://cdn.argil.ai/video-1.mp4');
+    });
+  });
+
   describe('findAll', () => {
     it('should find all ingredients with pagination', async () => {
       ingredientDelegate.findMany.mockResolvedValue([mockIngredient]);
@@ -375,6 +503,19 @@ describe('IngredientsService', () => {
     });
 
     describe('findTopByVotes', () => {
+      it('passes Prisma-form UPPERCASE category to prisma.ingredient.findMany when app-form VIDEO supplied', async () => {
+        await service.findTopByVotes({
+          category: IngredientCategory.VIDEO, // app-form: 'video'
+          organizationId: 'org-1',
+        });
+
+        expect(findManyMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ category: 'VIDEO' }),
+          }),
+        );
+      });
+
       it('passes Prisma-form IMAGE_EDIT (hyphen→underscore) to prisma.ingredient.findMany', async () => {
         await service.findTopByVotes({
           category: IngredientCategory.IMAGE_EDIT, // app-form: 'image-edit'

@@ -74,6 +74,38 @@ describe('buildSettingsSearchCatalog', () => {
       )?.href,
     ).toBe(APP_ROUTES.SETTINGS.PROGRESS);
   });
+
+  it('keeps organization search inside organization settings', () => {
+    const catalog = buildSettingsSearchCatalog({
+      isEnterprise: true,
+      scope: SettingsSurface.ORGANIZATION,
+    });
+
+    expect(
+      catalog.every((item) => item.scope === SettingsSurface.ORGANIZATION),
+    ).toBe(true);
+    expect(
+      catalog.some(
+        (item) =>
+          item.label === 'Models' && item.href === APP_ROUTES.SETTINGS.MODELS,
+      ),
+    ).toBe(true);
+    expect(
+      catalog.some((item) => item.id === 'personal-section:appearance'),
+    ).toBe(false);
+  });
+
+  it('keeps brand search inside brand settings', () => {
+    const catalog = buildSettingsSearchCatalog({
+      scope: SettingsSurface.BRAND,
+    });
+
+    expect(catalog.every((item) => item.scope === SettingsSurface.BRAND)).toBe(
+      true,
+    );
+    expect(catalog.some((item) => item.label === 'Profile')).toBe(true);
+    expect(catalog.some((item) => item.label === 'Members')).toBe(false);
+  });
 });
 
 describe('filterSettingsSearchCatalog', () => {

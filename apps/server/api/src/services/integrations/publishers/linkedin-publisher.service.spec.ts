@@ -28,6 +28,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('LinkedInPublisherService', () => {
   let service: LinkedInPublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let linkedInService: vi.Mocked<LinkedInService>;
   let postsService: vi.Mocked<PostsService>;
@@ -167,12 +168,17 @@ describe('LinkedInPublisherService', () => {
     }).compile();
 
     service = module.get<LinkedInPublisherService>(LinkedInPublisherService);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     linkedInService = module.get(LinkedInService) as vi.Mocked<LinkedInService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
   });
 
   describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
     it('should have correct platform', () => {
       expect(service.platform).toBe(CredentialPlatform.LINKEDIN);
     });

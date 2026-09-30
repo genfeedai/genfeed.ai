@@ -190,6 +190,13 @@ describe('TwitterService (coverage)', () => {
 
   // ── buildTweetUrl ──────────────────────────────────────────────────────────
 
+  describe('buildTweetUrl', () => {
+    it('returns canonical Twitter URL from SocialUrlHelper', () => {
+      const result = service.buildTweetUrl('123', 'testuser');
+      expect(result).toBe('https://x.com/testuser/status/123');
+    });
+  });
+
   // ── refreshToken ──────────────────────────────────────────────────────────
 
   describe('refreshToken', () => {
@@ -240,6 +247,28 @@ describe('TwitterService (coverage)', () => {
         cred.id,
         expect.objectContaining({ isConnected: false }),
       );
+    });
+
+    it('looks up a specific credential when refreshToken receives a credential id', async () => {
+      credentialsService.findOne.mockResolvedValue(
+        makeCredential({ refreshToken: 'enc-rt' }),
+      );
+      mockRefreshOAuth2Token.mockResolvedValue({
+        accessToken: 'new-access',
+        expiresIn: 7200,
+        refreshToken: 'new-refresh',
+        scope: 'tweet.read users.read',
+      });
+
+      await service.refreshToken('org', 'brand', 'cred-id');
+
+      expect(credentialsService.resolveBrandAccount).toHaveBeenCalledWith({
+        brandId: 'brand',
+        credentialId: 'cred-id',
+        isDisconnectedIncluded: true,
+        organizationId: 'org',
+        platform: 'twitter',
+      });
     });
   });
 
@@ -384,6 +413,33 @@ describe('TwitterService (coverage)', () => {
       expect(results).toHaveLength(2);
     });
 
+    it('returns empty array when data is empty', async () => {
+      mockV2Search.mockResolvedValue({ data: { data: [] }, includes: {} });
+
+      const results = await service.searchRecentTweets('empty');
+
+      expect(results).toEqual([]);
+    });
+
+    it('returns empty array when data property is absent', async () => {
+      mockV2Search.mockResolvedValue({});
+
+      const results = await service.searchRecentTweets('no-data');
+
+      expect(results).toEqual([]);
+    });
+
+    it('uses defaults (maxResults=10, sortOrder=relevancy)', async () => {
+      mockV2Search.mockResolvedValue({});
+
+      await service.searchRecentTweets('query');
+
+      expect(mockV2Search).toHaveBeenCalledWith(
+        'query',
+        expect.objectContaining({ max_results: 10, sort_order: 'relevancy' }),
+      );
+    });
+
     it('propagates errors', async () => {
       mockV2Search.mockRejectedValue(new Error('Search failed'));
 
@@ -397,6 +453,26 @@ describe('TwitterService (coverage)', () => {
   // ── getUserByUsername ─────────────────────────────────────────────────────
 
   describe('getUserByUsername', () => {
+    it('returns user data on success', async () => {
+      mockV2Get.mockResolvedValue({
+        data: {
+          id: 'uid1',
+          name: 'Test User',
+          public_metrics: { followers_count: 1000 },
+          username: 'testuser',
+        },
+      });
+
+      const user = await service.getUserByUsername('testuser');
+
+      expect(user).toEqual({
+        followersCount: 1000,
+        id: 'uid1',
+        name: 'Test User',
+        username: 'testuser',
+      });
+    });
+
     it('strips leading @ from username', async () => {
       mockV2Get.mockResolvedValue({
         data: { id: 'uid2', name: 'At User', username: 'atuser' },
@@ -408,6 +484,14 @@ describe('TwitterService (coverage)', () => {
         'users/by/username/atuser',
         expect.any(Object),
       );
+    });
+
+    it('returns null when API returns no data', async () => {
+      mockV2Get.mockResolvedValue({ data: undefined });
+
+      const result = await service.getUserByUsername('ghost');
+
+      expect(result).toBeNull();
     });
 
     it('propagates errors', async () => {
@@ -520,6 +604,25 @@ describe('TwitterService (coverage)', () => {
         username: 'fone',
       });
     });
+
+    it('caps maxResults at 100', async () => {
+      mockV2Get.mockResolvedValue({ data: [] });
+
+      await service.getFollowers('uid1', { maxResults: 999 });
+
+      expect(mockV2Get).toHaveBeenCalledWith(
+        'users/uid1/followers',
+        expect.objectContaining({ max_results: 100 }),
+      );
+    });
+
+    it('propagates errors', async () => {
+      mockV2Get.mockRejectedValue(new Error('Followers error'));
+
+      await expect(service.getFollowers('uid1')).rejects.toThrow(
+        'Followers error',
+      );
+    });
   });
 
   // ── getTweetLikingUsers ───────────────────────────────────────────────────
@@ -544,6 +647,14 @@ describe('TwitterService (coverage)', () => {
       expect(mockV2Get).toHaveBeenCalledWith(
         'tweets/tweet123/liking_users',
         expect.any(Object),
+      );
+    });
+
+    it('propagates errors', async () => {
+      mockV2Get.mockRejectedValue(new Error('Liking users error'));
+
+      await expect(service.getTweetLikingUsers('tid')).rejects.toThrow(
+        'Liking users error',
       );
     });
   });
@@ -1286,6 +1397,14 @@ describe('TwitterService (coverage)', () => {
       );
       expect(page.nextToken).toBe('page-3');
       expect(page.tweets).toHaveLength(2);
+    });
+
+    it('omits nextToken on the last page', async () => {
+      mockV2Get.mockResolvedValue(recordedMentions);
+
+      const page = await service.listMentionsPage('org', 'brand');
+
+      expect(page).not.toHaveProperty('nextToken');
     });
   });
 

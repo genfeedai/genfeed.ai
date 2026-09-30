@@ -10,6 +10,12 @@ describe('BaseCliError', () => {
     expect(error.name).toBe('BaseCliError');
     expect(error.suggestion).toBe('try again');
   });
+
+  it('leaves suggestion undefined when omitted', () => {
+    const error = new BaseCliError('boom');
+
+    expect(error.suggestion).toBeUndefined();
+  });
 });
 
 describe('ApiError', () => {
@@ -21,6 +27,13 @@ describe('ApiError', () => {
     expect(error.message).toBe('not found');
     expect(error.statusCode).toBe(404);
     expect(error.suggestion).toBe('check the id');
+  });
+
+  it('leaves statusCode undefined when omitted', () => {
+    const error = new ApiError('timeout');
+
+    expect(error.statusCode).toBeUndefined();
+    expect(error.suggestion).toBeUndefined();
   });
 });
 

@@ -449,6 +449,37 @@ describe('SettingsApiKeysPage', () => {
     expect(mocks.notificationsError).not.toHaveBeenCalled();
   });
 
+  it.each(['initial', 'refresh'])(
+    'ignores stale %s results through A to B to A',
+    async (kind) => {
+      const pending = deferred<unknown[]>();
+      if (kind === 'initial')
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+      const view = render(<SettingsApiKeysPage />);
+      if (kind === 'refresh') {
+        await screen.findByText('MCP Key');
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+        );
+      }
+      await waitFor(() => expect(mocks.findAllApiKeys).toHaveBeenCalled());
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      mocks.organizationId = mocks.confirmedId = 'org-1';
+      mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () =>
+        pending.resolve([{ id: 'stale', label: 'STALE SECRET' }]),
+      );
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+    },
+  );
+
   it.each(['Create Key', 'Rotate', 'Revoke'])(
     'makes %s continuations inert after switching, including rejection',
     async (action) => {
@@ -687,6 +718,26 @@ describe('SettingsApiKeysPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('creates a key from an empty list using the default name', async () => {
+    mocks.findAllApiKeys.mockResolvedValue([]);
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'MCP Server',
+          scopes: expect.arrayContaining(['videos:read', 'analytics:read']),
+        }),
+      );
+    });
+    expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
   it('creates a Genfeed API key and shows the plain key once', async () => {
     render(<SettingsApiKeysPage />);
 
@@ -721,6 +772,19 @@ describe('SettingsApiKeysPage', () => {
 
     expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+  });
+
+  it('enables Create Key when the Pro org has no keys', async () => {
+    mocks.findAllApiKeys.mockResolvedValue([]);
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+    ).toBeEnabled();
   });
 
   it('shows list-load error UI without disabling Create Key', async () => {

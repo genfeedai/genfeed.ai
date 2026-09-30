@@ -398,4 +398,13 @@ describe('BetterAuthIdentityResolverService', () => {
       lastUsedOrganizationId: 'org_5',
     });
   });
+
+  it('does not cache when resolution throws', async () => {
+    usersService.findOne.mockResolvedValue(null);
+
+    await expect(resolver.resolve('missing')).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+    expect(identityCache.set).not.toHaveBeenCalled();
+  });
 });

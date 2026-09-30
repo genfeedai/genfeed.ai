@@ -28,6 +28,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('YouTubePublisherService', () => {
   let service: YouTubePublisherService;
+  let _configService: vi.Mocked<ConfigService>;
   let logger: vi.Mocked<LoggerService>;
   let youtubeService: vi.Mocked<YoutubeService>;
   let postsService: vi.Mocked<PostsService>;
@@ -177,12 +178,17 @@ describe('YouTubePublisherService', () => {
     }).compile();
 
     service = module.get<YouTubePublisherService>(YouTubePublisherService);
+    _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     youtubeService = module.get(YoutubeService) as vi.Mocked<YoutubeService>;
     postsService = module.get(PostsService) as vi.Mocked<PostsService>;
   });
 
   describe('initialization', () => {
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
     it('should have correct platform', () => {
       expect(service.platform).toBe(CredentialPlatform.YOUTUBE);
     });

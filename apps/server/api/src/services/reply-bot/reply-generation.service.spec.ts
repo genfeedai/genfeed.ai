@@ -95,6 +95,10 @@ describe('ReplyGenerationService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   it.each([SocialConversationType.DM, SocialConversationType.COMMENT])(
     'builds a conversation-specific %s prompt and settles credits',
     async (conversationType) => {
@@ -290,6 +294,18 @@ describe('ReplyGenerationService', () => {
   });
 
   describe('assertCreditsAvailable', () => {
+    it('admits a BYOK org without checking the platform-credit floor', async () => {
+      mockTextGenerationCreditsService.resolveDispatch.mockResolvedValueOnce({
+        keys: { [ByokProvider.OPENROUTER]: 'org-or-key' },
+      });
+
+      await service.assertCreditsAvailable('org-123');
+
+      expect(
+        mockCreditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+    });
+
     it('checks the platform-credit floor without an org key', async () => {
       await service.assertCreditsAvailable('org-123');
 

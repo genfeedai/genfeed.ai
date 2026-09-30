@@ -134,6 +134,26 @@ describe('BrandLifecycleService', () => {
       expect(result).toMatchObject({ id: currentBrandId });
     });
 
+    it('locks the target brand row before validating it, inside one transaction with the member write (#5295)', async () => {
+      const currentBrandId = testId('brand');
+      const organizationId = testId('org');
+      const userId = 'user_current';
+
+      delegate.findFirst.mockResolvedValue({
+        id: currentBrandId,
+        isDeleted: false,
+        organizationId,
+      });
+      memberDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.selectBrandForUser(currentBrandId, userId, organizationId);
+
+      // A concurrent remove() targeting the same brand row blocks behind
+      // this FOR UPDATE lock (or vice versa) rather than racing the
+      // read-then-write below it.
+      expect(txQueryRaw).toHaveBeenCalledTimes(1);
+    });
+
     it('throws when the target brand cannot be resolved', async () => {
       delegate.findFirst.mockResolvedValue(null);
 

@@ -23,6 +23,21 @@ describe('hook-generator node', () => {
       expect(DEFAULT_HOOK_GENERATOR_DATA.toneStyle).toBe('storytelling');
     });
 
+    it('should default niche and product to null', () => {
+      expect(DEFAULT_HOOK_GENERATOR_DATA.niche).toBeNull();
+      expect(DEFAULT_HOOK_GENERATOR_DATA.product).toBeNull();
+    });
+
+    it('should default input connections to null', () => {
+      expect(DEFAULT_HOOK_GENERATOR_DATA.inputTrendData).toBeNull();
+      expect(DEFAULT_HOOK_GENERATOR_DATA.inputBrandContext).toBeNull();
+    });
+
+    it('should default output text fields to null', () => {
+      expect(DEFAULT_HOOK_GENERATOR_DATA.outputHookText).toBeNull();
+      expect(DEFAULT_HOOK_GENERATOR_DATA.outputCaptionHook).toBeNull();
+    });
+
     it('should default output arrays to empty', () => {
       expect(DEFAULT_HOOK_GENERATOR_DATA.outputHashtags).toEqual([]);
       expect(DEFAULT_HOOK_GENERATOR_DATA.outputSlidePrompts).toEqual([]);

@@ -66,6 +66,10 @@ describe('PerformanceSummaryController', () => {
     );
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   describe('getWeeklySummary', () => {
     it('should call service with correct params', async () => {
       await controller.getWeeklySummary(

@@ -862,6 +862,22 @@ describe('MetaAdsService - Write Operations', () => {
       expect(params.file_url).toBe('https://example.com/promo.mp4');
     });
 
+    it('should not include title when not provided', async () => {
+      httpService.post.mockReturnValue(mockAxiosResponse({ id: 'vid_003' }));
+
+      await service.uploadAdVideo(
+        mockAccessToken,
+        mockAdAccountId,
+        'https://example.com/promo.mp4',
+      );
+
+      const params = httpService.post.mock.calls[0][2]?.params as Record<
+        string,
+        unknown
+      >;
+      expect(params.title).toBeUndefined();
+    });
+
     it('should call the correct advideos endpoint', async () => {
       httpService.post.mockReturnValue(mockAxiosResponse({ id: 'vid_004' }));
 

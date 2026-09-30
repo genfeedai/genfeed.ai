@@ -23,11 +23,29 @@ describe('single billing identity per org migration (#2762)', () => {
     );
   });
 
+  it('enforces one active subscription row per organization', () => {
+    expect(migrationSource).toMatch(
+      /CREATE UNIQUE INDEX "subscriptions_organizationId_active_key"\nON "subscriptions"\("organizationId"\)\nWHERE "isDeleted" = false;/,
+    );
+  });
+
   it('keeps the customer row that live subscriptions reference when deduping', () => {
     expect(migrationSource).toContain(
       'WHERE s."customerId" = c."id" AND s."isDeleted" = false',
     );
     expect(migrationSource).toContain('PARTITION BY c."organizationId"');
+  });
+
+  it('keeps the subscription row bound to a Stripe subscription when deduping', () => {
+    expect(migrationSource).toContain(
+      '(s."stripeSubscriptionId" IS NOT NULL) DESC',
+    );
+  });
+
+  it('dedupes subscriptions before choosing the customer survivor', () => {
+    expect(migrationSource.indexOf('WITH ranked_subscriptions')).toBeLessThan(
+      migrationSource.indexOf('WITH ranked_customers'),
+    );
   });
 
   it('soft-deletes duplicate rows instead of hard-deleting them', () => {

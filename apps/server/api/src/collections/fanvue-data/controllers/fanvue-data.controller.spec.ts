@@ -31,8 +31,54 @@ describe('FanvueDataController', () => {
     service = module.get<FanvueDataService>(FanvueDataService);
   });
 
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
   it('should have the fanvue data service injected', () => {
     expect(service).toBeDefined();
     expect(controller._fanvueDataService).toBe(service);
+  });
+
+  it('should be decorated with @Controller("fanvue-data")', () => {
+    const path = Reflect.getMetadata('path', FanvueDataController);
+    expect(path).toBe('fanvue-data');
+  });
+
+  it('should have the service with content model available', () => {
+    expect(mockFanvueDataService._contentModel).toBeDefined();
+    expect(mockFanvueDataService._contentModel.find).toBeDefined();
+  });
+
+  it('should have the service with earnings model available', () => {
+    expect(mockFanvueDataService._earningsModel).toBeDefined();
+    expect(mockFanvueDataService._earningsModel.find).toBeDefined();
+  });
+
+  it('should have the service with subscriber model available', () => {
+    expect(mockFanvueDataService._subscriberModel).toBeDefined();
+    expect(mockFanvueDataService._subscriberModel.find).toBeDefined();
+  });
+
+  it('should have the service with schedule model available', () => {
+    expect(mockFanvueDataService._scheduleModel).toBeDefined();
+    expect(mockFanvueDataService._scheduleModel.find).toBeDefined();
+  });
+
+  it('should have the service with sync log model available', () => {
+    expect(mockFanvueDataService._syncLogModel).toBeDefined();
+    expect(mockFanvueDataService._syncLogModel.find).toBeDefined();
+  });
+
+  it('should compile the module with only the required providers', async () => {
+    // Verifies the controller only depends on FanvueDataService
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [FanvueDataController],
+      providers: [{ provide: FanvueDataService, useValue: {} }],
+    }).compile();
+
+    expect(
+      module.get<FanvueDataController>(FanvueDataController),
+    ).toBeDefined();
   });
 });

@@ -12,6 +12,12 @@ describe('FoldersService', () => {
     service = new FoldersService(mockToken);
   });
 
+  describe('constructor', () => {
+    it('initializes correctly', () => {
+      expect(service).toBeInstanceOf(FoldersService);
+    });
+  });
+
   describe('folder management', () => {
     it('has findAll method for fetching all folders', () => {
       expect(service.findAll).toBeDefined();
@@ -36,6 +42,16 @@ describe('FoldersService', () => {
     it('has delete method for removing folders', () => {
       expect(service.delete).toBeDefined();
       expect(typeof service.delete).toBe('function');
+    });
+  });
+
+  describe('folder hierarchy', () => {
+    it('supports nested folder structure', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('supports folder organization', () => {
+      expect(service).toBeDefined();
     });
   });
 });

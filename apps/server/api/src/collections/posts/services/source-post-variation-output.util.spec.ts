@@ -1,4 +1,7 @@
-import { filterSourcePostVariations } from '@api/collections/posts/services/source-post-variation-output.util';
+import {
+  describeVariationRejections,
+  filterSourcePostVariations,
+} from '@api/collections/posts/services/source-post-variation-output.util';
 
 describe('source post variation output filter', () => {
   const source =
@@ -41,5 +44,16 @@ describe('source post variation output filter', () => {
 
     expect(result.accepted).toEqual([]);
     expect(result.rejected['platform-limit']).toBe(1);
+  });
+
+  it('reports actual count and rejection reasons for partial success', () => {
+    expect(
+      describeVariationRejections(3, 1, {
+        duplicate: 1,
+        empty: 0,
+        'platform-limit': 0,
+        'source-reproduction': 1,
+      }),
+    ).toBe('Generated 1 of 3: 1 source reproduction, 1 duplicate.');
   });
 });

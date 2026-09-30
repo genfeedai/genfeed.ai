@@ -416,6 +416,21 @@ describe('TwitterAuthorizedSignalsService', () => {
     }
   });
 
+  it('never fetches DMs, likes made, follows, or bookmarks', async () => {
+    await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: [...fullScopes, 'dm.read', 'dm.write', 'like.read'],
+      organizationId: 'org-1',
+    });
+
+    for (const call of httpService.get.mock.calls) {
+      expect(String(call[0])).not.toMatch(
+        /dm|likes|following|followers|bookmarks/i,
+      );
+    }
+  });
+
   it('discovers exact scopes once through token refresh for pre-existing connections', async () => {
     credentialsService.findOne.mockResolvedValueOnce({
       ...credential,
@@ -653,6 +668,21 @@ describe('TwitterAuthorizedSignalsService', () => {
       }),
     ).rejects.toThrow(NotFoundException);
     expect(credentialsService.mergeWarmupSignals).not.toHaveBeenCalled();
+  });
+
+  it('looks up the credential with the Prisma Twitter platform label', async () => {
+    await service.refresh({
+      credentialId: credential.id,
+      force: true,
+      grantedScopes: fullScopes,
+      organizationId: 'org-1',
+    });
+
+    expect(credentialsService.findOne).toHaveBeenCalledWith({
+      id: credential.id,
+      organizationId: 'org-1',
+      platform: 'TWITTER',
+    });
   });
 
   it('persists snapshots by merging only the X-owned warmup keys and enrollment rows', async () => {

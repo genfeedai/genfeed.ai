@@ -101,6 +101,19 @@ describe('DatabaseExceptionFilter', () => {
     );
   });
 
+  it('handles Prisma missing record errors', () => {
+    filter.catch(
+      {
+        code: 'P2025',
+        message: 'Record not found',
+        name: 'PrismaClientKnownRequestError',
+      },
+      mockArgumentsHost,
+    );
+
+    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+  });
+
   it('does not report expected client-level Prisma errors to Sentry', () => {
     for (const code of ['P2002', 'P2003', 'P2025']) {
       filter.catch(

@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { createProgram, resolveLaunchMode } from '@/program';
 
 describe('terminal program', () => {
+  it('registers the canonical terminal content namespaces', () => {
+    const commandNames = createProgram().commands.map((command) => command.name());
+
+    expect(commandNames).toEqual(
+      expect.arrayContaining([
+        'asset',
+        'balance',
+        'brand',
+        'credits',
+        'gen',
+        'job',
+        'login',
+        'signup',
+        'workflow',
+      ])
+    );
+  });
+
   it('keeps the published command spellings as aliases', () => {
     const commands = createProgram().commands;
     const aliases = Object.fromEntries(

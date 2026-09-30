@@ -19,6 +19,16 @@ describe('ContainerTitle', () => {
     mockSidebarNavigation.hasCanonicalBreadcrumb = false;
   });
 
+  it('renders plain text descriptions inside a paragraph', () => {
+    render(
+      <ContainerTitle title="Images" description="Generated assets library" />,
+    );
+
+    expect(screen.getByText('Generated assets library').tagName).toStrictEqual(
+      'P',
+    );
+  });
+
   it('renders rich descriptions without nesting block elements inside paragraphs', () => {
     render(
       <ContainerTitle

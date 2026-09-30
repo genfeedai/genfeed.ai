@@ -72,6 +72,10 @@ describe('AiActionsService', () => {
     loggerService = module.get(LoggerService);
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('execute', () => {
     it('should throw BadRequestException for unknown action', async () => {
       const dto: ExecuteAiActionDto = {
@@ -85,6 +89,34 @@ describe('AiActionsService', () => {
       await expect(service.execute('org_123', dto)).rejects.toThrow(
         'Unknown action type: unknown_action',
       );
+    });
+
+    it('assembles brand context with brandMemory + performancePatterns + recentPosts enabled (#3019)', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.REWRITE,
+        content: 'Test content',
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Result' } }],
+        usage: { total_tokens: 50 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      expect(contextAssemblyService.assembleContext).toHaveBeenCalledWith({
+        layers: {
+          brandGuidance: true,
+          brandIdentity: true,
+          brandMemory: true,
+          performancePatterns: true,
+          ragContext: true,
+          recentPosts: true,
+        },
+        organizationId: 'org_123',
+        query: 'Test content',
+      });
     });
 
     it('should execute action without BYOK successfully', async () => {
@@ -151,6 +183,48 @@ describe('AiActionsService', () => {
       });
     });
 
+    it('should handle context variable replacement', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.REWRITE,
+        content: 'Test content',
+        context: {
+          brand: 'MyBrand',
+          tone: 'casual',
+        },
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Result' } }],
+        usage: { total_tokens: 50 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      const callArgs = openRouterService.chatCompletion.mock.calls[0][0];
+      const systemMessage = callArgs.messages.find(
+        (m: { role: string }) => m.role === 'system',
+      );
+      expect(systemMessage).toBeDefined();
+    });
+
+    it('should trim whitespace from result', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.REWRITE,
+        content: 'Test',
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '  Trimmed result  \n' } }],
+        usage: { total_tokens: 75 },
+      } as never);
+
+      const result = await service.execute('org_123', dto);
+
+      expect(result.result).toBe('Trimmed result');
+    });
+
     it('delegates Enhance to the shared core while preserving assembled context and BYOK', async () => {
       const dto: ExecuteAiActionDto = {
         action: AiActionType.ENHANCE_PROMPT,
@@ -211,6 +285,28 @@ describe('AiActionsService', () => {
       );
       expect(systemMessage?.content).toContain('Cinematography vocabulary');
       expect(systemMessage?.content).toContain('high-angle shot');
+    });
+
+    it('omits cinematography lexicon guidance for text-only enhance-prompt categories', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.ENHANCE_PROMPT,
+        content: 'rewrite this caption',
+        context: { category: 'ARTICLE' },
+      };
+
+      byokService.resolveApiKey.mockResolvedValue(undefined);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'rewritten caption' } }],
+        usage: { total_tokens: 20 },
+      } as never);
+
+      await service.execute('org_123', dto);
+
+      const callArgs = openRouterService.chatCompletion.mock.calls[0][0];
+      const systemMessage = callArgs.messages.find(
+        (message: { role: string }) => message.role === 'system',
+      );
+      expect(systemMessage?.content).not.toContain('Cinematography vocabulary');
     });
 
     it('should handle empty response content', async () => {

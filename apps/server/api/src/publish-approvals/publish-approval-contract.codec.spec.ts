@@ -92,6 +92,36 @@ describe('PublishApprovalContractCodec', () => {
     vi.useRealTimers();
   });
 
+  it('parses the version-bound create contract', () => {
+    expect(
+      codec.parseCreateInput({
+        contextVersion: 4,
+        policy: {
+          id: PublishApprovalPolicyId.VERSION_BOUND_V1,
+          version: 1,
+        },
+        postId: 'post-1',
+        scheduleIntent: {
+          kind: 'scheduled',
+          scheduledAt: '2026-07-20T10:00:00.000Z',
+          timezone: 'UTC',
+        },
+      }),
+    ).toEqual({
+      contextVersion: 4,
+      policy: {
+        id: PublishApprovalPolicyId.VERSION_BOUND_V1,
+        version: 1,
+      },
+      postId: 'post-1',
+      scheduleIntent: {
+        kind: 'scheduled',
+        scheduledAt: '2026-07-20T10:00:00.000Z',
+        timezone: 'UTC',
+      },
+    });
+  });
+
   it('preserves the structured bad-request response for invalid create input', () => {
     expect.assertions(3);
     try {
@@ -204,5 +234,25 @@ describe('PublishApprovalContractCodec', () => {
     ],
   ])('preserves persisted-contract failure behavior', (read, message) => {
     expect(read).toThrow(new ConflictException(message));
+  });
+
+  it('creates a stable transition shape at the current instant', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(NOW);
+
+    expect(
+      codec.transition(
+        PublishApprovalStatus.APPROVED,
+        PublishApprovalStatus.QUEUED,
+        'user-1',
+        'Ready to publish.',
+      ),
+    ).toEqual({
+      actorId: 'user-1',
+      at: NOW.toISOString(),
+      from: PublishApprovalStatus.APPROVED,
+      reason: 'Ready to publish.',
+      to: PublishApprovalStatus.QUEUED,
+    });
   });
 });

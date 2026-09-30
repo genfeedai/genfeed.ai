@@ -24,4 +24,10 @@ describe('NullTypedDecisionProvider', () => {
       provider.decide({ question: 'Is it spam?', state: {} }),
     ).resolves.toBeNull();
   });
+
+  it('never reaches the network', async () => {
+    await provider.decide({ question: 'Is it spam?', state: {} });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 });

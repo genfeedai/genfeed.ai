@@ -291,6 +291,39 @@ describe('BrandInterviewService', () => {
   // ── writeFieldToBrand (tested via submitAnswer) ────────────────────────────
 
   describe('submitAnswer() — field writes', () => {
+    it('writes identity field directly to brand row (description)', async () => {
+      const session = makeSession({ currentFieldKey: 'description' });
+      const emptyBrand = makeEmptyBrand();
+      const filledBrand = { ...emptyBrand, description: 'My brand does X.' };
+
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValueOnce(filledBrand); // reload after write
+      brandDelegate.updateMany.mockResolvedValue({ count: 1 });
+      interviewDelegate.update.mockResolvedValue({
+        ...session,
+        answeredFields: { description: 'My brand does X.' },
+        currentFieldKey: 'text',
+      });
+
+      await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'My brand does X.',
+      );
+
+      // Direct-column write is org-scoped (updateMany with org + isDeleted).
+      expect(brandDelegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ description: 'My brand does X.' }),
+          where: expect.objectContaining({
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+    });
+
     it('busts the assembled agent brand context after a direct column write', async () => {
       const session = makeSession({ currentFieldKey: 'text' });
       interviewDelegate.findFirst.mockResolvedValue(session);
@@ -384,6 +417,36 @@ describe('BrandInterviewService', () => {
       // Next question should be 'text' (next in catalog after 'description')
       expect(result.nextQuestion?.fieldKey).toBe('text');
       expect(result.isComplete).toBe(false);
+    });
+
+    it('does not re-ask a previously skipped field after answering another (regression)', async () => {
+      // 'description' was skipped earlier (recorded in askedFieldKeys) and is
+      // still incomplete on the brand. Answering 'text' must not bring the
+      // skipped 'description' question back — otherwise the interview can never
+      // complete while any field stays skipped.
+      const session = makeSession({
+        askedFieldKeys: ['description'],
+        currentFieldKey: 'text',
+      });
+      const brandAfterWrite = makeEmptyBrand();
+      // 'text' is written; 'description' deliberately remains null (incomplete).
+      Object.assign(brandAfterWrite, { text: 'You are Acme...' });
+
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValue(brandAfterWrite);
+      brandDelegate.update.mockResolvedValue(brandAfterWrite);
+      interviewDelegate.update.mockImplementation((args) =>
+        Promise.resolve({ ...session, ...args.data }),
+      );
+
+      const result = await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'You are Acme...',
+      );
+
+      expect(result.nextQuestion?.fieldKey).not.toBe('description');
     });
 
     it('marks session completed when all in-scope fields are answered', async () => {

@@ -5,6 +5,10 @@ import {
 } from './connection-rules';
 
 describe('SAAS_CONNECTION_RULES', () => {
+  it('has core types', () => {
+    expect(SAAS_CONNECTION_RULES.image).toBeDefined();
+    expect(SAAS_CONNECTION_RULES.text).toBeDefined();
+  });
   it('has saas types', () => {
     expect(SAAS_CONNECTION_RULES.brand).toEqual(['brand']);
     expect(SAAS_CONNECTION_RULES.object).toEqual(['object']);

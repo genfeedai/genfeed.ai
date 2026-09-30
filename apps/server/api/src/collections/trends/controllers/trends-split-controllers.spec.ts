@@ -1,8 +1,14 @@
+import { TrendsController } from '@api/collections/trends/controllers/trends.controller';
 import { TrendsAnalyticsController } from '@api/collections/trends/controllers/trends-analytics.controller';
 import { TrendsDiscoveryController } from '@api/collections/trends/controllers/trends-discovery.controller';
+import { TrendsModule } from '@api/collections/trends/trends.module';
 import { Timeframe } from '@genfeedai/contracts';
 import { RequestMethod } from '@nestjs/common';
-import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
+import {
+  METHOD_METADATA,
+  MODULE_METADATA,
+  PATH_METADATA,
+} from '@nestjs/common/constants';
 
 describe('Trends split controllers', () => {
   const trendsService = {
@@ -61,6 +67,19 @@ describe('Trends split controllers', () => {
       });
     },
   );
+
+  it('registers static sibling controllers before the wildcard controller', () => {
+    const controllers = Reflect.getMetadata(
+      MODULE_METADATA.CONTROLLERS,
+      TrendsModule,
+    );
+
+    expect(controllers).toEqual([
+      TrendsAnalyticsController,
+      TrendsDiscoveryController,
+      TrendsController,
+    ]);
+  });
 
   it('preserves viral-video summary behavior', async () => {
     trendsService.getViralVideos.mockResolvedValue([

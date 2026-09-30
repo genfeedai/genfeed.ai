@@ -159,6 +159,14 @@ describe('ArticlesList', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('should render without crashing', async () => {
+    const { container } = render(<ArticlesList />);
+
+    await waitFor(() => {
+      expect(container.firstChild).toBeInTheDocument();
+    });
+  });
+
   it('opens the create-article modal from the empty-state Create action', async () => {
     const user = userEvent.setup();
     mockFindAll.mockResolvedValue([]);

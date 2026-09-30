@@ -31,6 +31,19 @@ vi.mock('next-intl', async () => {
 });
 
 describe('TikTokPreview', () => {
+  it('truncates the caption at the TikTok 2200-character limit', () => {
+    const caption = 'x'.repeat(2210);
+    render(
+      <TikTokPreview
+        credential={makeCredential()}
+        release={makeRelease({ baseContent: caption })}
+        target={makeTarget()}
+      />,
+    );
+
+    expect(screen.getByText(`${'x'.repeat(2200)}...`)).toBeInTheDocument();
+  });
+
   it('renders media at the TikTok 9:16 aspect', () => {
     render(
       <TikTokPreview
@@ -52,5 +65,17 @@ describe('TikTokPreview', () => {
       'data-media-aspect',
       '9:16',
     );
+  });
+
+  it('styles a caption hashtag as a highlighted entity', () => {
+    render(
+      <TikTokPreview
+        credential={makeCredential()}
+        release={makeRelease({ baseContent: 'Trending now #fyp' })}
+        target={makeTarget()}
+      />,
+    );
+
+    expect(screen.getByTestId('preview-entity')).toHaveTextContent('#fyp');
   });
 });

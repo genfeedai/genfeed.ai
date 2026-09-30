@@ -51,6 +51,32 @@ describe('assertSafeWebhookEndpoint', () => {
     );
   });
 
+  it('allows public IP endpoints', async () => {
+    await expect(
+      assertSafeWebhookEndpoint('https://8.8.8.8/webhook'),
+    ).resolves.toMatchObject({
+      addresses: [{ address: '8.8.8.8', family: 4 }],
+      hostname: '8.8.8.8',
+    });
+  });
+
+  it('retains every validated DNS address in verbatim order', async () => {
+    dnsLookupMock.mockResolvedValueOnce([
+      { address: '93.184.216.34', family: 4 },
+      { address: '2606:4700:4700::1111', family: 6 },
+    ]);
+
+    await expect(
+      assertSafeWebhookEndpoint('https://hooks.example.com/webhook'),
+    ).resolves.toMatchObject({
+      addresses: [
+        { address: '93.184.216.34', family: 4 },
+        { address: '2606:4700:4700::1111', family: 6 },
+      ],
+      hostname: 'hooks.example.com',
+    });
+  });
+
   it('normalizes and retains a public IPv6 literal', async () => {
     await expect(
       assertSafeWebhookEndpoint('https://[2606:4700:4700::1111]/webhook'),
@@ -63,6 +89,17 @@ describe('assertSafeWebhookEndpoint', () => {
 
   it('fails closed when DNS returns no validated addresses', async () => {
     dnsLookupMock.mockResolvedValueOnce([]);
+
+    await expect(
+      assertSafeWebhookEndpoint('https://hooks.example.com/webhook'),
+    ).rejects.toThrow('private or reserved');
+  });
+
+  it('rejects the entire DNS set when any answer is private or reserved', async () => {
+    dnsLookupMock.mockResolvedValueOnce([
+      { address: '93.184.216.34', family: 4 },
+      { address: '10.0.0.7', family: 4 },
+    ]);
 
     await expect(
       assertSafeWebhookEndpoint('https://hooks.example.com/webhook'),

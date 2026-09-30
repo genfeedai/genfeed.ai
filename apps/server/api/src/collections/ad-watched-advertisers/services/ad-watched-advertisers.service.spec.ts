@@ -409,6 +409,36 @@ describe('AdWatchedAdvertisersService persistence boundary', () => {
   });
 
   describe('findByHandle', () => {
+    it('scopes to active rows by default', async () => {
+      await service.findByHandle('org-1', 'meta', 'nike');
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          advertiserHandle: 'nike',
+          brandId: null,
+          isDeleted: false,
+          organizationId: 'org-1',
+          platform: 'meta',
+        },
+      });
+    });
+
+    it('includes soft-deleted rows when asked, for the revive-on-recreate lookup', async () => {
+      await service.findByHandle('org-1', 'meta', 'nike', null, {
+        includeDeleted: true,
+      });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: {
+          advertiserHandle: 'nike',
+          brandId: null,
+          isDeleted: undefined,
+          organizationId: 'org-1',
+          platform: 'meta',
+        },
+      });
+    });
+
     it('includes the brand in the natural-key lookup', async () => {
       await service.findByHandle('org-1', 'meta', 'nike', 'brand-1');
 

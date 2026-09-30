@@ -525,6 +525,16 @@ describe('Post', () => {
         expect(post.platformUrl).toBe('https://custom.url');
       });
 
+      it('should return null without externalId', () => {
+        const post = createPost({
+          id: 'post-123',
+          platform: CredentialPlatform.TWITTER,
+          status: PostStatus.PUBLIC,
+        });
+
+        expect(post.platformUrl).toBeNull();
+      });
+
       it('should build TikTok URL for PUBLIC', () => {
         const post = createPost({
           credential: createCredential({ externalHandle: 'user123' }),

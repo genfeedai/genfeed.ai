@@ -4,6 +4,7 @@ import type {
   ResolveGenerationBrandMembersServiceLike,
   ResolveGenerationBrandServiceLike,
 } from '@api/collections/brands/utils/resolve-generation-brand.util';
+import { BadRequestException } from '@nestjs/common';
 import type { Mock } from 'vitest';
 
 describe('resolveGenerationBrandIdForCaller', () => {
@@ -76,6 +77,22 @@ describe('resolveGenerationBrandIdForCaller', () => {
       expect(apiKeysService.findOne).not.toHaveBeenCalled();
     });
 
+    it('falls back to the ambient user.brandId when it validates', async () => {
+      stubValidBrands(['ambient-brand']);
+
+      const result = await resolveGenerationBrandIdForCaller({
+        ...messages,
+        services: services(),
+        user: {
+          brandId: 'ambient-brand',
+          id: userId,
+          organizationId,
+        },
+      });
+
+      expect(result).toBe('ambient-brand');
+    });
+
     it('falls back to the member currentBrandId when user.brandId is stale (e.g. a just-deleted brand)', async () => {
       stubValidBrands(['fresh-current-brand']);
       membersService.findOne.mockResolvedValue({
@@ -98,6 +115,16 @@ describe('resolveGenerationBrandIdForCaller', () => {
         userId,
       });
       expect(result).toBe('fresh-current-brand');
+    });
+
+    it('rejects with the session message when nothing resolves', async () => {
+      await expect(
+        resolveGenerationBrandIdForCaller({
+          ...messages,
+          services: services(),
+          user: { id: userId, organizationId },
+        }),
+      ).rejects.toThrow(new BadRequestException('no brand'));
     });
   });
 
@@ -128,6 +155,26 @@ describe('resolveGenerationBrandIdForCaller', () => {
       expect(result).toBe('key-default-brand');
     });
 
+    it('validates the explicit brandId as same-org before trusting it', async () => {
+      stubValidBrands([]); // nothing validates for this org
+      apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+      membersService.findOne.mockResolvedValue(null);
+
+      await expect(
+        resolveGenerationBrandIdForCaller({
+          explicitBrandId: 'other-org-brand',
+          ...messages,
+          services: services(),
+          user: {
+            apiKeyId: 'apikey-1',
+            id: userId,
+            isApiKey: true,
+            organizationId,
+          },
+        }),
+      ).rejects.toThrow(new BadRequestException('no api key default brand'));
+    });
+
     it("falls back to the key owner's member currentBrandId when the key has no valid default brand", async () => {
       stubValidBrands(['owner-current-brand']);
       apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
@@ -154,6 +201,27 @@ describe('resolveGenerationBrandIdForCaller', () => {
         userId,
       });
       expect(result).toBe('owner-current-brand');
+    });
+
+    it('rejects with the API-key message when no step resolves — never widens to "any brand in the org"', async () => {
+      apiKeysService.findOne.mockResolvedValue({ defaultBrandId: null });
+      membersService.findOne.mockResolvedValue(null);
+
+      await expect(
+        resolveGenerationBrandIdForCaller({
+          ...messages,
+          services: services(),
+          user: {
+            apiKeyId: 'apikey-1',
+            // Even if a caller-supplied value happened to carry a brandId
+            // here, the API-key branch must never fall through to it.
+            brandId: 'should-not-be-used',
+            id: userId,
+            isApiKey: true,
+            organizationId,
+          },
+        }),
+      ).rejects.toThrow(new BadRequestException('no api key default brand'));
     });
 
     it('treats a missing apiKeyId as no context, still falling back to the member currentBrandId', async () => {

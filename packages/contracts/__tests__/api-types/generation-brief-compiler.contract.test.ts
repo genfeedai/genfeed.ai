@@ -66,6 +66,23 @@ describe('generation brief compiler contract', () => {
     expect(brief.fidelityMode).toBe('off');
   });
 
+  test('locks the unbranded FLUX Schnell dispatch golden fixture', () => {
+    const dispatch = fluxSchnellDispatchSchema.parse(
+      readFixture('unbranded.dispatch.json'),
+    );
+
+    expect(dispatch).toEqual({
+      aspect_ratio: '16:9',
+      disable_safety_checker: false,
+      go_fast: true,
+      num_inference_steps: 4,
+      num_outputs: 1,
+      output_format: 'jpg',
+      output_quality: 80,
+      prompt: 'a sunset over the ocean',
+    });
+  });
+
   test('locks the guided FLUX Schnell dispatch golden fixture', () => {
     const dispatch = fluxSchnellDispatchSchema.parse(
       readFixture('guided.dispatch.json'),
@@ -211,5 +228,19 @@ describe('generation brief compiler contract', () => {
         surface: 'mcp',
       }),
     ).toThrow();
+  });
+
+  test('exemption evidence records the originating surface when provided (#3469)', () => {
+    const withSurface = generationBriefExemptionEvidenceSchema.parse({
+      compilerId: null,
+      compilerVersion: null,
+      modelKey: 'google/imagen-4',
+      profileId: null,
+      profileVersion: null,
+      reason: 'legacy_prompt_builder',
+      status: 'exempted',
+      surface: 'agent_skill',
+    });
+    expect(withSurface.surface).toBe('agent_skill');
   });
 });

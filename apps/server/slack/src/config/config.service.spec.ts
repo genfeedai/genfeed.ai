@@ -30,7 +30,19 @@ describe('ConfigService (Slack)', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined and instantiable as a class', () => {
+    const service = new ConfigService();
+    expect(service).toBeDefined();
+    expect(service).toBeInstanceOf(ConfigService);
+  });
+
   describe('API_URL', () => {
+    it('should return GENFEEDAI_API_URL when set', () => {
+      process.env.GENFEEDAI_API_URL = 'https://api.example.com';
+      const service = new ConfigService();
+      expect(service.API_URL).toBe('https://api.example.com');
+    });
+
     it('should return default localhost URL when env var is not set', () => {
       delete process.env.GENFEEDAI_API_URL;
       const service = new ConfigService();

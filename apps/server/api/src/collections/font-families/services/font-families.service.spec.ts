@@ -11,6 +11,7 @@ vi.mock('@genfeedai/prisma', async () => {
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
 import { FontFamiliesService } from '@api/collections/font-families/services/font-families.service';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -102,7 +103,28 @@ describe('FontFamiliesService', () => {
     vi.clearAllMocks();
   });
 
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('create', () => {
+    it('should create a font family with all properties', async () => {
+      const createDto = asCreateDto({
+        category: 'sans-serif',
+        displayName: 'Roboto',
+        name: 'Roboto',
+        provider: 'google',
+        subsets: ['latin', 'latin-ext'],
+        variants: ['100', '300', '400', '500', '700', '900'],
+      });
+
+      prismaDelegate.create.mockResolvedValueOnce(mockFontFamily);
+
+      const result = asFontFamilyFixture(await service.create(createDto));
+
+      expect(result.name).toBe('Roboto');
+    });
+
     it('should create custom font family', async () => {
       const createDto = asCreateDto({
         category: 'display',
@@ -127,6 +149,63 @@ describe('FontFamiliesService', () => {
 
       expect(result.provider).toBe('custom');
       expect(result.url).toBe('/fonts/custom-font.woff2');
+    });
+
+    it('should propagate errors from prisma on invalid data', async () => {
+      const createDto = asCreateDto({
+        category: 'invalid-category',
+        name: 'Invalid Font',
+      });
+
+      const error = new ValidationException('Invalid font category');
+      prismaDelegate.create.mockRejectedValueOnce(error);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        ValidationException,
+      );
+    });
+
+    it('should propagate duplicate key errors', async () => {
+      const createDto = asCreateDto({
+        category: 'sans-serif',
+        name: 'Roboto',
+      });
+
+      const error = new Error('Duplicate key error');
+      prismaDelegate.create.mockRejectedValueOnce(error);
+
+      await expect(service.create(createDto)).rejects.toThrow(error);
+    });
+  });
+
+  describe('findOne', () => {
+    it('should find font by name', async () => {
+      prismaDelegate.findFirst.mockResolvedValueOnce(mockFontFamily);
+
+      const result = asFontFamilyFixture(
+        await service.findOne({ name: 'Roboto' }),
+      );
+
+      expect(result?.name).toBe('Roboto');
+    });
+
+    it('should find default font', async () => {
+      const defaultFont = { ...mockFontFamily, isDefault: true };
+      prismaDelegate.findFirst.mockResolvedValueOnce(defaultFont);
+
+      const result = asFontFamilyFixture(
+        await service.findOne({ isDefault: true }),
+      );
+
+      expect(result?.isDefault).toBe(true);
+    });
+
+    it('should return null when font not found', async () => {
+      prismaDelegate.findFirst.mockResolvedValueOnce(null);
+
+      const result = await service.findOne({ name: 'NonExistentFont' });
+
+      expect(result).toBeNull();
     });
   });
 
@@ -165,6 +244,23 @@ describe('FontFamiliesService', () => {
 
       expect(result.variants).toContain('100italic');
       expect(result.variants).toContain('300italic');
+    });
+
+    it('should update font URL', async () => {
+      const id = fontFamilyId;
+      const updateDto = asUpdateDto({
+        url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900',
+      });
+
+      const updatedFont = {
+        ...mockFontFamily,
+        url: 'https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900',
+      };
+      prismaDelegate.update.mockResolvedValueOnce(updatedFont);
+
+      const result = asFontFamilyFixture(await service.patch(id, updateDto));
+
+      expect(result.url).toContain('wght@100;300;400;500;700;900');
     });
   });
 
@@ -225,9 +321,34 @@ describe('FontFamiliesService', () => {
         ]).not.toContain(category);
       });
     });
+
+    it('should propagate errors for invalid font URL', async () => {
+      const createDto = asCreateDto({
+        name: 'InvalidURL',
+        url: 'not-a-valid-url',
+      });
+
+      const error = new ValidationException('Invalid font URL');
+      prismaDelegate.create.mockRejectedValueOnce(error);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        ValidationException,
+      );
+    });
   });
 
   describe('remove', () => {
+    it('should soft delete font family', async () => {
+      const id = fontFamilyId;
+      const deletedFont = { ...mockFontFamily, isDeleted: true };
+
+      prismaDelegate.update.mockResolvedValueOnce(deletedFont);
+
+      const result = asFontFamilyFixture(await service.remove(id));
+
+      expect(result.isDeleted).toBe(true);
+    });
+
     it('should return null when font not found for deletion', async () => {
       const id = fontFamilyId;
       prismaDelegate.update.mockResolvedValueOnce(null);
@@ -238,7 +359,46 @@ describe('FontFamiliesService', () => {
     });
   });
 
+  describe('patchAll', () => {
+    it('should deactivate fonts by provider', async () => {
+      const filter = { provider: 'deprecated' };
+      const update = { isActive: false };
+
+      prismaDelegate.updateMany.mockResolvedValueOnce({ count: 10 });
+
+      const result = await service.patchAll(filter, update);
+
+      expect(result.modifiedCount).toBe(10);
+    });
+
+    it('should update font category in bulk', async () => {
+      const filter = { category: 'old-category' };
+      const update = { category: 'display' };
+
+      prismaDelegate.updateMany.mockResolvedValueOnce({ count: 25 });
+
+      const result = await service.patchAll(filter, update);
+
+      expect(result.modifiedCount).toBe(25);
+    });
+  });
+
   describe('edge cases', () => {
+    it('should handle font with no variants', async () => {
+      const createDto = asCreateDto({
+        category: 'sans-serif',
+        name: 'SimpleFont',
+        variants: [],
+      });
+
+      const simpleFont = { ...mockFontFamily, variants: [] };
+      prismaDelegate.create.mockResolvedValueOnce(simpleFont);
+
+      const result = asFontFamilyFixture(await service.create(createDto));
+
+      expect(result.variants).toEqual([]);
+    });
+
     it('should handle font with many subsets', async () => {
       const subsets = [
         'latin',
@@ -291,6 +451,28 @@ describe('FontFamiliesService', () => {
 
       expect(result.variants).toContain('variable');
       expect(result.url).toContain('100..900');
+    });
+  });
+
+  describe('performance', () => {
+    it('should efficiently handle bulk font imports', async () => {
+      const fonts = Array(10)
+        .fill(null)
+        .map((_, i) => ({
+          category: i % 2 === 0 ? 'sans-serif' : 'serif',
+          name: `Font${i}`,
+          provider: 'google',
+        }));
+
+      for (const fontDto of fonts) {
+        const font = { ...mockFontFamily, ...fontDto };
+        prismaDelegate.create.mockResolvedValueOnce(font);
+
+        const result = asFontFamilyFixture(
+          await service.create(asCreateDto(fontDto)),
+        );
+        expect(result.name).toBe(fontDto.name);
+      }
     });
   });
 });

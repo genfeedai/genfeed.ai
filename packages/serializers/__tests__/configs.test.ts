@@ -30,6 +30,15 @@ describe('Serializer Configurations', () => {
       expect(postSerializerConfig.children).toHaveProperty('ref', 'id');
     });
 
+    test('should create working serializer', () => {
+      const serializer = new Serializer('post', {
+        ...postSerializerConfig,
+        id: 'id',
+      });
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
     test('should serialize post data correctly', () => {
       const serializer = new Serializer('post', {
         ...postSerializerConfig,
@@ -125,6 +134,15 @@ describe('Serializer Configurations', () => {
       expect(articleSerializerConfig.attributes).toBe(articleAttributes);
     });
 
+    test('should create working serializer', () => {
+      const serializer = new Serializer('article', {
+        ...articleSerializerConfig,
+        id: 'id',
+      });
+
+      expect(serializer).toBeInstanceOf(Serializer);
+    });
+
     test('should serialize article data correctly', () => {
       const serializer = new Serializer('article', {
         ...articleSerializerConfig,
@@ -170,6 +188,15 @@ describe('Serializer Configurations', () => {
 
     test('should use correct attributes', () => {
       expect(metadataSerializerConfig.attributes).toBe(metadataAttributes);
+    });
+
+    test('should create working serializer', () => {
+      const serializer = new Serializer('metadata', {
+        ...metadataSerializerConfig,
+        id: 'id',
+      });
+
+      expect(serializer).toBeInstanceOf(Serializer);
     });
 
     test('should serialize metadata data correctly', () => {

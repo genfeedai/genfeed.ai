@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createIdLookup,
   filterItemsByIdLookup,
+  findGroupContainingNodeId,
   hasEveryId,
   hasSomeId,
   mergeIds,
@@ -83,6 +84,12 @@ describe('hasSomeId', () => {
 });
 
 describe('mergeIds', () => {
+  it('preserves order and appends only new ids', () => {
+    expect(
+      mergeIds(['node-1', 'node-2'], ['node-2', 'node-3', 'node-4']),
+    ).toEqual(['node-1', 'node-2', 'node-3', 'node-4']);
+  });
+
   it('returns a shallow copy when there is nothing to add', () => {
     const existingIds = ['node-1', 'node-2'];
 
@@ -93,11 +100,35 @@ describe('mergeIds', () => {
 });
 
 describe('removeIds', () => {
+  it('removes only the requested ids', () => {
+    expect(removeIds(['node-1', 'node-2', 'node-3'], ['node-2'])).toEqual([
+      'node-1',
+      'node-3',
+    ]);
+  });
+
   it('returns a shallow copy when there is nothing to remove', () => {
     const existingIds = ['node-1', 'node-2'];
 
     const result = removeIds(existingIds, []);
     expect(result).toEqual(existingIds);
     expect(result).not.toBe(existingIds);
+  });
+});
+
+describe('findGroupContainingNodeId', () => {
+  it('returns the first group containing the node id', () => {
+    const groups = [
+      { id: 'group-1', nodeIds: ['node-1', 'node-2'] },
+      { id: 'group-2', nodeIds: ['node-3'] },
+    ];
+
+    expect(findGroupContainingNodeId(groups, 'node-2')).toEqual(groups[0]);
+  });
+
+  it('returns undefined when no group contains the node id', () => {
+    const groups = [{ id: 'group-1', nodeIds: ['node-1', 'node-2'] }];
+
+    expect(findGroupContainingNodeId(groups, 'node-9')).toBeUndefined();
   });
 });

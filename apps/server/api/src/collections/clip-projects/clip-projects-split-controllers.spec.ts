@@ -88,6 +88,15 @@ describe('Clip Projects split controllers', () => {
     },
   );
 
+  it('preserves rewrite HTTP 200', () => {
+    expect(
+      Reflect.getMetadata(
+        HTTP_CODE_METADATA,
+        ClipProjectHighlightsController.prototype.rewriteHighlight,
+      ),
+    ).toBe(HttpStatus.OK);
+  });
+
   it.each([
     [
       'generateClips',
