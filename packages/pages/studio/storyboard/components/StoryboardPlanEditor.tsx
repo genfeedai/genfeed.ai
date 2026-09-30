@@ -16,14 +16,16 @@ import {
   type StoryboardShot,
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { StoryboardPlanEditorProps } from '@genfeedai/props/studio/storyboard.props';
-import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
 import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
+import { useStoryboardVoices } from '@pages/studio/storyboard/hooks/use-storyboard-voices';
 import { normalizeStoryboardModel } from '@pages/studio/storyboard/utils/storyboard-capabilities';
 import {
   editStoryboardShot,
@@ -41,12 +43,14 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useEffect, useImperativeHandle, useState } from 'react';
 
 /** Draft edits persist independently of paid planning or video execution. */
 export default function StoryboardPlanEditor({
   ref,
   run,
+  draft,
   isSourceSaving = false,
   onSaveStatusChange,
   savePlan,
@@ -58,15 +62,33 @@ export default function StoryboardPlanEditor({
 }: StoryboardPlanEditorProps) {
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
-  const { voices } = useVoiceCatalog({ isActive: true });
+  const {
+    voices,
+    status: voiceStatus,
+    error: voiceError,
+    retry: retryVoices,
+  } = useStoryboardVoices(run.brandId, run.organizationId);
+  const { href } = useOrgUrl();
   const [selectedShotId, setSelectedShotId] = useState<string>();
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
   const autosave = useStoryboardAutosave<StoryboardPlan>({
+    binding: draft,
     scope: `${run.brandId}:${run.id}`,
     initial: { revision: run.config.revision, value: run.config.plan },
     save: async (snapshot, signal) => {
       try {
+        if (
+          snapshot.value.cast.some(
+            (member) =>
+              member.voiceId &&
+              (voiceStatus !== 'loaded' ||
+                !voices.some((voice) => voice.id === member.voiceId)),
+          )
+        )
+          throw new Error(
+            'Replace or clear unavailable saved voices before saving.',
+          );
         const result = await savePlan(
           snapshot.revision,
           snapshot.value,
@@ -119,6 +141,15 @@ export default function StoryboardPlanEditor({
     ],
   );
   const problems = storyboardApprovalProblems(plan);
+  for (const member of plan.cast)
+    if (
+      member.voiceId &&
+      (voiceStatus !== 'loaded' ||
+        !voices.some((voice) => voice.id === member.voiceId))
+    )
+      problems.push(
+        `Saved voice for ${member.name} is unavailable. Replace or clear it.`,
+      );
   if (!supportedDurations.length)
     problems.push('Video model capabilities are unavailable.');
   const approved =
@@ -260,12 +291,22 @@ export default function StoryboardPlanEditor({
             label="Reset plan"
             icon={<RotateCcw className="size-4" />}
             variant={ButtonVariant.SECONDARY}
-            disabled={isDisabled || !run.config.generatedPlan}
+            disabled={
+              isDisabled ||
+              !run.config.generatedPlan ||
+              Boolean(draft && draft.status !== 'saved')
+            }
             onClick={reset}
           />
           <Button
             label={approved ? 'Approved' : 'Approve storyboard'}
-            disabled={isDisabled || approved || problems.length > 0}
+            disabled={
+              isDisabled ||
+              approved ||
+              problems.length > 0 ||
+              autosave.status === 'failed' ||
+              Boolean(draft && draft.status !== 'saved')
+            }
             onClick={() =>
               void perform((revision, saved) => {
                 const blockers = storyboardApprovalProblems(saved);
@@ -451,6 +492,26 @@ export default function StoryboardPlanEditor({
         description="Each speaker keeps one voice across their dialogue."
       >
         <div className="space-y-3">
+          {voiceStatus === 'loading' ? (
+            <p role="status">Loading saved voices…</p>
+          ) : voiceStatus === 'failed' ? (
+            <div role="alert">
+              <p>{voiceError}</p>
+              <Button
+                label="Retry loading voices"
+                variant={ButtonVariant.SECONDARY}
+                onClick={retryVoices}
+              />
+            </div>
+          ) : !voices.length ? (
+            <p>
+              No usable saved voices. Save a usable voice in Voices Library
+              before assigning it.
+            </p>
+          ) : null}
+          <Button asChild variant={ButtonVariant.SECONDARY}>
+            <Link href={href(APP_ROUTES.LIBRARY.VOICES)}>Voices Library</Link>
+          </Button>
           {plan.cast.map((member, index) => (
             <div
               key={member.id}
@@ -478,11 +539,23 @@ export default function StoryboardPlanEditor({
                   ariaLabel={`Voice for ${member.name}`}
                   value={member.voiceId}
                   placeholder="Choose voice"
-                  isDisabled={isDisabled}
-                  options={voices.map((voice) => ({
-                    value: voice.id,
-                    label: storyboardAssetLabel(voice, 'Voice unavailable'),
-                  }))}
+                  isDisabled={isDisabled || voiceStatus === 'loading'}
+                  options={[
+                    ...(member.voiceId &&
+                    !voices.some((voice) => voice.id === member.voiceId)
+                      ? [
+                          {
+                            value: member.voiceId,
+                            label: 'Saved voice unavailable — replace or clear',
+                            isDisabled: true,
+                          },
+                        ]
+                      : []),
+                    ...voices.map((voice) => ({
+                      value: voice.id,
+                      label: storyboardAssetLabel(voice, 'Saved voice'),
+                    })),
+                  ]}
                   onChange={(voiceId) =>
                     edit({
                       ...plan,
@@ -617,9 +690,10 @@ export default function StoryboardPlanEditor({
           ordinal: shot.ordinal,
           durationSeconds: shot.durationSeconds,
           dialogue: shot.dialogue,
-          stillUrl: shot.stillAssetId
-            ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
-            : undefined,
+          stillUrl:
+            shot.stillFreshness === 'fresh' && shot.stillAssetId
+              ? (assets[`image:${shot.stillAssetId}`]?.cdnUrl ?? undefined)
+              : undefined,
         }))}
       />
       {!supportedDurations.length ? (

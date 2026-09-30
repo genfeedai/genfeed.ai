@@ -8,9 +8,13 @@ import type {
   StoryboardSaveIndicatorProps,
 } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import StoryboardConflictReview from '@pages/studio/storyboard/components/StoryboardConflictReview';
 import StoryboardPlanEditor from '@pages/studio/storyboard/components/StoryboardPlanEditor';
 import StoryboardSaveIndicator from '@pages/studio/storyboard/components/StoryboardSaveIndicator';
-import { useStoryboardAutosave } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
+import {
+  useStoryboardAutosave,
+  useStoryboardDraftOutbox,
+} from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -24,6 +28,7 @@ import { type MouseEvent, useRef, useState } from 'react';
 /** Neutral detail page stays separate until existing-run migration is integrated. */
 export default function StoryboardDraftPage({
   run,
+  transport,
   savePlan,
   saveSource,
   resetPlan,
@@ -35,7 +40,9 @@ export default function StoryboardDraftPage({
   const { href } = useOrgUrl();
   const router = useRouter();
   const editor = useRef<StoryboardPlanEditorHandle>(null);
+  const draft = useStoryboardDraftOutbox(transport, run);
   const sourceAutosave = useStoryboardAutosave({
+    binding: draft.source,
     scope: `${run.brandId}:${run.id}:source`,
     initial: {
       revision: run.config.revision,
@@ -66,7 +73,9 @@ export default function StoryboardDraftPage({
     isReady:
       pipeline?.state === 'ready' &&
       run.config.state === 'ready' &&
-      planStatus === 'saved',
+      planStatus === 'saved' &&
+      sourceAutosave.status === 'saved' &&
+      Boolean(draft.queue),
     shotIds: run.config.plan.shots.map((shot) => shot.id),
     videos: Object.fromEntries(
       Object.entries(pipeline?.scenes ?? {}).map(([id, scene]) => [
@@ -159,6 +168,19 @@ export default function StoryboardDraftPage({
             {navigationError}
           </p>
         ) : null}
+        {draft.snapshot?.storageError ? (
+          <p role="alert" className="text-sm text-destructive">
+            {draft.snapshot.storageError}
+          </p>
+        ) : null}
+        {draft.queue && draft.snapshot ? (
+          <StoryboardConflictReview
+            conflicts={draft.snapshot.conflicts}
+            choices={draft.snapshot.choices}
+            choose={draft.queue.choose}
+            resolve={draft.queue.resolve}
+          />
+        ) : null}
         {saveSource &&
         sourceAutosave.value.kind === 'brief' &&
         !run.config.scenePipeline ? (
@@ -173,7 +195,7 @@ export default function StoryboardDraftPage({
               <Textarea
                 value={sourceAutosave.value.brief}
                 maxLength={2000}
-                disabled={leaving}
+                disabled={leaving || !draft.queue}
                 onChange={(event) => {
                   const brief = event.target.value;
                   sourceAutosave.edit((source) =>
@@ -197,7 +219,8 @@ export default function StoryboardDraftPage({
           ref={editor}
           key={`${run.brandId}:${run.id}`}
           run={run}
-          isSourceSaving={leaving || sourceAutosave.status !== 'saved'}
+          draft={draft.plan}
+          isSourceSaving={leaving || !draft.queue}
           onSaveStatusChange={setPlanStatus}
           savePlan={savePlan}
           resetPlan={resetPlan}

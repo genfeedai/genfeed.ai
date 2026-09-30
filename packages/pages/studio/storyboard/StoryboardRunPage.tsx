@@ -171,6 +171,7 @@ export default function StoryboardRunPage({
     refresh,
     savePlan,
     saveSource,
+    transport,
     resetPlan,
     approvePlan,
   } = useDurableStoryboardRun(runId);
@@ -183,6 +184,7 @@ export default function StoryboardRunPage({
     return (
       <StoryboardDraftPage
         run={run}
+        transport={transport}
         savePlan={savePlan}
         saveSource={saveSource}
         resetPlan={resetPlan}

@@ -115,11 +115,15 @@ export interface StoryboardRunRecipeProps {
   readonly run: BrandRemixRunView;
 }
 
+export interface StoryboardSelectOption extends StoryboardRunSelectOption {
+  readonly isDisabled?: boolean;
+}
+
 export interface StoryboardSelectProps {
   readonly ariaLabel: string;
   readonly isDisabled?: boolean;
   readonly onChange: (value: string | undefined) => void;
-  readonly options: ReadonlyArray<StoryboardRunSelectOption>;
+  readonly options: ReadonlyArray<StoryboardSelectOption>;
   readonly placeholder: string;
   readonly value: string | undefined;
 }
@@ -149,6 +153,7 @@ export interface StoryboardSaveSnapshot<T> {
 export interface StoryboardAutosaveOptions<T> {
   readonly scope: string;
   readonly initial: StoryboardSaveSnapshot<T>;
+  readonly binding?: StoryboardAutosaveBinding<T>;
   readonly save: (
     snapshot: StoryboardSaveSnapshot<T>,
     signal: AbortSignal,
@@ -187,6 +192,8 @@ export interface StoryboardPlanEditorHandle {
 export interface StoryboardPlanEditorProps {
   readonly ref?: Ref<StoryboardPlanEditorHandle>;
   readonly run: StoryboardRun;
+  readonly draft?: StoryboardAutosaveBinding<StoryboardPlan>;
+  readonly transport?: StoryboardDraftTransport;
   readonly isSourceSaving?: boolean;
   readonly onSaveStatusChange?: (
     status: StoryboardSaveIndicatorProps['status'],
@@ -211,6 +218,7 @@ export interface StoryboardPlanEditorProps {
 export type StoryboardDraftPageProps = Pick<
   StoryboardPlanEditorProps,
   | 'run'
+  | 'transport'
   | 'saveSource'
   | 'savePlan'
   | 'resetPlan'
@@ -221,3 +229,55 @@ export type StoryboardDraftPageProps = Pick<
 >;
 
 export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;
+
+export interface StoryboardDraftValue {
+  plan: StoryboardPlan;
+  source: StoryboardSourceSelector;
+}
+export interface StoryboardDraftScope {
+  server: string;
+  userId: string;
+  organizationId: string;
+  brandId: string;
+  runId: string;
+}
+export interface StoryboardDraftConflict {
+  path: string;
+  label: string;
+  local: unknown;
+  remote: unknown;
+}
+export interface StoryboardDraftTransport {
+  scope: StoryboardDraftScope;
+  canDispatch: () => Promise<boolean>;
+  read: () => Promise<StoryboardRun>;
+  write: (
+    channel: 'plan' | 'source',
+    revision: number,
+    value: StoryboardDraftValue,
+  ) => Promise<StoryboardRun>;
+}
+export interface StoryboardAutosaveBinding<T> {
+  scope: string;
+  value: T;
+  revision: number;
+  status: StoryboardSaveIndicatorProps['status'];
+  error?: string;
+  canUndo: boolean;
+  edit: (update: T | ((value: T) => T)) => void;
+  flush: () => Promise<StoryboardSaveSnapshot<T>>;
+  undo: () => Promise<StoryboardSaveSnapshot<T>>;
+}
+
+export interface StoryboardConflictReviewProps {
+  conflicts: StoryboardDraftConflict[];
+  choices: Record<string, 'local' | 'remote'>;
+  choose: (path: string, choice: 'local' | 'remote') => void;
+  resolve: () => Promise<void>;
+}
+export interface StoryboardCreationIntent {
+  clientRequestId: string;
+  owner: symbol;
+  epoch: number;
+  pending?: Promise<string>;
+}

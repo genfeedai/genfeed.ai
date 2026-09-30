@@ -26,7 +26,7 @@ export default function StoryboardCreate() {
   const { openUpload } = useUploadModal();
   const { href } = useOrgUrl();
   const router = useRouter();
-  const { create, error, isCreating } = useCreateStoryboard();
+  const { create, error, isCreating, isCurrentResult } = useCreateStoryboard();
   const [mode, setMode] = useState<'brief' | 'video'>('brief');
   const [brief, setBrief] = useState('');
   const [format, setFormat] = useState<'9:16' | '16:9' | '1:1'>('9:16');
@@ -79,6 +79,7 @@ export default function StoryboardCreate() {
           };
     try {
       const id = await create(input);
+      if (!isCurrentResult(id)) return;
       router.push(
         href(`${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(id)}`),
       );

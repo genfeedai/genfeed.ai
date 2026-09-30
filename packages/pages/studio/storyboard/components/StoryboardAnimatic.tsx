@@ -23,14 +23,94 @@ export default function StoryboardAnimatic({
   const [playing, setPlaying] = useState(false);
   const [singleShot, setSingleShot] = useState<string>();
   const clock = useRef({ started: 0, elapsed: 0 });
-  const playable =
-    shots.length > 0 &&
-    shots.every(
-      (shot) =>
-        shot.durationSeconds !== null &&
-        shot.durationSeconds > 0 &&
-        Boolean(shot.stillUrl),
-    );
+  const mediaKey = JSON.stringify([
+    scope,
+    shots.map((shot) => [shot.id, shot.stillUrl]),
+  ]);
+  const activeMediaKey = useRef(mediaKey);
+  activeMediaKey.current = mediaKey;
+  const attempts = useRef(
+    new Map<string, { image: HTMLImageElement; cancelled: boolean }>(),
+  );
+  const [media, setMedia] = useState<{
+    key: string;
+    states: Record<string, 'loading' | 'loaded' | 'failed'>;
+  }>({ key: mediaKey, states: {} });
+  const startAttempt = useCallback(
+    (shotId: string, url: string) => {
+      const previous = attempts.current.get(shotId);
+      if (previous) {
+        previous.cancelled = true;
+        previous.image.onload = null;
+        previous.image.onerror = null;
+      }
+      const image = new window.Image();
+      const entry = { image, cancelled: false };
+      attempts.current.set(shotId, entry);
+      const publish = (status: 'loading' | 'loaded' | 'failed') => {
+        if (
+          entry.cancelled ||
+          activeMediaKey.current !== mediaKey ||
+          attempts.current.get(shotId) !== entry
+        )
+          return;
+        setMedia((current) => ({
+          key: mediaKey,
+          states: {
+            ...(current.key === mediaKey ? current.states : {}),
+            [shotId]: status,
+          },
+        }));
+      };
+      image.onerror = () => publish('failed');
+      image.onload = () => {
+        const decoded =
+          typeof image.decode === 'function'
+            ? image.decode()
+            : Promise.resolve();
+        void decoded
+          .then(() =>
+            publish(
+              image.naturalWidth > 0 && image.naturalHeight > 0
+                ? 'loaded'
+                : 'failed',
+            ),
+          )
+          .catch(() => publish('failed'));
+      };
+      publish('loading');
+      image.src = url;
+      if (image.complete && image.naturalWidth > 0)
+        image.onload(new Event('load'));
+    },
+    [mediaKey],
+  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: mediaKey captures the complete scope/shot/URL attempt identity.
+  useEffect(() => {
+    setMedia({ key: mediaKey, states: {} });
+    for (const shot of shots)
+      if (shot.stillUrl) startAttempt(shot.id, shot.stillUrl);
+    const currentAttempts = attempts.current;
+    return () => {
+      for (const attempt of currentAttempts.values()) {
+        attempt.cancelled = true;
+        attempt.image.onload = null;
+        attempt.image.onerror = null;
+      }
+      currentAttempts.clear();
+    };
+  }, [mediaKey, startAttempt]);
+  const mediaStatus = (id: string) =>
+    media.key === mediaKey ? media.states[id] : undefined;
+  const ready = (shot: StoryboardAnimaticProps['shots'][number]) =>
+    shot.durationSeconds !== null &&
+    Number.isFinite(shot.durationSeconds) &&
+    shot.durationSeconds > 0 &&
+    mediaStatus(shot.id) === 'loaded';
+  const playable = shots.length > 0 && shots.every(ready);
+  const singleReady = Boolean(
+    singleShot && shots.some((shot) => shot.id === singleShot && ready(shot)),
+  );
   const ranges = shots.map((shot, index) => {
     const start = shots
       .slice(0, index)
@@ -83,8 +163,8 @@ export default function StoryboardAnimatic({
     return () => clearInterval(timer);
   }, [playing, end]);
   useEffect(() => {
-    if (!playable) pause();
-  }, [playable, pause]);
+    if (playing && !(singleShot ? singleReady : playable)) pause();
+  }, [playing, singleShot, singleReady, playable, pause]);
 
   return (
     <section
@@ -107,7 +187,7 @@ export default function StoryboardAnimatic({
         ariaLabel={playing ? 'Pause animatic' : 'Play animatic'}
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
-        isDisabled={!playable && !singleShot}
+        isDisabled={!playable && !singleReady}
         onClick={() => {
           if (playing) pause();
           else
@@ -121,7 +201,7 @@ export default function StoryboardAnimatic({
             );
         }}
       >
-        {current?.shot.stillUrl ? (
+        {current?.shot.stillUrl && mediaStatus(current.shot.id) === 'loaded' ? (
           <NextImage
             src={current.shot.stillUrl}
             alt={`Shot ${current.shot.ordinal}`}
@@ -129,13 +209,39 @@ export default function StoryboardAnimatic({
             unoptimized
             sizes="(max-width: 768px) 100vw, 768px"
             className="object-contain"
+            onError={() => {
+              if (activeMediaKey.current !== mediaKey) return;
+              const attempt = attempts.current.get(current.shot.id);
+              if (attempt) attempt.cancelled = true;
+              setMedia((value) => ({
+                key: mediaKey,
+                states: {
+                  ...(value.key === mediaKey ? value.states : {}),
+                  [current.shot.id]: 'failed',
+                },
+              }));
+              pause();
+            }}
           />
         ) : (
           <p className="text-xs text-muted-foreground">
-            Still preview unavailable
+            {current?.shot.stillUrl && mediaStatus(current.shot.id) !== 'failed'
+              ? 'Loading still preview'
+              : 'Still preview unavailable'}
           </p>
         )}
       </Button>
+      {current?.shot.stillUrl && mediaStatus(current.shot.id) === 'failed' ? (
+        <Button
+          label="Retry still preview"
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+          onClick={() => {
+            if (current.shot.stillUrl)
+              startAttempt(current.shot.id, current.shot.stillUrl);
+          }}
+        />
+      ) : null}
       <p
         role="status"
         aria-live="polite"
@@ -166,7 +272,7 @@ export default function StoryboardAnimatic({
                 ? `Play shot ${current?.shot.ordinal}`
                 : 'Play storyboard'
           }
-          isDisabled={!playable && !singleShot}
+          isDisabled={!playable && !singleReady}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           onClick={() => {
@@ -201,7 +307,7 @@ export default function StoryboardAnimatic({
             label={`Play shot ${range.shot.ordinal}`}
             size={ButtonSize.SM}
             variant={ButtonVariant.GHOST}
-            isDisabled={!range.shot.stillUrl || !range.shot.durationSeconds}
+            isDisabled={!ready(range.shot)}
             onClick={() => {
               setSingleShot(range.shot.id);
               play(range.start);

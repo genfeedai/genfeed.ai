@@ -11,8 +11,11 @@ vi.mock(
     useGalleryModal: () => ({ openGallery: vi.fn() }),
   }),
 );
-vi.mock('@pages/library/voices/hooks/use-voice-catalog', () => ({
-  useVoiceCatalog: () => ({ voices: [] }),
+vi.mock('@pages/studio/storyboard/hooks/use-storyboard-voices', () => ({
+  useStoryboardVoices: () => ({ voices: [], status: 'loaded', retry: vi.fn() }),
+}));
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ href: (path: string) => `/org/brand${path}` }),
 }));
 vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
   useStoryboardAssets: () => ({}),

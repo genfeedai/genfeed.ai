@@ -34,7 +34,11 @@ export default function StoryboardSelect({
       <SelectContent>
         <SelectItem value={EMPTY_SELECT_ITEM_VALUE}>{placeholder}</SelectItem>
         {options.map((option) => (
-          <SelectItem key={option.value} value={option.value}>
+          <SelectItem
+            key={option.value}
+            value={option.value}
+            disabled={option.isDisabled}
+          >
             {option.label}
           </SelectItem>
         ))}

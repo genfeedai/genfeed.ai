@@ -10,6 +10,21 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mocks.brandId,
 }));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    userId: 'user',
+    orgId: 'org',
+    sessionId: 'session',
+  }),
+}));
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgSlug: 'org' }),
+}));
+vi.mock('@genfeedai/auth-client', () => ({
+  getSession: vi.fn(async () => ({
+    data: { user: { id: 'user' }, session: { activeOrganizationId: 'org' } },
+  })),
+}));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
   const getService = async () => ({
     getStoryboardRun: mocks.get,

@@ -1,10 +1,20 @@
 'use client';
 
+import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
+  StoryboardAutosaveBinding,
   StoryboardAutosaveOptions,
+  StoryboardDraftTransport,
+  StoryboardDraftValue,
   StoryboardSaveSnapshot,
 } from '@genfeedai/props/studio/storyboard.props';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  getStoryboardDraftOutbox,
+  storyboardDraftKey,
+} from '@pages/studio/storyboard/utils/storyboard-draft-outbox';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const SAVE_DELAY_MS = 1_000;
 
@@ -12,6 +22,7 @@ export function useStoryboardAutosave<T>({
   scope,
   initial,
   save,
+  binding,
 }: StoryboardAutosaveOptions<T>) {
   const session = useRef({
     scope,
@@ -181,5 +192,83 @@ export function useStoryboardAutosave<T>({
     };
   }, []);
 
-  return { ...view, edit, flush, undo };
+  return binding ?? { ...view, edit, flush, undo };
+}
+
+/** Bind both editable channels to one persistent run queue and one revision. */
+export function useStoryboardDraftOutbox(
+  transport: StoryboardDraftTransport | undefined,
+  run: StoryboardRun,
+) {
+  const queue = useMemo(
+    () => (transport ? getStoryboardDraftOutbox(transport, run) : undefined),
+    [transport, run],
+  );
+  const [snapshot, setSnapshot] = useState(() => queue?.getSnapshot());
+  useEffect(() => {
+    if (!queue) {
+      setSnapshot(undefined);
+      return;
+    }
+    const unsubscribe = queue.subscribe(() => setSnapshot(queue.getSnapshot()));
+    setSnapshot(queue.getSnapshot());
+    void queue.initialize().catch(() => undefined);
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      if (queue.getSnapshot().status === 'saved') return;
+      queue.detach();
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('beforeunload', beforeUnload);
+      queue.detach();
+    };
+  }, [queue]);
+  useEffect(() => {
+    queue?.adopt(run);
+  }, [queue, run]);
+  const current = queue?.getSnapshot() ?? snapshot;
+  function bind<
+    T extends StoryboardDraftValue['plan'] | StoryboardDraftValue['source'],
+  >(channel: 'plan' | 'source'): StoryboardAutosaveBinding<T> | undefined {
+    if (!queue || !current) return undefined;
+    const saved = () => {
+      const snapshot = queue.getSnapshot();
+      return {
+        revision: snapshot.revision,
+        value: snapshot.value[channel] as T,
+      };
+    };
+    return {
+      scope: storyboardDraftKey(queue.transport.scope),
+      value: current.value[channel] as T,
+      revision: current.revision,
+      status: current.status,
+      error: current.error,
+      canUndo: current.canUndo,
+      edit: (update) => {
+        const value = queue.getSnapshot().value[channel] as T;
+        queue.edit(
+          channel,
+          typeof update === 'function' ? update(value) : update,
+        );
+      },
+      flush: async () => {
+        await queue.flush();
+        return saved();
+      },
+      undo: async () => {
+        await queue.undo();
+        return saved();
+      },
+    };
+  }
+  return {
+    queue,
+    snapshot: current,
+    plan: bind<StoryboardPlan>('plan'),
+    source: bind<StoryboardSourceSelector>('source'),
+  };
 }

@@ -1,51 +1,138 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import type { CreateStoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  type CreateStoryboardRun,
+  createStoryboardRunSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardCreationIntent } from '@genfeedai/props/studio/storyboard.props';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ContentRunsService } from '@services/content/content-runs.service';
-import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
-import { useRef, useState } from 'react';
+import { EnvironmentService } from '@services/core/environment.service';
+import {
+  getJsonApiErrorMember,
+  getJsonApiErrorMessage,
+} from '@services/core/json-api-error-message';
+import { normalizeOperationError } from '@services/core/operation-error';
+import { useEffect, useRef, useState } from 'react';
 
-/** A transport retry reuses the same UUID and cannot create a second unpaid draft. */
+const intents = new Map<string, StoryboardCreationIntent>();
+const definitiveStatuses = new Set([400, 401, 403, 404, 409, 410, 422]);
+const inputSchema = createStoryboardRunSchema.omit({ clientRequestId: true });
+
+/** Only an uncertain replay of the same scoped input keeps its UUID. */
 export function useCreateStoryboard() {
-  const brandId = useBrandId();
+  const { brandId, organizationId } = useBrand();
+  const { userId, sessionId } = useAuthIdentity();
   const getService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
-  const activeBrand = useRef(brandId);
-  activeBrand.current = brandId;
-  const request = useRef<{ key: string; clientRequestId: string } | null>(null);
-  const pending = useRef<Promise<string> | null>(null);
+  const scope = JSON.stringify([
+    EnvironmentService.apiEndpoint,
+    globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
+    userId,
+    organizationId,
+    brandId,
+  ]);
+  const epochKey = JSON.stringify([scope, sessionId]);
+  const owner = useRef(Symbol('Storyboard creation'));
+  const active = useRef({ key: epochKey, epoch: 0, mounted: true });
+  if (active.current.key !== epochKey)
+    active.current = {
+      key: epochKey,
+      epoch: active.current.epoch + 1,
+      mounted: active.current.mounted,
+    };
+  const activeIntent = useRef<string | undefined>(undefined);
+  const completed = useRef(
+    new Map<string, { scope: string; epoch: number; intentKey: string }>(),
+  );
   const [state, setState] = useState<{
-    brandId: string | null;
+    scope: string;
+    intentKey?: string;
     isCreating: boolean;
     error: string | null;
-  }>({ brandId, isCreating: false, error: null });
+  }>({ scope, isCreating: false, error: null });
+  useEffect(() => {
+    active.current.mounted = true;
+    return () => {
+      active.current.mounted = false;
+      active.current.epoch += 1;
+    };
+  }, []);
   async function create(input: Omit<CreateStoryboardRun, 'clientRequestId'>) {
-    if (!brandId) throw new Error('Choose a brand.');
-    if (pending.current) return pending.current;
-    const key = JSON.stringify({ brandId, input });
-    if (request.current?.key !== key)
-      request.current = { key, clientRequestId: crypto.randomUUID() };
-    const clientRequestId = request.current.clientRequestId;
-    setState({ brandId, isCreating: true, error: null });
-    const promise = Promise.resolve().then(async () => {
+    if (!active.current.mounted)
+      throw new Error('Storyboard creation is no longer active.');
+    if (!brandId || !organizationId || !userId)
+      throw new Error('Choose a signed-in organization and brand.');
+    const canonical = inputSchema.parse(input);
+    const key = JSON.stringify([scope, 'create-storyboard', canonical]);
+    const epoch = active.current.epoch;
+    activeIntent.current = key;
+    const isCurrent = () =>
+      JSON.stringify([
+        EnvironmentService.apiEndpoint,
+        globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
+        userId,
+        organizationId,
+        brandId,
+      ]) === scope &&
+      active.current.mounted &&
+      active.current.key === epochKey &&
+      active.current.epoch === epoch &&
+      activeIntent.current === key;
+    const previous = intents.get(key);
+    if (
+      previous?.pending &&
+      previous.owner === owner.current &&
+      previous.epoch === epoch
+    )
+      return previous.pending;
+    const intent: StoryboardCreationIntent = {
+      clientRequestId: previous?.clientRequestId ?? crypto.randomUUID(),
+      owner: owner.current,
+      epoch,
+    };
+    intents.set(key, intent);
+    setState({ scope, intentKey: key, isCreating: true, error: null });
+    let dispatched = false;
+    let acknowledged = false;
+    const retire = () => {
+      if (intents.get(key) === intent) intents.delete(key);
+    };
+    const task = Promise.resolve().then(async () => {
       try {
+        if (!isCurrent()) throw new Error('Storyboard brand changed.');
         const service = await getService();
-        if (activeBrand.current !== brandId)
-          throw new Error('Storyboard brand changed.');
+        if (!isCurrent()) throw new Error('Storyboard brand changed.');
+        dispatched = true;
         const run = await service.createStoryboardRun(brandId, {
-          ...input,
-          clientRequestId,
+          ...canonical,
+          clientRequestId: intent.clientRequestId,
         });
-        if (activeBrand.current !== brandId || run.brandId !== brandId)
-          throw new Error('Storyboard brand changed.');
+        if (run.brandId !== brandId || run.organizationId !== organizationId)
+          throw new Error('Storyboard scope changed.');
+        acknowledged = true;
+        retire();
+        if (!isCurrent()) throw new Error('Storyboard brand changed.');
+        completed.current.set(run.id, { scope, epoch, intentKey: key });
         return run.id;
       } catch (error) {
-        if (activeBrand.current === brandId)
+        if (
+          !dispatched ||
+          acknowledged ||
+          definitiveStatuses.has(
+            getJsonApiErrorMember(error)?.status ??
+              normalizeOperationError('create-storyboard', error).status ??
+              0,
+          )
+        )
+          retire();
+        if (isCurrent())
           setState({
-            brandId,
+            scope,
+            intentKey: key,
             isCreating: false,
             error: getJsonApiErrorMessage(
               error,
@@ -54,20 +141,31 @@ export function useCreateStoryboard() {
           });
         throw error;
       } finally {
-        if (activeBrand.current === brandId)
-          setState((current) => ({ ...current, isCreating: false }));
+        if (intents.get(key) === intent) intent.pending = undefined;
+        if (isCurrent())
+          setState((current) =>
+            current.scope === scope && current.intentKey === key
+              ? { ...current, isCreating: false }
+              : current,
+          );
       }
     });
-    pending.current = promise;
-    try {
-      return await promise;
-    } finally {
-      if (pending.current === promise) pending.current = null;
-    }
+    intent.pending = task;
+    return task;
   }
   return {
     create,
-    isCreating: state.brandId === brandId && state.isCreating,
-    error: state.brandId === brandId ? state.error : null,
+    isCurrentResult: (id: string) => {
+      const result = completed.current.get(id);
+      return (
+        active.current.mounted &&
+        result?.scope === scope &&
+        result.epoch === active.current.epoch &&
+        result.intentKey === activeIntent.current &&
+        active.current.key === epochKey
+      );
+    },
+    isCreating: state.scope === scope && state.isCreating,
+    error: state.scope === scope ? state.error : null,
   };
 }

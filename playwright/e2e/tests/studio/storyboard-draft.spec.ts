@@ -8,7 +8,11 @@ import {
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { IEditorProject } from '@genfeedai/contracts/interfaces';
-import { expect, test } from '../../fixtures/auth.fixture';
+import {
+  createAuthenticatedPage,
+  expect,
+  test,
+} from '../../fixtures/auth.fixture';
 
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
 const previewFixtureDirectory = process.env.STORYBOARD_PREVIEW_FIXTURE_DIR;
@@ -106,6 +110,10 @@ test('edits and approves a persisted draft through the actual route with loaded 
   authenticatedPage: page,
 }, testInfo) => {
   test.setTimeout(180_000);
+  await createAuthenticatedPage(page, page.context(), {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
   let current = structuredClone(run);
   const writes: string[] = [];
   const pageErrors: string[] = [];
@@ -486,6 +494,10 @@ test('edits and approves a persisted draft through the actual route with loaded 
 test('creates an unpaid brief draft and saves added shots through the real routes', async ({
   authenticatedPage: page,
 }) => {
+  await createAuthenticatedPage(page, page.context(), {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
   let created: StoryboardRun | undefined;
   const mutations: string[] = [];
   await page.route('**/brands/brand-1/storyboard-runs**', async (route) => {
@@ -584,4 +596,236 @@ test('creates an unpaid brief draft and saves added shots through the real route
   expect(
     mutations.every((mutation) => mutation === 'create' || mutation === 'plan'),
   ).toBe(true);
+});
+
+test('recovers routed sidebar and Back edits, lost acknowledgements and explicit concurrent choices without paid operations', async ({
+  authenticatedPage: page,
+}, testInfo) => {
+  test.setTimeout(180_000);
+  await createAuthenticatedPage(page, page.context(), {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
+  let current = structuredClone(run);
+  const mutations: { path: string; revision: number }[] = [];
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  let outcome: 'normal' | 'lost' | 'conflict' = 'normal';
+  let hold = false;
+  let release: (() => void) | undefined;
+  await page.route(
+    '**/brands/brand-1/storyboard-runs/draft-coffee**',
+    async (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      const method = route.request().method();
+      if (pathname.endsWith('/capabilities')) {
+        await route.fulfill({
+          json: {
+            version: 1,
+            runId: current.id,
+            runRevision: current.config.revision,
+            capabilityVersion: 'b'.repeat(64),
+            status: 'available',
+            requestedModelKey: null,
+            effectiveModel: model,
+            eligibleModels: [model],
+            reasonCode: null,
+          },
+        });
+        return;
+      }
+      if (method !== 'GET') {
+        const input = route.request().postDataJSON();
+        if (!pathname.endsWith('/plan') && !pathname.endsWith('/source'))
+          throw new Error(
+            `Unexpected paid or control operation: ${method} ${pathname}`,
+          );
+        mutations.push({ path: pathname, revision: input.expectedRevision });
+        if (outcome === 'conflict') {
+          outcome = 'normal';
+          current = {
+            ...current,
+            config: {
+              ...current.config,
+              revision: current.config.revision + 1,
+              plan: { ...current.config.plan, title: 'Concurrent saved title' },
+            },
+          };
+        }
+        if (input.expectedRevision !== current.config.revision) {
+          await route.fulfill({
+            status: 409,
+            json: {
+              errors: [
+                {
+                  status: '409',
+                  code: 'STORYBOARD_REVISION_CONFLICT',
+                  detail: 'Storyboard changed.',
+                },
+              ],
+            },
+          });
+          return;
+        }
+        current = {
+          ...current,
+          config: {
+            ...current.config,
+            revision: current.config.revision + 1,
+            ...(pathname.endsWith('/plan')
+              ? { plan: input.plan }
+              : {
+                  sourceSnapshot: { selector: input.source, capturedAt: time },
+                  plan: {
+                    ...current.config.plan,
+                    shots: current.config.plan.shots.map((shot) => ({
+                      ...shot,
+                      stillFreshness: 'stale' as const,
+                    })),
+                  },
+                }),
+          },
+        };
+        if (hold) {
+          hold = false;
+          await new Promise<void>((resolve) => {
+            release = resolve;
+          });
+        }
+        if (outcome === 'lost') {
+          outcome = 'normal';
+          await route.abort('failed');
+          return;
+        }
+      }
+      const { id, ...attributes } = current;
+      await route.fulfill({
+        json: { data: { id, type: 'content-run', attributes } },
+      });
+    },
+  );
+  await page.route(
+    /\/images\/coffee-(opening|close)(?:\?.*)?$/,
+    async (route) => {
+      const id = new URL(route.request().url()).pathname.split('/').at(-1);
+      await route.fulfill({
+        json: {
+          data: {
+            id,
+            type: 'images',
+            attributes: {
+              brandId: 'brand-1',
+              organizationId: 'org-1',
+              category: 'IMAGE',
+              isDeleted: false,
+              cdnUrl: `https://cdn.genfeed.ai/fixture/${id}.jpg`,
+              metadata: {
+                label:
+                  id === 'coffee-opening'
+                    ? 'Morning coffee'
+                    : 'Coffee and pastry',
+              },
+            },
+          },
+        },
+      });
+    },
+  );
+  await page.route('**/cdn.genfeed.ai/fixture/**', async (route) => {
+    const file =
+      new URL(route.request().url()).pathname.split('/').at(-1) ?? '';
+    await route.fulfill(await previewResponse(file));
+  });
+  await page.goto(`${base}/draft-coffee`);
+  const title = page.getByLabel('Title', { exact: true });
+  await expect(title).toHaveValue(run.config.plan.title);
+  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  const sidebar = page
+    .locator('a[href="/test-org/brand-1/studio/generate"]')
+    .first();
+  await expect(sidebar).toBeVisible();
+  await title.fill('Saved through sidebar navigation');
+  await sidebar.click();
+  await expect(page).toHaveURL(/\/studio\/generate/);
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('Saved through sidebar navigation');
+  await page.goBack();
+  await expect(title).toHaveValue('Saved through sidebar navigation');
+
+  // An edit made after dispatch stays queued after detachment; no route-owned abort drops it.
+  hold = true;
+  await title.fill('First in-flight title');
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('First in-flight title');
+  await title.fill('Latest edit while saving');
+  await sidebar.click();
+  release?.();
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('Latest edit while saving');
+  await page.goBack();
+  await expect(title).toHaveValue('Latest edit while saving');
+  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+
+  outcome = 'lost';
+  const writesBeforeLost = mutations.length;
+  await title.fill('Committed with lost response');
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('Committed with lost response');
+  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+  expect(mutations.length).toBe(writesBeforeLost + 1);
+
+  outcome = 'conflict';
+  await title.fill('My concurrent title');
+  await expect(
+    page.getByText('Review concurrent edits', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Approve storyboard', exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole('button', { name: 'Save resolved changes', exact: true }),
+  ).toBeDisabled();
+  await page.screenshot({
+    path: testInfo.outputPath('storyboard-concurrent-review.png'),
+    fullPage: true,
+  });
+  await page.getByRole('radio', { name: 'Your edit', exact: true }).check();
+  await page
+    .getByRole('button', { name: 'Save resolved changes', exact: true })
+    .click();
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('My concurrent title');
+  await expect(
+    page.getByText('Review concurrent edits', { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByText('Saved', { exact: true }).first()).toBeVisible();
+
+  // Source and plan share one sequence and carry source-induced freshness forward.
+  await page
+    .getByLabel('Brief', { exact: true })
+    .fill('An edited coffee brief');
+  await title.fill('Plan after source edit');
+  await expect
+    .poll(() => current.config.plan.title)
+    .toBe('Plan after source edit');
+  expect(current.config.sourceSnapshot.selector).toEqual({
+    kind: 'brief',
+    brief: 'An edited coffee brief',
+  });
+  expect(
+    current.config.plan.shots.every((shot) => shot.stillFreshness === 'stale'),
+  ).toBe(true);
+  expect(
+    mutations.slice(-2).map((mutation) => mutation.path.split('/').at(-1)),
+  ).toEqual(['source', 'plan']);
+  expect(mutations.at(-1)?.revision).toBe(
+    (mutations.at(-2)?.revision ?? 0) + 1,
+  );
+  expect(pageErrors).toEqual([]);
+  await expect(page.locator('nextjs-portal')).not.toContainText(/error/i);
 });
