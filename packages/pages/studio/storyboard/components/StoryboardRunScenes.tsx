@@ -1,5 +1,6 @@
 'use client';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import {
   ButtonSize,
@@ -12,12 +13,17 @@ import type { StoryboardRunScenesProps } from '@genfeedai/props/studio/storyboar
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
+import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
+import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
+import { getStoryboardScenePreview } from '@pages/studio/storyboard/utils/storyboard-scene-preview';
 import { VideosService } from '@services/ingredients/videos.service';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
+import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
@@ -46,7 +52,7 @@ export default function StoryboardRunScenes({
     )
     .map((avatar) => ({
       value: avatar.id,
-      label: getIngredientDisplayLabel(avatar),
+      label: getStoryboardAssetLabel(avatar) ?? t('avatar'),
     }));
   const voiceOptions = voices
     .filter(
@@ -56,19 +62,54 @@ export default function StoryboardRunScenes({
     )
     .map((voice) => ({
       value: voice.id,
-      label: voice.metadataLabel || voice.id,
+      label: getStoryboardAssetLabel(voice) ?? t('voice'),
     }));
   const [storyboard, setStoryboard] = useState(run.concept?.storyboard ?? []);
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [preview, setPreview] = useState<string>();
-  const [sourcePreview, setSourcePreview] = useState<string>();
-  const [sourceLabel, setSourceLabel] = useState<string>();
   const [libraryError, setLibraryError] = useState<string>();
   const getVideos = useAuthedService((token: string) =>
     VideosService.getInstance(token),
   );
   const pipeline = run.scenePipeline;
+  const sceneAssets = useStoryboardAssets(
+    `${run.id}:${run.revision}`,
+    run.brandId,
+    Object.values(pipeline?.scenes ?? {})
+      .flatMap((scene) => [
+        ...(scene.video.state === 'ready' && scene.video.assetId
+          ? [{ id: scene.video.assetId, kind: 'video' as const }]
+          : []),
+        ...(scene.image.state === 'ready' && scene.image.assetId
+          ? [{ id: scene.image.assetId, kind: 'image' as const }]
+          : []),
+      ])
+      .concat(
+        (pipeline?.analysis?.keyframes ?? []).map((frame) => ({
+          id: frame.assetId,
+          kind: 'image' as const,
+        })),
+      ),
+  );
+  const runAssets = useStoryboardAssets(
+    `${run.id}:${run.revision}`,
+    run.brandId,
+    [
+      ...(pipeline?.state === 'ready' && pipeline.assembly?.assetId
+        ? [{ id: pipeline.assembly.assetId, kind: 'video' as const }]
+        : []),
+      ...(run.analysisSource?.assetId
+        ? [{ id: run.analysisSource.assetId, kind: 'video' as const }]
+        : []),
+    ],
+  );
+  const preview =
+    pipeline?.state === 'ready'
+      ? runAssets[`video:${pipeline.assembly?.assetId}`]?.cdnUrl
+      : undefined;
+  const source = runAssets[`video:${run.analysisSource?.assetId}`];
+  const sourcePreview = source?.cdnUrl;
+  const sourceLabel = getStoryboardAssetLabel(source) ?? t('analysisPreview');
   const active =
     pipeline &&
     ['analysing', 'generating', 'assembling'].includes(pipeline.state);
@@ -86,8 +127,11 @@ export default function StoryboardRunScenes({
   useEffect(() => {
     setStoryboard(run.concept?.storyboard ?? []);
   }, [run.concept]);
+  const libraryErrorLabel = t('libraryError');
   useEffect(() => {
     const controller = new AbortController();
+    setLibraryError(undefined);
+    setVideos([]);
     const load = async () => {
       try {
         const service = await getVideos();
@@ -107,50 +151,22 @@ export default function StoryboardRunScenes({
                 (video) =>
                   ['UPLOADED', 'GENERATED', 'VALIDATED'].includes(
                     video.status ?? '',
-                  ) && video.scope === 'USER',
+                  ) &&
+                  video.scope === 'USER' &&
+                  video.brandId === run.brandId,
               ),
             );
-        }
-        for (const [assetId, update] of [
-          [
-            pipeline?.state === 'ready'
-              ? pipeline.assembly?.assetId
-              : undefined,
-            setPreview,
-          ],
-          [run.analysisSource?.assetId, setSourcePreview],
-        ] as const) {
-          if (!assetId) {
-            update(undefined);
-            continue;
-          }
-          const video = await service.findOne(assetId, {}, controller.signal);
-          if (!controller.signal.aborted) {
-            update(video.cdnUrl ?? undefined);
-            if (assetId === run.analysisSource?.assetId)
-              setSourceLabel(
-                getIngredientDisplayLabel(video) || t('analysisPreview'),
-              );
-          }
         }
       } catch (error) {
         if (!controller.signal.aborted)
           setLibraryError(
-            error instanceof Error ? error.message : t('libraryError'),
+            error instanceof Error ? error.message : libraryErrorLabel,
           );
       }
     };
-    void load();
+    if (isPickerOpen) void load();
     return () => controller.abort();
-  }, [
-    getVideos,
-    isPickerOpen,
-    run.brandId,
-    run.analysisSource?.assetId,
-    pipeline?.state,
-    pipeline?.assembly?.assetId,
-    t,
-  ]);
+  }, [getVideos, isPickerOpen, run.brandId, libraryErrorLabel]);
   const patch = (index: number, edit: Partial<BrandRemixStoryboardScene>) =>
     setStoryboard((current) =>
       current.map((scene, position) =>
@@ -237,7 +253,7 @@ export default function StoryboardRunScenes({
           brandId: video.brandId ?? null,
           id: video.id,
           contentType: 'video',
-          contentTitle: getIngredientDisplayLabel(video),
+          contentTitle: getStoryboardAssetLabel(video) ?? t('analysisPreview'),
           thumbnailUrl: video.thumbnailUrl,
         }))}
         onSelect={(item) => {
@@ -322,8 +338,27 @@ export default function StoryboardRunScenes({
           />
         </div>
       ) : null}
+      <StoryboardAnimatic
+        scope={`${run.id}:${run.revision}:${JSON.stringify(storyboard)}`}
+        shots={storyboard.map((scene) => {
+          const image = scene.id
+            ? pipeline?.scenes[scene.id]?.image
+            : undefined;
+          return {
+            id: scene.id ?? `shot-${scene.ordinal}`,
+            ordinal: scene.ordinal,
+            durationSeconds: scene.durationSeconds ?? null,
+            dialogue: scene.narration,
+            stillUrl:
+              image?.state === 'ready' && image.assetId
+                ? (sceneAssets[`image:${image.assetId}`]?.cdnUrl ?? undefined)
+                : undefined,
+          };
+        })}
+      />
       {storyboard.map((scene, index) => {
         const progress = scene.id ? pipeline?.scenes[scene.id] : undefined;
+        const media = getStoryboardScenePreview(scene, pipeline, sceneAssets);
         return (
           <div
             key={scene.id ?? scene.ordinal}
@@ -332,6 +367,31 @@ export default function StoryboardRunScenes({
             <h4 className="text-sm font-medium">
               {t('scene', { ordinal: index + 1 })}
             </h4>
+            <div className="max-w-sm">
+              {media?.url ? (
+                <AgentMediaArtifactPreview
+                  assets={[
+                    {
+                      kind: media.kind,
+                      url: media.url,
+                      title: t('scene', { ordinal: index + 1 }),
+                    },
+                  ]}
+                  displayMode="featured"
+                />
+              ) : (
+                <p className="flex aspect-video items-center justify-center rounded-md border border-border text-xs text-muted-foreground">
+                  {t.has?.('previewUnavailable')
+                    ? t('previewUnavailable')
+                    : 'Preview unavailable'}
+                </p>
+              )}
+              {media?.isSourceFrame ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t.has?.('sourceFrame') ? t('sourceFrame') : 'Source frame'}
+                </p>
+              ) : null}
+            </div>
             {scene.sourceObservation ? (
               <p className="text-xs text-muted-foreground">
                 {t('observation', {
@@ -342,24 +402,38 @@ export default function StoryboardRunScenes({
                 {scene.sourceObservation.semanticIntent}
               </p>
             ) : null}
-            <Input
-              label={t('visual')}
-              value={scene.visualIntent}
-              disabled={disabled}
-              maxLength={1000}
-              onChange={(event) =>
-                patch(index, { visualIntent: event.target.value })
-              }
-            />
-            <Input
-              label={t('narration')}
-              value={scene.narration ?? ''}
-              disabled={disabled}
-              maxLength={1000}
-              onChange={(event) =>
-                patch(index, { narration: event.target.value })
-              }
-            />
+            <Field label={t('visual')}>
+              {disabled ? (
+                <p className="whitespace-pre-wrap break-words text-sm">
+                  {scene.visualIntent}
+                </p>
+              ) : (
+                <Textarea
+                  value={scene.visualIntent}
+                  maxLength={1000}
+                  rows={3}
+                  onChange={(event) =>
+                    patch(index, { visualIntent: event.target.value })
+                  }
+                />
+              )}
+            </Field>
+            <Field label={t('narration')}>
+              {disabled ? (
+                <p className="whitespace-pre-wrap break-words text-sm">
+                  {scene.narration || '—'}
+                </p>
+              ) : (
+                <Textarea
+                  value={scene.narration ?? ''}
+                  maxLength={1000}
+                  rows={3}
+                  onChange={(event) =>
+                    patch(index, { narration: event.target.value })
+                  }
+                />
+              )}
+            </Field>
             <Input
               label={t('duration')}
               value={String(scene.durationSeconds ?? 5)}
@@ -488,6 +562,11 @@ export default function StoryboardRunScenes({
       })}
       {hasIncompleteIdentity ? (
         <p className="text-xs text-destructive">{t('identityPairRequired')}</p>
+      ) : null}
+      {dirty ? (
+        <p role="status" className="text-xs text-muted-foreground">
+          {t.has?.('unsavedChanges') ? t('unsavedChanges') : 'Unsaved changes'}
+        </p>
       ) : null}
       <Button
         label={t('save')}

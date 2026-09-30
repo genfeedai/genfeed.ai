@@ -122,6 +122,15 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
+  const scope = `${brandId}:${runId}`;
+  const activeScope = useRef(scope);
+  activeScope.current = scope;
+  const getScopedService = useCallback(async () => {
+    const service = await getContentRunsService();
+    if (activeScope.current !== scope)
+      throw new Error('Storyboard scope changed.');
+    return service;
+  }, [getContentRunsService, scope]);
   const actionInFlightRef = useRef(false);
   const [run, setRun] = useState<BrandRemixRunView | null>(null);
   const [status, setStatus] = useState<StoryboardRunStatus>('loading');
@@ -130,16 +139,20 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
   const fetchRun = useCallback(
     async (signal?: AbortSignal) => {
       try {
-        const service = await getContentRunsService();
+        const service = await getScopedService();
         const nextRun = await service.findBrandRemixRun(runId, signal);
         if (signal?.aborted) {
           return;
         }
+        if (activeScope.current !== scope) return;
+        if (nextRun.brandId !== brandId)
+          throw new Error('Storyboard is unavailable in this brand.');
         setRun(nextRun);
         setStatus('ready');
         setError(null);
       } catch (caughtError) {
         if (
+          activeScope.current !== scope ||
           signal?.aborted ||
           (caughtError instanceof Error && caughtError.name === 'AbortError')
         ) {
@@ -154,7 +167,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         setStatus('error');
       }
     },
-    [getContentRunsService, runId],
+    [getScopedService, runId, brandId, scope],
   );
 
   const refresh = useCallback(async () => {
@@ -163,6 +176,8 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
 
   useEffect(() => {
     const controller = new AbortController();
+    setRun(null);
+    setError(null);
     setStatus('loading');
     void fetchRun(controller.signal);
     return () => controller.abort();
@@ -213,7 +228,11 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
 
   const perform = useCallback(
     async (operation: () => Promise<BrandRemixRunView>) => {
-      if (actionInFlightRef.current) {
+      if (
+        actionInFlightRef.current ||
+        activeScope.current !== scope ||
+        (run && run.brandId !== brandId)
+      ) {
         return null;
       }
 
@@ -222,10 +241,14 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       setError(null);
       try {
         const nextRun = await operation();
+        if (activeScope.current !== scope) return null;
+        if (nextRun.brandId !== brandId)
+          throw new Error('Storyboard is unavailable in this brand.');
         setRun(nextRun);
         setStatus('ready');
         return nextRun;
       } catch (caughtError) {
+        if (activeScope.current !== scope) return null;
         setError(
           getJsonApiErrorMessage(
             caughtError,
@@ -238,7 +261,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         actionInFlightRef.current = false;
       }
     },
-    [],
+    [scope, brandId, run],
   );
 
   const start = useCallback(
@@ -248,7 +271,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
       }
 
       await perform(async () => {
-        const service = await getContentRunsService();
+        const service = await getScopedService();
         const revisedRun = await service.reviseBrandRemixRun(run.id, {
           edits,
           expectedRevision: run.revision,
@@ -270,71 +293,71 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         });
       });
     },
-    [getContentRunsService, perform, run],
+    [getScopedService, perform, run],
   );
 
   const saveScenes = useCallback(
     async (edits: BrandRemixDraftEdits) => {
       if (run)
         await perform(async () =>
-          (await getContentRunsService()).reviseBrandRemixRun(run.id, {
+          (await getScopedService()).reviseBrandRemixRun(run.id, {
             expectedRevision: run.revision,
             edits,
           }),
         );
     },
-    [run, perform, getContentRunsService],
+    [run, perform, getScopedService],
   );
   const attachSceneSource = useCallback(
     async (assetId: string | null) => {
       if (run)
         await perform(async () =>
-          (await getContentRunsService()).attachBrandRemixAnalysisSource(
-            run.id,
-            { expectedRevision: run.revision, assetId },
-          ),
+          (await getScopedService()).attachBrandRemixAnalysisSource(run.id, {
+            expectedRevision: run.revision,
+            assetId,
+          }),
         );
     },
-    [run, perform, getContentRunsService],
+    [run, perform, getScopedService],
   );
   const quoteScenes = useCallback(
     async (input: Omit<QuoteBrandRemixScenes, 'expectedRevision'>) => {
       if (run)
         await perform(async () =>
-          (await getContentRunsService()).quoteBrandRemixScenes(run.id, {
+          (await getScopedService()).quoteBrandRemixScenes(run.id, {
             ...input,
             expectedRevision: run.revision,
           }),
         );
     },
-    [run, perform, getContentRunsService],
+    [run, perform, getScopedService],
   );
   const executeScenes = useCallback(async () => {
     const quoteId = run?.scenePipeline?.quote?.id;
     if (run && quoteId)
       await perform(async () =>
-        (await getContentRunsService()).executeBrandRemixScenes(run.id, {
+        (await getScopedService()).executeBrandRemixScenes(run.id, {
           expectedRevision: run.revision,
           quoteId,
         }),
       );
-  }, [run, perform, getContentRunsService]);
+  }, [run, perform, getScopedService]);
   const cancelScenes = useCallback(async () => {
     if (run)
       await perform(async () =>
-        (await getContentRunsService()).cancelBrandRemixScenes(run.id, {
+        (await getScopedService()).cancelBrandRemixScenes(run.id, {
           expectedRevision: run.revision,
         }),
       );
-  }, [run, perform, getContentRunsService]);
+  }, [run, perform, getScopedService]);
   const resumeScenes = useCallback(async () => {
     if (run)
       await perform(async () =>
-        (await getContentRunsService()).resumeBrandRemixScenes(run.id, {
+        (await getScopedService()).resumeBrandRemixScenes(run.id, {
           expectedRevision: run.revision,
         }),
       );
-  }, [run, perform, getContentRunsService]);
+  }, [run, perform, getScopedService]);
 
   const vary = useCallback(async () => {
     if (!run || !brandId) {
@@ -342,7 +365,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     }
 
     const variedRun = await perform(async () => {
-      const service = await getContentRunsService();
+      const service = await getScopedService();
       return await service.createBrandRemixRun(brandId, {
         edits: buildVaryEdits(run),
         source: run.sourceSnapshot.selector,
@@ -357,7 +380,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(variedRun.id)}`,
       ),
     );
-  }, [activeHref, brandId, getContentRunsService, perform, router, run]);
+  }, [activeHref, brandId, getScopedService, perform, router, run]);
 
   const submitForReview = useCallback(
     async (variantIds?: string[]) => {
@@ -365,13 +388,13 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         return;
       }
       await perform(async () => {
-        const service = await getContentRunsService();
+        const service = await getScopedService();
         return await service.submitBrandRemixRunForReview(run.id, {
           ...(variantIds?.length ? { variantIds } : {}),
         });
       });
     },
-    [getContentRunsService, perform, run],
+    [getScopedService, perform, run],
   );
 
   const preparePausedDraft = useCallback(
@@ -380,11 +403,11 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
         return;
       }
       await perform(async () => {
-        const service = await getContentRunsService();
+        const service = await getScopedService();
         return await service.prepareBrandRemixPausedDraft(run.id, input);
       });
     },
-    [getContentRunsService, perform, run],
+    [getScopedService, perform, run],
   );
 
   return {
@@ -397,7 +420,7 @@ export function useStoryboardRun(runId: string): UseStoryboardRunResult {
     error,
     preparePausedDraft,
     refresh,
-    run,
+    run: run?.brandId === brandId ? run : null,
     runId,
     start,
     status,

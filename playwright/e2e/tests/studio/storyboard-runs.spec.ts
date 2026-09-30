@@ -84,6 +84,25 @@ function runDocument(run: BrandRemixRunView) {
 }
 
 test.describe('Storyboard runs', () => {
+  test.beforeEach(async ({ authenticatedPage: page }) => {
+    await page.route(
+      /\/brands\/brand-1\/storyboard-runs(?:\/[^/?]+)?(?:\?.*)?$/,
+      async (route) => {
+        if (
+          new URL(route.request().url()).pathname.endsWith('/storyboard-runs')
+        )
+          await fulfillJson(route, { data: [] });
+        else
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              errors: [{ status: '404', title: 'Not found' }],
+            }),
+          });
+      },
+    );
+  });
   test('lists a saved run, opens it and restores its latest revision after reload', async ({
     authenticatedPage: page,
   }) => {
