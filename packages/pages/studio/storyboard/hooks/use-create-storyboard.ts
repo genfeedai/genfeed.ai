@@ -61,12 +61,20 @@ export function useCreateStoryboard() {
       active.current.epoch += 1;
     };
   }, []);
-  async function create(input: Omit<CreateStoryboardRun, 'clientRequestId'>) {
+  function create(
+    input: Omit<CreateStoryboardRun, 'clientRequestId'>,
+  ): Promise<string> {
     if (!active.current.mounted)
-      throw new Error('Storyboard creation is no longer active.');
+      return Promise.reject(
+        new Error('Storyboard creation is no longer active.'),
+      );
     if (!brandId || !organizationId || !userId)
-      throw new Error('Choose a signed-in organization and brand.');
-    const canonical = inputSchema.parse(input);
+      return Promise.reject(
+        new Error('Choose a signed-in organization and brand.'),
+      );
+    const parsed = inputSchema.safeParse(input);
+    if (!parsed.success) return Promise.reject(parsed.error);
+    const canonical = parsed.data;
     const key = JSON.stringify([scope, 'create-storyboard', canonical]);
     const epoch = active.current.epoch;
     activeIntent.current = key;
@@ -158,6 +166,13 @@ export function useCreateStoryboard() {
     isCurrentResult: (id: string) => {
       const result = completed.current.get(id);
       return (
+        JSON.stringify([
+          EnvironmentService.apiEndpoint,
+          globalThis.__GENFEED_DESKTOP_ENV__?.authEndpoint,
+          userId,
+          organizationId,
+          brandId,
+        ]) === scope &&
         active.current.mounted &&
         result?.scope === scope &&
         result.epoch === active.current.epoch &&

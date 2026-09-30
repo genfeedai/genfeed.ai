@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getSession } from '@genfeedai/auth-client';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
@@ -26,7 +26,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 /** Neutral persisted drafts use the brand-scoped API, never a local run substitute. */
 export function useDurableStoryboardRun(runId: string) {
-  const brandId = useBrandId();
+  const { brandId, organizationId } = useBrand();
   const { userId, orgId, sessionId } = useAuthIdentity();
   const { orgSlug } = useOrgUrl();
   const server = JSON.stringify([
@@ -44,6 +44,7 @@ export function useDurableStoryboardRun(runId: string) {
     server,
     userId,
     orgId,
+    organizationId,
     sessionId,
     brandId,
     runId,
@@ -72,13 +73,15 @@ export function useDurableStoryboardRun(runId: string) {
             runId,
             controller.signal,
           );
-          if (!controller.signal.aborted && userId && run.organizationId) {
+          if (run.organizationId !== organizationId)
+            throw new Error('Storyboard organization changed.');
+          if (!controller.signal.aborted && userId && organizationId) {
             const voiceService = await getVoiceService();
             if (controller.signal.aborted) return run;
             const capturedScope = {
               server,
               userId,
-              organizationId: run.organizationId,
+              organizationId,
               brandId,
               runId,
             };
@@ -267,6 +270,7 @@ export function useDurableStoryboardRun(runId: string) {
     return () => controller.abort();
   }, [
     brandId,
+    organizationId,
     runId,
     scope,
     getService,

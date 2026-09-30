@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrandId: () => mocks.brandId,
+  useBrand: () => ({ brandId: mocks.brandId, organizationId: 'org' }),
 }));
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => ({
@@ -39,7 +39,7 @@ describe('brand-scoped durable storyboard loading', () => {
   });
   it('passes brand, run and cancellation signal and hides an old-brand response', async () => {
     let resolveOld:
-      | ((run: { id: string; brandId: string }) => void)
+      | ((run: { id: string; brandId: string; organizationId: string }) => void)
       | undefined;
     mocks.get
       .mockImplementationOnce(
@@ -48,7 +48,11 @@ describe('brand-scoped durable storyboard loading', () => {
             resolveOld = resolve;
           }),
       )
-      .mockResolvedValueOnce({ id: 'run', brandId: 'brand-two' });
+      .mockResolvedValueOnce({
+        id: 'run',
+        brandId: 'brand-two',
+        organizationId: 'org',
+      });
     const { result, rerender } = renderHook(() =>
       useDurableStoryboardRun('run'),
     );
@@ -60,7 +64,7 @@ describe('brand-scoped durable storyboard loading', () => {
     await waitFor(() => expect(result.current.run?.brandId).toBe('brand-two'));
     expect(oldSignal.aborted).toBe(true);
     await act(async () => {
-      resolveOld?.({ id: 'run', brandId: 'brand-one' });
+      resolveOld?.({ id: 'run', brandId: 'brand-one', organizationId: 'org' });
     });
     expect(result.current.run?.brandId).toBe('brand-two');
   });

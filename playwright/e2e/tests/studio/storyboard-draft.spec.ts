@@ -793,7 +793,32 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
     path: testInfo.outputPath('storyboard-concurrent-review.png'),
     fullPage: true,
   });
-  await page.getByRole('radio', { name: 'Your edit', exact: true }).check();
+  await expect(
+    page.getByRole('dialog', { name: 'Request failed', exact: true }),
+  ).toHaveCount(0);
+  const writesBeforeReopen = mutations.length;
+  await page.getByRole('radio', { name: 'Your edit', exact: true }).click();
+  await sidebar.click();
+  await page.goBack();
+  await expect(
+    page.getByText('Review concurrent edits', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('radio', { name: 'Your edit', exact: true }),
+  ).toHaveAttribute('aria-checked', 'true');
+  await expect(
+    page.getByRole('button', { name: 'Approve storyboard', exact: true }),
+  ).toBeDisabled();
+  expect(mutations.length).toBe(writesBeforeReopen);
+  await page.reload();
+  await expect(
+    page.getByText('Review concurrent edits', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('radio', { name: 'Your edit', exact: true }),
+  ).toHaveAttribute('aria-checked', 'true');
+  expect(mutations.length).toBe(writesBeforeReopen);
+
   await page
     .getByRole('button', { name: 'Save resolved changes', exact: true })
     .click();
@@ -828,4 +853,132 @@ test('recovers routed sidebar and Back edits, lost acknowledgements and explicit
   );
   expect(pageErrors).toEqual([]);
   await expect(page.locator('nextjs-portal')).not.toContainText(/error/i);
+});
+
+test('requires decoded still responses and permits a loaded shot while a 404, 403 or decode failure blocks full playback', async ({
+  authenticatedPage: page,
+}) => {
+  test.setTimeout(120_000);
+  await createAuthenticatedPage(page, page.context(), {
+    organizationId: 'org-1',
+    userId: 'user-1',
+  });
+  let failure: '404' | '403' | 'decode' | undefined = '404';
+  const pageErrors: string[] = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  await page.route(
+    '**/brands/brand-1/storyboard-runs/draft-coffee**',
+    async (route) => {
+      const pathname = new URL(route.request().url()).pathname;
+      expect(route.request().method()).toBe('GET');
+      if (pathname.endsWith('/capabilities')) {
+        await route.fulfill({
+          json: {
+            version: 1,
+            runId: run.id,
+            runRevision: run.config.revision,
+            capabilityVersion: 'b'.repeat(64),
+            status: 'available',
+            requestedModelKey: null,
+            effectiveModel: model,
+            eligibleModels: [model],
+            reasonCode: null,
+          },
+        });
+        return;
+      }
+      const { id, ...attributes } = run;
+      await route.fulfill({
+        json: { data: { id, type: 'content-run', attributes } },
+      });
+    },
+  );
+  await page.route(
+    /\/images\/coffee-(opening|close)(?:\?.*)?$/,
+    async (route) => {
+      const id = new URL(route.request().url()).pathname.split('/').at(-1);
+      await route.fulfill({
+        json: {
+          data: {
+            id,
+            type: 'images',
+            attributes: {
+              brandId: 'brand-1',
+              organizationId: 'org-1',
+              category: 'IMAGE',
+              isDeleted: false,
+              cdnUrl: `https://cdn.genfeed.ai/fixture/${id}.jpg`,
+              metadata: { label: 'Coffee still' },
+            },
+          },
+        },
+      });
+    },
+  );
+  await page.route('**/cdn.genfeed.ai/fixture/**', async (route) => {
+    const file =
+      new URL(route.request().url()).pathname.split('/').at(-1) ?? '';
+    if (file === 'coffee-close.jpg' && failure) {
+      await route.fulfill(
+        failure === 'decode'
+          ? {
+              status: 200,
+              contentType: 'image/jpeg',
+              body: 'This response cannot decode as an image.',
+            }
+          : { status: Number(failure), body: 'Preview unavailable' },
+      );
+      return;
+    }
+    await route.fulfill(await previewResponse(file));
+  });
+  for (const failed of ['404', '403', 'decode'] as const) {
+    failure = failed;
+    await page.goto(`${base}/draft-coffee`);
+    const animatic = page.getByRole('region', {
+      name: 'Storyboard animatic',
+      exact: true,
+    });
+    await expect(
+      animatic.getByRole('button', { name: 'Play shot 1', exact: true }),
+    ).toBeEnabled();
+    await expect(
+      animatic.getByText('Shot 2: Still preview unavailable', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      animatic.getByRole('button', { name: 'Play storyboard', exact: true }),
+    ).toBeDisabled();
+    await expect(
+      animatic.getByRole('button', { name: 'Play shot 2', exact: true }),
+    ).toBeDisabled();
+    const image = animatic.getByRole('img', { name: 'Shot 1', exact: true });
+    await expect
+      .poll(() =>
+        image.evaluate(async (element) => {
+          const img = element as HTMLImageElement;
+          await img.decode();
+          return img.naturalWidth > 0 && img.naturalHeight > 0;
+        }),
+      )
+      .toBe(true);
+    await animatic
+      .getByRole('button', { name: 'Play shot 1', exact: true })
+      .click();
+    await expect(
+      animatic.getByRole('button', { name: 'Pause', exact: true }),
+    ).toBeVisible();
+    await animatic.getByRole('button', { name: 'Pause', exact: true }).click();
+    const clock = animatic.getByText(/\d\d:\d\d \/ \d\d:\d\d/);
+    const paused = await clock.textContent();
+    await page.waitForTimeout(250);
+    await expect(clock).toHaveText(paused ?? '');
+    failure = undefined;
+    await animatic
+      .getByRole('button', { name: 'Retry shot 2 still preview', exact: true })
+      .click();
+    await expect(
+      animatic.getByRole('button', { name: 'Play storyboard', exact: true }),
+    ).toBeEnabled();
+  }
+  expect(pageErrors).toEqual([]);
 });

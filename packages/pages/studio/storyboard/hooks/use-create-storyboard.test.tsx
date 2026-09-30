@@ -59,12 +59,10 @@ describe('unpaid storyboard creation', () => {
     });
     const { result } = renderHook(() => useCreateStoryboard());
     await act(async () => {
-      expect(
-        await Promise.all([
-          result.current.create(input),
-          result.current.create(input),
-        ]),
-      ).toEqual(['run', 'run']);
+      const first = result.current.create(input);
+      const second = result.current.create(input);
+      expect(first).toBe(second);
+      expect(await Promise.all([first, second])).toEqual(['run', 'run']);
     });
     expect(mocks.create).toHaveBeenCalledOnce();
   });

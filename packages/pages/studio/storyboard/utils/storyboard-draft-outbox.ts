@@ -53,6 +53,14 @@ const pendingSchema = z
     sequence: z.number().int().nonnegative(),
   })
   .strict();
+const reviewSchema = z
+  .object({
+    base: valueSchema,
+    local: valueSchema,
+    remote: valueSchema,
+    choices: z.record(z.string().max(1024), z.enum(['local', 'remote'])),
+  })
+  .strict();
 const envelopeSchema = z
   .object({
     version: z.literal(1),
@@ -67,6 +75,7 @@ const envelopeSchema = z
       .strict()
       .optional(),
     recoveryLocal: valueSchema.optional(),
+    review: reviewSchema.optional(),
   })
   .strict();
 export function storyboardDraftKey(scope: StoryboardDraftScope) {
@@ -136,6 +145,28 @@ export class StoryboardDraftOutbox {
         ) {
           this.envelope = parsed.data;
           this.status = 'dirty';
+          if (parsed.data.review) {
+            const savedReview = parsed.data.review;
+            this.review = {
+              base: savedReview.base,
+              local: this.envelope.value,
+              remote: savedReview.remote,
+            };
+            this.conflicts = reconcileStoryboardDraft(
+              this.review.base,
+              this.review.local,
+              this.review.remote,
+            ).conflicts;
+            this.choices = Object.fromEntries(
+              Object.entries(savedReview.choices).filter(([path]) =>
+                this.conflicts.some((entry) => entry.path === path),
+              ),
+            );
+            if (this.conflicts.length) {
+              this.status = 'failed';
+              this.error = 'Review concurrent edits before saving.';
+            }
+          }
         } else
           this.storageError =
             'Saved recovery data could not be read. Recovery is unavailable.';
@@ -170,12 +201,16 @@ export class StoryboardDraftOutbox {
     for (const listener of this.listeners) listener();
   }
   private persist() {
+    this.envelope.review = this.review
+      ? { ...this.review, choices: this.choices }
+      : undefined;
     try {
       const key = storyboardDraftKey(this.transport.scope);
       if (
         !this.envelope.pending.length &&
         !this.envelope.submitted &&
-        !this.envelope.recoveryLocal
+        !this.envelope.recoveryLocal &&
+        !this.envelope.review
       )
         window.sessionStorage.removeItem(key);
       else window.sessionStorage.setItem(key, JSON.stringify(this.envelope));
@@ -232,7 +267,9 @@ export class StoryboardDraftOutbox {
     );
     this.conflicts = comparison.conflicts;
     if (this.conflicts.length) {
-      this.review = { base, local, remote };
+      // Safe disjoint merges and remote-owned freshness remain visible while conflicting units stay local.
+      this.envelope.value = comparison.value;
+      this.review = { base, local: comparison.value, remote };
       this.envelope.recoveryLocal ??= local;
       this.status = 'failed';
       this.error = 'Review concurrent edits before saving.';
@@ -254,7 +291,8 @@ export class StoryboardDraftOutbox {
     this.checkRun(run);
     const remote = storyboardDraftValue(run);
     const submitted = this.envelope.submitted;
-    let base = this.envelope.base;
+    // An unresolved conflict keeps its original three-way lineage across rereads and remounts.
+    let base = this.review?.base ?? this.envelope.base;
     if (
       submitted &&
       storyboardValuesEqual(
@@ -323,7 +361,7 @@ export class StoryboardDraftOutbox {
   };
   choose = (path: string, choice: 'local' | 'remote') => {
     this.choices = { ...this.choices, [path]: choice };
-    this.publish();
+    this.persist();
   };
   resolve = async () => {
     if (

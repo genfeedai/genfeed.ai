@@ -205,6 +205,49 @@ describe('scoped shared Storyboard draft outbox', () => {
       sessionStorage.getItem(storyboardDraftKey(transport.scope)),
     ).toBeNull();
   });
+  it.each(['local', 'remote'] as const)(
+    'retains unresolved plan/source conflict lineage through reread and storage reopen until explicit %s choice',
+    async (choice) => {
+      const { queue, transport, remote, getRun } = fixture();
+      await queue.initialize();
+      queue.edit('plan', { ...plan, title: 'Your title' });
+      queue.edit('source', { kind: 'brief', brief: 'Your brief' });
+      remote({ title: 'Saved title' });
+      getRun().config.sourceSnapshot = {
+        selector: { kind: 'brief', brief: 'Saved brief' },
+        capturedAt: '2026-09-30T00:00:00Z',
+      };
+      await expect(queue.flush()).rejects.toBeDefined();
+      expect(
+        queue
+          .getSnapshot()
+          .conflicts.map((entry) => entry.path)
+          .sort(),
+      ).toEqual(['plan.title', 'source.brief']);
+      queue.choose('plan.title', choice);
+      const writes = vi.mocked(transport.write).mock.calls.length;
+      await queue.recover();
+      expect(queue.getSnapshot().conflicts).toHaveLength(2);
+      expect(queue.getSnapshot().choices['plan.title']).toBe(choice);
+      await expect(queue.flush()).rejects.toThrow('Resolve concurrent');
+      const reopened = new StoryboardDraftOutbox(transport, getRun());
+      await reopened.initialize();
+      expect(reopened.getSnapshot().conflicts).toHaveLength(2);
+      expect(reopened.getSnapshot().choices['plan.title']).toBe(choice);
+      await expect(reopened.flush()).rejects.toThrow('Resolve concurrent');
+      expect(transport.write).toHaveBeenCalledTimes(writes);
+      expect(getRun().config.plan.title).toBe('Saved title');
+      reopened.choose('source.brief', choice);
+      await reopened.resolve();
+      expect(getRun().config.plan.title).toBe(
+        choice === 'local' ? 'Your title' : 'Saved title',
+      );
+      expect(getRun().config.sourceSnapshot.selector).toEqual({
+        kind: 'brief',
+        brief: choice === 'local' ? 'Your brief' : 'Saved brief',
+      });
+    },
+  );
   it('restores only its exact scope and suspends undispatched work across account/server switches', async () => {
     const first = fixture();
     await first.queue.initialize();
@@ -230,6 +273,82 @@ describe('scoped shared Storyboard draft outbox', () => {
     expect(restored.getSnapshot().value.plan.title).toBe('Recover me');
     await restored.flush();
     expect(first.getRun().config.plan.title).toBe('Recover me');
+  });
+  it.each(['userId', 'organizationId', 'server'] as const)(
+    'does not restore another %s with an otherwise identical run identity',
+    async (field) => {
+      const { queue, transport, getRun } = fixture();
+      await queue.initialize();
+      queue.edit('plan', { ...plan, title: 'Private draft' });
+      vi.mocked(transport.canDispatch).mockResolvedValue(false);
+      await expect(queue.flush()).rejects.toThrow('paused');
+      const foreign = {
+        ...transport,
+        scope: { ...transport.scope, [field]: `different-${field}` },
+      };
+      expect(storyboardDraftKey(foreign.scope)).not.toBe(
+        storyboardDraftKey(transport.scope),
+      );
+      const reopened = new StoryboardDraftOutbox(foreign, getRun());
+      expect(reopened.getSnapshot().value.plan.title).toBe('Base');
+      expect(transport.write).not.toHaveBeenCalled();
+    },
+  );
+  it('retains a chosen source/plan value through a newer intervening CAS and requires a new choice for newly differing content', async () => {
+    const { queue, transport, remote, getRun } = fixture();
+    await queue.initialize();
+    queue.edit('plan', { ...plan, title: 'Your title' });
+    remote({ title: 'Saved title' });
+    await expect(queue.flush()).rejects.toBeDefined();
+    queue.choose('plan.title', 'local');
+    const write = vi.mocked(transport.write).getMockImplementation();
+    if (!write) throw new Error('Missing test transport');
+    vi.mocked(transport.write).mockImplementationOnce(async (...args) => {
+      remote({ title: 'Newer saved title' });
+      return write(...args);
+    });
+    await expect(queue.resolve()).rejects.toBeDefined();
+    expect(queue.getSnapshot().value.plan.title).toBe('Your title');
+    expect(queue.getSnapshot().conflicts[0]).toMatchObject({
+      path: 'plan.title',
+      local: 'Your title',
+      remote: 'Newer saved title',
+    });
+    expect(queue.getSnapshot().choices['plan.title']).toBeUndefined();
+    queue.choose('plan.title', 'local');
+    await queue.resolve();
+    expect(getRun().config.plan.title).toBe('Your title');
+  });
+  it('preserves both versions for uncertain duration normalization and keeps authoritative freshness', async () => {
+    const { queue, transport, getRun } = fixture();
+    await queue.initialize();
+    const write = vi.mocked(transport.write).getMockImplementation();
+    if (!write) throw new Error('Missing test transport');
+    vi.mocked(transport.write).mockImplementationOnce(async (...args) => {
+      await write(...args);
+      getRun().config.plan.shots[0] = {
+        ...getRun().config.plan.shots[0],
+        durationSeconds: 3,
+        stillFreshness: 'stale',
+      };
+      throw new Error('Lost normalized response');
+    });
+    queue.edit('plan', {
+      ...plan,
+      shots: [{ ...plan.shots[0], durationSeconds: 4 }],
+    });
+    await expect(queue.flush()).rejects.toThrow('Lost normalized');
+    expect(queue.getSnapshot().conflicts[0]).toMatchObject({
+      path: 'plan.shots.opaque-shot-1.durationSeconds',
+      local: 4,
+      remote: 3,
+    });
+    expect(queue.getSnapshot().value.plan.shots[0].stillFreshness).toBe(
+      'stale',
+    );
+    queue.choose('plan.shots.opaque-shot-1.durationSeconds', 'remote');
+    await queue.resolve();
+    expect(getRun().config.plan.shots[0].durationSeconds).toBe(3);
   });
   it('retains recovery and readable errors for forbidden/deleted writes without creating another run', async () => {
     for (const status of [403, 404, 410]) {

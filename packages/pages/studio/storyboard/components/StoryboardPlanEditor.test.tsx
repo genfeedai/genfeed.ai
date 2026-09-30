@@ -1,5 +1,6 @@
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+import type { StoryboardSelectProps } from '@genfeedai/props/studio/storyboard.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StoryboardPlanEditor from './StoryboardPlanEditor';
@@ -24,7 +25,35 @@ vi.mock('@pages/studio/storyboard/components/StoryboardAnimatic', () => ({
   default: () => null,
 }));
 vi.mock('@pages/studio/storyboard/components/StoryboardSelect', () => ({
-  default: () => null,
+  default: ({
+    ariaLabel,
+    value,
+    options,
+    onChange,
+    isDisabled,
+  }: StoryboardSelectProps) => (
+    <select
+      aria-label={ariaLabel}
+      value={value ?? '__none'}
+      disabled={isDisabled}
+      onChange={(event) =>
+        onChange(
+          event.target.value === '__none' ? undefined : event.target.value,
+        )
+      }
+    >
+      <option value="__none">Clear selection</option>
+      {options.map((option) => (
+        <option
+          key={option.value}
+          value={option.value}
+          disabled={option.isDisabled}
+        >
+          {option.label}
+        </option>
+      ))}
+    </select>
+  ),
 }));
 const run: StoryboardRun = {
   id: 'run',
@@ -111,6 +140,59 @@ describe('persisted storyboard plan editor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Approve storyboard' }));
     await waitFor(() => expect(approve).toHaveBeenCalledWith(2));
     expect(save.mock.calls[0][1].title).toBe('Changed title');
+  });
+  it('keeps an unavailable saved voice visible, blocks invalid resave, and permits explicit clearing', async () => {
+    const save = vi.fn(update);
+    const approve = vi.fn();
+    const selected = {
+      ...run,
+      config: {
+        ...run.config,
+        plan: {
+          ...run.config.plan,
+          cast: [
+            {
+              id: 'narrator',
+              name: 'Narrator',
+              voiceId: 'missing-voice',
+              referenceAssetIds: [],
+            },
+          ],
+        },
+      },
+    };
+    render(
+      <StoryboardPlanEditor
+        run={selected}
+        savePlan={save}
+        resetPlan={vi.fn()}
+        approvePlan={approve}
+        capabilities={capabilities([5])}
+      />,
+    );
+    const voice = screen.getByLabelText('Voice for Narrator');
+    expect(voice).toHaveValue('missing-voice');
+    expect(
+      screen.getByRole('option', {
+        name: 'Saved voice unavailable — replace or clear',
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Approve storyboard' }),
+    ).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Title'), {
+      target: { value: 'Kept while replacing voice' },
+    });
+    await waitFor(
+      () => expect(screen.getByText('Save failed')).toBeInTheDocument(),
+      { timeout: 2500 },
+    );
+    expect(save).not.toHaveBeenCalled();
+    fireEvent.change(voice, { target: { value: '__none' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Approve storyboard' }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(save.mock.calls[0][1].cast[0].voiceId).toBeUndefined();
+    expect(save.mock.calls[0][1].title).toBe('Kept while replacing voice');
   });
   it('retains the previous duration when a change exceeds the runtime budget', () => {
     render(

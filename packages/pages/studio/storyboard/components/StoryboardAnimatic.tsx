@@ -302,17 +302,35 @@ export default function StoryboardAnimatic({
           onClick={reset}
         />
         {ranges.map((range) => (
-          <Button
-            key={range.shot.id}
-            label={`Play shot ${range.shot.ordinal}`}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.GHOST}
-            isDisabled={!ready(range.shot)}
-            onClick={() => {
-              setSingleShot(range.shot.id);
-              play(range.start);
-            }}
-          />
+          <div key={range.shot.id} className="space-y-1">
+            <Button
+              label={`Play shot ${range.shot.ordinal}`}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              isDisabled={!ready(range.shot)}
+              onClick={() => {
+                setSingleShot(range.shot.id);
+                play(range.start);
+              }}
+            />
+            {mediaStatus(range.shot.id) === 'failed' ? (
+              <div className="space-y-1">
+                <p
+                  role="status"
+                  className="text-xs text-muted-foreground"
+                >{`Shot ${range.shot.ordinal}: Still preview unavailable`}</p>
+                <Button
+                  label={`Retry shot ${range.shot.ordinal} still preview`}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  onClick={() => {
+                    if (range.shot.stillUrl)
+                      startAttempt(range.shot.id, range.shot.stillUrl);
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
         ))}
       </div>
     </section>

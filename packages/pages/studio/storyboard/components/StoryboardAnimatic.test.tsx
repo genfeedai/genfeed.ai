@@ -95,6 +95,30 @@ describe('zero-generation timed animatic', () => {
     });
     expect(screen.getByText('First line')).toBeVisible();
   });
+  it('offers a direct retry for a failed noncurrent shot without advancing or autoplaying', async () => {
+    render(<StoryboardAnimatic scope="run:1" shots={shots} />);
+    await load(0);
+    act(() => images[1].onerror?.());
+    expect(
+      screen.getByRole('button', { name: 'Play shot 2', exact: true }),
+    ).toBeDisabled();
+    expect(screen.getByText('First line')).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Retry shot 2 still preview',
+        exact: true,
+      }),
+    );
+    expect(images.at(-1)?.src).toBe(shots[1].stillUrl);
+    await load(2);
+    expect(
+      screen.getByRole('button', { name: 'Play storyboard', exact: true }),
+    ).toBeEnabled();
+    expect(screen.getByText('First line')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Pause', exact: true }),
+    ).not.toBeInTheDocument();
+  });
   it('pauses the clock when an active preview fails and retries the exact URL', async () => {
     vi.useFakeTimers();
     render(<StoryboardAnimatic scope="run:1" shots={shots} />);
