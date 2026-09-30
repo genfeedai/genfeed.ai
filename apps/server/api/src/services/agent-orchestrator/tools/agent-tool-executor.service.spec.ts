@@ -1,8 +1,6 @@
 import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import {
-  buildLogicalWriteKey,
-  type CuratedActionName,
-} from '@genfeedai/actions';
+import { type CuratedActionName } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 
 vi.mock(
   '@api/collections/outreach-campaigns/services/outreach-campaigns.service',

@@ -16,12 +16,12 @@ import type {
   CuratedActionName,
 } from '@genfeedai/actions';
 import {
-  buildLogicalWriteKey,
   evaluateMutationPolicy,
   getToolByName,
   resolveEffectiveMutationPolicy,
   VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';

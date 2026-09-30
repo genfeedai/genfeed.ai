@@ -1,10 +1,8 @@
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import {
-  buildLogicalWriteKey,
-  type CuratedActionName,
-} from '@genfeedai/actions';
+import { type CuratedActionName } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { McpApprovalStatus } from '@genfeedai/prisma';
 
 export function specializedConfirmationTool(
