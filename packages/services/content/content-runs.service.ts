@@ -42,7 +42,10 @@ import {
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
-import type { ContentRunBrief } from '@genfeedai/contracts/interfaces';
+import type {
+  ContentRunBrief,
+  IHttpRequestOptions,
+} from '@genfeedai/contracts/interfaces';
 import type {
   ContentRunAnalyticsSummary,
   ContentRunPublishContext,
@@ -53,6 +56,7 @@ import {
   deserializeLegacyStoryboardRunDocument,
   deserializeStoryboardRunDocument,
 } from '@services/content/content-run-document';
+import { isExpectedStoryboardSaveConflict } from '@services/content/storyboard-save-conflict';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -60,6 +64,7 @@ import {
   deserializeResource,
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
+import type { AxiosRequestConfig } from 'axios';
 
 export interface CreateResearchBriefRunInput {
   angle?: string;
@@ -195,9 +200,14 @@ export class ContentRunsService extends HTTPBaseService {
     runId: string,
     input: UpdateStoryboardPlan,
   ): Promise<StoryboardRun> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handlesErrorResponse: (response) =>
+        isExpectedStoryboardSaveConflict(response, input.expectedRevision),
+    };
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/plan`,
       input,
+      config,
     );
     return deserializeStoryboardRunDocument(response.data);
   }
@@ -231,9 +241,14 @@ export class ContentRunsService extends HTTPBaseService {
     runId: string,
     input: UpdateStoryboardSource,
   ): Promise<StoryboardRun> {
+    const config: AxiosRequestConfig & IHttpRequestOptions = {
+      handlesErrorResponse: (response) =>
+        isExpectedStoryboardSaveConflict(response, input.expectedRevision),
+    };
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/source`,
       input,
+      config,
     );
     return deserializeStoryboardRunDocument(response.data);
   }
