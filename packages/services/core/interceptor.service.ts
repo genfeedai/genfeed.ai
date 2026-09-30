@@ -6,6 +6,7 @@ import type {
   IHttpInterceptorError,
   IHttpSanitizedError,
 } from '@genfeedai/contracts/interfaces/utils/http-interceptor-error.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
@@ -334,11 +335,18 @@ export abstract class HTTPBaseService {
       const status = response?.status;
       const isExpectedClientStatus =
         status === 401 || status === 403 || status === 404 || status === 422;
+      const requestOptions = request as
+        | (InternalAxiosRequestConfig & IHttpRequestOptions)
+        | undefined;
+      const isSurfaceHandledStatus =
+        typeof status === 'number' &&
+        requestOptions?.handledErrorStatuses?.includes(status) === true;
       const shouldShowDebugModal =
         typeof window !== 'undefined' &&
         typeof status === 'number' &&
         status >= 400 &&
-        !isExpectedClientStatus;
+        !isExpectedClientStatus &&
+        !isSurfaceHandledStatus;
 
       if (shouldShowDebugModal) {
         openModal(ModalEnum.ERROR_DEBUG);

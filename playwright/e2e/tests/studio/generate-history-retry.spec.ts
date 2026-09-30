@@ -117,6 +117,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByTestId('studio-generate-prompt')
         .getByRole('textbox');
       await expect(composer).toBeEnabled();
+      await expect(
+        page.getByRole('dialog', { name: 'Request failed', exact: true }),
+      ).toHaveCount(0);
       await expectNoErrorOverlay(page);
       await page.screenshot({
         path: testInfo.outputPath('before-retry.png'),
@@ -135,6 +138,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.keyboard.press('Enter');
       expect(galleryRequests).toBe(2);
       await expect(alert).toBeVisible();
+      await expect(
+        page.getByRole('dialog', { name: 'Request failed', exact: true }),
+      ).toHaveCount(0);
       await page.screenshot({
         path: testInfo.outputPath('retry-pending.png'),
         fullPage: true,
@@ -144,6 +150,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         page.getByTestId('studio-asset-history-restored-video'),
       ).toBeVisible();
       await expect(alert).toHaveCount(0);
+      await expect(
+        page.getByRole('dialog', { name: 'Request failed', exact: true }),
+      ).toHaveCount(0);
       await expectNoErrorOverlay(page);
       expect(galleryRequests).toBe(2);
       await expect(composer).toBeEnabled();
