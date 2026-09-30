@@ -12,6 +12,11 @@
     "tweetPlaceholder": "Write the tweet"
   },
   "analyticsTrends": {
+    "cachedEvaluationWarning": "Showing cached data; evaluation may be out of date.",
+    "evaluatorObservation": "Evaluator's observation",
+    "noPersuasionAnalysis": "No persuasion analysis",
+    "noWrittenPersuasionExplanation": "Layer scores are available; no written explanation was saved.",
+    "retryEvaluationRead": "Retry",
     "median": "Median",
     "ratio": "Ratio",
     "whyItWorks": "Why it works",
