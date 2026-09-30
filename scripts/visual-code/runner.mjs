@@ -77,6 +77,14 @@ try {
       ],
     }),
   });
+  for (const [variable, directory] of Object.entries({
+    HOME: `${root}/browser-home`,
+    XDG_CONFIG_HOME: `${root}/browser-config`,
+    XDG_CACHE_HOME: `${root}/browser-cache`,
+  })) {
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    process.env[variable] = directory;
+  }
   process.stderr.write('visual-stage:browser-open-start\n');
   browser = await openBrowser('chrome', {
     browserExecutable: '/usr/bin/chromium',
