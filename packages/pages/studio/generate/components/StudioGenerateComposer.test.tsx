@@ -1,10 +1,38 @@
-import { RouterPriority } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const walletMocks = vi.hoisted(() => ({
+  balance: 120 as number | null,
+  isLoaded: true,
+  isLoading: false,
+  showCredits: true,
+}));
+vi.mock('@genfeedai/config/license', () => ({
+  shouldShowCreditsNav: () => walletMocks.showCredits,
+}));
+vi.mock(
+  '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances',
+  () => ({
+    useTopbarBalances: () => ({
+      genfeedBalance: walletMocks.balance,
+      isLoaded: walletMocks.isLoaded,
+      isLoading: walletMocks.isLoading,
+    }),
+  }),
+);
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/test-org${path}` }),
+}));
 
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
@@ -158,6 +186,12 @@ describe('StudioGenerateComposer', () => {
   beforeEach(() => {
     storeMocks.setupByScope = {};
     storeMocks.reasonsByScope = {};
+    Object.assign(walletMocks, {
+      balance: 120,
+      isLoaded: true,
+      isLoading: false,
+      showCredits: true,
+    });
     vi.clearAllMocks();
   });
 
@@ -524,9 +558,14 @@ describe('StudioGenerateComposer', () => {
 
   it('updates the pre-send credit quote for the selected resolution', () => {
     const model = {
+      category: ModelCategory.VIDEO,
+      isActive: true,
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+      label: 'Kling',
       cost: 50,
       costPerUnit: 10,
-      key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      key: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
       pricingType: 'per-second',
     };
     const props = {
@@ -542,12 +581,12 @@ describe('StudioGenerateComposer', () => {
           ...settings,
           duration: 5,
           modelKey: model.key,
-          resolution: '720p',
+          resolution: 'standard',
         }}
       />,
     );
 
-    expect(screen.getByText('~50 credits')).toBeVisible();
+    expect(screen.getByText('Estimated 50 credits')).toBeVisible();
 
     rerender(
       <StudioGenerateComposer
@@ -561,7 +600,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('~200 credits')).toBeVisible();
+    expect(screen.getByText('Estimated 125 credits')).toBeVisible();
   });
 
   describe('Enhance prompt action (#4676)', () => {
@@ -675,5 +714,104 @@ describe('StudioGenerateComposer', () => {
       fireEvent.click(undoButton);
       expect(onUndoEnhancePrompt).toHaveBeenCalledOnce();
     });
+  });
+  it('distinguishes Auto, catalog loading, missing pricing and live wallet states', () => {
+    const props = {
+      ...baseProps,
+      prompt: 'A product photo',
+      settings,
+      type: 'image' as const,
+    };
+    const { rerender } = render(<StudioGenerateComposer {...props} />);
+    expect(
+      screen.getByText('Estimate available after model selection'),
+    ).toBeVisible();
+    expect(screen.getByRole('link', { name: '120 available' })).toHaveAttribute(
+      'href',
+      '/test-org/settings/credits',
+    );
+    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+    Object.assign(walletMocks, {
+      balance: null,
+      isLoaded: false,
+      isLoading: true,
+    });
+    rerender(<StudioGenerateComposer {...props} isLoadingModels />);
+    expect(screen.getByText('Loading estimate…')).toBeVisible();
+    expect(screen.getByText('Loading balance…')).toBeVisible();
+    Object.assign(walletMocks, {
+      balance: null,
+      isLoaded: true,
+      isLoading: false,
+    });
+    rerender(
+      <StudioGenerateComposer
+        {...props}
+        settings={{ ...settings, modelKey: 'missing' }}
+      />,
+    );
+    expect(screen.getByText('Estimate unavailable')).toBeVisible();
+    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    walletMocks.balance = 0;
+    rerender(<StudioGenerateComposer {...props} />);
+    expect(screen.getByText('0 available')).toBeVisible();
+    walletMocks.balance = Number.NaN;
+    rerender(<StudioGenerateComposer {...props} />);
+    expect(screen.getByText('Balance unavailable')).toBeVisible();
+    walletMocks.showCredits = false;
+    rerender(<StudioGenerateComposer {...props} />);
+    expect(
+      screen.queryByText('Estimate available after model selection'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Balance unavailable')).not.toBeInTheDocument();
+    expect(screen.getByText('Auto · 1:1 · 1K · 1 output')).toBeVisible();
+  });
+
+  it('updates image count, setup and total without using the estimate as a submit gate', () => {
+    const model = {
+      category: ModelCategory.IMAGE,
+      cost: 8,
+      isActive: true,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      label: 'Imagen 4',
+      lifecycle: ModelLifecycle.AVAILABLE,
+      provider: ModelProvider.REPLICATE,
+    };
+    const props = {
+      ...baseProps,
+      models: [model] as never,
+      prompt: 'A product photo',
+      type: 'image' as const,
+    };
+    const { rerender } = render(
+      <StudioGenerateComposer
+        {...props}
+        settings={{ ...settings, modelKey: model.key }}
+      />,
+    );
+    expect(screen.getByText('Estimated 8 credits')).toBeVisible();
+    rerender(
+      <StudioGenerateComposer
+        {...props}
+        settings={{
+          ...settings,
+          modelKey: model.key,
+          outputs: 3,
+          aspectRatio: '9:16',
+          resolution: '2K',
+        }}
+      />,
+    );
+    expect(screen.getByText('Estimated 24 credits')).toBeVisible();
+    expect(screen.getByText('Imagen 4 · 9:16 · 2K · 3 outputs')).toBeVisible();
+    rerender(
+      <StudioGenerateComposer
+        {...props}
+        models={[{ ...model, cost: 0 }] as never}
+        settings={{ ...settings, modelKey: model.key }}
+      />,
+    );
+    expect(screen.getByText('Estimate unavailable')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeEnabled();
   });
 });

@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import VsHubContent from '@public/vs/vs-hub-content';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -21,9 +22,9 @@ const vsJsonLd = {
 
 export async function generateMetadata(
   _params: unknown,
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
+  const previousImages = [getMarketingOgImage('/vs', 'Compare Genfeed')];
   const images = [...previousImages];
   const title = `Genfeed vs Alternatives: AI Tool Comparisons | ${metadata.name}`;
 

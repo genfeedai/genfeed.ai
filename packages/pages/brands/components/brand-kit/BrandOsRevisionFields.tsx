@@ -11,6 +11,7 @@ import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
+import { useRef, useState } from 'react';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -25,6 +26,16 @@ function ValueEditor({
   onChange,
 }: BrandOsValueEditorProps) {
   const t = useTranslations('pages.brandOsSettings');
+  const valueCount = Array.isArray(value) ? value.length : 0;
+  const nextEntryKey = useRef(valueCount);
+  const [entryKeys, setEntryKeys] = useState(() =>
+    Array.from({ length: valueCount }, (_, slot) => String(slot)),
+  );
+  if (entryKeys.length !== valueCount) {
+    setEntryKeys(
+      Array.from({ length: valueCount }, () => String(nextEntryKey.current++)),
+    );
+  }
   if (valueKind === 'string[]') {
     const values = Array.isArray(value) ? value : [];
     return (
@@ -42,7 +53,7 @@ function ValueEditor({
     return (
       <div className="space-y-2">
         {values.map((entry, index) => (
-          <div key={`${label}-${index}`} className="space-y-2">
+          <div key={entryKeys[index]} className="space-y-2">
             <ValueEditor
               label={`${label} ${index + 1}`}
               value={entry}
@@ -59,16 +70,20 @@ function ValueEditor({
             <Button
               label={t('removeEntry', { label, index: index + 1 })}
               isDisabled={isDisabled}
-              onClick={() =>
-                onChange(values.filter((_, itemIndex) => itemIndex !== index))
-              }
+              onClick={() => {
+                setEntryKeys((keys) =>
+                  keys.filter((_, itemIndex) => itemIndex !== index),
+                );
+                onChange(values.filter((_, itemIndex) => itemIndex !== index));
+              }}
             />
           </div>
         ))}
         <Button
           label={t('addEntry', { label })}
           isDisabled={isDisabled || values.length >= 50}
-          onClick={() =>
+          onClick={() => {
+            setEntryKeys((keys) => [...keys, String(nextEntryKey.current++)]);
             onChange([
               ...values,
               valueKind === 'socialLinks'
@@ -78,8 +93,8 @@ function ValueEditor({
                     url: '',
                     sourceType: 'manual',
                   },
-            ])
-          }
+            ]);
+          }}
         />
       </div>
     );

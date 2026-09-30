@@ -56,7 +56,7 @@ import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
-import { storyboardToolSchemas } from '@mcp/tools/storyboard.schemas';
+import { handleStoryboardTool } from '@mcp/tools/storyboard.tool';
 import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
 import {
   handleToolDiscoveryTool,
@@ -461,16 +461,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
-      case 'storyboard-capabilities': {
-        const result = await this.clientService.getStoryboardRunCapabilities(
-          storyboardToolSchemas.storyboard_run_capabilities.parse(args),
-        );
-        return {
-          content: [
-            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
-          ],
-        };
-      }
+      case 'storyboard-capabilities':
+        return handleStoryboardTool(this.clientService, name, args);
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':

@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { EMPTY_STATES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import type {
   TableColumn,
   TableProps,
@@ -484,8 +485,12 @@ export default function AppTable<T>({
                         <td className="px-4 py-2 relative align-middle">
                           <div className="flex translate-x-0 justify-end opacity-100 transition-[opacity,transform] duration-200 group-focus-within:translate-x-0 group-focus-within:opacity-100 lg:translate-x-2 lg:opacity-0 lg:group-hover:translate-x-0 lg:group-hover:opacity-100">
                             <div className="flex items-center gap-1">
-                              {actions.reduce<ReactNode[]>(
-                                (acc, action, actionIndex) => {
+                              {keyListItems(actions, (action) =>
+                                typeof action.tooltip === 'function'
+                                  ? action.tooltip(item)
+                                  : action.tooltip,
+                              ).reduce<ReactNode[]>(
+                                (acc, { item: action, key }) => {
                                   // Check if action should be visible for this item
                                   const isVisible = action.isVisible
                                     ? action.isVisible(item)
@@ -504,7 +509,7 @@ export default function AppTable<T>({
 
                                   acc.push(
                                     <Button
-                                      key={actionIndex}
+                                      key={key}
                                       icon={iconContent}
                                       ariaLabel={
                                         typeof tooltipText === 'string'

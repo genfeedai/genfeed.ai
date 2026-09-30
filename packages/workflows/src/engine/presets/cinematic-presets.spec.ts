@@ -267,7 +267,9 @@ describe('CinematicPresets', () => {
     });
 
     it('should return empty array for invalid category', () => {
-      const presets = getPresetsByCategory('invalid' as any);
+      const presets = getPresetsByCategory(
+        'invalid' as Parameters<typeof getPresetsByCategory>[0],
+      );
       expect(presets).toEqual([]);
     });
   });

@@ -1,3 +1,4 @@
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import {
   SERVER_TOKENS,
   type ServerYoutubeUploader,
@@ -81,6 +82,7 @@ export class YoutubeService {
 
   async getTrends(regionCode = 'US', limit = 20): Promise<YoutubeTrend[]> {
     if (!this.youtubeDataApiConfigured) {
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
       return [];
     }
 

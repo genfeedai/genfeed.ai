@@ -137,6 +137,7 @@ export default function MasonryGrid({
     setVisibleCount(Math.min(INITIAL_BATCH_SIZE, validIngredients.length));
   }, [validIngredients.length]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Changed grid contents require scrolling to the focused item again.
   useEffect(() => {
     if (!scrollFocusedIngredientId || !containerRef.current) {
       return;

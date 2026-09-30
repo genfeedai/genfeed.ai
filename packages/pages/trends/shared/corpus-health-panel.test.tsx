@@ -196,4 +196,56 @@ describe('CorpusHealthPanel', () => {
     expect(screen.getByText('Trend corpus unavailable')).toBeInTheDocument();
     expect(screen.queryByText('Trend corpus healthy')).not.toBeInTheDocument();
   });
+  it('renders actual refresh and attempt timestamps independently from source observations', () => {
+    render(
+      <CorpusHealthPanel
+        health={{
+          ...emptyHealth,
+          refreshHealth: [
+            {
+              dataset: 'trends',
+              platform: 'reddit',
+              scope: 'global',
+              completedAt: '2026-09-05T09:05:00Z',
+              lastAttemptAt: '2026-09-05T09:00:00Z',
+              lastSuccessfulRefreshAt: '2026-09-04T12:15:00Z',
+              outcome: 'native_failed',
+              reason: 'native_failed',
+            },
+          ],
+        }}
+        selectedPlatforms={['reddit']}
+      />,
+    );
+    const row = within(screen.getByRole('group', { name: 'Reddit' }));
+    expect(row.getByText('Sep 5, 09:00 AM')).toBeInTheDocument();
+    expect(row.getByText('Sep 4, 12:15 PM')).toBeInTheDocument();
+    expect(row.getAllByText('Not recorded')).toHaveLength(1);
+  });
+
+  it('distinguishes a recorded failed attempt with no success from entirely missing evidence', () => {
+    render(
+      <CorpusHealthPanel
+        health={{
+          ...emptyHealth,
+          refreshHealth: [
+            {
+              dataset: 'trends',
+              platform: 'reddit',
+              scope: 'global',
+              completedAt: '2026-09-05T09:05:00Z',
+              lastAttemptAt: '2026-09-05T09:00:00Z',
+              lastSuccessfulRefreshAt: null,
+              outcome: 'native_failed',
+              reason: 'native_failed',
+            },
+          ],
+        }}
+        selectedPlatforms={['reddit']}
+      />,
+    );
+    const row = within(screen.getByRole('group', { name: 'Reddit' }));
+    expect(row.getByText('No successful refresh')).toBeInTheDocument();
+    expect(row.getAllByText('Not recorded')).toHaveLength(1);
+  });
 });

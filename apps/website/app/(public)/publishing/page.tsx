@@ -1,5 +1,5 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import PublishingContent from '@public/publishing/publishing-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Publishing: Post to 10+ Platforms',

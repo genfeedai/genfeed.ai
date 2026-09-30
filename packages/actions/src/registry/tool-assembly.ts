@@ -65,6 +65,7 @@ const UI_ACTION_MAP: Partial<
 };
 
 export function inferCategory(name: string): ToolCategory {
+  if (name.includes('visual_code')) return 'generation';
   if (
     [
       'get_generation_settings',

@@ -1,4 +1,7 @@
-import { assertNoSecurityAuditHistory } from '@api/collections/brands/utils/brand-relocation-guards.util';
+import {
+  assertNoOpenVisualProjects,
+  assertNoSecurityAuditHistory,
+} from '@api/collections/brands/utils/brand-relocation-guards.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -92,5 +95,72 @@ describe('security audit relocation history', () => {
         'org',
       ),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('visual revision relocation holds', () => {
+  it('scopes outstanding work and excludes only confirmed settlement or terminal free work without a hold', async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
+    await expect(
+      assertNoOpenVisualProjects(
+        {
+          visualRevision: { findFirst },
+        } as unknown as Prisma.TransactionClient,
+        'brand',
+        'org',
+      ),
+    ).resolves.toBeUndefined();
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        OR: [
+          { status: { notIn: ['completed', 'failed', 'cancelled'] } },
+          {
+            AND: [
+              {
+                receipts: {
+                  not: {
+                    array_contains: [
+                      { kind: 'settlement', state: 'confirmed' },
+                    ],
+                  },
+                },
+              },
+              {
+                OR: [
+                  { reservationId: { not: null } },
+                  {
+                    receipts: {
+                      not: {
+                        array_contains: [
+                          { kind: 'quote', quote: { maximumCredits: 0 } },
+                        ],
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      select: { id: true },
+    });
+  });
+  it('refuses a paid terminal revision while its hold remains unsettled', async () => {
+    const client = {
+      visualRevision: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'terminal-unsettled' }),
+      },
+    };
+    await expect(
+      assertNoOpenVisualProjects(
+        client as unknown as Prisma.TransactionClient,
+        'brand',
+        'org',
+      ),
+    ).rejects.toThrow(/unfinished visual work/);
   });
 });

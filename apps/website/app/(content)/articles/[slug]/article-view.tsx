@@ -1,3 +1,4 @@
+import { getEditorialArticleCoverUrl } from '@data/editorial-og.data';
 import { stringifyJsonLd } from '@data/json-ld';
 import { buildArticleJsonLd } from '@genfeedai/helpers';
 import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
@@ -54,7 +55,7 @@ export default async function ArticleView({
     // The artwork first — it is the article's own image — then the composed
     // social card, which is what a share preview actually renders.
     imageUrls: [
-      article.coverImageUrl,
+      getEditorialArticleCoverUrl(slug, article.coverImageUrl),
       `${EnvironmentService.apps.website}/articles/${slug}/og`,
     ],
     inLanguage: 'en-US',

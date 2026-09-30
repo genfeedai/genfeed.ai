@@ -53,4 +53,28 @@ describe('useGalleryList', () => {
     const { result } = renderHook(() => useGalleryList({ type: 'posts' }));
     expect(typeof result.current.refetch).toBe('function');
   });
+  it('fetches once with default options and still supports retry and type changes', async () => {
+    const { PublicService } = await import(
+      '@genfeedai/services/external/public.service'
+    );
+    const { act, waitFor } = await import('@testing-library/react');
+    const { result, rerender } = renderHook(
+      ({ type }: { type: 'images' | 'videos' }) => useGalleryList({ type }),
+      { initialProps: { type: 'images' } },
+    );
+    const service = vi
+      .mocked(PublicService.getInstance)
+      .mock.results.at(-1)?.value;
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    rerender({ type: 'images' });
+    expect(service.findPublicImages).toHaveBeenCalledTimes(1);
+    act(() => result.current.refetch());
+    await waitFor(() =>
+      expect(service.findPublicImages).toHaveBeenCalledTimes(2),
+    );
+    rerender({ type: 'videos' });
+    await waitFor(() =>
+      expect(service.findPublicVideos).toHaveBeenCalledTimes(1),
+    );
+  });
 });

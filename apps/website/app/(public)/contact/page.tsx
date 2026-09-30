@@ -1,11 +1,11 @@
 import { BOOKING_HREF } from '@data/booking.data';
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   NeuralGrid,
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
 

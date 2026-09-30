@@ -62,6 +62,16 @@ type UseModalUploadParams = Pick<
   formRef: RefObject<HTMLFormElement | null>;
 };
 
+function normalizeFileName(fileName: string): string {
+  const lastDotIndex = fileName.lastIndexOf('.');
+  if (lastDotIndex === -1) {
+    return fileName;
+  }
+  const nameWithoutExt = fileName.substring(0, lastDotIndex);
+  const ext = fileName.substring(lastDotIndex).toLowerCase();
+  return nameWithoutExt + ext;
+}
+
 export function useModalUpload({
   category,
   parentId,
@@ -138,16 +148,6 @@ export function useModalUpload({
       return `${Math.ceil(kb)} KB`;
     }
     return `${bytes} B`;
-  };
-
-  const normalizeFileName = (fileName: string): string => {
-    const lastDotIndex = fileName.lastIndexOf('.');
-    if (lastDotIndex === -1) {
-      return fileName;
-    }
-    const nameWithoutExt = fileName.substring(0, lastDotIndex);
-    const ext = fileName.substring(lastDotIndex).toLowerCase();
-    return nameWithoutExt + ext;
   };
 
   const isImageLike =
@@ -252,6 +252,7 @@ export function useModalUpload({
     [initialFiles, maxFiles],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A new modal open key resets the upload session.
   useEffect(() => {
     hasAutoQueuedInitialFilesRef.current = false;
     hasAutoSubmittedRef.current = false;

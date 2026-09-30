@@ -173,7 +173,7 @@ describe('useIngredientTags', () => {
     it('should handle tags as string array', async () => {
       const ingredientWithStringTags: IIngredient = {
         id: 'ing-123',
-        tags: ['tag-1', 'tag-2', 'tag-3'] as any,
+        tags: ['tag-1', 'tag-2', 'tag-3'] as unknown as IIngredient['tags'],
       } as IIngredient;
 
       const { result } = renderHook(() =>
@@ -243,7 +243,7 @@ describe('useIngredientTags', () => {
           null,
           { id: 'tag-2', label: 'Tag 2' },
           undefined,
-        ] as any,
+        ] as unknown as IIngredient['tags'],
       } as IIngredient;
 
       const { result } = renderHook(() =>

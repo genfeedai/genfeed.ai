@@ -271,4 +271,30 @@ describe('useAudioRecording', () => {
 
     expect(stopTrack).toHaveBeenCalled();
   });
+  it('stops a microphone stream whose permission resolves after unmount', async () => {
+    const { stream, stopTrack } = createMockStream();
+    let grantPermission!: (stream: MediaStream) => void;
+    getUserMedia.mockImplementationOnce(
+      () =>
+        new Promise<MediaStream>((resolve) => {
+          grantPermission = resolve;
+        }),
+    );
+    const { result, unmount } = renderHook(() => useAudioRecording());
+    let pendingStart!: Promise<boolean>;
+    act(() => {
+      pendingStart = result.current.startRecording();
+    });
+    unmount();
+    await act(async () => {
+      grantPermission(stream);
+      await pendingStart;
+    });
+    try {
+      expect(stopTrack).toHaveBeenCalled();
+      expect(MockMediaRecorder.instances).toHaveLength(0);
+    } finally {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+  });
 });

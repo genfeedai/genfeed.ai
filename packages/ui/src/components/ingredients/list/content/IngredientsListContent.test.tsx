@@ -63,21 +63,25 @@ vi.mock('@ui/dropdowns/status/DropdownStatus', () => ({
 // The canvas pulls React Flow in behind next/dynamic, whose loader never
 // resolves under jsdom. Stubbing the boundary keeps this test on the view
 // switch, which is what IngredientsListContent actually owns.
-vi.mock('next/dynamic', () => ({
-  default: () => {
-    function LibraryCanvasStub({
-      ingredients,
-    }: {
-      ingredients: IIngredient[];
-    }) {
-      return (
-        <div data-testid="library-canvas">{(ingredients ?? []).length}</div>
-      );
-    }
+vi.mock('next/dynamic', async () => {
+  const { Checkbox } = await import('@ui/primitives/checkbox');
+  return {
+    default: (loader: () => Promise<unknown>) => {
+      if (loader.toString().includes('checkbox')) return Checkbox;
+      function LibraryCanvasStub({
+        ingredients,
+      }: {
+        ingredients: IIngredient[];
+      }) {
+        return (
+          <div data-testid="library-canvas">{(ingredients ?? []).length}</div>
+        );
+      }
 
-    return LibraryCanvasStub;
-  },
-}));
+      return LibraryCanvasStub;
+    },
+  };
+});
 
 vi.mock('@ui/ingredients/list/media-grid/IngredientsMediaGrid', () => ({
   default: ({
@@ -542,6 +546,121 @@ describe('IngredientsListContent inspector handoff', () => {
     assetSelection.lightboxRequestCount = 0;
     assetSelection.requestedLightboxIngredient = null;
     assetSelection.published = null;
+  });
+
+  it.each([
+    baseIngredient,
+    videoIngredient,
+    musicIngredient,
+    voiceIngredient,
+    { ...baseIngredient, category: IngredientCategory.IMAGE },
+    { ...baseIngredient, category: IngredientCategory.GIF },
+  ])(
+    'inspects brand list row, thumbnail, title and View for $category',
+    (ingredient) => {
+      const onSelectionChange = vi.fn();
+      const { onOpenLightbox, onOpenIngredientModal } = renderContent({
+        filteredIngredients: [ingredient],
+        onSelectionChange,
+        scope: PageScope.BRAND,
+        singularType: IngredientCategory.INGREDIENT,
+        type: 'ingredients',
+        viewMode: 'list',
+      });
+      const title = screen.getByText(ingredient.metadataLabel as string);
+      const row = title.closest('tr') as HTMLElement;
+      for (const target of [
+        row,
+        within(row).getByRole('img'),
+        title,
+        within(row).getByTestId('action-button'),
+      ]) {
+        onSelectionChange.mockClear();
+        fireEvent.click(target);
+        expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+          ingredient.id,
+        ]);
+      }
+      for (const key of ['Enter', ' ']) {
+        onSelectionChange.mockClear();
+        fireEvent.keyDown(row, { key });
+        expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+          ingredient.id,
+        ]);
+      }
+      expect(row).toHaveAttribute('tabindex', '0');
+      expect(onOpenLightbox).not.toHaveBeenCalled();
+      expect(onOpenIngredientModal).not.toHaveBeenCalled();
+    },
+  );
+
+  it('inspects a nonvisual brand asset in the grid fallback table', () => {
+    const onSelectionChange = vi.fn();
+    renderContent({
+      filteredIngredients: [musicIngredient],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'grid',
+    });
+    fireEvent.click(screen.getByText('Opening Theme'));
+    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+      musicIngredient.id,
+    ]);
+  });
+
+  it('keeps retry and audio controls independent of brand row inspection', () => {
+    const onSelectionChange = vi.fn();
+    const onReprompt = vi.fn();
+    renderContent({
+      filteredIngredients: [failedIngredient, musicIngredient],
+      onReprompt,
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      singularType: IngredientCategory.INGREDIENT,
+      viewMode: 'list',
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Retry generation' }));
+    fireEvent.keyDown(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+      { key: ' ' },
+    );
+    expect(onReprompt).toHaveBeenCalledExactlyOnceWith(failedIngredient);
+    expect(onSelectionChange).not.toHaveBeenCalled();
+  });
+
+  it('keeps checkbox multiselection separate from row inspection', () => {
+    const onSelectionChange = vi.fn();
+    renderContent({
+      filteredIngredients: [baseIngredient, videoIngredient],
+      selectedIngredientIds: [videoIngredient.id],
+      onSelectionChange,
+      scope: PageScope.BRAND,
+      viewMode: 'list',
+    });
+    const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
+    const checkbox = within(row).getByRole('checkbox');
+    fireEvent.keyDown(checkbox, { key: 'Enter' });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    fireEvent.click(checkbox);
+    expect(onSelectionChange).toHaveBeenCalledExactlyOnceWith([
+      videoIngredient.id,
+      baseIngredient.id,
+    ]);
+  });
+
+  it('preserves non-brand list row semantics', () => {
+    const onSelectionChange = vi.fn();
+    const { onOpenIngredientModal, onOpenLightbox } = renderContent({
+      onSelectionChange,
+    });
+    const row = screen.getByText('Avatar Source').closest('tr') as HTMLElement;
+    fireEvent.click(row);
+    fireEvent.keyDown(row, { key: 'Enter' });
+    expect(onSelectionChange).not.toHaveBeenCalled();
+    expect(onOpenIngredientModal).not.toHaveBeenCalled();
+    expect(onOpenLightbox).not.toHaveBeenCalled();
+    expect(row).not.toHaveAttribute('tabindex');
   });
 
   it('selects a clicked brand asset instead of opening the lightbox', () => {

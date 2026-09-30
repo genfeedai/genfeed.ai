@@ -9,6 +9,7 @@ import type {
   ContentRunRecommendation,
   ContentRunVariant,
 } from '@genfeedai/contracts/interfaces';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentRunRecord } from '@services/content/content-runs.service';
@@ -397,12 +398,10 @@ function RecommendationsSection({
 
   return (
     <div className="grid gap-3">
-      {recommendations.map((recommendation, index) => (
-        <Panel
-          as="article"
-          key={`${recommendation.type}-${index}`}
-          className="p-4"
-        >
+      {keyListItems(recommendations, (recommendation) =>
+        JSON.stringify(recommendation),
+      ).map(({ item: recommendation, key }) => (
+        <Panel as="article" key={key} className="p-4">
           <div className="flex flex-wrap items-center gap-2">
             <Pill>{recommendation.type}</Pill>
             {typeof recommendation.confidence === 'number' ? (

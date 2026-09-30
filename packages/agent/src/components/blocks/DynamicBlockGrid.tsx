@@ -23,6 +23,7 @@ import type {
   TextParagraphBlock,
   TopPostsBlock,
 } from '@genfeedai/contracts/interfaces';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import MetricCardUI from '@ui/cards/metric-card/MetricCard';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
@@ -210,6 +211,7 @@ function TopPosts({ block }: { block: TopPostsBlock }): ReactElement {
       >
         {Array.from({ length: isList ? 4 : 3 }).map((_, index) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             key={`top-post-loading-${index}`}
             className={`rounded-lg border border-border bg-card p-3 ${
               isList ? 'flex items-center gap-3' : ''
@@ -327,8 +329,8 @@ function BulletList({ block }: { block: BulletListBlock }): ReactElement {
         block.ordered ? 'list-decimal' : 'list-disc'
       }`}
     >
-      {block.items.map((item, index) => (
-        <li key={`${block.id}-item-${index}`}>{item}</li>
+      {keyListItems(block.items, (item) => item).map(({ item, key }) => (
+        <li key={key}>{item}</li>
       ))}
     </ListTag>
   );

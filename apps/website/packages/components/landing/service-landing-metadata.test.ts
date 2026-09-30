@@ -3,17 +3,6 @@ import { createServiceLandingMetadata } from '@web-components/landing/service-la
 import { serviceLandingConfigs } from '@web-components/landing/service-landings.data';
 import { describe, expect, it } from 'vitest';
 
-const SOCIAL_GROWTH_SLUGS = new Set([
-  'x',
-  'linkedin',
-  'instagram',
-  'tiktok',
-  'youtube',
-  'threads',
-  'facebook',
-  'pinterest',
-]);
-
 describe('service landing share images', () => {
   it.each(serviceLandingConfigs)(
     'gives $slug the correct complete OG and Twitter image',
@@ -24,9 +13,7 @@ describe('service landing share images', () => {
           alt: config.metaTitle,
           height: 630,
           type: 'image/png',
-          url: SOCIAL_GROWTH_SLUGS.has(config.slug)
-            ? `${metadata.url}/og/${config.slug}`
-            : metadata.cards.default,
+          url: `${metadata.url}/og/${config.slug}`,
           width: 1200,
         },
       ];

@@ -44,6 +44,7 @@ const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 
 const READ_ONLY_NAMES = new Set<string>([
   'storyboard_run_capabilities',
+  'quote_visual_code_generation',
   'analyze_performance',
   'export_skill',
   'read_knowledge_source',
@@ -60,6 +61,11 @@ const READ_ONLY_NAMES = new Set<string>([
 export const MUTATION_POLICY_BY_NAME: Readonly<
   Record<string, ToolMutationPolicy>
 > = {
+  cancel_visual_code_project: 'direct',
+  generate_visual_code: 'approval-required',
+  revise_visual_code_project: 'approval-required',
+  export_visual_code_project: 'approval-required',
+  retry_visual_code_project: 'approval-required',
   attach_remix_analysis_source: 'direct',
   control_remix_generation: 'approval-required',
   create_remix_concept: 'direct',

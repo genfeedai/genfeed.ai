@@ -1,3 +1,4 @@
+import { VisualProjectsCoreModule } from '@api/collections/visual-projects/visual-projects-core.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { LlmCostSettlementProcessor } from '@workers/processors/api/queues/llm-cost-settlement/llm-cost-settlement.processor';
 /**
@@ -85,6 +86,7 @@ import { SocialIntegrationsModule } from '@workers/services/social-integrations.
 
 @Module({
   imports: [
+    VisualProjectsCoreModule,
     LlmDispatcherModule,
     // Infrastructure
     LoggerModule,

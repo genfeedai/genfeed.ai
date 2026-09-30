@@ -8,7 +8,7 @@ import {
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface TopPostData {
   postId: string;
@@ -108,8 +108,15 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
     });
   }, []);
 
+  const hydrationKey = JSON.stringify([cacheKey, refreshTrigger]);
+  const [hydration] = useState(() => ({
+    key: hydrationKey,
+    data: initialData,
+  }));
+  const hydratedData =
+    hydration.key === hydrationKey ? hydration.data : undefined;
   const skipInitialFetch =
-    (revalidateOnMount ?? initialData == null) === false && !!initialData;
+    (revalidateOnMount ?? hydratedData == null) === false && !!hydratedData;
 
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: [
@@ -173,18 +180,20 @@ export function useTopPosts(options: UseTopPostsOptions = {}) {
       }
     },
     enabled: Boolean(startDateKey && endDateKey),
-    initialData,
+    initialData: hydratedData,
     staleTime: skipInitialFetch ? Number.POSITIVE_INFINITY : 0,
   });
+
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   return {
     cachedAt,
     error,
     isLoading,
     isUsingCache,
-    refetch: async () => {
-      await refetch();
-    },
+    refetch: refresh,
     topPosts: data ?? [],
   };
 }

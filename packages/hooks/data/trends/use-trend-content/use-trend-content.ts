@@ -35,7 +35,10 @@ export function useTrendContent(platform?: string): UseTrendContentReturn {
     TrendsService.getInstance(token),
   );
 
-  const queryKey = ['trend-content', brandId, platform];
+  const queryKey = useMemo(
+    () => ['trend-content', brandId, platform],
+    [brandId, platform],
+  );
 
   const {
     data: response,

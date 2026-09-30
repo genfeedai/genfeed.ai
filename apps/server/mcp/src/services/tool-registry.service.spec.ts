@@ -330,10 +330,6 @@ describe('ToolRegistryService', () => {
     logger = module.get(LoggerService);
   });
 
-  it('is defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('getTools returns the MCP tool list', () => {
     const tools = service.getTools();
     expect(Array.isArray(tools)).toBe(true);

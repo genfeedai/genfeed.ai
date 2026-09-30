@@ -39,10 +39,6 @@ describe('UploadValidationPipe', () => {
       pipe = new UploadValidationPipe();
     });
 
-    it('should be defined', () => {
-      expect(pipe).toBeDefined();
-    });
-
     it('should pass through a valid file', () => {
       const file = makeFile({
         mimetype: 'image/jpeg',

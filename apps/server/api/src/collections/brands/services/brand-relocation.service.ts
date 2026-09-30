@@ -9,6 +9,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import {
   assertNoKnowledgeHistory,
   assertNoOpenLiveSessions,
+  assertNoOpenVisualProjects,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
 import {
@@ -244,6 +245,7 @@ export class BrandRelocationService {
             await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
             await assertNoSecurityAuditHistory(tx, brandId, sourceOrgId);
             await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
+            await assertNoOpenVisualProjects(tx, brandId, sourceOrgId);
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -341,6 +343,7 @@ export class BrandRelocationService {
       await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
       await assertNoSecurityAuditHistory(this.prisma, brandId, sourceOrgId);
       await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
+      await assertNoOpenVisualProjects(this.prisma, brandId, sourceOrgId);
     }
 
     const impact = await this.classifyRelocationImpact(

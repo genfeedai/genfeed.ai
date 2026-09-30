@@ -105,10 +105,6 @@ describe('MasterPromptGeneratorService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should parse brand voice analysis from JSON response', async () => {
     const voiceJson = JSON.stringify(makeProfileResponse());
     mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(

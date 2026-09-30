@@ -1,5 +1,6 @@
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import ComparisonPage from '@public/vs/[slug]/comparison-page';
 import {
@@ -18,14 +19,15 @@ export function generateStaticParams() {
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const competitorName = formatCompetitorSlug(slug);
   const title = `Genfeed vs ${competitorName} (2026): AI Content Platform Comparison`;
   const description = `Compare Genfeed with ${competitorName}. See how AI-powered content generation, pricing, features, and capabilities stack up side by side.`;
   const url = `${EnvironmentService.apps.website}/vs/${slug}`;
+
+  const previousImages = [getMarketingOgImage(`/vs/${slug}`, competitorName)];
 
   return {
     alternates: {

@@ -14,10 +14,6 @@ describe('NotificationsPublisherService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('publishes video progress to Redis', async () => {
     await service.publishVideoProgress('/path', 50, 'user-1', 'room-1');
     expect(redisService.publish).toHaveBeenCalledWith('video-progress', {

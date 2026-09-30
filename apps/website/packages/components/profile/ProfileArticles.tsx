@@ -1,3 +1,4 @@
+import { getEditorialArticleCoverUrl } from '@data/editorial-og.data';
 import type { IArticle } from '@genfeedai/contracts/interfaces';
 import type { ProfileArticlesProps } from '@props/content/profile.props';
 import Image from 'next/image';
@@ -20,7 +21,12 @@ export default function ProfileArticles({ articles }: ProfileArticlesProps) {
             <div className="relative h-48 w-full">
               <Image
                 className="object-cover"
-                src={article.coverImageUrl}
+                src={
+                  getEditorialArticleCoverUrl(
+                    article.slug ?? '',
+                    article.coverImageUrl,
+                  ) ?? article.coverImageUrl
+                }
                 alt={article.label}
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"

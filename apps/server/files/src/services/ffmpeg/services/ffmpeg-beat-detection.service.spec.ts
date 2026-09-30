@@ -111,10 +111,6 @@ describe('FFmpegBeatDetectionService', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('analyzes beats using aubio when it succeeds', async () => {
     spawnMock.mockImplementation((command: string, args: string[]) => {
       if (command === 'aubio' && args[0] === 'tempo') {

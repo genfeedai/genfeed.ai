@@ -3,6 +3,7 @@ import {
   type Integration,
 } from '@data/integrations.data';
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import IntegrationContent from '@public/integrations/[slug]/integration-content';
 import { getIntegrationBySlugCached } from '@public/integrations/[slug]/integration-loader';
@@ -41,9 +42,8 @@ export function buildIntegrationPageJsonLd(
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const integration = await getIntegrationBySlugCached(slug);
 
@@ -56,6 +56,10 @@ export async function generateMetadata(
   const title = `Genfeed for ${integration.name}: AI ${integration.name} Content Generator`;
   const description = `Create professional ${integration.name} content with AI. Generate videos, images, and posts optimized for ${integration.name}. Try Genfeed free.`;
   const url = `${EnvironmentService.apps.website}/integrations/${slug}`;
+
+  const previousImages = [
+    getMarketingOgImage(`/integrations/${slug}`, integration.name),
+  ];
 
   return {
     alternates: {

@@ -90,7 +90,7 @@ describe('generateMetadata', () => {
     expect(meta.twitter?.card).toBe('summary_large_image');
   });
 
-  it('reuses the parent OpenGraph images', async () => {
+  it('assigns the product image instead of inherited artwork', async () => {
     const parent = Promise.resolve({
       openGraph: { images: [{ url: 'https://cdn.genfeed.ai/og.png' }] },
     }) as unknown as Parameters<typeof generateMetadata>[1];
@@ -101,7 +101,12 @@ describe('generateMetadata', () => {
     );
 
     expect(meta.openGraph?.images).toEqual([
-      { url: 'https://cdn.genfeed.ai/og.png' },
+      expect.objectContaining({
+        url: 'https://genfeed.ai/og/hire-agents',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
     ]);
   });
 

@@ -5,6 +5,7 @@ import type {
   StudioGenerateReferenceRole,
   StudioGenerateSettings,
   StudioGenerateType,
+  StudioGenerationCostEstimate,
 } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
@@ -104,4 +105,12 @@ export interface StudioGenerateInspectorProps {
   onUseInPost: (ingredient: IIngredient) => void;
   onVary: (job: StudioGenerateJob) => void;
   runJobs: readonly StudioGenerateJob[];
+}
+
+export interface StudioGenerationSummaryProps {
+  estimate: StudioGenerationCostEstimate;
+  isLoadingModels: boolean;
+  model?: IModel;
+  settings: StudioGenerateSettings;
+  type: StudioGenerateType;
 }

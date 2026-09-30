@@ -47,6 +47,8 @@ export const INFRASTRUCTURE_ENV_ALLOW_LIST: ReadonlySet<string> = new Set([
   'BETTER_AUTH_ENABLED',
   // Whether this process reports to Sentry.
   'SENTRY_ENABLED',
+  // Whether this deployment has an isolated renderer endpoint and can admit sandbox jobs.
+  'VISUAL_CODE_RENDERER_ENABLED',
 ]);
 
 /** A Joi schema key: `  KEY: Joi…` / `  KEY: conditionalRequired(…)`. */

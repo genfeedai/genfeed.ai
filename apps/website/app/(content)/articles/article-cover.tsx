@@ -1,3 +1,4 @@
+import { getEditorialArticleCoverUrl } from '@data/editorial-og.data';
 import Image from 'next/image';
 import { getArticleCoverPalette } from './article-cover.palette';
 
@@ -40,7 +41,9 @@ export default function ArticleCover({
     return (
       <div className={`relative overflow-hidden bg-muted ${className}`}>
         <Image
-          src={coverImageUrl}
+          src={
+            getEditorialArticleCoverUrl(seed, coverImageUrl) ?? coverImageUrl
+          }
           alt={`${label} cover`}
           className="h-full w-full object-cover object-center"
           fill

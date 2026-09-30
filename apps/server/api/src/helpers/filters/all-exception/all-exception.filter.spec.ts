@@ -106,10 +106,6 @@ describe('AllExceptionFilter', () => {
     filter = new AllExceptionFilterClass(mockLoggerService, mockConfigService);
   });
 
-  it('should be defined', () => {
-    expect(filter).toBeDefined();
-  });
-
   it('should handle generic exceptions', () => {
     const exception = new Error('Test error');
 

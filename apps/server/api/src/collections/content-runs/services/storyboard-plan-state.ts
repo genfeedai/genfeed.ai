@@ -67,20 +67,22 @@ export function editStoryboardPlan(
     JSON.stringify(config.plan.styleReferenceAssetIds) !==
       JSON.stringify(submitted.styleReferenceAssetIds);
   const previous = new Map(config.plan.shots.map((shot) => [shot.id, shot]));
-  const oldCast = new Map(
-    config.plan.cast.map((member) => [member.id, member]),
-  );
   const plan = storyboardPlanSchema.parse({
     ...submitted,
     shots: submitted.shots.map((shot) => {
       const old = previous.get(shot.id);
-      const castChanged =
-        shot.speakerId &&
-        JSON.stringify(oldCast.get(shot.speakerId)?.referenceAssetIds) !==
-          JSON.stringify(
-            submitted.cast.find((member) => member.id === shot.speakerId)
-              ?.referenceAssetIds,
-          );
+      const conditioning = (value: StoryboardPlan, id: string) => {
+        const prompt = storyboardShotPrompt(value, id);
+        return {
+          referenceAssetIds: prompt.referenceAssetIds,
+          avatarAssetId: prompt.avatarAssetId,
+        };
+      };
+      const castChanged = Boolean(
+        old &&
+          JSON.stringify(conditioning(config.plan, old.id)) !==
+            JSON.stringify(conditioning(submitted, shot.id)),
+      );
       const stale = styleChanged || castChanged || old?.action !== shot.action;
       return {
         ...shot,

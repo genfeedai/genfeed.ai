@@ -16,3 +16,4 @@ export * from './rss-source.model';
 export * from './studio-generate-draft.model';
 export * from './studio-look.model';
 export * from './template.model';
+export * from './visual-project.model';

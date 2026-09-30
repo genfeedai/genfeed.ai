@@ -1,3 +1,4 @@
+import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 export interface TrendItem {
   id: string;
   platform: string;
@@ -69,12 +70,14 @@ export interface TrendCorpusFreshnessProviderFailure {
   reason:
     | 'empty_source_preview'
     | 'fallback_source_preview'
-    | 'stale_source_preview';
+    | 'stale_source_preview'
+    | 'refresh_failed';
   retryAction: string;
   severity: 'error' | 'warning';
 }
 
 export interface TrendCorpusFreshnessHealth {
+  refreshHealth?: TrendRefreshHealth[];
   generatedAt: string;
   providerFailures: TrendCorpusFreshnessProviderFailure[];
   segments: TrendCorpusFreshnessSegment[];
