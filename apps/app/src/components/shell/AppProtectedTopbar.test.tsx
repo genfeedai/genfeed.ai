@@ -44,7 +44,8 @@ vi.mock('@genfeedai/contracts', async (importOriginal) => ({
   },
 }));
 
-vi.mock('@genfeedai/contracts/constants', () => ({
+vi.mock('@genfeedai/contracts/constants', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@genfeedai/contracts/constants')>()),
   APP_DISPLAY_LABELS: {
     admin: 'Admin',
     agent: 'Agent',
