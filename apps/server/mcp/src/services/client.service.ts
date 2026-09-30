@@ -1,5 +1,6 @@
 import type {
   AgentToolResult,
+  AgentUntrustedContentGateResult,
   IPublishingProviderReadiness,
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
@@ -207,6 +208,13 @@ export class ClientService {
   }
 
   // ── Agent tools & approvals ──
+
+  evaluateMcpToolResult(
+    name: string,
+    content: string,
+  ): Promise<AgentUntrustedContentGateResult> {
+    return this.agent.evaluateMcpToolResult(name, content);
+  }
 
   executeAgentTool(
     name: string,

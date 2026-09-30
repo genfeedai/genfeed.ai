@@ -1,4 +1,8 @@
-import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  AgentUntrustedContentGateResult,
+} from '@genfeedai/contracts/interfaces';
+import { AGENT_UNTRUSTED_CONTENT_GATE_OUTCOMES } from '@genfeedai/contracts/interfaces';
 import type {
   McpApprovalDecision,
   McpApprovalResource,
@@ -29,6 +33,39 @@ export class AgentClient {
         return response.data as AgentToolResult;
       },
       this.base.failWithDetail(`Failed to execute ${name}`),
+    );
+  }
+
+  evaluateMcpToolResult(
+    name: string,
+    content: string,
+  ): Promise<AgentUntrustedContentGateResult> {
+    return this.base.request(
+      `classifying MCP result ${name}`,
+      async (http) => {
+        try {
+          const response = await http.post(
+            `/agent-tools/${encodeURIComponent(name)}/result-gate`,
+            { content },
+          );
+          const result = response.data as
+            | AgentUntrustedContentGateResult
+            | undefined;
+          if (
+            !result ||
+            typeof result.content !== 'string' ||
+            !AGENT_UNTRUSTED_CONTENT_GATE_OUTCOMES.some(
+              (outcome) => outcome === result.outcome,
+            )
+          )
+            throw new Error('Invalid MCP result classification');
+          return result;
+        } catch {
+          // The shared request logger must never see upstream bodies/error details.
+          throw new Error('MCP result classification unavailable');
+        }
+      },
+      this.base.failWith('MCP result classification unavailable'),
     );
   }
 

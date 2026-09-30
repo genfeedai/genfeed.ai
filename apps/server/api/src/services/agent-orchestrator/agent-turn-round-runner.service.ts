@@ -750,6 +750,7 @@ export class AgentTurnRoundRunnerService {
     toolName: CuratedActionName;
   }): Promise<string> {
     const gated = await this.untrustedContentGateService.evaluateToolResult({
+      origin: 'agent',
       brandId: params.policy.brandId,
       content: JSON.stringify(params.modelVisibleResult),
       context: params.context,
