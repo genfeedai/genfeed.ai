@@ -137,6 +137,9 @@ export class TrendIngestionHealthService {
         successAt && successAt > dataset.enrollmentAt
           ? successAt
           : dataset.enrollmentAt;
+      // A completion at the exact opening boundary belongs to that window.
+      // Enrollment itself is not a successful refresh.
+      if (successAt && successAt.getTime() >= twoWindowsAgo) continue;
       if (baseline.getTime() > twoWindowsAgo) continue;
       const episode = baseline.toISOString();
       await this.send(

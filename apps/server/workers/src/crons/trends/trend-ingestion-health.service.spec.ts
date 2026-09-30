@@ -161,4 +161,31 @@ describe('TrendIngestionHealthService', () => {
       'private-org',
     );
   });
+  it('counts a successful response exactly at a window boundary as evidence for that window', async () => {
+    const { service, health, events } = setup();
+    health.getHealth.mockResolvedValue([
+      {
+        completedAt: enrollment.toISOString(),
+        dataset: 'trends',
+        lastAttemptAt: enrollment.toISOString(),
+        lastSuccessfulRefreshAt: enrollment.toISOString(),
+        outcome: 'native_empty',
+        platform: 'youtube',
+        reason: null,
+        scope: 'global',
+      },
+    ]);
+    await service.checkMissedWindows(new Date('2026-09-29T00:15:00.000Z'));
+    expect(
+      [...events.keys()].some((key) =>
+        key.startsWith('trend-ingestion-health/youtube/trends/missed/'),
+      ),
+    ).toBe(false);
+    await service.checkMissedWindows(new Date('2026-09-29T12:15:00.000Z'));
+    expect(
+      [...events.keys()].filter((key) =>
+        key.startsWith('trend-ingestion-health/youtube/trends/missed/'),
+      ),
+    ).toHaveLength(1);
+  });
 });
