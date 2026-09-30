@@ -2,6 +2,7 @@ import {
   AgentArtifactReferenceService,
   type AgentArtifactReferenceTransaction,
 } from '@api/index';
+import { authorizeAgentArtifactWrite } from '@api/shared/utils/agent-artifact-reference-write.util';
 import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
@@ -147,6 +148,72 @@ describe('AgentArtifactReferenceService', () => {
         serialized: { data: { id: `${kind}-1` } },
         source: 'canonical',
       });
+    },
+  );
+
+  it.each([brandId, 'brand-2', null])(
+    'authorizes post writes against canonical scope (%s), ignoring supplied authority',
+    async (canonicalBrandId) => {
+      prisma.post.findFirst.mockResolvedValue({
+        brandId: canonicalBrandId,
+        description: 'Post',
+        id: 'post-1',
+        ingredients: [],
+        organizationId: orgId,
+      });
+      const write = authorizeAgentArtifactWrite({
+        authorizer: service,
+        inputs: [
+          {
+            artifactReferences: [
+              {
+                ...reference('post'),
+                brandId: 'forged-brand',
+                organizationId: 'forged-org',
+                serializer: 'ingredient',
+              },
+            ],
+          },
+        ],
+        readContext: { brandId, organizationId: orgId },
+      });
+      if (canonicalBrandId === brandId) {
+        await expect(write).resolves.toEqual({
+          artifactReferences: [reference('post')],
+          artifactVersionPinIds: [],
+        });
+      } else {
+        await expect(write).rejects.toBeInstanceOf(ForbiddenException);
+      }
+      expect(prisma.post.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'post-1', organizationId: orgId, isDeleted: false },
+        }),
+      );
+    },
+  );
+
+  it.each([brandId, null])(
+    'allows canonical posts in an unbound organization conversation (%s)',
+    async (canonicalBrandId) => {
+      prisma.post.findFirst.mockResolvedValue({
+        brandId: canonicalBrandId,
+        description: 'Post',
+        id: 'post-1',
+        ingredients: [],
+        organizationId: orgId,
+      });
+      const postReference = {
+        ...reference('post'),
+        brandId: canonicalBrandId ?? undefined,
+      };
+      await expect(
+        authorizeAgentArtifactWrite({
+          authorizer: service,
+          inputs: [{ artifactReferences: [postReference] }],
+          readContext: { organizationId: orgId },
+        }),
+      ).resolves.toMatchObject({ artifactReferences: [postReference] });
     },
   );
 

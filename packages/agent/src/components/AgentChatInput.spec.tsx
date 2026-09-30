@@ -40,6 +40,7 @@ vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
     isLoading: false,
     mentions: [
       {
+        brandId: 'brand-1',
         contentTitle: 'Launch post',
         contentType: 'post',
         id: 'post-1',
@@ -605,7 +606,7 @@ describe('AgentChatInput', () => {
     });
     // Legacy ^ tokens become visual tiles; same id as workspace selection → one entry.
     expect(
-      within(tray).getByLabelText('Referenced content: Launch post'),
+      within(tray).getByLabelText('Referenced content: Launch post: Skipped'),
     ).toBeInTheDocument();
     expect(within(tray).queryByText('^Launch post')).not.toBeInTheDocument();
   });

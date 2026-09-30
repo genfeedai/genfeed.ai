@@ -22,6 +22,7 @@ export interface AgentChatReferenceItem {
   /** Library content only — used for visual reference tiles. */
   contentType?: string;
   thumbnailUrl?: string;
+  isSkipped?: boolean;
 }
 
 type AgentChatInputAttachmentTrayProps = {
@@ -126,15 +127,20 @@ export function AgentChatInputAttachmentTray({
 
         {contentReferences.map((reference) => (
           <div
-            aria-label={translate('referencedContent', {
+            aria-label={`${translate('referencedContent', {
               label: reference.label,
-            })}
+            })}${reference.isSkipped ? ': Skipped' : ''}`}
             key={`content:${reference.id}`}
             className={cn(
               'group relative size-16 overflow-hidden rounded-md border border-border bg-background-secondary',
               isDisabled && 'opacity-60',
+              reference.isSkipped && 'border-destructive/50 opacity-60',
             )}
-            title={reference.label}
+            title={
+              reference.isSkipped
+                ? `${reference.label}: Skipped — brand does not match or is unknown. Pick this post again.`
+                : reference.label
+            }
             role="group"
           >
             {reference.thumbnailUrl ? (
@@ -169,7 +175,7 @@ export function AgentChatInputAttachmentTray({
               </Button>
             ) : null}
             <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-2xs font-medium text-foreground/70">
-              {reference.label}
+              {reference.isSkipped ? 'Skipped' : reference.label}
             </span>
           </div>
         ))}

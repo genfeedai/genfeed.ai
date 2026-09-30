@@ -61,6 +61,20 @@ describe('conversation composer draft persistence', () => {
     });
   });
 
+  it('preserves an explicitly unbranded post across remounts', () => {
+    const reference = {
+      brandId: null,
+      contentTitle: 'Unbranded',
+      contentType: 'text',
+      id: 'post-null',
+      kind: 'post' as const,
+    };
+    writeConversationComposerContentReferences('scope', [reference]);
+    expect(readConversationComposerDraft('scope').contentReferences).toEqual([
+      reference,
+    ]);
+  });
+
   it('isolates thread and context versions and clears only the sent draft', () => {
     writeConversationComposerDocument('acme:thread-1:1', { type: 'doc' }, 'A');
     writeConversationComposerDocument('acme:thread-1:2', { type: 'doc' }, 'B');
