@@ -50,7 +50,6 @@ describe('visual-code canonical actions', () => {
   it('exposes all valid aliases on agent and workflow without extending MCP', () => {
     for (const [alias, operation] of Object.entries(
       VISUAL_CODE_ACTION_ALIASES,
-      VISUAL_CODE_INPUT_SCHEMAS,
     )) {
       expect(alias).toMatch(/^[a-z_]+$/);
       const tool = getToolByName(alias);
