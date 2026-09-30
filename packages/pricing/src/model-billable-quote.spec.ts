@@ -5,6 +5,7 @@ import type {
 import { describe, expect, it } from 'vitest';
 import {
   allocateBillableCredits,
+  quoteModelBillableCompletion,
   quoteModelBillablePricing,
 } from './model-billable-quote';
 
@@ -302,5 +303,160 @@ describe('authoritative bill-time quote snapshots', () => {
     expect(allocateBillableCredits(10, 3)).toEqual([4, 3, 3]);
     expect(allocateBillableCredits(0, 3)).toEqual([0, 0, 0]);
     expect(() => allocateBillableCredits(1, 0)).toThrow(RangeError);
+  });
+  it('native request and mixed component completion ignores failed output positions', () => {
+    const profile = {
+      ...model,
+      rateVersion: 'mixed-v1',
+      requestCompletionPolicy: 'successful-request' as const,
+      reviewedPricing: {
+        version: 'mixed-v1',
+        currency: 'USD',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        reviewStatus: 'approved',
+        rates: [
+          {
+            component: 'request',
+            unit: 'request' as const,
+            unitPriceUsd: 0.1,
+            when: {},
+          },
+          {
+            component: 'outputs',
+            unit: 'output' as const,
+            unitPriceUsd: 0.033,
+            when: {},
+          },
+        ],
+      },
+    };
+    const quote = quoteModelBillablePricing(
+      profile,
+      { ...input, outputs: 3 },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    expect(quote.snapshot.credits).toBe(20);
+    expect(quote.snapshot.allocatedCredits).toEqual([7, 7, 6]);
+    expect(
+      quoteModelBillableCompletion(
+        {
+          ...quote.snapshot,
+          pricingProfile: {
+            ...quote.snapshot.pricingProfile,
+            requestCompletionPolicy: undefined,
+          },
+        },
+        { completedOutputs: 2, successfulRequests: 1 },
+      ).status,
+    ).toBe('unresolved');
+    for (const completedPositions of [
+      [0, 1],
+      [1, 2],
+      [2, 0],
+    ]) {
+      expect(
+        quoteModelBillableCompletion(quote.snapshot, {
+          completedOutputs: completedPositions.length,
+          successfulRequests: 1,
+        }),
+      ).toEqual({
+        status: 'priced',
+        credits: 17,
+        billableProviderCostUsd: 0.166,
+      });
+    }
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 0,
+      }),
+    ).toMatchObject({ status: 'priced', credits: 0 });
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 0,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 4,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
+    const request = quoteModelBillablePricing(
+      {
+        ...model,
+        pricingType: 'per-request',
+        providerCostUsd: 0.1,
+        requestCompletionPolicy: 'successful-request',
+      },
+      { ...input, outputs: 3 },
+      1,
+      date,
+    );
+    if (request.status !== 'priced') throw new Error(request.reason);
+    expect(
+      quoteModelBillableCompletion(request.snapshot, {
+        completedOutputs: 2,
+        successfulRequests: 1,
+      }),
+    ).toEqual({ status: 'priced', credits: 10, billableProviderCostUsd: 0.1 });
+  });
+  it('keeps rate/margin evidence immutable and refuses invented partial input usage', () => {
+    const profile = {
+      ...model,
+      rateVersion: 'v1',
+      requestCompletionPolicy: 'successful-request' as const,
+      reviewedPricing: {
+        version: 'v1',
+        currency: 'USD',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        reviewStatus: 'approved',
+        rates: [
+          {
+            component: 'request',
+            unit: 'request' as const,
+            unitPriceUsd: 0.1,
+            when: {},
+          },
+          {
+            component: 'references',
+            unit: 'reference' as const,
+            unitPriceUsd: 0.01,
+            when: {},
+          },
+        ],
+      },
+    };
+    const quote = quoteModelBillablePricing(
+      profile,
+      { ...input, outputs: 2, requests: 2, references: 4 },
+      1,
+      date,
+    );
+    if (quote.status !== 'priced') throw new Error(quote.reason);
+    profile.reviewedPricing.rates[0].unitPriceUsd = 99;
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+      }).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillableCompletion(quote.snapshot, {
+        completedOutputs: 1,
+        successfulRequests: 1,
+        references: 2,
+      }),
+    ).toEqual({
+      status: 'priced',
+      credits: 12,
+      billableProviderCostUsd: 0.12,
+    });
+    expect(quote.snapshot.marginMultiplier).toBe(1);
   });
 });

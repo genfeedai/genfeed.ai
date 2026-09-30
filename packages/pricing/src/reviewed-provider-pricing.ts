@@ -5,6 +5,7 @@ import type {
   ReviewedProviderRate,
 } from '@genfeedai/contracts/interfaces';
 
+import { multiplyDecimalPricing, sumDecimalPricing } from './decimal-pricing';
 import { applyMargin } from './plans-pricing';
 
 function validQuantity(value: unknown): value is number {
@@ -93,7 +94,7 @@ export function quoteReviewedProviderPricing(
       rate,
     ]);
   }
-  let providerCostUsd = 0;
+  const componentCosts: number[] = [];
   for (const [component, rates] of components) {
     const matches = rates.filter((rate) =>
       Object.entries(rate.when).every(
@@ -133,9 +134,15 @@ export function quoteReviewedProviderPricing(
     }
     let billedUnits = Math.max(minimum, units - included, 0);
     if (step > 0) billedUnits = Math.ceil(billedUnits / step) * step;
-    providerCostUsd +=
-      billedUnits * rate.unitPriceUsd * (rate.isPerOutput ? outputs : 1);
+    componentCosts.push(
+      multiplyDecimalPricing(
+        billedUnits,
+        rate.unitPriceUsd,
+        rate.isPerOutput ? outputs : 1,
+      ),
+    );
   }
+  const providerCostUsd = sumDecimalPricing(componentCosts);
   if (!Number.isFinite(providerCostUsd))
     return unresolved('Provider cost is outside supported precision');
   return {

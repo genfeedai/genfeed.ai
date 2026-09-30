@@ -117,6 +117,8 @@ export interface ModelBillablePricingProfile {
   hasPendingRate: boolean;
   requiresReviewedRates: boolean;
   requiredSelectorKeys: string[];
+  /** Trusted admission policy, frozen with the quote; never inferred at settlement. */
+  requestCompletionPolicy?: 'successful-request' | 'fractional-subsidy';
 }
 
 export interface ModelBillableQuoteRequest extends ProviderQuoteDimensions {
@@ -139,9 +141,25 @@ export interface ModelBillableQuoteSnapshot {
   providerCostUsd: number | null;
   credits: number;
   allocationBasis: 'request' | 'output';
+  /** Reservation allocation only; never sum these positions for partial settlement. */
   allocatedCredits: number[];
+  /** Internal immutable rate inputs; public quote serializers must omit these. */
+  pricingProfile: ModelBillablePricingProfile;
 }
 
 export type ModelBillableQuote =
   | { status: 'priced'; snapshot: ModelBillableQuoteSnapshot }
+  | { status: 'unresolved'; reason: string };
+
+export interface ModelBillableCompletionInput extends ProviderQuoteDimensions {
+  completedOutputs: number;
+  successfulRequests: number;
+}
+
+export type ModelBillableCompletionQuote =
+  | {
+      status: 'priced';
+      credits: number;
+      billableProviderCostUsd: number | null;
+    }
   | { status: 'unresolved'; reason: string };

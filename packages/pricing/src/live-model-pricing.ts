@@ -1,6 +1,7 @@
 import { PricingType } from '@genfeedai/contracts';
 import type { CreditsPricingMetadata } from '@genfeedai/contracts/interfaces';
 
+import { multiplyDecimalPricing } from './decimal-pricing';
 import { applyMargin, getRuntimeMarginMultiplier } from './plans-pricing';
 
 /**
@@ -262,6 +263,6 @@ export function resolveBillableProviderCost(
     default:
       return null;
   }
-  const cost = rate * units * cardinality;
+  const cost = multiplyDecimalPricing(rate, units, cardinality);
   return Number.isFinite(cost) ? cost : null;
 }

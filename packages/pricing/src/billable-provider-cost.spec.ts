@@ -8,9 +8,7 @@ describe('strict bill-time provider units', () => {
     defaultDuration: 10,
   };
   it('bills actual avatar duration, not the ten-second display sample', () => {
-    expect(resolveBillableProviderCost(metered, { duration: 90 })).toBe(
-      21.599999999999998,
-    );
+    expect(resolveBillableProviderCost(metered, { duration: 90 })).toBe(21.6);
     expect(resolveBillableProviderCost(metered, {})).toBeNull();
   });
   it.each([0, -1, Infinity, NaN])('rejects invalid duration %s', (duration) => {

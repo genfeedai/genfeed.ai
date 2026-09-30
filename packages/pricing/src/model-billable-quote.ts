@@ -1,4 +1,6 @@
 import type {
+  ModelBillableCompletionInput,
+  ModelBillableCompletionQuote,
   ModelBillablePricingProfile,
   ModelBillableQuote,
   ModelBillableQuoteRequest,
@@ -229,10 +231,116 @@ export function quoteModelBillablePricing(
       providerCostUsd,
       credits,
       allocationBasis,
+      pricingProfile: {
+        ...model,
+        requiredSelectorKeys: [...model.requiredSelectorKeys],
+        reviewedPricing: model.reviewedPricing
+          ? {
+              ...model.reviewedPricing,
+              invariantSelectors: [
+                ...(model.reviewedPricing.invariantSelectors ?? []),
+              ],
+              rates: model.reviewedPricing.rates
+                .filter((rate) =>
+                  Object.entries(rate.when).every(
+                    ([key, value]) => input.selectors?.[key] === value,
+                  ),
+                )
+                .map((rate) => ({ ...rate, when: { ...rate.when } })),
+            }
+          : null,
+      },
       allocatedCredits: allocateBillableCredits(
         credits,
         allocationBasis === 'request' ? requests : outputs,
       ),
     },
+  };
+}
+
+/** Price durable completion from reserved rate evidence, independently of output positions.
+ * Billing supplies successfulRequests under its existing failure-cost contract.
+ * This does not settle a wallet or infer the disposition of a failed request fee.
+ */
+export function quoteModelBillableCompletion(
+  snapshot: ModelBillableQuoteSnapshot,
+  completion: ModelBillableCompletionInput,
+): ModelBillableCompletionQuote {
+  const unresolved = (reason: string): ModelBillableCompletionQuote => ({
+    status: 'unresolved',
+    reason,
+  });
+  const { completedOutputs, successfulRequests } = completion;
+  const reservedOutputs = snapshot.quantities.outputs ?? 1;
+  const reservedRequests = snapshot.quantities.requests ?? 1;
+  if (
+    ![completedOutputs, successfulRequests].every(
+      (count) => Number.isSafeInteger(count) && count >= 0,
+    ) ||
+    completedOutputs > reservedOutputs ||
+    successfulRequests > reservedRequests
+  )
+    return unresolved('Completion cardinality exceeds the reserved request');
+  if (completedOutputs === 0 && successfulRequests === 0)
+    return { status: 'priced', credits: 0, billableProviderCostUsd: 0 };
+  if (completedOutputs === 0 || successfulRequests === 0)
+    return unresolved(
+      'Request fee disposition requires the existing successful-request contract',
+    );
+  const rates = snapshot.pricingProfile.reviewedPricing?.rates ?? [];
+  const hasRequestComponent =
+    snapshot.pricingProfile.pricingType === 'per-request' ||
+    rates.some((rate) => rate.unit === 'request');
+  if (
+    hasRequestComponent &&
+    completedOutputs !== reservedOutputs &&
+    snapshot.pricingProfile.requestCompletionPolicy !== 'successful-request'
+  )
+    return unresolved(
+      'Partial request-component settlement requires an approved frozen completion policy',
+    );
+  // Shared input usage cannot be guessed by dividing outputs or request counts.
+  if (successfulRequests !== reservedRequests) {
+    const usageKeys = {
+      'input-second': 'inputDuration',
+      'input-megapixel': 'inputMegapixels',
+      'input-token': 'inputTokens',
+      'output-token': 'outputTokens',
+      character: 'characters',
+      reference: 'references',
+    } as const;
+    for (const rate of rates) {
+      const key = usageKeys[rate.unit as keyof typeof usageKeys];
+      if (key && completion[key] === undefined)
+        return unresolved(
+          'Completed input/usage quantities are required for partial requests',
+        );
+    }
+  }
+  const quantities = {
+    ...snapshot.quantities,
+    ...completion,
+    outputs: completedOutputs,
+    requests: successfulRequests,
+  };
+  const quote = quoteModelBillablePricing(
+    snapshot.pricingProfile,
+    {
+      ...quantities,
+      modelKey: snapshot.modelKey,
+      provider: snapshot.provider,
+    },
+    snapshot.marginMultiplier,
+    snapshot.quotedAt,
+  );
+  if (quote.status === 'unresolved') return quote;
+  if (quote.snapshot.credits > snapshot.credits)
+    return unresolved(
+      'Completed usage exceeds the reserved credit authorization',
+    );
+  return {
+    status: 'priced',
+    credits: quote.snapshot.credits,
+    billableProviderCostUsd: quote.snapshot.providerCostUsd,
   };
 }
