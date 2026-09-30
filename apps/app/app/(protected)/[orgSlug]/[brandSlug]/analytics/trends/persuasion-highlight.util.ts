@@ -2,8 +2,10 @@ import type {
   IPersuasionScores,
   ITrendVideoPersuasionHighlight,
 } from '@genfeedai/contracts/interfaces';
-import { normalizePersuasionScores } from '@genfeedai/harness';
-import { PERSUASION_LAYERS } from '@genfeedai/harness/contracts';
+import {
+  normalizePersuasionScores,
+  PERSUASION_LAYERS,
+} from '@genfeedai/harness/contracts';
 
 /**
  * Picks the single highest-scoring persuasion layer for a "why it works"
