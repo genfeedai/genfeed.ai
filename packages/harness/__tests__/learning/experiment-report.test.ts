@@ -93,6 +93,13 @@ describe('frozen opportunity denominators and online gates', () => {
           ...observations[0],
           id: 'failed',
           generated: false,
+          readinessKnown: false,
+          publishable: null,
+          approved: false,
+          published: false,
+          unchanged: false,
+          publishedDescendants: 0,
+          censorReason: 'generation_failed',
           reward: null,
           costMicros: null,
           generationClosed: false,
@@ -136,6 +143,7 @@ it.each([
   { readinessKnown: false, publishable: true },
   { published: false },
   { unchanged: false },
+  { generated: false },
 ])('blocks inconsistent or nonfinite online evidence: %j', (patch) => {
   expect(() =>
     buildLearningExperimentReport({

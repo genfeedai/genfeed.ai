@@ -76,6 +76,30 @@ function validateObservations(
         !row.unchanged)
     )
       reject(index, 'reward');
+    for (const field of [
+      'generated',
+      'readinessKnown',
+      'approved',
+      'published',
+      'unchanged',
+      'generationClosed',
+      'publicationEnumerationComplete',
+      'criticalSafetyFailure',
+      'cadenceChanged',
+    ] as const)
+      if (typeof row[field] !== 'boolean') reject(index, field);
+    if (row.publishable !== null && typeof row.publishable !== 'boolean')
+      reject(index, 'publishable');
+    if (
+      !row.generated &&
+      (row.approved ||
+        row.published ||
+        row.unchanged ||
+        row.reward !== null ||
+        row.publishable === true)
+    )
+      reject(index, 'generated');
+    if (row.unchanged && !row.published) reject(index, 'unchanged');
     if (!row.readinessKnown && row.publishable !== null)
       reject(index, 'publishable');
   });
