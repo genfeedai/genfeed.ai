@@ -86,7 +86,8 @@ function callbackBlock(call: ts.CallExpression): ts.Block | undefined {
   if (
     !callback ||
     (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
-    (ts.isFunctionExpression(callback) && Boolean(callback.asteriskToken)) ||
+    (ts.isFunctionExpression(callback) &&
+      Boolean(callback.asteriskToken || callback.name)) ||
     callback.parameters.length > 0 ||
     !ts.isBlock(callback.body)
   )
@@ -159,45 +160,82 @@ function declaresSubject(node: ts.Node, subject: string): boolean {
   );
 }
 
-function fixtureResets(block: ts.Block, subject: string): boolean {
-  return block.statements.some((statement) => {
-    if (
-      !ts.isExpressionStatement(statement) ||
-      !namedCall(statement.expression, 'beforeEach')
-    )
-      return false;
-    const callback = statement.expression.arguments[0];
-    if (
-      !callback ||
-      (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
-      !ts.isBlock(callback.body) ||
-      (ts.isFunctionExpression(callback) && Boolean(callback.asteriskToken)) ||
-      callback.parameters.length > 0
-    )
-      return false;
-    let conditionalReset = false;
-    function inspectSetup(node: ts.Node): void {
-      if (declaresSubject(node, subject)) conditionalReset = true;
-      if (ts.isFunctionLike(node)) return;
+const LIFECYCLE_HOOKS = new Set([
+  'beforeEach',
+  'afterEach',
+  'beforeAll',
+  'afterAll',
+]);
+
+function conditionalExecution(node: ts.Node): boolean {
+  return (
+    ts.isReturnStatement(node) ||
+    ts.isThrowStatement(node) ||
+    ts.isIfStatement(node) ||
+    ts.isSwitchStatement(node) ||
+    ts.isTryStatement(node) ||
+    ts.isIterationStatement(node, false) ||
+    ts.isConditionalExpression(node) ||
+    ((ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node)) &&
+      (node.operator === ts.SyntaxKind.PlusPlusToken ||
+        node.operator === ts.SyntaxKind.MinusMinusToken)) ||
+    (ts.isBinaryExpression(node) &&
+      [
+        ts.SyntaxKind.AmpersandAmpersandToken,
+        ts.SyntaxKind.BarBarToken,
+        ts.SyntaxKind.QuestionQuestionToken,
+      ].includes(node.operatorToken.kind))
+  );
+}
+
+function fixtureResets(
+  block: ts.Block,
+  subject: string,
+  scopes: ReadonlyArray<ts.Block | ts.SourceFile>,
+): boolean {
+  let hasReset = false;
+  for (const scope of scopes)
+    for (const statement of scope.statements) {
       if (
-        ts.isReturnStatement(node) ||
-        ts.isThrowStatement(node) ||
-        ts.isIfStatement(node) ||
-        ts.isSwitchStatement(node) ||
-        ts.isTryStatement(node) ||
-        ts.isIterationStatement(node, false)
+        !ts.isExpressionStatement(statement) ||
+        !ts.isCallExpression(statement.expression) ||
+        !ts.isIdentifier(statement.expression.expression) ||
+        !LIFECYCLE_HOOKS.has(statement.expression.expression.text)
       )
-        conditionalReset = true;
-      ts.forEachChild(node, inspectSetup);
+        continue;
+      const call = statement.expression;
+      const callback = call.arguments[0];
+      if (
+        !callback ||
+        (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
+        !ts.isBlock(callback.body) ||
+        (ts.isFunctionExpression(callback) &&
+          Boolean(callback.asteriskToken)) ||
+        callback.parameters.length > 0 ||
+        call.questionDotToken
+      )
+        return false;
+      let unsafe = false;
+      function inspectSetup(node: ts.Node): void {
+        if (declaresSubject(node, subject)) unsafe = true;
+        if (ts.isFunctionLike(node)) return;
+        if (conditionalExecution(node)) unsafe = true;
+        ts.forEachChild(node, inspectSetup);
+      }
+      inspectSetup(callback.body);
+      if (unsafe) return false;
+      if (
+        scope === block &&
+        namedCall(call, 'beforeEach') &&
+        callback.body.statements.some(
+          (setup) =>
+            ts.isExpressionStatement(setup) &&
+            assignsSubject(setup.expression, subject),
+        )
+      )
+        hasReset = true;
     }
-    inspectSetup(callback.body);
-    if (conditionalReset) return false;
-    return callback.body.statements.some(
-      (setup) =>
-        ts.isExpressionStatement(setup) &&
-        assignsSubject(setup.expression, subject),
-    );
-  });
+  return hasReset;
 }
 
 function hasLifecycleAssertions(block: ts.Block | ts.SourceFile): boolean {
@@ -207,9 +245,7 @@ function hasLifecycleAssertions(block: ts.Block | ts.SourceFile): boolean {
       !ts.isExpressionStatement(statement) ||
       !ts.isCallExpression(statement.expression) ||
       !ts.isIdentifier(statement.expression.expression) ||
-      !['beforeEach', 'afterEach', 'beforeAll', 'afterAll'].includes(
-        statement.expression.expression.text,
-      )
+      !LIFECYCLE_HOOKS.has(statement.expression.expression.text)
     )
       continue;
     function visit(node: ts.Node): void {
@@ -226,30 +262,12 @@ function isWitness(test: TestCase, subject: string): boolean {
   let hasAssertion = false;
   let isUnsafe = false;
   function visit(node: ts.Node): void {
-    if (
-      ts.isIfStatement(node) ||
-      ts.isSwitchStatement(node) ||
-      ts.isTryStatement(node) ||
-      ts.isIterationStatement(node, false) ||
-      ts.isConditionalExpression(node) ||
-      ts.isReturnStatement(node) ||
-      ts.isThrowStatement(node)
-    )
-      isUnsafe = true;
+    if (conditionalExecution(node)) isUnsafe = true;
     if (declaresSubject(node, subject)) isUnsafe = true;
     if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
       node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
-    )
-      isUnsafe = true;
-    if (
-      ts.isBinaryExpression(node) &&
-      [
-        ts.SyntaxKind.AmpersandAmpersandToken,
-        ts.SyntaxKind.BarBarToken,
-        ts.SyntaxKind.QuestionQuestionToken,
-      ].includes(node.operatorToken.kind)
     )
       isUnsafe = true;
     if (ts.isFunctionLike(node)) return;
@@ -284,14 +302,17 @@ export function analyzeSmokeTests(
   if (!isEligibleTestPath(file)) return [];
   const ast = parseSourceFile(file, source, true, scriptKindFor(file));
   const removed: SmokeCandidate[] = [];
-  function visitSuite(block: ts.Block): void {
+  function visitSuite(
+    block: ts.Block,
+    scopes: ReadonlyArray<ts.Block | ts.SourceFile>,
+  ): void {
     if (hasLifecycleAssertions(block)) return;
     const tests = block.statements
       .map(testCase)
       .filter((test): test is TestCase => test !== undefined);
     for (const test of tests) {
       const subject = smokeSubject(test);
-      if (!subject || !fixtureResets(block, subject)) continue;
+      if (!subject || !fixtureResets(block, subject, scopes)) continue;
       const witness = tests.find(
         (other) => other !== test && isWitness(other, subject),
       );
@@ -315,9 +336,12 @@ export function analyzeSmokeTests(
             .line + 1,
       });
     }
-    visitStatements(block.statements);
+    visitStatements(block.statements, scopes);
   }
-  function visitStatements(statements: ts.NodeArray<ts.Statement>): void {
+  function visitStatements(
+    statements: ts.NodeArray<ts.Statement>,
+    ancestors: ReadonlyArray<ts.Block | ts.SourceFile>,
+  ): void {
     for (const statement of statements) {
       if (
         !ts.isExpressionStatement(statement) ||
@@ -325,7 +349,7 @@ export function analyzeSmokeTests(
       )
         continue;
       const suite = callbackBlock(statement.expression);
-      if (suite) visitSuite(suite);
+      if (suite) visitSuite(suite, [...ancestors, suite]);
     }
   }
   // Conditional/parameterized registration and imported/custom runner globals are outside this rule.
@@ -352,16 +376,7 @@ export function analyzeSmokeTests(
       hasCustomBindings = true;
     if (
       ts.isImportDeclaration(node) &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      (node.moduleSpecifier.text !== 'vitest' ||
-        (node.importClause?.namedBindings &&
-          ts.isNamedImports(node.importClause.namedBindings) &&
-          node.importClause.namedBindings.elements.some(
-            (element) =>
-              globals.has(element.name.text) &&
-              (element.propertyName?.text ?? element.name.text) !==
-                element.name.text,
-          )))
+      ts.isStringLiteral(node.moduleSpecifier)
     ) {
       if (node.importClause?.name && globals.has(node.importClause.name.text))
         hasCustomBindings = true;
@@ -375,7 +390,13 @@ export function analyzeSmokeTests(
       if (
         bindings &&
         ts.isNamedImports(bindings) &&
-        bindings.elements.some((element) => globals.has(element.name.text))
+        bindings.elements.some(
+          (element) =>
+            globals.has(element.name.text) &&
+            (node.moduleSpecifier.text !== 'vitest' ||
+              (element.propertyName?.text ?? element.name.text) !==
+                element.name.text),
+        )
       )
         hasCustomBindings = true;
     }
@@ -383,7 +404,7 @@ export function analyzeSmokeTests(
   }
   checkBinding(ast);
   if (!hasCustomBindings && !hasLifecycleAssertions(ast))
-    visitStatements(ast.statements);
+    visitStatements(ast.statements, [ast]);
   return removed.sort((left, right) => left.start - right.start);
 }
 

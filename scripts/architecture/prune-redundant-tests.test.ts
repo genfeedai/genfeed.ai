@@ -116,6 +116,39 @@ describe('conservative smoke pruning', () => {
     ).toEqual([]);
   });
 
+  it('rejects conditional or order-dependent lifecycle setup in every applicable hook', () => {
+    for (const setup of [
+      'service = ++counter === 1 ? undefined : buildService();',
+      'service = enabled && buildService();',
+      'service = buildService(); counter++;',
+    ])
+      expect(
+        analyzeSmokeTests(
+          FILE,
+          suite(SMOKE, WITNESS).replace('service = buildService();', setup),
+        ),
+      ).toEqual([]);
+    const contextHook = `beforeEach(({ task }) => { if (task.name === 'returns folders') service = buildService(); });`;
+    expect(
+      analyzeSmokeTests(
+        FILE,
+        suite(SMOKE, WITNESS).replace(
+          'let service;',
+          `let service; ${contextHook}`,
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      analyzeSmokeTests(FILE, `${contextHook} ${suite(SMOKE, WITNESS)}`),
+    ).toEqual([]);
+    expect(
+      analyzeSmokeTests(
+        FILE,
+        `describe('parent', () => { ${contextHook} ${suite(SMOKE, WITNESS)} });`,
+      ),
+    ).toEqual([]);
+  });
+
   it('does not use skipped or conditional tests as witnesses', () => {
     for (const witness of [
       WITNESS.replace("it('returns", "it.skip('returns"),
@@ -148,6 +181,8 @@ describe('conservative smoke pruning', () => {
       'const { nested: { service } } = buildHarness();',
       'service = buildService();',
       'service ??= buildService();',
+      'service++;',
+      '++service;',
       '({ service } = buildHarness());',
     ]) {
       expect(
@@ -232,9 +267,32 @@ describe('conservative smoke pruning', () => {
     }
   });
 
+  it('rejects named callbacks that can bind their own fixture name', () => {
+    expect(
+      analyzeSmokeTests(
+        FILE,
+        suite(
+          SMOKE,
+          WITNESS.replace('async () =>', 'async function service()'),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      analyzeSmokeTests(
+        FILE,
+        suite(SMOKE, WITNESS).replace(
+          'beforeEach(() =>',
+          'beforeEach(function service()',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
   it('does not reinterpret custom or non-Vitest runner bindings', () => {
     for (const binding of [
       `import { expect, it } from 'bun:test';`,
+      `import expect from 'vitest';`,
+      `import * as expect from 'vitest';`,
       `import { customAssert as expect } from 'vitest';`,
       `const expect = customAssert;`,
       `function beforeEach(callback) { callback(); }`,
