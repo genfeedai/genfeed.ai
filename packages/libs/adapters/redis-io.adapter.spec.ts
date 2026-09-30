@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { RedisIoAdapter } from '@libs/adapters/redis-io.adapter';
 import type { LoggerService } from '@libs/logger/logger.service';
 import * as redisAdapter from '@socket.io/redis-adapter';
@@ -53,6 +54,14 @@ describe('RedisIoAdapter', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('shares one Socket.IO server resolution with the Nest adapter', () => {
+    const require = createRequire(import.meta.url);
+    const nestRequire = createRequire(
+      require.resolve('@nestjs/platform-socket.io'),
+    );
+    expect(nestRequire.resolve('socket.io')).toBe(require.resolve('socket.io'));
   });
 
   it('should be defined', () => {
