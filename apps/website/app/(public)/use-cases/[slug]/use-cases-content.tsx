@@ -1,10 +1,10 @@
 import type { UseCase } from '@data/use-cases.data';
 import { getPlanLabel } from '@genfeedai/pricing';
-import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import { Check, X } from 'lucide-react';
 import Link from 'next/link';
@@ -38,23 +38,7 @@ export default function UseCasesContent({ useCase }: { useCase: UseCase }) {
           ]}
         />
       }
-      heroVisual={
-        <EditorialPoster
-          eyebrow={useCase.subtitle}
-          title={useCase.headline}
-          detail={useCase.description}
-          items={useCase.workflow.slice(0, 3).map((step) => ({
-            label: `Step ${step.step}`,
-            value: step.title,
-          }))}
-          footer={
-            <>
-              <span>{useCase.audience}</span>
-              <span>{useCase.cta}</span>
-            </>
-          }
-        />
-      }
+      heroVisual={<MarketingArtwork page={`/use-cases/${useCase.slug}`} />}
     >
       <section className="max-w-6xl mx-auto pb-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-edge/5">

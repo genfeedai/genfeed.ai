@@ -60,7 +60,7 @@ export default function ProofHeroPage({
             </div>
 
             {heroVisual ? (
-              <div className="lg:justify-self-end">{heroVisual}</div>
+              <div className="w-full lg:justify-self-end">{heroVisual}</div>
             ) : null}
           </div>
         </div>

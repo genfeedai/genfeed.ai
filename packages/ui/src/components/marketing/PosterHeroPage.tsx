@@ -73,7 +73,7 @@ export default function PosterHeroPage({
             </div>
 
             {heroVisual ? (
-              <div className="lg:justify-self-end">{heroVisual}</div>
+              <div className="w-full lg:justify-self-end">{heroVisual}</div>
             ) : null}
           </div>
         </div>

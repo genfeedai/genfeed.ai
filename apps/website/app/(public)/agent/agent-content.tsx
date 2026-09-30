@@ -7,6 +7,7 @@ import EditorialPoster from '@ui/marketing/EditorialPoster';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import { Blocks, BookOpen, Plug, Terminal } from 'lucide-react';
@@ -105,6 +106,9 @@ export default function AgentContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/agent" isCompact kind="integration" />
+        }
         compact
         description="Tell it what you want. It makes the content, keeps it on brand, and schedules it — and shows you everything before it goes out."
         heroActions={<AgentFirstActions trackingName="agent_hero_click" />}

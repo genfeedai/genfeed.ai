@@ -9,6 +9,7 @@ import {
   TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { Button } from '@ui/primitives/button';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -41,6 +42,7 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={<MarketingArtwork page="/skills" kind="workflow" />}
         badge="Open Source Skills"
         badgeIcon={BrainCircuit}
         compact

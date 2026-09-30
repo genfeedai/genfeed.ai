@@ -66,6 +66,7 @@ interface ApiEnvConfig extends IEnvConfig {
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
   MARKETPLACE_API_URL?: string;
+  MARKETPLACE_AUTH_ORIGIN?: string;
   LOGO_DEV_PUBLISHABLE_KEY?: string;
   PGSSLROOTCERT?: string;
   PRISMA_POSTGRES_CA_FILE?: string;
@@ -116,6 +117,7 @@ const apiSpecificSchema = {
     .valid('true', 'false')
     .optional()
     .allow(''),
+  MARKETPLACE_AUTH_ORIGIN: Joi.string().uri().optional(),
   // Marketplace (extracted service)
   MARKETPLACE_API_URL: Joi.string()
     .uri()

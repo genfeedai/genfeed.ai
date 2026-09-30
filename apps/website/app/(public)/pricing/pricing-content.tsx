@@ -22,6 +22,7 @@ import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
 import FaqGrid from '@web-components/content/FaqGrid';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -150,6 +151,9 @@ export default function PricingContent() {
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/pricing" isCompact kind="campaign" />
+        }
         title={<>Pay for output.</>}
         description="Signing up is free. Credits buy the content you generate; a subscription makes those credits cheaper and unlocks API access plus shared team seats."
       >
