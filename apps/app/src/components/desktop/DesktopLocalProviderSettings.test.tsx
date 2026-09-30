@@ -1,3 +1,4 @@
+import type { DesktopRuntimeSnapshot } from '@genfeedai/services/core/desktop-runtime.service';
 import '@testing-library/jest-dom/vitest';
 import {
   act,
@@ -10,13 +11,32 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DesktopLocalProviderSettings from './DesktopLocalProviderSettings';
 
+const runtimeMocks = vi.hoisted(() => ({
+  snapshot: {
+    status: 'ready',
+    context: {
+      version: 1,
+      runtimeId: 'local',
+      revision: 0,
+      status: 'ready',
+      selectedServerId: 'cloud',
+      selectedServerKind: 'cloud',
+      selectedApiEndpoint: 'https://api.genfeed.ai/v1',
+      runtimeMode: 'local',
+      generationExecution: 'unknown',
+      localProvider: null,
+    },
+  } as DesktopRuntimeSnapshot,
+}));
+vi.mock(
+  '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context',
+  () => ({ useDesktopRuntimeContext: () => runtimeMocks.snapshot }),
+);
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import(
     '../../../tests/next-intl.stub'
   );
-  const translate = translateFromCatalog('common.desktop.provider');
-
-  return { useTranslations: () => translate };
+  return { useTranslations: translateFromCatalog };
 });
 
 const mocks = vi.hoisted(() => ({
@@ -111,6 +131,33 @@ describe('DesktopLocalProviderSettings', () => {
     });
     mocks.testProviderConfig.mockResolvedValue({ latencyMs: 123 });
   });
+
+  it.each([
+    ['local', 'Local generation · no Genfeed credits'],
+    ['remote', 'Your provider · no Genfeed credits. Provider fees may apply'],
+    ['unknown', 'Provider cost unavailable'],
+  ] as const)(
+    'labels configured %s transport without claiming provider fees are free',
+    async (networkAccess, label) => {
+      setupBridge();
+      const context = runtimeMocks.snapshot.context;
+      if (!context) throw new Error('Missing runtime fixture');
+      runtimeMocks.snapshot = {
+        status: 'ready',
+        context: {
+          ...context,
+          generationExecution: 'local-byok',
+          localProvider: { provider: 'openai-compatible', networkAccess },
+        },
+      };
+      render(<DesktopLocalProviderSettings />);
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('desktop-provider-generation-cost'),
+        ).toHaveTextContent(label),
+      );
+    },
+  );
 
   it('loads an existing local provider config', async () => {
     render(<DesktopLocalProviderSettings />);

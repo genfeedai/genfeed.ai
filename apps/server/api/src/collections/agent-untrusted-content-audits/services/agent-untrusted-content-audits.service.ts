@@ -3,6 +3,7 @@ import {
   type CreateAgentUntrustedContentAuditInput,
   type IAgentUntrustedContentAuditDocument,
   parseAgentUntrustedContentGateOutcome,
+  parseAgentUntrustedContentOrigin,
   parseAgentUntrustedContentSource,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
@@ -19,6 +20,7 @@ type StoredAgentUntrustedContentAuditRow = {
   minConfidence: number;
   mode: string;
   organizationId: string;
+  origin: string;
   outcome: string;
   source: string;
   toolName: string;
@@ -52,6 +54,7 @@ export class AgentUntrustedContentAuditsService {
         minConfidence: input.minConfidence,
         mode: input.mode,
         organizationId: input.organizationId,
+        origin: input.origin,
         outcome: input.outcome,
         source: input.source,
         toolName: input.toolName,
@@ -78,6 +81,7 @@ export class AgentUntrustedContentAuditsService {
       minConfidence: row.minConfidence,
       mode: row.mode,
       organizationId: row.organizationId,
+      origin: parseAgentUntrustedContentOrigin(row.origin),
       outcome: parseAgentUntrustedContentGateOutcome(row.outcome),
       source: parseAgentUntrustedContentSource(row.source),
       toolName: row.toolName,

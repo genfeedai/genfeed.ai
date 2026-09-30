@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
+import type { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import type { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ApiKeyScope } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -24,6 +25,12 @@ describe('AgentToolsController publishing scopes', () => {
     executor as unknown as AgentToolExecutorService,
     {} as UsersService,
     { error: vi.fn() } as unknown as LoggerService,
+    {
+      evaluateToolResult: vi.fn(async ({ content }) => ({
+        content,
+        outcome: 'allowed',
+      })),
+    } as unknown as AgentUntrustedContentGateService,
   );
 
   it('rejects confirmed direct publishing with only the legacy draft scope', async () => {

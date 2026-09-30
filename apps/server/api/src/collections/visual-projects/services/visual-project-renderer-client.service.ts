@@ -49,7 +49,9 @@ export class VisualProjectRendererClientService {
     );
     if (
       this.config.get('VISUAL_CODE_RENDERER_ENABLED') !== 'true' ||
+      typeof endpoint !== 'string' ||
       !endpoint ||
+      typeof token !== 'string' ||
       !token ||
       !Number.isFinite(rate) ||
       rate < 0

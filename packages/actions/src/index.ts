@@ -82,7 +82,6 @@ export type {
   MutationPolicyDecision,
 } from './registry/mutation-policy';
 export {
-  buildLogicalWriteKey,
   evaluateMutationPolicy,
   getDeclaredMutationPolicy,
   isApprovalRequiredToolName,

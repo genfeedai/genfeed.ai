@@ -14,6 +14,7 @@ import {
   testWorkflowTemplates,
 } from '../../fixtures/test-data.fixture';
 import { WorkflowPage } from '../../pages/workflow.page';
+import { currentRoute } from '../../utils/app-chrome';
 
 type ReviewGateExecutionState = 'approved' | 'pending' | 'rejected';
 
@@ -292,10 +293,12 @@ test.describe('Workflow Editor', () => {
       authenticatedPage.getByText('Review Gate').first(),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Approve' }),
+      authenticatedPage.getByRole('button', { exact: true, name: 'Approve' }),
     ).toBeVisible();
 
-    await authenticatedPage.getByRole('button', { name: 'Approve' }).click();
+    await authenticatedPage
+      .getByRole('button', { exact: true, name: 'Approve' })
+      .click();
 
     await expect.poll(() => executionState).toBe('approved');
 
@@ -392,9 +395,9 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoTemplates();
 
-    await expect(authenticatedPage).toHaveURL(
-      /automation\/workflows\/templates/,
-    );
+    await expect
+      .poll(() => currentRoute(authenticatedPage))
+      .toBe(workflowPage.templatesPath);
     await expect(workflowPage.mainContent).toBeVisible();
   });
 
@@ -404,15 +407,13 @@ test.describe('Workflow Editor', () => {
     await workflowPage.gotoEditor();
     await expect(authenticatedPage).toHaveURL(/\/automation\/workflows\/new$/);
 
-    for (const [tab, pathname] of [
+    for (const [tab, route] of [
       ['library', workflowPage.basePath],
       ['templates', workflowPage.templatesPath],
       ['executions', workflowPage.runsPath],
     ] as const) {
       await workflowPage.navigateViaTab(tab);
-      await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(pathname);
+      await expect.poll(() => currentRoute(authenticatedPage)).toBe(route);
     }
   });
 

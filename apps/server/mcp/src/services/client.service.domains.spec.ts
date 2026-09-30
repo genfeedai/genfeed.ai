@@ -93,6 +93,47 @@ describe('ClientService (MCP) domain clients', () => {
     expect(mockAxiosInstance.patch).not.toHaveBeenCalled();
   });
 
+  it('posts only content to the authenticated result adapter and preserves its contract', async () => {
+    const content = JSON.stringify({
+      content: [{ type: 'text', text: 'payload' }],
+      structuredContent: { data: 'payload' },
+    });
+    const gated = { content, outcome: 'shadow_flagged', confidence: 0.99 };
+    mockAxiosInstance.post.mockResolvedValue({ data: gated });
+    expect(
+      await service.evaluateMcpToolResult('search_articles', content),
+    ).toEqual(gated);
+    expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+      '/agent-tools/search_articles/result-gate',
+      { content },
+    );
+  });
+
+  it.each([{ data: { invalid: true } }, null])(
+    'fails safely on invalid classification response without logging upstream payload',
+    async (response) => {
+      mockAxiosInstance.post.mockResolvedValue(response);
+      await expect(
+        service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+      ).rejects.toThrow('MCP result classification unavailable');
+      expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
+        'RAW_SECRET',
+      );
+    },
+  );
+  it('does not expose adapter error detail or response payload to the shared request logger', async () => {
+    mockAxiosInstance.post.mockRejectedValue({
+      message: 'RAW_SECRET',
+      response: { data: { errors: [{ detail: 'RAW_SECRET' }] } },
+    });
+    await expect(
+      service.evaluateMcpToolResult('search_articles', 'RAW_SECRET'),
+    ).rejects.toThrow('MCP result classification unavailable');
+    expect(JSON.stringify(mockLoggerService.error.mock.calls)).not.toContain(
+      'RAW_SECRET',
+    );
+  });
+
   // ==================== GENERIC ATTRIBUTE POST ====================
 
   describe('postAttributes', () => {

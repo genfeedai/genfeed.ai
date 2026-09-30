@@ -16,6 +16,7 @@
     "@genfeedai/pricing": "workspace:*",
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
+    "@genfeedai/storage": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@nestjs/axios": "12.0.1",

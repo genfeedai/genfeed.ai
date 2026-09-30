@@ -8,8 +8,15 @@ import type {
   UseTopbarBalancesReturn,
 } from '@genfeedai/contracts/interfaces';
 import { CreditsService } from '@genfeedai/services/billing/credits.service';
+import {
+  desktopRuntimeService,
+  getDesktopCreditsVisibility,
+} from '@genfeedai/services/core/desktop-runtime.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useDesktopRuntimeContext } from '@hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
@@ -37,28 +44,103 @@ interface OptionalBalanceRequestError {
 
 const EMPTY_SEGMENTS: ITopbarBalanceSegment[] = [];
 
+const runtimeScope = (
+  snapshot: ReturnType<typeof desktopRuntimeService.getCurrentSnapshot>,
+) =>
+  JSON.stringify([
+    snapshot.status,
+    snapshot.context?.runtimeId,
+    snapshot.context?.runtimeMode,
+    snapshot.context?.generationExecution,
+    snapshot.context?.selectedServerId,
+    snapshot.context?.selectedApiEndpoint,
+  ]);
+
 export function useTopbarBalances(): UseTopbarBalancesReturn {
   const { organizationId } = useBrand();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    sessionId,
+    userId,
+  } = useAuthIdentity();
+  const runtime = useDesktopRuntimeContext();
+  const context = runtime.context;
+  const apiEndpoint = EnvironmentService.apiEndpoint;
   const queryClient = useQueryClient();
-  const showCredits = shouldShowCreditsNav();
-  const getCreditsService = useAuthedService((token: string) =>
-    CreditsService.getInstance(token),
+  const showCredits = shouldShowCreditsNav(
+    getDesktopCreditsVisibility(runtime),
+  );
+  const getCreditsService = useAuthedService(
+    (token: string) => new CreditsService(token),
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runtime endpoint getter must invalidate the wallet scope
   const queryKey = useMemo(
-    () => ['topbar-balances', organizationId ?? 'no-org'],
-    [organizationId],
+    () => [
+      'topbar-balances',
+      context?.runtimeId ?? runtime.status,
+      runtime.status,
+      context?.runtimeMode ?? null,
+      context?.generationExecution ?? null,
+      context?.selectedServerId ?? null,
+      context?.selectedApiEndpoint ?? null,
+      apiEndpoint,
+      sessionId,
+      userId,
+      organizationId ?? 'no-org',
+    ],
+    [
+      apiEndpoint,
+      context?.runtimeId,
+      context?.runtimeMode,
+      context?.generationExecution,
+      context?.selectedServerId,
+      context?.selectedApiEndpoint,
+      runtime.status,
+      sessionId,
+      userId,
+      organizationId,
+    ],
   );
 
-  const isEnabled = showCredits && Boolean(organizationId);
+  const isEnabled =
+    showCredits &&
+    shouldShowCreditsNav(
+      getDesktopCreditsVisibility(desktopRuntimeService.getCurrentSnapshot()),
+    ) &&
+    isAuthLoaded &&
+    isSignedIn &&
+    Boolean(userId) &&
+    Boolean(sessionId) &&
+    Boolean(organizationId) &&
+    orgId === organizationId;
 
-  const { data, isFetching, isPending, refetch } = useQuery({
+  const scope = runtimeScope(runtime);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runtime endpoint getter must be captured for this request scope
+  const isCurrentScope = useCallback(
+    () =>
+      scope === runtimeScope(desktopRuntimeService.getCurrentSnapshot()) &&
+      EnvironmentService.apiEndpoint === apiEndpoint,
+    [scope, apiEndpoint],
+  );
+
+  const { data, isError, isFetching, isPending, refetch } = useQuery({
     enabled: isEnabled,
-    queryFn: async (): Promise<TopbarBalancesSnapshot> => {
+    queryFn: async ({ signal }): Promise<TopbarBalancesSnapshot> => {
       try {
         const service = await getCreditsService();
+        if (signal.aborted || !isCurrentScope())
+          throw new DOMException('Wallet scope changed', 'AbortError');
         const balances = await service.getTopbarBalances();
-        const segments = balances.segments ?? EMPTY_SEGMENTS;
+        if (signal.aborted || !isCurrentScope())
+          throw new DOMException('Wallet scope changed', 'AbortError');
+        const segments = (balances.segments ?? EMPTY_SEGMENTS).filter(
+          (segment) =>
+            typeof segment.balance === 'number' &&
+            Number.isFinite(segment.balance),
+        );
 
         return {
           genfeedBalance:
@@ -69,7 +151,12 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       } catch (error: unknown) {
         const requestError = error as OptionalBalanceRequestError;
 
-        if (!requestError.isCancelled && !requestError.silent) {
+        if (
+          !signal.aborted &&
+          !(error instanceof DOMException && error.name === 'AbortError') &&
+          !requestError.isCancelled &&
+          !requestError.silent
+        ) {
           logger.warn('useTopbarBalances: failed to fetch balances', {
             error,
             reportToSentry: false,
@@ -97,10 +184,22 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     }
   }, []);
 
-  useEffect(() => clearReconcileTimeout, [clearReconcileTimeout]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cancel reconciliation whenever wallet scope or readiness changes
+  useEffect(
+    () => clearReconcileTimeout,
+    [clearReconcileTimeout, queryKey, isEnabled],
+  );
+
+  useEffect(
+    () => () => {
+      void queryClient.cancelQueries({ queryKey, exact: true });
+    },
+    [queryClient, queryKey],
+  );
 
   const publishGenfeedBalance = useCallback(
     (balance: number) => {
+      if (!isEnabled || !isCurrentScope() || !Number.isFinite(balance)) return;
       queryClient.setQueryData<TopbarBalancesSnapshot>(
         queryKey,
         (previous) => ({
@@ -112,15 +211,22 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       clearReconcileTimeout();
       reconcileTimeoutRef.current = setTimeout(() => {
         reconcileTimeoutRef.current = null;
-        void refetch();
+        if (isCurrentScope()) void refetch();
       }, SOCKET_RECONCILE_DELAY_MS);
     },
-    [clearReconcileTimeout, queryClient, queryKey, refetch],
+    [
+      clearReconcileTimeout,
+      isEnabled,
+      queryClient,
+      queryKey,
+      refetch,
+      isCurrentScope,
+    ],
   );
 
   useEffect(() => {
     const handleRefresh = () => {
-      void refetch();
+      if (isEnabled && isCurrentScope()) void refetch();
     };
 
     window.addEventListener(REFRESH_EVENT, handleRefresh);
@@ -128,20 +234,24 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     return () => {
       window.removeEventListener(REFRESH_EVENT, handleRefresh);
     };
-  }, [refetch]);
+  }, [isEnabled, refetch, isCurrentScope]);
 
   const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    if (isEnabled && isCurrentScope()) await refetch();
+  }, [isEnabled, refetch, isCurrentScope]);
 
   return {
-    genfeedBalance: data?.genfeedBalance ?? null,
-    isLoaded: data !== undefined,
+    genfeedBalance:
+      isEnabled && !isError ? (data?.genfeedBalance ?? null) : null,
+    isLoaded: isEnabled && !isError && data !== undefined,
     // A disabled query stays `pending` forever, which would pin the chip to a
     // skeleton for an org that has no wallet at all.
     isLoading: isEnabled && (isPending || isFetching),
     publishGenfeedBalance,
     refresh,
-    segments: data?.segments ?? EMPTY_SEGMENTS,
+    segments:
+      isEnabled && !isError
+        ? (data?.segments ?? EMPTY_SEGMENTS)
+        : EMPTY_SEGMENTS,
   };
 }

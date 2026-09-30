@@ -7,11 +7,8 @@ import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestr
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  buildLogicalWriteKey,
-  type CuratedActionName,
-  getToolByName,
-} from '@genfeedai/actions';
+import { type CuratedActionName, getToolByName } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import type {
   AgentToolResult,
   AgentUiAction,

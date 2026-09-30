@@ -7,6 +7,8 @@ import type {
   IDesktopGeneratedContent,
   IDesktopWorkspace,
 } from '@genfeedai/contracts/desktop';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { getDesktopLocalCostState } from '@genfeedai/services/core/desktop-runtime.service';
 import Card from '@ui/card/Card';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
@@ -25,6 +27,8 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function LocalDesktopContent() {
   const translate = useTranslations('common.desktop.local');
+  const runtime = useDesktopRuntimeContext();
+  const costTranslate = useTranslations('common.desktop.generationCost');
   const { isEnabled: isLocalWorkspaceEnabled, isReady: isLocalWorkspaceReady } =
     useDesktopLocalWorkspaceFlag();
   const [bootstrap, setBootstrap] = useState<IDesktopBootstrap | null>(null);
@@ -288,6 +292,13 @@ export default function LocalDesktopContent() {
                       {translate('generation.description')}
                     </p>
                   </div>
+                  <p
+                    className="text-xs text-muted-foreground"
+                    role="status"
+                    data-testid="desktop-local-generation-cost"
+                  >
+                    {costTranslate(getDesktopLocalCostState(runtime))}
+                  </p>
                   <Textarea
                     aria-label={translate('generation.promptLabel')}
                     className="min-h-32"

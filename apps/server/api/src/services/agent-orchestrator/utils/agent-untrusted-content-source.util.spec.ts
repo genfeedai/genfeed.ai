@@ -2,6 +2,13 @@ import {
   isAgentUntrustedContentSource,
   readAgentUntrustedContentSource,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content-source.util';
+import { getToolByName } from '@genfeedai/actions';
+import {
+  CONNECTOR_TOOLS,
+  parseAgentUntrustedContentOrigin,
+  USER_UPLOAD_TOOLS,
+  WEB_FETCH_TOOLS,
+} from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 
 describe('readAgentUntrustedContentSource', () => {
@@ -41,4 +48,16 @@ describe('readAgentUntrustedContentSource', () => {
     expect(isAgentUntrustedContentSource('connector')).toBe(true);
     expect(isAgentUntrustedContentSource('user_upload')).toBe(true);
   });
+});
+
+it('retains registry validity for every shared mapped name', () => {
+  for (const name of [
+    ...WEB_FETCH_TOOLS,
+    ...CONNECTOR_TOOLS,
+    ...USER_UPLOAD_TOOLS,
+  ])
+    expect(getToolByName(name), name).toBeDefined();
+  expect(parseAgentUntrustedContentOrigin(null)).toBe('agent');
+  expect(parseAgentUntrustedContentOrigin('spoofed')).toBe('agent');
+  expect(parseAgentUntrustedContentOrigin('mcp')).toBe('mcp');
 });

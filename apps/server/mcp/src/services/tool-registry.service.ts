@@ -8,7 +8,7 @@ import {
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
-import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
+import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import {
   serializeMediaArtifact,
   toMcpMediaToolResult,
@@ -27,6 +27,7 @@ import {
   agentGuideResource,
   jsonResource,
 } from '@mcp/services/mcp-resource-contents.util';
+import { finalizeMcpToolResult } from '@mcp/services/mcp-tool-result.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
@@ -64,11 +65,7 @@ import {
 } from '@mcp/tools/tool-discovery.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { cardResource } from '@mcp/ui/card-app';
-import {
-  MCP_CARD_RESOURCE_URI,
-  withCardMetadata,
-  withCardResult,
-} from '@mcp/ui/card-data';
+import { MCP_CARD_RESOURCE_URI, withCardMetadata } from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -419,9 +416,13 @@ export class ToolRegistryService implements OnModuleInit {
     args: Record<string, unknown>,
     approvedApprovalId?: string,
   ) {
-    return withCardResult(
+    const result = await this.dispatchTool(name, args, approvedApprovalId);
+    return finalizeMcpToolResult(
       name,
-      await this.dispatchTool(name, args, approvedApprovalId),
+      result,
+      ToolRegistryService.classify(name) === 'agent-executor',
+      this.clientService,
+      this.logger,
     );
   }
 

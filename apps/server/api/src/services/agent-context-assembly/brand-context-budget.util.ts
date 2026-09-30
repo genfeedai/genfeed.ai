@@ -2,7 +2,12 @@ import type {
   BrandContextBudgetPriority,
   BrandContextBudgetResult,
   BrandContextBudgetSectionReport,
+  BrandContextContribution,
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+import {
+  sanitizeAgentUntrustedInput,
+  UNTRUSTED_USER_DATA_FRAMING,
+} from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 
 /**
  * Shared character budget for every brand-context contribution supplied to a
@@ -17,6 +22,8 @@ export const RETRIEVED_BRAND_MEMORY_HEADER = '## Retrieved Brand Memory';
 export const BRAND_KNOWLEDGE_HEADER = '## Brand Knowledge';
 
 type BudgetSection = {
+  body?: string;
+  contribution?: BrandContextContribution;
   content: string;
   header: string;
   originalLength: number;
@@ -106,6 +113,42 @@ function splitContributionIntoSections(contribution: string): BudgetSection[] {
   return sections;
 }
 
+function renderContribution(
+  contribution: BrandContextContribution,
+  body: string,
+): string {
+  if (!body) return '';
+  const content = contribution.untrusted
+    ? `${UNTRUSTED_USER_DATA_FRAMING}\n${body
+        .split('\n')
+        .map((line) => `> ${line}`)
+        .join('\n')}`
+    : body;
+  return [contribution.header, contribution.instructions, content]
+    .filter(Boolean)
+    .join('\n');
+}
+
+function structuredSection(
+  contribution: BrandContextContribution,
+): BudgetSection {
+  const body = contribution.untrusted
+    ? sanitizeAgentUntrustedInput(
+        contribution.content,
+        Number.POSITIVE_INFINITY,
+      ).replace(/\r\n?/g, '\n')
+    : contribution.content;
+  const content = renderContribution(contribution, body);
+  return {
+    body,
+    contribution,
+    content,
+    header: contribution.header,
+    originalLength: content.length,
+    priority: readTruncationPriority(contribution.header),
+  };
+}
+
 function renderSections(sections: BudgetSection[]): string {
   return sections
     .map((section) => section.content)
@@ -142,12 +185,18 @@ function toSectionReports(
  * is stable.
  */
 export function fitBrandContextToBudgetWithReport(
-  contributions: ReadonlyArray<string | null | undefined>,
+  contributions: ReadonlyArray<
+    string | BrandContextContribution | null | undefined
+  >,
   maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
 ): BrandContextBudgetResult {
-  const sections = contributions
-    .filter((contribution): contribution is string => Boolean(contribution))
-    .flatMap(splitContributionIntoSections);
+  const sections = contributions.flatMap((contribution) =>
+    !contribution
+      ? []
+      : typeof contribution === 'string'
+        ? splitContributionIntoSections(contribution)
+        : [structuredSection(contribution)],
+  );
   const untrimmed = renderSections(sections);
 
   if (!Number.isFinite(maxLength)) {
@@ -190,17 +239,42 @@ export function fitBrandContextToBudgetWithReport(
         return finish(rendered);
       }
 
-      section.content = section.content.slice(0, -overflow).trimEnd();
+      if (section.contribution && section.body) {
+        // Binary search the body only; the immutable frame is all-or-nothing.
+        const target = Math.max(0, section.content.length - overflow);
+        let low = 0;
+        let high = section.body.length;
+        while (low < high) {
+          const middle = Math.ceil((low + high) / 2);
+          if (
+            renderContribution(
+              section.contribution,
+              section.body.slice(0, middle),
+            ).length <= target
+          )
+            low = middle;
+          else high = middle - 1;
+        }
+        section.body = section.body.slice(0, low);
+        section.content = renderContribution(
+          section.contribution,
+          section.body,
+        );
+      } else {
+        section.content = section.content.slice(0, -overflow).trimEnd();
+      }
       rendered = renderSections(sections);
     }
   }
 
-  return finish(rendered.slice(0, normalizedMaxLength).trimEnd());
+  return finish(rendered);
 }
 
 /** Text-only form of {@link fitBrandContextToBudgetWithReport}. */
 export function fitBrandContextToBudget(
-  contributions: ReadonlyArray<string | null | undefined>,
+  contributions: ReadonlyArray<
+    string | BrandContextContribution | null | undefined
+  >,
   maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
 ): string {
   return fitBrandContextToBudgetWithReport(contributions, maxLength).text;

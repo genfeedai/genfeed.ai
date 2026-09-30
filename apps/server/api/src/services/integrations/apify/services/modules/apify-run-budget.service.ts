@@ -6,6 +6,7 @@ import type {
   ApifyRunBudgetLimits,
   ApifyRunBudgetReservation,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
+import type { ApifyRunSettlementResult } from '@api/services/integrations/apify/interfaces/apify-run-settlement.interface';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -150,42 +151,54 @@ export class ApifyRunBudgetService {
     reservation: ApifyRunBudgetReservation | undefined,
     actualUsageUsd: number | undefined,
   ): Promise<void> {
-    if (!reservation) {
-      return;
-    }
+    await this.reconcileRunWithResult(reservation, actualUsageUsd);
+  }
 
+  async reconcileRunWithResult(
+    reservation: ApifyRunBudgetReservation | undefined,
+    actualUsageUsd: number | undefined,
+  ): Promise<ApifyRunSettlementResult> {
+    if (!reservation) return 'not_required';
     if (
       actualUsageUsd === undefined ||
       !Number.isFinite(actualUsageUsd) ||
       actualUsageUsd < 0 ||
       !Number.isSafeInteger(this.toMicroUsd(actualUsageUsd)) ||
-      !reservation.reservationKey
+      !reservation.reservationKey ||
+      !reservation.usageKey ||
+      reservation.reservationKey === reservation.usageKey ||
+      !Number.isSafeInteger(reservation.reservedMicroUsd) ||
+      reservation.reservedMicroUsd <= 0
     ) {
       this.reportRetainedReservation();
-      return;
+      return 'pending';
     }
-    const result = await this.cacheService.reconcileCounterReservation(
-      reservation.usageKey,
-      reservation.reservationKey,
-      reservation.reservedMicroUsd,
-      this.toMicroUsd(actualUsageUsd),
-    );
-    if (result === 'unavailable') {
+    const result = await this.cacheService
+      .reconcileCounterReservation(
+        reservation.usageKey,
+        reservation.reservationKey,
+        reservation.reservedMicroUsd,
+        this.toMicroUsd(actualUsageUsd),
+      )
+      .catch(() => 'unavailable' as const);
+    if (result !== 'settled' && result !== 'duplicate') {
       this.reportRetainedReservation();
-      return;
+      return 'pending';
     }
-    const noted = await this.cacheService.noteSettledResearchReservation(
-      reservation.usageKey,
-      reservation.reservationKey,
-    );
-    if (noted === 'unavailable') {
-      await this.cacheService.set(
-        `${reservation.usageKey}:books-unhealthy`,
-        true,
-        { ttl: ApifyRunBudgetService.PRIOR_PERIOD_RETENTION_SECONDS },
-      );
-      this.reportRetainedReservation();
-    }
+    const noted = await this.cacheService
+      .noteSettledResearchReservation(
+        reservation.usageKey,
+        reservation.reservationKey,
+      )
+      .catch(() => 'unavailable' as const);
+    if (noted === 'noted' || noted === 'duplicate') return 'settled';
+    await this.cacheService
+      .set(`${reservation.usageKey}:books-unhealthy`, true, {
+        ttl: ApifyRunBudgetService.PRIOR_PERIOD_RETENTION_SECONDS,
+      })
+      .catch(() => undefined);
+    this.reportRetainedReservation();
+    return 'pending';
   }
 
   private reportRetainedReservation(): void {
