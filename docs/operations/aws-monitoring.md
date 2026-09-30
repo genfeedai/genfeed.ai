@@ -19,7 +19,7 @@ Read-only CloudWatch/ECS/Redis inspection on 2026-09-30 established:
 | Incident (UTC) | Alarm evidence | Affected queue | Recovery and cause evidence |
 | --- | --- | --- | --- |
 | September 11 | Four events in the evaluated 10:51 window; ALARM 10:56:55.676, OK 11:01:55.677 after zero events in the 10:56 window | `workflow-execution`; retained per-queue metric sums to four | Worker/files log retention was seven days, so detailed logs had expired. Retained ECS events did not cover the workers incident window. Processing-worker identity, lease timing, job attempts, terminal outcomes and side-effect evidence are unavailable. |
-| September 30 | Two events in the evaluated 01:46 window; ALARM 01:51:59.177, OK 01:56:59.178 after zero events in the 01:51 window | `onboarding-starter-assets`; per-queue sample at 01:50 sums to two | Worker logs show renewal failures at 01:47:09.126 and 01:48:16.037, followed by missing-lock errors for `moveToDelayed` at 01:47:15.734 and 01:48:20.442. The collector logged both stalls at 01:50:00.849. This establishes lease loss, not its underlying cause or terminal job outcome. |
+| September 30 | Two events in the evaluated 01:46 window; ALARM 01:51:59.177, OK 01:56:59.178 after zero events in the 01:51 window | `onboarding-starter-assets`; per-queue sample at 01:50 sums to two | Worker logs show renewal failures at 01:47:09.126 and 01:48:16.037, followed by missing-lock errors for `moveToDelayed` at 01:47:15.734 and 01:48:20.442. The collector logged both stalls at 01:50:00.849 with the same job ID; two events affected one identifiable job. This establishes lease loss, not its underlying cause or terminal job outcome. |
 
 CloudWatch retains metric aggregates longer than raw five-minute samples. The
 September 11 per-queue sample is timestamped 10:55 after aggregation; that timestamp
@@ -42,8 +42,8 @@ delay. Neither historical event-loop delay nor per-worker lock settings were
 recorded. No production jobs were created or retried for this investigation.
 
 The existing logs and aggregates do **not** establish completed recovery, terminal
-loss, distinct affected-job count, or duplicate external side effects for either
-window. In particular, missing-lock errors after a processor exception do not prove
+loss or duplicate external side effects for either window. The September 11 distinct
+job count is unavailable. In particular, missing-lock errors after a processor exception do not prove
 the exception caused the earlier lock loss. Preserve these outcomes as unknown
 until queue-state and durable application/provider evidence can be correlated.
 

@@ -56,7 +56,17 @@ export class WorkerDiagnosticsService
     for (const provider of this.discovery.getProviders()) {
       const instance: unknown = provider.instance;
       if (!(instance instanceof WorkerHost)) continue;
-      const worker = instance.worker;
+      let worker: Worker;
+      try {
+        worker = instance.worker;
+      } catch {
+        // A manually registered or deferred worker must not make optional
+        // diagnostics prevent the runtime from starting.
+        this.logger.warn(
+          'BullMQ worker evidence skipped: worker not initialized',
+        );
+        continue;
+      }
       if (attached.has(worker)) continue;
       attached.add(worker);
       this.attach(worker);

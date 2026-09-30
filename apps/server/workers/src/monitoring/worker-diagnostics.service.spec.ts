@@ -235,4 +235,23 @@ describe('WorkerDiagnosticsService', () => {
     expect(discovery.getProviders).not.toHaveBeenCalled();
     expect(transaction.exec).toHaveBeenCalledTimes(writes);
   });
+
+  it('does not prevent startup when a deferred worker is not initialized', async () => {
+    class DeferredProcessor extends WorkerHost {
+      async process() {}
+    }
+    const deferred = new WorkerDiagnosticsService(
+      {
+        getProviders: () => [{ instance: new DeferredProcessor() }],
+      } as unknown as DiscoveryService,
+      { isProduction: true } as ConfigService,
+      redis as unknown as RedisService,
+      logger as unknown as LoggerService,
+    );
+    expect(() => deferred.onApplicationBootstrap()).not.toThrow();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'BullMQ worker evidence skipped: worker not initialized',
+    );
+    await deferred.onApplicationShutdown();
+  });
 });
