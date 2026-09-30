@@ -1,4 +1,9 @@
-import { validateLearningRows } from '@api/collections/content-learning/services/learning-dataset.service';
+import {
+  LearningDatasetService,
+  validateLearningRows,
+} from '@api/collections/content-learning/services/learning-dataset.service';
+import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -48,5 +53,60 @@ describe('strict owned numeric import', () => {
       { ...row, measuredAt: '2026-10-01T00:00:00Z' },
     ])
       expect(() => validateLearningRows([invalid], cutoff)).toThrow();
+  });
+});
+
+describe('immutable dataset operation retries', () => {
+  it('returns the original salted manifest and splits and rejects changed payload', async () => {
+    let receipt: unknown = null,
+      dataset: unknown = null;
+    const createDataset = vi.fn().mockImplementation(({ data }) => {
+      dataset = { id: 'dataset', ...data };
+      return Promise.resolve(dataset);
+    });
+    const tx = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      contentLearningOperation: {
+        findFirst: vi.fn().mockImplementation(() => Promise.resolve(receipt)),
+        create: vi.fn().mockImplementation(({ data }) => {
+          receipt = { id: 'operation', ...data };
+          return Promise.resolve(receipt);
+        }),
+      },
+      contentLearningDataset: {
+        create: createDataset,
+        findFirst: vi.fn().mockImplementation(() => Promise.resolve(dataset)),
+      },
+      contentLearningDatasetEntry: { create: vi.fn().mockResolvedValue({}) },
+    };
+    const prisma = {
+      $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
+    };
+    const service = new LearningDatasetService(
+      prisma as unknown as PrismaService,
+      {} as LearningDependencyService,
+    );
+    const input = {
+      organizationId: 'operator-org',
+      actorId: 'actor',
+      requestId: 'same',
+      rightsStatement: 'Owned synthetic fixture rights',
+      profile: 'awareness',
+      cell: 'cell',
+      cutoff: '2026-09-29T00:00:00Z',
+      rows: [row],
+    };
+    const first = await service.create(input),
+      second = await service.create(input);
+    expect(second).toEqual(first);
+    expect(createDataset).toHaveBeenCalledTimes(1);
+    expect(tx.contentLearningDatasetEntry.create).toHaveBeenCalledTimes(1);
+    await expect(
+      service.create({ ...input, rightsStatement: 'Changed rights' }),
+    ).rejects.toThrow('payload conflict');
+    await expect(
+      service.create({ ...input, cell: 'different-cell' }),
+    ).rejects.toThrow('payload conflict');
+    expect(createDataset).toHaveBeenCalledTimes(1);
   });
 });

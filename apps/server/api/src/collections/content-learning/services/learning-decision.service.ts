@@ -274,6 +274,23 @@ export class LearningDecisionService {
         throw new ConflictException(
           'Account changed during compilation; retry the request',
         );
+      const retry = await tx.contentLearningDecision.findFirst({
+        where: {
+          organizationId: input.organizationId,
+          requestKey: context.requestKey,
+          destinationKey,
+          candidateIndex: context.candidateIndex,
+          isDeleted: false,
+        },
+      });
+      if (retry) {
+        if (retry.payloadHash !== payloadHash)
+          throw new ConflictException('Learning request key payload conflict');
+        return {
+          receipt: this.receipt(retry),
+          contribution: learningContribution(retry.selectedArmId),
+        };
+      }
       const decision = await tx.contentLearningDecision.create({
         data: {
           organizationId: input.organizationId,
@@ -338,27 +355,33 @@ export class LearningDecisionService {
   ) {
     const canonical = { ...payload, text: payload.text.replace(/\r\n/g, '\n') };
     const hash = learningHash(canonical);
-    const decision = await this.prisma.contentLearningDecision.findFirst({
-      where: {
-        id: decisionId,
-        organizationId,
-        credentialId: payload.credentialId,
-        isDeleted: false,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+      const decision = await tx.contentLearningDecision.findFirst({
+        where: {
+          id: decisionId,
+          organizationId,
+          credentialId: payload.credentialId,
+          isDeleted: false,
+        },
+      });
+      if (!decision)
+        throw new ConflictException('Decision destination mismatch');
+      if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)
+        throw new ConflictException(
+          'Decision already bound to another artifact',
+        );
+      await tx.contentLearningDecision.updateMany({
+        where: {
+          id: decisionId,
+          organizationId,
+          isDeleted: false,
+          finalArtifactHash: null,
+        },
+        data: { finalArtifactHash: hash, state: 'generated' },
+      });
+      return hash;
     });
-    if (!decision) throw new ConflictException('Decision destination mismatch');
-    if (decision.finalArtifactHash && decision.finalArtifactHash !== hash)
-      throw new ConflictException('Decision already bound to another artifact');
-    await this.prisma.contentLearningDecision.updateMany({
-      where: {
-        id: decisionId,
-        organizationId,
-        isDeleted: false,
-        finalArtifactHash: null,
-      },
-      data: { finalArtifactHash: hash, state: 'generated' },
-    });
-    return hash;
   }
   async bindPublication(
     organizationId: string,
@@ -367,6 +390,8 @@ export class LearningDecisionService {
     payload: Parameters<LearningDecisionService['bindArtifact']>[2],
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM content_learning_decisions WHERE id = ${decisionId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM posts WHERE id = ${postId} AND "organizationId" = ${organizationId} AND "isDeleted" = false ORDER BY id FOR UPDATE`;
       const decision = await tx.contentLearningDecision.findFirst({
         where: {
           id: decisionId,
@@ -397,15 +422,26 @@ export class LearningDecisionService {
           organizationId,
           learningDecisionId: decisionId,
           id: { not: postId },
-          isDeleted: false,
         },
       });
       const hash = learningHash({
         ...payload,
         text: payload.text.replace(/\r\n/g, '\n'),
       });
+      if (
+        duplicate ||
+        (post?.learningDecisionId && post.learningDecisionId !== decisionId)
+      )
+        throw new ConflictException(
+          'Publication already has immutable decision binding',
+        );
+      if (post?.learningDecisionId === decisionId) {
+        if (decision?.finalArtifactHash !== hash)
+          throw new ConflictException('Published artifact binding differs');
+        return { valid: true };
+      }
       const reason =
-        !post || !decision || duplicate
+        !post || !decision
           ? 'lineage_conflict'
           : decision.finalArtifactHash !== hash
             ? 'edited_artifact'

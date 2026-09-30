@@ -4,8 +4,12 @@ import { learningHash } from '@api/collections/content-learning/services/learnin
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LearningNumericRow } from '@genfeedai/contracts';
 import { assertLearningFeatures, LEARNING_ARMS } from '@genfeedai/harness';
-import { toPrismaJson } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const ROW_KEYS = [
   'sourceFingerprint',
@@ -114,21 +118,82 @@ export function validateLearningRows(
     };
   });
 }
+export interface LearningDatasetCreationInput {
+  organizationId: string;
+  requestId: string;
+
+  actorId: string;
+  rightsStatement: string;
+  profile: string;
+  cell: string;
+  cutoff: string;
+  rows?: unknown;
+  sourceAccountIds?: string[];
+}
 @Injectable()
 export class LearningDatasetService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dependencies: LearningDependencyService,
   ) {}
-  async create(input: {
-    actorId: string;
-    rightsStatement: string;
-    profile: string;
-    cell: string;
-    cutoff: string;
-    rows?: unknown;
-    sourceAccountIds?: string[];
-  }) {
+  async create(input: LearningDatasetCreationInput) {
+    const scope = learningHash(['dataset-create', input.organizationId]);
+    const payloadHash = learningHash(['dataset-create', input]);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))`;
+      const previous = await tx.contentLearningOperation.findFirst({
+        where: {
+          actorId: input.actorId,
+          scope,
+          requestId: input.requestId,
+          isDeleted: false,
+        },
+      });
+      if (previous) {
+        if (previous.payloadHash !== payloadHash)
+          throw new ConflictException('Request key payload conflict');
+        const refs = previous.resultReferences;
+        if (
+          !refs ||
+          typeof refs !== 'object' ||
+          Array.isArray(refs) ||
+          typeof refs.datasetId !== 'string'
+        )
+          throw new ConflictException('Dataset operation receipt unavailable');
+        const original = await tx.contentLearningDataset.findFirst({
+          where: {
+            id: refs.datasetId,
+            ownerActorId: input.actorId,
+            isDeleted: false,
+          },
+        });
+        if (!original)
+          throw new ConflictException('Dataset no longer available');
+        return original;
+      }
+      const dataset = await this.buildSnapshot(input, tx);
+      await tx.contentLearningOperation.create({
+        data: {
+          organizationId: input.organizationId,
+          actorId: input.actorId,
+          scope,
+          requestId: input.requestId,
+          payloadHash,
+          type: 'dataset-create',
+          status: 'completed',
+          resultReferences: toPrismaJson({
+            datasetId: dataset.id,
+            manifestHash: dataset.manifestHash,
+          }),
+        },
+      });
+      return dataset;
+    });
+  }
+  private async buildSnapshot(
+    input: LearningDatasetCreationInput,
+    tx: Prisma.TransactionClient,
+  ) {
     if (input.rightsStatement.length < 1 || input.rightsStatement.length > 2000)
       throw new BadRequestException(
         'Explicit owned rights attestation required',
@@ -144,14 +209,14 @@ export class LearningDatasetService {
     }> = [];
     if (input.rows) rows = validateLearningRows(input.rows, cutoff);
     for (const id of input.sourceAccountIds ?? []) {
-      const account = await this.prisma.contentLearningAccount.findFirst({
+      const account = await tx.contentLearningAccount.findFirst({
         where: { id, isDeleted: false },
       });
       if (!account?.sharingConsentVersion)
         throw new BadRequestException(
           'Current owner contribution consent required',
         );
-      const consent = await this.prisma.contentLearningConsent.findFirst({
+      const consent = await tx.contentLearningConsent.findFirst({
         where: {
           organizationId: account.organizationId,
           accountId: id,
@@ -162,7 +227,7 @@ export class LearningDatasetService {
         },
       });
       if (!consent) throw new BadRequestException('Consent withdrawn');
-      const rewards = await this.prisma.contentLearningReward.findMany({
+      const rewards = await tx.contentLearningReward.findMany({
         where: {
           organizationId: account.organizationId,
           credentialId: account.credentialId,
@@ -176,10 +241,10 @@ export class LearningDatasetService {
       for (const reward of rewards) {
         if (
           reward.composite == null ||
-          !(await this.dependencies.valid('reward', reward.id))
+          !(await this.dependencies.valid('reward', reward.id, tx))
         )
           continue;
-        const latest = await this.prisma.contentLearningReward.findFirst({
+        const latest = await tx.contentLearningReward.findFirst({
           where: {
             organizationId: account.organizationId,
             decisionId: reward.decisionId,
@@ -188,7 +253,7 @@ export class LearningDatasetService {
           orderBy: { version: 'desc' },
         });
         if (latest?.id !== reward.id) continue;
-        const decision = await this.prisma.contentLearningDecision.findFirst({
+        const decision = await tx.contentLearningDecision.findFirst({
           where: {
             id: reward.decisionId,
             organizationId: account.organizationId,
@@ -268,99 +333,97 @@ export class LearningDatasetService {
         cutoff.toISOString(),
         rows.map((row) => [row, split(row)]),
       ]);
-    return this.prisma.$transaction(async (tx) => {
-      for (const source of provenance)
-        if (
-          !(await this.dependencies.valid('reward', source.rewardId, tx)) ||
-          !(await tx.contentLearningConsent.findFirst({
-            where: {
-              id: source.consentId,
-              granted: true,
-              revokedAt: null,
-              isDeleted: false,
-            },
-          }))
-        )
-          throw new BadRequestException('Source invalidated during extraction');
-      const dataset = await tx.contentLearningDataset.create({
-        data: {
-          origin: synthetic
-            ? 'synthetic'
-            : input.rows && provenance.length
-              ? 'mixed'
-              : input.rows
-                ? 'owned'
-                : 'consented',
-          ownerActorId: input.actorId,
-          rightsStatement: input.rightsStatement,
+
+    for (const source of provenance)
+      if (
+        !(await this.dependencies.valid('reward', source.rewardId, tx)) ||
+        !(await tx.contentLearningConsent.findFirst({
+          where: {
+            id: source.consentId,
+            granted: true,
+            revokedAt: null,
+            isDeleted: false,
+          },
+        }))
+      )
+        throw new BadRequestException('Source invalidated during extraction');
+    const dataset = await tx.contentLearningDataset.create({
+      data: {
+        origin: synthetic
+          ? 'synthetic'
+          : input.rows && provenance.length
+            ? 'mixed'
+            : input.rows
+              ? 'owned'
+              : 'consented',
+        ownerActorId: input.actorId,
+        rightsStatement: input.rightsStatement,
+        schemaVersion: 'numeric-nine-v1',
+        profile: input.profile,
+        cell: input.cell,
+        cutoff,
+        manifestHash,
+        manifest: toPrismaJson({
           schemaVersion: 'numeric-nine-v1',
-          profile: input.profile,
-          cell: input.cell,
-          cutoff,
-          manifestHash,
-          manifest: toPrismaJson({
-            schemaVersion: 'numeric-nine-v1',
-            count: rows.length,
-          }),
-          status:
-            rows.filter((row) => split(row) === 'training').length < 30
-              ? 'insufficient_data'
-              : 'validated',
-          counts: toPrismaJson({
-            training: rows.filter((row) => split(row) === 'training').length,
-            temporalHoldout: temporal.size,
-            accountHoldout: rows.filter(
-              (row) => split(row) === 'account_holdout',
-            ).length,
-            total: rows.length,
-          }),
-          synthetic,
+          count: rows.length,
+        }),
+        status:
+          rows.filter((row) => split(row) === 'training').length < 30
+            ? 'insufficient_data'
+            : 'validated',
+        counts: toPrismaJson({
+          training: rows.filter((row) => split(row) === 'training').length,
+          temporalHoldout: temporal.size,
+          accountHoldout: rows.filter((row) => split(row) === 'account_holdout')
+            .length,
+          total: rows.length,
+        }),
+        synthetic,
+      },
+    });
+    for (const row of rows) {
+      const source = provenance.find(
+        (item) => item.fingerprint === row.sourceFingerprint,
+      );
+      await tx.contentLearningDatasetEntry.create({
+        data: {
+          datasetId: dataset.id,
+          sourceFingerprint: row.sourceFingerprint,
+          sourceReference: toPrismaJson(
+            source
+              ? { rewardId: source.rewardId, consentId: source.consentId }
+              : { ownedLogFingerprint: row.sourceFingerprint },
+          ),
+          accountGroup: row.accountGroup,
+          decisionAt: new Date(row.decisionAt),
+          measuredAt: new Date(row.measuredAt),
+          features: row.features,
+          armId: row.armId,
+          probabilities: toPrismaJson(row.probabilities),
+          reward: row.reward,
+          split: split(row),
+          synthetic: row.synthetic,
         },
       });
-      for (const row of rows) {
-        const source = provenance.find(
-          (item) => item.fingerprint === row.sourceFingerprint,
+      if (source) {
+        await this.dependencies.link(
+          tx,
+          'reward',
+          source.rewardId,
+          'current',
+          'dataset',
+          dataset.id,
         );
-        await tx.contentLearningDatasetEntry.create({
-          data: {
-            datasetId: dataset.id,
-            sourceFingerprint: row.sourceFingerprint,
-            sourceReference: toPrismaJson(
-              source
-                ? { rewardId: source.rewardId, consentId: source.consentId }
-                : { ownedLogFingerprint: row.sourceFingerprint },
-            ),
-            accountGroup: row.accountGroup,
-            decisionAt: new Date(row.decisionAt),
-            measuredAt: new Date(row.measuredAt),
-            features: row.features,
-            armId: row.armId,
-            probabilities: toPrismaJson(row.probabilities),
-            reward: row.reward,
-            split: split(row),
-            synthetic: row.synthetic,
-          },
-        });
-        if (source) {
-          await this.dependencies.link(
-            tx,
-            'reward',
-            source.rewardId,
-            'current',
-            'dataset',
-            dataset.id,
-          );
-          await this.dependencies.link(
-            tx,
-            'consent',
-            source.consentId,
-            'current',
-            'dataset',
-            dataset.id,
-          );
-        }
+        await this.dependencies.link(
+          tx,
+          'consent',
+          source.consentId,
+          'current',
+          'dataset',
+          dataset.id,
+        );
       }
-      return dataset;
-    });
+    }
+    return dataset;
   }
 }

@@ -5,6 +5,7 @@ import {
   IsISO8601,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 export class LearningDatasetDto {
@@ -19,7 +20,7 @@ export class LearningDatasetDto {
   profile!: string;
   @IsString() @MaxLength(256) cell!: string;
   @IsISO8601() cutoff!: string;
-  @IsString() @MaxLength(256) requestId!: string;
+  @IsUUID() requestId!: string;
   @IsOptional() @IsArray() @ArrayMaxSize(100000) rows?: unknown[];
   @IsOptional()
   @IsArray()

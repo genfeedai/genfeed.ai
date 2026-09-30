@@ -119,7 +119,11 @@ export class ContentLearningAdminController {
     return serializeSingle(
       request,
       ContentLearningDatasetSerializer,
-      await this.datasets.create({ ...body, actorId: user.userId ?? user.id }),
+      await this.datasets.create({
+        ...body,
+        actorId: user.userId ?? user.id,
+        organizationId: user.organizationId,
+      }),
     );
   }
   @Post('datasets/:id/train') async train(
