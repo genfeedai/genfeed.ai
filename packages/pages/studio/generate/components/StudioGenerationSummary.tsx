@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   formatCreditBalanceExact,
 } from '@genfeedai/contracts/constants';
+import { getVideoResolutionLabel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { StudioGenerationSummaryProps } from '@genfeedai/props/studio/studio-generate.props';
@@ -42,10 +43,15 @@ export default function StudioGenerationSummary({
       : isAutoGenerationModelKey(settings.modelKey)
         ? translate('inspector.autoModel')
         : model?.label || translate('summary.modelUnavailable');
+  const resolutionLabel =
+    type === 'video' && promptData.resolution
+      ? (getVideoResolutionLabel(settings.modelKey, promptData.resolution) ??
+        promptData.resolution)
+      : promptData.resolution;
   const setupParts = [
     modelLabel,
     capabilities.hasAspectRatio ? settings.aspectRatio : undefined,
-    type === 'image' || type === 'video' ? promptData.resolution : undefined,
+    type === 'image' || type === 'video' ? resolutionLabel : undefined,
     capabilities.hasDuration && promptData.duration
       ? translate('inspector.durationSeconds', { seconds: promptData.duration })
       : undefined,

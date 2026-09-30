@@ -108,7 +108,7 @@ export default function CreditsBarTrigger({
               : isUnavailable
                 ? `${unit} balance unavailable. Open wallet.`
                 : isCritical
-                  ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
+                  ? `Balance empty: ${fullBalance} ${unit}. Open wallet to buy credits.`
                   : isWarning
                     ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
                     : `Balance ${fullBalance} ${unit}. Open wallet.`

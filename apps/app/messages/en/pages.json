@@ -629,6 +629,8 @@
       "outputCount": "{count}x",
       "outputs": "Outputs",
       "referencesHelp": "Library references guide the look. Brand defaults are added automatically.",
+      "referenceLabel": "Reference {ordinal}",
+      "referenceUnavailable": "Reference {ordinal} unavailable",
       "regionLabel": "Run recipe",
       "removeReference": "Remove reference {id}",
       "title": "Recipe"
@@ -642,6 +644,9 @@
       },
       "metaHandoffUnavailable": "Paused Meta handoff requires a connected Meta ad source and an available Meta Ads connection.",
       "outputCount": "{actual} of {requested} outputs ready",
+      "outputLabel": "Output {ordinal}",
+      "outputAssetLabel": "Output {ordinal} · Asset {asset}",
+      "outputAssetUnavailable": "Output {ordinal} · Asset {asset} unavailable",
       "paidDraftSummary": "Campaign {campaignId}, ad set {adSetId}, and ad {adId} are PAUSED for review.",
       "prefillHelp": "Review the prefilled recipe below, then generate its variations.",
       "preparePaidDraft": "Prepare paused Meta draft",
@@ -731,7 +736,10 @@
       "progress": "Still: {image} · Clip: {video} · Planned: {planned}s · Actual: {actual}s",
       "identityPairRequired": "Choose both an avatar and a saved voice for each scene override, or use the run identity.",
       "save": "Save storyboard (no generation)",
-      "outputPreview": "Completed original captioned ad"
+      "outputPreview": "Completed original captioned ad",
+      "previewUnavailable": "Preview unavailable",
+      "sourceFrame": "Source frame",
+      "unsavedChanges": "Unsaved changes"
     }
   },
   "studioEditorLock": {
