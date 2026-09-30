@@ -1,6 +1,9 @@
 'use client';
 
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { ButtonVariant } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -10,6 +13,8 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
+import { getDesktopCreditsVisibility } from '@genfeedai/services/core/desktop-runtime.service';
 import { Button } from '@ui/primitives/button';
 import { TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
@@ -74,10 +79,13 @@ function shouldHideBanner(
   return true;
 }
 
-export default function LowCreditsBanner({
+interface LowCreditsContentProps extends LowCreditsBannerProps {
+  creditsBreakdown: ReturnType<typeof useSubscription>['creditsBreakdown'];
+}
+function LowCreditsContent({
   variant = 'shell',
-}: LowCreditsBannerProps) {
-  const { creditsBreakdown } = useSubscription();
+  creditsBreakdown,
+}: LowCreditsContentProps) {
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = hasOrganizationBillingHint();
   const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
@@ -237,4 +245,16 @@ export default function LowCreditsBanner({
       </div>
     </div>
   );
+}
+
+function WebLowCreditsBanner(props: LowCreditsBannerProps) {
+  const { creditsBreakdown } = useSubscription();
+  return <LowCreditsContent {...props} creditsBreakdown={creditsBreakdown} />;
+}
+
+export default function LowCreditsBanner(props: LowCreditsBannerProps) {
+  const runtime = useDesktopRuntimeContext();
+  if (runtime.status === 'web') return <WebLowCreditsBanner {...props} />;
+  if (!shouldShowCreditsNav(getDesktopCreditsVisibility(runtime))) return null;
+  return <LowCreditsContent {...props} creditsBreakdown={null} />;
 }

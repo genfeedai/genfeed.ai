@@ -56,16 +56,16 @@ export class DesktopStoreService implements DesktopKeyValueStore {
     return this.values;
   }
 
-  private persist(): void {
+  private persist(values: StoredValues = this.load()): void {
     const directory = path.dirname(this.filePath);
     const temporaryPath = `${this.filePath}.${String(process.pid)}.tmp`;
     fs.mkdirSync(directory, { recursive: true });
-    fs.writeFileSync(temporaryPath, JSON.stringify(this.load(), null, 2), {
+    fs.writeFileSync(temporaryPath, JSON.stringify(values, null, 2), {
       encoding: 'utf8',
       mode: 0o600,
     });
+    fs.chmodSync(temporaryPath, 0o600);
     fs.renameSync(temporaryPath, this.filePath);
-    fs.chmodSync(this.filePath, 0o600);
   }
 
   getValueSync(key: string): string | null {
@@ -77,8 +77,9 @@ export class DesktopStoreService implements DesktopKeyValueStore {
   }
 
   setValueSync(key: string, value: string): void {
-    this.load()[key] = value;
-    this.persist();
+    const candidate = { ...this.load(), [key]: value };
+    this.persist(candidate);
+    this.values = candidate;
   }
 
   async setValue(key: string, value: string): Promise<void> {
