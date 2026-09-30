@@ -13,7 +13,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 export function useVisualProjects({
   brandId,
@@ -26,6 +26,31 @@ export function useVisualProjects({
   const getIngredients = useAuthedService((token: string) =>
     IngredientsService.getInstance(token),
   );
+  const identityScope = JSON.stringify([
+    isSignedIn,
+    orgId,
+    userId,
+    sessionId,
+    brandId,
+  ]);
+  const scope = useRef({ identity: identityScope, generation: 0 });
+  if (scope.current.identity !== identityScope)
+    scope.current = {
+      identity: identityScope,
+      generation: scope.current.generation + 1,
+    };
+  const generation = scope.current.generation;
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  const assertScope = useCallback(() => {
+    if (!isMounted.current || scope.current.generation !== generation)
+      throw new Error('visual_scope_changed');
+  }, [generation]);
   const client = useQueryClient();
   const enabled = Boolean(isSignedIn && brandId);
   const library = useQuery({
@@ -72,32 +97,87 @@ export function useVisualProjects({
     },
   });
   const quote = useCallback(
-    async (input: VisualCodeQuoteRequest) => (await getService()).quote(input),
-    [getService],
+    async (input: VisualCodeQuoteRequest) => {
+      assertScope();
+      const service = await getService();
+      assertScope();
+      return service.quote(input);
+    },
+    [getService, assertScope],
   );
   const submit = useCallback(
     async (
       input: VisualCodeQuoteRequest,
       maximumCredits: number,
     ): Promise<IVisualProject> => {
-      const service = await getService();
-      const result =
-        input.operation === 'create'
-          ? await service.create({ ...input.input, maximumCredits })
-          : input.operation === 'revise'
-            ? await service.revise(input.projectId, {
-                ...input.input,
-                maximumCredits,
-              })
-            : input.operation === 'export'
-              ? await service.export(input.projectId, {
+      assertScope();
+      try {
+        const service = await getService();
+        assertScope();
+        const result =
+          input.operation === 'create'
+            ? await service.create({ ...input.input, maximumCredits })
+            : input.operation === 'revise'
+              ? await service.revise(input.projectId, {
                   ...input.input,
                   maximumCredits,
                 })
-              : await service.retry(input.projectId, {
-                  ...input.input,
-                  maximumCredits,
-                });
+              : input.operation === 'export'
+                ? await service.export(input.projectId, {
+                    ...input.input,
+                    maximumCredits,
+                  })
+                : await service.retry(input.projectId, {
+                    ...input.input,
+                    maximumCredits,
+                  });
+        if (isMounted.current && scope.current.generation === generation)
+          client.setQueryData(
+            [
+              'visual-code',
+              orgId,
+              userId,
+              sessionId,
+              brandId,
+              'project',
+              result.id,
+            ],
+            result,
+          );
+        return result;
+      } finally {
+        await client.invalidateQueries({
+          queryKey: [
+            'visual-code',
+            orgId,
+            userId,
+            sessionId,
+            brandId,
+            'projects',
+          ],
+        });
+      }
+    },
+    [
+      getService,
+      client,
+      orgId,
+      userId,
+      sessionId,
+      brandId,
+      assertScope,
+      generation,
+    ],
+  );
+  const cancel = useCallback(async () => {
+    assertScope();
+    if (!project.data) return;
+    const service = await getService();
+    assertScope();
+    const result = await service.cancel(project.data.id, {
+      revision: project.data.currentRevision,
+    });
+    if (isMounted.current && scope.current.generation === generation)
       client.setQueryData(
         [
           'visual-code',
@@ -110,30 +190,17 @@ export function useVisualProjects({
         ],
         result,
       );
-      await client.invalidateQueries({
-        queryKey: [
-          'visual-code',
-          orgId,
-          userId,
-          sessionId,
-          brandId,
-          'projects',
-        ],
-      });
-      return result;
-    },
-    [getService, client, orgId, userId, sessionId, brandId],
-  );
-  const cancel = useCallback(async () => {
-    if (!project.data) return;
-    const result = await (await getService()).cancel(project.data.id, {
-      revision: project.data.currentRevision,
-    });
-    client.setQueryData(
-      ['visual-code', orgId, userId, sessionId, brandId, 'project', result.id],
-      result,
-    );
-  }, [getService, client, orgId, userId, sessionId, brandId, project.data]);
+  }, [
+    getService,
+    client,
+    orgId,
+    userId,
+    sessionId,
+    brandId,
+    project.data,
+    assertScope,
+    generation,
+  ]);
   const history = useCallback(
     async (beforeRevision: number) => {
       if (!projectId) throw new Error('Select a project.');
