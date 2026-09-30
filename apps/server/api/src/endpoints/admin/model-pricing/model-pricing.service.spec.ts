@@ -9,6 +9,17 @@ import {
 } from '@genfeedai/prisma';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  const actual =
+    await vi.importActual<typeof import('@genfeedai/prisma')>(
+      '@genfeedai/prisma',
+    );
+  return { ...canonicalPrismaMock(), Prisma: actual.Prisma };
+});
+
 const model = {
   id: 'model',
   key: 'provider/model',

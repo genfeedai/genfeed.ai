@@ -1,0 +1,236 @@
+import type {
+  ModelBillablePricingProfile,
+  ProviderBillingUnit,
+  ReviewedProviderPricing,
+  ReviewedProviderRate,
+} from '@genfeedai/contracts/interfaces';
+import type { Model, ModelProviderContract } from '@genfeedai/prisma';
+
+type PricingModel = Pick<
+  Model,
+  | 'key'
+  | 'provider'
+  | 'isActive'
+  | 'isDeleted'
+  | 'isFree'
+  | 'pricingType'
+  | 'providerCostUsd'
+  | 'cost'
+  | 'costPerUnit'
+  | 'minCost'
+  | 'hasResolutionOptions'
+  | 'hasAudioToggle'
+  | 'providerInputSchema'
+  | 'reviewedProviderContractVersion'
+  | 'pendingProviderContractVersion'
+  | 'endpoint'
+>;
+type PricingContract = Pick<
+  ModelProviderContract,
+  | 'provider'
+  | 'endpoint'
+  | 'version'
+  | 'reviewStatus'
+  | 'mappingStatus'
+  | 'pricing'
+  | 'conditionalDimensions'
+  | 'discoveredAt'
+>;
+function record(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+function selectors(
+  value: unknown,
+): Record<string, string | number | boolean> | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value))
+    return null;
+  const candidate = record(value);
+  if (
+    Object.values(candidate).some(
+      (item) => !['string', 'number', 'boolean'].includes(typeof item),
+    )
+  )
+    return null;
+  return candidate as Record<string, string | number | boolean>;
+}
+function unit(value: unknown): ProviderBillingUnit | null {
+  switch (value) {
+    case 'image':
+      return 'output';
+    case 'video_second':
+    case 'second_of_video':
+      return 'second';
+    case 'request':
+    case 'output':
+    case 'second':
+    case 'input-second':
+    case 'megapixel':
+    case 'input-megapixel':
+    case 'frame':
+    case 'input-token':
+    case 'output-token':
+    case 'character':
+    case 'reference':
+      return value;
+    default:
+      return null;
+  }
+}
+function reviewedPricing(
+  model: PricingModel,
+  contract: PricingContract | undefined,
+): ReviewedProviderPricing | null {
+  if (
+    !contract ||
+    contract.version !== model.reviewedProviderContractVersion ||
+    contract.provider !== model.provider ||
+    contract.endpoint !== model.endpoint ||
+    contract.reviewStatus !== 'approved' ||
+    contract.mappingStatus !== 'supported'
+  )
+    return null;
+  const metadata = record(contract.pricing);
+  // Replicate's curated-known-cost/reviewed-registry snapshots are not financial verification.
+  if (
+    metadata.source === 'curated-known-cost' ||
+    metadata.source === 'reviewed-registry'
+  )
+    return null;
+  const isFalSnapshot =
+    model.provider === 'fal' && Array.isArray(contract.pricing);
+  const sourceUrl = isFalSnapshot
+    ? 'https://api.fal.ai/v1/models/pricing'
+    : metadata.sourceUrl;
+  const verifiedAt = isFalSnapshot
+    ? contract.discoveredAt.toISOString()
+    : metadata.verifiedAt;
+  if (
+    typeof sourceUrl !== 'string' ||
+    !sourceUrl.startsWith('https://') ||
+    typeof verifiedAt !== 'string' ||
+    !Number.isFinite(Date.parse(verifiedAt))
+  )
+    return null;
+  const rawRates = isFalSnapshot ? contract.pricing : metadata.rates;
+  if (!Array.isArray(rawRates) || rawRates.length === 0) return null;
+  const rates: ReviewedProviderRate[] = [];
+  for (const raw of rawRates) {
+    const candidate = record(raw);
+    const billedUnit = unit(candidate.unit);
+    const when = selectors(
+      isFalSnapshot ? candidate.conditionalDimensions : candidate.when,
+    );
+    const price = isFalSnapshot
+      ? Number(candidate.unitPrice)
+      : candidate.unitPriceUsd;
+    if (
+      !billedUnit ||
+      !when ||
+      typeof price !== 'number' ||
+      !Number.isFinite(price) ||
+      price < 0 ||
+      (price === 0 && !model.isFree)
+    )
+      return null;
+    if (
+      isFalSnapshot &&
+      (candidate.currency !== 'USD' ||
+        candidate.endpoint !== model.endpoint ||
+        typeof candidate.unitPrice !== 'string' ||
+        !candidate.unitPrice.trim())
+    )
+      return null;
+    if (!isFalSnapshot && typeof candidate.component !== 'string') return null;
+    for (const field of ['includedUnits', 'minimumUnits', 'roundUnitsTo']) {
+      if (
+        candidate[field] !== undefined &&
+        (typeof candidate[field] !== 'number' ||
+          !Number.isFinite(candidate[field]) ||
+          candidate[field] < 0)
+      )
+        return null;
+    }
+    if (
+      candidate.isPerOutput !== undefined &&
+      typeof candidate.isPerOutput !== 'boolean'
+    )
+      return null;
+    rates.push({
+      component: isFalSnapshot ? 'output' : String(candidate.component),
+      unit: billedUnit,
+      unitPriceUsd: price,
+      when,
+      ...(typeof candidate.isPerOutput === 'boolean'
+        ? { isPerOutput: candidate.isPerOutput }
+        : isFalSnapshot && ['second', 'megapixel'].includes(billedUnit)
+          ? { isPerOutput: true }
+          : {}),
+      ...(typeof candidate.includedUnits === 'number'
+        ? { includedUnits: candidate.includedUnits }
+        : {}),
+      ...(typeof candidate.minimumUnits === 'number'
+        ? { minimumUnits: candidate.minimumUnits }
+        : {}),
+      ...(typeof candidate.roundUnitsTo === 'number'
+        ? { roundUnitsTo: candidate.roundUnitsTo }
+        : {}),
+    });
+  }
+  if (!isFalSnapshot && metadata.currency !== 'USD') return null;
+  if (
+    metadata.invariantSelectors !== undefined &&
+    (!Array.isArray(metadata.invariantSelectors) ||
+      metadata.invariantSelectors.some((value) => typeof value !== 'string'))
+  )
+    return null;
+  return {
+    version: contract.version,
+    currency: 'USD',
+    sourceUrl,
+    verifiedAt,
+    reviewStatus: 'approved',
+    isFree: model.isFree,
+    rates,
+    ...(Array.isArray(metadata.invariantSelectors)
+      ? { invariantSelectors: metadata.invariantSelectors as string[] }
+      : {}),
+  };
+}
+
+/** Internal raw pricing profile: never a serialized/virtual model display row. */
+export function projectModelBillablePricingProfile(
+  model: PricingModel,
+  contracts: PricingContract[],
+): ModelBillablePricingProfile {
+  const contract = contracts.find(
+    (candidate) => candidate.version === model.reviewedProviderContractVersion,
+  );
+  const properties = record(record(model.providerInputSchema).properties);
+  const quality = record(properties.quality);
+  return {
+    key: model.key,
+    provider: model.provider,
+    isActive: model.isActive,
+    isDeleted: model.isDeleted,
+    isFree: model.isFree,
+    pricingType: model.pricingType,
+    providerCostUsd: model.providerCostUsd,
+    cost: model.cost,
+    costPerUnit: model.costPerUnit,
+    minCost: model.minCost,
+    reviewedPricing: reviewedPricing(model, contract),
+    rateVersion: model.reviewedProviderContractVersion,
+    hasPendingRate: Boolean(
+      model.pendingProviderContractVersion &&
+        model.pendingProviderContractVersion !==
+          model.reviewedProviderContractVersion,
+    ),
+    requiresReviewedRates:
+      model.hasResolutionOptions ||
+      model.hasAudioToggle ||
+      (Array.isArray(quality.enum) && quality.enum.length > 1) ||
+      Object.keys(record(contract?.conditionalDimensions)).length > 0,
+  };
+}

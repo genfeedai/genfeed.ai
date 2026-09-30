@@ -17,7 +17,7 @@ function unitsForRate(
 ): number | null {
   switch (rate.unit) {
     case 'request':
-      return 1;
+      return input.requests ?? 1;
     case 'output':
       return input.outputs ?? 1;
     case 'second':
@@ -113,10 +113,13 @@ export function quoteReviewedProviderPricing(
       !validQuantity(included) ||
       !validQuantity(minimum) ||
       !validQuantity(step) ||
-      (['second', 'megapixel', 'output', 'frame'].includes(rate.unit) &&
+      (['second', 'megapixel', 'output', 'frame', 'request'].includes(
+        rate.unit,
+      ) &&
         units <= 0) ||
       ([
         'output',
+        'request',
         'frame',
         'input-token',
         'output-token',
@@ -124,7 +127,7 @@ export function quoteReviewedProviderPricing(
         'reference',
       ].includes(rate.unit) &&
         !Number.isSafeInteger(units)) ||
-      (rate.unit === 'output' && rate.isPerOutput)
+      (['output', 'request'].includes(rate.unit) && rate.isPerOutput)
     ) {
       return unresolved(`Missing or invalid billed quantity: ${component}`);
     }

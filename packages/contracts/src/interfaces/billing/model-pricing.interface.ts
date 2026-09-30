@@ -12,6 +12,7 @@ export type ProviderBillingUnit =
   | 'reference';
 
 export interface ProviderQuoteDimensions {
+  requests?: number;
   duration?: number;
   width?: number;
   height?: number;
@@ -38,6 +39,8 @@ export interface ReviewedProviderRate {
 }
 
 export interface ReviewedProviderPricing {
+  version?: string;
+  invariantSelectors?: string[];
   currency: string;
   sourceUrl: string;
   verifiedAt: string;
@@ -96,3 +99,47 @@ export interface AdminModelPricingReport {
   isConversionPolicyConfigured: boolean;
   rows: AdminModelPricingRow[];
 }
+
+export interface ModelBillablePricingProfile {
+  key: string;
+  provider: string;
+  isActive: boolean;
+  isDeleted: boolean;
+  isFree: boolean;
+  pricingType: string | null;
+  providerCostUsd: number | null;
+  cost: number;
+  costPerUnit: number | null;
+  minCost: number | null;
+  reviewedPricing: ReviewedProviderPricing | null;
+  rateVersion: string | null;
+  hasPendingRate: boolean;
+  requiresReviewedRates: boolean;
+}
+
+export interface ModelBillableQuoteRequest extends ProviderQuoteDimensions {
+  modelKey: string;
+  provider: string;
+}
+
+export interface ModelBillableQuoteSnapshot {
+  modelKey: string;
+  provider: string;
+  rateVersion: string | null;
+  quotedAt: string;
+  marginMultiplier: number | null;
+  quantities: ProviderQuoteDimensions;
+  costSource:
+    | 'reviewed-provider'
+    | 'configured-provider'
+    | 'legacy-credits'
+    | 'explicit-free';
+  providerCostUsd: number | null;
+  credits: number;
+  allocationBasis: 'request' | 'output';
+  allocatedCredits: number[];
+}
+
+export type ModelBillableQuote =
+  | { status: 'priced'; snapshot: ModelBillableQuoteSnapshot }
+  | { status: 'unresolved'; reason: string };
