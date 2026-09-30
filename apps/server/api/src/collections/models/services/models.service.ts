@@ -1,6 +1,7 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
@@ -15,6 +16,7 @@ import {
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
+  ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
@@ -458,6 +460,55 @@ export class ModelsService extends BaseService<
       scopedParams.OR = orgVisibilityOr;
     }
     return scopedParams;
+  }
+
+  /** Exact internal lookup for billing; no version stripping or display samples. */
+  async findBillablePricingProfile(
+    key: string,
+    organizationId?: string,
+  ): Promise<ModelBillablePricingProfile | null> {
+    const model = await this.prisma.model.findFirst({
+      // tenant-scope-ignore: withRegistryVisibility restricts to the supplied org plus global rows and excludes soft deletes.
+      where: this.normalizeWhereForModel(
+        this.withRegistryVisibility({
+          key,
+          ...(organizationId ? { organizationId } : { organizationId: null }),
+        }),
+      ) as Prisma.ModelWhereInput,
+      select: {
+        key: true,
+        endpoint: true,
+        provider: true,
+        isActive: true,
+        isDeleted: true,
+        isFree: true,
+        pricingType: true,
+        providerCostUsd: true,
+        cost: true,
+        costPerUnit: true,
+        minCost: true,
+        hasResolutionOptions: true,
+        hasAudioToggle: true,
+        providerInputSchema: true,
+        reviewedProviderContractVersion: true,
+        pendingProviderContractVersion: true,
+        providerContracts: {
+          select: {
+            provider: true,
+            endpoint: true,
+            version: true,
+            reviewStatus: true,
+            mappingStatus: true,
+            pricing: true,
+            conditionalDimensions: true,
+            discoveredAt: true,
+          },
+        },
+      },
+    });
+    return model
+      ? projectModelBillablePricingProfile(model, model.providerContracts)
+      : null;
   }
 
   override async findOne(
