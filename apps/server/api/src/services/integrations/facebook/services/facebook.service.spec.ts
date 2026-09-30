@@ -154,6 +154,32 @@ describe('FacebookService', () => {
         ?.collection?.outcome,
     ).toBe('observed');
   });
+  it.each([
+    [190, 'terminal_unavailable'],
+    [102, 'terminal_unavailable'],
+    [10, 'terminal_unavailable'],
+    [200, 'terminal_unavailable'],
+    [294, 'terminal_unavailable'],
+    [4, 'retryable_failure'],
+    [17, 'retryable_failure'],
+    [32, 'retryable_failure'],
+    [613, 'retryable_failure'],
+  ])(
+    'recognizes Meta code %s on HTTP400 without guessing another failure',
+    async (code, outcome) => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({
+          response: { status: 400, data: { error: { code } } },
+        })),
+      );
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection).toMatchObject({
+        outcome,
+        reasonCode:
+          outcome === 'terminal_unavailable' ? 'unauthorized' : 'rate_limited',
+      });
+    },
+  );
   afterEach(() => {
     vi.clearAllMocks();
   });

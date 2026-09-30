@@ -735,6 +735,7 @@ describe('TiktokService', () => {
             data: {
               videos: [
                 {
+                  id: 'v',
                   comment_count: 1,
                   download_count: 0,
                   like_count: 2,

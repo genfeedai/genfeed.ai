@@ -2,6 +2,7 @@ import {
   SERVER_TOKENS,
   type ServerCredentialStore,
 } from '@api/server.dependencies';
+import { getInstagramErrorCode as getMetaGraphErrorCode } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import {
@@ -819,15 +820,27 @@ export class FacebookService {
         typeof response.status === 'number'
           ? response.status
           : null;
+      const graphCode = getMetaGraphErrorCode(error);
+      const rateLimited =
+        status === 429 ||
+        (graphCode !== undefined && [4, 17, 32, 613].includes(graphCode));
+      const unauthorized =
+        !rateLimited &&
+        (status === 401 ||
+          status === 403 ||
+          (graphCode !== undefined &&
+            [190, 102, 10, 200, 294].includes(graphCode)));
       const permanent =
-        status !== null && [401, 403, 404, 405, 410].includes(status);
+        !rateLimited &&
+        (unauthorized || (status !== null && [404, 405, 410].includes(status)));
       return {
         learningMetrics: {
           collection: {
             version: 1,
             outcome: permanent ? 'terminal_unavailable' : 'retryable_failure',
-            reasonCode:
-              status === 401 || status === 403
+            reasonCode: rateLimited
+              ? 'rate_limited'
+              : unauthorized
                 ? 'unauthorized'
                 : status === 404 || status === 410
                   ? 'publication_unavailable'
