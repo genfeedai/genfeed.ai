@@ -7,7 +7,7 @@ import type {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type { IEvaluation } from '@genfeedai/contracts/interfaces';
-import { normalizePersuasionScores } from '@genfeedai/harness/persuasion/viral-psychology';
+import { normalizePersuasionScores } from '@genfeedai/harness';
 import { Injectable } from '@nestjs/common';
 
 function targetKey(
