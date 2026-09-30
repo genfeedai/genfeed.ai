@@ -34,6 +34,19 @@ describe.skipIf(!isolatedUrl)(
             constraint: 'learning_decision_vector_check',
           });
         }
+        const datasetInsert = `INSERT INTO content_learning_dataset_entries ("id","updatedAt","datasetId","sourceFingerprint","sourceReference","accountGroup","decisionAt","measuredAt","features","armId","probabilities","reward","split") VALUES ('negative-dataset',now(),'no-dataset','fingerprint','{}','group',now(),now(),$1,'baseline-v1','{}',0,'training')`;
+        for (const vector of [
+          null,
+          [1, 0, 0, 0, 0, 0, 0, 0, null],
+          [1, 0, 0, 0, 0, 0, 0, 0, Number.NaN],
+          [1, 0, 0, 0, 0, 0, 0, 0, Number.POSITIVE_INFINITY],
+        ])
+          await expect(
+            pool.query(datasetInsert, [vector]),
+          ).rejects.toMatchObject({
+            code: '23514',
+            constraint: 'learning_dataset_numeric_check',
+          });
         await expect(
           pool.query(insert, [
             Array<number>(9).fill(0),
