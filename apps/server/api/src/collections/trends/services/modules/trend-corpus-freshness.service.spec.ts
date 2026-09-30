@@ -124,6 +124,7 @@ const trendDocs: TrendDoc[] = [
 
 describe('TrendCorpusFreshnessService', () => {
   let service: TrendCorpusFreshnessService;
+  const refreshHealth = { getHealth: vi.fn().mockResolvedValue([]) };
   let prisma: {
     trend: { findMany: ReturnType<typeof vi.fn> };
     trendSourceReference: { findMany: ReturnType<typeof vi.fn> };
@@ -156,7 +157,7 @@ describe('TrendCorpusFreshnessService', () => {
         TrendCorpusFreshnessService,
         {
           provide: TrendRefreshHealthService,
-          useValue: { getHealth: vi.fn().mockResolvedValue([]) },
+          useValue: refreshHealth,
         },
         { provide: PrismaService, useValue: prisma },
       ],
@@ -315,5 +316,33 @@ describe('TrendCorpusFreshnessService', () => {
     const trendWhere = prisma.trend.findMany.mock.calls.at(-1)?.[0]?.where;
     expect(trendWhere).toEqual({ isDeleted: false });
     expect(trendWhere).not.toHaveProperty('OR');
+  });
+  it('returns refresh receipts without fetching and projects failed refreshes into health', async () => {
+    const receipt = {
+      completedAt: '2026-06-13T12:16:00Z',
+      dataset: 'trends',
+      lastAttemptAt: '2026-06-13T12:15:00Z',
+      lastSuccessfulRefreshAt: '2026-06-12T12:16:00Z',
+      outcome: 'native_failed',
+      platform: 'youtube',
+      reason: 'native_failed',
+      scope: 'global',
+    };
+    refreshHealth.getHealth.mockResolvedValue([receipt]);
+    const result = await service.getCorpusFreshnessHealth({
+      organizationId: 'org-1',
+      platform: 'youtube',
+    });
+    expect(result.refreshHealth).toEqual([receipt]);
+    expect(refreshHealth.getHealth).toHaveBeenCalledWith(
+      expect.objectContaining({ organizationId: 'org-1', platform: 'youtube' }),
+    );
+    expect(result.providerFailures).toContainEqual(
+      expect.objectContaining({
+        platform: 'youtube',
+        reason: 'refresh_failed',
+        latestObservedAt: receipt.lastAttemptAt,
+      }),
+    );
   });
 });

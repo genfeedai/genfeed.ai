@@ -100,7 +100,6 @@ export class TrendCorpusFreshnessService {
 
     const [referenceDocs, trendDocs, refreshHealth] = await Promise.all([
       // Durable evidence only; this service has no provider/queue dependency.
-      // Results below are ordered to keep the existing corpus query tuple intact.
       this.prisma.trendSourceReference.findMany({
         orderBy: [{ platform: 'asc' }, { lastSeenAt: 'asc' }],
         select: {

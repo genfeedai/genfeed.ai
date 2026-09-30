@@ -8,6 +8,7 @@ import type { TrendingVideoDocument } from '@api/collections/trends/schemas/tren
 import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import {
   captureTrendRefreshEvidence,
+  getTrendNativeFailureReason,
   recordTrendProviderOutcome,
   recordTrendRefreshFailure,
   withTrendRefreshAttempt,
@@ -274,7 +275,8 @@ export class TrendVideoService {
   private async fetchYoutubeVideosNativeFirst(
     limit: number,
   ): Promise<Record<string, unknown>[]> {
-    let reason: 'native_empty' | 'native_failed' = 'native_empty';
+    let reason: 'native_empty' | 'native_failed' | 'native_unavailable' =
+      'native_empty';
     try {
       const nativeVideos = await this.youtubeService.getTrends('US', limit);
       if (nativeVideos.length > 0) {
@@ -304,6 +306,7 @@ export class TrendVideoService {
         });
       }
 
+      reason = getTrendNativeFailureReason() ?? 'native_empty';
       this.loggerService.warn(
         'YouTube native video discovery returned no signal; falling back to governed Apify',
       );

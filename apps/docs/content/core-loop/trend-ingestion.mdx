@@ -198,5 +198,6 @@ record gives new deployments two windows of grace. Each missing platform/dataset
 gets one actionable operator alert through the durable notification outbox;
 continued misses share an incident key. The next successful refresh produces a
 recovery on the next scheduled health check and allows a later incident to alert
-again. Alert delivery failures cannot stop collection. Global health alerts carry
-no tenant identifiers.
+again. Alert delivery failures cannot stop collection. Connected scopes are checked separately from the public corpus, so global fallback
+success cannot conceal a failed connected provider. Health alert messages and
+metrics carry no tenant identifiers; scoped incident keys use opaque fingerprints.

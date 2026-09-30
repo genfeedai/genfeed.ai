@@ -1,4 +1,5 @@
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendFetchService', () => {
@@ -834,6 +835,41 @@ describe('TrendFetchService', () => {
       expect.objectContaining({
         outcome: 'native_failed',
         reason: 'persistence_failed',
+        lastSuccessfulRefreshAt: null,
+      }),
+    ]);
+  });
+  it('distinguishes integration-level swallowed failures from genuine empty native responses', async () => {
+    mockYoutubeService.getTrends.mockImplementation(async () => {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
+      return [];
+    });
+    await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+      allowApifyFallback: false,
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+      expect.objectContaining({
+        outcome: 'native_failed',
+        reason: 'native_failed',
+        lastSuccessfulRefreshAt: null,
+      }),
+    ]);
+  });
+
+  it('does not mark unavailable native credentials as a successful empty refresh', async () => {
+    mockYoutubeService.getTrends.mockImplementation(async () => {
+      recordTrendProviderOutcome('native_empty', 'native_unavailable');
+      return [];
+    });
+    await service.fetchAndCacheTrends('org-1', 'brand-1', undefined, {
+      allowApifyFallback: false,
+      platforms: ['youtube'],
+    });
+    expect(refreshHealth.record).toHaveBeenCalledWith('org-1', [
+      expect.objectContaining({
+        outcome: 'native_empty',
+        reason: 'native_unavailable',
         lastSuccessfulRefreshAt: null,
       }),
     ]);
