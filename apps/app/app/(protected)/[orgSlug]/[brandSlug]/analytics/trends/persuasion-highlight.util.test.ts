@@ -51,7 +51,7 @@ describe('getPersuasionHighlight', () => {
         observation,
         'later',
       ])?.analysisNote,
-    ).toBe(observation.trim());
+    ).toBe(observation);
     expect(
       getPersuasionHighlight(buildPersuasionScores())?.analysisNote,
     ).toBeUndefined();
@@ -65,6 +65,14 @@ describe('getPersuasionHighlight', () => {
         buildPersuasionScores({ hookStrength: Number.NaN }),
         ['saved'],
       ),
+    ).toBeUndefined();
+  });
+  it('omits written evidence for a malformed stored strengths field', () => {
+    expect(
+      getPersuasionHighlight(
+        buildPersuasionScores(),
+        'not a saved list' as unknown as readonly string[],
+      )?.analysisNote,
     ).toBeUndefined();
   });
 });

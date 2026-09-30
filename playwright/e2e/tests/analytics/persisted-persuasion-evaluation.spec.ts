@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { JsonApiDocument, JsonApiResource } from '@genfeedai/helpers';
+import {
+  getDeserializer,
+  type JsonApiDocument,
+  type JsonApiResource,
+} from '@genfeedai/helpers';
 import type { Page } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -60,6 +64,14 @@ for (const colorScheme of ['light', 'dark'] as const) {
       test.setTimeout(120_000);
       const fixture = persistedFixture();
       const videoId = fixture.ids.video;
+      const initialList = getDeserializer<
+        Array<{ id: string; metadata?: { label?: string } }>
+      >(fixture.fixtures['initial:/videos?lightweight=true']);
+      if (!Array.isArray(initialList))
+        throw new Error('Expected persisted video collection');
+      const videoLabel =
+        initialList.find((item) => item.id === videoId)?.metadata?.label ??
+        videoId.slice(0, 8);
       const savedDocument = fixture.fixtures[`/evaluations/videos/${videoId}`];
       if (!savedDocument)
         throw new Error('Missing original persisted evaluation POST fixture');
@@ -128,7 +140,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       });
       await page.goto(brandPath('/analytics/trends'));
       await expect(
-        page.getByText('Persisted video', { exact: true }).first(),
+        page.getByText(videoLabel, { exact: true }).first(),
       ).toBeVisible();
       // Real sidebar links retain the same SPA/query cache while opening Library.
       await page
@@ -136,9 +148,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .first()
         .click();
       await expect(
-        page.getByText('Persisted video', { exact: true }).first(),
+        page.getByText(videoLabel, { exact: true }).first(),
       ).toBeVisible();
-      await page.getByText('Persisted video', { exact: true }).first().click();
+      await page.getByText(videoLabel, { exact: true }).first().click();
       await page.getByRole('tab', { name: 'Evaluation', exact: true }).click();
       await page.getByRole('button', { name: 'Run', exact: true }).click();
       await expect(page.getByText('Persuasion', { exact: true })).toBeVisible();
@@ -153,7 +165,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         fullPage: true,
       });
       await page.keyboard.press('Escape');
-      await page.getByText('Persisted video', { exact: true }).first().click();
+      await page.getByText(videoLabel, { exact: true }).first().click();
       await page.getByRole('tab', { name: 'Evaluation', exact: true }).click();
       await expect(page.getByText(observation, { exact: true })).toBeVisible();
       await cleanSurface(page);

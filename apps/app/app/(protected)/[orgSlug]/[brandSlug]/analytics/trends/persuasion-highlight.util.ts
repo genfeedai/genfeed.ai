@@ -25,6 +25,14 @@ export function getPersuasionHighlight(
     return undefined;
   }
 
+  const savedStrengths: readonly unknown[] = Array.isArray(strengths)
+    ? strengths
+    : [];
+  const analysisNote = savedStrengths.find(
+    (strength): strength is string =>
+      typeof strength === 'string' && strength.trim().length > 0,
+  );
+
   return PERSUASION_LAYERS.reduce<ITrendVideoPersuasionHighlight | undefined>(
     (top, layer) => {
       const score = normalized[layer.scoreKey];
@@ -37,10 +45,7 @@ export function getPersuasionHighlight(
         id: layer.id,
         label: layer.label,
         score,
-        analysisNote: strengths?.find(
-          (strength) =>
-            typeof strength === 'string' && strength.trim().length > 0,
-        ),
+        analysisNote,
       };
     },
     undefined,
