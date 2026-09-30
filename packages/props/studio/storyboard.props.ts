@@ -277,7 +277,13 @@ export interface StoryboardConflictReviewProps {
 }
 export interface StoryboardCreationIntent {
   clientRequestId: string;
+  uncertain?: boolean;
   owner: symbol;
   epoch: number;
   pending?: Promise<string>;
+}
+
+export interface StoryboardDraftFieldMerge {
+  value: unknown;
+  base: unknown;
 }

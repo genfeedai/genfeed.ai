@@ -7,6 +7,11 @@ import { Pause, Play, RotateCcw } from 'lucide-react';
 import NextImage from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+function previewDuration(seconds: number | null): number {
+  return seconds !== null && Number.isFinite(seconds) && seconds > 0
+    ? seconds
+    : 0;
+}
 function timecode(seconds: number) {
   const whole = Math.floor(seconds);
   return `${Math.floor(whole / 60)
@@ -114,8 +119,8 @@ export default function StoryboardAnimatic({
   const ranges = shots.map((shot, index) => {
     const start = shots
       .slice(0, index)
-      .reduce((sum, item) => sum + (item.durationSeconds ?? 0), 0);
-    return { shot, start, end: start + (shot.durationSeconds ?? 0) };
+      .reduce((sum, item) => sum + previewDuration(item.durationSeconds), 0);
+    return { shot, start, end: start + previewDuration(shot.durationSeconds) };
   });
   const total = ranges.at(-1)?.end ?? 0;
   const current =
@@ -151,6 +156,7 @@ export default function StoryboardAnimatic({
   useEffect(() => {
     if (!playing) return;
     const startElapsed = clock.current.elapsed;
+    clock.current.started = performance.now();
     const timer = setInterval(() => {
       const next = Math.min(
         end,

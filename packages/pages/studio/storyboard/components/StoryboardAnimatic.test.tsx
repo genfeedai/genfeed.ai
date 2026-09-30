@@ -95,6 +95,27 @@ describe('zero-generation timed animatic', () => {
     });
     expect(screen.getByText('First line')).toBeVisible();
   });
+  it('plays a loaded finite shot even when an earlier shot has a nonfinite duration', async () => {
+    vi.useFakeTimers();
+    render(
+      <StoryboardAnimatic
+        scope="run:1"
+        shots={[{ ...shots[0], durationSeconds: Number.NaN }, shots[1]]}
+      />,
+    );
+    await load();
+    expect(
+      screen.getByRole('button', { name: 'Play storyboard', exact: true }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play shot 2', exact: true }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1100);
+    });
+    expect(screen.getByText('Second line')).toBeVisible();
+    expect(screen.getByText('00:01 / 00:03')).toBeVisible();
+  });
   it('offers a direct retry for a failed noncurrent shot without advancing or autoplaying', async () => {
     render(<StoryboardAnimatic scope="run:1" shots={shots} />);
     await load(0);

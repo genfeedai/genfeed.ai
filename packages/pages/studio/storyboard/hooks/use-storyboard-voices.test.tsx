@@ -34,7 +34,9 @@ describe('saved Storyboard voice eligibility', () => {
   it('keeps real eligible current-brand/global rows and rejects foreign/deleted/catalog-only rows', () => {
     const eligible = [
       voice('uploaded', { status: IngredientStatus.UPLOADED }),
-      voice('generated'),
+      Object.assign(voice('generated'), {
+        externalVoiceId: 'catalog-reference',
+      }),
       voice('validated', { status: IngredientStatus.VALIDATED }),
       voice('global', { brandId: null }),
     ];

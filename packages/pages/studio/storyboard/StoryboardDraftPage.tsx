@@ -23,7 +23,7 @@ import Field from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { type MouseEvent, useRef, useState } from 'react';
+import { type MouseEvent, useEffect, useRef, useState } from 'react';
 
 /** Neutral detail page stays separate until existing-run migration is integrated. */
 export default function StoryboardDraftPage({
@@ -41,6 +41,9 @@ export default function StoryboardDraftPage({
   const router = useRouter();
   const editor = useRef<StoryboardPlanEditorHandle>(null);
   const draft = useStoryboardDraftOutbox(transport, run);
+  useEffect(() => {
+    if (draft.snapshot?.status === 'failed') refreshCapabilities?.();
+  }, [draft.snapshot?.status, refreshCapabilities]);
   const sourceAutosave = useStoryboardAutosave({
     binding: draft.source,
     scope: `${run.brandId}:${run.id}:source`,
@@ -75,7 +78,8 @@ export default function StoryboardDraftPage({
       run.config.state === 'ready' &&
       planStatus === 'saved' &&
       sourceAutosave.status === 'saved' &&
-      Boolean(draft.queue),
+      Boolean(draft.queue) &&
+      run.config.revision === draft.snapshot?.revision,
     shotIds: run.config.plan.shots.map((shot) => shot.id),
     videos: Object.fromEntries(
       Object.entries(pipeline?.scenes ?? {}).map(([id, scene]) => [

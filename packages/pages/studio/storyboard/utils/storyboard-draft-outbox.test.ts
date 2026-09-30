@@ -248,6 +248,38 @@ describe('scoped shared Storyboard draft outbox', () => {
       });
     },
   );
+  it.each(['Story', 'Different latest story'])(
+    'does not promote remote-only fields into local intent while an unresolved conflict survives reread/reopen (%s)',
+    async (latestLogline) => {
+      const { queue, transport, remote, getRun } = fixture();
+      await queue.initialize();
+      queue.edit('plan', { ...plan, title: 'Your title' });
+      remote({ title: 'Saved title', logline: 'First remote story' });
+      await expect(queue.flush()).rejects.toBeDefined();
+      expect(queue.getSnapshot().value.plan.logline).toBe('First remote story');
+      expect(queue.getSnapshot().conflicts.map((entry) => entry.path)).toEqual([
+        'plan.title',
+      ]);
+      remote({ logline: latestLogline });
+      await queue.recover();
+      expect(queue.getSnapshot().value.plan.logline).toBe(latestLogline);
+      expect(queue.getSnapshot().conflicts.map((entry) => entry.path)).toEqual([
+        'plan.title',
+      ]);
+      const reopened = new StoryboardDraftOutbox(transport, getRun());
+      await reopened.initialize();
+      expect(
+        reopened.getSnapshot().conflicts.map((entry) => entry.path),
+      ).toEqual(['plan.title']);
+      reopened.choose('plan.title', 'local');
+      await reopened.resolve();
+      expect(getRun().config.plan.title).toBe('Your title');
+      expect(getRun().config.plan.logline).toBe(latestLogline);
+      expect(
+        vi.mocked(transport.write).mock.calls.at(-1)?.[2].plan.logline,
+      ).toBe(latestLogline);
+    },
+  );
   it('restores only its exact scope and suspends undispatched work across account/server switches', async () => {
     const first = fixture();
     await first.queue.initialize();

@@ -1,6 +1,9 @@
 import { storyboardPlanDraftSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
-import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
+import {
+  storyboardIdSchema,
+  storyboardSourceSelectorSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
   StoryboardDraftConflict,
   StoryboardDraftScope,
@@ -37,7 +40,7 @@ const draftValidationSchema = z
         .object({
           kind: z.literal('brief'),
           brief: z.string().max(2000),
-          seedImageAssetId: z.string().min(1).max(255).optional(),
+          seedImageAssetId: storyboardIdSchema.optional(),
         })
         .strict(),
     ),
@@ -76,6 +79,7 @@ const envelopeSchema = z
       .optional(),
     recoveryLocal: valueSchema.optional(),
     review: reviewSchema.optional(),
+    resolution: reviewSchema.optional(),
   })
   .strict();
 export function storyboardDraftKey(scope: StoryboardDraftScope) {
@@ -175,7 +179,27 @@ export class StoryboardDraftOutbox {
       this.storageError =
         'Recovery storage is unavailable. Keep this page open until your edits are saved.';
     }
+    this.envelope.value = {
+      ...this.envelope.value,
+      plan: this.withFreshness(this.envelope.value.plan, value.plan),
+    };
     this.snapshot = this.view();
+  }
+  private withFreshness(
+    plan: StoryboardDraftValue['plan'],
+    remote: StoryboardDraftValue['plan'],
+  ) {
+    return {
+      ...plan,
+      shots: plan.shots.map((shot) => ({
+        ...shot,
+        stillFreshness:
+          remote.shots.find(
+            (saved) =>
+              saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
+          )?.stillFreshness ?? ('missing' as const),
+      })),
+    };
   }
   private view() {
     return {
@@ -210,7 +234,8 @@ export class StoryboardDraftOutbox {
         !this.envelope.pending.length &&
         !this.envelope.submitted &&
         !this.envelope.recoveryLocal &&
-        !this.envelope.review
+        !this.envelope.review &&
+        !this.envelope.resolution
       )
         window.sessionStorage.removeItem(key);
       else window.sessionStorage.setItem(key, JSON.stringify(this.envelope));
@@ -269,7 +294,7 @@ export class StoryboardDraftOutbox {
     if (this.conflicts.length) {
       // Safe disjoint merges and remote-owned freshness remain visible while conflicting units stay local.
       this.envelope.value = comparison.value;
-      this.review = { base, local: comparison.value, remote };
+      this.review = { base: comparison.base, local: comparison.value, remote };
       this.envelope.recoveryLocal ??= local;
       this.status = 'failed';
       this.error = 'Review concurrent edits before saving.';
@@ -324,6 +349,7 @@ export class StoryboardDraftOutbox {
     if (!this.conflicts.length && !this.envelope.pending.length) {
       this.status = 'saved';
       this.envelope.recoveryLocal = undefined;
+      this.envelope.resolution = undefined;
     }
     this.initialized = true;
     this.persist();
@@ -343,6 +369,10 @@ export class StoryboardDraftOutbox {
   recover = async (): Promise<void> => {
     if (this.task) return this.task;
     if (this.recovery) return this.recovery;
+    if (!this.conflicts.length) {
+      this.status = 'saving';
+      this.publish();
+    }
     const recovery = this.reread().catch((error) => {
       this.status = 'failed';
       this.error = getJsonApiErrorMessage(
@@ -369,6 +399,8 @@ export class StoryboardDraftOutbox {
       this.conflicts.some((entry) => !this.choices[entry.path])
     )
       throw new Error('Choose a version for every conflicting field.');
+    this.envelope.recoveryLocal = this.review.local;
+    this.envelope.resolution = { ...this.review, choices: this.choices };
     const resolved = reconcileStoryboardDraft(
       this.review.base,
       this.review.local,
@@ -456,6 +488,7 @@ export class StoryboardDraftOutbox {
             if (!this.envelope.pending.length && !this.conflicts.length) {
               this.status = 'saved';
               this.envelope.recoveryLocal = undefined;
+              this.envelope.resolution = undefined;
             }
             this.persist();
             if (this.conflicts.length)
@@ -479,7 +512,12 @@ export class StoryboardDraftOutbox {
                 this.status = 'failed';
                 this.error ??= this.conflicts.length
                   ? 'Review concurrent edits before saving.'
-                  : 'Saved version refreshed. Retry to save your retained edits.';
+                  : member?.code === 'STORYBOARD_CAPABILITIES_CHANGED'
+                    ? getJsonApiErrorMessage(
+                        error,
+                        'Model capabilities changed. Review durations and retry.',
+                      )
+                    : 'Saved version refreshed. Retry to save your retained edits.';
               }
               this.persist();
               if (this.status === 'saved') return;
@@ -527,6 +565,12 @@ export class StoryboardDraftOutbox {
   };
   adopt = (run: StoryboardRun) => {
     this.checkRun(run);
+    if (run.config.revision < this.envelope.revision) return;
+    this.envelope.value = {
+      ...this.envelope.value,
+      plan: this.withFreshness(this.envelope.value.plan, run.config.plan),
+    };
+    this.publish();
     if (
       !this.envelope.pending.length &&
       !this.envelope.submitted &&

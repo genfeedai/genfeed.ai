@@ -2,6 +2,7 @@ import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/st
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
   StoryboardDraftConflict,
+  StoryboardDraftFieldMerge,
   StoryboardDraftValue,
 } from '@genfeedai/props/studio/storyboard.props';
 
@@ -35,6 +36,38 @@ export function storyboardValuesEqual(left: unknown, right: unknown): boolean {
   return false;
 }
 
+const fieldLabels: Record<string, string> = {
+  title: 'Title',
+  logline: 'Logline',
+  videoModelKey: 'Video model',
+  format: 'Format',
+  runtimeBudgetSeconds: 'Runtime budget',
+  styleLabel: 'Style',
+  styleReferenceAssetIds: 'Style references',
+  cast: 'Cast',
+  shots: 'Shots',
+  name: 'Name',
+  voiceId: 'Voice',
+  avatarAssetId: 'Avatar image',
+  referenceAssetIds: 'Reference images',
+  sectionLabel: 'Section',
+  action: 'Action',
+  dialogue: 'Dialogue',
+  speakerId: 'Speaker',
+  onScreenSpeaker: 'On-screen speaker',
+  durationSeconds: 'Duration',
+  notes: 'Notes',
+  stillAssetId: 'Still image',
+  transition: 'Transition',
+  kind: 'Source type',
+  brief: 'Brief',
+  seedImageAssetId: 'Starting image',
+  assetId: 'Uploaded video',
+  platform: 'Platform',
+  credentialId: 'Connected account',
+  adAccountId: 'Ad account',
+  adId: 'Ad',
+};
 /** Arrays are atomic; cast/shot leaves merge by opaque ID only with unchanged membership/order. */
 export function reconcileStoryboardDraft(
   baseValue: StoryboardDraftValue,
@@ -52,13 +85,14 @@ export function reconcileStoryboardDraft(
     remote: unknown,
     path: string,
     label: string,
-  ): unknown {
-    if (storyboardValuesEqual(local, base)) return remote;
-    if (
-      storyboardValuesEqual(remote, base) ||
-      storyboardValuesEqual(local, remote)
-    )
-      return local;
+  ): StoryboardDraftFieldMerge {
+    // A remote-only or converged unit is resolved: rebase both display and lineage,
+    // so a later remote change/revert cannot become a fabricated user edit.
+    if (storyboardValuesEqual(local, base))
+      return { value: remote, base: remote };
+    if (storyboardValuesEqual(remote, base)) return { value: local, base };
+    if (storyboardValuesEqual(local, remote))
+      return { value: local, base: remote };
     if (path === 'plan.shots' || path === 'plan.cast') {
       const a = base as { id: string }[];
       const b = local as { id: string }[];
@@ -73,7 +107,7 @@ export function reconcileStoryboardDraft(
           c.map((entry) => entry.id),
         )
       ) {
-        return b.map((entry, index) =>
+        const entries = b.map((entry, index) =>
           merge(
             a[index],
             entry,
@@ -84,6 +118,10 @@ export function reconcileStoryboardDraft(
               : `Cast member ${index + 1}`,
           ),
         );
+        return {
+          value: entries.map((entry) => entry.value),
+          base: entries.map((entry) => entry.base),
+        };
       }
     } else if (
       (path !== 'source' ||
@@ -108,6 +146,7 @@ export function reconcileStoryboardDraft(
       const b = local as Record<string, unknown>;
       const c = remote as Record<string, unknown>;
       const merged: Record<string, unknown> = {};
+      const rebased: Record<string, unknown> = {};
       for (const key of new Set([
         ...Object.keys(a),
         ...Object.keys(b),
@@ -118,37 +157,45 @@ export function reconcileStoryboardDraft(
           b[key],
           c[key],
           `${path}.${key}`,
-          `${label}: ${key}`,
+          `${label}: ${fieldLabels[key] ?? key}`,
         );
-        if (value !== undefined) merged[key] = value;
+        if (value.value !== undefined) merged[key] = value.value;
+        if (value.base !== undefined) rebased[key] = value.base;
       }
-      return merged;
+      return { value: merged, base: rebased };
     }
     conflicts.push({ path, label, local, remote });
-    return choices[path] === 'remote' ? remote : local;
+    return { value: choices[path] === 'remote' ? remote : local, base };
   }
-  const plan = merge(
-    base.plan,
-    local.plan,
-    remote.plan,
-    'plan',
-    'Plan',
-  ) as StoryboardPlan;
-  // Freshness belongs to the newly fetched server, never a conflict choice or an old local plan.
-  plan.shots = plan.shots.map((shot) => ({
-    ...shot,
-    stillFreshness:
-      remoteValue.plan.shots.find(
-        (saved) =>
-          saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
-      )?.stillFreshness ?? 'missing',
-  }));
-  const source = merge(
+  const planResult = merge(base.plan, local.plan, remote.plan, 'plan', 'Plan');
+  const sourceResult = merge(
     base.source,
     local.source,
     remote.source,
     'source',
     'Source',
-  ) as StoryboardSourceSelector;
-  return { value: { plan, source }, conflicts };
+  );
+  // Freshness belongs to the newly fetched server, never a conflict choice or an old local plan.
+  const hydrate = (plan: StoryboardPlan): StoryboardPlan => ({
+    ...plan,
+    shots: plan.shots.map((shot) => ({
+      ...shot,
+      stillFreshness:
+        remoteValue.plan.shots.find(
+          (saved) =>
+            saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
+        )?.stillFreshness ?? 'missing',
+    })),
+  });
+  return {
+    value: {
+      plan: hydrate(planResult.value as StoryboardPlan),
+      source: sourceResult.value as StoryboardSourceSelector,
+    },
+    base: {
+      plan: hydrate(planResult.base as StoryboardPlan),
+      source: sourceResult.base as StoryboardSourceSelector,
+    },
+    conflicts,
+  };
 }

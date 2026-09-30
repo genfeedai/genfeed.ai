@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getSession } from '@genfeedai/auth-client';
 import {
   type CreateStoryboardRun,
   createStoryboardRunSchema,
@@ -90,6 +91,15 @@ export function useCreateStoryboard() {
       active.current.key === epochKey &&
       active.current.epoch === epoch &&
       activeIntent.current === key;
+    const identityCurrent = async () => {
+      const session = await getSession();
+      const currentOrg = session.data?.session.activeOrganizationId;
+      return (
+        !session.error &&
+        session.data?.user.id === userId &&
+        (!currentOrg || currentOrg === organizationId)
+      );
+    };
     const previous = intents.get(key);
     if (
       previous?.pending &&
@@ -101,6 +111,7 @@ export function useCreateStoryboard() {
       clientRequestId: previous?.clientRequestId ?? crypto.randomUUID(),
       owner: owner.current,
       epoch,
+      uncertain: Boolean(previous?.uncertain || previous?.pending),
     };
     intents.set(key, intent);
     setState({ scope, intentKey: key, isCreating: true, error: null });
@@ -111,9 +122,11 @@ export function useCreateStoryboard() {
     };
     const task = Promise.resolve().then(async () => {
       try {
-        if (!isCurrent()) throw new Error('Storyboard brand changed.');
+        if (!isCurrent() || !(await identityCurrent()) || !isCurrent())
+          throw new Error('Storyboard scope changed.');
         const service = await getService();
-        if (!isCurrent()) throw new Error('Storyboard brand changed.');
+        if (!isCurrent() || !(await identityCurrent()) || !isCurrent())
+          throw new Error('Storyboard scope changed.');
         dispatched = true;
         const run = await service.createStoryboardRun(brandId, {
           ...canonical,
@@ -123,20 +136,23 @@ export function useCreateStoryboard() {
           throw new Error('Storyboard scope changed.');
         acknowledged = true;
         retire();
-        if (!isCurrent()) throw new Error('Storyboard brand changed.');
+        if (!isCurrent() || !(await identityCurrent()) || !isCurrent())
+          throw new Error('Storyboard scope changed.');
         completed.current.set(run.id, { scope, epoch, intentKey: key });
         return run.id;
       } catch (error) {
+        const definitive = definitiveStatuses.has(
+          getJsonApiErrorMember(error)?.status ??
+            normalizeOperationError('create-storyboard', error).status ??
+            0,
+        );
         if (
-          !dispatched ||
           acknowledged ||
-          definitiveStatuses.has(
-            getJsonApiErrorMember(error)?.status ??
-              normalizeOperationError('create-storyboard', error).status ??
-              0,
-          )
+          (dispatched && definitive) ||
+          (!dispatched && !intent.uncertain)
         )
           retire();
+        else if (dispatched) intent.uncertain = true;
         if (isCurrent())
           setState({
             scope,

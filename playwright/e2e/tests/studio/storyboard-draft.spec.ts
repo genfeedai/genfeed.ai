@@ -923,10 +923,15 @@ test('requires decoded still responses and permits a loaded shot while a 404, 40
         failure === 'decode'
           ? {
               status: 200,
+              headers: { 'cache-control': 'no-store' },
               contentType: 'image/jpeg',
               body: 'This response cannot decode as an image.',
             }
-          : { status: Number(failure), body: 'Preview unavailable' },
+          : {
+              status: Number(failure),
+              headers: { 'cache-control': 'no-store' },
+              body: 'Preview unavailable',
+            },
       );
       return;
     }
