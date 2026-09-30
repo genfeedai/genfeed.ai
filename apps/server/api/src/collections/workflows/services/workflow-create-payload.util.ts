@@ -210,3 +210,26 @@ export function hashTemplateInstantiationRequest(
     )
     .digest('hex');
 }
+
+/** Resolve template provenance together with the seeded graph/schedule defaults. */
+export function prepareWorkflowTemplateCreation(
+  workflowData: CreateWorkflowDto,
+): CreateWorkflowDto {
+  const templateMetadata = workflowData.templateId
+    ? {
+        sourceTemplateId: workflowData.templateId,
+        sourceType: 'seeded-template',
+      }
+    : undefined;
+  const resolved = applyWorkflowTemplateDefaults(
+    workflowData,
+    templateMetadata,
+  );
+  return {
+    ...resolved,
+    metadata:
+      resolved.metadata || templateMetadata
+        ? { ...templateMetadata, ...(resolved.metadata ?? {}) }
+        : undefined,
+  };
+}
