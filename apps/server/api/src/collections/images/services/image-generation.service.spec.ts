@@ -3,6 +3,7 @@ import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImageGenerationAdmissionService } from '@api/collections/images/services/image-generation-admission.service';
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { ImageGenerationProviderDispatchService } from '@api/collections/images/services/image-generation-provider-dispatch.service';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
@@ -13,6 +14,7 @@ import { LeonardoImageGenerationProviderAdapter } from '@api/collections/images/
 import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images/services/providers/replicate-image-generation-provider.adapter';
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   IngredientStatus,
   ModelCategory,
@@ -122,7 +124,11 @@ const createService = () => {
       .mockResolvedValue(undefined),
   };
   const modelsService = {
-    findOne: vi.fn().mockResolvedValue({ cost: 10 }),
+    findOne: vi.fn().mockImplementation(async ({ key }) => ({
+      key,
+      provider: resolveImageGenerationProvider(key),
+      cost: 10,
+    })),
   };
   const creditsUtilsService = {
     checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
@@ -185,6 +191,7 @@ const createService = () => {
       status: IngredientStatus.PROCESSING,
     }),
     patch: vi.fn().mockResolvedValue(undefined),
+    patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
   const activitiesService = {
     record: vi.fn().mockResolvedValue({ id: { toString: () => 'act' } }),
@@ -194,7 +201,7 @@ const createService = () => {
     publishVideoComplete: vi.fn().mockResolvedValue(undefined),
   };
   const failedGenerationService = {
-    handleFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
+    notifyFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
   };
   const routerService = {
     getDefaultModel: vi.fn().mockResolvedValue(NON_BATCH_REPLICATE_MODEL),
@@ -286,6 +293,14 @@ const createService = () => {
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
+    {
+      bindOutput: vi.fn().mockResolvedValue(undefined),
+      deferPoolRelease: vi.fn(),
+      hasPool: vi.fn().mockReturnValue(false),
+      releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+      releasePool: vi.fn().mockResolvedValue(undefined),
+      settleOutput: vi.fn().mockResolvedValue('no-hold'),
+    } as never,
     generationEventWebhookService as never,
     mediaGenerationCostService as never,
     imagesService as never,
@@ -303,6 +318,7 @@ const createService = () => {
       isByokActiveForProvider: vi.fn().mockResolvedValue(false),
       resolveApiKey: vi.fn().mockResolvedValue(undefined),
     } as never,
+    testModelCreditQuote(modelsService as never, 'replicate'),
   );
   const admissionService = new ImageGenerationAdmissionService(
     assetsService as never,
@@ -644,9 +660,8 @@ describe('ImageGenerationService', () => {
     ).rejects.toThrow('run linkage failed');
 
     expect(
-      failedGenerationService.handleFailedImageGeneration,
+      failedGenerationService.notifyFailedImageGeneration,
     ).toHaveBeenCalledWith(
-      expect.anything(),
       'ing-0',
       '/images/ing-0',
       expect.objectContaining({ organizationId: ORG }),
@@ -779,6 +794,7 @@ describe('ImageGenerationService', () => {
         endpoint,
         expect.any(Object),
         undefined,
+        expect.any(Function),
       );
       expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });
@@ -863,10 +879,10 @@ describe('ImageGenerationService', () => {
         buildRequest({ creditsConfig: { deferred: true } }),
       );
 
-      // batch model yields all outputs from a single call -> single base cost
+      // The configured flat tariff is per output, independently of batch request count.
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(ORG, 10);
+      ).toHaveBeenCalledWith(ORG, 30);
     });
 
     it('does not multiply for single-output providers (e.g. Leonardo)', async () => {
@@ -935,6 +951,7 @@ describe('ImageGenerationService', () => {
           sequential_image_generation: 'auto',
         }),
         undefined,
+        expect.any(Function),
       );
       // Batch model -> one provider call, indexed external ids on each placeholder.
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
@@ -971,8 +988,8 @@ describe('ImageGenerationService', () => {
       expect(error).toBeInstanceOf(Error);
 
       const markedIds =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[1],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[0],
         );
       // The failed additional output (ing-1) is marked; the primary (ing-0) is not.
       expect(markedIds).toContain('ing-1');
@@ -980,8 +997,8 @@ describe('ImageGenerationService', () => {
 
       // The websocket path targets the failed output, not the primary.
       const markedWsPaths =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[2],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[1],
         );
       expect(markedWsPaths).toContain('/images/ing-1');
     });
@@ -1003,13 +1020,13 @@ describe('ImageGenerationService', () => {
 
       await vi.waitFor(() => {
         expect(
-          failedGenerationService.handleFailedImageGeneration,
+          failedGenerationService.notifyFailedImageGeneration,
         ).toHaveBeenCalled();
       });
 
       const markedIds =
-        failedGenerationService.handleFailedImageGeneration.mock.calls.map(
-          (call) => call[1],
+        failedGenerationService.notifyFailedImageGeneration.mock.calls.map(
+          (call) => call[0],
         );
       // The failed additional output (ing-1) is marked; the already-succeeded
       // primary (ing-0) is not.
@@ -1055,6 +1072,7 @@ describe('ImageGenerationService', () => {
           prompt: 'a sunset over the ocean',
         },
         undefined,
+        expect.any(Function),
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
@@ -1166,6 +1184,7 @@ describe('ImageGenerationService', () => {
           safety_filter_level: 'block_only_high',
         },
         undefined,
+        expect.any(Function),
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(

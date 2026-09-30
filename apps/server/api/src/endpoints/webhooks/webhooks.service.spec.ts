@@ -1,9 +1,12 @@
+import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
+
 vi.mock('@api/collections/evaluations/services/evaluations.service', () => ({
   EvaluationsService: class {},
 }));
 
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -47,6 +50,7 @@ describe('WebhooksService', () => {
   let _notificationsService: vi.Mocked<ActivityRecorderService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
+  let generationBilling: vi.Mocked<GenerationBillingService>;
   let metadataService: vi.Mocked<MetadataService>;
   let cacheService: vi.Mocked<CacheService>;
   let assetsService: vi.Mocked<AssetsService>;
@@ -139,6 +143,15 @@ describe('WebhooksService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhooksService,
+        WebhookGenerationSettlementService,
+        {
+          provide: GenerationBillingService,
+          useValue: {
+            recordProviderFailure: vi.fn().mockResolvedValue(undefined),
+            releaseOutput: vi.fn().mockResolvedValue('no-hold'),
+            settleOutput: vi.fn().mockResolvedValue('no-hold'),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
@@ -185,6 +198,7 @@ describe('WebhooksService', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn(),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
           },
         },
         {
@@ -277,6 +291,7 @@ describe('WebhooksService', () => {
     _notificationsService = module.get(ActivityRecorderService);
     websocketService = module.get(NotificationsPublisherService);
     ingredientsService = module.get(IngredientsService);
+    generationBilling = module.get(GenerationBillingService);
     metadataService = module.get(MetadataService);
     cacheService = module.get(CacheService);
     assetsService = module.get(AssetsService);
@@ -339,12 +354,21 @@ describe('WebhooksService', () => {
         mockMetadataId.toString(),
         externalId,
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         {
           s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
         },
+      );
+      expect(generationBilling.settleOutput).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        mockOrgId,
       );
       expect(websocketService.publishVideoComplete).toHaveBeenCalled();
       expect(cacheService.invalidateByTags).toHaveBeenCalledWith(['images']);
@@ -357,6 +381,18 @@ describe('WebhooksService', () => {
           ingredientId: mockIngredientId.toString(),
         }),
       );
+    });
+
+    it('does not settle or publish success when expiry wins the completion transition', async () => {
+      ingredientsService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+      await service.processMediaFromWebhook(
+        integration,
+        IngredientCategory.IMAGE,
+        externalId,
+        url,
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishVideoComplete).not.toHaveBeenCalled();
     });
 
     it('skips finalize when the ingredient is no longer processing', async () => {
@@ -377,6 +413,7 @@ describe('WebhooksService', () => {
         mockIngredientId.toString(),
         expect.objectContaining({ status: IngredientStatus.GENERATED }),
       );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
     });
 
     it('should process video from webhook successfully', async () => {
@@ -427,8 +464,13 @@ describe('WebhooksService', () => {
         mockMetadataId.toString(),
         'provider-video-1',
       );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
         {
           s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
@@ -615,6 +657,96 @@ describe('WebhooksService', () => {
       activityUpdateService.updateFailureActivity.mockResolvedValue(undefined);
     });
 
+    it('ignores a late failure after completion without releasing the hold', async () => {
+      ingredientsService.findOne.mockResolvedValue({
+        ...mockIngredientDoc,
+        status: IngredientStatus.GENERATED,
+      });
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        errorMessage,
+      );
+      expect(ingredientsService.patchAll).not.toHaveBeenCalled();
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+    });
+
+    it('does not release when completion wins the failure transition', async () => {
+      ingredientsService.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+      await service.handleFailedGenerationForIngredient(
+        mockIngredientId.toString(),
+        errorMessage,
+      );
+      expect(generationBilling.releaseOutput).not.toHaveBeenCalled();
+      expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+    });
+
+    it.each(['already-failed', 'lost-failure-CAS'])(
+      'repairs definitive provider failure evidence after a %s library transition',
+      async (path) => {
+        const failed = {
+          ...mockIngredientDoc,
+          status: IngredientStatus.FAILED,
+        };
+        if (path === 'already-failed')
+          ingredientsService.findOne.mockResolvedValue(failed);
+        else {
+          ingredientsService.findOne
+            .mockResolvedValueOnce(mockIngredientDoc)
+            .mockResolvedValueOnce(failed);
+          ingredientsService.patchAll.mockResolvedValueOnce({
+            modifiedCount: 0,
+          });
+        }
+        await service.handleFailedGenerationForIngredient(
+          mockIngredientId.toString(),
+          errorMessage,
+        );
+        expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
+          mockIngredientId.toString(),
+          mockOrgId,
+        );
+        expect(
+          generationBilling.recordProviderFailure,
+        ).toHaveBeenCalledExactlyOnceWith(
+          mockIngredientId.toString(),
+          mockOrgId,
+        );
+        expect(
+          generationBilling.recordProviderFailure.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          generationBilling.releaseOutput.mock.invocationCallOrder[0],
+        );
+        expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
+      },
+    );
+
+    it('releases the output credit hold when the generation fails', async () => {
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(generationBilling.releaseOutput).toHaveBeenCalledWith(
+        mockIngredientId.toString(),
+        mockOrgId,
+      );
+      expect(generationBilling.settleOutput).not.toHaveBeenCalled();
+    });
+
+    it('still marks the generation failed when the hold release errors', async () => {
+      generationBilling.releaseOutput.mockRejectedValue(new Error('db down'));
+
+      await service.handleFailedGeneration(externalId, errorMessage);
+
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
+      );
+    });
+
     it('should handle failed generation successfully', async () => {
       await service.handleFailedGeneration(externalId, errorMessage);
 
@@ -624,9 +756,14 @@ describe('WebhooksService', () => {
       expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
         error: errorMessage,
       });
-      expect(ingredientsService.patch).toHaveBeenCalledWith(
-        mockIngredientId.toString(),
-        { status: IngredientStatus.FAILED },
+      expect(ingredientsService.patchAll).toHaveBeenCalledWith(
+        {
+          id: mockIngredientId.toString(),
+          organizationId: mockOrgId,
+          isDeleted: false,
+          status: IngredientStatus.PROCESSING,
+        },
+        { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
       );
       expect(
         postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded,

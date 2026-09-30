@@ -1,6 +1,7 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { ReservationEvidenceChangedException } from '@api/collections/credits/services/reservation-evidence-changed.exception';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
@@ -10,6 +11,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 
 describe('CreditReservationService', () => {
   const prisma = {
+    organization: { findMany: vi.fn() },
     creditReservation: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -46,7 +48,16 @@ describe('CreditReservationService', () => {
     transactionUtil as unknown as TransactionUtil,
   );
 
+  function mockDueReservations(rows: Array<Record<string, unknown>>): void {
+    prisma.creditReservation.findMany.mockImplementation(async (args) =>
+      rows.filter((row) => row.organizationId === args.where.organizationId),
+    );
+  }
+
   beforeEach(() => {
+    prisma.organization.findMany
+      .mockReset()
+      .mockResolvedValue([{ id: 'org_1' }, { id: 'org_2' }]);
     prisma.creditReservation.create.mockReset();
     prisma.creditReservation.findFirst.mockReset();
     prisma.creditReservation.findMany.mockReset();
@@ -392,6 +403,49 @@ describe('CreditReservationService', () => {
     });
   });
 
+  it.each(['settle', 'release'])(
+    'rejects a stale completion snapshot before %s changes the wallet',
+    async (action) => {
+      const metadata = { completedArtifacts: [] };
+      prisma.creditReservation.findFirst.mockResolvedValue({
+        id: 'res_1',
+        organizationId: 'org_1',
+        amount: 12,
+        actorUserId: 'user_1',
+        billingAccountId: 'ba_1',
+        status: CreditReservationStatus.RESERVED,
+        metadata: { completedArtifacts: ['late-completion'] },
+      });
+      prisma.creditReservation.updateMany.mockResolvedValue({ count: 0 });
+      const identity = {
+        reservationId: 'res_1',
+        organizationId: 'org_1',
+        expectedReservationMetadata: metadata,
+      };
+      const result =
+        action === 'settle'
+          ? service.settle({
+              ...identity,
+              actualAmount: 4,
+              actorUserId: 'user_1',
+              description: 'partial',
+            })
+          : service.release(identity);
+      await expect(result).rejects.toBeInstanceOf(
+        ReservationEvidenceChangedException,
+      );
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ metadata: { equals: metadata } }),
+        }),
+      );
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
   it('returns held credits to the balance when a failed generation releases its reservation', async () => {
     const reservation = {
       id: 'res_1',
@@ -443,6 +497,19 @@ describe('CreditReservationService', () => {
     expect(snapshot.available).toBe(100);
   });
 
+  it('scopes each expiry candidate query to its owning organization', async () => {
+    mockDueReservations([]);
+    await service.expireDue();
+    expect(prisma.creditReservation.findMany).toHaveBeenCalledTimes(2);
+    expect(
+      prisma.creditReservation.findMany.mock.calls.map(
+        ([args]) => args.where.organizationId,
+      ),
+    ).toEqual(['org_1', 'org_2']);
+    for (const [args] of prisma.creditReservation.findMany.mock.calls)
+      expect(args.where.isDeleted).toBe(false);
+  });
+
   it('settles accepted interpolation at its held quote without releasing it', async () => {
     const reservation = {
       id: 'hold',
@@ -452,7 +519,7 @@ describe('CreditReservationService', () => {
       workloadType: 'interpolation',
       workloadId: 'asset',
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reservation]);
+    mockDueReservations([reservation]);
     prisma.ingredient.findFirst.mockResolvedValue({
       metadata: { externalId: 'provider-id', isDeleted: false },
     });
@@ -476,7 +543,7 @@ describe('CreditReservationService', () => {
   });
 
   it('releases only confirmed failed unaccepted interpolation holds', async () => {
-    prisma.creditReservation.findMany.mockResolvedValue([
+    mockDueReservations([
       {
         id: 'hold',
         organizationId: 'org_1',
@@ -503,7 +570,7 @@ describe('CreditReservationService', () => {
     'retains unknown or foreign interpolation holds and permits other expiry work',
     async (asset) => {
       const now = new Date('2026-09-24T10:00:00Z');
-      prisma.creditReservation.findMany.mockResolvedValue([
+      mockDueReservations([
         {
           id: 'hold',
           organizationId: 'org_1',
@@ -552,7 +619,7 @@ describe('CreditReservationService', () => {
       status: CreditReservationStatus.RESERVED,
       workloadType: 'live-session',
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reserved]);
+    mockDueReservations([reserved]);
     prisma.creditReservation.findFirst.mockResolvedValue(reserved);
     const settle = vi.spyOn(service, 'settle').mockResolvedValue({} as never);
 
@@ -586,7 +653,7 @@ describe('CreditReservationService', () => {
       organizationId: 'org_1',
       status: CreditReservationStatus.RESERVED,
     };
-    prisma.creditReservation.findMany.mockResolvedValue([reserved]);
+    mockDueReservations([reserved]);
     prisma.creditReservation.findFirst.mockResolvedValue(reserved);
     prisma.creditReservation.update.mockResolvedValue({
       ...reserved,
@@ -606,7 +673,7 @@ describe('CreditReservationService', () => {
   });
 
   it('continues expiring later reservations when one tenant fails', async () => {
-    prisma.creditReservation.findMany.mockResolvedValue([
+    mockDueReservations([
       { id: 'res_1', organizationId: 'org_1' },
       { id: 'res_2', organizationId: 'org_2' },
     ]);
@@ -623,5 +690,157 @@ describe('CreditReservationService', () => {
       expect.any(Error),
       { organizationId: 'org_1', reservationId: 'res_1' },
     );
+  });
+
+  it('leaves media holds to generation reconciliation even when settlement is queued at expiry', async () => {
+    mockDueReservations([
+      {
+        id: 'media-hold',
+        organizationId: 'org_1',
+        workloadType: 'media-generation',
+      },
+    ]);
+    const release = vi.spyOn(service, 'release');
+    await service.expireDue();
+    expect(release).not.toHaveBeenCalled();
+    expect(prisma.creditReservation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { workloadType: null },
+            {
+              workloadType: {
+                notIn: ['media-generation', 'media-generation-group'],
+              },
+            },
+          ],
+        }),
+      }),
+    );
+  });
+
+  describe('bindOutput', () => {
+    const pool = (overrides: Record<string, unknown> = {}) => ({
+      actorUserId: 'user_1',
+      amount: 9,
+      billingAccountId: 'ba_1',
+      createdAt: new Date('2026-09-29T00:00:00Z'),
+      description: 'Music generation',
+      expiresAt: new Date('2026-09-29T02:00:00Z'),
+      id: 'pool_1',
+      idempotencyKey: 'generation:req_1',
+      isDeleted: false,
+      metadata: { marginMultiplier: 3.33 },
+      organizationId: 'org_1',
+      settledAmount: null,
+      source: 'music-generation',
+      status: CreditReservationStatus.RESERVED,
+      updatedAt: new Date('2026-09-29T00:00:00Z'),
+      workloadId: 'req_1',
+      workloadType: 'generation',
+      ...overrides,
+    });
+    const bindInput = {
+      amount: 3,
+      expiresAt: new Date('2026-09-29T02:00:00Z'),
+      metadata: { assetId: 'ing_1' },
+      organizationId: 'org_1',
+      reservationId: 'pool_1',
+      workloadId: 'ing_1',
+    };
+
+    it('moves one output share from the pool into its own hold without changing the wallet hold', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool());
+      prisma.creditReservation.create.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) =>
+          pool({ ...data, id: 'hold_1', metadata: data.metadata }),
+      );
+
+      const hold = await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { amount: 6 } }),
+      );
+      expect(prisma.creditReservation.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          amount: 3,
+          description: 'Music generation',
+          idempotencyKey: 'media-generation:ing_1',
+          source: 'music-generation',
+          workloadId: 'ing_1',
+          workloadType: 'media-generation',
+        }),
+      });
+      expect(hold.metadata).toEqual({
+        assetId: 'ing_1',
+        marginMultiplier: 3.33,
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    });
+
+    it('retires the pool when its last share is bound', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: 3 }));
+      prisma.creditReservation.create.mockResolvedValue(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+
+      await service.bindOutput(bindInput);
+
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { amount: 0, status: CreditReservationStatus.RELEASED },
+        }),
+      );
+    });
+
+    it('returns the existing hold when the same output is bound twice', async () => {
+      prisma.creditReservation.findFirst.mockResolvedValueOnce(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+
+      const hold = await service.bindOutput(bindInput);
+
+      expect(hold.id).toBe('hold_1');
+      expect(prisma.creditReservation.updateMany).not.toHaveBeenCalled();
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('replays a simultaneous bind after a unique-key conflict without moving funds twice', async () => {
+      transactionUtil.runInTransaction.mockRejectedValueOnce({ code: 'P2002' });
+      prisma.creditReservation.findFirst.mockResolvedValue(
+        pool({ amount: 3, id: 'hold_1', workloadType: 'media-generation' }),
+      );
+      await expect(service.bindOutput(bindInput)).resolves.toMatchObject({
+        id: 'hold_1',
+        amount: 3,
+      });
+      expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+    });
+
+    it('rejects a share larger than what the pool has left', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(pool({ amount: 2 }));
+
+      await expect(service.bindOutput(bindInput)).rejects.toMatchObject({
+        errorCode: 'BIND_EXCEEDS_RESERVATION',
+      });
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses to bind from a pool that is no longer reserved', async () => {
+      prisma.creditReservation.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(
+          pool({ status: CreditReservationStatus.RELEASED }),
+        );
+
+      await expect(service.bindOutput(bindInput)).rejects.toThrow();
+      expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+    });
   });
 });

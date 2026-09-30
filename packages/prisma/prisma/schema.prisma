@@ -2182,6 +2182,8 @@ model Ingredient {
   generationHarness     Json?
   generationPrompt      String?
   negativePrompt        String?
+  /// Server-owned BYOK completion receipt, excluded from public serializers.
+  generationBilling     Json?
   generationSeed        Int?
   cfgScale              Float?
   generationSteps       Int?
@@ -3578,6 +3580,11 @@ model CreditReservation {
   workloadType     String?
   workloadId       String?
   idempotencyKey   String
+  /// What the hold pays for, so a completion path can settle it without the
+  /// originating request (#5657).
+  description      String?
+  source           String?
+  metadata         Json?
   expiresAt        DateTime
   isDeleted        Boolean                 @default(false)
   createdAt        DateTime                @default(now())
@@ -3585,6 +3592,7 @@ model CreditReservation {
   settlements      CreditTransaction[]
 
   @@index([billingAccountId, status, isDeleted])
+  @@index([workloadType, workloadId, organizationId])
   @@index([organizationId, status, isDeleted])
   @@index([status, expiresAt])
   @@map("credit_reservations")

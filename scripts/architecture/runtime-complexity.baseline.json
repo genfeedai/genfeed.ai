@@ -36,7 +36,7 @@
     "symbol": "PublicYoutubeClipClaimService.claim"
   },
   {
-    "actual": 1116,
+    "actual": 1113,
     "file": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/content-runs/services/brand-remix-run-execution.service.ts"
@@ -112,12 +112,6 @@
     "file": "apps/server/api/src/endpoints/webhooks/heygen/webhooks.heygen.service.ts",
     "metric": "method-lines",
     "symbol": "HeygenWebhookService.handleCallback"
-  },
-  {
-    "actual": 169,
-    "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.ts",
-    "metric": "method-lines",
-    "symbol": "WebhooksService.finalizeWebhookMedia"
   },
   {
     "actual": 206,

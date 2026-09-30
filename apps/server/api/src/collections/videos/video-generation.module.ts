@@ -14,6 +14,7 @@ import { OrganizationSettingsModule } from '@api/collections/organization-settin
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { AvatarVideoController } from '@api/collections/videos/controllers/avatar-video.controller';
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
+import { AvatarVideoBillingService } from '@api/collections/videos/services/avatar-video-billing.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
@@ -70,6 +71,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AvatarVideoGenerationService,
+    AvatarVideoBillingService,
     AvatarVideoLifecycleService,
     BatchInterpolationBillingService,
     BatchInterpolationReferenceService,

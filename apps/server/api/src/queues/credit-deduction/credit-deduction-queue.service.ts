@@ -30,16 +30,18 @@ export class CreditDeductionQueueService {
         workflowAccounting: scope,
         idempotencyKey: data.idempotencyKey ?? randomUUID(),
       };
+    const jobId = toBullMqJobId(
+      data.idempotencyKey
+        ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
+        : `credit-deduct-${data.organizationId}-${Date.now()}`,
+    );
+    if (data.idempotencyKey && (await this.resumeExistingJob(jobId))) return;
     await this.queue.add('deduct-credits', data, {
       ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
-      ...(data.settlementAssetId || data.acceptedGeneration
+      ...(data.acceptedGeneration
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
         : {}),
-      jobId: toBullMqJobId(
-        data.idempotencyKey
-          ? `credit-deduct-${data.organizationId}-${data.idempotencyKey}`
-          : `credit-deduct-${data.organizationId}-${Date.now()}`,
-      ),
+      jobId,
     });
 
     this.logger.log(`${this.constructorName} credit deduction job queued`, {
@@ -58,16 +60,18 @@ export class CreditDeductionQueueService {
         workflowAccounting: scope,
         idempotencyKey: data.idempotencyKey ?? randomUUID(),
       };
+    const jobId = toBullMqJobId(
+      data.idempotencyKey
+        ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
+        : `byok-usage-${data.organizationId}-${Date.now()}`,
+    );
+    if (data.idempotencyKey && (await this.resumeExistingJob(jobId))) return;
     await this.queue.add('record-byok-usage', data, {
       ...(data.acceptedGeneration
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
         : {}),
       ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
-      jobId: toBullMqJobId(
-        data.idempotencyKey
-          ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`
-          : `byok-usage-${data.organizationId}-${Date.now()}`,
-      ),
+      jobId,
     });
 
     this.logger.log(`${this.constructorName} BYOK usage job queued`, {
@@ -75,5 +79,13 @@ export class CreditDeductionQueueService {
       organizationId: data.organizationId,
       type: data.type,
     });
+  }
+  private async resumeExistingJob(jobId: string): Promise<boolean> {
+    const job = await this.queue.getJob(jobId);
+    if (!job) return false;
+    if ((await job.getState()) === 'failed') {
+      await job.retry('failed', { resetAttemptsMade: true });
+    }
+    return true;
   }
 }

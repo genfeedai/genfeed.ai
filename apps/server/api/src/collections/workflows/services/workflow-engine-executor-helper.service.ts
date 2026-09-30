@@ -3,6 +3,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { scopedWhere } from '@api/index';
+import { isReplicateSubmissionRejected } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
@@ -198,23 +199,24 @@ export class WorkflowEngineExecutorHelperService {
         pendingOutput.ingredientId,
         continuation.continuationId,
       );
-
-      // Persist provider ownership immediately after acceptance. Metadata is
-      // useful for media lookup, but the continuation is the durable callback
-      // authority and must win the race with an immediate provider callback.
-      await this.markProviderContinuationSubmitted({
-        continuationId: continuation.continuationId,
-        externalId,
-        organizationId: args.continuation.context.organizationId,
-      });
     } catch (error: unknown) {
-      await this.failProviderContinuationSubmission({
-        continuationId: continuation.continuationId,
-        error: error instanceof Error ? error.message : String(error),
-        organizationId: args.continuation.context.organizationId,
-      });
+      if (isReplicateSubmissionRejected(error)) {
+        await this.failProviderContinuationSubmission({
+          continuationId: continuation.continuationId,
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: args.continuation.context.organizationId,
+        });
+      }
       throw error;
     }
+
+    // A successful provider result is acceptance evidence. Failure to persist
+    // its identity must leave the original submission intent recoverable.
+    await this.markProviderContinuationSubmitted({
+      continuationId: continuation.continuationId,
+      externalId,
+      organizationId: args.continuation.context.organizationId,
+    });
 
     // Callback routing is continuation-owned. This denormalized provider id is
     // retained for media discovery, but it must not turn accepted provider

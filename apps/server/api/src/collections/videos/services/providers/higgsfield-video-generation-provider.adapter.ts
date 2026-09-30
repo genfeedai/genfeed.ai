@@ -38,6 +38,7 @@ export class HiggsFieldVideoGenerationProviderAdapter
     // DoP derives framing and length from the source image, so `width`,
     // `height` and `duration` have no input to map onto.
     const { requestId } = await this.higgsFieldService.generateImageToVideo({
+      onProviderSubmissionStarted: params.onProviderSubmissionStarted,
       imageUrl: params.imageUrl,
       modelKey: params.model,
       organizationId: params.organizationId,

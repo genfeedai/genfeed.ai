@@ -4,7 +4,9 @@ import {
   type GenerationCreditParityCase,
   IMAGE_CREDIT_PARITY_CASES,
 } from '@api/helpers/utils/credits/generation-credit-parity.fixture';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { resolveAgentGenerationDimensions } from '@genfeedai/contracts/constants';
+import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -32,11 +34,15 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
     modelsService as never,
     providerRegistry as never,
     byokService as never,
+    testModelCreditQuote(modelsService as never, 'replicate'),
   );
 
   function modelRow(parityCase: GenerationCreditParityCase) {
     return {
       cost: parityCase.model.cost,
+      isFree: parityCase.model.isFree,
+      reviewedPricing: parityCase.model.reviewedPricing,
+      rateVersion: parityCase.model.rateVersion,
       costPerUnit: parityCase.model.costPerUnit ?? null,
       key: parityCase.model.key,
       minCost: parityCase.model.minCost ?? null,
@@ -47,6 +53,7 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    setRuntimeMarginMultiplier(1);
   });
 
   it.each(IMAGE_CREDIT_PARITY_CASES)(

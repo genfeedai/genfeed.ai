@@ -68,38 +68,43 @@ describe('AvatarVideoController', () => {
       expect(result).toEqual({ id: 'ingredient-123' });
     });
 
-    it.each([
-      ['a reserved platform charge', { creditsConfig: { amount: 1 } }, true],
-      [
-        'a BYOK bypass',
-        { creditsConfig: { amount: 1, isByokBypass: true } },
-        false,
-      ],
-      ['no credits config', {}, false],
-    ])(
-      'tells generation whether the request pipeline bills it (%s)',
-      async (_label, request, settleCreditsExternally) => {
-        mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({
-          externalId: 'heygen-task-123',
-          ingredientId: 'ingredient-123',
-          status: 'processing',
-        });
-        mockVideosService.findOne.mockResolvedValue({ id: 'ingredient-123' });
+    it('hands generation the request whose credits guard reserved the render', async () => {
+      mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({
+        externalId: 'heygen-task-123',
+        ingredientId: 'ingredient-123',
+        status: 'processing',
+      });
+      mockVideosService.findOne.mockResolvedValue({ id: 'ingredient-123' });
+      const request = {
+        creditsConfig: {
+          amount: 4,
+          reservationId: 'pool-1',
+          settlement: 'completion',
+        },
+      };
 
-        await controller.createAvatarVideo(request as never, mockUser, {
-          audioUrl: 'https://example.com/audio.mp3',
-          photoUrl: 'https://example.com/photo.jpg',
-          text: 'Hello world',
-        });
+      await controller.createAvatarVideo(request as never, mockUser, {
+        audioUrl: 'https://example.com/audio.mp3',
+        photoUrl: 'https://example.com/photo.jpg',
+        text: 'Hello world',
+      });
 
-        expect(
-          mockAvatarVideoGenerationService.generateAvatarVideo,
-        ).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({ settleCreditsExternally }),
-        );
-      },
-    );
+      expect(
+        mockAvatarVideoGenerationService.generateAvatarVideo,
+      ).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ request }),
+      );
+    });
+
+    it('settles avatar credits on completion, not when HeyGen accepts the job', () => {
+      const config = Reflect.getMetadata(
+        'credits',
+        AvatarVideoController.prototype.createAvatarVideo,
+      );
+
+      expect(config).toMatchObject({ settlement: 'completion' });
+    });
 
     it('throws when the ingredient cannot be reloaded for serialization', async () => {
       mockAvatarVideoGenerationService.generateAvatarVideo.mockResolvedValue({

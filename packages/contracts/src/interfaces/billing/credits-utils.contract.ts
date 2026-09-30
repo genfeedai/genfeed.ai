@@ -1,5 +1,6 @@
 import type { ActivitySource } from '../..';
 import type {
+  IBindCreditReservationOutputInput,
   ICreditReservation,
   IReleaseCreditReservationInput,
   IReserveCreditsInput,
@@ -202,4 +203,15 @@ export interface ICreditsUtilsService {
   releaseReservation(
     input: IReleaseCreditReservationInput,
   ): Promise<ICreditWalletSnapshot>;
+
+  /** Moves credits from a request-level hold into the hold for one output. */
+  bindReservationOutput(
+    input: IBindCreditReservationOutputInput,
+  ): Promise<ICreditReservation>;
+
+  findReservationForWorkload(input: {
+    organizationId: string;
+    workloadId: string;
+    workloadType: string;
+  }): Promise<ICreditReservation | null>;
 }

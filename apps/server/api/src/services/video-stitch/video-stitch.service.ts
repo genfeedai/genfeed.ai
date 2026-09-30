@@ -283,7 +283,7 @@ export class VideoStitchService {
     };
   }
 
-  /** Completes the output off the request path; failures settle it failed. */
+  /** Tracks completion; unresolved transport errors remain recoverable. */
   trackInBackground(handle: VideoStitchRef): void {
     void this.waitForCompletion(handle).catch((error: unknown) => {
       this.loggerService.error(`${this.logContext} tracking failed`, {
@@ -295,7 +295,7 @@ export class VideoStitchService {
     });
   }
 
-  /** Waits for the merge job, then completes or fails the output. */
+  /** Waits for the merge job; only confirmed job failure fails the output. */
   async waitForCompletion(
     handle: VideoStitchRef,
     timeoutMs: number = STITCH_JOB_TIMEOUT_MS,
@@ -317,7 +317,14 @@ export class VideoStitchService {
       );
       outcome = await this.complete(context, result);
     } catch (error: unknown) {
-      return this.fail(context, error);
+      const status = await this.fileQueueService.getJobStatus(handle.jobId);
+      if (status.state === JobState.FAILED) {
+        return this.fail(
+          context,
+          new Error(status.failedReason || 'Job failed'),
+        );
+      }
+      throw error;
     }
     // Another completer may own captioning. A waiting caller must observe
     // its terminal result; only settle() may return the processing state.
@@ -356,11 +363,7 @@ export class VideoStitchService {
     if (status.state !== JobState.COMPLETED) {
       return { jobId: handle.jobId, outputId: output.id, state: 'processing' };
     }
-    try {
-      return await this.complete(context, status.result);
-    } catch (error: unknown) {
-      return this.fail(context, error);
-    }
+    return this.complete(context, status.result);
   }
 
   private async plan(request: VideoStitchRequest): Promise<VideoStitchPlan> {

@@ -1,12 +1,15 @@
 import { randomUUID } from 'node:crypto';
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CreditReservationStatus } from '@genfeedai/contracts';
+import { modelBillableQuoteSnapshotSchema } from '@api/helpers/utils/credits/model-billable-quote.schema';
+import { ActivitySource, CreditReservationStatus } from '@genfeedai/contracts';
+import {
+  GENERATION_POOL_WORKLOAD_TYPE,
+  MEDIA_GENERATION_GROUP_WORKLOAD_TYPE,
+  MEDIA_GENERATION_HOLD_TTL_MS,
+} from '@genfeedai/contracts/constants';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 
-// Media settlement retries for seven days. Keep the hold alive for one extra
-// day so the expiry sweep cannot race the final worker retry.
-const GENERATION_RESERVATION_TTL_MS = 8 * 24 * 60 * 60 * 1000;
 const MAX_EXTERNAL_IDEMPOTENCY_KEY_LENGTH = 160;
 
 export type ReservationCreditsConfig = CreditsConfig & {
@@ -79,11 +82,24 @@ export async function reserveGenerationRequestCredits(params: {
   const reservationInput = {
     actorUserId,
     amount: params.amount,
-    expiresAt: new Date(Date.now() + GENERATION_RESERVATION_TTL_MS),
-    idempotencyKey: `generation:${workloadId}`,
+    description: config.description,
+    expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
+    idempotencyKey: `${GENERATION_POOL_WORKLOAD_TYPE}:${workloadId}`,
+    ...(config.pricingMetadata || config.modelQuote
+      ? {
+          metadata: {
+            ...config.pricingMetadata,
+            ...(config.modelQuote ? { modelQuote: config.modelQuote } : {}),
+          },
+        }
+      : {}),
     organizationId: params.organizationId,
+    source: config.source ?? ActivitySource.SCRIPT,
     workloadId,
-    workloadType: 'generation',
+    workloadType:
+      config.modelQuote && config.settlement === 'completion'
+        ? MEDIA_GENERATION_GROUP_WORKLOAD_TYPE
+        : GENERATION_POOL_WORKLOAD_TYPE,
   };
   let reservation =
     await params.creditsUtilsService.reserveCredits(reservationInput);
@@ -101,8 +117,14 @@ export async function reserveGenerationRequestCredits(params: {
     });
   }
 
+  const originalQuote = modelBillableQuoteSnapshotSchema.safeParse(
+    reservation.metadata?.modelQuote,
+  );
+  if (config.modelQuote && !originalQuote.success)
+    throw new Error('Reserved generation quote evidence is missing');
   params.request.creditsConfig = {
     ...config,
+    ...(originalQuote.success ? { modelQuote: originalQuote.data } : {}),
     amount:
       reservation.status === CreditReservationStatus.SETTLED
         ? (reservation.settledAmount ?? reservation.amount)

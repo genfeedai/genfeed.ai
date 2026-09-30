@@ -105,11 +105,13 @@ export class VideoGenerationService {
     );
     try {
       await onPlaceholderCreated?.(context.ingredientData.id.toString());
+      this.executionService.prepareProviderDispatch(context);
       await this.creditsService.ensureDeferredCredits(
         createVideoDto,
         resolved.model,
         resolved.user.organizationId,
         request,
+        context.preparedFalDispatch?.input ?? context.promptParams,
       );
       await onCreditsPrepared?.();
     } catch (error: unknown) {

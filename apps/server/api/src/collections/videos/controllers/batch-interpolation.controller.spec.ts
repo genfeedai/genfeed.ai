@@ -1,4 +1,5 @@
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
+import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
 import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 
 vi.mock('@api/helpers/utils/reference/reference.util', () => ({
@@ -152,6 +153,11 @@ describe('BatchInterpolationController', () => {
   };
 
   const transactions = { createTransactionEntry: vi.fn() };
+  const generationBilling = {
+    bindOutput: vi.fn(),
+    releaseOutput: vi.fn(),
+    rememberAcceptedOutput: vi.fn(),
+  };
   const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const byokService = { resolveApiKey: vi.fn() };
   const creditQueue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
@@ -182,6 +188,11 @@ describe('BatchInterpolationController', () => {
 
   beforeEach(async () => {
     logger.error.mockReset();
+    generationBilling.bindOutput.mockReset().mockResolvedValue(undefined);
+    generationBilling.releaseOutput.mockReset().mockResolvedValue('released');
+    generationBilling.rememberAcceptedOutput
+      .mockReset()
+      .mockResolvedValue(undefined);
     transactions.createTransactionEntry
       .mockReset()
       .mockResolvedValue(undefined);
@@ -237,6 +248,7 @@ describe('BatchInterpolationController', () => {
       controllers: [BatchInterpolationController],
       providers: [
         BatchInterpolationBillingService,
+        { provide: GenerationBillingService, useValue: generationBilling },
         { provide: CreditTransactionsService, useValue: transactions },
         { provide: ByokService, useValue: byokService },
         { provide: CreditDeductionQueueService, useValue: creditQueue },
@@ -478,7 +490,7 @@ describe('BatchInterpolationController', () => {
         expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
       });
 
-      it('uses the organization BYOK key and records one accepted usage without GEN holds', async () => {
+      it('uses the organization BYOK key and links completion usage without GEN holds', async () => {
         const req = {
           user: mockUser,
           creditsConfig: {
@@ -500,12 +512,17 @@ describe('BatchInterpolationController', () => {
         );
         expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
         expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
-        expect(creditQueue.queueByokUsage).toHaveBeenCalledExactlyOnceWith(
+        expect(generationBilling.bindOutput).toHaveBeenCalledWith(
           expect.objectContaining({
-            amount: 5,
-            idempotencyKey: `interpolation-${ingredientId}`,
+            user: mockUser,
+            creditsConfig: expect.objectContaining({
+              settlement: 'completion',
+              isByokBypass: true,
+            }),
           }),
+          { credits: 5, ingredientId },
         );
+        expect(creditQueue.queueByokUsage).not.toHaveBeenCalled();
       });
 
       it('rejects missing BYOK keys before provider dispatch', async () => {
@@ -639,11 +656,11 @@ describe('BatchInterpolationController', () => {
         ).toBe(true);
       });
 
-      it('reserves each pair before dispatch and queues accepted generation once', async () => {
+      it('reserves each pair before dispatch and leaves the hold for completion', async () => {
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
         expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
           expect.objectContaining({
-            actorUserId: mockUser.id,
+            actorUserId: mockUser.userId,
             amount: 5,
             organizationId,
             idempotencyKey: `interpolation:${ingredientId}`,
@@ -655,16 +672,11 @@ describe('BatchInterpolationController', () => {
         ).toBeLessThan(
           replicateService.generateTextToVideo.mock.invocationCallOrder[0],
         );
-        expect(creditQueue.queueDeduction).toHaveBeenCalledExactlyOnceWith(
+        expect(creditQueue.queueDeduction).not.toHaveBeenCalled();
+        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
           expect.objectContaining({
-            userId: mockUser.id,
-            amount: 5,
-            organizationId,
-            reservationId: 'pair-reservation',
-            acceptedGeneration: {
-              ingredientId,
-              externalId: 'replicate-generation-id-123',
-            },
+            workloadType: 'media-generation',
+            metadata: { assetId: ingredientId },
           }),
         );
         expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
@@ -708,6 +720,7 @@ describe('BatchInterpolationController', () => {
           >[0],
           creditsUtilsService as unknown as CreditsUtilsService,
           { debug: vi.fn() } as unknown as LoggerService,
+          { closeDispatch: vi.fn() } as never,
         );
         await interceptor.settle(req, result);
         expect(queue.queueDeduction).not.toHaveBeenCalled();
@@ -730,6 +743,7 @@ describe('BatchInterpolationController', () => {
           >[0],
           creditsUtilsService as unknown as CreditsUtilsService,
           { debug: vi.fn(), error: vi.fn() } as unknown as LoggerService,
+          { closeDispatch: vi.fn() } as never,
         );
         const context = {
           switchToHttp: () => ({ getRequest: () => req }),
@@ -830,41 +844,22 @@ describe('BatchInterpolationController', () => {
           id: ingredientId,
           status: 'processing',
         });
-        expect(
-          creditQueue.queueDeduction.mock.invocationCallOrder[0],
-        ).toBeLessThan(metadataService.patch.mock.invocationCallOrder[0]);
+        expect(generationBilling.rememberAcceptedOutput).toHaveBeenCalledWith({
+          ingredientId,
+          externalId: 'replicate-generation-id-123',
+          organizationId,
+          userId: mockUser.userId,
+        });
         expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
         expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
       });
 
-      it('retains tracking and hold when enqueue and fallback settlement fail', async () => {
-        creditQueue.queueDeduction.mockRejectedValue(
-          new Error('queue unavailable'),
-        );
-        creditsUtilsService.settleReservation.mockRejectedValue(
-          new Error('settlement unavailable'),
-        );
-        const result = await controller.createBatchInterpolation(
-          mockReq,
-          mockDto,
-          mockUser,
-        );
-        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
-          id: ingredientId,
-          status: 'processing',
-        });
-        expect(metadataService.patch.mock.invocationCallOrder[0]).toBeLessThan(
-          creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
-        );
-        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
-      });
-
-      it('preserves real id and hold with a reconciliation receipt during a dual tracking outage', async () => {
-        creditQueue.queueDeduction.mockRejectedValue(
-          new Error('queue unavailable'),
-        );
+      it('keeps the hold pending without acceptance settlement when recovery is unavailable', async () => {
         metadataService.patch.mockRejectedValue(
           new Error('metadata unavailable'),
+        );
+        generationBilling.rememberAcceptedOutput.mockRejectedValue(
+          new Error('queue unavailable'),
         );
         const result = await controller.createBatchInterpolation(
           mockReq,
@@ -879,23 +874,16 @@ describe('BatchInterpolationController', () => {
         expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
         expect(logger.error).toHaveBeenCalledWith(
           'Accepted interpolation evidence requires operator reconciliation',
+          expect.any(Error),
           expect.objectContaining({
+            ingredientId,
             organizationId,
-            reservationId: 'pair-reservation',
-            amount: 5,
-            isByokBypass: false,
-            acceptedGeneration: {
-              ingredientId,
-              externalId: 'replicate-generation-id-123',
-            },
+            externalId: 'replicate-generation-id-123',
           }),
         );
       });
 
-      it('uses the worker BYOK idempotency identity for durable fallback', async () => {
-        creditQueue.queueByokUsage.mockRejectedValue(
-          new Error('queue unavailable'),
-        );
+      it('keeps BYOK completion evidence without acceptance-time usage or GEN holds', async () => {
         const req = {
           user: mockUser,
           creditsConfig: {
@@ -906,20 +894,12 @@ describe('BatchInterpolationController', () => {
           },
         } as CreditsGuardRequest;
         await controller.createBatchInterpolation(req, mockDto, mockUser);
-        expect(transactions.createTransactionEntry).toHaveBeenCalledWith(
-          organizationId,
-          expect.anything(),
-          5,
-          100,
-          100,
-          expect.anything(),
-          expect.anything(),
-          undefined,
-          undefined,
-          {
-            idempotencyKey: `byok:${organizationId}:interpolation-${ingredientId}`,
-          },
+        expect(generationBilling.bindOutput).toHaveBeenCalledWith(
+          expect.objectContaining({ user: mockUser }),
+          { credits: 5, ingredientId },
         );
+        expect(transactions.createTransactionEntry).not.toHaveBeenCalled();
+        expect(creditQueue.queueByokUsage).not.toHaveBeenCalled();
         expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       });
 

@@ -10,6 +10,7 @@ import {
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import type { ByokService } from '@api/services/byok/byok.service';
 import {
   ActivitySource,
@@ -71,13 +72,16 @@ describe('CreditsGuard', () => {
     creditsUtilsService = {
       checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-      reserveCredits: vi.fn().mockImplementation((input: { amount: number }) =>
-        Promise.resolve({
-          amount: input.amount,
-          id: 'reservation-1',
-          status: 'RESERVED',
-        }),
-      ),
+      reserveCredits: vi
+        .fn()
+        .mockImplementation((input: { amount: number; metadata?: unknown }) =>
+          Promise.resolve({
+            amount: input.amount,
+            metadata: input.metadata,
+            id: 'reservation-1',
+            status: 'RESERVED',
+          }),
+        ),
     };
     modelsService = { findOne: vi.fn() };
     byokService = {
@@ -91,6 +95,7 @@ describe('CreditsGuard', () => {
       byokService as unknown as ByokService,
       loggerService,
       { get: vi.fn() } as unknown as ConfigService,
+      testModelCreditQuote(modelsService as never),
     );
   });
 
@@ -219,7 +224,11 @@ describe('CreditsGuard', () => {
 
   it('admits a zero-cost request without consulting the wallet (#5270)', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
-    modelsService.findOne.mockResolvedValue({ cost: 0, key: 'free-model' });
+    modelsService.findOne.mockResolvedValue({
+      cost: 0,
+      key: 'free-model',
+      isFree: true,
+    });
     creditsUtilsService.checkOrganizationCreditsAvailable.mockRejectedValue(
       new ConflictException('Billing account could not be resolved'),
     );
@@ -340,15 +349,17 @@ describe('CreditsGuard', () => {
 
     await guard.canActivate(ctx);
 
-    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith({
-      actorUserId: 'user-1',
-      amount: 10,
-      expiresAt: expect.any(Date),
-      idempotencyKey: 'generation:action-1',
-      organizationId: orgId,
-      workloadId: 'action-1',
-      workloadType: 'generation',
-    });
+    expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: 'user-1',
+        amount: 10,
+        expiresAt: expect.any(Date),
+        idempotencyKey: 'generation:action-1',
+        organizationId: orgId,
+        workloadId: 'action-1',
+        workloadType: 'generation',
+      }),
+    );
     expect(ctx.switchToHttp().getRequest().creditsConfig).toMatchObject({
       reservationId: 'reservation-1',
     });
@@ -468,9 +479,12 @@ describe('CreditsGuard', () => {
 
     await guard.canActivate(createContext({ model: 'body-model' }));
 
-    expect(modelsService.findOne).toHaveBeenCalledExactlyOnceWith({
-      key: 'body-model',
-    });
+    expect(modelsService.findOne).toHaveBeenCalledWith({ key: 'body-model' });
+    expect(
+      modelsService.findOne.mock.calls.every(
+        ([input]) => input.key === 'body-model',
+      ),
+    ).toBe(true);
   });
 
   it('bills from providerCostUsd × applyMargin so admin margin applies live', async () => {
@@ -592,13 +606,19 @@ describe('CreditsGuard', () => {
         pricingType: 'per-second',
       });
       const body = { model, duration };
-      await guard.canActivate(createContext(body));
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(
-        orgId,
-        normalizedDuration === undefined ? 7 : normalizedDuration * 2,
-      );
+      if (normalizedDuration === undefined) {
+        await expect(
+          guard.canActivate(createContext(body)),
+        ).rejects.toMatchObject({ response: { code: 'PRICING_UNAVAILABLE' } });
+        expect(
+          creditsUtilsService.checkOrganizationCreditsAvailable,
+        ).not.toHaveBeenCalled();
+      } else {
+        await guard.canActivate(createContext(body));
+        expect(
+          creditsUtilsService.checkOrganizationCreditsAvailable,
+        ).toHaveBeenCalledWith(orgId, normalizedDuration * 2);
+      }
       expect(body.duration).toBe(duration);
     },
   );
@@ -623,40 +643,24 @@ describe('CreditsGuard', () => {
     ).toHaveBeenCalledWith(orgId, 180);
   });
 
-  it('multiplies credits by 2 for high resolution via data.attributes', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
-    modelsService.findOne.mockResolvedValue({ cost: 10, key: 'img-model' });
-    // JSON:API-style body with data.attributes to ensure resolution is parsed
-    const ctx = createContext({
-      data: { attributes: { model: 'img-model', resolution: 'high' } },
-    });
-    await guard.canActivate(ctx);
-    // Cost 10 for flat model × 2 for high res = 20
-    const calledAmount =
-      creditsUtilsService.checkOrganizationCreditsAvailable.mock.calls[0][1];
-    expect(calledAmount).toBeGreaterThanOrEqual(10);
-  });
-
-  it('uses the model-aware 4K video generation band before dispatch', async () => {
-    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) => {
-      if (key === CREDITS_KEY) {
-        return { source: ActivitySource.VIDEO_GENERATION };
-      }
-      return undefined;
-    });
-    modelsService.findOne.mockResolvedValue({
-      cost: 10,
-      key: 'video-model',
-    });
-
-    await guard.canActivate(
-      createContext({ model: 'video-model', resolution: '4k' }),
-    );
-
-    expect(
-      creditsUtilsService.checkOrganizationCreditsAvailable,
-    ).toHaveBeenCalledWith(orgId, 40);
-  });
+  it.each(['high', '4k'])(
+    'rejects unreviewed resolution %s before checking the wallet',
+    async (resolution) => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+      modelsService.findOne.mockResolvedValue({ cost: 10, key: 'video-model' });
+      await expect(
+        guard.canActivate(
+          createContext({
+            data: { attributes: { model: 'video-model', resolution } },
+          }),
+        ),
+      ).rejects.toMatchObject({ response: { code: 'PRICING_UNAVAILABLE' } });
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    },
+  );
 
   it('multiplies credits by outputs count', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});

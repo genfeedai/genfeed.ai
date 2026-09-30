@@ -17,10 +17,7 @@ import { MusicGenerationService } from '@api/collections/musics/services/music-g
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import {
-  AvatarVideoGenerationService,
-  isAvatarBilledByRequest,
-} from '@api/collections/videos/services/avatar-video-generation.service';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VideoGenerationService } from '@api/collections/videos/services/video-generation.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { GenerateVoiceDto } from '@api/collections/voices/dto/generate-voice.dto';
@@ -261,6 +258,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           allowByokBypass: true,
           description: 'Avatar video generation',
           modelKey: MODEL_KEYS.HEYGEN_AVATAR,
+          settlement: 'completion',
           source: ActivitySource.VIDEO_GENERATION,
         },
         dto: CreateAvatarVideoDto,
@@ -282,7 +280,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
               {
                 brandId: user.brandId,
                 organizationId: user.organizationId,
-                settleCreditsExternally: isAvatarBilledByRequest(request),
+                request,
                 userId: user.userId ?? user.id,
               },
             );
@@ -320,6 +318,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Image generation',
+          settlement: 'completion',
           source: ActivitySource.IMAGE_GENERATION,
         },
         dto: CreateImageDto,
@@ -351,6 +350,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Music generation',
+          settlement: 'completion',
           source: ActivitySource.MUSIC_GENERATION,
         },
         dto: CreateMusicDto,
@@ -373,6 +373,7 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Video generation',
+          settlement: 'completion',
           source: ActivitySource.VIDEO_GENERATION,
         },
         dto: CreateVideoDto,
@@ -429,6 +430,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Image reframe',
+          settlement: 'completion',
+          isBodyModelIgnored: true,
           modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
           source: ActivitySource.IMAGE_REFRAME,
         },
@@ -461,6 +464,8 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
       {
         creditsConfig: {
           description: 'Image upscaling',
+          settlement: 'completion',
+          isBodyModelIgnored: true,
           modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
           source: ActivitySource.IMAGE_UPSCALE,
         },

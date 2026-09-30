@@ -153,7 +153,9 @@ describe('IngredientsService', () => {
       const result = await service.patch(id, updateDto);
 
       expect(ingredientDelegate.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id } }),
+        expect.objectContaining({
+          where: { id, organizationId, isDeleted: false },
+        }),
       );
       expect(result).toBeDefined();
     });
@@ -170,7 +172,7 @@ describe('IngredientsService', () => {
 
       expect(ingredientDelegate.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id },
+          where: { id, organizationId, isDeleted: false },
           data: expect.objectContaining({
             status: 'GENERATED',
             category: 'VIDEO',
@@ -305,7 +307,11 @@ describe('IngredientsService', () => {
 
       expect(updateManyMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ category: 'IMAGE' }),
+          where: expect.objectContaining({
+            AND: [expect.objectContaining({ category: 'IMAGE' })],
+            organizationId,
+            isDeleted: false,
+          }),
           data: expect.objectContaining({ status: 'GENERATED' }),
         }),
       );

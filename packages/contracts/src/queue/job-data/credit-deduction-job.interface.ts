@@ -2,6 +2,8 @@ import type { ActivitySource } from '../..';
 import type { WorkflowAccountingScope } from '../../interfaces/billing/workflow-accounting.interface';
 
 export interface CreditDeductionJobData {
+  /** Legacy queued payloads retain their completion gate until drained. */
+  settlementAssetId?: string;
   workflowAccounting?: WorkflowAccountingScope;
   type: 'deduct-credits' | 'record-byok-usage';
   organizationId: string;
@@ -14,8 +16,6 @@ export interface CreditDeductionJobData {
   metadata?: Record<string, unknown>;
   referenceId?: string;
   referenceType?: string;
-  /** Defers settlement until this persisted media asset is terminal. */
-  settlementAssetId?: string;
   reservationId?: string;
   /** Provider accepted this asset; persist its identity before charging. */
   acceptedGeneration?: { ingredientId: string; externalId: string };

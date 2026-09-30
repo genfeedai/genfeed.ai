@@ -85,6 +85,7 @@ export class ImagesOperationsController {
   ])
   @Credits({
     description: 'Image generation',
+    settlement: 'completion',
     source: ActivitySource.IMAGE_GENERATION,
   })
   @DeferCreditsUntilModelResolution()

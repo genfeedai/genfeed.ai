@@ -118,6 +118,8 @@ export interface ImageGenerationProviderRequest {
   width: number;
   abortSignal?: AbortSignal;
   onExternalJobCreated?: (externalId: string) => Promise<void>;
+  onProviderOutput?: (output: unknown) => Promise<void>;
+  onProviderSubmissionStarted?: () => void;
 }
 
 export type ImageGenerationProviderResult =
@@ -133,6 +135,7 @@ export type ImageGenerationProviderResult =
     };
 
 export interface PreparedImageGenerationProvider {
+  tracksSubmissionStarted?: boolean;
   additionalActivityFailure: 'fail' | 'ignore';
   additionalFailureLabel: string;
   additionalPlaceholderFailureLabel: string;

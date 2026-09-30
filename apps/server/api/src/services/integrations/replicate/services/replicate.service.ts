@@ -244,6 +244,7 @@ export class ReplicateService {
     input: Record<string, unknown>,
     apiKeyOverride?: string,
     workflowContinuationId?: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -263,6 +264,7 @@ export class ReplicateService {
         ? undefined
         : this.resolveCompletionWebhookUrl(workflowContinuationId);
 
+      onProviderSubmissionStarted?.();
       const res = await client.predictions.create({
         input,
         ...target,
@@ -420,16 +422,32 @@ export class ReplicateService {
     version: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<string> {
-    return this.runModel(version, input, apiKeyOverride);
+    return this.runModel(
+      version,
+      input,
+      apiKeyOverride,
+      undefined,
+      onProviderSubmissionStarted,
+    );
   }
 
   public generateTextToImage(
     version: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
+    onProviderSubmissionStarted?: () => void,
   ): Promise<string> {
-    return this.runModel(version, input, apiKeyOverride);
+    return onProviderSubmissionStarted
+      ? this.runModel(
+          version,
+          input,
+          apiKeyOverride,
+          undefined,
+          onProviderSubmissionStarted,
+        )
+      : this.runModel(version, input, apiKeyOverride);
   }
 
   public enhanceVideo(

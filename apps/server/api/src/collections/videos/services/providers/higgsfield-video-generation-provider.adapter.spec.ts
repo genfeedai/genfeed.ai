@@ -80,6 +80,7 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       );
 
       expect(generateImageToVideo).toHaveBeenCalledWith({
+        onProviderSubmissionStarted: undefined,
         imageUrl: 'https://cdn.test/start.png',
         modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
         organizationId: 'org-1',

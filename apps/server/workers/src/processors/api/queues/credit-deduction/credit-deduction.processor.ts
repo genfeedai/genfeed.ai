@@ -80,17 +80,15 @@ export class CreditDeductionProcessor extends WorkerHost {
 
         if (
           job.data.settlementAssetId &&
-          !(await this.isMediaSettlementBillable(job))
+          !(await this.isLegacyMediaBillable(job))
         ) {
-          if (job.data.reservationId) {
+          if (job.data.reservationId)
             await this.creditsUtilsService.releaseReservation({
               organizationId,
               reservationId: job.data.reservationId,
             });
-          }
           return;
         }
-
         if (job.data.reservationId) {
           await this.creditsUtilsService.settleReservation({
             actualAmount: amount,
@@ -137,6 +135,8 @@ export class CreditDeductionProcessor extends WorkerHost {
           undefined,
           {
             idempotencyKey: `byok:${organizationId}:${job.data.idempotencyKey ?? job.id}`,
+            actorUserId: userId,
+            metadata: job.data.metadata,
           },
         );
       }
@@ -219,59 +219,29 @@ export class CreditDeductionProcessor extends WorkerHost {
       );
   }
 
-  private async isMediaSettlementBillable(
+  private async isLegacyMediaBillable(
     job: Job<CreditDeductionJobData>,
   ): Promise<boolean> {
-    const { data } = job;
     const asset = await this.prisma.ingredient.findFirst({
-      select: { cdnUrl: true, id: true, s3Key: true, status: true },
+      select: {
+        id: true,
+        s3Key: true,
+        status: true,
+        metadata: { select: { result: true } },
+      },
       where: {
-        id: data.settlementAssetId,
+        id: job.data.settlementAssetId,
+        organizationId: job.data.organizationId,
         isDeleted: false,
-        organizationId: data.organizationId,
       },
     });
     const status = String(asset?.status ?? '').toUpperCase();
-    if (['FAILED', 'REJECTED', 'ARCHIVED'].includes(status)) {
-      this.logger.log(
-        `${this.constructorName} skipped terminal media settlement`,
-        {
-          assetId: data.settlementAssetId,
-          organizationId: data.organizationId,
-          status,
-        },
-      );
-      return false;
-    }
-    if (status !== 'GENERATED' && status !== 'VALIDATED') {
-      const attempts = Number(job.opts.attempts) || 1;
-      if (job.attemptsMade + 1 >= attempts) {
-        this.logger.error(
-          `${this.constructorName} media settlement requires operator reconciliation`,
-          {
-            assetId: data.settlementAssetId,
-            attempts,
-            organizationId: data.organizationId,
-            status: status || 'missing',
-          },
-        );
-      }
+    if (['FAILED', 'REJECTED', 'ARCHIVED'].includes(status)) return false;
+    if (status !== 'GENERATED' && status !== 'VALIDATED')
       throw new Error(
-        `Media asset ${data.settlementAssetId} is not terminal (${status || 'missing'})`,
+        `Media asset ${job.data.settlementAssetId} is not terminal (${status || 'missing'})`,
       );
-    }
-    if (!asset?.cdnUrl && !asset?.s3Key) {
-      this.logger.log(
-        `${this.constructorName} skipped inaccessible media settlement`,
-        {
-          assetId: data.settlementAssetId,
-          organizationId: data.organizationId,
-          status,
-        },
-      );
-      return false;
-    }
-    return true;
+    return Boolean(asset?.s3Key || asset?.metadata?.result);
   }
 
   private async checkLowCredits(organizationId: string): Promise<void> {

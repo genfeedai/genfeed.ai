@@ -1,4 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  type GenerationBillingRequest,
+  GenerationBillingService,
+} from '@api/collections/credits/services/generation-billing.service';
 import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
@@ -51,6 +55,7 @@ export class ImageReframeService {
     private readonly replicateService: ReplicateService,
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
+    private readonly generationBilling: GenerationBillingService,
   ) {}
 
   async reframeImage(
@@ -215,6 +220,7 @@ export class ImageReframeService {
       user,
       websocketUrl,
     } = params;
+    let acceptedExternalId: string | undefined;
     try {
       const parentImageUrl: string = `${this.configService.ingredientsEndpoint}/images/${parentId}`;
       const promptResult = await this.promptBuilderService.buildPrompt(
@@ -246,12 +252,20 @@ export class ImageReframeService {
         user.organizationId,
       );
 
+      const billingRequest = request as unknown as GenerationBillingRequest;
+      const credits = billingRequest.creditsConfig?.amount;
+      if (credits !== undefined)
+        await this.generationBilling.bindOutput(billingRequest, {
+          credits,
+          ingredientId: String(ingredientData.id),
+        });
       const generationId = await this.replicateService.generateTextToImage(
         MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         promptResult.input,
       );
 
       if (generationId) {
+        acceptedExternalId = generationId;
         await this.metadataService.patch(
           metadataId,
           new MetadataEntity({
@@ -260,6 +274,10 @@ export class ImageReframeService {
           }),
         );
       } else {
+        await this.generationBilling.releaseOutput(
+          String(ingredientData.id),
+          user.organizationId,
+        );
         await this.failedGenerationService.handleFailedImageGeneration(
           this.imagesService,
           ingredientData.id,
@@ -269,8 +287,36 @@ export class ImageReframeService {
         );
       }
     } catch (error: unknown) {
+      if (acceptedExternalId) {
+        this.loggerService.error(
+          'Accepted transformation metadata persistence failed',
+          error,
+        );
+        try {
+          await this.generationBilling.rememberAcceptedOutput({
+            ingredientId: String(ingredientData.id),
+            externalId: acceptedExternalId,
+            organizationId: user.organizationId,
+            userId: user.userId,
+          });
+        } catch (recoveryError: unknown) {
+          this.loggerService.error(
+            'Accepted transformation recovery failed; retain its funding',
+            recoveryError,
+            {
+              ingredientId: String(ingredientData.id),
+              externalId: acceptedExternalId,
+            },
+          );
+        }
+        return;
+      }
       this.loggerService.error(`${url} failed`, error);
       const errorMessage = getErrorMessage(error);
+      await this.generationBilling.releaseOutput(
+        String(ingredientData.id),
+        user.organizationId,
+      );
 
       await this.failedGenerationService.handleFailedImageGeneration(
         this.imagesService,

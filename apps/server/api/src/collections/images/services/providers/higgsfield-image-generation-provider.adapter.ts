@@ -3,6 +3,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import { resolveImageBillableOutputs } from '@api/collections/images/services/image-generation-provider.util';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { calculateAspectRatio } from '@genfeedai/helpers';
 
@@ -14,8 +15,8 @@ import { calculateAspectRatio } from '@genfeedai/helpers';
  * and finalize the ingredient the same way every other `external-id` provider
  * does, with no additional wiring.
  *
- * Soul renders a batch of exactly 1 or 4. `request.outputs` is forwarded so a
- * request for 2 or 3 comes back as 4 and the dispatcher keeps what it needs.
+ * The current dispatch manifest funds one output. Native batches require an
+ * explicit funded manifest before they can be admitted.
  */
 export class HiggsFieldImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
@@ -27,7 +28,9 @@ export class HiggsFieldImageGenerationProviderAdapter
   async prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider> {
+    resolveImageBillableOutputs(this.provider, request.outputs);
     return {
+      tracksSubmissionStarted: true,
       additionalActivityFailure: 'fail',
       additionalFailureLabel: 'HiggsFieldService generateTextToImage',
       additionalPlaceholderFailureLabel: 'Higgsfield',
@@ -36,7 +39,13 @@ export class HiggsFieldImageGenerationProviderAdapter
       generate: async () => {
         const { requestId } = await this.higgsFieldService.generateTextToImage({
           aspectRatio: calculateAspectRatio(request.width, request.height),
-          batchSize: request.outputs,
+          batchSize: 1,
+          ...(request.onProviderSubmissionStarted
+            ? {
+                onProviderSubmissionStarted:
+                  request.onProviderSubmissionStarted,
+              }
+            : {}),
           organizationId: request.organizationId,
           prompt: request.prompt,
         });

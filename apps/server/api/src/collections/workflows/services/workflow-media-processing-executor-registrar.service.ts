@@ -8,6 +8,7 @@ import { VideoQaContinuityResolverService } from '@api/collections/workflows/ser
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { VideoStitchService } from '@api/services/video-stitch/video-stitch.service';
 import type { VideoStitchRequest } from '@api/services/video-stitch/video-stitch.types';
 import { WhisperService } from '@api/services/whisper/whisper.service';
@@ -144,26 +145,26 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
             continuationId = continuation.continuationId;
           },
         );
-        if (!continuationId) {
-          throw new Error(
-            'Avatar provider submitted without a durable workflow continuation',
-          );
-        }
-        await this.helper.markProviderContinuationSubmitted({
-          continuationId,
-          externalId: result.externalId,
-          organizationId: context.organizationId,
-        });
       } catch (error: unknown) {
-        if (continuationId) {
+        if (continuationId && error instanceof HeyGenSubmissionRejectedError) {
           await this.helper.failProviderContinuationSubmission({
             continuationId,
-            error: error instanceof Error ? error.message : String(error),
+            error: error.message,
             organizationId: context.organizationId,
           });
         }
         throw error;
       }
+      if (!continuationId) {
+        throw new Error(
+          'Avatar provider submitted without a durable workflow continuation',
+        );
+      }
+      await this.helper.markProviderContinuationSubmitted({
+        continuationId,
+        externalId: result.externalId,
+        organizationId: context.organizationId,
+      });
 
       return {
         externalId: result.externalId,

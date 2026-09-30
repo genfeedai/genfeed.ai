@@ -7,12 +7,12 @@ import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.se
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
+import { WebhookGenerationSettlementService } from '@api/endpoints/webhooks/services/webhook-generation-settlement.service';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { ActivityRecorderService } from '@api/services/activity-recording/activity-recorder.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { MediaGenerationCostService } from '@api/services/media-vendor-cost/media-generation-cost.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
   categoryToMediaType,
@@ -35,18 +35,25 @@ export class WebhooksService {
 
   private async markMediaGenerated(
     ingredientId: string,
+    organizationId: string | null | undefined,
     uploadMetadata: IFileMetadata,
-  ): Promise<void> {
+  ): Promise<boolean> {
     // The object key is the stored identity; the URL is derived on read.
     const s3Key =
       typeof uploadMetadata.s3Key === 'string'
         ? uploadMetadata.s3Key
         : undefined;
 
-    await this.ingredientsService.patch(ingredientId, {
-      ...(s3Key ? { s3Key } : {}),
-      status: IngredientStatus.GENERATED,
-    });
+    const claimed = await this.ingredientsService.patchAll(
+      {
+        id: ingredientId,
+        ...(organizationId ? { organizationId } : {}),
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      { ...(s3Key ? { s3Key } : {}), status: IngredientStatus.GENERATED },
+    );
+    return claimed.modifiedCount === 1;
   }
 
   constructor(
@@ -56,9 +63,9 @@ export class WebhooksService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
+    private readonly generationSettlement: WebhookGenerationSettlementService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
-    private readonly mediaGenerationCostService: MediaGenerationCostService,
     private readonly mediaUploadService: MediaUploadService,
     private readonly metadataLookupService: MetadataLookupService,
     private readonly metadataService: MetadataService,
@@ -208,9 +215,27 @@ export class WebhooksService {
       return;
     }
 
-    // 3. Mark ingredient as GENERATED
-    await this.markMediaGenerated(input.ingredientId, uploadMetadata);
+    // 3. Mark ingredient as GENERATED, then settle the credits that paid for it
+    const completed = await this.markMediaGenerated(
+      input.ingredientId,
+      ingredient.organizationId,
+      uploadMetadata,
+    );
+    if (!completed) return;
+    await this.generationSettlement.settleOutput(
+      input.ingredientId,
+      ingredient.organizationId,
+    );
 
+    await this.notifyMediaGenerated(input, ingredient, metadata);
+  }
+
+  private async notifyMediaGenerated(
+    input: Parameters<WebhooksService['finalizeWebhookMedia']>[0],
+    ingredient: NonNullable<Awaited<ReturnType<IngredientsService['findOne']>>>,
+    metadata: Awaited<ReturnType<MetadataService['findOne']>>,
+  ): Promise<void> {
+    const logContext = `${this.constructorName} notifyMediaGenerated`;
     // 3.5 Vendor-cost ledger row from the realized output (fire-and-forget;
     // the service swallows every failure so it can never break finalization).
     const generationMetadata = metadata as {
@@ -219,7 +244,7 @@ export class WebhooksService {
       model?: string;
       width?: number;
     } | null;
-    void this.mediaGenerationCostService.recordGenerationCost({
+    void this.generationSettlement.recordGenerationCost({
       brandId: ingredient.brandId ?? null,
       category: input.categoryValue,
       durationSeconds: generationMetadata?.duration ?? null,
@@ -367,6 +392,37 @@ export class WebhooksService {
       return;
     }
 
+    if (ingredient.status !== IngredientStatus.PROCESSING) {
+      if (ingredient.status === IngredientStatus.FAILED)
+        await this.generationSettlement.releaseOutput(
+          ingredientId,
+          ingredient.organizationId,
+        );
+      return;
+    }
+    const claimed = await this.ingredientsService.patchAll(
+      {
+        id: ingredient.id.toString(),
+        ...(ingredient.organizationId
+          ? { organizationId: ingredient.organizationId }
+          : {}),
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      { status: IngredientStatus.FAILED, isGenerationFailureConfirmed: true },
+    );
+    if (claimed.modifiedCount !== 1) {
+      const latest = await this.ingredientsService.findOne({
+        id: ingredientId,
+      });
+      if (latest?.status === IngredientStatus.FAILED)
+        await this.generationSettlement.releaseOutput(
+          ingredientId,
+          latest.organizationId,
+        );
+      return;
+    }
+
     if (errorMessage) {
       const metadataId = ingredient.metadataId;
       if (metadataId) {
@@ -376,9 +432,10 @@ export class WebhooksService {
       }
     }
 
-    await this.ingredientsService.patch(ingredient.id.toString(), {
-      status: IngredientStatus.FAILED,
-    });
+    await this.generationSettlement.releaseOutput(
+      ingredient.id.toString(),
+      ingredient.organizationId,
+    );
 
     this.postProcessingOrchestrator.notifyBotGatewayFailureIfNeeded(
       ingredient.id.toString(),
@@ -423,6 +480,10 @@ export class WebhooksService {
     ]);
   }
 
+  /**
+   * Completion settles the output's credit hold. A failure here must not undo a
+   * finished generation; the reconcile sweep settles any hold this misses.
+   */
   private schedulePostUploadNotifications(
     ingredientId: string,
     categoryValue: IngredientCategory | string,

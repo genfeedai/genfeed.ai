@@ -111,7 +111,10 @@ describe('BrandRemixRunsService', () => {
   };
   const imageGenerationService = { generateImage: vi.fn() };
   const videoGenerationService = { generateVideo: vi.fn() };
-  const avatarVideoGenerationService = { generateAvatarVideo: vi.fn() };
+  const avatarVideoGenerationService = {
+    generateAvatarVideo: vi.fn(),
+    quotePlatformCredits: vi.fn().mockResolvedValue(1),
+  };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
   const trendReferenceCorpusService = { recordPostRemixLineage: vi.fn() };
   const contentGeneratorService = { generateContent: vi.fn() };
@@ -226,6 +229,7 @@ describe('BrandRemixRunsService', () => {
     );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(100);
     byokService.isByokActiveForProvider.mockResolvedValue(false);
+    avatarVideoGenerationService.quotePlatformCredits.mockResolvedValue(1);
     workflowActions.clear();
     systemWorkflowRunner.registerAction.mockImplementation(
       (id: string, action: CapturedWorkflowAction) => {
@@ -2709,7 +2713,7 @@ describe('BrandRemixRunsService', () => {
         return Promise.resolve({ count: 1 });
       });
       vi.spyOn(remixGraph.dispatch, 'resolveVariantCredits').mockImplementation(
-        ({ variant }) => ({
+        async ({ variant }) => ({
           amount: 4,
           isByokBypass: variant.id === 'variant-1',
           variantId: variant.id,
