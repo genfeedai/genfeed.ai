@@ -208,7 +208,31 @@ export function projectModelBillablePricingProfile(
     (candidate) => candidate.version === model.reviewedProviderContractVersion,
   );
   const properties = record(record(model.providerInputSchema).properties);
-  const quality = record(properties.quality);
+  const requiredSelectorKeys = [
+    'resolution',
+    'quality',
+    'mode',
+    'generate_audio',
+    'audio',
+    'fps',
+  ].filter((key) => {
+    const property = record(properties[key]);
+    if (!Object.keys(property).length || property.const !== undefined)
+      return false;
+    return !Array.isArray(property.enum) || property.enum.length > 1;
+  });
+  if (
+    model.hasResolutionOptions &&
+    !requiredSelectorKeys.includes('resolution')
+  )
+    requiredSelectorKeys.push('resolution');
+  if (
+    model.hasAudioToggle &&
+    !requiredSelectorKeys.some(
+      (key) => key === 'audio' || key === 'generate_audio',
+    )
+  )
+    requiredSelectorKeys.push('audio');
   return {
     key: model.key,
     provider: model.provider,
@@ -227,10 +251,9 @@ export function projectModelBillablePricingProfile(
         model.pendingProviderContractVersion !==
           model.reviewedProviderContractVersion,
     ),
+    requiredSelectorKeys,
     requiresReviewedRates:
-      model.hasResolutionOptions ||
-      model.hasAudioToggle ||
-      (Array.isArray(quality.enum) && quality.enum.length > 1) ||
+      requiredSelectorKeys.length > 0 ||
       Object.keys(record(contract?.conditionalDimensions)).length > 0,
   };
 }

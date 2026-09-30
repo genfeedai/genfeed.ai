@@ -23,6 +23,7 @@ const model: ModelBillablePricingProfile = {
   rateVersion: null,
   hasPendingRate: false,
   requiresReviewedRates: false,
+  requiredSelectorKeys: [],
 };
 const input: ModelBillableQuoteRequest = {
   modelKey: model.key,
@@ -247,6 +248,53 @@ describe('authoritative bill-time quote snapshots', () => {
         },
         1,
         '2026-11-01T00:00:00Z',
+      ).status,
+    ).toBe('unresolved');
+  });
+  it('allocates using only applicable bands and demands schema pricing selectors', () => {
+    const reviewed = {
+      ...model,
+      rateVersion: 'v1',
+      requiredSelectorKeys: ['mode'],
+      reviewedPricing: {
+        version: 'v1',
+        currency: 'USD',
+        sourceUrl: 'https://replicate.com/provider/avatar',
+        verifiedAt: date,
+        reviewStatus: 'approved',
+        rates: [
+          {
+            component: 'output',
+            unit: 'request' as const,
+            unitPriceUsd: 0.1,
+            when: { mode: 'request' },
+          },
+          {
+            component: 'output',
+            unit: 'output' as const,
+            unitPriceUsd: 0.2,
+            when: { mode: 'output' },
+          },
+        ],
+      },
+    };
+    expect(
+      quoteModelBillablePricing(
+        reviewed,
+        { ...input, requests: 2, outputs: 4, selectors: { mode: 'request' } },
+        1,
+        date,
+      ),
+    ).toMatchObject({
+      status: 'priced',
+      snapshot: { allocationBasis: 'request', allocatedCredits: [10, 10] },
+    });
+    expect(
+      quoteModelBillablePricing(
+        reviewed,
+        { ...input, requests: 2, outputs: 4 },
+        1,
+        date,
       ).status,
     ).toBe('unresolved');
   });

@@ -85,6 +85,16 @@ export function quoteModelBillablePricing(
       return unresolved(
         'Provider rate verification is missing, stale or in the future',
       );
+    const invariantSelectors = new Set(pricing.invariantSelectors ?? []);
+    if (
+      model.requiredSelectorKeys.some(
+        (key) =>
+          !invariantSelectors.has(key) && input.selectors?.[key] === undefined,
+      )
+    )
+      return unresolved(
+        'Provider pricing dimension requires an explicit selected value',
+      );
     const selectorKeys = new Set([
       ...pricing.rates.flatMap((rate) => Object.keys(rate.when)),
       ...(pricing.invariantSelectors ?? []),
@@ -106,7 +116,12 @@ export function quoteModelBillablePricing(
     providerCostUsd = quote.providerCostUsd;
     credits = quote.credits;
     costSource = 'reviewed-provider';
-    allocationBasis = pricing.rates.every(
+    const selectedRates = pricing.rates.filter((rate) =>
+      Object.entries(rate.when).every(
+        ([key, value]) => input.selectors?.[key] === value,
+      ),
+    );
+    allocationBasis = selectedRates.every(
       (rate) => rate.unit === 'request' && !rate.isPerOutput,
     )
       ? 'request'
@@ -114,6 +129,7 @@ export function quoteModelBillablePricing(
   } else {
     if (
       model.requiresReviewedRates ||
+      model.requiredSelectorKeys.length > 0 ||
       Object.keys(input.selectors ?? {}).length
     )
       return unresolved('Selected variant requires reviewed provider rates');

@@ -115,6 +115,7 @@ export interface ModelBillablePricingProfile {
   rateVersion: string | null;
   hasPendingRate: boolean;
   requiresReviewedRates: boolean;
+  requiredSelectorKeys: string[];
 }
 
 export interface ModelBillableQuoteRequest extends ProviderQuoteDimensions {

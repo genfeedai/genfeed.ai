@@ -79,6 +79,29 @@ describe('raw reviewed provider pricing adapter', () => {
         .reviewedPricing,
     ).toBeNull();
   });
+  it('requires schema selectors even when legacy capability flags are absent', () => {
+    const profile = projectModelBillablePricingProfile(
+      {
+        ...model,
+        hasResolutionOptions: false,
+        hasAudioToggle: false,
+        providerInputSchema: {
+          properties: {
+            resolution: { enum: ['720p', '1080p'] },
+            generate_audio: { type: 'boolean' },
+            mode: { enum: ['standard', 'pro'] },
+          },
+        },
+      },
+      [],
+    );
+    expect(profile.requiresReviewedRates).toBe(true);
+    expect(profile.requiredSelectorKeys).toEqual([
+      'resolution',
+      'mode',
+      'generate_audio',
+    ]);
+  });
   it('keeps pending drift and unpriced selectable dimensions explicit', () => {
     const profile = projectModelBillablePricingProfile(
       { ...model, pendingProviderContractVersion: 'rate-v2' },
