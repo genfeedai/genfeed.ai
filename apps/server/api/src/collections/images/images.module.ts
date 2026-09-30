@@ -7,6 +7,7 @@ import { ActivitiesModule } from '@api/collections/activities/activities.module'
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { EvaluationReadModule } from '@api/collections/evaluations/evaluation-read.module';
 import { ImagesController } from '@api/collections/images/controllers/images.controller';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
 import { ImagesRelationshipsController } from '@api/collections/images/controllers/relationships/images-relationships.controller';
@@ -85,6 +86,7 @@ import { Module } from '@nestjs/common';
     ImagesCoreModule,
   ],
   imports: [
+    EvaluationReadModule,
     MediaPromptEnhancementModule,
     ImagesCoreModule,
     BrandsCoreModule,

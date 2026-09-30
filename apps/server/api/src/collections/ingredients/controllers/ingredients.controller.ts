@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
@@ -63,6 +64,7 @@ export class IngredientsController {
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly configService: ConfigService,
     private readonly mediaUrlService: MediaUrlService,
+    private readonly evaluationProjection: ContentEvaluationProjectionService,
   ) {}
 
   /**
@@ -140,7 +142,13 @@ export class IngredientsController {
     };
 
     const data = await this.ingredientsService.findAll(aggregate, options);
-    return serializeCollection(request, IngredientSerializer, data);
+    return serializeCollection(
+      request,
+      IngredientSerializer,
+      await this.evaluationProjection.attachToPage(data, {
+        brandId: user.brandId,
+      }),
+    );
   }
 
   /**
