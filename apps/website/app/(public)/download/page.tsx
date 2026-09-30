@@ -3,8 +3,8 @@ import {
   formatFileSize,
   getLatestDesktopBuild,
 } from '@data/desktop-release.data';
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import DownloadContent from '@public/download/download-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import { headers } from 'next/headers';
 
 export const generateMetadata = createPageMetadataWithCanonical(

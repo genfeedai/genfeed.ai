@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { getAllUseCaseSlugs } from '@data/use-cases.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import {
@@ -42,14 +43,17 @@ export function buildUseCaseBreadcrumbJsonLd(
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const audienceName = formatUseCaseSlug(slug);
   const title = `Genfeed for ${audienceName}: AI Content Creation at Scale`;
   const description = `Discover how ${audienceName.toLowerCase()} use Genfeed to create professional AI-powered videos, images, and marketing content at scale.`;
   const url = `${EnvironmentService.apps.website}/use-cases/${slug}`;
+
+  const previousImages = [
+    getMarketingOgImage(`/use-cases/${slug}`, audienceName),
+  ];
 
   return {
     alternates: { canonical: url },

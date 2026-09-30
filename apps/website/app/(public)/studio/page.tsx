@@ -1,6 +1,6 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import { getPublicModels } from '@public/models/models-loader';
 import StudioContent from '@public/studio/studio-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 /**
  * The catalog is the same for every visitor, so the page is rendered once and

@@ -9,6 +9,7 @@ import { stringifyJsonLd } from '@data/json-ld';
 import { createDynamicPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import AgentClientChannelContent from '@public/agent-clients/agent-client-channel-content';
 import { EnvironmentService } from '@services/core/environment.service';
+import { withMarketingOgMetadata } from '@web-components/og/marketing-metadata';
 import { notFound } from 'next/navigation';
 
 export function generateAgentClientChannelParams(): { channel: string }[] {
@@ -24,12 +25,21 @@ export function createAgentClientChannelMetadata(slug: AgentClientSlug) {
       : undefined;
   }
 
-  return createDynamicPageMetadata(
+  const generate = createDynamicPageMetadata(
     'channel',
     (channel) => resolvePage(channel)?.title ?? client.title,
     (channel) => `/${client.slug}/${channel}`,
     (channel) => resolvePage(channel)?.description ?? client.description,
   );
+
+  return async (...args: Parameters<typeof generate>) => {
+    const { channel } = await args[0].params;
+    return withMarketingOgMetadata(
+      await generate(...args),
+      `/${client.slug}/${channel}`,
+      resolvePage(channel)?.title ?? client.title,
+    );
+  };
 }
 
 export default function AgentClientChannelPage({
