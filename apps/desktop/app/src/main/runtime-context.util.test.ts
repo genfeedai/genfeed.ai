@@ -8,6 +8,7 @@ import type {
 } from '@genfeedai/contracts/desktop';
 import {
   assertDesktopRuntimeAvailable,
+  assertDesktopServerSwitchAvailable,
   commitDesktopRuntimeSwitch,
   createDesktopRuntimeContext,
   type DesktopRuntimeTransitionState,
@@ -131,6 +132,7 @@ describe('authoritative nonsecret runtime context', () => {
     const events: string[] = [];
     await expect(
       commitDesktopRuntimeSwitch(
+        () => 'ready',
         false,
         async () => {
           events.push('select');
@@ -143,26 +145,121 @@ describe('authoritative nonsecret runtime context', () => {
   });
   it('restores old ready state only if selection fails before commit', async () => {
     const events: string[] = [];
+    let state: IDesktopRuntimeContext['status'] = 'ready';
+    const publish = (status: IDesktopRuntimeContext['status']) => {
+      state = status;
+      events.push(status);
+    };
     await expect(
       commitDesktopRuntimeSwitch(
+        () => state,
         true,
         async () => {
           throw new Error('write failed');
         },
-        (status) => events.push(status),
+        publish,
       ),
     ).rejects.toThrow('write failed');
     expect(events).toEqual(['switching', 'ready']);
     events.length = 0;
     expect(
       await commitDesktopRuntimeSwitch(
+        () => state,
         true,
         async () => 'next',
-        (status) => events.push(status),
+        publish,
       ),
     ).toBe('next');
     expect(events).toEqual(['switching']);
   });
+  it('rejects overlapping confirmation before opening another native dialog', () => {
+    const dialog = mock(() => 'native confirmation');
+    expect(() => {
+      assertDesktopServerSwitchAvailable('ready', true);
+      dialog();
+    }).toThrow('already pending');
+    expect(dialog).not.toHaveBeenCalled();
+    assertDesktopServerSwitchAvailable('ready', false);
+    expect(dialog()).toBe('native confirmation');
+  });
+  it('rechecks status after confirmation and rejects an overlapping commit', async () => {
+    let state: IDesktopRuntimeContext['status'] = 'ready';
+    let release!: () => void;
+    const events: string[] = [];
+    const publish = (status: IDesktopRuntimeContext['status']) => {
+      state = status;
+      events.push(status);
+    };
+    assertDesktopServerSwitchAvailable(state, false);
+    const first = commitDesktopRuntimeSwitch(
+      () => state,
+      true,
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+      publish,
+    );
+    const secondSelect = mock(async () => 'second profile');
+    await expect(
+      commitDesktopRuntimeSwitch(() => state, true, secondSelect, publish),
+    ).rejects.toThrow('switching');
+    expect(secondSelect).not.toHaveBeenCalled();
+    expect(events).toEqual(['switching']);
+    release();
+    await first;
+    expect(state).toBe('switching');
+  });
+  it('cannot replace a newly unavailable state with ready after selection failure', async () => {
+    let state: IDesktopRuntimeContext['status'] = 'ready';
+    const events: string[] = [];
+    await expect(
+      commitDesktopRuntimeSwitch(
+        () => state,
+        true,
+        async () => {
+          state = 'unavailable';
+          throw new Error('selection failed');
+        },
+        (status) => {
+          state = status;
+          events.push(status);
+        },
+      ),
+    ).rejects.toThrow('selection failed');
+    expect(state).toBe('unavailable');
+    expect(events).toEqual(['switching']);
+  });
+  it.each(['unavailable', 'switching'] as const)(
+    'rejects selection if runtime becomes %s during native confirmation',
+    async (nextStatus) => {
+      let state: IDesktopRuntimeContext['status'] = 'ready';
+      const publish = mock((status: IDesktopRuntimeContext['status']) => {
+        state = status;
+      });
+      const select = mock(async () => {
+        throw new Error('validation or store failure');
+      });
+      assertDesktopServerSwitchAvailable(state, false);
+      const confirmation = Promise.resolve().then(() => {
+        state = nextStatus;
+        return true;
+      });
+      await expect(
+        commitDesktopRuntimeSwitch(
+          () => state,
+          await confirmation,
+          select,
+          publish,
+        ),
+      ).rejects.toThrow(
+        nextStatus === 'unavailable' ? 'Restart Genfeed Desktop' : 'switching',
+      );
+      expect(state).toBe(nextStatus);
+      expect(select).not.toHaveBeenCalled();
+      expect(publish).not.toHaveBeenCalled();
+    },
+  );
 });
 
 const fixtureDirectories: string[] = [];
@@ -286,6 +383,25 @@ describe('actual runtime transition and dispatch boundaries', () => {
       expect(emitted.map((snapshot) => snapshot.revision)).toEqual([1, 2]);
       expect(emitted[1]?.generationExecution).toBe('unknown');
       expect(emitted[1]?.localProvider).toEqual(committed ? null : provider);
+      const selectServer = mock(async () => {
+        throw new Error('self-hosted validation or persistence failed');
+      });
+      const beforeServerSwitch = { ...state };
+      await expect(
+        commitDesktopRuntimeSwitch(
+          () => state.status,
+          true,
+          selectServer,
+          (status) => {
+            state = { ...state, status };
+          },
+        ),
+      ).rejects.toThrow(committed ? 'switching' : 'Restart Genfeed Desktop');
+      expect(selectServer).not.toHaveBeenCalled();
+      expect(state).toEqual(beforeServerSwitch);
+      expect(() =>
+        assertDesktopServerSwitchAvailable(state.status, false),
+      ).toThrow(committed ? 'switching' : 'Restart Genfeed Desktop');
       const local = { generateContent: mock(() => 'local fixture') };
       const cloud = { generateContent: mock(() => 'cloud fixture') };
       expect(() =>

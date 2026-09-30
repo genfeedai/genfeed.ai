@@ -76,16 +76,19 @@ export function createDesktopRuntimeContext(
 
 /** Publish only the still-active environment during the committed relaunch boundary. */
 export async function commitDesktopRuntimeSwitch<T>(
+  currentStatus: () => IDesktopRuntimeContext['status'],
   confirmed: boolean,
   select: () => Promise<T>,
-  status: (value: 'ready' | 'switching') => void,
+  status: (value: IDesktopRuntimeContext['status']) => void,
 ): Promise<T> {
+  const previousStatus = currentStatus();
+  assertDesktopRuntimeAvailable(previousStatus);
   if (!confirmed) throw new Error('Server switch was cancelled.');
   status('switching');
   try {
     return await select();
   } catch (error) {
-    status('ready');
+    if (currentStatus() === 'switching') status(previousStatus);
     throw error;
   }
 }
@@ -112,6 +115,15 @@ export function assertDesktopRuntimeAvailable(
     throw new Error(
       'Genfeed Desktop is switching servers. Wait for it to restart.',
     );
+}
+
+export function assertDesktopServerSwitchAvailable(
+  status: IDesktopRuntimeContext['status'],
+  isPending: boolean,
+): void {
+  assertDesktopRuntimeAvailable(status);
+  if (isPending)
+    throw new Error('A desktop server selection is already pending.');
 }
 /** The persisted rename is the commit point; attempted teardown requires restart on failure. */
 export async function transitionDesktopRuntimeToCloud(

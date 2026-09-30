@@ -56,4 +56,15 @@ describe('Desktop preload packaging', () => {
     );
     expect(mainSource).toContain("preload: path.join(mainDir, 'preload.cjs')");
   });
+  it('guards server selection and owns confirmation until the switch finishes', () => {
+    const main = fs.readFileSync(mainSourcePath, 'utf8');
+    const start = main.indexOf('const switchDesktopServer = async');
+    const source = main.slice(start, main.indexOf('\n};', start));
+    expect(source.indexOf('assertDesktopServerSwitchAvailable(')).toBeLessThan(
+      source.indexOf('dialog.showMessageBox'),
+    );
+    expect(source).toContain('isDesktopServerSwitchPending = true;');
+    expect(source).toMatch(/finally \{\s*isDesktopServerSwitchPending = false/);
+    expect(source).toContain('() => runtimeContextStatus,');
+  });
 });

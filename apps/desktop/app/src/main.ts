@@ -73,6 +73,7 @@ import {
 } from './main/process-exceptions.util';
 import {
   assertDesktopRuntimeAvailable,
+  assertDesktopServerSwitchAvailable,
   commitDesktopRuntimeSwitch,
   createDesktopRuntimeContext,
   getDesktopProviderContext,
@@ -151,6 +152,7 @@ let isOfflineMode = false;
 const runtimeContextId = randomUUID();
 let runtimeContextRevision = 0;
 let runtimeContextStatus: IDesktopRuntimeContext['status'] = 'ready';
+let isDesktopServerSwitchPending = false;
 let publicLocalProvider: IDesktopRuntimeContext['localProvider'] = null;
 let runtimeContextCache: IDesktopRuntimeContext | null = null;
 
@@ -2067,40 +2069,50 @@ const requireCliAgentRuntime = (): DesktopCliAgentRuntimeService => {
 const switchDesktopServer = async (
   selection: IDesktopServerSelection,
 ): Promise<void> => {
-  const target =
-    selection?.kind === 'self-hosted'
-      ? selection.selfHosted?.apiEndpoint || 'your self-hosted server'
-      : 'Genfeed Cloud';
-  const options = {
-    buttons: ['Switch and restart', 'Cancel'],
-    cancelId: 1,
-    defaultId: 0,
-    detail:
-      'Genfeed Desktop restarts to connect. You stay signed in to each server separately.',
-    message: `Switch Genfeed Desktop to ${target}?`,
-    type: 'question' as const,
-  };
-  const { response } = mainWindow
-    ? await dialog.showMessageBox(mainWindow, options)
-    : await dialog.showMessageBox(options);
-
-  const profile = await commitDesktopRuntimeSwitch(
-    response === 0,
-    () => serverService.select(selection),
-    (status) => {
-      runtimeContextStatus = status;
-      emitRuntimeContext();
-    },
+  assertDesktopServerSwitchAvailable(
+    runtimeContextStatus,
+    isDesktopServerSwitchPending,
   );
-  logService?.info(`switching desktop server to ${profile.id}`);
-  cliAgentRuntimeService?.cancelAll();
-  terminalService.killAll();
-  await sessionService.detachShellCookie();
-  await prismaService?.getClient().$disconnect();
-  await pgliteService?.close();
-  await appShellService.stop();
-  app.relaunch();
-  app.exit(0);
+  isDesktopServerSwitchPending = true;
+  try {
+    const target =
+      selection?.kind === 'self-hosted'
+        ? selection.selfHosted?.apiEndpoint || 'your self-hosted server'
+        : 'Genfeed Cloud';
+    const options = {
+      buttons: ['Switch and restart', 'Cancel'],
+      cancelId: 1,
+      defaultId: 0,
+      detail:
+        'Genfeed Desktop restarts to connect. You stay signed in to each server separately.',
+      message: `Switch Genfeed Desktop to ${target}?`,
+      type: 'question' as const,
+    };
+    const { response } = mainWindow
+      ? await dialog.showMessageBox(mainWindow, options)
+      : await dialog.showMessageBox(options);
+
+    const profile = await commitDesktopRuntimeSwitch(
+      () => runtimeContextStatus,
+      response === 0,
+      () => serverService.select(selection),
+      (status) => {
+        runtimeContextStatus = status;
+        emitRuntimeContext();
+      },
+    );
+    logService?.info(`switching desktop server to ${profile.id}`);
+    cliAgentRuntimeService?.cancelAll();
+    terminalService.killAll();
+    await sessionService.detachShellCookie();
+    await prismaService?.getClient().$disconnect();
+    await pgliteService?.close();
+    await appShellService.stop();
+    app.relaunch();
+    app.exit(0);
+  } finally {
+    isDesktopServerSwitchPending = false;
+  }
 };
 
 app.on('before-quit', (event) => {
