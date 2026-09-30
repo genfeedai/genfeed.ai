@@ -77,6 +77,9 @@ vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
   createPublishAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('publish', 'Publish') : null,
   ),
+  createRemixVideoAction: vi.fn((_ingredient, handler) =>
+    handler ? createAction('remix-video', 'Remix this video') : null,
+  ),
   createResizeAction: vi.fn((_ingredient, format, _label, handler) =>
     handler ? createAction(`resize-${format}`, `Resize to ${format}`) : null,
   ),

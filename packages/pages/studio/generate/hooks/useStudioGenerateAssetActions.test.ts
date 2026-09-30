@@ -8,6 +8,7 @@ import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  createFromAsset: vi.fn(),
   bulkDelete: vi.fn(),
   copyToClipboard: vi.fn(),
   notificationsError: vi.fn(),
@@ -19,6 +20,10 @@ const mocks = vi.hoisted(() => ({
   patch: vi.fn(),
   postResize: vi.fn(),
   push: vi.fn(),
+}));
+
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({ createFromAsset: mocks.createFromAsset }),
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -123,9 +128,7 @@ describe('useStudioGenerateAssetActions', () => {
     expect(mocks.openPostBatchModal).toHaveBeenCalledWith(ingredient);
     expect(onAttachReference).toHaveBeenNthCalledWith(1, ingredient, 'image');
     expect(onAttachReference).toHaveBeenNthCalledWith(2, ingredient, 'video');
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/default/default/studio/storyboard/new?mode=scenes&referenceImageId=ingredient-1&format=portrait',
-    );
+    expect(mocks.createFromAsset).toHaveBeenCalledWith(ingredient);
   });
 
   it('opens a video in the Studio editor through the editor route', () => {
