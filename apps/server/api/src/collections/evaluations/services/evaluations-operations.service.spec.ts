@@ -9,6 +9,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ByokProvider } from '@genfeedai/contracts';
 import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
+import { buildPersuasionEvaluationRubric } from '@genfeedai/harness';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -702,5 +703,128 @@ describe('EvaluationsOperationsService', () => {
       expect(result).toBeDefined();
       expect(result.overallScore).toBe(88);
     });
+  });
+  describe('canonical persuasion producer (#4616)', () => {
+    beforeEach(() => {
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'DB template without persuasion rubric' },
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify({
+          overallScore: 72,
+          scores: {
+            technical: { overall: 60 },
+            persuasion: {
+              demandFit: 20,
+              hookStrength: 40,
+              openLoopIntegrity: 60,
+              ctaNaturalness: 80,
+              overall: 999,
+            },
+          },
+          strengths: ['Concrete example'],
+        }),
+      );
+      mockServices.filesClientService.generateThumbnail.mockResolvedValue({
+        thumbnailUrl: 'https://example.com/frame.jpg',
+      });
+      mockServices.mediaUrlService.buildUrlFromAbsolute.mockImplementation(
+        (value: string) => value,
+      );
+    });
+    it.each(['post', 'article', 'image', 'video'] as const)(
+      'adds the same suffix for %s and normalizes its result',
+      async (type) => {
+        const context = { durationSeconds: 40 },
+          org = testId('org');
+        const result = (await (type === 'post'
+          ? service.evaluatePost('Post', context, org)
+          : type === 'article'
+            ? service.evaluateArticle('Article', context, org)
+            : type === 'image'
+              ? service.evaluateImage(
+                  'https://example.com/image.jpg',
+                  context,
+                  org,
+                )
+              : service.evaluateVideo(
+                  'https://example.com/video.mp4',
+                  context,
+                  org,
+                ))) as {
+          overallScore: number;
+          scores: IEvaluationScores;
+          strengths: string[];
+        };
+        expect(
+          mockServices.promptBuilderService.buildPrompt,
+        ).toHaveBeenCalledWith(
+          DEFAULT_TEXT_MODEL,
+          expect.objectContaining({
+            systemPromptSuffix: buildPersuasionEvaluationRubric(),
+          }),
+          org,
+        );
+        expect(result.scores.persuasion).toEqual({
+          demandFit: 20,
+          hookStrength: 40,
+          openLoopIntegrity: 60,
+          ctaNaturalness: 80,
+          overall: 50,
+        });
+        expect(result.overallScore).toBe(72);
+        expect(result.scores.technical).toEqual({ overall: 60 });
+        expect(result.strengths).toEqual(['Concrete example']);
+      },
+    );
+    it('derives absent provider overall without changing other scores', async () => {
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify({
+          overallScore: 72,
+          scores: {
+            brand: { overall: 64 },
+            persuasion: {
+              demandFit: 20,
+              hookStrength: 40,
+              openLoopIntegrity: 60,
+              ctaNaturalness: 80,
+            },
+          },
+        }),
+      );
+      const result = (await service.evaluatePost(
+        'Post',
+        {},
+        testId('org'),
+      )) as { scores: IEvaluationScores };
+      expect(result.scores.persuasion?.overall).toBe(50);
+      expect(result.scores.brand).toEqual({ overall: 64 });
+    });
+    it.each([undefined, 'high', null])(
+      'drops malformed provider layer %s while retaining other scores',
+      async (value) => {
+        mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+          JSON.stringify({
+            overallScore: 72,
+            scores: {
+              brand: { overall: 64 },
+              persuasion: {
+                demandFit: value,
+                hookStrength: 40,
+                openLoopIntegrity: 60,
+                ctaNaturalness: 80,
+              },
+            },
+          }),
+        );
+        const result = (await service.evaluatePost(
+          'Post',
+          {},
+          testId('org'),
+        )) as { scores: IEvaluationScores };
+        expect(result.scores.persuasion).toBeUndefined();
+        expect(result.scores.brand).toEqual({ overall: 64 });
+      },
+    );
   });
 });

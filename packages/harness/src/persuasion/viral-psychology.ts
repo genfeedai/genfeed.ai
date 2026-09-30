@@ -55,6 +55,17 @@ export const PERSUASION_SCORE_KEYS = PERSUASION_LAYERS.map(
   (layer) => layer.scoreKey,
 );
 
+function persuasionScoreFieldHint(): string {
+  return `Return scores.persuasion with these numeric fields (0-100 each): overall, ${PERSUASION_SCORE_KEYS.join(', ')}. Derive overall as the arithmetic mean of the four layer scores. Preserve the existing JSON response shape and all other scores.`;
+}
+
+export function buildPersuasionEvaluationRubric(): string {
+  return [
+    ...PERSUASION_LAYERS.map((layer) => layer.criterion),
+    persuasionScoreFieldHint(),
+  ].join('\n');
+}
+
 const PERSUASION_SCORE_MIN = 0;
 const PERSUASION_SCORE_MAX = 100;
 
@@ -208,9 +219,7 @@ function buildViralPsychologyContribution(
   return {
     evaluationCriteria: PERSUASION_LAYERS.map((layer) => layer.criterion),
     guardrails,
-    providerHints: [
-      `Persuasion rubric score fields (0-100 each): overall, ${PERSUASION_SCORE_KEYS.join(', ')}. Score overall as the mean of the four layer scores.`,
-    ],
+    providerHints: [persuasionScoreFieldHint()],
     styleDirectives,
     systemDirectives,
   };
