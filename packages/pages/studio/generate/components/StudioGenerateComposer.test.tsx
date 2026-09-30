@@ -600,7 +600,7 @@ describe('StudioGenerateComposer', () => {
       />,
     );
 
-    expect(screen.getByText('Estimated 200 credits')).toBeVisible();
+    expect(screen.getByText('Estimated 125 credits')).toBeVisible();
   });
 
   describe('Enhance prompt action (#4676)', () => {
