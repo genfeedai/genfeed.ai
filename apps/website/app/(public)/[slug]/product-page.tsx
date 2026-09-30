@@ -6,6 +6,7 @@ import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
 import { Check } from 'lucide-react';
@@ -22,6 +23,7 @@ export default function ProductPage({ product }: { product: Product }) {
 
   return (
     <PageLayout
+      heroMedia={<MarketingArtwork isCompact page={`/${product.slug}`} />}
       title={product.name}
       description={product.description}
       heroActions={

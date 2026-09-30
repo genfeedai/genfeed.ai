@@ -3,6 +3,7 @@ import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import AgentFirstActions from '@web-components/buttons/agent-first-actions/AgentFirstActions';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import MarketingEntrance from '@web-components/MarketingEntrance';
 import PageLayout from '@web-components/PageLayout';
 import ProductInterfacePreview from '@web-components/product/ProductInterfacePreview';
@@ -146,6 +147,9 @@ export default function PublishingContent() {
   return (
     <MarketingEntrance>
       <PageLayout
+        heroMedia={
+          <MarketingArtwork page="/publishing" isCompact kind="publishing" />
+        }
         heroActions={<AgentFirstActions trackingName="publishing_hero_click" />}
         heroProof={HERO_PROOF}
         heroVisual={HERO_VISUAL}

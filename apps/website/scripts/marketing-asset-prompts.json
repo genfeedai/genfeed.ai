@@ -1,0 +1,548 @@
+{
+  "tool": "built-in image_gen",
+  "date": "2026-09-30",
+  "destination": "s3://cdn.genfeed.ai/assets/branding/website/editorial/",
+  "prompts": [
+    {
+      "file": "integration-v1.webp",
+      "prompt": "Use case: stylized-concept. Create a polished editorial 3D illustration for Genfeed.ai's AI-tool integration landing pages. A sculptural brushed-silver connector bridge joins a small rounded graphite input block to three floating output panels arranged in an elegant fan. Panels contain richly colored abstract miniature campaign imagery: a coral glass object, a blue cinematic landscape, a warm orange portrait silhouette, no UI or text. Main structure is tactile ceramic, smoked glass and chrome, softly lit with warm amber rim light, midnight black backdrop fading to pure black at every edge, sophisticated art direction, generous negative space, balanced landscape 3:2 composition. Physical connection and creative output should be understandable. No words, letters, logos, mascots, robots, neon glow, purple gradients or watermarks."
+    },
+    {
+      "file": "campaign-v1.webp",
+      "prompt": "Use case: ads-marketing. Generate a premium photorealistic editorial product campaign still for an AI content creation website. A translucent amber glass perfume bottle with a plain unmarked brushed silver cap on a folded terracotta textile, framed by an architectural curved peach plaster form. Sculptural hard afternoon sunlight with rich soft shadows, warm copper, apricot and sand palette, high-end independent magazine photography. Vertical portrait 3:4 composition, subject in central third so it also crops well to square and landscape. Real material texture and beautiful subtle film grain. No typography, labels, words, logos, watermarks or user interface."
+    },
+    {
+      "file": "creator-v1.webp",
+      "prompt": "Use case: photorealistic-natural. Create an editorial cinematic still for Genfeed.ai's AI video and creator workflow pages: a fictional adult creative director, close half-body portrait in a minimalist cobalt-blue studio, dressed in a sculptural dark blue jacket, holding an unmarked silver compact camera low at chest level, looking slightly off-camera with an engaged natural expression. Vivid blue backdrop and warm soft key light, analog-film texture, realistic skin, sophisticated magazine art direction. Vertical portrait 3:4 composition with subject central so it crops elegantly to square and landscape. No words, brands, logos, typography, watermarks or UI."
+    },
+    {
+      "file": "publishing-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium editorial 3D illustration for Genfeed.ai publishing and calendar landing pages. A sculptural chrome rail carries three carefully aligned smoked-glass media frames from foreground left towards background right; frames contain miniature coral product photography, a cinematic blue sky and warm portrait photography, no text. A small minimalist silver mechanical release gate suggests a deliberate scheduled handoff. Tactile brushed aluminum, warm amber accent lighting, dark cinematic black background fading to pure black at edges, elegant high-end design magazine composition, landscape 3:2. No words, letters, numbers, logos, neon purple, mascot, robot or watermarks."
+    },
+    {
+      "file": "workflow-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium sculptural editorial 3D still for Genfeed.ai workflow and automation landing pages. Five matte graphite and brushed-silver modules linked by elegant curved chrome tracks forming an intentional flowing sequence, an amber glass sphere passes between modules, and the final module holds a small framed colorful campaign photograph. Isometric architectural angle, refined material realism, quiet cinematic lighting and subtle amber rim light, black background dissolving into pure black at edges, landscape 3:2 composition. No labels, words, UI, logos, robots, neon, purple or watermarks."
+    },
+    {
+      "file": "research-v1.webp",
+      "prompt": "Use case: stylized-concept. Premium editorial 3D illustration for Genfeed.ai analytics, research and model-catalog pages. A smoked-glass optical prism on a low graphite plinth separates a single warm white light beam into three restrained amber and soft-blue beams that illuminate three translucent flat photographic contact sheets. Physical metaphor for finding signal in creative work. Beautiful precise brushed-aluminum details, museum product photography, dramatic but quiet black background fading to pure black at edges, balanced landscape 3:2 composition. No words, letters, charts with text, numbers, logos, robots, neon purple or watermarks."
+    }
+  ],
+  "pageIllustrations": {
+    "tool": "built-in image_gen",
+    "date": "2026-09-30",
+    "destination": "s3://cdn.genfeed.ai/assets/branding/website/editorial/",
+    "entries": [
+      {
+        "route": "/about",
+        "file": "creator-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/agent",
+        "file": "integration-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/pricing",
+        "file": "campaign-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/workflows",
+        "file": "workflow-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/publishing",
+        "file": "publishing-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/research",
+        "file": "research-v1.webp",
+        "reuse": true
+      },
+      {
+        "route": "/analytics",
+        "file": "page-analytics-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /analytics. Subject: A precise smoked-glass magnifying lens suspended over a contact sheet of diverse campaign photographs, amber highlights isolate three winning frames; measurable creative signal. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A precise smoked-glass magnifying lens suspended over a contact sheet of diverse campaign photographs, amber highlights isolate three winning frames; measurable creative signal"
+      },
+      {
+        "route": "/benchmark",
+        "file": "page-benchmark-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /benchmark. Subject: Three different optical lenses on identical graphite plinths examine the same coral sculpture under identical controlled illumination; fair side-by-side model evaluation. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Three different optical lenses on identical graphite plinths examine the same coral sculpture under identical controlled illumination; fair side-by-side model evaluation"
+      },
+      {
+        "route": "/brand-os",
+        "file": "page-brand-os-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /brand-os. Subject: A photoreal art-director desk with curated coral and cobalt material swatches, one sculptural ceramic product, photographic prints and a neatly organized visual identity board, no writing. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A photoreal art-director desk with curated coral and cobalt material swatches, one sculptural ceramic product, photographic prints and a neatly organized visual identity board, no writing"
+      },
+      {
+        "route": "/calendar",
+        "file": "page-calendar-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /calendar. Subject: An elegant sculptural monthly grid built of shallow graphite compartments, several compartments hold miniature campaign photographs and one amber glass bead marks the next release. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "An elegant sculptural monthly grid built of shallow graphite compartments, several compartments hold miniature campaign photographs and one amber glass bead marks the next release"
+      },
+      {
+        "route": "/cloud",
+        "file": "page-cloud-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /cloud. Subject: Three floating brushed-silver worktables share a luminous amber glass creative object through thin physical connecting rails; collaborative cloud workspace. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Three floating brushed-silver worktables share a luminous amber glass creative object through thin physical connecting rails; collaborative cloud workspace"
+      },
+      {
+        "route": "/contact",
+        "file": "page-contact-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /contact. Subject: Photoreal editorial still life of two sculptural graphite communication handsets facing one another across a warm oak desk, copper light bridges the small gap. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal editorial still life of two sculptural graphite communication handsets facing one another across a warm oak desk, copper light bridges the small gap"
+      },
+      {
+        "route": "/download",
+        "file": "page-download-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /download. Subject: A polished silver creative toolkit descending neatly into an open graphite desktop dock, amber lens and cobalt media slide inside; installable creative tools. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A polished silver creative toolkit descending neatly into an open graphite desktop dock, amber lens and cobalt media slide inside; installable creative tools"
+      },
+      {
+        "route": "/experts",
+        "file": "page-experts-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /experts. Subject: Photoreal adult subject-matter expert at a dark studio table arranging tactile visual references and a small microphone, warm authentic editorial portrait, no visible writing. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal adult subject-matter expert at a dark studio table arranging tactile visual references and a small microphone, warm authentic editorial portrait, no visible writing"
+      },
+      {
+        "route": "/faq",
+        "file": "page-faq-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /faq. Subject: Two interlocking graphite question-and-answer containers open to reveal a clear amber lens; an elegant physical metaphor for clarity without question marks or lettering. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Two interlocking graphite question-and-answer containers open to reveal a clear amber lens; an elegant physical metaphor for clarity without question marks or lettering"
+      },
+      {
+        "route": "/features",
+        "file": "page-features-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /features. Subject: A curated collection of six distinct creative instruments on a graphite museum display: cinema lens, microphone, photograph frame, ceramic pen, media reel and optical prism. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A curated collection of six distinct creative instruments on a graphite museum display: cinema lens, microphone, photograph frame, ceramic pen, media reel and optical prism"
+      },
+      {
+        "route": "/hire-agents",
+        "file": "page-hire-agents-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /hire-agents. Subject: Three distinct compact silver production stations coordinated around one amber creative brief, each station carries a camera lens, microphone or publishing tray; autonomous production team without robots. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Three distinct compact silver production stations coordinated around one amber creative brief, each station carries a camera lens, microphone or publishing tray; autonomous production team without robots"
+      },
+      {
+        "route": "/integrations",
+        "file": "page-integrations-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations. Subject: A central polished-silver hub connects through slender physical rails to an elegant orbit of diverse photographic, video and editorial media frames; channel ecosystem. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A central polished-silver hub connects through slender physical rails to an elegant orbit of diverse photographic, video and editorial media frames; channel ecosystem"
+      },
+      {
+        "route": "/library",
+        "file": "page-library-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /library. Subject: Photoreal carefully organized archive of unmarked black archival sleeves, colorful photo contact sheets and film reels on dark shelves, warm directional lighting. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal carefully organized archive of unmarked black archival sleeves, colorful photo contact sheets and film reels on dark shelves, warm directional lighting"
+      },
+      {
+        "route": "/models",
+        "file": "page-models-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /models. Subject: A curated museum cabinet of distinct optical glass lenses and sculptural metallic creative tools, each chamber has its own restrained lighting and material; choosing creative models. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A curated museum cabinet of distinct optical glass lenses and sculptural metallic creative tools, each chamber has its own restrained lighting and material; choosing creative models"
+      },
+      {
+        "route": "/self-hosted",
+        "file": "page-self-hosted-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /self-hosted. Subject: A sculptural dark server cabinet enclosing a glowing amber creative object behind clear smoked glass, keys physically held outside the cabinet; controlled private hosting. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A sculptural dark server cabinet enclosing a glowing amber creative object behind clear smoked glass, keys physically held outside the cabinet; controlled private hosting"
+      },
+      {
+        "route": "/skills",
+        "file": "page-skills-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /skills. Subject: A neatly stacked modular set of graphite instruction tiles unlocks a silver camera lens, a microphone and a tiny photographic tray; practical creative playbooks. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A neatly stacked modular set of graphite instruction tiles unlocks a silver camera lens, a microphone and a tiny photographic tray; practical creative playbooks"
+      },
+      {
+        "route": "/studio",
+        "file": "page-studio-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /studio. Subject: Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal refined creative studio set with an unmarked camera, a cinema light and coral still-life scene ready to shoot, deep black surroundings and warm light"
+      },
+      {
+        "route": "/tools",
+        "file": "page-tools-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /tools. Subject: A precision brushed-aluminum creative tool chest opened on a black workbench, camera lens, microphone and tactile media frames fitted into distinct compartments. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A precision brushed-aluminum creative tool chest opened on a black workbench, camera lens, microphone and tactile media frames fitted into distinct compartments"
+      },
+      {
+        "route": "/tools/youtube-clips",
+        "file": "page-tools-youtube-clips-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /tools/youtube-clips. Subject: A cinematic strip of unmarked film passes through a clean silver cutting gate and becomes three portrait-format photographic frames; short clips from one long recording. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A cinematic strip of unmarked film passes through a clean silver cutting gate and becomes three portrait-format photographic frames; short clips from one long recording"
+      },
+      {
+        "route": "/tools/youtube-long-form",
+        "file": "page-tools-youtube-long-form-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /tools/youtube-long-form. Subject: Photoreal cinema camera and softly lit storytelling storyboard of unmarked photographic frames arranged in a wide horizontal arc on a dark studio desk. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal cinema camera and softly lit storytelling storyboard of unmarked photographic frames arranged in a wide horizontal arc on a dark studio desk"
+      },
+      {
+        "route": "/use-cases",
+        "file": "page-use-cases-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /use-cases. Subject: Four richly varied editorial scenes displayed as large photographic prints on a black gallery wall: product, creator portrait, creative team and cinematic landscape. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Four richly varied editorial scenes displayed as large photographic prints on a black gallery wall: product, creator portrait, creative team and cinematic landscape"
+      },
+      {
+        "route": "/vs",
+        "file": "page-vs-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /vs. Subject: A balanced brushed-metal measuring beam comparing two subtly different amber glass lenses on a dark background, fair comparison without a winner badge. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A balanced brushed-metal measuring beam comparing two subtly different amber glass lenses on a dark background, fair comparison without a winner badge"
+      },
+      {
+        "route": "/developers",
+        "file": "page-developers-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /developers. Subject: A modular open graphite development chassis with precise silver connections translating a small amber input capsule into a colorful campaign photographic frame, developer infrastructure. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A modular open graphite development chassis with precise silver connections translating a small amber input capsule into a colorful campaign photographic frame, developer infrastructure"
+      },
+      {
+        "route": "/done-for-you",
+        "file": "page-done-for-you-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /done-for-you. Subject: Photoreal creative production team of three diverse adults in a refined dark studio, arranging a complete campaign shoot around a coral ceramic product, natural candid collaboration. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal creative production team of three diverse adults in a refined dark studio, arranging a complete campaign shoot around a coral ceramic product, natural candid collaboration"
+      },
+      {
+        "route": "/founder-content",
+        "file": "page-founder-content-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /founder-content. Subject: Photoreal fictional adult founder speaking thoughtfully into a small studio microphone beside tactile visual references on a dark wooden table, honest editorial portrait. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Photoreal fictional adult founder speaking thoughtfully into a small studio microphone beside tactile visual references on a dark wooden table, honest editorial portrait"
+      },
+      {
+        "route": "/podcast-to-content",
+        "file": "page-podcast-to-content-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /podcast-to-content. Subject: An elegant graphite studio microphone at left sends a physical silver waveform ribbon into portrait photographic frames, editorial page and small audio reel at right. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "An elegant graphite studio microphone at left sends a physical silver waveform ribbon into portrait photographic frames, editorial page and small audio reel at right"
+      },
+      {
+        "route": "/launch-content",
+        "file": "page-launch-content-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /launch-content. Subject: A sculptural amber product emerges from a dark presentation pedestal surrounded by coordinated campaign photographs and a softly lit cinematic frame; cohesive product launch. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A sculptural amber product emerges from a dark presentation pedestal surrounded by coordinated campaign photographs and a softly lit cinematic frame; cohesive product launch"
+      },
+      {
+        "route": "/fleet",
+        "file": "page-fleet-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /fleet. Subject: A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job; managed model production. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "A disciplined array of graphite inference modules each holding a distinctive optical lens, connected by precise silver rails around a single amber creative job; managed model production"
+      },
+      {
+        "route": "/linkedin",
+        "file": "page-linkedin-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /linkedin. Subject: Photoreal thoughtful adult professional in a modern warm studio office, a refined portrait photographic contact sheet on the desk; credible expert storytelling. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal thoughtful adult professional in a modern warm studio office, a refined portrait photographic contact sheet on the desk; credible expert storytelling"
+      },
+      {
+        "route": "/x",
+        "file": "page-x-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /x. Subject: Three sharp graphite speech strips orbit a polished silver hub, tiny amber creative signals spread outward through a precise branching network; concise public conversation. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb.",
+        "alt": "Three sharp graphite speech strips orbit a polished silver hub, tiny amber creative signals spread outward through a precise branching network; concise public conversation"
+      },
+      {
+        "route": "/instagram",
+        "file": "page-instagram-v1.webp",
+        "prompt": "Use case: product-mockup. Create a Genfeed.ai Instagram growth website hero. A coral ceramic vase, unmarked cobalt blue handbag and a small folded terracotta textile arranged on a dark stone studio plinth. Square photographic contact prints of the same still-life lean against a brushed silver stand behind it. Premium editorial product photography, realistic tactile materials, black backdrop, warm amber light with restrained coral and cobalt accents. Landscape 3:2, subjects central for responsive cropping. Only inanimate objects; no people, text, lettering, logos, UI, watermarks, robots, neon or purple gradients.",
+        "alt": "Photoreal striking coral fashion accessory and cobalt ceramic object arranged for a square editorial campaign shoot under sculptural afternoon light"
+      },
+      {
+        "route": "/tiktok",
+        "file": "page-tiktok-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /tiktok. Subject: Photoreal adult creator filming an energetic vertical product scene with an unmarked phone on a tripod, coral studio setting and cinematic practical light. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal adult creator filming an energetic vertical product scene with an unmarked phone on a tripod, coral studio setting and cinematic practical light"
+      },
+      {
+        "route": "/threads",
+        "file": "page-threads-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /threads. Subject: Interwoven fine chrome conversational ribbons wrap around several warm amber glass beads, open organic composition suggests connected thoughtful discussion. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Interwoven fine chrome conversational ribbons wrap around several warm amber glass beads, open organic composition suggests connected thoughtful discussion"
+      },
+      {
+        "route": "/youtube",
+        "file": "page-youtube-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /youtube. Subject: Photoreal premium cinema camera with a large lens faces a carefully arranged coral studio scene, warm film light and a single unmarked film reel in foreground. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal premium cinema camera with a large lens faces a carefully arranged coral studio scene, warm film light and a single unmarked film reel in foreground"
+      },
+      {
+        "route": "/facebook",
+        "file": "page-facebook-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /facebook. Subject: Photoreal small diverse adult community sharing creative photographic prints around a warm studio table, candid relaxed interaction, no devices with legible screens. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal small diverse adult community sharing creative photographic prints around a warm studio table, candid relaxed interaction, no devices with legible screens"
+      },
+      {
+        "route": "/pinterest",
+        "file": "page-pinterest-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /pinterest. Subject: Photoreal tactile inspiration pinboard filled with unmarked product, interiors, fashion and travel photographs plus coral textile swatches, dark editorial studio setting. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal tactile inspiration pinboard filled with unmarked product, interiors, fashion and travel photographs plus coral textile swatches, dark editorial studio setting"
+      },
+      {
+        "route": "/mcp",
+        "file": "page-mcp-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /mcp. Subject: A precise universal brushed-silver coupling connects several different camera, microphone and photographic output modules; one shared tool interface. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A precise universal brushed-silver coupling connects several different camera, microphone and photographic output modules; one shared tool interface"
+      },
+      {
+        "route": "/mobile",
+        "file": "page-mobile-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /mobile. Subject: Photoreal unmarked graphite smartphone standing on a black plinth, its screen contains a single full-bleed coral campaign photograph, no interface text or icons. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal unmarked graphite smartphone standing on a black plinth, its screen contains a single full-bleed coral campaign photograph, no interface text or icons"
+      },
+      {
+        "route": "/docs",
+        "file": "page-docs-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /docs. Subject: Photoreal beautifully bound unmarked dark technical reference book open to diagrams of metallic connectors and media frames, tactile paper and warm desk light, no lettering. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal beautifully bound unmarked dark technical reference book open to diagrams of metallic connectors and media frames, tactile paper and warm desk light, no lettering"
+      },
+      {
+        "route": "/extension",
+        "file": "page-extension-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /extension. Subject: A small brushed-silver modular tool slides cleanly into a matching graphite browser-like frame holding a warm campaign photograph; creative browser extension. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A small brushed-silver modular tool slides cleanly into a matching graphite browser-like frame holding a warm campaign photograph; creative browser extension"
+      },
+      {
+        "route": "/use-cases/ai-influencers",
+        "file": "page-use-cases-ai-influencers-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: Genfeed.ai AI-influencer website hero illustrating consistent virtual character identity. Three matching neutral ceramic head-and-shoulder portrait busts of the same adult fictional presenter, each enclosed in a tall smoked-glass photographic frame. The busts wear sculptural opaque graphite crew-neck tops. Frames have subtly different coral, cobalt and amber studio backdrops, while a precision silver optical identity lens connects them. Only sculptural objects, no real people. Premium editorial 3D still life, realistic brushed silver and ceramic texture, refined dark studio lighting, black backdrop. Landscape 3:2 with key content central for responsive cropping. No text, logos, UI, watermark, robots, neon or purple gradients.",
+        "alt": "Three matching ceramic portrait busts in coral, cobalt and amber glass frames connected by a silver identity lens"
+      },
+      {
+        "route": "/use-cases/creators",
+        "file": "page-use-cases-creators-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /use-cases/creators. Subject: Photoreal adult independent creator in a cobalt creative studio holding a compact silver camera, surrounded by film and photographic references, candid engaged energy. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal adult independent creator in a cobalt creative studio holding a compact silver camera, surrounded by film and photographic references, candid engaged energy"
+      },
+      {
+        "route": "/use-cases/agencies",
+        "file": "page-use-cases-agencies-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /use-cases/agencies. Subject: Photoreal diverse creative agency team of three adults reviewing large distinct campaign prints on a dark studio table, clear collaborative art direction. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal diverse creative agency team of three adults reviewing large distinct campaign prints on a dark studio table, clear collaborative art direction"
+      },
+      {
+        "route": "/use-cases/ecommerce",
+        "file": "page-use-cases-ecommerce-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /use-cases/ecommerce. Subject: Photoreal luxury unmarked skincare jar and sculptural running shoe displayed on separate coral plinths with coordinated campaign photographic prints, commercial content production. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal luxury unmarked skincare jar and sculptural running shoe displayed on separate coral plinths with coordinated campaign photographic prints, commercial content production"
+      },
+      {
+        "route": "/use-cases/marketers",
+        "file": "page-use-cases-marketers-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /use-cases/marketers. Subject: Photoreal adult marketing art director arranging three versions of a coral product campaign on a dark worktable, visual comparison and purposeful iteration. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal adult marketing art director arranging three versions of a coral product campaign on a dark worktable, visual comparison and purposeful iteration"
+      },
+      {
+        "route": "/use-cases/founders",
+        "file": "page-use-cases-founders-v1.webp",
+        "prompt": "Use case: photorealistic-natural. Asset type: page-specific Genfeed.ai website hero for /use-cases/founders. Subject: Photoreal fictional adult startup founder in a warm minimalist workshop discussing an unmarked prototype with a small microphone and campaign prints nearby. Style: premium editorial photography, authentic realistic materials and natural adult expressions. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Photoreal fictional adult startup founder in a warm minimalist workshop discussing an unmarked prototype with a small microphone and campaign prints nearby"
+      },
+      {
+        "route": "/chatgpt",
+        "file": "page-chatgpt-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: website hero illustration for Genfeed for ChatGPT. A single flowing graphite conversation ribbon curls gently around a brushed-silver connector hub; from the hub emerge three smoked glass frames containing distinct creative results: coral product still life, blue cinematic landscape, amber portrait. The conversation visually becomes creative work. Editorial museum-quality 3D photography, tactile chrome and ceramic, restrained warm amber and soft blue accents, black studio backdrop fading to pure black at edges. Landscape 3:2, one strong focal composition, all important content inside the central 80 percent for responsive cropping. No words, letters, UI screenshots, logos, robots, mascots, watermark, neon or purple gradients.",
+        "alt": "A single flowing graphite conversation ribbon curls around a brushed-silver connector hub; three emerging smoked-glass frames contain coral product imagery, blue cinematic landscape and amber portrait; conversation becomes creative work"
+      },
+      {
+        "route": "/claude",
+        "file": "page-claude-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /claude. Subject: An open sculptural graphite writing folio routes through a warm copper connector into a fan of photographic campaign frames; careful reasoning becomes visual production. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "An open sculptural graphite writing folio routes through a warm copper connector into a fan of photographic campaign frames; careful reasoning becomes visual production"
+      },
+      {
+        "route": "/claude-code",
+        "file": "page-claude-code-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /claude-code. Subject: A precise open graphite terminal-shaped chassis fitted with a silver plug-in module, a curved amber rail routes into cinema lens and campaign photograph; terminal-native creative plugin without code text. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A precise open graphite terminal-shaped chassis fitted with a silver plug-in module, a curved amber rail routes into cinema lens and campaign photograph; terminal-native creative plugin without code text"
+      },
+      {
+        "route": "/claude-cowork",
+        "file": "page-claude-cowork-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /claude-cowork. Subject: Two adjacent graphite workstations share one amber glass creative brief through a chrome connector, a shared media tray collects beautiful campaign imagery; collaborative desk work. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Two adjacent graphite workstations share one amber glass creative brief through a chrome connector, a shared media tray collects beautiful campaign imagery; collaborative desk work"
+      },
+      {
+        "route": "/codex",
+        "file": "page-codex-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /codex. Subject: A modular silver tool cassette being fitted into an open graphite agent workstation, an amber creative capsule routes to a beautiful photographic output tray; installing a practical agent playbook. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A modular silver tool cassette being fitted into an open graphite agent workstation, an amber creative capsule routes to a beautiful photographic output tray; installing a practical agent playbook"
+      },
+      {
+        "route": "/cursor",
+        "file": "page-cursor-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /cursor. Subject: A sculptural sharp silver pointer-shaped tool traces a precise path through a graphite editor-like frame and reveals a coral campaign image; creative tools alongside coding. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A sculptural sharp silver pointer-shaped tool traces a precise path through a graphite editor-like frame and reveals a coral campaign image; creative tools alongside coding"
+      },
+      {
+        "route": "/gemini",
+        "file": "page-gemini-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /gemini. Subject: Two polished asymmetric optical lenses converge warm and cool beams onto a shared amber creative capsule, silver extension module connects them to photographic output. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Two polished asymmetric optical lenses converge warm and cool beams onto a shared amber creative capsule, silver extension module connects them to photographic output"
+      },
+      {
+        "route": "/openclaw",
+        "file": "page-openclaw-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /openclaw. Subject: An open articulated precision silver gripper gently arranges an amber brief capsule and two campaign media frames on a dark workbench; extensible tool runtime without a robot character. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "An open articulated precision silver gripper gently arranges an amber brief capsule and two campaign media frames on a dark workbench; extensible tool runtime without a robot character"
+      },
+      {
+        "route": "/grok",
+        "file": "page-grok-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /grok. Subject: An expressive angular smoked-glass conversational wave passes through a brushed-silver connector into sharply lit cinematic media frames; direct conversation to creative output. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "An expressive angular smoked-glass conversational wave passes through a brushed-silver connector into sharply lit cinematic media frames; direct conversation to creative output"
+      },
+      {
+        "route": "/grok-bot",
+        "file": "page-grok-bot-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /grok-bot. Subject: A compact graphite chat relay receives three tiny amber conversational beads and sends one photographic media frame through a silver bridge; chat automation without a mascot. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A compact graphite chat relay receives three tiny amber conversational beads and sends one photographic media frame through a silver bridge; chat automation without a mascot"
+      },
+      {
+        "route": "/muse",
+        "file": "page-muse-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /muse. Subject: A warm amber inspiration sculpture reflected in a large smoked-glass conversational panel, silver connection branches into vivid coral and cobalt creative output frames; inspiration into production. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A warm amber inspiration sculpture reflected in a large smoked-glass conversational panel, silver connection branches into vivid coral and cobalt creative output frames; inspiration into production"
+      },
+      {
+        "route": "/integrations/youtube",
+        "file": "page-integrations-youtube-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/youtube. Subject: A polished silver publishing coupling leading into cinema camera lens and unmarked wide film strip with a warm studio campaign still; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into cinema camera lens and unmarked wide film strip with a warm studio campaign still; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/tiktok",
+        "file": "page-integrations-tiktok-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/tiktok. Subject: A polished silver publishing coupling leading into three portrait-format motion frames showing a coral product shoot in progressive poses; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into three portrait-format motion frames showing a coral product shoot in progressive poses; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/instagram",
+        "file": "page-integrations-instagram-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/instagram. Subject: A polished silver publishing coupling leading into a square coral fashion campaign print surrounded by warm editorial photo contact sheets; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a square coral fashion campaign print surrounded by warm editorial photo contact sheets; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/linkedin",
+        "file": "page-integrations-linkedin-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/linkedin. Subject: A polished silver publishing coupling leading into an editorial professional portrait and a crisp unmarked long-form article sheet; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into an editorial professional portrait and a crisp unmarked long-form article sheet; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/facebook",
+        "file": "page-integrations-facebook-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/facebook. Subject: A polished silver publishing coupling leading into a warm photographic print of a diverse adult community collaborating at a table; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a warm photographic print of a diverse adult community collaborating at a table; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/x-twitter",
+        "file": "page-integrations-x-twitter-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/x-twitter. Subject: A polished silver publishing coupling leading into three concise sculptural conversational ribbons branching outward from an amber bead; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into three concise sculptural conversational ribbons branching outward from an amber bead; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/pinterest",
+        "file": "page-integrations-pinterest-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/pinterest. Subject: A polished silver publishing coupling leading into a tactile unmarked inspiration board of interiors, fashion and coral product photographs; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a tactile unmarked inspiration board of interiors, fashion and coral product photographs; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/reddit",
+        "file": "page-integrations-reddit-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/reddit. Subject: A polished silver publishing coupling leading into an open ring of graphite conversational blocks exchanging a single amber topic capsule; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into an open ring of graphite conversational blocks exchanging a single amber topic capsule; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/discord",
+        "file": "page-integrations-discord-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/discord. Subject: A polished silver publishing coupling leading into three connected graphite community spaces sharing cobalt photographic media through silver rails; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into three connected graphite community spaces sharing cobalt photographic media through silver rails; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/twitch",
+        "file": "page-integrations-twitch-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/twitch. Subject: A polished silver publishing coupling leading into a cinema camera with a small illuminated silver live transmission lens and amber media frame; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a cinema camera with a small illuminated silver live transmission lens and amber media frame; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/wordpress",
+        "file": "page-integrations-wordpress-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/wordpress. Subject: A polished silver publishing coupling leading into an unmarked dark editorial book opening into an elegant wide photographic cover; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into an unmarked dark editorial book opening into an elegant wide photographic cover; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/snapchat",
+        "file": "page-integrations-snapchat-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/snapchat. Subject: A polished silver publishing coupling leading into a transient amber portrait-format photographic frame passing through a curved silver lens; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a transient amber portrait-format photographic frame passing through a curved silver lens; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/whatsapp",
+        "file": "page-integrations-whatsapp-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/whatsapp. Subject: A polished silver publishing coupling leading into two rounded graphite messaging capsules linked by a physical warm amber conversation ribbon; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into two rounded graphite messaging capsules linked by a physical warm amber conversation ribbon; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/mastodon",
+        "file": "page-integrations-mastodon-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/mastodon. Subject: A polished silver publishing coupling leading into three independent graphite community hubs joined by a refined chrome network with small amber messages; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into three independent graphite community hubs joined by a refined chrome network with small amber messages; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/ghost",
+        "file": "page-integrations-ghost-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/ghost. Subject: A polished silver publishing coupling leading into an unmarked minimalist editorial journal with a beautifully lit coral cover photograph and silver publishing tray; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into an unmarked minimalist editorial journal with a beautifully lit coral cover photograph and silver publishing tray; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/shopify",
+        "file": "page-integrations-shopify-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/shopify. Subject: A polished silver publishing coupling leading into a small refined storefront-like graphite display cabinet containing unmarked skincare jar and coral shopping packaging; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a small refined storefront-like graphite display cabinet containing unmarked skincare jar and coral shopping packaging; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/beehiiv",
+        "file": "page-integrations-beehiiv-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/beehiiv. Subject: A polished silver publishing coupling leading into three beautifully arranged unmarked newsletter sheets with warm campaign photography, opening from a silver delivery slot; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into three beautifully arranged unmarked newsletter sheets with warm campaign photography, opening from a silver delivery slot; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/medium",
+        "file": "page-integrations-medium-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/medium. Subject: A polished silver publishing coupling leading into an unmarked long-form editorial sheet with beautiful typography-like abstract lines and a cinematic photographic header, no legible text; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into an unmarked long-form editorial sheet with beautiful typography-like abstract lines and a cinematic photographic header, no legible text; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/threads",
+        "file": "page-integrations-threads-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/threads. Subject: A polished silver publishing coupling leading into fine interwoven chrome discussion threads wrapped around amber glass conversational beads; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into fine interwoven chrome discussion threads wrapped around amber glass conversational beads; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/telegram",
+        "file": "page-integrations-telegram-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/telegram. Subject: A polished silver publishing coupling leading into a folded silver messenger plane carries a small amber content capsule towards two graphite receivers; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a folded silver messenger plane carries a small amber content capsule towards two graphite receivers; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/slack",
+        "file": "page-integrations-slack-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/slack. Subject: A polished silver publishing coupling leading into four graphite collaborative channels feed colored creative media frames into a central silver review tray; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into four graphite collaborative channels feed colored creative media frames into a central silver review tray; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/integrations/fanvue",
+        "file": "page-integrations-fanvue-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /integrations/fanvue. Subject: A polished silver publishing coupling leading into a fictional adult fully clothed lifestyle creator in a warm high-end studio portrait displayed in a private graphite media cabinet; clearly shows the channel-specific creative format. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "A polished silver publishing coupling leading into a fictional adult fully clothed lifestyle creator in a warm high-end studio portrait displayed in a private graphite media cabinet; clearly shows the channel-specific creative format"
+      },
+      {
+        "route": "/vs/*",
+        "file": "page-comparison-v1.webp",
+        "prompt": "Use case: stylized-concept. Asset type: page-specific Genfeed.ai website hero for /vs/*. Subject: Two contrasting precision optical systems examine the same richly textured coral campaign still-life, a clear central glass lens reveals shared details; evidence-based creative tool comparison. Style: premium museum-quality sculptural 3D product photography, tactile graphite ceramic, brushed silver and smoked glass. Lighting: quiet cinematic warm amber and restrained cobalt or coral accents, deep black studio background fading to pure black at every edge. Landscape 3:2 composition, a clear central focal point, key content inside the central 75 percent so it crops gracefully to wide and mobile layouts. No words, letters, numerals, legible text, logos, platform branding, UI screenshots, neon, purple gradients, robots, mascots or watermarks. Artwork should explain this page concept through physical objects and imagery, never a generic abstract orb. All people depicted are fully clothed adults in professional settings.",
+        "alt": "Two contrasting precision optical systems examine the same richly textured coral campaign still-life, a clear central glass lens reveals shared details; evidence-based creative tool comparison"
+      }
+    ]
+  }
+}

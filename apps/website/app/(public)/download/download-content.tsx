@@ -3,6 +3,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
 import { Button } from '@ui/primitives/button';
+import MarketingArtwork from '@web-components/content/MarketingArtwork';
 import {
   CtaSection,
   NeuralGrid,
@@ -104,6 +105,7 @@ export default function DownloadContent({
   return (
     <MarketingEntrance hero={false} sections={false}>
       <PageLayout
+        heroMedia={<MarketingArtwork page="/download" kind="integration" />}
         badge="Desktop"
         badgeIcon={MonitorDown}
         title={
