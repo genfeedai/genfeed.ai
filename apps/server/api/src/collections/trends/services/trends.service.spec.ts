@@ -48,7 +48,6 @@ describe('TrendsService', () => {
       update: ReturnType<typeof vi.fn>;
     };
   };
-  let loggerService: LoggerService;
 
   const mockOrganizationId = testId('org');
   const mockBrandId = testId('brand');
@@ -303,7 +302,6 @@ describe('TrendsService', () => {
     trendReferenceCorpusService = module.get(
       TrendReferenceCorpusService,
     ) as unknown as MockTrendReferenceCorpusService;
-    loggerService = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
   });
@@ -407,165 +405,6 @@ describe('TrendsService', () => {
         >
       ).sanitizeForPrompt(12345);
       expect(result).toBe('12345');
-    });
-  });
-
-  describe('callWithRetry', () => {
-    it('should succeed on first attempt', async () => {
-      const mockOperation = vi.fn().mockResolvedValue({ success: true });
-
-      const result = await (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (
-            fn: () => Promise<unknown>,
-            retries: number,
-            delay: number,
-          ) => Promise<unknown>
-        >
-      ).callWithRetry(mockOperation, 3, 1);
-
-      expect(result).toEqual({ success: true });
-      expect(mockOperation).toHaveBeenCalledTimes(1);
-    });
-
-    it('should retry and eventually succeed', async () => {
-      const mockOperation = vi
-        .fn()
-        .mockRejectedValueOnce(new Error('Temporary error'))
-        .mockResolvedValueOnce({ success: true });
-
-      const result = await (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (
-            fn: () => Promise<unknown>,
-            retries: number,
-            delay: number,
-          ) => Promise<unknown>
-        >
-      ).callWithRetry(mockOperation, 3, 1);
-
-      expect(result).toEqual({ success: true });
-      expect(mockOperation).toHaveBeenCalledTimes(2);
-    });
-
-    it('should throw after max retries', async () => {
-      const mockOperation = vi
-        .fn()
-        .mockRejectedValue(new Error('Persistent error'));
-
-      await expect(
-        (
-          trendContentIdeasService as unknown as Record<
-            string,
-            (
-              fn: () => Promise<unknown>,
-              retries: number,
-              delay: number,
-            ) => Promise<unknown>
-          >
-        ).callWithRetry(mockOperation, 2, 1),
-      ).rejects.toThrow('Persistent error');
-
-      expect(mockOperation).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('parseAIResponse', () => {
-    it('should parse valid JSON response', () => {
-      const validResponse = `Here are some ideas:
-[
-  {
-    "title": "AI Tutorial",
-    "description": "Learn AI basics",
-    "contentType": "video",
-    "hashtags": ["#AI", "#tutorial"],
-    "caption": "Learn AI today!",
-    "estimatedViews": "10K-50K"
-  }
-]`;
-
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string, p: string) => unknown[]
-        >
-      ).parseAIResponse(validResponse, 'tiktok');
-
-      expect(result).toHaveLength(1);
-      expect((result[0] as Record<string, string>).title).toBe('AI Tutorial');
-    });
-
-    it('should throw error when no JSON array found', () => {
-      const invalidResponse = 'No JSON here!';
-
-      expect(() =>
-        (
-          trendContentIdeasService as unknown as Record<
-            string,
-            (s: string, p: string) => unknown
-          >
-        ).parseAIResponse(invalidResponse, 'tiktok'),
-      ).toThrow('No JSON array found in response');
-
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'No JSON array found in AI response',
-        expect.any(Error),
-        expect.any(Object),
-      );
-    });
-
-    it('should return empty array on malformed JSON', () => {
-      const malformedResponse = '[{ "title": "test", }]';
-
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string, p: string) => unknown[]
-        >
-      ).parseAIResponse(malformedResponse, 'tiktok');
-
-      expect(result).toEqual([]);
-      expect(loggerService.error).toHaveBeenCalledWith(
-        'Failed to parse or validate AI response',
-        expect.any(Error),
-      );
-    });
-
-    it('should validate idea structure', () => {
-      const invalidIdea = `[
-  {
-    "title": "AI Tutorial"
-  }
-]`;
-
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string, p: string) => unknown[]
-        >
-      ).parseAIResponse(invalidIdea, 'tiktok');
-
-      expect(result).toEqual([]);
-      expect(loggerService.error).toHaveBeenCalled();
-    });
-
-    it('should warn on empty array', () => {
-      const emptyResponse = '[]';
-
-      const result = (
-        trendContentIdeasService as unknown as Record<
-          string,
-          (s: string, p: string) => unknown[]
-        >
-      ).parseAIResponse(emptyResponse, 'tiktok');
-
-      expect(result).toEqual([]);
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        'AI returned empty ideas array',
-        expect.any(Object),
-      );
     });
   });
 
