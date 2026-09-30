@@ -275,6 +275,17 @@ test('edits and approves a persisted draft through the actual route with loaded 
           path: testInfo.outputPath(`draft-${state}-${width}-${theme}.png`),
           fullPage: true,
         });
+        for (const shotNumber of [1, 2]) {
+          const shot = page.getByRole('region', {
+            name: `Shot ${shotNumber}`,
+            exact: true,
+          });
+          await shot.screenshot({
+            path: testInfo.outputPath(
+              `draft-${state}-shot-${shotNumber}-${width}-${theme}.png`,
+            ),
+          });
+        }
       }
     }
   }

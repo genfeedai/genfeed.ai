@@ -3,6 +3,7 @@ import type {
   StoryboardShot,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
 
 /** The server repeats these checks; this keeps invalid edits out of the save queue. */
 export function storyboardApprovalProblems(plan: StoryboardPlan): string[] {
@@ -109,11 +110,8 @@ export function removeStoryboardShot(
 }
 
 export function storyboardAssetLabel(
-  asset: Pick<IIngredient, 'id' | 'metadataLabel'> | undefined,
+  asset: IIngredient | undefined,
   fallback: string,
 ): string {
-  const label = asset?.metadataLabel;
-  return label && label !== asset?.id && label !== asset?.id.slice(0, 8)
-    ? label
-    : fallback;
+  return getStoryboardAssetLabel(asset) ?? fallback;
 }
