@@ -65,6 +65,7 @@ export interface ModelPricingEvidence {
   source: string | null;
   sourceUrl: string | null;
   verifiedAt: string | null;
+  rates: ReviewedProviderRate[] | null;
 }
 
 export interface AdminModelPricingRow {

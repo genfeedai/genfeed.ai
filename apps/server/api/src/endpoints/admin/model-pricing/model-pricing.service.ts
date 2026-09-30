@@ -1,10 +1,11 @@
+import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   AdminModelPricingReport,
   AdminModelPricingRow,
   ModelPricingEvidence,
 } from '@genfeedai/contracts/interfaces';
-import { applyMargin, resolveBillableProviderCost } from '@genfeedai/pricing';
+import { quoteModelBillablePricing } from '@genfeedai/pricing';
 import {
   type Model,
   type ModelProviderContract,
@@ -13,6 +14,9 @@ import {
 import { Injectable } from '@nestjs/common';
 
 const pricingContractSelect = {
+  provider: true,
+  endpoint: true,
+  discoveredAt: true,
   version: true,
   reviewStatus: true,
   currency: true,
@@ -24,6 +28,8 @@ const pricingContractSelect = {
   pricing: true,
 } satisfies Prisma.ModelProviderContractSelect;
 const pricingModelSelect = {
+  endpoint: true,
+  isDeleted: true,
   id: true,
   key: true,
   provider: true,
@@ -54,6 +60,8 @@ const pricingModelSelect = {
 } satisfies Prisma.ModelSelect;
 type PricingModel = Pick<
   Model,
+  | 'endpoint'
+  | 'isDeleted'
   | 'id'
   | 'key'
   | 'provider'
@@ -83,6 +91,9 @@ type PricingModel = Pick<
 >;
 type PricingContract = Pick<
   ModelProviderContract,
+  | 'provider'
+  | 'endpoint'
+  | 'discoveredAt'
   | 'version'
   | 'reviewStatus'
   | 'currency'
@@ -112,6 +123,7 @@ function evidence(
     sourceUrl: typeof pricing.sourceUrl === 'string' ? pricing.sourceUrl : null,
     verifiedAt:
       typeof pricing.verifiedAt === 'string' ? pricing.verifiedAt : null,
+    rates: null,
     version: contract.version,
     reviewStatus: contract.reviewStatus,
     currency: contract.currency,
@@ -152,6 +164,13 @@ export function projectAdminModelPricing(
   const pending = evidence(
     contracts.find((c) => c.version === model.pendingProviderContractVersion),
   );
+  const profile = projectModelBillablePricingProfile(model, contracts);
+  if (reviewed && profile.reviewedPricing) {
+    if (model.provider === 'fal') reviewed.source = 'fal-pricing-api';
+    reviewed.rates = profile.reviewedPricing.rates;
+    reviewed.sourceUrl = profile.reviewedPricing.sourceUrl;
+    reviewed.verifiedAt = profile.reviewedPricing.verifiedAt;
+  }
   const reasons: string[] = [];
   const hasPolicy =
     typeof margin === 'number' && Number.isFinite(margin) && margin > 0;
@@ -206,16 +225,25 @@ export function projectAdminModelPricing(
     reasons.push(
       'Text uses actual answering-model token/usage settlement; catalog sample is not a token quote',
     );
-  const unitCost = resolveBillableProviderCost(model, {
-    duration: 1,
-    width: 1000,
-    height: 1000,
-  });
-  const sampleCost = resolveBillableProviderCost(model, {
-    ...(model.defaultDuration !== null
-      ? { duration: model.defaultDuration }
-      : {}),
-  });
+  const identity = { modelKey: model.key, provider: model.provider };
+  const unitQuote = quoteModelBillablePricing(
+    profile,
+    { ...identity, duration: 1, width: 1000, height: 1000 },
+    margin,
+    retrievedAt,
+  );
+  const sampleQuote = quoteModelBillablePricing(
+    profile,
+    {
+      ...identity,
+      ...(model.defaultDuration !== null
+        ? { duration: model.defaultDuration }
+        : {}),
+    },
+    margin,
+    retrievedAt,
+  );
+  if (unitQuote.status === 'unresolved') reasons.push(unitQuote.reason);
   const hasMismatch =
     !!reviewed &&
     reviewed.unitPrice !== null &&
@@ -275,17 +303,9 @@ export function projectAdminModelPricing(
     inputCostPerMillionTokens: model.inputCostPerMillionTokens,
     outputCostPerMillionTokens: model.outputCostPerMillionTokens,
     effectiveUnitCredits:
-      hasPolicy && unitCost !== null
-        ? unitCost === 0
-          ? 0
-          : applyMargin(unitCost, margin as number)
-        : null,
+      unitQuote.status === 'priced' ? unitQuote.snapshot.credits : null,
     effectiveSampleCredits:
-      hasPolicy && sampleCost !== null
-        ? sampleCost === 0
-          ? 0
-          : applyMargin(sampleCost, margin as number)
-        : null,
+      sampleQuote.status === 'priced' ? sampleQuote.snapshot.credits : null,
     sampleDuration: model.defaultDuration,
     dimensions: {
       selectors,

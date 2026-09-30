@@ -8,7 +8,7 @@ function csvCell(value: unknown): string {
         ? JSON.stringify(value)
         : String(value);
   if (/^[\s]*[=+@-]/.test(text)) text = `'${text}`;
-  return `"${text.replaceAll('"', '""')}"`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
 
 /** A faithful snapshot projection: no spreadsheet pricing formulas. */
@@ -37,6 +37,7 @@ export function exportModelPricingCsv(report: AdminModelPricingReport): string {
     'Reviewed provider unit',
     'Reviewed provider price per unit',
     'Reviewed provider conditions',
+    'Reviewed provider rate bands',
     'Provider observed at',
     'Reviewed evidence version',
     'Reviewed evidence review status',
@@ -72,6 +73,7 @@ export function exportModelPricingCsv(report: AdminModelPricingReport): string {
     row.reviewed?.billingUnit,
     row.reviewed?.unitPrice,
     row.reviewed?.conditionalDimensions,
+    row.reviewed?.rates,
     row.reviewed?.observedAt,
     row.reviewed?.version,
     row.reviewed?.reviewStatus,

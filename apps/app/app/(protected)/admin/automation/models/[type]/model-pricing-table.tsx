@@ -81,6 +81,9 @@ function PricingEvidence({
       <p>Source: {evidence.sourceUrl ?? 'unresolved'}</p>
       <p>Rate verified: {evidence.verifiedAt ?? 'unresolved'}</p>
       <p>Contract observed: {evidence.observedAt}</p>
+      {evidence.rates ? (
+        <p>Reviewed rate bands: {JSON.stringify(evidence.rates)}</p>
+      ) : null}
       {Object.keys(evidence.conditionalDimensions).length ? (
         <p>{JSON.stringify(evidence.conditionalDimensions)}</p>
       ) : null}

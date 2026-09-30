@@ -103,6 +103,44 @@ describe('ModelsService', () => {
     );
   });
 
+  it('reads an exact raw billable profile with tenant visibility and no display-price projection', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({
+        key: 'google/imagen-4:version',
+        cost: 7,
+        providerCostUsd: 0.15,
+        costPerUnit: null,
+        minCost: null,
+        isFree: false,
+        hasResolutionOptions: false,
+        hasAudioToggle: false,
+        providerInputSchema: null,
+        reviewedProviderContractVersion: null,
+        pendingProviderContractVersion: null,
+        providerContracts: [],
+      }),
+    );
+    const profile = await service.findBillablePricingProfile(
+      'google/imagen-4:version',
+      'org-1',
+    );
+    expect(profile?.cost).toBe(7);
+    expect(profile?.providerCostUsd).toBe(0.15);
+    expect(modelDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          key: 'google/imagen-4:version',
+          isDeleted: false,
+          OR: [{ organizationId: 'org-1' }, { organizationId: null }],
+        }),
+        select: expect.objectContaining({
+          providerCostUsd: true,
+          providerContracts: expect.any(Object),
+        }),
+      }),
+    );
+  });
+
   it('stores canonical model fields in columns and provider metadata in config', async () => {
     modelDelegate.create.mockResolvedValue(makeModel());
 
