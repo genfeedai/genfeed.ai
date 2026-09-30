@@ -8,6 +8,7 @@ import { applyMargin, getRuntimeMarginMultiplier } from './plans-pricing';
  * Prefer `providerCostUsd` + live `applyMargin` over baked credit columns.
  */
 export type ModelLivePricingInput = {
+  isFree?: boolean | null;
   cost?: number | null;
   costPerUnit?: number | null;
   defaultDuration?: number | null;
@@ -25,6 +26,8 @@ export type ModelLiveCreditPricing = {
 
 export type ModelLivePricingUnits = {
   duration?: number;
+  outputs?: number;
+  requests?: number;
   height?: number;
   width?: number;
 };
@@ -206,4 +209,59 @@ export function withLiveModelCreditPricing<T extends ModelLivePricingInput>(
     ...model,
     ...resolveLiveModelCreditPricing(model, options),
   };
+}
+
+/** Bill-time metered quantities must describe the request, never a UI sample. */
+export function resolveBillableProviderCost(
+  model: ModelLivePricingInput,
+  options: ModelLivePricingUnits,
+): number | null {
+  const rate = model.providerCostUsd;
+  if (
+    typeof rate !== 'number' ||
+    !Number.isFinite(rate) ||
+    rate < 0 ||
+    (rate === 0 && !model.isFree)
+  )
+    return null;
+  const outputs = options.outputs ?? 1;
+  if (!Number.isSafeInteger(outputs) || outputs < 1) return null;
+  const requests = options.requests ?? 1;
+  if (!Number.isSafeInteger(requests) || requests < 1) return null;
+  let units: number;
+  let cardinality = outputs;
+  switch (model.pricingType || PricingType.FLAT) {
+    case PricingType.FLAT:
+      units = 1;
+      break;
+    case PricingType.PER_REQUEST:
+      units = 1;
+      cardinality = requests;
+      break;
+    case PricingType.PER_SECOND:
+      if (
+        typeof options.duration !== 'number' ||
+        !Number.isFinite(options.duration) ||
+        options.duration <= 0
+      )
+        return null;
+      units = options.duration;
+      break;
+    case PricingType.PER_MEGAPIXEL:
+      if (
+        typeof options.width !== 'number' ||
+        !Number.isFinite(options.width) ||
+        options.width <= 0 ||
+        typeof options.height !== 'number' ||
+        !Number.isFinite(options.height) ||
+        options.height <= 0
+      )
+        return null;
+      units = (options.width * options.height) / 1_000_000;
+      break;
+    default:
+      return null;
+  }
+  const cost = rate * units * cardinality;
+  return Number.isFinite(cost) ? cost : null;
 }
