@@ -71,10 +71,6 @@ describe('PromptsOperationsController', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('converts an accepted voice file to text', async () => {
     const file = {
       buffer: Buffer.from('fake audio data'),

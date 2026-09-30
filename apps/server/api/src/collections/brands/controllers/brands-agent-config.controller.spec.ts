@@ -81,10 +81,6 @@ describe('BrandsAgentConfigController agent-config endpoint', () => {
     },
   };
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('calls updateAgentConfig with correct parameters', async () => {
     mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
     await controller.updateAgentConfig(

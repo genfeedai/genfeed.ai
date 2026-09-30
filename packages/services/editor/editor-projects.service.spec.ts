@@ -78,10 +78,6 @@ describe('EditorProjectsService', () => {
       .instance;
   });
 
-  it('is defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('getInstance returns same instance for same token', () => {
     const a = EditorProjectsService.getInstance('tok');
     const b = EditorProjectsService.getInstance('tok');

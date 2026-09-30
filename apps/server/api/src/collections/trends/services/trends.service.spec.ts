@@ -302,10 +302,6 @@ describe('TrendsService', () => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('delegates corpus freshness health to the reference corpus owner', async () => {
     const health = {
       generatedAt: '2026-06-30T08:00:00.000Z',

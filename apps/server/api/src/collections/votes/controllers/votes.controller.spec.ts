@@ -67,10 +67,6 @@ describe('VotesController', () => {
     controller = module.get<VotesController>(VotesController);
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
-
   it('creates a vote', async () => {
     const mockVote = { _id: '1', entity: validEntityId };
     service.create.mockResolvedValue(mockVote);

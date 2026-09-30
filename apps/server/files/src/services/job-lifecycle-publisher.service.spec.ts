@@ -68,10 +68,6 @@ describe('JobLifecyclePublisherService', () => {
     );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
   it('should setup QueueEvents listeners on module init', () => {
     service.onModuleInit();
 
