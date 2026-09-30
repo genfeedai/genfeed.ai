@@ -68,8 +68,15 @@ describe('provider collection resolved account boundaries', () => {
           : h.analytics.processThreadsAnalytics;
       expect(persist).toHaveBeenCalledWith(
         'post',
-        expect.any(Object),
-        result.context,
+        expect.objectContaining({ views: 42 }),
+        {
+          ...result.context,
+          learningObservation: {
+            receivedAt: expect.any(Date),
+            requestStartedAt: expect.any(Date),
+            sourceAttemptId: expect.any(String),
+          },
+        },
       );
     },
   );
