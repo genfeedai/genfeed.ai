@@ -118,8 +118,12 @@ describe('visual-renderer-config-strings', () => {
     },
   );
 
+  const credentialEndpoint = new URL('https://renderer.example.test');
+  credentialEndpoint.username = 'fixture-user';
+  credentialEndpoint.password = 'fixture-password';
+
   it.each([
-    'https://user:secret@renderer.example.test',
+    credentialEndpoint.href,
     'https://renderer.example.test/path',
     'https://renderer.example.test?query=1',
     'https://renderer.example.test#fragment',

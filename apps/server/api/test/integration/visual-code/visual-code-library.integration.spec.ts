@@ -18,6 +18,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import { VISUAL_CODE_RENDERER_VERSION } from '@genfeedai/contracts/constants';
+import type { IVisualCodeSettings } from '@genfeedai/contracts/interfaces';
 import {
   SystemWorkflowDispatchClass,
   WORKFLOW_EXECUTION_QUEUE,
@@ -31,7 +32,12 @@ import {
   type VisualCodeAcceptanceFixture,
 } from './visual-code-acceptance.fixture';
 
-const SETTINGS = { width: 640, height: 360, fps: 30, durationFrames: 30 };
+const SETTINGS: IVisualCodeSettings = {
+  width: 640,
+  height: 360,
+  fps: 30,
+  durationFrames: 30,
+};
 const OUTPUTS = [
   { format: 'mp4' as const },
   { format: 'png' as const, frame: 0 },

@@ -428,8 +428,10 @@ export async function createVisualCodeAcceptanceFixture(
         params: OpenRouterChatCompletionParams,
         organizationId: string,
       ): Promise<OpenRouterChatCompletionResponse> {
-        if (!prisma) throw new Error('Prisma fixture is not initialized');
-        const claims = await prisma.workflowNodeClaim.findMany({
+        const providerPrisma = prisma;
+        if (!providerPrisma)
+          throw new Error('Prisma fixture is not initialized');
+        const claims = await providerPrisma.workflowNodeClaim.findMany({
           where: { organizationId, status: 'running' },
         });
         const live = claims.filter(
@@ -570,12 +572,14 @@ export async function createVisualCodeAcceptanceFixture(
         },
       ],
     });
-    moduleRef = await Test.createTestingModule({
+    const compiledModule = await Test.createTestingModule({
       imports: [moduleConfig],
     }).compile();
-    prisma = moduleRef.get(PrismaService);
-    await prisma.onModuleInit();
-    const initialMirrors = await prisma.workflow.findMany({
+    moduleRef = compiledModule;
+    const connectedPrisma = compiledModule.get(PrismaService);
+    prisma = connectedPrisma;
+    await connectedPrisma.onModuleInit();
+    const initialMirrors = await connectedPrisma.workflow.findMany({
       where: canonicalMirrorPredicate(),
       select: { id: true },
     });
@@ -585,13 +589,13 @@ export async function createVisualCodeAcceptanceFixture(
         'Pre-existing visual canonical mirror prevents fixture ownership',
       );
     seeds.mirrorOwnershipReady = true;
-    const systemUser = await prisma.user.findUnique({
+    const systemUser = await connectedPrisma.user.findUnique({
       where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
     });
     if (systemUser?.isDeleted)
       throw new Error('Existing system user is incompatible');
     if (!systemUser) {
-      await prisma.user.create({
+      await connectedPrisma.user.create({
         data: createTestUser({
           id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
           email: 'visual-system@example.test',
@@ -600,7 +604,7 @@ export async function createVisualCodeAcceptanceFixture(
       });
       seeds.createdSystemUser = true;
     }
-    const systemOrganization = await prisma.organization.findUnique({
+    const systemOrganization = await connectedPrisma.organization.findUnique({
       where: { id: SYSTEM_WORKFLOW_PRINCIPAL_ID },
     });
     if (
@@ -610,7 +614,7 @@ export async function createVisualCodeAcceptanceFixture(
     )
       throw new Error('Existing system organization is incompatible');
     if (!systemOrganization) {
-      await prisma.organization.create({
+      await connectedPrisma.organization.create({
         data: createTestOrganization({
           id: SYSTEM_WORKFLOW_PRINCIPAL_ID,
           userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
@@ -619,7 +623,7 @@ export async function createVisualCodeAcceptanceFixture(
       });
       seeds.createdSystemOrganization = true;
     }
-    const fallback = await prisma.model.findFirst({
+    const fallback = await connectedPrisma.model.findFirst({
       where: {
         key: LLM_DEFAULTS.agentChat,
         organizationId: null,
@@ -645,34 +649,34 @@ export async function createVisualCodeAcceptanceFixture(
       seeds.originalModels.push(fallback);
       seeds.fallbackModelId = fallback.id;
     } else {
-      const row = await prisma.model.create({
+      const row = await connectedPrisma.model.create({
         data: fixtureModel(LLM_DEFAULTS.agentChat, false),
       });
       seeds.modelIds.push(row.id);
       seeds.fallbackModelId = row.id;
     }
-    if (await prisma.model.findUnique({ where: { key: PAID_MODEL } }))
+    if (await connectedPrisma.model.findUnique({ where: { key: PAID_MODEL } }))
       throw new Error('Dedicated visual acceptance model already exists');
-    const paidModel = await prisma.model.create({
+    const paidModel = await connectedPrisma.model.create({
       data: fixtureModel(PAID_MODEL, true),
     });
     seeds.modelIds.push(paidModel.id);
     const controller = new VisualProjectsController(
-      moduleRef.get(VisualProjectsService),
+      compiledModule.get(VisualProjectsService),
     );
     const library = new IngredientsController(
-      moduleRef.get(IngredientsService),
+      compiledModule.get(IngredientsService),
       unusedPort('folders') as never,
       unusedPort('cancellation') as never,
-      moduleRef.get(ConfigService),
+      compiledModule.get(ConfigService),
       unusedPort('mediaURLs') as never,
     );
     const processor = new WorkflowExecutionProcessor(
-      moduleRef.get(LoggerService),
-      moduleRef.get(WorkflowExecutorService),
-      moduleRef.get(WorkflowExecutionQueueService),
+      compiledModule.get(LoggerService),
+      compiledModule.get(WorkflowExecutorService),
+      compiledModule.get(WorkflowExecutionQueueService),
       unusedPort('scheduler') as never,
-      moduleRef.get(SystemWorkflowRunnerService),
+      compiledModule.get(SystemWorkflowRunnerService),
     );
     let lastJob: CapturedWorkflowJob | undefined;
     const runJob = async (job: CapturedWorkflowJob) => {
@@ -688,12 +692,12 @@ export async function createVisualCodeAcceptanceFixture(
         throw error;
       }
     };
-    fixture = {
-      moduleRef,
-      prisma,
+    const createdFixture: VisualCodeAcceptanceFixture = {
+      moduleRef: compiledModule,
+      prisma: connectedPrisma,
       controller,
       library,
-      credits: moduleRef.get(CreditsUtilsService),
+      credits: compiledModule.get(CreditsUtilsService),
       calls,
       objects,
       queues,
@@ -728,15 +732,10 @@ export async function createVisualCodeAcceptanceFixture(
         if (closed) return;
         closed = true;
         try {
-          await cleanupVisualCodeFixture(
-            fixture ??
-              (() => {
-                throw new Error('Fixture unavailable');
-              })(),
-          );
+          await cleanupVisualCodeFixture(createdFixture);
         } finally {
           try {
-            await moduleRef?.close();
+            await compiledModule.close();
           } finally {
             storageTransport.upload.mockReset();
             storageTransport.download.mockReset();
@@ -746,14 +745,15 @@ export async function createVisualCodeAcceptanceFixture(
         }
       },
     };
-    const registry = moduleRef.get(AgentChatModelRegistryService);
+    fixture = createdFixture;
+    const registry = compiledModule.get(AgentChatModelRegistryService);
     await registry.refresh();
-    const runner = moduleRef.get(SystemWorkflowRunnerService);
+    const runner = compiledModule.get(SystemWorkflowRunnerService);
     runner.onModuleInit();
-    moduleRef.get(VisualProjectWorkflowService).onModuleInit();
-    moduleRef.get(VisualProjectsService).onModuleInit();
+    compiledModule.get(VisualProjectWorkflowService).onModuleInit();
+    compiledModule.get(VisualProjectsService).onModuleInit();
     runner.onApplicationBootstrap();
-    return fixture;
+    return createdFixture;
   } catch (error) {
     try {
       if (fixture) await fixture.close();
