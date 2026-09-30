@@ -87,4 +87,3 @@ ALTER TABLE "visual_revisions" ADD CONSTRAINT "visual_revisions_userId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "visual_revisions" ADD CONSTRAINT "visual_revisions_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "visual_projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
