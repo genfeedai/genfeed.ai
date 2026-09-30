@@ -3,6 +3,7 @@ import { LearningCheckpointService } from '@api/collections/content-learning/ser
 import { LearningDatasetService } from '@api/collections/content-learning/services/learning-dataset.service';
 import { LearningDecisionService } from '@api/collections/content-learning/services/learning-decision.service';
 import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningExperimentEvidenceService } from '@api/collections/content-learning/services/learning-experiment-evidence.service';
 import { LearningOperationService } from '@api/collections/content-learning/services/learning-operation.service';
 import { LearningPolicyService } from '@api/collections/content-learning/services/learning-policy.service';
 import { LearningReleaseService } from '@api/collections/content-learning/services/learning-release.service';
@@ -13,6 +14,7 @@ import { Module } from '@nestjs/common';
 @Module({
   imports: [PrismaModule],
   providers: [
+    LearningExperimentEvidenceService,
     LearningAccountService,
     LearningDecisionService,
     LearningCheckpointService,
@@ -25,6 +27,7 @@ import { Module } from '@nestjs/common';
     LearningOperationService,
   ],
   exports: [
+    LearningExperimentEvidenceService,
     LearningAccountService,
     LearningDecisionService,
     LearningCheckpointService,

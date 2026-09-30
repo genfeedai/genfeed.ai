@@ -575,6 +575,8 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+contentLearningExperiments ContentLearningExperiment[]
+
 contentLearningConsents ContentLearningConsent[]
 contentLearningDatasets ContentLearningDataset[]
 contentLearningOperations ContentLearningOperation[]
@@ -749,6 +751,11 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+contentLearningExperiments ContentLearningExperiment[]
+contentLearningEnrollments ContentLearningEnrollment[]
+contentLearningOpportunitys ContentLearningOpportunity[]
+contentLearningExperimentEvents ContentLearningExperimentEvent[]
+
 contentLearningAccounts ContentLearningAccount[]
 contentLearningConsents ContentLearningConsent[]
 contentLearningDecisions ContentLearningDecision[]
@@ -991,6 +998,11 @@ model McpApproval {
 }
 
 model Brand {
+contentLearningExperiments ContentLearningExperiment[]
+contentLearningEnrollments ContentLearningEnrollment[]
+contentLearningOpportunitys ContentLearningOpportunity[]
+contentLearningExperimentEvents ContentLearningExperimentEvent[]
+
 contentLearningAccounts ContentLearningAccount[]
 contentLearningConsents ContentLearningConsent[]
 contentLearningDecisions ContentLearningDecision[]
@@ -1812,6 +1824,11 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+contentLearningExperiments ContentLearningExperiment[]
+contentLearningEnrollments ContentLearningEnrollment[]
+contentLearningOpportunitys ContentLearningOpportunity[]
+contentLearningExperimentEvents ContentLearningExperimentEvent[]
+
 contentLearningAccounts ContentLearningAccount[]
 contentLearningConsents ContentLearningConsent[]
 contentLearningDecisions ContentLearningDecision[]
@@ -8211,6 +8228,9 @@ account ContentLearningAccount @relation(fields: [accountId], references: [id], 
 }
 
 model ContentLearningDecision {
+opportunityId String? @unique
+opportunity ContentLearningOpportunity? @relation("LearningOpportunityDecision", fields: [opportunityId], references: [id])
+
 id String @id @default(cuid())
 isDeleted Boolean @default(false)
 createdAt DateTime @default(now())
@@ -8519,6 +8539,8 @@ activeCells String[] @default([])
 }
 
 model ContentLearningOperation {
+enrollments ContentLearningEnrollment[]
+
 id String @id @default(cuid())
 isDeleted Boolean @default(false)
 createdAt DateTime @default(now())
@@ -8558,4 +8580,155 @@ invalidatedAt DateTime?
 @@index([sourceKind, sourceId, valid])
 @@index([derivedKind, derivedId, valid])
 @@map("content_learning_dependencys")
+}
+
+model ContentLearningExperiment {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String?
+brand Brand? @relation(fields: [brandId], references: [id])
+credentialId String?
+credential Credential? @relation(fields: [credentialId], references: [id])
+kind String
+cellKey String
+candidatePolicyId String?
+controlPolicyId String?
+candidateReleaseId String?
+controlReleaseId String?
+builtInControlVersion String?
+stage String?
+releaseRevision Int?
+spec Json
+specHash String @unique
+actorUserId String
+actor User @relation(fields: [actorUserId], references: [id])
+status String @default("preregistered")
+revision Int @default(0)
+synthetic Boolean @default(false)
+encryptedSeed String
+startAt DateTime
+endAt DateTime
+freezeAt DateTime
+sealedAt DateTime?
+enrollments ContentLearningEnrollment[]
+opportunities ContentLearningOpportunity[]
+events ContentLearningExperimentEvent[]
+@@index([organizationId, brandId, credentialId, isDeleted])
+@@map("content_learning_experiments")
+}
+
+model ContentLearningEnrollment {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+experimentId String
+experiment ContentLearningExperiment @relation(fields: [experimentId], references: [id])
+accountEpoch Int
+ownerOperationId String
+ownerOperation ContentLearningOperation @relation(fields: [ownerOperationId], references: [id])
+consentNoticeVersion String
+consentAt DateTime
+withdrawnAt DateTime?
+cohortHash String
+included Boolean
+cohortFraction Float
+startAt DateTime
+endAt DateTime
+baselineSnapshot Json
+cadenceSnapshot Json
+opportunities ContentLearningOpportunity[]
+events ContentLearningExperimentEvent[]
+@@unique([experimentId, organizationId, credentialId])
+@@index([organizationId, brandId, credentialId, isDeleted])
+@@map("content_learning_enrollments")
+}
+
+model ContentLearningOpportunity {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String
+brand Brand @relation(fields: [brandId], references: [id])
+credentialId String
+credential Credential @relation(fields: [credentialId], references: [id])
+experimentId String
+experiment ContentLearningExperiment @relation(fields: [experimentId], references: [id])
+enrollmentId String
+enrollment ContentLearningEnrollment @relation(fields: [enrollmentId], references: [id])
+requestKey String
+destinationKey String
+candidateIndex Int
+decisionId String?
+decision ContentLearningDecision? @relation("LearningOpportunityDecision")
+assignedAt DateTime
+group String
+groupProbability Float
+assignmentDraw Float
+specHash String
+stage String?
+releaseRevision Int?
+policyManifest Json
+parentRequestId String?
+runId String?
+workflowExecutionId String?
+nodeId String?
+ingredientId String?
+postId String?
+slotReservationId String?
+cadenceId String?
+artifactHash String?
+deadlineAt DateTime
+state String @default("assigned")
+events ContentLearningExperimentEvent[]
+@@unique([experimentId, organizationId, requestKey, destinationKey, candidateIndex])
+@@index([organizationId, brandId, credentialId, isDeleted])
+@@map("content_learning_opportunities")
+}
+
+model ContentLearningExperimentEvent {
+id String @id @default(cuid())
+isDeleted Boolean @default(false)
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+organizationId String
+organization Organization @relation(fields: [organizationId], references: [id])
+brandId String?
+brand Brand? @relation(fields: [brandId], references: [id])
+credentialId String?
+credential Credential? @relation(fields: [credentialId], references: [id])
+experimentId String
+experiment ContentLearningExperiment @relation(fields: [experimentId], references: [id])
+opportunityId String?
+opportunity ContentLearningOpportunity? @relation(fields: [opportunityId], references: [id])
+enrollmentId String?
+enrollment ContentLearningEnrollment? @relation(fields: [enrollmentId], references: [id])
+eventKey String
+kind String
+sourceKind String
+sourceId String
+sourceRevision String
+occurredAt DateTime
+observedAt DateTime
+payloadSchemaVersion Int @default(1)
+payload Json
+supersedesId String?
+fingerprint String @unique
+@@unique([experimentId, organizationId, eventKey])
+@@index([opportunityId, kind, occurredAt])
+@@index([organizationId, brandId, credentialId, isDeleted])
+@@map("content_learning_experiment_events")
 }
