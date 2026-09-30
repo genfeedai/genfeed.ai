@@ -23,7 +23,7 @@ Run `scripts/visual-code/coordinator.mjs` under a dedicated service account perm
 
 Application configuration:
 
-- `VISUAL_CODE_ENABLED=true`
+- `VISUAL_CODE_RENDERER_ENABLED=true`
 - `VISUAL_CODE_RENDERER_URL`: HTTPS internal endpoint, or loopback HTTP for a local installation
 - `VISUAL_CODE_RENDERER_TOKEN`: matching internal token
 - `VISUAL_CODE_CREDITS_PER_SECOND`: explicit finite nonnegative rendering rate; use `0` only when the operator intends free rendering
@@ -48,7 +48,7 @@ State admission fails closed at 16 GiB. Receipts are never automatically deleted
 
 The scoped `visual-code-isolation` CI job builds the image on Linux and renders hybrid image/video/audio media under real runsc. It saves MP4/PNG/JPEG outputs, encoded video probe data and evidence that outbound network, host files, credentials and package installation are denied. It also tests deadline cleanup. Unit mocks alone do not establish isolation.
 
-Disable `VISUAL_CODE_ENABLED` to stop new Motion requests. Drain or cancel active revisions and reconcile their costs before stopping the renderer. Preserve coordinator state and the additive project tables so history, source downloads and replay evidence survive rollback. Existing approved Remotion templates and Editor rendering remain independent.
+Disable `VISUAL_CODE_RENDERER_ENABLED` to stop new Motion requests. Drain or cancel active revisions and reconcile their costs before stopping the renderer. Preserve coordinator state and the additive project tables so history, source downloads and replay evidence survive rollback. Existing approved Remotion templates and Editor rendering remain independent.
 
 ## Interrupted workflow recovery
 

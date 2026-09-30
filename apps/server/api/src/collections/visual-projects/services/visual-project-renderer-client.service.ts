@@ -48,7 +48,7 @@ export class VisualProjectRendererClientService {
       this.config.get('VISUAL_CODE_RENDER_CREDITS_PER_SECOND'),
     );
     if (
-      this.config.get('VISUAL_CODE_ENABLED') !== 'true' ||
+      this.config.get('VISUAL_CODE_RENDERER_ENABLED') !== 'true' ||
       !endpoint ||
       !token ||
       !Number.isFinite(rate) ||
