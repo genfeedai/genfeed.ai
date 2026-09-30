@@ -64,7 +64,13 @@ describe('persistQuoteGroupDisposition', () => {
       { isolationLevel: 'Serializable' },
     );
     expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith({
-      where: { ...where, generationBilling: { equals: state.receipt } },
+      where: {
+        AND: [where],
+        organizationId: 'org-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+        generationBilling: { equals: state.receipt },
+      },
       data,
     });
     expect(state.tx.creditReservation.updateMany).toHaveBeenCalledWith({
@@ -104,7 +110,13 @@ describe('persistQuoteGroupDisposition', () => {
       persistQuoteGroupDisposition(state.prisma as never, where, failure, true),
     ).resolves.toEqual({ count: 1 });
     expect(state.tx.ingredient.updateMany).toHaveBeenCalledWith({
-      where: { ...where, generationBilling: { equals: state.receipt } },
+      where: {
+        AND: [where],
+        organizationId: 'org-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+        generationBilling: { equals: state.receipt },
+      },
       data: failure,
     });
     expect(state.tx.creditReservation.updateMany).toHaveBeenCalledWith(

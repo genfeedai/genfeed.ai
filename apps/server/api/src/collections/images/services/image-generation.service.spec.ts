@@ -794,6 +794,7 @@ describe('ImageGenerationService', () => {
         endpoint,
         expect.any(Object),
         undefined,
+        expect.any(Function),
       );
       expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
     });
@@ -950,6 +951,7 @@ describe('ImageGenerationService', () => {
           sequential_image_generation: 'auto',
         }),
         undefined,
+        expect.any(Function),
       );
       // Batch model -> one provider call, indexed external ids on each placeholder.
       expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
@@ -1070,6 +1072,7 @@ describe('ImageGenerationService', () => {
           prompt: 'a sunset over the ocean',
         },
         undefined,
+        expect.any(Function),
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
@@ -1181,6 +1184,7 @@ describe('ImageGenerationService', () => {
           safety_filter_level: 'block_only_high',
         },
         undefined,
+        expect.any(Function),
       );
 
       expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(

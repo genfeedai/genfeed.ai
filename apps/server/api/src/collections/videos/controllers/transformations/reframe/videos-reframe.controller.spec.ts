@@ -1,4 +1,5 @@
 import { GenerationBillingService } from '@api/collections/credits/services/generation-billing.service';
+import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
@@ -153,6 +154,7 @@ describe('VideosReframeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [VideosReframeController],
       providers: [
+        { provide: GenerationQuoteGroupService, useValue: {} },
         {
           provide: GenerationBillingService,
           useValue: generationBilling,

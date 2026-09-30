@@ -357,14 +357,8 @@ export class IngredientsService extends BaseService<
       const data = this.normalizeData(
         toIngredientUpdateData(updateDto as unknown as Record<string, unknown>),
       );
-      const current =
-        updateDto.status === IngredientStatus.GENERATED &&
-        typeof updateDto.s3Key === 'string'
-          ? await this.prisma.ingredient.findFirst({
-              where: { id, isDeleted: false },
-              select: { organizationId: true },
-            })
-          : null;
+      const current = await this.findOne({ id });
+      if (!current) throw new NotFoundException('Ingredient', id);
       const completed = current?.organizationId
         ? await persistQuoteGroupDisposition(
             this.prisma,
@@ -376,7 +370,11 @@ export class IngredientsService extends BaseService<
         completed !== null
           ? completed.count === 1
           : await this.prisma.ingredient.update({
-              where: { id },
+              where: {
+                id,
+                organizationId: current.organizationId ?? null,
+                isDeleted: false,
+              },
               data: data as Prisma.IngredientUpdateInput,
             });
 
@@ -428,23 +426,8 @@ export class IngredientsService extends BaseService<
 
       const updateData = toIngredientUpdateData(update);
 
-      // Capture the owning org(s) BEFORE the update: once rows flip to GENERATED
-      // a post-update re-query on a status-based filter would match nothing.
       const isGeneratedTransition =
         update.status === IngredientStatus.GENERATED;
-      const targetOrganizationIds = isGeneratedTransition
-        ? (
-            await this.prisma.ingredient.findMany({
-              where: this.normalizeWhere({
-                ...filter,
-                isDeleted: filter.isDeleted ?? false,
-              }) as Prisma.IngredientWhereInput,
-              select: { organizationId: true },
-              distinct: ['organizationId'],
-            })
-          ).map((row: { organizationId: string | null }) => row.organizationId)
-        : [];
-
       const where = this.normalizeWhere({
         ...filter,
         isDeleted: filter.isDeleted ?? false,
@@ -452,13 +435,43 @@ export class IngredientsService extends BaseService<
       const data = this.normalizeData(
         updateData,
       ) as Prisma.IngredientUpdateManyMutationInput;
-      const result =
-        (await persistQuoteGroupDisposition(
-          this.prisma,
+      const owners = await this.findAll(
+        {
           where,
+          select: { organizationId: true },
+        },
+        { pagination: false },
+        false,
+      );
+      const targetOrganizationIds = [
+        ...new Set(owners.docs.map((row) => row.organizationId ?? null)),
+      ];
+      let modifiedCount = 0;
+      for (const organizationId of targetOrganizationIds) {
+        const ownedWhere = {
+          ...where,
+          organizationId,
+          isDeleted: where.isDeleted ?? false,
+        };
+        const completed = await persistQuoteGroupDisposition(
+          this.prisma,
+          ownedWhere,
           data,
           update.isGenerationFailureConfirmed === true,
-        )) ?? (await this.prisma.ingredient.updateMany({ where, data }));
+        );
+        const result =
+          completed ??
+          (await this.prisma.ingredient.updateMany({
+            where: {
+              AND: [where],
+              organizationId,
+              isDeleted: where.isDeleted ?? false,
+            },
+            data,
+          }));
+        modifiedCount += result.count;
+      }
+      const result = { count: modifiedCount };
 
       this.logger.debug(`${this.constructorName} patchAll success`, {
         filter,

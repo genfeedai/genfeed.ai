@@ -23,6 +23,7 @@ import {
 } from '@api/collections/images/services/image-generation-output.util';
 import { ImageGenerationProviderRegistryService } from '@api/collections/images/services/image-generation-provider-registry.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
+import { persistImageProviderOutput } from '@api/collections/images/services/persist-image-provider-output.util';
 import { isGenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
 import { ProviderGenerationFailedError } from '@api/collections/ingredients/errors/provider-generation-failed.error';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
@@ -152,27 +153,12 @@ export class ImageGenerationProviderDispatchService {
         const target = this.activeDocument.get(context) ?? {
           metadataData: context.metadataData,
         };
-        const supported =
-          typeof output === 'string' ||
-          (Array.isArray(output) &&
-            output.length > 0 &&
-            output.every((entry) => typeof entry === 'string'));
-        const count =
-          typeof output === 'string'
-            ? 1
-            : Array.isArray(output)
-              ? output.length
-              : 0;
-        const authorized = this.batchDocuments.get(context)?.length ?? 1;
-        await this.metadataService.patch(target.metadataData.id, {
-          result: JSON.stringify(output) ?? 'null',
-          ...(!supported || count > authorized
-            ? {
-                error:
-                  'Provider output does not match the funded dispatch manifest; recovery is required',
-              }
-            : {}),
-        });
+        await persistImageProviderOutput(
+          this.metadataService,
+          target.metadataData.id,
+          output,
+          this.batchDocuments.get(context)?.length ?? 1,
+        );
       },
       onExternalJobCreated: async (externalId) => {
         const documents = this.batchDocuments.get(context);

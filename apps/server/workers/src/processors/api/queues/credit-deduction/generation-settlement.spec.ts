@@ -161,6 +161,10 @@ describe('async generation settlement', () => {
       queue as never,
       prisma as never,
       logger as never,
+      {
+        reconcile: vi.fn().mockResolvedValue(0),
+        reconcileOutput: vi.fn().mockResolvedValue(false),
+      } as never,
     );
     processor = new CreditDeductionProcessor(
       creditsUtils as never,

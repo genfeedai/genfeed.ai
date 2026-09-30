@@ -6,6 +6,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
+import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ModelCategory } from '@genfeedai/contracts';
@@ -303,6 +304,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
 
   describe('persisted native output manifest', () => {
     beforeEach(() => {
+      ingredientsService.findOne.mockResolvedValue({ organizationId: 'org-1' });
       metadataService.findOne.mockImplementation(
         ({ externalId }: { externalId: string }) =>
           Promise.resolve(
@@ -349,7 +351,12 @@ describe('ReplicateGenerationWebhookHandler', () => {
             where: {
               externalId: { startsWith: 'pred_123_' },
               externalProvider: 'replicate',
-              organizationId: 'org-1',
+              ingredients: {
+                some: {
+                  organizationId: 'org-1',
+                  OR: [{ isDeleted: false }, { isDeleted: true }],
+                },
+              },
               isDeleted: false,
             },
           },
@@ -358,6 +365,97 @@ describe('ReplicateGenerationWebhookHandler', () => {
         );
       },
     );
+    it.each([0, 1])(
+      'keeps deleted slot %s in the authorized manifest and completes only its surviving target',
+      async (deletedIndex) => {
+        ingredientsService.findOne.mockImplementation(
+          ({
+            metadataId,
+            isDeleted,
+          }: {
+            metadataId?: string;
+            isDeleted?: boolean;
+          }) => {
+            const index =
+              metadataId === 'metadata-0'
+                ? 0
+                : metadataId === 'metadata-1'
+                  ? 1
+                  : undefined;
+            return Promise.resolve(
+              index !== undefined &&
+                Boolean(isDeleted) === (index === deletedIndex)
+                ? { id: `ingredient-${index}`, organizationId: 'org-1' }
+                : null,
+            );
+          },
+        );
+        metadataService.findOne.mockImplementation(
+          ({
+            externalId,
+            isDeleted,
+          }: {
+            externalId: string;
+            isDeleted?: boolean;
+          }) => {
+            const index =
+              externalId === 'pred_123_0'
+                ? 0
+                : externalId === 'pred_123_1'
+                  ? 1
+                  : undefined;
+            return Promise.resolve(
+              index !== undefined &&
+                Boolean(isDeleted) === (index === deletedIndex)
+                ? {
+                    id: `metadata-${index}`,
+                    externalId,
+                    isDeleted: index === deletedIndex,
+                  }
+                : null,
+            );
+          },
+        );
+        metadataService.findAll.mockImplementation(
+          ({ where }: { where: { isDeleted: boolean } }) =>
+            Promise.resolve({
+              docs: [0, 1]
+                .filter((i) => where.isDeleted === (i === deletedIndex))
+                .map((i) => ({
+                  id: `metadata-${i}`,
+                  externalId: `pred_123_${i}`,
+                  isDeleted: i === deletedIndex,
+                })),
+            }),
+        );
+        const lookup = new MetadataLookupService(
+          metadataService as never,
+          ingredientsService as never,
+          {} as never,
+          loggerService as never,
+        );
+        webhooksService.processMediaFromWebhook.mockImplementation(
+          async (integration, category, externalId, url) =>
+            lookup.lookupMetadataAndIngredient(
+              externalId,
+              category,
+              url,
+              integration,
+            ),
+        );
+        await handler.handleCompleted(payloadWith([ALLOWED_URL, ALLOWED_URL]));
+        expect(
+          webhooksService.processMediaFromWebhook,
+        ).toHaveBeenCalledExactlyOnceWith(
+          'replicate',
+          expect.anything(),
+          `pred_123_${1 - deletedIndex}`,
+          ALLOWED_URL,
+        );
+        expect(webhooksService.handleFailedGeneration).not.toHaveBeenCalled();
+      },
+    );
+
     it('preserves all unexpected provider URLs for recovery and retains funding instead of silently selecting the first', async () => {
       const returned = [ALLOWED_URL, ALLOWED_URL, ALLOWED_URL, ALLOWED_URL];
       await expect(

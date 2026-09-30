@@ -286,19 +286,13 @@ export class CreditReservationService {
           settledAmount: input.actualAmount,
           status: CreditReservationStatus.SETTLED,
         },
-        where: {
+        where: scopedWhere(reservation.organizationId, {
           id: reservation.id,
-          isDeleted: false,
-          organizationId: reservation.organizationId,
           status: CreditReservationStatus.RESERVED,
-          ...(input.expectedReservationMetadata
-            ? {
-                metadata: {
-                  equals: toPrismaJson(input.expectedReservationMetadata),
-                },
-              }
-            : {}),
-        },
+          metadata: input.expectedReservationMetadata
+            ? { equals: toPrismaJson(input.expectedReservationMetadata) }
+            : undefined,
+        }),
       });
       if (claimed.count !== 1) {
         const latest = await this.findReservation(input, tx);
@@ -387,19 +381,13 @@ export class CreditReservationService {
           : CreditReservationStatus.RELEASED;
       const claimed = await tx.creditReservation.updateMany({
         data: { status: nextStatus },
-        where: {
+        where: scopedWhere(reservation.organizationId, {
           id: reservation.id,
-          isDeleted: false,
-          organizationId: reservation.organizationId,
           status: CreditReservationStatus.RESERVED,
-          ...(input.expectedReservationMetadata
-            ? {
-                metadata: {
-                  equals: toPrismaJson(input.expectedReservationMetadata),
-                },
-              }
-            : {}),
-        },
+          metadata: input.expectedReservationMetadata
+            ? { equals: toPrismaJson(input.expectedReservationMetadata) }
+            : undefined,
+        }),
       });
       if (claimed.count !== 1) {
         const latest = await this.findReservation(input, tx);

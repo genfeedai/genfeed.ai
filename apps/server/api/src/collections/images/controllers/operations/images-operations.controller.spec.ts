@@ -1,3 +1,5 @@
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import {
   type MediaPromptEnhancementInput,
   MediaPromptEnhancementService,
@@ -75,6 +77,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import type { TagEntity } from '@api/collections/tags/entities/tag.entity';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -112,7 +115,6 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
 
 describe('ImagesOperationsController', () => {
   let controller: ImagesOperationsController;
@@ -242,6 +244,12 @@ describe('ImagesOperationsController', () => {
       controllers: [ImagesOperationsController],
       providers: [
         {
+          provide: ModelCreditQuoteService,
+          inject: [ModelsService],
+          useFactory: (models: ModelsService) =>
+            testModelCreditQuote(models, 'leonardo'),
+        },
+        {
           provide: MediaPromptEnhancementService,
           useValue: {
             enhance: vi
@@ -324,9 +332,12 @@ describe('ImagesOperationsController', () => {
           useValue: {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
-            reserveCredits: vi.fn().mockResolvedValue({
+            reserveCredits: vi.fn().mockImplementation(async (input) => ({
               id: 'image-controller-reservation',
-            }),
+              amount: input.amount,
+              metadata: input.metadata,
+              status: 'RESERVED',
+            })),
           },
         },
         {
@@ -1042,7 +1053,7 @@ describe('ImagesOperationsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should use fallback cost when model not found in DB during deferred check', async () => {
+    it('rejects a missing exact model tariff before reserving deferred funding', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
         autoSelectModel: true,
@@ -1063,17 +1074,14 @@ describe('ImagesOperationsController', () => {
         true,
       );
 
-      const result = await controller.create(
-        requestWithDeferred,
-        dto,
-        mockUser,
-      );
-
-      // Should use fallback cost of 5
+      await expect(
+        controller.create(requestWithDeferred, dto, mockUser),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ code: 'PRICING_UNAVAILABLE' }),
+      });
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(mockOrgId.toString(), 5);
-      expect(result).toBeDefined();
+      ).not.toHaveBeenCalled();
     });
   });
 

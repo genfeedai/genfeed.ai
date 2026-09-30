@@ -66,7 +66,8 @@ export async function persistQuoteGroupDisposition(
             );
           const completed = await tx.ingredient.updateMany({
             where: {
-              ...where,
+              AND: [where],
+              organizationId,
               isDeleted: false,
               status: IngredientStatus.PROCESSING,
               generationBilling: { equals: toPrismaJson(receipt.data) },

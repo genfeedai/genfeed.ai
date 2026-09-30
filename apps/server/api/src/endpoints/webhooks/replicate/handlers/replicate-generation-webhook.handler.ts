@@ -321,19 +321,25 @@ export class ReplicateGenerationWebhookHandler {
     const ingredientCategory = await this.resolveIngredientCategory(payload);
 
     // Persisted indexed metadata proves native dispatch. A provider cap may return just one output.
-    const batchPrimary = await this.metadataService.findOne({
+    const primaryIdentity = {
       externalId: `${payload.id}_0`,
       externalProvider: 'replicate',
-      isDeleted: false,
-    });
+    };
+    const batchPrimary =
+      (await this.metadataService.findOne({
+        ...primaryIdentity,
+        isDeleted: false,
+      })) ??
+      (await this.metadataService.findOne({
+        ...primaryIdentity,
+        isDeleted: true,
+      }));
     if (batchPrimary) {
       await this.completePersistedBatch(
         payload,
         output,
         ingredientCategory,
-        typeof batchPrimary.organizationId === 'string'
-          ? batchPrimary.organizationId
-          : null,
+        batchPrimary.id,
       );
       return;
     }
@@ -404,23 +410,49 @@ export class ReplicateGenerationWebhookHandler {
     payload: ReplicateWebhookPayload,
     output: unknown,
     category: IngredientCategory,
-    organizationId: string | null,
+    primaryMetadataId: string,
   ): Promise<void> {
+    const ownerIdentity = { metadataId: primaryMetadataId };
+    const owner =
+      (await this.ingredientsService.findOne({
+        ...ownerIdentity,
+        isDeleted: false,
+      })) ??
+      (await this.ingredientsService.findOne({
+        ...ownerIdentity,
+        isDeleted: true,
+      }));
+    const organizationId = owner?.organizationId;
     if (!organizationId)
       throw new Error('Replicate batch tenant identity is missing');
-    const records = await this.metadataService.findAll(
-      {
-        where: {
-          externalId: { startsWith: `${payload.id}_` },
-          externalProvider: 'replicate',
-          organizationId,
-          isDeleted: false,
-        },
-      },
-      { pagination: false },
-      false,
+    // Deleted library entries remain part of the original provider manifest.
+    // Removing one cannot shrink the authorization for a still-funded retry.
+    const records = await Promise.all(
+      [false, true].map((isDeleted) =>
+        this.metadataService.findAll(
+          {
+            where: {
+              externalId: { startsWith: `${payload.id}_` },
+              externalProvider: 'replicate',
+              ingredients: {
+                some: {
+                  organizationId,
+                  OR: [{ isDeleted: false }, { isDeleted: true }],
+                },
+              },
+              isDeleted,
+            },
+          },
+          { pagination: false },
+          false,
+        ),
+      ),
     );
-    const slots = records.docs.filter((row) => {
+    const slots = [
+      ...new Map(
+        records.flatMap((record) => record.docs).map((row) => [row.id, row]),
+      ).values(),
+    ].filter((row) => {
       const suffix = row.externalId?.slice(payload.id.length + 1);
       return suffix !== undefined && /^\d+$/.test(suffix);
     });
@@ -458,6 +490,13 @@ export class ReplicateGenerationWebhookHandler {
     }
     await Promise.all(
       slots.map(async (slot) => {
+        if (slot.isDeleted) return;
+        const liveOwner = await this.ingredientsService.findOne({
+          metadataId: slot.id,
+          organizationId,
+          isDeleted: false,
+        });
+        if (!liveOwner) return;
         const index = Number(slot.externalId?.slice(payload.id.length + 1));
         const url = returned[index];
         if (isAllowedReplicateOutputUrl(url)) {

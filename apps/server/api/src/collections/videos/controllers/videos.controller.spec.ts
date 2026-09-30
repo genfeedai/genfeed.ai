@@ -1,10 +1,12 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import { ModelCreditQuoteService } from '@api/collections/models/services/model-credit-quote.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { testModelCreditQuote } from '@api/helpers/utils/credits/model-billable-quote.fixture';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
 import {
   type MediaPromptEnhancementInput,
@@ -205,6 +207,12 @@ describe('VideosController', () => {
       controllers: [VideosController],
       providers: [
         {
+          provide: ModelCreditQuoteService,
+          inject: [ModelsService],
+          useFactory: (models: ModelsService) =>
+            testModelCreditQuote(models, 'replicate'),
+        },
+        {
           provide: WebhooksService,
           useValue: { processMediaForIngredient: vi.fn() },
         },
@@ -277,9 +285,12 @@ describe('VideosController', () => {
             checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
             deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
             getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1000),
-            reserveCredits: vi.fn().mockResolvedValue({
+            reserveCredits: vi.fn().mockImplementation(async (input) => ({
               id: 'video-controller-reservation',
-            }),
+              amount: input.amount,
+              metadata: input.metadata,
+              status: 'RESERVED',
+            })),
           },
         },
         {
@@ -408,6 +419,7 @@ describe('VideosController', () => {
             findAll: vi.fn(),
             findOne: vi.fn(),
             patch: vi.fn().mockResolvedValue(mockVideo),
+            patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
             remove: vi.fn(),
           },
         },
@@ -1173,21 +1185,43 @@ describe('VideosController', () => {
       ).not.toHaveBeenCalled();
     });
 
-    it('applies the selected model resolution band before authorization', async () => {
+    it('authorizes the exact reviewed resolution tariff and submitted duration', async () => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         model: MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
         resolution: 'pro',
+        duration: 5,
       };
+      const quoteModels = testingModule.get(ModelsService);
+      vi.mocked(quoteModels.findOne).mockResolvedValue({
+        ...mockModelData,
+        key: dto.model,
+        provider: 'replicate',
+        reviewedPricing: {
+          version: 'controller-fixture-v1',
+          currency: 'USD',
+          sourceUrl: 'https://example.test/fictional-controller-tariff',
+          verifiedAt: '2026-09-30T00:00:00.000Z',
+          reviewStatus: 'approved',
+          rates: [
+            {
+              component: 'generation',
+              unit: 'second',
+              unitPriceUsd: 0.04,
+              when: { resolution: 'pro' },
+              isPerOutput: true,
+            },
+          ],
+        },
+        rateVersion: 'controller-fixture-v1',
+      } as never);
 
       await controller.create(deferredRequest(), dto, mockUser);
 
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledTimes(1);
-      expect(
-        creditsUtilsService.checkOrganizationCreditsAvailable,
-      ).toHaveBeenCalledWith(mockOrgId.toString(), 14);
+        // ceil($0.04 × 5 seconds × the configured 3.33 media margin / $0.01 per credit).
+      ).toHaveBeenCalledExactlyOnceWith(mockOrgId.toString(), 67);
       expect(
         creditsUtilsService.deductCreditsFromOrganization,
       ).not.toHaveBeenCalled();
@@ -1472,6 +1506,8 @@ describe('VideosController', () => {
           model: MODEL_KEYS.KLINGAI_V2,
           width: 1920,
         }),
+        undefined,
+        expect.any(Function),
       );
     });
   });

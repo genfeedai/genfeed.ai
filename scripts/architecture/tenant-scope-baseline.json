@@ -603,14 +603,6 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "00b8dc4f7e36e63ceae6",
-      "method": "findMany",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "ff04d6aa2aaf837b3ac9",
       "method": "findMany",
       "model": "Ingredient",
@@ -619,34 +611,10 @@
     {
       "delegate": "ingredient",
       "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "2c52ddf42282ca9baf53",
-      "method": "update",
-      "model": "Ingredient",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "17ab9d39dc1bd493ed09",
-      "method": "update",
-      "model": "Ingredient",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
       "fingerprint": "6754acd1589ab673f4a1",
       "method": "updateMany",
       "model": "Ingredient",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/collections/ingredients/services/ingredients.service.ts",
-      "fingerprint": "e771e97405687973164c",
-      "method": "updateMany",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "listeningTopic",
