@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AgentPage } from '../../pages/agent.page';
+import { exactUrlPattern } from '../../utils/exact-url';
 import { assertNoErrorBoundaryFallback } from '../../utils/route-assertions';
 
 function wrapCollectionInJsonApi<T>(
@@ -209,7 +210,7 @@ async function sendAndAwaitThreadRoute(
 
   const expectedThreadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
   await expect(authenticatedPage).toHaveURL(
-    new RegExp(`${expectedThreadUrl}$`),
+    exactUrlPattern(expectedThreadUrl, authenticatedPage.url()),
   );
   await assertNoErrorBoundaryFallback(authenticatedPage, expectedThreadUrl);
   return expectedThreadUrl;
