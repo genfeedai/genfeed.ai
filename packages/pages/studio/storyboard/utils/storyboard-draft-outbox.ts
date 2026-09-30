@@ -87,7 +87,10 @@ export function storyboardDraftKey(scope: StoryboardDraftScope) {
 }
 export function storyboardDraftValue(run: StoryboardRun): StoryboardDraftValue {
   if (!run.config.plan) throw new Error('Storyboard has no plan.');
-  return { plan: run.config.plan, source: run.config.sourceSnapshot.selector };
+  return {
+    plan: structuredClone(run.config.plan),
+    source: structuredClone(run.config.sourceSnapshot.selector),
+  };
 }
 const queues = new Map<string, StoryboardDraftOutbox>();
 export function getStoryboardDraftOutbox(
@@ -133,7 +136,7 @@ export class StoryboardDraftOutbox {
       version: 1,
       scope: transport.scope,
       revision: run.config.revision,
-      base: value,
+      base: storyboardDraftValue(run),
       value,
       sequence: 0,
       pending: [],
@@ -522,12 +525,7 @@ export class StoryboardDraftOutbox {
                     : 'Saved version refreshed. Retry to save your retained edits.';
               }
               this.persist();
-              if (
-                this.status === 'saved' &&
-                (status === 409 ||
-                  member?.code === 'STORYBOARD_CAPABILITIES_CHANGED')
-              )
-                return;
+              if (this.status === 'saved') return;
             } else {
               this.envelope.submitted = undefined;
               this.status = 'failed';
