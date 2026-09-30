@@ -9,10 +9,10 @@ import { expect, test } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
 
 /**
- * The agent lives in a bottom dock on product routes: collapsed by default,
- * summoned with ⌘J / Ctrl+J or the topbar toggle, closed with Esc, and handed
- * off to the full conversation from its header. `/agent` is the conversation
- * itself, so the dock closes there.
+ * Product-page agent chrome is a compact page promptbar (or a chat bubble on
+ * studio/edit) that expands into a floating overlay. ⌘J / Ctrl+J still toggles
+ * it. `/agent` is the conversation itself, so the overlay closes there. The
+ * split dock remains in the tree behind a hidden-chrome flag.
  *
  * @module agent-dock.spec
  */
@@ -21,10 +21,7 @@ async function openLibrary(page: Page): Promise<void> {
   await page.goto(brandPath(APP_ROUTES.LIBRARY.IMAGES), {
     waitUntil: 'domcontentloaded',
   });
-  await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeVisible();
-  // The server-rendered toggle is visible before the shell registers its
-  // dock. Keyboard presses do not auto-wait for that hydration boundary.
-  await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeEnabled();
+  await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
 }
 
 test.describe('Agent dock', () => {
@@ -46,21 +43,19 @@ test.describe('Agent dock', () => {
       await openLibrary(page);
 
       const dock = page.getByRole('region', { name: 'Agent' });
-      const toggle = page.getByTestId('topbar-agent-dock-toggle');
+      await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
       await expect(dock).toHaveCount(0);
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
       await page.keyboard.press(shortcut);
 
       await expect(dock).toBeVisible();
-      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-      // The conversation and its composer render in the dock. (The mocked agent
-      // stream is offline in E2E, so the composer is disabled and cannot take
-      // focus; the unit tests cover focusing it.)
+      await expect(page.getByTestId('agent-page-promptbar')).toHaveCount(0);
+      // The conversation and its composer render in the overlay. (The mocked
+      // agent stream is offline in E2E, so the composer is disabled and cannot
+      // take focus; the unit tests cover focusing it.)
       await expect(
         dock.getByRole('textbox', { name: 'Conversation prompt' }),
       ).toBeVisible();
-      // The dock sits under the canvas, not over it.
       const canvas = page.getByRole('region', {
         name: 'Primary workspace canvas',
       });
@@ -68,35 +63,33 @@ test.describe('Agent dock', () => {
         canvas.boundingBox(),
         dock.boundingBox(),
       ]);
-      expect(dockBox?.y ?? 0).toBeGreaterThanOrEqual(
-        (canvasBox?.y ?? 0) + (canvasBox?.height ?? 0) - 1,
-      );
+      expect(dockBox?.y ?? 0).toBeGreaterThan(canvasBox?.y ?? 0);
 
       await dock.getByRole('button', { name: 'Open full page' }).focus();
       await page.keyboard.press('Escape');
       await expect(dock).toHaveCount(0);
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
 
-      await toggle.click();
+      await page.getByTestId('agent-page-promptbar').click();
       await expect(dock).toBeVisible();
       await page.keyboard.press(shortcut);
       await expect(dock).toHaveCount(0);
-      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
       await expectNoErrorOverlay(page);
     });
   }
 
-  test('keeps its open state across product pages', async ({
+  test('starts closed after reload so the compact bar is the entry', async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ height: 900, width: 1440 });
     await openLibrary(page);
-    await page.getByTestId('topbar-agent-dock-toggle').click();
+    await page.keyboard.press('Meta+j');
     await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
 
     await page.reload({ waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('region', { name: 'Agent' })).toBeVisible();
+    await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
+    await expect(page.getByRole('region', { name: 'Agent' })).toHaveCount(0);
   });
 
   test('hands off to the full conversation and closes on /agent', async ({
@@ -104,23 +97,19 @@ test.describe('Agent dock', () => {
   }) => {
     await page.setViewportSize({ height: 900, width: 1440 });
     await openLibrary(page);
-    await page.getByTestId('topbar-agent-dock-toggle').click();
+    await page.getByTestId('agent-page-promptbar').click();
 
     const dock = page.getByRole('region', { name: 'Agent' });
     await dock.getByRole('button', { name: 'Open full page' }).click();
 
     await expect(page).toHaveURL(/\/agent(\/|$)/);
     await expect(dock).toHaveCount(0);
-    // The toggle stays in the topbar but is disabled: /agent is the full page.
-    await expect(page.getByTestId('topbar-agent-dock-toggle')).toBeDisabled();
+    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveCount(0);
+    await expect(page.getByTestId('agent-page-promptbar')).toHaveCount(0);
 
-    // Back on a product page the dock stays closed until reopened.
     await openLibrary(page);
     await expect(dock).toHaveCount(0);
-    await expect(page.getByTestId('topbar-agent-dock-toggle')).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
+    await expect(page.getByTestId('agent-page-promptbar')).toBeVisible();
   });
 
   test('opens as a bottom sheet on mobile', async ({
@@ -129,7 +118,7 @@ test.describe('Agent dock', () => {
     await page.setViewportSize({ height: 844, width: 390 });
     await openLibrary(page);
 
-    await page.getByTestId('topbar-agent-dock-toggle').click();
+    await page.getByTestId('agent-page-promptbar').click();
 
     const sheet = page.getByRole('dialog', { name: 'Agent' });
     await expect(sheet).toBeVisible();

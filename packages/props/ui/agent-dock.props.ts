@@ -62,16 +62,39 @@ export interface AgentDockProviderProps {
   readonly children: ReactNode;
 }
 
+export type AgentDockChrome = 'split' | 'bubble';
+
+export interface AgentDockSuggestedAction {
+  readonly id?: string;
+  readonly label: string;
+  readonly prompt: string;
+}
+
 export interface AgentDockProps {
   /** The conversation; `null` until the dock has been opened once. */
   readonly children: ReactNode;
+  /**
+   * `split` is the bottom panel. `bubble` hides that panel and presents a
+   * compact page promptbar or chat bubble that opens a floating overlay.
+   * Defaults to `split` so existing dock tests keep their original chrome.
+   */
+  readonly chrome?: AgentDockChrome;
   /** Receives the composer slot; `undefined` while an overlay owns the composer. */
   readonly composerSlotRef?: (element: HTMLElement | null) => void;
   readonly dock: AgentDockContextValue;
+  /**
+   * Studio/edit surfaces already own a major prompt bar. Bubble chrome then
+   * uses a FAB instead of a second compact page promptbar.
+   */
+  readonly hasMajorPromptBar?: boolean;
   /** Below `xl` the dock renders as a bottom sheet. */
   readonly isCompact: boolean;
   readonly onOpenFullPage: () => void;
+  /** Seeds the overlay composer from a compact-bar chip, then opens it. */
+  readonly onSelectSuggestedAction?: (prompt: string) => void;
+  readonly pagePlaceholder?: string;
   /** Organization and brand scope for the conversation, plus page context chips. */
   readonly scopeControls?: ReactNode;
+  readonly suggestedActions?: readonly AgentDockSuggestedAction[];
   readonly threadTitle?: string | null;
 }

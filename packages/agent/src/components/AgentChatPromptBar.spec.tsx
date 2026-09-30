@@ -41,16 +41,19 @@ vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
 vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: ({
     children,
+    isVisible = true,
     topContent,
   }: {
     children: ReactNode;
+    isVisible?: boolean;
     topContent: ReactNode;
-  }) => (
-    <div>
-      {topContent}
-      {children}
-    </div>
-  ),
+  }) =>
+    isVisible ? (
+      <div>
+        {topContent}
+        {children}
+      </div>
+    ) : null,
 }));
 
 function renderPromptBar(
@@ -68,6 +71,7 @@ function renderPromptBar(
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
+    isCollapsed?: boolean;
     pendingInputRequest: AgentInputRequest | null;
     promptBarSuggestions: ReactNode;
   }> = {},
@@ -92,12 +96,12 @@ function renderPromptBar(
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
       isBusy={extras.isBusy ?? false}
+      isCollapsed={extras.isCollapsed}
       isReadOnly={isReadOnly}
       isRunActive={extras.isRunActive ?? false}
       isSubmittingInputRequest={false}
       latestProposedPlan={null}
       layoutMode="fixed"
-      models={[]}
       onClearError={vi.fn()}
       onMoveFollowUp={extras.onMoveFollowUp}
       onRemoveFollowUp={extras.onRemoveFollowUp}
@@ -203,5 +207,11 @@ describe('AgentChatPromptBar', () => {
     });
 
     expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
+  });
+
+  it('unmounts the overlay composer while it is collapsed', () => {
+    renderPromptBar(false, { isCollapsed: true });
+
+    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
   });
 });

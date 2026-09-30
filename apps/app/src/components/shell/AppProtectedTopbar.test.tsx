@@ -157,9 +157,14 @@ vi.mock('@ui/primitives/button', () => ({
   ),
 }));
 
-vi.mock('@contexts/ui/agent-dock-context', () => ({
-  useAgentDock: () => agentDockState.value,
-}));
+vi.mock('@contexts/ui/agent-dock-context', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@contexts/ui/agent-dock-context')>();
+  return {
+    ...actual,
+    useAgentDock: () => agentDockState.value,
+  };
+});
 
 vi.mock('@contexts/ui/context-sidebar-context', () => ({
   useContextSidebar: () => contextSidebarState.value,
@@ -541,58 +546,12 @@ describe('AppProtectedTopbar', () => {
     expect(toggle).not.toHaveBeenCalled();
   });
 
-  it('toggles the agent dock where the shell hosts one', () => {
+  it('hides the agent dock toggle while split chrome is hidden', () => {
     const toggle = vi.fn();
     agentDockState.value = { isAvailable: true, isOpen: false, toggle };
 
-    const { rerender } = render(<AppProtectedTopbar />);
-
-    const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
-    expect(dockToggle).toHaveAccessibleName('Open agent');
-    expect(dockToggle).toHaveAttribute('aria-controls', 'workspace-agent-dock');
-    expect(dockToggle).toHaveAttribute('aria-expanded', 'false');
-    expect(dockToggle).toHaveAttribute('aria-keyshortcuts', 'Meta+J Control+J');
-    fireEvent.click(dockToggle);
-    expect(toggle).toHaveBeenCalledTimes(1);
-
-    agentDockState.value = { isAvailable: true, isOpen: true, toggle };
-    rerender(<AppProtectedTopbar />);
-    expect(screen.getByTestId('topbar-agent-dock-toggle')).toHaveAccessibleName(
-      'Close agent',
-    );
-  });
-
-  it('exposes the disabled dock reason as a visible tooltip on keyboard focus', async () => {
-    agentDockState.value = {
-      isAvailable: false,
-      isOpen: false,
-      toggle: vi.fn(),
-    };
-    render(<AppProtectedTopbar />);
-    const wrapper = screen
-      .getByTestId('topbar-agent-dock-toggle')
-      .closest('[tabindex="0"]');
-    expect(wrapper).not.toBeNull();
-    fireEvent.focus(wrapper as HTMLElement);
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'Agent is the main view here',
-    );
-  });
-
-  it('keeps the agent dock toggle in the bar, disabled, where no dock is hosted', () => {
-    const toggle = vi.fn();
-    agentDockState.value = { isAvailable: false, isOpen: false, toggle };
-
     render(<AppProtectedTopbar />);
 
-    const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
-    expect(dockToggle).toBeDisabled();
-    expect(dockToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
-      'Agent is the main view here',
-    );
-    expect(dockToggle).toHaveAccessibleName('Agent is the main view here');
-
-    fireEvent.click(dockToggle);
-    expect(toggle).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('topbar-agent-dock-toggle')).toBeNull();
   });
 });

@@ -249,6 +249,75 @@ describe('AgentDock', () => {
     opener.remove();
   });
 
+  it('shows a compact page promptbar while bubble chrome is closed', () => {
+    render(
+      <AgentDock
+        chrome="bubble"
+        dock={buildDock({ isOpen: false })}
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+        pagePlaceholder="Ask about this page..."
+        suggestedActions={[
+          {
+            id: 'summarize',
+            label: 'Summarize',
+            prompt: 'Summarize this page',
+          },
+        ]}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    expect(screen.getByTestId('agent-page-promptbar')).toBeVisible();
+    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Agent' })).toBeNull();
+    expect(
+      screen.queryByRole('separator', { name: 'Resize agent' }),
+    ).toBeNull();
+  });
+
+  it('shows a chat bubble on major prompt-bar pages and an overlay when open', () => {
+    const dock = buildDock({ isOpen: false, open: vi.fn() });
+    const { rerender } = render(
+      <AgentDock
+        chrome="bubble"
+        dock={dock}
+        hasMajorPromptBar
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    expect(screen.getByTestId('agent-conversation-bubble')).toBeVisible();
+    expect(screen.queryByTestId('agent-page-promptbar')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('agent-conversation-bubble'));
+    expect(dock.open).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <AgentDock
+        chrome="bubble"
+        dock={{ ...dock, isOpen: true }}
+        hasMajorPromptBar
+        isCompact={false}
+        onOpenFullPage={vi.fn()}
+      >
+        <p>Conversation transcript</p>
+      </AgentDock>,
+    );
+
+    const overlay = screen.getByRole('region', { name: 'Agent' });
+    expect(overlay).toHaveAttribute('data-chrome', 'bubble');
+    expect(overlay).toHaveTextContent('Conversation transcript');
+    expect(screen.queryByTestId('agent-conversation-bubble')).toBeNull();
+    expect(
+      screen.queryByRole('separator', { name: 'Resize agent' }),
+    ).toBeNull();
+  });
+
   it('keeps focus in the conversation when it moves across the breakpoint', () => {
     const dock = buildDock({ isOpen: true });
     const view = render(renderStateful(dock, false));

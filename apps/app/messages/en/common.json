@@ -712,6 +712,7 @@
     "label": "Agent",
     "open": "Open agent",
     "openFullPage": "Open full page",
+    "pagePrompt": "Work with this page",
     "resize": "Resize agent",
     "title": "Agent",
     "unavailable": "Agent is the main view here"

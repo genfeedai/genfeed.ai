@@ -1,7 +1,10 @@
 'use client';
 
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
-import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import {
+  AGENT_DOCK_CHROME_VISIBLE,
+  useAgentDock,
+} from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -95,6 +98,7 @@ import {
 } from '@/lib/workspace-shell/workspace-shell-transition.util';
 import { resolveWorkspaceSurfaceLaunch } from '@/lib/workspace-shell/workspace-surface-launcher';
 import AgentDock from './AgentDock';
+import { isMajorPromptBarHost } from './is-major-prompt-bar-host';
 import { useIsCompactViewport } from './use-compact-viewport';
 import { useConversationScopeControls } from './use-conversation-scope-controls';
 import {
@@ -164,6 +168,7 @@ function UniversalWorkspaceShellContent({
   const threads = useAgentChatStore((state) => state.threads);
   const updateThread = useAgentChatStore((state) => state.updateThread);
   const seedComposer = useAgentChatStore((state) => state.seedComposer);
+  const pageContext = useAgentChatStore((state) => state.pageContext);
   const activeWorkspaceSurfaceAdapter = useActiveWorkspaceSurfaceAdapter();
   const activeSurfacePresentationAdapter =
     useActiveWorkspaceSurfacePresentationAdapter();
@@ -594,6 +599,7 @@ function UniversalWorkspaceShellContent({
   // on the way back until the operator reopens it.
   const isAgentDockHost =
     Boolean(agentDock) && !isAgentRoute && !isFocusedOnboardingRoute;
+  const hasMajorPromptBar = isMajorPromptBarHost(normalizedPathname);
   const setIsAgentDockAvailable = agentDock?.setIsAvailable;
   const closeAgentDock = agentDock?.close;
   const openAgentDock = agentDock?.open;
@@ -1040,12 +1046,19 @@ function UniversalWorkspaceShellContent({
 
             {isAgentDockHost && agentDock ? (
               <AgentDock
+                chrome={AGENT_DOCK_CHROME_VISIBLE ? 'split' : 'bubble'}
                 composerSlotRef={
                   state === 'overlay' ? undefined : setComposerPortalTarget
                 }
                 dock={agentDock}
+                hasMajorPromptBar={hasMajorPromptBar}
                 isCompact={isCompactViewport}
                 onOpenFullPage={handleOpenFullConversation}
+                onSelectSuggestedAction={(prompt) => {
+                  seedComposer(prompt, effectiveThreadId ?? activeThreadId);
+                  openAgentDock?.();
+                }}
+                pagePlaceholder={pageContext?.placeholder}
                 // Organization and brand are switched from the shell chrome;
                 // the dock only surfaces scope notices and page context.
                 scopeControls={
@@ -1055,6 +1068,7 @@ function UniversalWorkspaceShellContent({
                     {effectiveSurfaceAdapter?.composerContext}
                   </>
                 }
+                suggestedActions={pageContext?.suggestedActions}
                 threadTitle={activeThread?.title}
               >
                 {hasOpenedAgentDock ? (

@@ -21,6 +21,11 @@ export const AGENT_DOCK_STORAGE_KEY = 'genfeed:agent-dock:v1';
 export const AGENT_DOCK_DEFAULT_HEIGHT = 320;
 export const AGENT_DOCK_MIN_HEIGHT = 200;
 export const AGENT_DOCK_MAX_HEIGHT = 640;
+/**
+ * Flip to `true` to restore the bottom split dock on product routes.
+ * The dock component, tests, and attach/⌘J plumbing stay mounted either way.
+ */
+export const AGENT_DOCK_CHROME_VISIBLE = false;
 
 const AgentDockContext = createContext<AgentDockContextValue | null>(null);
 
@@ -98,7 +103,9 @@ export function AgentDockProvider({ children }: AgentDockProviderProps) {
   useEffect(() => {
     const persisted = readAgentDockPersistedState();
     if (persisted) {
-      setIsOpen(persisted.isOpen);
+      // Hidden chrome is a bubble/overlay: do not reopen a leftover split
+      // session on every product page.
+      setIsOpen(AGENT_DOCK_CHROME_VISIBLE ? persisted.isOpen : false);
       setHeightState(persisted.height);
     }
     setHasRestored(true);

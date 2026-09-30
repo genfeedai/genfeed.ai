@@ -1,6 +1,9 @@
 'use client';
 
-import { useAgentDock } from '@contexts/ui/agent-dock-context';
+import {
+  AGENT_DOCK_CHROME_VISIBLE,
+  useAgentDock,
+} from '@contexts/ui/agent-dock-context';
 import { useContextSidebar } from '@contexts/ui/context-sidebar-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { APP_DISPLAY_LABELS } from '@genfeedai/contracts/constants';
@@ -151,7 +154,7 @@ function AppProtectedTopbarContent({
               `xl` and up the inspector toggle collapses/expands the rail;
               below `xl` the rail is display:none, so the same slot swaps to a
               variant that opens the inspector drawer instead. */}
-          {agentDock ? (
+          {agentDock && AGENT_DOCK_CHROME_VISIBLE ? (
             <SimpleTooltip
               label={translateAgentDock('unavailable')}
               isDisabled={agentDock.isAvailable}

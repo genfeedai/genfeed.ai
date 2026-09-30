@@ -1,4 +1,5 @@
 import {
+  AGENT_DOCK_CHROME_VISIBLE,
   AGENT_DOCK_DEFAULT_HEIGHT,
   AGENT_DOCK_MAX_HEIGHT,
   AGENT_DOCK_MIN_HEIGHT,
@@ -75,7 +76,8 @@ describe('AgentDockProvider', () => {
     );
   });
 
-  it('restores and persists the open state and a clamped height', () => {
+  it('restores a clamped height and stays closed while dock chrome is hidden', () => {
+    expect(AGENT_DOCK_CHROME_VISIBLE).toBe(false);
     window.localStorage.setItem(
       AGENT_DOCK_STORAGE_KEY,
       JSON.stringify({ height: 9999, isOpen: true }),
@@ -84,7 +86,7 @@ describe('AgentDockProvider', () => {
     renderDock();
 
     expect(screen.getByTestId('dock')).toHaveTextContent(
-      `open:${AGENT_DOCK_MAX_HEIGHT}`,
+      `closed:${AGENT_DOCK_MAX_HEIGHT}`,
     );
 
     act(() => {

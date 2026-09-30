@@ -8,6 +8,7 @@ import type {
   ConversationComposerSendOptions,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentChatComposerOccupancy } from '@genfeedai/agent/utils/should-collapse-empty-surface-composer.util';
 import {
   AgentGenerationMode,
   AgentThreadMode,
@@ -32,6 +33,7 @@ import {
   type ReactElement,
   type ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from 'react';
@@ -81,6 +83,8 @@ interface AgentChatInputProps {
   isTopAttached?: boolean;
   /** Invite the first prompt in a new conversation. */
   highlightWhenEmpty?: boolean;
+  /** Lets the surface composer collapse when this prompt is empty and idle. */
+  onOccupancyChange?: (occupancy: AgentChatComposerOccupancy) => void;
   /** Unused by this component directly; forwarded by some hosts for parity. */
   creditsAvailable?: number | null;
   willQueueFollowUp?: boolean;
@@ -125,6 +129,7 @@ export function AgentChatInput({
   density = 'default',
   isTopAttached = false,
   highlightWhenEmpty = false,
+  onOccupancyChange,
   willQueueFollowUp = false,
   knowledgeSelection,
   knowledgeSection,
@@ -212,6 +217,43 @@ export function AgentChatInput({
     !isDragActive &&
     !isListening &&
     !isTranscribing;
+  const [isComposerFocused, setIsComposerFocused] = useState(false);
+
+  useEffect(() => {
+    if (!editor) {
+      setIsComposerFocused(false);
+      return;
+    }
+
+    const handleFocus = () => setIsComposerFocused(true);
+    const handleBlur = () => setIsComposerFocused(false);
+    editor.on('focus', handleFocus);
+    editor.on('blur', handleBlur);
+    setIsComposerFocused(editor.isFocused);
+
+    return () => {
+      editor.off('focus', handleFocus);
+      editor.off('blur', handleBlur);
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    onOccupancyChange?.({
+      hasContent:
+        promptText.trim().length > 0 ||
+        hasAttachments ||
+        references.length > 0 ||
+        Boolean(editor && !editor.isEmpty),
+      isFocused: isComposerFocused,
+    });
+  }, [
+    editor,
+    hasAttachments,
+    isComposerFocused,
+    onOccupancyChange,
+    promptText,
+    references.length,
+  ]);
 
   return (
     <div

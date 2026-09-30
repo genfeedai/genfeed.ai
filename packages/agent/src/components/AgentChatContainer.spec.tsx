@@ -109,11 +109,16 @@ vi.mock('@ui/layout/prompt-bar-container/PromptBarContainer', () => ({
   default: function MockPromptBarContainer(props: {
     children?: ReactNode;
     containerRef?: (node: HTMLDivElement | null) => void;
+    isVisible?: boolean;
     layoutMode?: string;
     maxWidth?: string;
     showTopFade?: boolean;
     topContent?: ReactNode;
   }) {
+    if (props.isVisible === false) {
+      return null;
+    }
+
     return (
       <div
         data-layout-mode={props.layoutMode}
