@@ -89,7 +89,10 @@ for (const failure of ['rename', 'relaunch'] as const) {
         response.end('{}');
       }
     });
-    await new Promise<void>((resolve) => api.listen(0, '127.0.0.1', resolve));
+    await new Promise<void>((resolve, reject) => {
+      api.once('error', reject);
+      api.listen(57162, '127.0.0.1', resolve);
+    });
     const address = api.address();
     if (!address || typeof address === 'string')
       throw new Error('Fixture API did not bind.');
