@@ -3,8 +3,20 @@ import { brandPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Route } from '@playwright/test';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
-import { expect, test } from '../../fixtures/auth.fixture';
+import { test as base, expect } from '../../fixtures/auth.fixture';
 import { expectNoErrorOverlay } from '../../utils/route-assertions';
+
+const test = base.extend<{ browserErrors: string[] }>({
+  browserErrors: [
+    async ({ page }, use) => {
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await use(errors);
+      expect(errors).toEqual([]);
+    },
+    { auto: true },
+  ],
+});
 
 for (const colorScheme of ['light', 'dark'] as const) {
   for (const viewport of [
@@ -90,9 +102,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
         .getByRole('alert')
         .filter({ hasText: 'Generation history couldn’t load' });
       await expect(alert).toBeVisible();
-      await expect(
-        page.getByText('Your creations will appear here'),
-      ).toHaveCount(0);
+      await expect(page.getByTestId('studio-generate-results')).toHaveCount(0);
+      const composer = page
+        .getByTestId('studio-generate-prompt')
+        .getByRole('textbox');
+      await expect(composer).toBeEnabled();
       await expectNoErrorOverlay(page);
       await page.screenshot({
         path: testInfo.outputPath('before-retry.png'),
@@ -122,6 +136,11 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(alert).toHaveCount(0);
       await expectNoErrorOverlay(page);
       expect(galleryRequests).toBe(2);
+      await expect(composer).toBeEnabled();
+      await composer.fill('Composer remains usable after history recovery');
+      await expect(composer).toHaveText(
+        'Composer remains usable after history recovery',
+      );
       await page.screenshot({
         path: testInfo.outputPath('after-retry.png'),
         fullPage: true,

@@ -25,8 +25,9 @@ export const productionDataBannerRuntime = {
   getPublicEnv(
     name: 'NEXT_PUBLIC_PLAYWRIGHT_TEST' | 'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
   ): string | undefined {
-    const env = process.env as Record<string, string | undefined>;
-    return env[name];
+    return name === 'NEXT_PUBLIC_PLAYWRIGHT_TEST'
+      ? process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST
+      : process.env.NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP;
   },
 };
 
