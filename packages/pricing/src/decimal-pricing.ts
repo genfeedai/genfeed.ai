@@ -21,9 +21,10 @@ function decimalRatio(value: number): DecimalRatio | null {
 function numberFromRatio(ratio: DecimalRatio): number {
   // Internal denominators are powers of ten. Parse one decimal rather than
   // converting large numerator/denominator values separately to Infinity.
-  return Number(
+  const value = Number(
     `${ratio.numerator}e-${ratio.denominator.toString().length - 1}`,
   );
+  return value === 0 && ratio.numerator !== BigInt(0) ? NaN : value;
 }
 export function multiplyDecimalPricing(...values: number[]): number {
   let result: DecimalRatio = { numerator: BigInt(1), denominator: BigInt(1) };

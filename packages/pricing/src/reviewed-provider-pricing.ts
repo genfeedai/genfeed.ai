@@ -34,7 +34,7 @@ function unitsForRate(
         input.width > 0 &&
         validQuantity(input.height) &&
         input.height > 0
-        ? (input.width * input.height) / 1_000_000
+        ? multiplyDecimalPricing(input.width, input.height, 0.000001)
         : null;
     case 'input-megapixel':
       return input.inputMegapixels ?? null;

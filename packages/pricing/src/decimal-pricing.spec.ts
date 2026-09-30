@@ -27,6 +27,7 @@ describe('decimal financial arithmetic', () => {
     expect(ceilDecimalPricingRatio([0.12, 1.5], 0.01)).toBe(18);
     expect(ceilDecimalPricingRatio([-0.02, 1], 0.01)).toBe(-2);
     expect(multiplyDecimalPricing(Infinity, 1)).toBeNaN();
+    expect(multiplyDecimalPricing(1e-200, 1e-200)).toBeNaN();
     expect(sumDecimalPricing([NaN])).toBeNaN();
   });
 });

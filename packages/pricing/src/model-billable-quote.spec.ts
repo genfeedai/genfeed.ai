@@ -52,6 +52,24 @@ describe('authoritative bill-time quote snapshots', () => {
       'unresolved',
     );
   });
+  it('rejects nonzero provider costs below supported precision', () => {
+    expect(
+      quoteModelBillablePricing(
+        { ...model, providerCostUsd: 1e-200 },
+        { ...input, duration: 1e-200 },
+        1,
+        date,
+      ).status,
+    ).toBe('unresolved');
+    expect(
+      quoteModelBillablePricing(
+        { ...model, pricingType: 'per-megapixel', providerCostUsd: 0.1 },
+        { ...input, width: 1e-200, height: 1e-200 },
+        1,
+        date,
+      ).status,
+    ).toBe('unresolved');
+  });
   it('preserves exact decimal quantities in legacy metered credits', () => {
     expect(
       quoteModelBillablePricing(

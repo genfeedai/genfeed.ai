@@ -258,7 +258,7 @@ export function resolveBillableProviderCost(
         options.height <= 0
       )
         return null;
-      units = (options.width * options.height) / 1_000_000;
+      units = multiplyDecimalPricing(options.width, options.height, 0.000001);
       break;
     default:
       return null;
