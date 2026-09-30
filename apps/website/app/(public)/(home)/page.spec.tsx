@@ -26,7 +26,12 @@ describe('homepage metadata', () => {
     expect(result.openGraph?.title).toBe(result.title);
     expect(result.twitter?.title).toBe(result.title);
     expect(result.openGraph?.images).toEqual([
-      'https://cdn.genfeed.ai/previous.jpg',
+      expect.objectContaining({
+        url: 'https://genfeed.ai/og/home',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
     ]);
   });
 });

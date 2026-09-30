@@ -90,10 +90,17 @@ describe('generateMetadata', () => {
     );
     expect(meta.description).toContain(audience.toLowerCase());
     expect(meta.alternates?.canonical).toContain(`/use-cases/${KNOWN_SLUG}`);
-    expect(meta.openGraph?.images).toEqual([]);
+    expect(meta.openGraph?.images).toEqual([
+      expect.objectContaining({
+        url: `https://genfeed.ai/og/audience-${KNOWN_SLUG}`,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
+    ]);
   });
 
-  it('carries the parent OpenGraph images through', async () => {
+  it('assigns the route image instead of inherited artwork', async () => {
     const parent = Promise.resolve({
       openGraph: { images: [{ url: 'https://cdn.genfeed.ai/og.png' }] },
     }) as unknown as Parameters<typeof generateMetadata>[1];
@@ -104,7 +111,12 @@ describe('generateMetadata', () => {
     );
 
     expect(meta.openGraph?.images).toEqual([
-      { url: 'https://cdn.genfeed.ai/og.png' },
+      expect.objectContaining({
+        url: `https://genfeed.ai/og/audience-${KNOWN_SLUG}`,
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
     ]);
   });
 });

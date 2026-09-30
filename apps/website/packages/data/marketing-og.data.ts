@@ -142,10 +142,15 @@ for (const slug of AGENT_CLIENT_SLUGS) {
     const integration = getIntegrationBySlug(channel);
     if (!integration) continue;
     const id = `${slug}--${channel}`;
-    MARKETING_OG_CARDS[id] = editorialCard(slug, [
+    const headline = [
       client.name === 'Meta Muse' ? 'Muse' : client.name,
       `on ${integration.name}`,
-    ]);
+    ];
+    MARKETING_OG_CARDS[id] = {
+      ...editorialCard(slug, headline),
+      headlineFontSize:
+        Math.max(...headline.map((line) => line.length)) > 11 ? 74 : 84,
+    };
     MARKETING_OG_PATHS[`/${slug}/${channel}`] = id;
   }
 }
