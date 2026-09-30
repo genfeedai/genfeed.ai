@@ -185,6 +185,7 @@ export class ChannelMessageDispatcherService {
           return this.discordService.sendLowCreditsAlert(payload);
         }
         break;
+      case 'ingestion_health':
       case 'streak_at_risk':
       case 'streak_broken':
       case 'streak_freeze_used':

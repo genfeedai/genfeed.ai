@@ -14,6 +14,7 @@ import { TrendFetchService } from '@api/collections/trends/services/modules/tren
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendReferenceSyncService } from '@api/collections/trends/services/modules/trend-reference-sync.service';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
@@ -56,6 +57,7 @@ import { Module } from '@nestjs/common';
     TrendsController,
   ],
   exports: [
+    TrendRefreshHealthService,
     TrendsService,
     TrendPreferencesService,
     TrendReferenceCorpusService,
@@ -82,6 +84,7 @@ import { Module } from '@nestjs/common';
     YoutubeModule,
   ],
   providers: [
+    TrendRefreshHealthService,
     TrendAnalysisService,
     TrendCorpusFreshnessService,
     TrendContentIdeasService,
@@ -99,6 +102,7 @@ import { Module } from '@nestjs/common';
         YoutubeService,
         PinterestService,
         TiktokService,
+        TrendRefreshHealthService,
       ],
       provide: TrendFetchService,
       useFactory: (
@@ -114,6 +118,7 @@ import { Module } from '@nestjs/common';
         youtubeService: YoutubeService,
         pinterestService: PinterestService,
         tiktokService: TiktokService,
+        refreshHealth: TrendRefreshHealthService,
       ) =>
         new TrendFetchService(
           prisma,
@@ -128,6 +133,7 @@ import { Module } from '@nestjs/common';
           youtubeService,
           pinterestService,
           tiktokService,
+          refreshHealth,
         ),
     },
     TrendFilteringService,

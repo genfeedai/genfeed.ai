@@ -1,4 +1,5 @@
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -153,6 +154,10 @@ describe('TrendCorpusFreshnessService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrendCorpusFreshnessService,
+        {
+          provide: TrendRefreshHealthService,
+          useValue: { getHealth: vi.fn().mockResolvedValue([]) },
+        },
         { provide: PrismaService, useValue: prisma },
       ],
     }).compile();

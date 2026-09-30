@@ -8,6 +8,7 @@ import { TrendContentIdeasService } from '@api/collections/trends/services/modul
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
@@ -160,6 +161,7 @@ describe('TrendsService', () => {
               youtubeService,
               pinterestService,
               tiktokService,
+              { record: vi.fn().mockResolvedValue(undefined) } as never,
             ),
         },
         TrendFilteringService,
@@ -167,6 +169,10 @@ describe('TrendsService', () => {
         TrendSourceItemsService,
         TrendSourcePreviewService,
         TrendVideoService,
+        {
+          provide: TrendRefreshHealthService,
+          useValue: { record: vi.fn().mockResolvedValue(undefined) },
+        },
         TrendPreferencesService,
         {
           provide: PrismaService,

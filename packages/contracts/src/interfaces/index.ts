@@ -53,6 +53,7 @@ export * from './analytics/saved-ad.interface';
 export * from './analytics/training.interface';
 export * from './analytics/trend.interface';
 export * from './analytics/trend-intelligence.interface';
+export * from './analytics/trend-refresh-health.interface';
 export * from './analytics/trend-summary.interface';
 export * from './analytics/viral-hooks.interface';
 export * from './analytics/vote.interface';

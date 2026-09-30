@@ -1,3 +1,4 @@
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import type { ITwitterSearchResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -116,6 +117,7 @@ export class TwitterReadService {
         brandId,
       );
     } catch (error: unknown) {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
       const errorObject = error as TwitterApiErrorShape;
       const isAccessLevelError =
         errorObject?.code === 453 ||
