@@ -9,7 +9,9 @@ import { CreditBalanceService } from '@api/collections/credits/services/credit-b
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
+import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -24,12 +26,15 @@ import { VisualProjectWorkflowService } from '@api/collections/visual-projects/s
 import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
+import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
 import {
   type WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowNodeClaimService } from '@api/collections/workflows/services/workflow-node-claim.service';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import {
   getSystemWorkflowMetadata,
   isHiddenSystemWorkflowMetadata,
@@ -55,6 +60,7 @@ import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { WebhookDispatchService } from '@api/services/webhook-client/webhook-dispatch.service';
@@ -99,8 +105,6 @@ import {
   WORKFLOW_EXECUTION_QUEUE,
 } from '@genfeedai/contracts/queue';
 import type { Model } from '@genfeedai/prisma';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { WorkflowExecutionProcessor } from '@workers/processors/api/collections/workflows/services/workflow-execution.processor';
@@ -329,7 +333,17 @@ function unusedPort(label: string): object {
     {},
     {
       get(_target, name) {
-        if (name === 'then') return undefined;
+        if (
+          [
+            'then',
+            'onModuleInit',
+            'onApplicationBootstrap',
+            'onModuleDestroy',
+            'beforeApplicationShutdown',
+            'onApplicationShutdown',
+          ].some((hook) => hook === name)
+        )
+          return undefined;
         return () => {
           throw new Error(
             `Unexpected nonparticipating fixture port: ${label}.${String(name)}`,
@@ -488,6 +502,10 @@ export async function createVisualCodeAcceptanceFixture(
     const outboundQueue = {
       add: vi.fn().mockResolvedValue({ id: 'fixture-outbound' }),
     };
+    const executorRegistry: Pick<
+      WorkflowEngineExecutorRegistryService,
+      'register'
+    > = { register() {} };
     const moduleConfig = await E2ETestModule.forRoot({
       useMockGuards: false,
       configOverrides: {
@@ -527,16 +545,28 @@ export async function createVisualCodeAcceptanceFixture(
         WorkflowEventWebhookService,
         WebhookDispatchService,
         WorkflowNotificationQueueService,
+        WorkflowEngineAdapterService,
+        VisualProjectsController,
+        IngredientsController,
+        WorkflowExecutionProcessor,
         {
-          provide: WorkflowEngineAdapterService,
-          inject: [LoggerService],
-          useFactory: (logger: LoggerService) =>
-            new WorkflowEngineAdapterService(
-              logger,
-              { register() {} } as never,
-              unusedPort('trendPublishRegistrar') as never,
-            ),
+          provide: WorkflowEngineExecutorRegistryService,
+          useValue: executorRegistry,
         },
+        {
+          provide: WorkflowTrendPublishExecutorRegistrarService,
+          useValue: unusedPort('trendPublishRegistrar'),
+        },
+        {
+          provide: WorkflowSchedulerService,
+          useValue: unusedPort('scheduler'),
+        },
+        { provide: FoldersService, useValue: unusedPort('folders') },
+        {
+          provide: IngredientGenerationCancellationService,
+          useValue: unusedPort('cancellation'),
+        },
+        { provide: MediaUrlService, useValue: unusedPort('mediaURLs') },
         {
           provide: WORKFLOW_ENGINE_ADAPTER,
           useExisting: WorkflowEngineAdapterService,
@@ -661,23 +691,9 @@ export async function createVisualCodeAcceptanceFixture(
       data: fixtureModel(PAID_MODEL, true),
     });
     seeds.modelIds.push(paidModel.id);
-    const controller = new VisualProjectsController(
-      compiledModule.get(VisualProjectsService),
-    );
-    const library = new IngredientsController(
-      compiledModule.get(IngredientsService),
-      unusedPort('folders') as never,
-      unusedPort('cancellation') as never,
-      compiledModule.get(ConfigService),
-      unusedPort('mediaURLs') as never,
-    );
-    const processor = new WorkflowExecutionProcessor(
-      compiledModule.get(LoggerService),
-      compiledModule.get(WorkflowExecutorService),
-      compiledModule.get(WorkflowExecutionQueueService),
-      unusedPort('scheduler') as never,
-      compiledModule.get(SystemWorkflowRunnerService),
-    );
+    const controller = compiledModule.get(VisualProjectsController);
+    const library = compiledModule.get(IngredientsController);
+    const processor = compiledModule.get(WorkflowExecutionProcessor);
     let lastJob: CapturedWorkflowJob | undefined;
     const runJob = async (job: CapturedWorkflowJob) => {
       job.state = 'active';
