@@ -52,6 +52,10 @@ export function useAgentThreadStatusPush({
       return;
     }
 
+    // The reload callback changes with the list's brand/status scope. Keep
+    // unresolved IDs suppressed within that scope until a row appears.
+    const unknownThreadIds = new Set<string>();
+
     const unsubscribe = subscribe<AgentThreadStatusEvent>(
       AGENT_THREAD_STATUS_EVENT_TYPE,
       (event) => {
@@ -65,10 +69,12 @@ export function useAgentThreadStatusPush({
         const result = state.applyThreadStatusPush(event, streamSequenceFloor);
 
         if (result === 'applied') {
+          unknownThreadIds.delete(event.threadId);
           countAgentThreadStatusClient('applied');
           return;
         }
         if (result === 'stale') {
+          unknownThreadIds.delete(event.threadId);
           countAgentThreadStatusClient('dropped_out_of_order');
           return;
         }
@@ -76,9 +82,20 @@ export function useAgentThreadStatusPush({
         // A thread started elsewhere is not in this list yet: the list, not
         // the event, is what introduces a row.
         countAgentThreadStatusClient('unknown_thread');
+        if (unknownThreadIds.has(event.threadId)) {
+          return;
+        }
+        unknownThreadIds.add(event.threadId);
         clearTimeout(unknownThreadTimerRef.current);
         unknownThreadTimerRef.current = setTimeout(() => {
-          void reloadThreadsRef.current().catch(() => false);
+          const pendingIds = [...unknownThreadIds];
+          void reloadThreads()
+            .catch(() => false)
+            .then((isLoaded) => {
+              if (!isLoaded) {
+                for (const id of pendingIds) unknownThreadIds.delete(id);
+              }
+            });
         }, UNKNOWN_THREAD_RELOAD_DEBOUNCE_MS);
       },
     );
@@ -87,7 +104,7 @@ export function useAgentThreadStatusPush({
       unsubscribe();
       clearTimeout(unknownThreadTimerRef.current);
     };
-  }, [isActive, isReady, subscribe]);
+  }, [isActive, isReady, reloadThreads, subscribe]);
 
   useEffect(() => {
     const previous = previousConnectionStateRef.current;

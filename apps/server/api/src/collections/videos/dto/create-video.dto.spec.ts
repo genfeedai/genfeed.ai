@@ -1,4 +1,7 @@
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import {
+  CreateMergedVideoDto,
+  CreateVideoDto,
+} from '@api/collections/videos/dto/create-video.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import type { ArgumentMetadata } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
@@ -163,5 +166,20 @@ describe('CreateVideoDto', () => {
         width: 1920,
       });
     });
+  });
+});
+
+describe('CreateMergedVideoDto unsupported zoom', () => {
+  it.each([
+    { zoomEaseCurve: 'ease-in-out-cubic' },
+    { zoomConfigs: [{ startZoom: 1, endZoom: 1.2 }] },
+  ])('rejects zoom instead of silently stripping it', async (zoom) => {
+    const pipe = new ValidationPipe();
+    await expect(
+      pipe.transform(
+        { category: 'video', ids: [entityId(1), entityId(2)], ...zoom },
+        { metatype: CreateMergedVideoDto, type: 'body' },
+      ),
+    ).rejects.toThrow();
   });
 });

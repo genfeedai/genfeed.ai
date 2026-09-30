@@ -1,5 +1,6 @@
 import {
   ActivityKey,
+  ActivityKeys,
   getActivityMessageDescriptor,
   IngredientCategory,
 } from '@genfeedai/contracts';
@@ -181,19 +182,19 @@ describe('generation credit amounts', () => {
   it('reads settled media generation charges only', () => {
     expect(
       getGenerationCreditAmount({
-        key: 'image.generate.completed',
+        key: ActivityKeys.image.generate.completed,
         value: '{"credits":12}',
       }),
     ).toBe(12);
     expect(
       getGenerationCreditAmount({
-        key: 'image.generate.processing',
+        key: ActivityKeys.image.generate.processing,
         value: '{"credits":12}',
       }),
     ).toBeNull();
     expect(
       getGenerationCreditAmount({
-        key: 'image.upscale.completed',
+        key: ActivityKeys.image.upscale.completed,
         value: '{"credits":12}',
       }),
     ).toBeNull();

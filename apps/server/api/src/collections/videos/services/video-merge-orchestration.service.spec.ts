@@ -64,7 +64,6 @@ describe('VideoMergeOrchestrationService', () => {
           transition: VideoTransition.FADE,
           transitionDuration: 0.75,
           transitionEaseCurve: VideoEaseCurve.EASE_IN_OUT_SINE,
-          zoomEaseCurve: VideoEaseCurve.EASE_IN_OUT_CUBIC,
         }),
         'manual:key',
       ),

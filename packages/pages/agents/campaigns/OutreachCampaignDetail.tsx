@@ -255,12 +255,7 @@ export default function OutreachCampaignDetail() {
             <CampaignNeedsYou
               isExecuting={isStartingCampaign}
               isPaused={campaign.status === CampaignStatus.PAUSED}
-              onResume={() => {
-                if (!isPairExecutable) {
-                  return;
-                }
-                handleStartCampaign();
-              }}
+              onResume={isPairExecutable ? handleStartCampaign : undefined}
               pausedDescription={translate('needsYou.pausedDescription')}
               resumeLabel={translate('needsYou.resume')}
               title={translate('needsYou.title')}

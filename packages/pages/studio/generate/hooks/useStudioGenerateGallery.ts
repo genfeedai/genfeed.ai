@@ -4,7 +4,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { toStudioGenerateJob } from '@pages/studio/generate/utils/studio-generate-asset';
 import type { StudioGenerateFilter } from '@pages/studio/generate/utils/studio-generate-gallery';
-import { buildStudioGalleryQuery } from '@pages/studio/generate/utils/studio-generate-gallery';
+import { loadStudioGalleryIngredients } from '@pages/studio/generate/utils/studio-generate-gallery';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { useCallback, useEffect, useState } from 'react';
@@ -59,9 +59,13 @@ export function useStudioGenerateGallery({
 
     void (async () => {
       try {
-        const query = buildStudioGalleryQuery(brandId, filter);
         const service = await getIngredientsService();
-        const ingredients = await service.findAll(query, controller.signal);
+        const ingredients = await loadStudioGalleryIngredients(
+          service,
+          brandId,
+          filter,
+          controller.signal,
+        );
 
         if (isCancelled || controller.signal.aborted) {
           return;

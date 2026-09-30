@@ -149,29 +149,9 @@ export const storyboardSchema = z.object({
       VIDEO_DIMENSIONS.MAX_WIDTH,
       `Width must be at most ${VIDEO_DIMENSIONS.MAX_WIDTH}px`,
     ),
-  zoomConfigs: z
-    .array(
-      z.object({
-        endX: z.number().optional(),
-        endY: z.number().optional(),
-        endZoom: z.number().optional(),
-        startX: z.number().optional(),
-        startY: z.number().optional(),
-        startZoom: z.number().optional(),
-      }),
-    )
-    .optional(),
-
-  // Zoom settings for merged video
-  zoomEaseCurve: z
-    .enum([
-      VideoEaseCurve.EASE_IN_OUT_EXPO,
-      VideoEaseCurve.EASE_IN_EXPO_OUT_CUBIC,
-      VideoEaseCurve.EASE_IN_QUART_OUT_QUAD,
-      VideoEaseCurve.EASE_IN_OUT_CUBIC,
-      VideoEaseCurve.EASE_IN_OUT_SINE,
-    ])
-    .optional(),
+  // Video stitching does not implement slideshow zoom effects.
+  zoomConfigs: z.never().optional(),
+  zoomEaseCurve: z.never().optional(),
 });
 
 export type Storyboard = z.infer<typeof storyboardSchema>;
