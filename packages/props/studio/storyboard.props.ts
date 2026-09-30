@@ -9,6 +9,8 @@ import type {
   BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
+import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type {
   IImage,
   StoryboardRunRecipe,
@@ -171,4 +173,16 @@ export interface StoryboardSaveIndicatorProps {
   readonly status: 'saved' | 'saving' | 'failed' | 'dirty';
   readonly error?: string;
   readonly onRetry: () => void;
+}
+
+export interface StoryboardPlanEditorProps {
+  readonly run: StoryboardRun;
+  readonly supportedDurations?: readonly number[];
+  readonly savePlan: (
+    revision: number,
+    plan: StoryboardPlan,
+    signal: AbortSignal,
+  ) => Promise<StoryboardRun>;
+  readonly resetPlan: (revision: number) => Promise<StoryboardRun>;
+  readonly approvePlan: (revision: number) => Promise<StoryboardRun>;
 }
