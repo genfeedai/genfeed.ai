@@ -473,15 +473,26 @@ for (const networkAccess of [
       await expect(
         page.getByTestId('desktop-local-generation-cost'),
       ).toHaveText(labels[networkAccess]);
-      await expect(
-        page.getByTestId('desktop-provider-generation-cost'),
-      ).toHaveText(labels[networkAccess]);
+      if (networkAccess === 'unavailable') {
+        // The existing local route mounts provider settings only after a
+        // successful bootstrap. Recovery must not pretend that succeeded.
+        await expect(
+          page.getByTestId('desktop-provider-generation-cost'),
+        ).toHaveCount(0);
+        await expect(page.getByText('Choose a local provider')).toHaveCount(0);
+      } else {
+        await expect(
+          page.getByTestId('desktop-provider-generation-cost'),
+        ).toHaveText(labels[networkAccess]);
+      }
       expect(walletRequests).toBe(0);
       expect(desktopNetwork.walletRequests).toBe(0);
       if (networkAccess === 'unavailable')
-        await expect(page.getByRole('alert')).toContainText(
-          'Restart Genfeed Desktop to recover the local workspace.',
-        );
+        await expect(
+          page.getByRole('alert').filter({
+            hasText: 'Restart Genfeed Desktop to recover the local workspace.',
+          }),
+        ).toBeVisible();
       expect(desktopNetwork.pageErrors).toEqual([]);
       await expectNoErrorOverlay(page);
       await assertNoErrorBoundaryFallback(page, page.url());
