@@ -4,12 +4,15 @@ import {
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardRunPanel from './StoryboardRunPanel';
 
 vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
-  useStoryboardAssets: () => ({}),
+  useStoryboardAssets: vi.fn(() => ({})),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org-1' }),
@@ -91,6 +94,35 @@ const run = {
 } as unknown as BrandRemixRunView;
 
 describe('StoryboardRunPanel', () => {
+  beforeEach(() => {
+    vi.mocked(useStoryboardAssets).mockReturnValue({});
+  });
+
+  it.each([undefined, '', '   '])(
+    'renders a contextual name for a real unnamed Video (%j)',
+    (label) => {
+      const asset = new Video({
+        id: 'video-1',
+        brandId: 'brand-1',
+        ...(label === undefined ? {} : { metadata: new Metadata({ label }) }),
+      });
+      vi.mocked(useStoryboardAssets).mockReturnValue({
+        'video:video-1': asset,
+      });
+      render(
+        <StoryboardRunPanel
+          error={null}
+          isWorking={false}
+          onReview={vi.fn()}
+          onVary={vi.fn()}
+          run={run}
+        />,
+      );
+      expect(screen.getByText('Output 1 · Asset 1')).toBeVisible();
+      expect(screen.queryByText('video-1')).toBeNull();
+    },
+  );
+
   it('shows durable recipe lineage and groups every variation under the run', () => {
     render(
       <StoryboardRunPanel

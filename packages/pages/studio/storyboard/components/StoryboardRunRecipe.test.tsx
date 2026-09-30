@@ -1,9 +1,12 @@
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
-  useStoryboardAssets: () => ({}),
+  useStoryboardAssets: vi.fn(() => ({})),
 }));
 
 const mocks = vi.hoisted(() => ({
@@ -71,7 +74,32 @@ const run = {
 describe('StoryboardRunRecipe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useStoryboardAssets).mockReturnValue({});
   });
+
+  it.each([undefined, '', '   '])(
+    'renders a contextual name for a real unnamed Image (%j)',
+    (label) => {
+      const asset = new Image({
+        id: 'style-ref',
+        brandId: 'brand-1',
+        ...(label === undefined ? {} : { metadata: new Metadata({ label }) }),
+      });
+      vi.mocked(useStoryboardAssets).mockReturnValue({
+        'image:style-ref': asset,
+      });
+      render(
+        <StoryboardRunRecipe
+          isWorking={false}
+          onGenerate={vi.fn()}
+          run={run}
+        />,
+      );
+      expect(screen.getByText('Reference 1')).toBeVisible();
+      expect(screen.queryByText('style-re')).toBeNull();
+      expect(screen.queryByText('style-ref')).toBeNull();
+    },
+  );
 
   it('restores the saved recipe and generates with the edited values', () => {
     const onGenerate = vi.fn();

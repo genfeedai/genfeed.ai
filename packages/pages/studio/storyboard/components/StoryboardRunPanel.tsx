@@ -13,11 +13,11 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import StoryboardRunScenes from '@pages/studio/storyboard/components/StoryboardRunScenes';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
+import { getStoryboardAssetLabel } from '@pages/studio/storyboard/utils/storyboard-asset-label';
 import { resolvePairedRunIdentity } from '@pages/studio/storyboard/utils/storyboard-run';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Copy, GitBranch, Megaphone, Send, Sparkles } from 'lucide-react';
 import NextImage from 'next/image';
 import Link from 'next/link';
@@ -210,21 +210,25 @@ export default function StoryboardRunPanel({
           <Badge variant="secondary">
             {translate('run.identity.avatar', {
               id:
-                avatars.find(
-                  (item) =>
-                    item.id === canonicalIdentity.avatarAssetId &&
-                    item.brandId === run.brandId,
-                )?.metadataLabel || '—',
+                getStoryboardAssetLabel(
+                  avatars.find(
+                    (item) =>
+                      item.id === canonicalIdentity.avatarAssetId &&
+                      item.brandId === run.brandId,
+                  ),
+                ) ?? '—',
             })}
           </Badge>
           <Badge variant="secondary">
             {translate('run.identity.voice', {
               id:
-                voices.find(
-                  (item) =>
-                    item.id === canonicalIdentity.speechVoiceId &&
-                    item.brandId === run.brandId,
-                )?.metadataLabel || '—',
+                getStoryboardAssetLabel(
+                  voices.find(
+                    (item) =>
+                      item.id === canonicalIdentity.speechVoiceId &&
+                      item.brandId === run.brandId,
+                  ),
+                ) ?? '—',
             })}
           </Badge>
         </div>
@@ -293,8 +297,8 @@ export default function StoryboardRunPanel({
                             ) : null}
                             <span className="max-w-60 break-words text-muted-foreground">
                               {asset
-                                ? getIngredientDisplayLabel(asset) !== id
-                                  ? getIngredientDisplayLabel(asset)
+                                ? getStoryboardAssetLabel(asset)
+                                  ? getStoryboardAssetLabel(asset)
                                   : translate.has?.('run.outputAssetLabel')
                                     ? translate('run.outputAssetLabel', {
                                         ordinal: index + 1,
