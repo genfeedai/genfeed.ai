@@ -29,6 +29,7 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
+import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -228,6 +229,8 @@ export default function IngredientsListContent({
   onReprompt,
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
+  const translateActions = useTranslations('ui.quickActions');
+  const storyboardEntry = useStoryboardEntry();
   const translateRetry = useTranslations('common.libraryRetry');
   // This full-card layout is reserved for a route whose *type* is dedicated
   // to audio (the legacy per-category admin pages) — every Library route's
@@ -488,8 +491,30 @@ export default function IngredientsListContent({
         onClick: handleViewIngredient,
         tooltip: 'View',
       },
+      {
+        icon: <Film />,
+        onClick: storyboardEntry.createFromAsset,
+        tooltip: (ingredient: IIngredient) =>
+          isVideoIngredient(ingredient)
+            ? translateActions('remixThisVideo')
+            : 'Add to Storyboard',
+        isVisible: (ingredient: IIngredient) =>
+          scope === PageScope.BRAND &&
+          isActionsEnabled &&
+          storyboardEntry.canCreateFromAsset(ingredient),
+        isDisabled: (ingredient: IIngredient) =>
+          storyboardEntry.pendingAssetId === ingredient.id,
+      },
     ],
-    [handleViewIngredient],
+    [
+      handleViewIngredient,
+      isActionsEnabled,
+      scope,
+      storyboardEntry.canCreateFromAsset,
+      storyboardEntry.createFromAsset,
+      storyboardEntry.pendingAssetId,
+      translateActions,
+    ],
   );
 
   const content = useMemo(() => {

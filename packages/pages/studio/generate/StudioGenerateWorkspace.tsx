@@ -9,6 +9,8 @@ import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input'
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import {
+  ButtonSize,
+  ButtonVariant,
   ComponentSize,
   IngredientCategory,
   SkillSurface,
@@ -38,6 +40,7 @@ import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio
 import type { AttachmentItem } from '@genfeedai/props/ui/attachments.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
+import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import KnowledgeReferenceSection, {
   countKnowledgeSelection,
 } from '@pages/library/knowledge/components/KnowledgeReferenceSection';
@@ -78,9 +81,11 @@ import type { JSONContent } from '@tiptap/core';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
+import { Button } from '@ui/primitives/button';
 import Searchbar from '@ui/primitives/searchbar';
 import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
-import { LayoutGrid, Rows3 } from 'lucide-react';
+import { LayoutGrid, RotateCcw, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   type ReactElement,
@@ -150,6 +155,8 @@ function toRestoredAttachment(asset: IIngredient): AttachmentItem | null {
 
 export default function StudioGenerateWorkspace(): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
+  const translateActions = useTranslations('ui.quickActions');
+  const storyboardEntry = useStoryboardEntry();
   const {
     brandId,
     organizationId,
@@ -343,10 +350,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
     modelCategory,
     organizationId,
   );
-  const { isLoadingGallery, refresh, storedJobs } = useStudioGenerateGallery({
-    brandId,
-    filter: 'all',
-  });
+  const { galleryError, isLoadingGallery, refresh, storedJobs } =
+    useStudioGenerateGallery({
+      brandId,
+      filter: 'all',
+    });
 
   const handleAttachGeneratedReference = useCallback(
     (ingredient: IIngredient, targetType: 'image' | 'video') => {
@@ -1287,18 +1295,54 @@ export default function StudioGenerateWorkspace(): ReactElement {
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           <div className="h-full overflow-auto px-6 py-6 pb-40">
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-              <StudioGenerateResults
-                assetActions={{
-                  ...assetActions,
-                  onCancelGeneration: cancelJob,
-                }}
-                isLoading={isLoadingGallery}
-                jobs={visibleJobs}
-                onReprompt={handleVaryRecipe}
-                onSelect={handleSelectJob}
-                selectedJobId={selectedJobId}
-                view={resultsView}
-              />
+              {galleryError ? (
+                <Alert role="alert">
+                  <AlertTitle>
+                    {translate(`history.${galleryError}FailedTitle`)}
+                  </AlertTitle>
+                  <AlertDescription>
+                    <p>
+                      {translate(`history.${galleryError}FailedDescription`)}
+                    </p>
+                    <Button
+                      ariaLabel={translate('history.retry')}
+                      className="mt-3"
+                      disabled={isLoadingGallery}
+                      isLoading={isLoadingGallery}
+                      onClick={refresh}
+                      size={ButtonSize.SM}
+                      variant={ButtonVariant.SECONDARY}
+                      withWrapper={false}
+                    >
+                      <RotateCcw aria-hidden="true" className="size-4" />
+                      {translate('history.retry')}
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              {galleryError && isLoadingGallery ? (
+                <p
+                  aria-live="polite"
+                  className="text-sm text-muted-foreground"
+                  role="status"
+                >
+                  {translate('history.retrying')}
+                </p>
+              ) : null}
+              {!galleryError || visibleJobs.length > 0 ? (
+                <StudioGenerateResults
+                  assetActions={{
+                    ...assetActions,
+                    onCancelGeneration: cancelJob,
+                  }}
+                  isLoading={isLoadingGallery}
+                  jobs={visibleJobs}
+                  onReprompt={handleVaryRecipe}
+                  onSelect={handleSelectJob}
+                  selectedJobId={selectedJobId}
+                  view={resultsView}
+                />
+              ) : null}
             </div>
           </div>
           <PromptBarContainer
@@ -1329,6 +1373,30 @@ export default function StudioGenerateWorkspace(): ReactElement {
                         : translate('draft.saved')}
                 </p>
               )}
+              {attachments
+                .filter(
+                  (attachment: AttachmentItem) =>
+                    attachment.kind === 'video' &&
+                    attachment.status === UploadStatus.COMPLETED &&
+                    attachment.ingredientId,
+                )
+                .map((attachment: AttachmentItem) => (
+                  <Button
+                    ariaLabel={`${translateActions('remixThisVideo')}: ${attachment.name}`}
+                    className="mb-2 mr-2"
+                    key={attachment.id}
+                    label={translateActions('remixThisVideo')}
+                    onClick={() => {
+                      if (attachment.ingredientId)
+                        void storyboardEntry.createFromUploadAssetId(
+                          attachment.ingredientId,
+                        );
+                    }}
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    withWrapper={false}
+                  />
+                ))}
               <StudioGenerateComposer
                 attachedAssets={attachedAssets}
                 extraExtensions={extraExtensions}

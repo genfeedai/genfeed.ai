@@ -1,0 +1,191 @@
+import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({ findAllPage: vi.fn(), error: vi.fn() }));
+const getService = async () => ({ findAllPage: mocks.findAllPage });
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => getService,
+}));
+vi.mock('@services/content/ingredients.service', () => ({
+  IngredientsService: {},
+}));
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.error },
+}));
+vi.mock('@pages/studio/generate/utils/studio-generate-asset', () => ({
+  toStudioGenerateJob: (asset: Ingredient) => ({ id: asset.id, createdAt: 1 }),
+}));
+
+function page(ids: string[] = [], totalPages = 1) {
+  return { items: ids.map((id) => ({ id })), totalPages };
+}
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+  return { promise, resolve, reject };
+}
+const scope = { brandId: 'brand-a', filter: 'all' as const };
+
+describe('Studio history recovery with the real bounded loader', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findAllPage.mockReset();
+  });
+
+  it('loads a complete snapshot and supports a successful empty result', async () => {
+    mocks.findAllPage
+      .mockResolvedValueOnce(page(['saved']))
+      .mockResolvedValueOnce(page());
+    const { result } = renderHook(() => useStudioGenerateGallery(scope));
+    await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
+    expect(result.current.storedJobs).toEqual([]);
+    expect(result.current.galleryError).toBeNull();
+  });
+
+  it('keeps load error visible during retry, then clears it only on success', async () => {
+    const retry = deferred<ReturnType<typeof page>>();
+    mocks.findAllPage
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockReturnValueOnce(retry.promise);
+    const { result } = renderHook(() => useStudioGenerateGallery(scope));
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+    act(() => result.current.refresh());
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
+    expect(result.current.galleryError).toBe('load');
+    expect(result.current.isLoadingGallery).toBe(true);
+    await act(async () => retry.resolve(page(['restored'])));
+    expect(result.current.galleryError).toBeNull();
+    expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+      'restored',
+    ]);
+    expect(mocks.error).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([{ ids: [] }, { ids: ['saved'] }])(
+    'retains the last complete snapshot after repeated refresh failures: %j',
+    async ({ ids }) => {
+      mocks.findAllPage
+        .mockResolvedValueOnce(page(ids))
+        .mockRejectedValue(new Error('offline'));
+      const { result } = renderHook(() => useStudioGenerateGallery(scope));
+      await waitFor(() => expect(result.current.isLoadingGallery).toBe(false));
+      act(() => result.current.refresh());
+      await waitFor(() => expect(result.current.galleryError).toBe('refresh'));
+      act(() => result.current.refresh());
+      await waitFor(() => expect(mocks.error).toHaveBeenCalledTimes(2));
+      expect(result.current.storedJobs.map((job) => job.id)).toEqual(ids);
+      expect(result.current.galleryError).toBe('refresh');
+    },
+  );
+
+  it('never publishes partial pages and retries from page one', async () => {
+    const ids = Array.from({ length: 100 }, (_, index) => `asset-${index}`);
+    mocks.findAllPage
+      .mockResolvedValueOnce(page(ids, 2))
+      .mockRejectedValueOnce(new Error('page two'))
+      .mockResolvedValueOnce(page(['retry-result']));
+    const { result } = renderHook(() => useStudioGenerateGallery(scope));
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+    expect(result.current.storedJobs).toEqual([]);
+    act(() => result.current.refresh());
+    await waitFor(() => expect(result.current.galleryError).toBeNull());
+    expect(mocks.findAllPage.mock.calls.map(([query]) => query.page)).toEqual([
+      1, 2, 1,
+    ]);
+    expect(result.current.storedJobs.map((job) => job.id)).toEqual([
+      'retry-result',
+    ]);
+  });
+
+  it('clears brand and filter scope synchronously and never resurrects discarded A', async () => {
+    mocks.findAllPage
+      .mockResolvedValueOnce(page(['a']))
+      .mockRejectedValue(new Error('unavailable'));
+    const { result, rerender } = renderHook(useStudioGenerateGallery, {
+      initialProps: { brandId: 'brand-a', filter: 'all' as 'all' | 'image' },
+    });
+    await waitFor(() => expect(result.current.storedJobs).toHaveLength(1));
+    rerender({ brandId: 'brand-a', filter: 'image' });
+    expect(result.current.storedJobs).toEqual([]);
+    expect(result.current.galleryError).toBeNull();
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+    rerender({ brandId: 'brand-b', filter: 'all' });
+    expect(result.current.galleryError).toBeNull();
+    rerender({ brandId: 'brand-a', filter: 'all' });
+    expect(result.current.storedJobs).toEqual([]);
+    await waitFor(() => expect(result.current.galleryError).toBe('load'));
+  });
+
+  it('does not request unresolved brands', () => {
+    const { result } = renderHook(() =>
+      useStudioGenerateGallery({ ...scope, brandId: '' }),
+    );
+    expect(result.current).toMatchObject({
+      storedJobs: [],
+      galleryError: null,
+      isLoadingGallery: false,
+    });
+    expect(mocks.findAllPage).not.toHaveBeenCalled();
+  });
+
+  it('aborts scope changes and ignores late success and failure', async () => {
+    const first = deferred<ReturnType<typeof page>>();
+    const second = deferred<ReturnType<typeof page>>();
+    mocks.findAllPage
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+      .mockResolvedValueOnce(page(['c']));
+    const { result, rerender } = renderHook(useStudioGenerateGallery, {
+      initialProps: scope,
+    });
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(1));
+    const firstSignal = mocks.findAllPage.mock.calls[0][1] as AbortSignal;
+    rerender({ ...scope, brandId: 'brand-b' });
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
+    expect(firstSignal.aborted).toBe(true);
+    rerender({ ...scope, brandId: 'brand-c' });
+    await waitFor(() =>
+      expect(result.current.storedJobs.map((job) => job.id)).toEqual(['c']),
+    );
+    await act(async () => {
+      first.resolve(page(['late-a']));
+      second.reject(new Error('late-b'));
+    });
+    expect(result.current.storedJobs.map((job) => job.id)).toEqual(['c']);
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+
+  it('aborts replacement and unmount without logging transport aborts', async () => {
+    const first = deferred<ReturnType<typeof page>>();
+    const second = deferred<ReturnType<typeof page>>();
+    mocks.findAllPage
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise);
+    const { result, unmount } = renderHook(() =>
+      useStudioGenerateGallery(scope),
+    );
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(1));
+    act(() => result.current.refresh());
+    expect((mocks.findAllPage.mock.calls[0][1] as AbortSignal).aborted).toBe(
+      true,
+    );
+    await waitFor(() => expect(mocks.findAllPage).toHaveBeenCalledTimes(2));
+    unmount();
+    expect((mocks.findAllPage.mock.calls[1][1] as AbortSignal).aborted).toBe(
+      true,
+    );
+    await act(async () => {
+      first.reject(new Error('aborted'));
+      second.resolve(page(['late']));
+    });
+    expect(mocks.error).not.toHaveBeenCalled();
+  });
+});

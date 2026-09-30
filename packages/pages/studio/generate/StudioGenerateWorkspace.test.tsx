@@ -49,6 +49,7 @@ function ContextSidebarHost({ children }: { readonly children: ReactNode }) {
 }
 
 const mocks = vi.hoisted(() => ({
+  createFromUploadAssetId: vi.fn(),
   assetActions: {
     onClickIngredient: vi.fn(),
     onConvertToVideo: vi.fn(),
@@ -130,6 +131,12 @@ const characterMentionMocks = vi.hoisted(() => ({
       text: text.replace('@anna', 'Anna'),
     }),
   ),
+}));
+
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({
+    createFromUploadAssetId: mocks.createFromUploadAssetId,
+  }),
 }));
 
 vi.mock('@genfeedai/agent', () => ({
@@ -453,6 +460,99 @@ describe('StudioGenerateWorkspace', () => {
       type: 'image',
       updateSettings: vi.fn(),
     });
+  });
+
+  it('offers Remix on completed video uploads while preserving their attachment and the composer', () => {
+    mocks.attachments.mockReturnValue({
+      addFiles: vi.fn(),
+      attachments: [
+        {
+          id: 'upload-1',
+          ingredientId: 'owned-upload',
+          kind: 'video',
+          name: 'My video',
+          status: 'completed',
+        },
+      ],
+      clearAll: mocks.clearAttachments,
+      dragHandlers: {},
+      dragState: { isActive: false },
+      getCompletedAttachments: () => [],
+      isUploading: false,
+      removeAttachment: vi.fn(),
+    });
+    render(<StudioGenerateWorkspace />);
+    const action = screen.getByRole('button', {
+      name: 'remixThisVideo: My video',
+    });
+    fireEvent.click(action);
+    expect(mocks.createFromUploadAssetId).toHaveBeenCalledWith('owned-upload');
+    expect(mocks.clearAttachments).not.toHaveBeenCalled();
+    expect(mocks.composer.mock.calls.at(-1)?.[0].isGenerating).toBe(false);
+  });
+
+  it('announces load failure, hides false empty results and keeps the composer enabled', () => {
+    const refresh = vi.fn();
+    mocks.gallery.mockReturnValue({
+      galleryError: 'load',
+      isLoadingGallery: false,
+      refresh,
+      storedJobs: [],
+    });
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'history.loadFailedTitle',
+    );
+    expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
+    const retry = screen.getByRole('button', { name: 'history.retry' });
+    retry.focus();
+    fireEvent.click(retry);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(mocks.composer.mock.calls.at(-1)?.[0].isGenerating).toBe(false);
+    mocks.gallery.mockReturnValue({
+      galleryError: 'load',
+      isLoadingGallery: true,
+      refresh,
+      storedJobs: [],
+    });
+    rerender(<StudioGenerateWorkspace />);
+    expect(
+      screen.getByRole('button', { name: 'history.retry' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('history.retrying');
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    mocks.gallery.mockReturnValue({
+      galleryError: null,
+      isLoadingGallery: false,
+      refresh,
+      storedJobs: [],
+    });
+    rerender(<StudioGenerateWorkspace />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByTestId('studio-results')).toBeInTheDocument();
+  });
+
+  it('retains live or saved rows under a refresh warning', () => {
+    mocks.gallery.mockReturnValue({
+      galleryError: 'refresh',
+      isLoadingGallery: false,
+      refresh: vi.fn(),
+      storedJobs: [
+        {
+          id: 'saved',
+          type: 'image',
+          prompt: '',
+          createdAt: 1,
+          status: 'completed',
+        },
+      ],
+    });
+    render(<StudioGenerateWorkspace />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'history.refreshFailedDescription',
+    );
+    expect(screen.getByTestId('studio-results')).toBeInTheDocument();
+    expect(mocks.results.mock.calls.at(-1)?.[0].jobs).toHaveLength(1);
   });
 
   it('removes gallery tabs without hiding history from other asset types', () => {

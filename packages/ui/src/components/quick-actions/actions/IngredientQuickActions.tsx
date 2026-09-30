@@ -17,6 +17,7 @@ import {
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import { hasCleanExportAccess } from '@genfeedai/pricing';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
+import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
@@ -84,6 +85,11 @@ function IngredientQuickActionsContent(
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const { settings } = useBrand();
+  const storyboardEntry = useStoryboardEntry();
+  const canCreateStoryboard = Boolean(
+    selectedIngredient &&
+      storyboardEntry.canCreateFromAsset(selectedIngredient),
+  );
   const canDownloadOriginal =
     isSelfHostedDeployment() ||
     hasCleanExportAccess(settings?.subscriptionTier);
@@ -187,11 +193,18 @@ function IngredientQuickActionsContent(
       onToggleFavorite,
       onTrim,
       onUpscale,
-      onUseAsVideoReference,
+      onUseAsVideoReference:
+        onUseAsVideoReference ??
+        (canCreateStoryboard ? storyboardEntry.createFromAsset : undefined),
+      onRemixVideo: canCreateStoryboard
+        ? storyboardEntry.createFromAsset
+        : undefined,
       onUsePrompt: onUsePrompt ?? onReprompt,
       onVote,
     }),
     [
+      canCreateStoryboard,
+      storyboardEntry.createFromAsset,
       onAddTextOverlay,
       onClone,
       onConvertToGif,
@@ -234,6 +247,7 @@ function IngredientQuickActionsContent(
 
   const loadingStates = useMemo(
     () => ({
+      isCreatingStoryboard: storyboardEntry.isCreating,
       isAddingTextOverlay: isAddingTextOverlay ?? false,
       isCloning: isCloning ?? false,
       isConverting: isConverting ?? false,
@@ -260,6 +274,7 @@ function IngredientQuickActionsContent(
       isVoting: isVoting ?? false,
     }),
     [
+      storyboardEntry.isCreating,
       isAddingTextOverlay,
       isCloning,
       isConverting,
@@ -292,6 +307,10 @@ function IngredientQuickActionsContent(
     const resizeTo = (format: IngredientFormat) =>
       translate('resizeTo', { format: translate(`resizeFormats.${format}`) });
     return {
+      remixThisVideo: {
+        label: translate('remixThisVideo'),
+        tooltip: translate('remixThisVideoTooltip'),
+      },
       openInEditor: {
         label: translate('openInEditor'),
         tooltip: translate('openInEditorTooltip'),
