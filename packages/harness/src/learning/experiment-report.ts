@@ -109,11 +109,12 @@ function validateObservations(
           term.vendorCostMicros < 0 ||
           !Array.isArray(term.opportunityIds) ||
           !term.opportunityIds.length ||
-          term.opportunityIds.some((id) => !validId(id)) ||
+          term.opportunityIds.some((id: unknown) => !validId(id)) ||
           new Set(term.opportunityIds).size !== term.opportunityIds.length ||
           !term.opportunityIds.includes(row.id) ||
           term.opportunityIds.some(
-            (id, i) => i > 0 && term.opportunityIds[i - 1] >= id,
+            (id: string, i: number) =>
+              i > 0 && term.opportunityIds[i - 1] >= id,
           )
         )
           reject(index, field);

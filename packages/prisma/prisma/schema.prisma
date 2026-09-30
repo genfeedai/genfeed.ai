@@ -751,6 +751,7 @@ contentLearningOperations ContentLearningOperation[]
 }
 
 model Organization {
+contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
 contentLearningOpportunitys ContentLearningOpportunity[]
@@ -998,6 +999,7 @@ model McpApproval {
 }
 
 model Brand {
+contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
 contentLearningOpportunitys ContentLearningOpportunity[]
@@ -1824,6 +1826,7 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
+contentLearningScopeStates ContentLearningScopeState[]
 contentLearningExperiments ContentLearningExperiment[]
 contentLearningEnrollments ContentLearningEnrollment[]
 contentLearningOpportunitys ContentLearningOpportunity[]
@@ -2670,7 +2673,7 @@ model LinkClick {
 // ═══════════════════════════════════════════════════════════════
 
 model Post {
-learningDecisionId String?
+learningDecisionId String? @unique
 learningDecision ContentLearningDecision? @relation(fields: [learningDecisionId], references: [id])
 learningCheckpoints ContentLearningCheckpoint[]
 
@@ -8252,6 +8255,10 @@ payloadHash String
 scopeKey String
 epoch Int
 accountRevision Int
+scopeRevision Int?
+cellDescriptor Json?
+descriptorHash String?
+executionProbabilities Json?
 mode String
 contextVector Float[]
 contextSnapshot Json
@@ -8280,7 +8287,7 @@ finalArtifactHash String?
 state String @default("pending")
 censorshipReason String?
 synthetic Boolean @default(false)
-posts Post[]
+post Post?
 @@unique([organizationId, requestKey, destinationKey, candidateIndex])
 @@index([scopeKey, epoch, createdAt])
 @@map("content_learning_decisions")
@@ -8338,6 +8345,8 @@ credential Credential @relation(fields: [credentialId], references: [id])
 @@index([organizationId, brandId, credentialId, isDeleted])
 fingerprint String @unique
 scopeKey String
+cellDescriptor Json?
+descriptorHash String?
 cutoff DateTime
 configVersion String
 contributorCheckpointIds String[]
@@ -8385,6 +8394,8 @@ baseline ContentLearningBaseline @relation(fields: [baselineId], references: [id
 }
 
 model ContentLearningPolicyVersion {
+activeScopes ContentLearningScopeState[] @relation("LearningScopeActivePolicy")
+pinnedScopes ContentLearningScopeState[] @relation("LearningScopePinnedPolicy")
 id String @id @default(cuid())
 isDeleted Boolean @default(false)
 createdAt DateTime @default(now())
@@ -8397,6 +8408,8 @@ credentialId String
 credential Credential @relation(fields: [credentialId], references: [id])
 @@index([organizationId, brandId, credentialId, isDeleted])
 scopeKey String
+cellDescriptor Json?
+descriptorHash String?
 epoch Int
 version Int
 parentId String?
@@ -8573,15 +8586,19 @@ isDeleted Boolean @default(false)
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 sourceKind String
+sourceOrganizationId String?
 sourceId String
 sourceVersion String
 derivedKind String
+derivedOrganizationId String?
 derivedId String
 valid Boolean @default(true)
 invalidatedAt DateTime?
 @@unique([sourceKind, sourceId, sourceVersion, derivedKind, derivedId])
 @@index([sourceKind, sourceId, valid])
 @@index([derivedKind, derivedId, valid])
+@@index([sourceKind, sourceId, sourceOrganizationId, isDeleted])
+@@index([derivedKind, derivedId, derivedOrganizationId, isDeleted])
 @@map("content_learning_dependencys")
 }
 
@@ -8734,4 +8751,31 @@ fingerprint String @unique
 @@index([opportunityId, kind, occurredAt])
 @@index([organizationId, brandId, credentialId, isDeleted])
 @@map("content_learning_experiment_events")
+}
+
+model ContentLearningScopeState {
+ id String @id @default(cuid())
+ organizationId String
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+ brandId String
+ brand Brand @relation(fields: [brandId], references: [id], onDelete: Restrict)
+ credentialId String
+ credential Credential @relation(fields: [credentialId], references: [id], onDelete: Restrict)
+ scopeKey String
+ epoch Int
+ revision Int @default(0)
+ activePolicyId String?
+ activePolicy ContentLearningPolicyVersion? @relation("LearningScopeActivePolicy", fields: [activePolicyId], references: [id], onDelete: Restrict)
+ pinnedPolicyId String?
+ pinnedPolicy ContentLearningPolicyVersion? @relation("LearningScopePinnedPolicy", fields: [pinnedPolicyId], references: [id], onDelete: Restrict)
+ lastValidRewardAt DateTime?
+ cellDescriptor Json
+ descriptorHash String
+ isDeleted Boolean @default(false)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([organizationId, credentialId, scopeKey, epoch])
+ @@index([organizationId, brandId, credentialId, isDeleted])
+ @@index([organizationId, scopeKey, epoch, isDeleted])
+ @@map("content_learning_scope_states")
 }

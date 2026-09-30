@@ -333,3 +333,78 @@ it('bounds reduced exact arithmetic and refuses a positive amount that rounds to
   });
   expect(learningCostFractionValue(0n, 3n)).toEqual({ value: 0, reason: null });
 });
+
+function allocation(row: LearningExperimentObservation) {
+  const term = row.costAllocations?.[0];
+  if (!term) throw new Error('Fixture requires persisted allocation');
+  return term;
+}
+it('preserves original batch denominator at report level when allocated peers are outside the analysis', () => {
+  const rows = [observations[0], observations[1]].map((row, i) => ({
+    ...row,
+    costAllocations: [
+      {
+        ...allocation(row),
+        vendorCostMicros: 1,
+        opportunityIds: i
+          ? [row.id]
+          : [row.id, 'excluded-peer-a', 'excluded-peer-b'],
+      },
+    ],
+  }));
+  const report = buildLearningExperimentReport({
+    ...input,
+    observations: rows,
+  });
+  expect(report.estimates.costRatio.value).toBe(3);
+  expect(report.groups?.control.costComplete).toBe(1);
+});
+it('retains repeated seven-day block multiplicity and nulls all cost estimates when any draw is unrepresentable', () => {
+  const rows = Array.from({ length: 8 }, (_, i) => ({
+    ...observations[i],
+    assignedAt: new Date(
+      Date.UTC(2026, 0, 1 + Math.floor(i / 2) * 7),
+    ).toISOString(),
+    costAllocations: [
+      {
+        ...allocation(observations[i]),
+        vendorCostMicros:
+          i === 0 ? Math.floor(Number.MAX_SAFE_INTEGER / 2) : i % 2 ? 1 : 0,
+      },
+    ],
+  }));
+  const report = buildLearningExperimentReport({
+    ...input,
+    observations: rows,
+  });
+  expect(report.groups?.control.costComplete).toBe(4);
+  expect(report.estimates.costRatio).toMatchObject({
+    value: null,
+    lower95: null,
+    upper95: null,
+  });
+  expect(report.estimates.costRatio.unavailableReasons).toContain(
+    'non_finite_statistics',
+  );
+  expect(report.estimates.primaryDifference.value).toBeCloseTo(0.6);
+  expect(JSON.stringify(report)).not.toMatch(/NaN|Infinity/);
+});
+it('rejects duplicate per-row attempts, ledgers, absent membership and malformed allocation manifests', () => {
+  const row = observations[0],
+    term = allocation(row);
+  for (const terms of [
+    [term, term],
+    [term, { ...term, attemptId: 'different' }],
+    [{ ...term, opportunityIds: ['not-this-row'] }],
+    [{ ...term, ledgerFingerprint: 'bad' }],
+    [{ ...term, opportunityIds: ['z', row.id] }],
+  ])
+    expect(() =>
+      buildLearningExperimentReport({
+        ...input,
+        observations: [
+          { ...row, attemptCount: terms.length, costAllocations: terms },
+        ],
+      }),
+    ).toThrow(LearningEvidenceValidationError);
+});
