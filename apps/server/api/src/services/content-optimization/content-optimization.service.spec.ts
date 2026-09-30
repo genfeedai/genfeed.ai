@@ -34,7 +34,7 @@ describe('ContentOptimizationService registered optimization action', () => {
       { chatCompletion: completion } as never,
       {} as never,
       {} as never,
-      { registerAction } as never,
+      { registerAction, registerWorkflow: vi.fn() } as never,
     ).onModuleInit();
     action = registerAction.mock.calls.find(
       ([id]) => id === CONTENT_OPTIMIZATION_ACTION_IDS.OPTIMIZE_PROMPT,
