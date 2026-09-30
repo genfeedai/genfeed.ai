@@ -152,11 +152,6 @@ describe('consented source account identities', () => {
   };
   it('rejects duplicate and bare source account identities', async () => {
     const f = service();
-    f.tx.contentLearningAccount.findFirst.mockResolvedValue({
-      id: 'account',
-      organizationId: 'org',
-      sharingConsentVersion: null,
-    });
     await expect(
       f.service.create({
         ...input,

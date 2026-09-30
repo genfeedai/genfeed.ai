@@ -232,6 +232,8 @@ export class LearningDatasetService {
       if (seenAccounts.has(source.accountId))
         throw new BadRequestException('Duplicate source account');
       seenAccounts.add(source.accountId);
+    }
+    for (const source of sources) {
       const account = await tx.contentLearningAccount.findFirst({
         where: {
           id: source.accountId,
