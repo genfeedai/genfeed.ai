@@ -78,7 +78,7 @@ describe('OutreachCampaignDetail', () => {
     expect(
       screen.queryByRole('heading', { name: 'Needs you' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(screen.getByRole('status').textContent).toMatch(
       /This platform is not available/i,
     );
   });
