@@ -2,7 +2,7 @@ import type { TrendEntity } from '@api/collections/trends/entities/trend.entity'
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { TrendContentIdeasService } from './trend-content-ideas.service';
 
 const trend = (platform = 'tiktok') =>
@@ -27,11 +27,10 @@ describe('TrendContentIdeasService structured adapter', () => {
   };
   beforeEach(() => {
     // Real structured adapter/helper; only the underlying provider completion is mocked.
-    const replicate = Object.create(
-      ReplicateService.prototype,
-    ) as ReplicateService;
     completion = vi.fn().mockResolvedValue(valid);
-    replicate.generateTextCompletionSync = completion;
+    const replicate = {
+      generateTextCompletionSync: completion,
+    } as unknown as ReplicateService;
     findOne = vi.fn().mockResolvedValue(pricing);
     service = new TrendContentIdeasService(
       { warn: vi.fn() } as never,
