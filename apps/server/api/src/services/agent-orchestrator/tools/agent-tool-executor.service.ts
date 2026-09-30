@@ -495,33 +495,27 @@ export class AgentToolExecutorService implements OnModuleInit {
       }
       executionApprovalId = policyResult.approvalId;
 
-      const result = this.visualProjects.handlesAction(toolName)
-        ? await this.visualProjects.executeAgentAction(
+      const result = this.instagramInspirationHandler.handles(toolName)
+        ? await this.instagramInspirationHandler.execute(
             toolName,
             parameters,
             context,
           )
-        : this.instagramInspirationHandler.handles(toolName)
-          ? await this.instagramInspirationHandler.execute(
-              toolName,
-              parameters,
-              context,
-            )
-          : this.xActionsHandler.handles(toolName)
-            ? await this.xActionsHandler.execute(toolName, parameters, context)
-            : [
-                  'request_input',
-                  'present_work_object',
-                  'ingest_source_media',
-                ].includes(toolName)
-              ? await this.workObjects.execute(toolName, parameters, context)
-              : this.generationSettingsHandler.handles(toolName)
-                ? await this.generationSettingsHandler.execute(
-                    toolName,
-                    parameters,
-                    context,
-                  )
-                : await this.dispatch(toolName, parameters, context);
+        : this.xActionsHandler.handles(toolName)
+          ? await this.xActionsHandler.execute(toolName, parameters, context)
+          : [
+                'request_input',
+                'present_work_object',
+                'ingest_source_media',
+              ].includes(toolName)
+            ? await this.workObjects.execute(toolName, parameters, context)
+            : this.generationSettingsHandler.handles(toolName)
+              ? await this.generationSettingsHandler.execute(
+                  toolName,
+                  parameters,
+                  context,
+                )
+              : await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -593,6 +587,16 @@ export class AgentToolExecutorService implements OnModuleInit {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     switch (toolName) {
+      case 'get_visual_code_catalog':
+      case 'quote_visual_code_generation':
+      case 'generate_visual_code':
+      case 'get_visual_code_project':
+      case 'revise_visual_code_project':
+      case 'export_visual_code_project':
+      case 'cancel_visual_code_project':
+      case 'retry_visual_code_project':
+        return this.visualProjects.executeAgentAction(toolName, params, ctx);
+
       case 'list_genfeed_tools':
         return this.catalogHandler.listGenfeedTools(params);
 

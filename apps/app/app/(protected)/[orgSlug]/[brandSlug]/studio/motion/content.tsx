@@ -16,8 +16,10 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useVisualProjects } from '@hooks/data/content/use-visual-projects';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { VisualCodeQuoteReview } from '@props/studio/visual-code.props';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -355,13 +357,17 @@ function MotionWorkspace() {
                         className="space-y-2"
                       >
                         {media.format === 'mp4' ? (
-                          // biome-ignore lint/a11y/useMediaCaption: Source compositions may have no spoken audio and provide no caption track.
-                          <video
-                            controls
-                            preload="metadata"
+                          <VideoPlayer
+                            config={{
+                              controls: true,
+                              muted: false,
+                              loop: false,
+                              playsInline: true,
+                              preload: 'metadata',
+                            }}
                             src={media.url}
                             className="max-h-96 w-full rounded-lg"
-                            aria-label={t('videoOutput')}
+                            ariaLabel={t('videoOutput')}
                           />
                         ) : (
                           <Image
@@ -663,12 +669,12 @@ function MotionWorkspace() {
                     key={format}
                     className="flex items-center gap-2 text-sm"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
+                      aria-label={format.toUpperCase()}
                       checked={formats.includes(format)}
-                      onChange={(event) =>
+                      onCheckedChange={(checked) =>
                         setFormats((prior) =>
-                          event.target.checked
+                          checked === true
                             ? [...prior, format]
                             : prior.filter((value) => value !== format),
                         )
@@ -753,10 +759,14 @@ function MotionWorkspace() {
                 <p className="text-sm">{t('unverifiedVision')}</p>
               )}
               <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
+                <Checkbox
+                  aria-label={t('acknowledge', {
+                    maximum: review.quote.maximumCredits,
+                  })}
                   checked={isAcknowledged}
-                  onChange={(event) => setIsAcknowledged(event.target.checked)}
+                  onCheckedChange={(checked) =>
+                    setIsAcknowledged(checked === true)
+                  }
                 />
                 {t('acknowledge', { maximum: review.quote.maximumCredits })}
               </label>

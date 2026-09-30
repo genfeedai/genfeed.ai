@@ -45,6 +45,22 @@ test('Motion loads under a genuine local Better Auth session without creating pa
     ) ?? bootstrap.brands?.[0];
   expect(brand?.slug).toBeTruthy();
   expect(brand?.organization?.slug).toBeTruthy();
+  const ownedBrandId = brand?.id ?? brand?._id;
+  expect(ownedBrandId).toBeTruthy();
+  for (const path of ['catalog', 'projects']) {
+    const owned = await page.request.get(
+      `${playwrightApiEndpoint}/visual-projects/${path}?brandId=${encodeURIComponent(ownedBrandId ?? '')}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    expect(owned.status(), `${path} must be registered and authorized`).toBe(
+      200,
+    );
+    const foreign = await page.request.get(
+      `${playwrightApiEndpoint}/visual-projects/${path}?brandId=foreign-brand-denied`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    expect([403, 404]).toContain(foreign.status());
+  }
   const route = `/${brand?.organization?.slug}/${brand?.slug}/studio/motion`;
   const pageResponse = await page.goto(route);
   expect(pageResponse?.status()).toBeLessThan(400);
