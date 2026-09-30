@@ -196,4 +196,43 @@ describe('WorkerDiagnosticsService', () => {
     expect(worker.listenerCount('active')).toBe(0);
     expect(worker.listenerCount('stalled')).toBe(0);
   });
+
+  it('bounds pending archive work while preserving single-line evidence', async () => {
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    transaction.exec.mockClear();
+    logger.log.mockClear();
+    for (let index = 0; index < 150; index++) {
+      worker.emit('active', { ...job, id: `job-${index}` });
+    }
+    expect(transaction.exec).toHaveBeenCalledTimes(100);
+    expect(logger.log).toHaveBeenCalledTimes(150);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('detects command-level archive errors and unavailable Redis', async () => {
+    transaction.exec.mockResolvedValue([
+      [new Error('private-redis-error'), null],
+    ]);
+    worker.emit('active', job);
+    redis.getPublisher.mockReturnValue(null);
+    worker.emit('completed', job);
+    await service.onApplicationShutdown();
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(records().at(-1)).toMatchObject({ event: 'completed' });
+  });
+
+  it('does not subscribe or archive outside production', async () => {
+    const discovery = { getProviders: vi.fn() };
+    const disabled = new WorkerDiagnosticsService(
+      discovery as unknown as DiscoveryService,
+      { isProduction: false } as ConfigService,
+      redis as unknown as RedisService,
+      logger as unknown as LoggerService,
+    );
+    const writes = transaction.exec.mock.calls.length;
+    disabled.onApplicationBootstrap();
+    await disabled.onApplicationShutdown();
+    expect(discovery.getProviders).not.toHaveBeenCalled();
+    expect(transaction.exec).toHaveBeenCalledTimes(writes);
+  });
 });
