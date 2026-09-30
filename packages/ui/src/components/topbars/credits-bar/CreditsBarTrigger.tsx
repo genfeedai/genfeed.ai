@@ -114,8 +114,8 @@ export default function CreditsBarTrigger({
                     : `Balance ${fullBalance} ${unit}. Open wallet.`
           }
           className={cn(
-            'hidden h-8 items-center gap-1.5 rounded-md border px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
-            'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
+            'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2 shadow-none transition-colors',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
             isCritical &&
               'animate-pulse border-destructive/45 bg-destructive/15 text-destructive hover:bg-destructive/20 data-[state=open]:animate-none data-[state=open]:bg-destructive/20 motion-reduce:animate-none',
             isWarning &&
@@ -218,7 +218,7 @@ export default function CreditsBarTrigger({
             <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
                 className={cn(
-                  'h-full rounded-full transition-[width,background-color] duration-500',
+                  'h-full rounded-full transition-[width,background-color] duration-500 motion-reduce:transition-none',
                   isCritical ? 'bg-destructive' : 'bg-foreground/45',
                 )}
                 style={{ width: `${Math.min(planUsagePercent, 100)}%` }}

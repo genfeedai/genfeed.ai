@@ -5,7 +5,7 @@ import type {
   ModelCategory,
   RouterPriority,
 } from '../..';
-import type { IBaseEntity, IIngredient, IQueryParams } from '../index';
+import type { IBaseEntity, IIngredient, IModel, IQueryParams } from '../index';
 import type { KnowledgeSelection } from '../knowledge-base/knowledge-retrieval.interface';
 
 export type StudioLookAssetType = 'image' | 'video';
@@ -328,3 +328,16 @@ export type StudioGenerateDraftSaveStatus =
   | 'error'
   /** The server rejected the draft; it will not be retried. */
   | 'failed';
+
+/** Inputs the composer already submits; no billing authorization or synthetic tariff. */
+export interface StudioGenerationCostInput {
+  isLoadingModels: boolean;
+  model?: IModel;
+  settings: StudioGenerateSettings;
+  type: StudioGenerateType;
+}
+
+export interface StudioGenerationCostEstimate {
+  credits: number | null;
+  status: 'auto' | 'loading' | 'unavailable' | 'estimated';
+}
