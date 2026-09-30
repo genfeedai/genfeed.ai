@@ -1,12 +1,14 @@
 import type {
   ApifyActorRun,
   ApifyActorRunResponse,
+  ApifyRunBudgetDecision,
   ApifyRunBudgetReservation,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyRunBudgetService } from '@api/services/integrations/apify/services/modules/apify-run-budget.service';
 import { isAmbiguousApifyStartError } from '@api/services/integrations/apify/utils/apify-error.util';
 import { ResearchAccessService } from '@api/services/research-access/research-access.service';
+import type { ResearchCollectionRunOptions } from '@api/services/research-access/research-collection.interfaces';
 import {
   buildResearchCollectionRequestKey,
   RESEARCH_COLLECTION_JOB_STATUS,
@@ -85,25 +87,58 @@ export class ResearchCollectionRunner {
     organizationId: string | undefined,
     actorId: string,
     input: object,
+    options: ResearchCollectionRunOptions = {},
   ): Promise<T[]> {
     const decision = await this.access.decide(organizationId ?? '');
+    const requestKey = organizationId
+      ? buildResearchCollectionRequestKey({
+          actorId,
+          input,
+          organizationId,
+          requestScope: options.requestScope,
+        })
+      : undefined;
     if (!decision.isAllowed) {
+      if (organizationId && requestKey) {
+        try {
+          const existing = await this.jobs.findInflight(
+            organizationId,
+            requestKey,
+          );
+          if (existing) {
+            if (existing.upstreamRunId)
+              await this.finishRecordedRun(existing, true);
+            else if (existing.terminalReason?.startsWith('no_start:'))
+              await this.finishNoStart(existing);
+            else await this.recoverUnrecordedStart(existing, actorId);
+          }
+        } catch {
+          this.loggerService.warn(
+            'Research collection accounting recovery remains pending',
+            { actorId, organizationId },
+          );
+        }
+      }
       throw new ServiceUnavailableException(decision.reason);
     }
     if (!organizationId) {
+      // Only legacy self-hosted callers can execute without canonical scope.
+      if (options.requestScope !== undefined)
+        throw new ServiceUnavailableException('research_paid_access_required');
       return this.baseService.runActor<T>(actorId, input);
     }
-    const requestKey = buildResearchCollectionRequestKey({
-      actorId,
-      input,
-      organizationId,
-    });
     const job = await this.jobs.claim({
       actorId,
       organizationId,
-      requestKey,
+      requestKey: requestKey as string,
     });
     if (job.upstreamRunId) return this.finishRecordedRun(job);
+    if (job.terminalReason?.startsWith('no_start:')) {
+      await this.finishNoStart(job);
+      throw new ServiceUnavailableException(
+        'research_collection_start_unconfirmed',
+      );
+    }
     if (job.isRecovered) {
       // The owner may still be resolving a token or waiting on the POST.
       // An empty actor list is not evidence that start was rejected.
@@ -114,23 +149,21 @@ export class ResearchCollectionRunner {
       }
       return this.recoverUnrecordedStart(job, actorId);
     }
-    return this.startRun(job, actorId, input);
+    return this.startRun(job, actorId, input, options);
   }
 
   private async startRun<T>(
     job: ResearchCollectionJobRecord,
     actorId: string,
     input: object,
+    options: ResearchCollectionRunOptions,
   ): Promise<T[]> {
     const token = await this.baseService.resolveCollectionToken(
       job.organizationId,
-      'prefer-byok',
+      options.tokenMode ?? 'prefer-byok',
     );
     if (!token) {
-      await this.jobs.finish(job, {
-        status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
-        terminalReason: 'collection_token_missing',
-      });
+      await this.stopUnsubmitted(job, 'collection_token_missing');
       throw new ServiceUnavailableException(
         'paid_creative_apify_token_missing',
       );
@@ -150,12 +183,17 @@ export class ResearchCollectionRunner {
         'research_collection_recovery_pending',
       );
     }
-    const budget = await this.budget.consumeRun(scope, actorId, token.token);
+    let budget: ApifyRunBudgetDecision;
+    try {
+      this.baseService.assertCollectionAdmission(scope);
+      budget = await this.budget.consumeRun(scope, actorId, token.token);
+    } catch (error: unknown) {
+      this.baseService.recordCollectionFailure(scope, actorId, error);
+      await this.stopUnsubmitted(job, 'admission_rejected');
+      throw error;
+    }
     if (!budget.isAllowed) {
-      await this.jobs.finish(job, {
-        status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
-        terminalReason: 'budget_paused',
-      });
+      await this.stopUnsubmitted(job, 'budget_paused');
       throw new ServiceUnavailableException(
         budget.reason ?? 'Apify run budget exhausted',
       );
@@ -172,14 +210,34 @@ export class ResearchCollectionRunner {
         );
       }
     }
+    const reservedJob = {
+      ...job,
+      scope,
+      reservationKey: budget.reservation?.reservationKey ?? null,
+      reservedMicroUsd: budget.reservation?.reservedMicroUsd ?? null,
+      usageKey: budget.reservation?.usageKey ?? null,
+    };
+    const currentAccess = await this.access.decide(job.organizationId);
+    if (!currentAccess.isAllowed) {
+      await this.stopUnsubmitted(reservedJob, 'access_denied');
+      throw new ServiceUnavailableException(currentAccess.reason);
+    }
+    const submissionAt = new Date();
+    if (!(await this.jobs.confirmSubmission(job, submissionAt))) {
+      // A stale owner cannot mutate a newer job. Release only its own receipt.
+      await this.stopUnsubmitted(reservedJob, 'ownership_rejected');
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
     const run = await this.startActorOrStop(
-      job,
+      reservedJob,
       actorId,
       input,
       token.token,
       budget,
       scope,
-      startedAt,
+      submissionAt,
     );
     const recorded = await this.jobs.attachRun(job, {
       datasetId: run.defaultDatasetId,
@@ -221,12 +279,9 @@ export class ResearchCollectionRunner {
         budget.maxTotalChargeUsd,
       );
     } catch (error: unknown) {
+      this.baseService.recordCollectionFailure(scope, actorId, error);
       if (!isAmbiguousApifyStartError(error)) {
-        await this.releaseReservation(budget.reservation, 0);
-        await this.jobs.finish(job, {
-          status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
-          terminalReason: 'start_rejected',
-        });
+        await this.stopUnsubmitted(job, 'start_rejected');
         throw error;
       }
       const leaseExpiresAt = await this.jobs.markAmbiguous(job);
@@ -254,50 +309,99 @@ export class ResearchCollectionRunner {
 
   private async finishRecordedRun<T>(
     job: ResearchCollectionJobRecord,
+    recoveryOnly = false,
   ): Promise<T[]> {
     if (!job.upstreamRunId) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
+    const tokenMode = collectionTokenMode(job.scope);
+    if (!tokenMode)
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
     const token = await this.baseService.resolveCollectionToken(
       job.organizationId,
-      collectionTokenMode(job.scope),
+      tokenMode,
     );
     if (!token) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
-    const run = await this.waitForRun(job.upstreamRunId, token.token);
+    let run: ApifyActorRun;
+    try {
+      run = await this.waitForRun(job.upstreamRunId, token.token);
+    } catch (error: unknown) {
+      this.baseService.recordCollectionFailure(job.scope, job.actorId, error);
+      throw error;
+    }
     const usage = run.usageTotalUsd;
     if (usage === undefined || !Number.isFinite(usage) || usage < 0) {
       throw new ServiceUnavailableException(
         'research_collection_cost_unverified',
       );
     }
-    if (!job.reconciledAt) {
-      await this.releaseReservation(this.reservationFrom(job), usage);
+    const reservation = this.reservationFrom(job);
+    if (job.scope === 'hosted' && !reservation) {
+      throw new ServiceUnavailableException(
+        'research_collection_cost_unverified',
+      );
     }
+    if (!job.reconciledAt)
+      await this.releaseReservation(reservation, usage, job.scope === 'hosted');
     const reconciledAt = job.reconciledAt ?? new Date();
+    const currentAccess = await this.access.decide(job.organizationId);
     if (run.status !== 'SUCCEEDED') {
-      await this.jobs.finish(job, {
+      const finished = await this.jobs.finish(job, {
         actualCostMicroUsd: this.toMicroUsd(usage),
         reconciledAt,
         status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
         terminalReason: `run_${run.status.toLowerCase()}`,
       });
+      if (!finished)
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      if (recoveryOnly || !currentAccess.isAllowed)
+        throw new ServiceUnavailableException(
+          currentAccess.isAllowed
+            ? 'research_paid_access_required'
+            : currentAccess.reason,
+        );
       throw new ServiceUnavailableException(
         `Actor run ${run.id} ended with status: ${run.status}`,
       );
     }
+    if (recoveryOnly || !currentAccess.isAllowed) {
+      const finished = await this.jobs.finish(job, {
+        actualCostMicroUsd: this.toMicroUsd(usage),
+        reconciledAt,
+        status: RESEARCH_COLLECTION_JOB_STATUS.SUCCEEDED,
+        terminalReason: null,
+      });
+      if (!finished)
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      throw new ServiceUnavailableException(
+        currentAccess.isAllowed
+          ? 'research_paid_access_required'
+          : currentAccess.reason,
+      );
+    }
     const rows = await this.readDataset<T>(run.defaultDatasetId, token.token);
-    await this.jobs.finish(job, {
+    const finished = await this.jobs.finish(job, {
       actualCostMicroUsd: this.toMicroUsd(usage),
       reconciledAt,
       status: RESEARCH_COLLECTION_JOB_STATUS.SUCCEEDED,
       terminalReason: null,
     });
+    if (!finished)
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
     return rows;
   }
 
@@ -384,24 +488,24 @@ export class ResearchCollectionRunner {
       // by runs.length would make FAILED depend on whether this actor
       // happens to have any run history at all, which is incidental and not
       // what the issue asks for.
+      await this.releaseJobReservation(job, 0);
       const reconciled = await this.jobs.finishUnreconciledStart(job, now);
       if (!reconciled) {
         throw new ServiceUnavailableException(
           'research_collection_recovery_pending',
         );
       }
-      await this.releaseReservation(this.reservationFrom(job), 0);
       throw new ServiceUnavailableException(
         'research_collection_start_unreconciled',
       );
     }
+    await this.releaseJobReservation(job, 0);
     const released = await this.jobs.finishExpiredUnrecorded(job, now);
     if (!released) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
-    await this.releaseReservation(this.reservationFrom(job), 0);
     throw new ServiceUnavailableException(
       'research_collection_start_unconfirmed',
     );
@@ -410,7 +514,7 @@ export class ResearchCollectionRunner {
   private reservationFrom(
     job: ResearchCollectionJobRecord,
   ): ApifyRunBudgetReservation | undefined {
-    if (!job.reservationKey || !job.usageKey || !job.reservedMicroUsd) {
+    if (!job.reservationKey || !job.usageKey || job.reservedMicroUsd === null) {
       return undefined;
     }
     return {
@@ -420,11 +524,65 @@ export class ResearchCollectionRunner {
     };
   }
 
+  private async releaseJobReservation(
+    job: ResearchCollectionJobRecord,
+    actualUsageUsd: number,
+  ): Promise<void> {
+    const hasReceipt =
+      job.reservationKey != null ||
+      job.usageKey != null ||
+      job.reservedMicroUsd != null;
+    await this.releaseReservation(
+      this.reservationFrom(job),
+      actualUsageUsd,
+      hasReceipt,
+    );
+  }
+
   private async releaseReservation(
     reservation: ApifyRunBudgetReservation | undefined,
     actualUsageUsd: number | undefined,
+    requireReceipt = false,
   ): Promise<void> {
-    await this.budget.reconcileRun(reservation, actualUsageUsd);
+    const result = await this.budget.reconcileRunWithResult(
+      reservation,
+      actualUsageUsd,
+    );
+    if (requireReceipt && result === 'not_required')
+      throw new ServiceUnavailableException(
+        'research_collection_cost_unverified',
+      );
+    if (result === 'pending')
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+  }
+
+  private async stopUnsubmitted(
+    job: ResearchCollectionJobRecord,
+    reason: string,
+  ): Promise<void> {
+    if (!(await this.jobs.markNoStart(job, reason))) {
+      await this.releaseJobReservation(job, 0);
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
+    await this.finishNoStart({ ...job, terminalReason: `no_start:${reason}` });
+  }
+
+  private async finishNoStart(job: ResearchCollectionJobRecord): Promise<void> {
+    await this.releaseJobReservation(job, 0);
+    const finished = await this.jobs.finish(job, {
+      actualCostMicroUsd: 0,
+      reconciledAt: new Date(),
+      status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
+      terminalReason: job.terminalReason,
+    });
+    if (!finished)
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
   }
 
   private async postRun(
@@ -495,9 +653,11 @@ export class ResearchCollectionRunner {
     job: ResearchCollectionJobRecord,
     lowerBoundMs: number | undefined,
   ): Promise<{ isComplete: boolean; runs: ApifyActorRun[] } | null> {
+    const tokenMode = collectionTokenMode(job.scope);
+    if (!tokenMode) return null;
     const token = await this.baseService.resolveCollectionToken(
       job.organizationId,
-      collectionTokenMode(job.scope),
+      tokenMode,
     );
     if (!token) return null;
     const collected: ApifyActorRun[] = [];
@@ -512,10 +672,10 @@ export class ResearchCollectionRunner {
           ),
         );
         items = readRunItems(response.data);
-      } catch (error: unknown) {
+      } catch {
         this.loggerService.warn(
           'Research collection could not list actor runs for recovery',
-          { actorId, error, offset, organizationId: job.organizationId },
+          { actorId, offset, organizationId: job.organizationId },
         );
         return null;
       }
@@ -562,10 +722,10 @@ function isCollectionLeaseActive(
 
 function collectionTokenMode(
   scope: string,
-): 'byok-only' | 'hosted-only' | 'prefer-byok' {
+): 'byok-only' | 'hosted-only' | undefined {
   if (scope === 'hosted') return 'hosted-only';
   if (scope.startsWith('byok:')) return 'byok-only';
-  return 'prefer-byok';
+  return undefined;
 }
 
 function readRunItems(payload: unknown): ApifyActorRun[] {

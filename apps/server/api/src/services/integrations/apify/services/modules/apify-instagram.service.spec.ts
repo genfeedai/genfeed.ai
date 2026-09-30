@@ -1,8 +1,10 @@
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
 import { ApifyInstagramService } from '@api/services/integrations/apify/services/modules/apify-instagram.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ApifyInstagramService', () => {
+  const researchRunner = { run: vi.fn() };
   let service: ApifyInstagramService;
   let baseService: {
     ACTORS: Record<string, string>;
@@ -71,6 +73,7 @@ describe('ApifyInstagramService', () => {
       providers: [
         ApifyInstagramService,
         { provide: ApifyBaseService, useValue: baseService },
+        { provide: ResearchCollectionRunner, useValue: researchRunner },
       ],
     }).compile();
 
@@ -226,5 +229,41 @@ describe('ApifyInstagramService', () => {
       likeCount: 0,
       viewCount: 100,
     });
+  });
+  it('governs hosted timelines before legacy token admission with unchanged input', async () => {
+    baseService.getApiToken.mockReturnValue(null);
+    researchRunner.run.mockResolvedValue([]);
+    await expect(
+      service.getInstagramUserPosts(
+        'creator',
+        { limit: 7 },
+        { organizationId: 'org-1', origin: 'social-source' },
+      ),
+    ).resolves.toEqual([]);
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.INSTAGRAM_SCRAPER,
+      { usernames: ['creator'], resultsLimit: 7 },
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
+    expect(baseService.getApiToken).not.toHaveBeenCalled();
+  });
+  it('governs single posts with the existing actor input', async () => {
+    researchRunner.run.mockResolvedValue([{ id: '123' }]);
+    baseService.getApiToken.mockReturnValue(null);
+    await expect(
+      service.getInstagramPostByUrl('https://instagram.com/p/123', {
+        organizationId: 'org-1',
+        origin: 'social-source',
+      }),
+    ).resolves.toMatchObject({ id: '123' });
+    expect(researchRunner.run).toHaveBeenCalledWith(
+      'org-1',
+      baseService.ACTORS.INSTAGRAM_SCRAPER,
+      expect.any(Object),
+      { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+    );
+    expect(baseService.runActor).not.toHaveBeenCalled();
   });
 });

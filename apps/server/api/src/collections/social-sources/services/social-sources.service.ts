@@ -16,6 +16,7 @@ import {
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { RequestContext } from '@api/helpers/utils/auth/auth.util';
 import { scopedWhere } from '@api/index';
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type {
@@ -31,7 +32,11 @@ import {
 } from '@genfeedai/contracts';
 import type { SocialSourceValidationResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 /** How far back a scheduled own-account resync reaches. */
 export const SOCIAL_OWN_ACCOUNT_RESYNC_WINDOW_DAYS = 90;
@@ -243,15 +248,19 @@ export class SocialSourcesService {
   async validateSource(
     platformInput: string,
     handleInput: string,
+    context: Pick<RequestContext, 'organizationId' | 'brandId'>,
   ): Promise<SocialSourceValidationResult> {
     const platform = normalizePlatform(platformInput);
     const handle = normalizeHandle(platform, handleInput);
     try {
+      await this.ensureBrandAccess(context.organizationId, context.brandId);
       // Following validates with replies included so reply-heavy accounts still match.
       const collected = await this.sourceCollector.collectTimeline(
         platform,
         handle,
         {
+          organizationId: context.organizationId,
+          brandId: context.brandId,
           includeReplies: true,
           includeReposts: false,
           limit: 3,
@@ -380,6 +389,7 @@ export class SocialSourcesService {
         organizationId: context.organizationId,
       });
     } catch (error: unknown) {
+      if (error instanceof ServiceUnavailableException) throw error;
       const message = (error as Error)?.message ?? 'Failed to fetch post';
       this.logger.error('Social post import fetch failed', {
         error: message,
