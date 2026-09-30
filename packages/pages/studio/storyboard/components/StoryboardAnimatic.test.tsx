@@ -1,6 +1,16 @@
+import { translateFromCatalog } from '@app-tests/next-intl.stub';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import StoryboardAnimatic from './StoryboardAnimatic';
+
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog: catalog } = await import(
+    '@app-tests/next-intl.stub'
+  );
+  return { useTranslations: catalog };
+});
+
+const translate = translateFromCatalog('pages.studioStoryboard.animatic');
 
 const shots = [
   {
@@ -60,25 +70,26 @@ describe('zero-generation timed animatic', () => {
     vi.useFakeTimers();
     render(<StoryboardAnimatic scope="run:1" shots={shots} />);
     expect(
-      screen.getByRole('button', { name: 'Play storyboard' }),
+      screen.getByRole('button', { name: translate('playStoryboard') }),
     ).toBeDisabled();
-    expect(screen.getByText('Loading still preview')).toBeVisible();
+    expect(screen.getByText(translate('loadingStill'))).toBeVisible();
     await load();
-    fireEvent.click(screen.getByRole('button', { name: 'Play storyboard' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: translate('playStoryboard') }),
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2100);
     });
     expect(screen.getByText('Second line')).toBeVisible();
-    expect(screen.getByRole('img', { name: 'Shot 2' })).toHaveAttribute(
-      'src',
-      shots[1].stillUrl,
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Pause' }));
+    expect(
+      screen.getByRole('img', { name: translate('shotAlt', { ordinal: 2 }) }),
+    ).toHaveAttribute('src', shots[1].stillUrl);
+    fireEvent.click(screen.getByRole('button', { name: translate('pause') }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(10000);
     });
     expect(screen.getByText('Second line')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
+    fireEvent.click(screen.getByRole('button', { name: translate('restart') }));
     expect(screen.getByText('First line')).toBeVisible();
   });
   it('allows one loaded shot when another failed and holds its final frame', async () => {
@@ -87,9 +98,13 @@ describe('zero-generation timed animatic', () => {
     await load(0);
     act(() => images[1].onerror?.());
     expect(
-      screen.getByRole('button', { name: 'Play storyboard' }),
+      screen.getByRole('button', { name: translate('playStoryboard') }),
     ).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Play shot 1' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: translate('playShot', { ordinal: 1 }),
+      }),
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(3000);
     });
@@ -105,10 +120,14 @@ describe('zero-generation timed animatic', () => {
     );
     await load();
     expect(
-      screen.getByRole('button', { name: 'Play storyboard', exact: true }),
+      screen.getByRole('button', {
+        name: translate('playStoryboard'),
+      }),
     ).toBeDisabled();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Play shot 2', exact: true }),
+      screen.getByRole('button', {
+        name: translate('playShot', { ordinal: 2 }),
+      }),
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1100);
@@ -121,47 +140,54 @@ describe('zero-generation timed animatic', () => {
     await load(0);
     act(() => images[1].onerror?.());
     expect(
-      screen.getByRole('button', { name: 'Play shot 2', exact: true }),
+      screen.getByRole('button', {
+        name: translate('playShot', { ordinal: 2 }),
+      }),
     ).toBeDisabled();
     expect(screen.getByText('First line')).toBeVisible();
     fireEvent.click(
       screen.getByRole('button', {
-        name: 'Retry shot 2 still preview',
-        exact: true,
+        name: translate('retryShotStill', { ordinal: 2 }),
       }),
     );
     expect(images.at(-1)?.src).toBe(shots[1].stillUrl);
     await load(2);
     expect(
-      screen.getByRole('button', { name: 'Play storyboard', exact: true }),
+      screen.getByRole('button', {
+        name: translate('playStoryboard'),
+      }),
     ).toBeEnabled();
     expect(screen.getByText('First line')).toBeVisible();
     expect(
-      screen.queryByRole('button', { name: 'Pause', exact: true }),
+      screen.queryByRole('button', { name: translate('pause') }),
     ).not.toBeInTheDocument();
   });
   it('pauses the clock when an active preview fails and retries the exact URL', async () => {
     vi.useFakeTimers();
     render(<StoryboardAnimatic scope="run:1" shots={shots} />);
     await load();
-    fireEvent.click(screen.getByRole('button', { name: 'Play storyboard' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: translate('playStoryboard') }),
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1100);
     });
-    fireEvent.error(screen.getByRole('img', { name: 'Shot 1' }));
-    expect(screen.getByText('Still preview unavailable')).toBeVisible();
+    fireEvent.error(
+      screen.getByRole('img', { name: translate('shotAlt', { ordinal: 1 }) }),
+    );
+    expect(screen.getByText(translate('stillUnavailable'))).toBeVisible();
     const time = screen.getByText('00:01 / 00:05').textContent;
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5000);
     });
     expect(screen.getByText(time ?? '')).toBeVisible();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Retry still preview' }),
+      screen.getByRole('button', { name: translate('retryStill') }),
     );
     expect(images.at(-1)?.src).toBe(shots[0].stillUrl);
     await load(2);
     expect(
-      screen.getByRole('button', { name: 'Play storyboard' }),
+      screen.getByRole('button', { name: translate('playStoryboard') }),
     ).toBeEnabled();
   });
   it('rejects decode failure and zero dimensions and ignores detached old attempts', async () => {
@@ -170,7 +196,7 @@ describe('zero-generation timed animatic', () => {
     );
     images[0].decode.mockRejectedValue(new Error('Decode failed'));
     await load(0);
-    expect(screen.getByText('Still preview unavailable')).toBeVisible();
+    expect(screen.getByText(translate('stillUnavailable'))).toBeVisible();
     const oldLoad = images[1].onload;
     rerender(
       <StoryboardAnimatic
@@ -182,8 +208,8 @@ describe('zero-generation timed animatic', () => {
     await load(2);
     await act(async () => oldLoad?.());
     expect(
-      screen.getByRole('button', { name: 'Play storyboard' }),
+      screen.getByRole('button', { name: translate('playStoryboard') }),
     ).toBeDisabled();
-    expect(screen.getByText('Still preview unavailable')).toBeVisible();
+    expect(screen.getByText(translate('stillUnavailable'))).toBeVisible();
   });
 });

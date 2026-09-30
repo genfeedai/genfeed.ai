@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
@@ -185,14 +184,18 @@ export interface StoryboardSaveIndicatorProps {
   readonly onRetry: () => void;
 }
 
+export type StoryboardEditablePlan = NonNullable<
+  StoryboardRun['config']['plan']
+>;
+
 export interface StoryboardPlanEditorHandle {
-  flush: () => Promise<StoryboardSaveSnapshot<StoryboardPlan>>;
+  flush: () => Promise<StoryboardSaveSnapshot<StoryboardEditablePlan>>;
 }
 
 export interface StoryboardPlanEditorProps {
   readonly ref?: Ref<StoryboardPlanEditorHandle>;
   readonly run: StoryboardRun;
-  readonly draft?: StoryboardAutosaveBinding<StoryboardPlan>;
+  readonly draft?: StoryboardAutosaveBinding<StoryboardEditablePlan>;
   readonly transport?: StoryboardDraftTransport;
   readonly isSourceSaving?: boolean;
   readonly onSaveStatusChange?: (
@@ -207,7 +210,7 @@ export interface StoryboardPlanEditorProps {
   readonly refreshCapabilities?: () => void;
   readonly savePlan: (
     revision: number,
-    plan: StoryboardPlan,
+    plan: StoryboardEditablePlan,
     signal: AbortSignal,
     capabilityVersion?: string,
   ) => Promise<StoryboardRun>;
@@ -231,7 +234,7 @@ export type StoryboardDraftPageProps = Pick<
 export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;
 
 export interface StoryboardDraftValue {
-  plan: StoryboardPlan;
+  plan: StoryboardEditablePlan;
   source: StoryboardSourceSelector;
 }
 export interface StoryboardDraftScope {

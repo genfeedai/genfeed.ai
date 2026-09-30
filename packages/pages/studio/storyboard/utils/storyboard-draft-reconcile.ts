@@ -1,9 +1,9 @@
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
   StoryboardDraftConflict,
   StoryboardDraftFieldMerge,
   StoryboardDraftValue,
+  StoryboardEditablePlan,
 } from '@genfeedai/props/studio/storyboard.props';
 
 export function editableStoryboard(
@@ -17,7 +17,7 @@ export function editableStoryboard(
         ...shot,
         stillFreshness: 'missing' as const,
       })),
-    },
+    } as StoryboardEditablePlan,
   };
 }
 export function storyboardValuesEqual(left: unknown, right: unknown): boolean {
@@ -176,24 +176,25 @@ export function reconcileStoryboardDraft(
     'Source',
   );
   // Freshness belongs to the newly fetched server, never a conflict choice or an old local plan.
-  const hydrate = (plan: StoryboardPlan): StoryboardPlan => ({
-    ...plan,
-    shots: plan.shots.map((shot) => ({
-      ...shot,
-      stillFreshness:
-        remoteValue.plan.shots.find(
-          (saved) =>
-            saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
-        )?.stillFreshness ?? 'missing',
-    })),
-  });
+  const hydrate = (plan: StoryboardEditablePlan): StoryboardEditablePlan =>
+    ({
+      ...plan,
+      shots: plan.shots.map((shot) => ({
+        ...shot,
+        stillFreshness:
+          remoteValue.plan.shots.find(
+            (saved) =>
+              saved.id === shot.id && saved.stillAssetId === shot.stillAssetId,
+          )?.stillFreshness ?? 'missing',
+      })),
+    }) as StoryboardEditablePlan;
   return {
     value: {
-      plan: hydrate(planResult.value as StoryboardPlan),
+      plan: hydrate(planResult.value as StoryboardEditablePlan),
       source: sourceResult.value as StoryboardSourceSelector,
     },
     base: {
-      plan: hydrate(planResult.base as StoryboardPlan),
+      plan: hydrate(planResult.base as StoryboardEditablePlan),
       source: sourceResult.base as StoryboardSourceSelector,
     },
     conflicts,
