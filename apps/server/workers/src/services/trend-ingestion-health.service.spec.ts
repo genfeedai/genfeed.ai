@@ -1,5 +1,5 @@
 import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
-import { TrendIngestionHealthService } from '@workers/crons/trends/trend-ingestion-health.service';
+import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 const enrollment = new Date('2026-09-28T00:15:00.000Z');
 function setup() {

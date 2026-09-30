@@ -4,7 +4,7 @@ import { ActivityRecordingModule } from '@api/services/activity-recording/activi
 import { CacheModule } from '@api/services/cache/cache.module';
 import { Module } from '@nestjs/common';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
-import { TrendIngestionHealthService } from '@workers/crons/trends/trend-ingestion-health.service';
+import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 @Module({
   exports: [CronTrendsService],

@@ -28,7 +28,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
-import { TrendIngestionHealthService } from '@workers/crons/trends/trend-ingestion-health.service';
+import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 const SYSTEM_MAINTENANCE_PRINCIPAL_ID = 'genfeed-public-tools';
 const REFRESH_WINDOW_MS = 12 * 60 * 60 * 1000;

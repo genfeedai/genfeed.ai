@@ -13,7 +13,7 @@ import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
 import { CronTrendsService } from '@workers/crons/trends/cron.trends.service';
-import { TrendIngestionHealthService } from '@workers/crons/trends/trend-ingestion-health.service';
+import { TrendIngestionHealthService } from '@workers/services/trend-ingestion-health.service';
 
 type CapturedAction = (request: {
   input: Record<string, unknown>;
