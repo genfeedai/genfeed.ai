@@ -134,6 +134,8 @@ export class LearningAccountService {
         if (body.action === 'resume' && account.failureReason)
           throw new ConflictException('Rebuild valid evidence before resuming');
         if (body.action === 'rollback') {
+          if (!body.policyId?.trim())
+            throw new BadRequestException('Rollback requires policyId');
           const policy = await tx.contentLearningPolicyVersion.findFirst({
             where: {
               id: body.policyId,
@@ -266,6 +268,8 @@ export class LearningAccountService {
     await this.operations.assertMember(actor, true);
     await this.ensure(actor.organizationId, credentialId);
     if (body.preference === 'pinned') {
+      if (!body.releaseId?.trim())
+        throw new BadRequestException('Pinned receiving requires releaseId');
       const release = await this.prisma.contentLearningRelease.findFirst({
         where: {
           id: body.releaseId,
@@ -330,7 +334,14 @@ export class LearningAccountService {
         credentialId: post.credentialId,
         ...body,
         type: 'post-eligibility',
-        payload: body,
+        payload: {
+          organizationId: actor.organizationId,
+          brandId: post.brandId,
+          credentialId: post.credentialId,
+          resourceKind: 'post',
+          resourceId: postId,
+          ...body,
+        },
       },
       async (tx) => {
         const latest = await tx.contentLearningCheckpoint.findFirst({
@@ -393,6 +404,8 @@ export class LearningAccountService {
     });
     if (!brand) throw new NotFoundException('Brand not found');
     if (body.preference === 'pinned') {
+      if (!body.releaseId?.trim())
+        throw new BadRequestException('Pinned receiving requires releaseId');
       const release = await this.prisma.contentLearningRelease.findFirst({
         where: {
           id: body.releaseId,
@@ -409,7 +422,12 @@ export class LearningAccountService {
         brandId,
         'brand-receiving',
       ]),
-      payloadHash = learningHash(body);
+      payloadHash = learningHash([
+        'brand-receiving',
+        actor.organizationId,
+        brandId,
+        body,
+      ]);
     return this.prisma.$transaction(async (tx) => {
       await tx.contentLearningBrandPreference.upsert({
         where: {

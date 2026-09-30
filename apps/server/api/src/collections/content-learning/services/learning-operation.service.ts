@@ -75,7 +75,7 @@ export class LearningOperationService {
       input.actor.organizationId,
       input.credentialId,
     ]);
-    const payloadHash = learningHash(input.payload);
+    const payloadHash = learningHash([input.type, scope, input.payload]);
     return this.prisma.$transaction(async (tx) => {
       const account = await this.lockedAccount(
         tx,

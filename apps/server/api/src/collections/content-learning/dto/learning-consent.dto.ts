@@ -2,9 +2,10 @@ import { LearningMutationDto } from '@api/collections/content-learning/dto/learn
 import {
   IsBoolean,
   IsIn,
-  IsOptional,
   IsString,
   MaxLength,
+  MinLength,
+  ValidateIf,
 } from 'class-validator';
 export class LearningConsentDto extends LearningMutationDto {
   @IsBoolean() enabled!: boolean;
@@ -12,5 +13,12 @@ export class LearningConsentDto extends LearningMutationDto {
 }
 export class LearningReceivingDto extends LearningMutationDto {
   @IsIn(['automatic', 'disabled', 'pinned']) preference!: string;
-  @IsOptional() @IsString() @MaxLength(256) releaseId?: string;
+  @ValidateIf(
+    (value: LearningReceivingDto) =>
+      value.preference === 'pinned' || value.releaseId !== undefined,
+  )
+  @IsString()
+  @MinLength(1)
+  @MaxLength(256)
+  releaseId?: string;
 }

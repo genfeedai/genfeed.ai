@@ -1,8 +1,13 @@
+import { LearningReceivingDto } from '@api/collections/content-learning/dto/learning-consent.dto';
+import { LearningControlDto } from '@api/collections/content-learning/dto/learning-control.dto';
+import { LearningQueryDto } from '@api/collections/content-learning/dto/learning-query.dto';
 import {
   LearningOperationService,
   learningScopeKey,
 } from '@api/collections/content-learning/services/learning-operation.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
@@ -116,5 +121,81 @@ describe('real roles and revision-locked mutation receipts', () => {
     expect(learningScopeKey(scope)).not.toBe(
       learningScopeKey({ ...scope, organizationId: 'a', brandId: 'b|c' }),
     );
+  });
+  it('binds idempotency to mutation type and target resource', async () => {
+    const f = fixture(),
+      apply = vi.fn().mockResolvedValue({});
+    const input = {
+      actor: { actorId: 'user', organizationId: 'org' },
+      credentialId: 'credential',
+      requestId: 'same',
+      expectedRevision: 3,
+      type: 'post-eligibility',
+      payload: { resourceId: 'post-a' },
+    };
+    const receipt = await f.service.mutate(input, apply);
+    f.transaction.contentLearningOperation.findFirst.mockResolvedValue(receipt);
+    await expect(
+      f.service.mutate({ ...input, payload: { resourceId: 'post-b' } }, apply),
+    ).rejects.toThrow('payload conflict');
+    await expect(
+      f.service.mutate({ ...input, type: 'reset' }, apply),
+    ).rejects.toThrow('payload conflict');
+    expect(apply).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('HTTP learning mutation and pagination validation', () => {
+  const requestId = 'b4f6ce2d-5cce-4b19-8852-30ff0b63b385';
+  it('converts valid query strings and preserves absent defaults', async () => {
+    const value = plainToInstance(LearningQueryDto, { page: '2', limit: '40' });
+    expect(await validate(value)).toHaveLength(0);
+    expect(value).toMatchObject({ page: 2, limit: 40 });
+    expect(plainToInstance(LearningQueryDto, {})).toMatchObject({
+      page: 1,
+      limit: 20,
+    });
+  });
+  it.each(['', 'NaN', '1.5', '0', '101'])(
+    'rejects invalid pagination %s',
+    async (page) => {
+      expect(
+        (await validate(plainToInstance(LearningQueryDto, { page }))).length,
+      ).toBeGreaterThan(0);
+    },
+  );
+  it('requires an explicit rollback policy and pinned release before persistence', async () => {
+    expect(
+      (
+        await validate(
+          plainToInstance(LearningControlDto, {
+            action: 'rollback',
+            reason: 'Requested rollback',
+            requestId,
+            expectedRevision: 0,
+          }),
+        )
+      ).some((error) => error.property === 'policyId'),
+    ).toBe(true);
+    expect(
+      (
+        await validate(
+          plainToInstance(LearningReceivingDto, {
+            preference: 'pinned',
+            requestId,
+            expectedRevision: 0,
+          }),
+        )
+      ).some((error) => error.property === 'releaseId'),
+    ).toBe(true);
+    expect(
+      await validate(
+        plainToInstance(LearningReceivingDto, {
+          preference: 'automatic',
+          requestId,
+          expectedRevision: 0,
+        }),
+      ),
+    ).toHaveLength(0);
   });
 });
