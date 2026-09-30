@@ -715,6 +715,7 @@
       "moveShotDown": "Move shot {ordinal} down",
       "moveShotUp": "Move shot {ordinal} up",
       "noDialogue": "No dialogue",
+      "missingPlan": "Storyboard has no plan.",
       "noRoomForShot": "No room for another supported shot. Shorten a shot or increase the budget.",
       "noSupportedDuration": "No supported duration fits the remaining runtime.",
       "noVoices": "No usable saved voices. Save a usable voice in Voices Library before assigning it.",

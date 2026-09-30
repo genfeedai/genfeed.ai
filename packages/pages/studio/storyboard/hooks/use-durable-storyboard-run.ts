@@ -3,18 +3,21 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getSession } from '@genfeedai/auth-client';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
-import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { storyboardPlanSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { storyboardSourceSelectorSchema } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
-import type { StoryboardDraftTransport } from '@genfeedai/props/studio/storyboard.props';
+import type {
+  StoryboardDraftTransport,
+  StoryboardEditablePlan,
+} from '@genfeedai/props/studio/storyboard.props';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { eligibleStoryboardVoices } from '@pages/studio/storyboard/hooks/use-storyboard-voices';
 import { requiresStoryboardTimingCapabilities } from '@pages/studio/storyboard/utils/storyboard-capabilities';
+import { sessionActiveOrganizationId } from '@pages/studio/storyboard/utils/storyboard-session';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -100,7 +103,7 @@ export function useDurableStoryboardRun(runId: string) {
               )
                 return false;
               const session = await getSession();
-              const currentOrg = session.data?.session.activeOrganizationId;
+              const currentOrg = sessionActiveOrganizationId(session);
               return (
                 !session.error &&
                 session.data?.user.id === userId &&
@@ -312,7 +315,7 @@ export function useDurableStoryboardRun(runId: string) {
   const savePlan = useCallback(
     async (
       revision: number,
-      plan: StoryboardPlan,
+      plan: StoryboardEditablePlan,
       signal: AbortSignal,
       capabilityVersion?: string,
     ) => {

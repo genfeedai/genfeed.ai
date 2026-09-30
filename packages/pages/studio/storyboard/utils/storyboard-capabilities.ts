@@ -52,9 +52,9 @@ export function requiresStoryboardTimingCapabilities(
 
 /** Switching models is atomic: reject the whole edit if snapped timing cannot fit. */
 export function normalizeStoryboardModel(
-  plan: StoryboardPlan,
+  plan: StoryboardRunPlan,
   model: StoryboardVideoModelCapability,
-): StoryboardPlan {
+): StoryboardRunPlan {
   if (!model.supportedFormats.includes(plan.format))
     throw new Error('Choose a format supported by this video model.');
   const shots = plan.shots.map((shot, index) => {

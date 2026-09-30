@@ -185,14 +185,18 @@ export interface StoryboardSaveIndicatorProps {
   readonly onRetry: () => void;
 }
 
+export type StoryboardEditablePlan = NonNullable<
+  StoryboardRun['config']['plan']
+>;
+
 export interface StoryboardPlanEditorHandle {
-  flush: () => Promise<StoryboardSaveSnapshot<StoryboardPlan>>;
+  flush: () => Promise<StoryboardSaveSnapshot<StoryboardEditablePlan>>;
 }
 
 export interface StoryboardPlanEditorProps {
   readonly ref?: Ref<StoryboardPlanEditorHandle>;
   readonly run: StoryboardRun;
-  readonly draft?: StoryboardAutosaveBinding<StoryboardPlan>;
+  readonly draft?: StoryboardAutosaveBinding<StoryboardEditablePlan>;
   readonly transport?: StoryboardDraftTransport;
   readonly isSourceSaving?: boolean;
   readonly onSaveStatusChange?: (
@@ -207,7 +211,7 @@ export interface StoryboardPlanEditorProps {
   readonly refreshCapabilities?: () => void;
   readonly savePlan: (
     revision: number,
-    plan: StoryboardPlan,
+    plan: StoryboardEditablePlan,
     signal: AbortSignal,
     capabilityVersion?: string,
   ) => Promise<StoryboardRun>;

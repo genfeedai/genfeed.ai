@@ -83,7 +83,7 @@ export default function StoryboardDraftPage({
       sourceAutosave.status === 'saved' &&
       Boolean(draft.queue) &&
       run.config.revision === draft.snapshot?.revision,
-    shotIds: run.config.plan.shots.map((shot) => shot.id),
+    shotIds: (run.config.plan?.shots ?? []).map((shot) => shot.id),
     videos: Object.fromEntries(
       Object.entries(pipeline?.scenes ?? {}).map(([id, scene]) => [
         id,
@@ -135,7 +135,7 @@ export default function StoryboardDraftPage({
   );
   return (
     <Container
-      label={run.config.plan.title || translate('draft.untitled')}
+      label={run.config.plan?.title || translate('draft.untitled')}
       right={
         <div className="flex flex-wrap gap-2">
           {editorSeed.href ? (

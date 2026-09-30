@@ -17,7 +17,10 @@ import {
   storyboardPlanSchema,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import type { StoryboardPlanEditorProps } from '@genfeedai/props/studio/storyboard.props';
+import type {
+  StoryboardEditablePlan,
+  StoryboardPlanEditorProps,
+} from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardAnimatic from '@pages/studio/storyboard/components/StoryboardAnimatic';
 import StoryboardRuntimeRail from '@pages/studio/storyboard/components/StoryboardRuntimeRail';
@@ -74,10 +77,10 @@ export default function StoryboardPlanEditor({
   const [selectedShotId, setSelectedShotId] = useState<string>();
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
-  const autosave = useStoryboardAutosave<StoryboardPlan>({
+  const autosave = useStoryboardAutosave<StoryboardEditablePlan>({
     binding: draft,
     scope: `${run.brandId}:${run.id}`,
-    initial: { revision: run.config.revision, value: run.config.plan },
+    initial: { revision: run.config.revision, value: run.config.plan! },
     save: async (snapshot, signal) => {
       try {
         if (
@@ -95,6 +98,7 @@ export default function StoryboardPlanEditor({
           signal,
           capabilities?.capabilityVersion,
         );
+        if (!result.config.plan) throw new Error(translate('missingPlan'));
         return { revision: result.config.revision, value: result.config.plan };
       } catch (caught) {
         refreshCapabilities?.();
