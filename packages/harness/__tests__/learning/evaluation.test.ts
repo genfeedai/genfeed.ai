@@ -35,6 +35,51 @@ const options = {
   semanticChange: false,
 };
 describe('off-policy release gates', () => {
+  it('blocks unnormalized distributions, inconsistent scalar propensity and nonfinite predictions', () => {
+    const malformed = [
+      {
+        ...rows[0],
+        candidateProbabilities: {
+          'baseline-v1': 2 / 3,
+          'question-example-v1': 2 / 3,
+          'proof-steps-v1': 2 / 3,
+        },
+      },
+      { ...rows[0], loggedProbability: 0.5 },
+      {
+        ...rows[0],
+        predictions: {
+          'baseline-v1': Infinity,
+          'question-example-v1': 0.2,
+          'proof-steps-v1': 0.2,
+        },
+      },
+    ];
+    for (const row of malformed)
+      expect(
+        evaluateLearningPolicy([row, ...rows.slice(1)], 'seed', options).status,
+      ).toBe('failed');
+  });
+  it('excluded descriptive rows never create a false support failure', () => {
+    expect(
+      evaluateLearningPolicy(
+        [
+          ...rows,
+          {
+            ...rows[0],
+            split: 'excluded',
+            loggingProbabilities: {
+              'baseline-v1': 1,
+              'question-example-v1': 0,
+              'proof-steps-v1': 0,
+            },
+          },
+        ],
+        'seed',
+        options,
+      ).status,
+    ).toBe('passed');
+  });
   it('reproduces account bootstrap and estimates known constant rewards', () => {
     const report = evaluateLearningPolicy(rows, 'manifest', options);
     expect(report.status).toBe('passed');
@@ -48,8 +93,14 @@ describe('off-policy release gates', () => {
   it('blocks support on any candidate arm, even if that arm was not selected', () => {
     const unsupported = rows.map((row) => ({
       ...row,
+      loggedProbability:
+        row.armId === 'baseline-v1'
+          ? 2 / 3
+          : row.armId === 'question-example-v1'
+            ? 1 / 3
+            : 0,
       loggingProbabilities: {
-        'baseline-v1': 1 / 3,
+        'baseline-v1': 2 / 3,
         'question-example-v1': 1 / 3,
         'proof-steps-v1': 0,
       },

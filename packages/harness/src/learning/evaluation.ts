@@ -49,6 +49,40 @@ export function evaluateLearningPolicy(
   const reasons: string[] = [],
     valid: LearningEvaluationRow[] = [];
   for (const row of rows) {
+    if (row.split !== 'temporal_holdout' && row.split !== 'account_holdout')
+      continue;
+    const distributionValid = (value: Record<LearningArmId, number> | null) =>
+      value != null &&
+      Object.keys(value).length === 3 &&
+      Object.keys(value).every((key) =>
+        LEARNING_ARMS.includes(key as LearningArmId),
+      ) &&
+      LEARNING_ARMS.every(
+        (arm) =>
+          Number.isFinite(value[arm]) && value[arm] >= 0 && value[arm] <= 1,
+      ) &&
+      Math.abs(LEARNING_ARMS.reduce((sum, arm) => sum + value[arm], 0) - 1) <
+        1e-9;
+    if (
+      !distributionValid(row.candidateProbabilities) ||
+      !distributionValid(row.loggingProbabilities) ||
+      !LEARNING_ARMS.includes(row.armId) ||
+      !LEARNING_ARMS.every(
+        (arm) =>
+          Number.isFinite(row.predictions[arm]) &&
+          Math.abs(row.predictions[arm]) <= 1,
+      ) ||
+      (row.loggedProbability != null &&
+        (!Number.isFinite(row.loggedProbability) ||
+          Math.abs(
+            row.loggedProbability -
+              (row.loggingProbabilities?.[row.armId] ?? NaN),
+          ) > 1e-9)) ||
+      !Number.isFinite(new Date(row.decisionAt).getTime())
+    ) {
+      reasons.push('invalid_contract');
+      continue;
+    }
     if (
       row.loggingProbabilities &&
       LEARNING_ARMS.some(
@@ -58,7 +92,6 @@ export function evaluateLearningPolicy(
       )
     )
       reasons.push('unsupported_action');
-    if (row.split === 'training' || row.split === 'excluded') continue;
     if (
       row.loggingProbabilities &&
       row.loggedProbability != null &&
@@ -160,6 +193,7 @@ export function evaluateLearningPolicy(
         'unsupported_action',
         'differential_censoring',
         'semantic_change',
+        'invalid_contract',
       ].includes(reason),
     )
       ? 'failed'

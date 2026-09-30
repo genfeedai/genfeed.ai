@@ -203,7 +203,7 @@ CREATE TABLE "content_learning_policy_versions" (
 );
 
 -- CreateTable
-CREATE TABLE "content_learning_shared_policys" (
+CREATE TABLE "content_learning_shared_policies" (
     "id" TEXT NOT NULL,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -218,7 +218,7 @@ CREATE TABLE "content_learning_shared_policys" (
     "validity" TEXT NOT NULL,
     "synthetic" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "content_learning_shared_policys_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "content_learning_shared_policies_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -260,7 +260,7 @@ CREATE TABLE "content_learning_datasets" (
 );
 
 -- CreateTable
-CREATE TABLE "content_learning_dataset_entrys" (
+CREATE TABLE "content_learning_dataset_entries" (
     "id" TEXT NOT NULL,
     "isDeleted" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -279,7 +279,7 @@ CREATE TABLE "content_learning_dataset_entrys" (
     "split" TEXT NOT NULL,
     "synthetic" BOOLEAN NOT NULL DEFAULT false,
 
-    CONSTRAINT "content_learning_dataset_entrys_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "content_learning_dataset_entries_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -430,7 +430,7 @@ CREATE INDEX "content_learning_policy_versions_organizationId_brandId_cre_idx" O
 CREATE UNIQUE INDEX "content_learning_policy_versions_scopeKey_epoch_version_key" ON "content_learning_policy_versions"("scopeKey", "epoch", "version");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "content_learning_shared_policys_cell_version_key" ON "content_learning_shared_policys"("cell", "version");
+CREATE UNIQUE INDEX "content_learning_shared_policies_cell_version_key" ON "content_learning_shared_policies"("cell", "version");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "content_learning_brand_preferences_organizationId_brandId_key" ON "content_learning_brand_preferences"("organizationId", "brandId");
@@ -439,10 +439,10 @@ CREATE UNIQUE INDEX "content_learning_brand_preferences_organizationId_brandId_k
 CREATE UNIQUE INDEX "content_learning_datasets_manifestHash_key" ON "content_learning_datasets"("manifestHash");
 
 -- CreateIndex
-CREATE INDEX "content_learning_dataset_entrys_datasetId_split_idx" ON "content_learning_dataset_entrys"("datasetId", "split");
+CREATE INDEX "content_learning_dataset_entries_datasetId_split_idx" ON "content_learning_dataset_entries"("datasetId", "split");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "content_learning_dataset_entrys_datasetId_sourceFingerprint_key" ON "content_learning_dataset_entrys"("datasetId", "sourceFingerprint");
+CREATE UNIQUE INDEX "content_learning_dataset_entries_datasetId_sourceFingerprint_key" ON "content_learning_dataset_entries"("datasetId", "sourceFingerprint");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "content_learning_runs_idempotencyKey_key" ON "content_learning_runs"("idempotencyKey");
@@ -544,7 +544,7 @@ ALTER TABLE "content_learning_brand_preferences" ADD CONSTRAINT "content_learnin
 ALTER TABLE "content_learning_datasets" ADD CONSTRAINT "content_learning_datasets_ownerActorId_fkey" FOREIGN KEY ("ownerActorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_learning_dataset_entrys" ADD CONSTRAINT "content_learning_dataset_entrys_datasetId_fkey" FOREIGN KEY ("datasetId") REFERENCES "content_learning_datasets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "content_learning_dataset_entries" ADD CONSTRAINT "content_learning_dataset_entries_datasetId_fkey" FOREIGN KEY ("datasetId") REFERENCES "content_learning_datasets"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "content_learning_operations" ADD CONSTRAINT "content_learning_operations_actorId_fkey" FOREIGN KEY ("actorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -568,4 +568,4 @@ ALTER TABLE "content_learning_rewards" ADD CONSTRAINT "learning_reward_baseline_
 ALTER TABLE "content_learning_rewards" ADD CONSTRAINT "learning_reward_checkpoint_fk" FOREIGN KEY ("checkpointId") REFERENCES "content_learning_checkpoints"("id") ON DELETE RESTRICT;
 ALTER TABLE "content_learning_decisions" ADD CONSTRAINT "learning_decision_baseline_fk" FOREIGN KEY ("baselineId") REFERENCES "content_learning_baselines"("id") ON DELETE RESTRICT;
 ALTER TABLE "content_learning_runs" ADD CONSTRAINT "learning_run_dataset_fk" FOREIGN KEY ("datasetId") REFERENCES "content_learning_datasets"("id") ON DELETE RESTRICT;
-ALTER TABLE "content_learning_shared_policys" ADD CONSTRAINT "learning_shared_dataset_fk" FOREIGN KEY ("datasetId") REFERENCES "content_learning_datasets"("id") ON DELETE RESTRICT;
+ALTER TABLE "content_learning_shared_policies" ADD CONSTRAINT "learning_shared_dataset_fk" FOREIGN KEY ("datasetId") REFERENCES "content_learning_datasets"("id") ON DELETE RESTRICT;

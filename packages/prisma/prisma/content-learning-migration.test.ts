@@ -9,6 +9,13 @@ const sql = readFileSync(
   'utf8',
 );
 describe('additive learning migration', () => {
+  it('every added constraint targets a created table or the existing posts table', () => {
+    const tables = new Set(
+      [...sql.matchAll(/CREATE TABLE "([^"]+)"/g)].map((match) => match[1]),
+    );
+    for (const match of sql.matchAll(/ALTER TABLE "([^"]+)"/g))
+      expect(tables.has(match[1]) || match[1] === 'posts').toBe(true);
+  });
   it('adds all fifteen tables with no fabricated history or destructive change', () => {
     expect(sql.match(/CREATE TABLE /g)).toHaveLength(15);
     expect(sql).not.toMatch(/DROP TABLE|INSERT INTO|UPDATE "posts"/);

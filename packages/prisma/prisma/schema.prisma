@@ -8395,7 +8395,7 @@ directives Json
 validity String
 synthetic Boolean @default(false)
 @@unique([cell, version])
-@@map("content_learning_shared_policys")
+@@map("content_learning_shared_policies")
 }
 
 model ContentLearningBrandPreference {
@@ -8458,7 +8458,7 @@ split String
 synthetic Boolean @default(false)
 @@unique([datasetId, sourceFingerprint])
 @@index([datasetId, split])
-@@map("content_learning_dataset_entrys")
+@@map("content_learning_dataset_entries")
 }
 
 model ContentLearningRun {
