@@ -1,0 +1,50 @@
+name: Visual Code Isolation
+on:
+  pull_request:
+    paths:
+      - 'scripts/visual-code/**'
+      - 'docker/Dockerfile.visual-code'
+      - '.github/workflows/visual-code-isolation.yml'
+      - '.dockerignore'
+concurrency:
+  group: visual-code-isolation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  isolation:
+    name: Actual runsc rendering and isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install verified gVisor runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc
+          curl -fsSLO https://storage.googleapis.com/gvisor/releases/release/latest/x86_64/runsc.sha512
+          sha512sum -c runsc.sha512
+          sudo install -m 0755 runsc /usr/local/bin/runsc
+          sudo runsc install
+          sudo systemctl restart docker
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          runsc --version
+          docker info --format '{{json .Runtimes}}'
+      - name: Build fixed renderer image
+        run: docker build -f docker/Dockerfile.visual-code -t genfeed-visual-code:4.0.530 .
+      - name: Protocol and actual isolation acceptance
+        run: |
+          node --test scripts/visual-code/*.test.mjs
+          node scripts/visual-code/isolation-acceptance.mjs
+      - name: Retain inspected media and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: visual-code-isolation-${{ github.sha }}
+          path: visual-code-artifacts/
+          if-no-files-found: warn
