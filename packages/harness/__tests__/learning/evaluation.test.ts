@@ -35,6 +35,33 @@ const options = {
   semanticChange: false,
 };
 describe('off-policy release gates', () => {
+  it('reports absent logging distributions as excluded while failing overflowing finite propensities', () => {
+    const absent = {
+      ...rows[0],
+      loggingProbabilities: null,
+      loggedProbability: null,
+    };
+    expect(
+      evaluateLearningPolicy([...rows, absent], 'seed', options).status,
+    ).toBe('passed');
+    expect(
+      evaluateLearningPolicy([...rows, absent], 'seed', options).excluded,
+    ).toBe(1);
+    const overflow = {
+      ...rows[0],
+      loggedProbability: 1e-320,
+      loggingProbabilities: {
+        'baseline-v1': 1e-320,
+        'question-example-v1': 0.5,
+        'proof-steps-v1': 0.5,
+      },
+    };
+    const report = evaluateLearningPolicy([...rows, overflow], 'seed', options);
+    expect(report.status).toBe('inconclusive');
+    expect(report.reasons).toContain('numerical_instability');
+    expect(report.ips.value).toBeNull();
+    expect(report.ess).toBeNull();
+  });
   it('blocks unnormalized distributions, inconsistent scalar propensity and nonfinite predictions', () => {
     const malformed = [
       {
@@ -83,9 +110,9 @@ describe('off-policy release gates', () => {
   it('reproduces account bootstrap and estimates known constant rewards', () => {
     const report = evaluateLearningPolicy(rows, 'manifest', options);
     expect(report.status).toBe('passed');
-    expect(report.ips).toBeCloseTo(0.5);
-    expect(report.snips).toBeCloseTo(0.5);
-    expect(report.doublyRobust).toBeCloseTo(0.5);
+    expect(report.ips.value).toBeCloseTo(0.5);
+    expect(report.snips.value).toBeCloseTo(0.5);
+    expect(report.doublyRobust.value).toBeCloseTo(0.5);
     expect(report.ess).toBe(180);
     expect(report.bootstrapReplicates).toBe(2000);
     expect(evaluateLearningPolicy(rows, 'manifest', options)).toEqual(report);
