@@ -38,6 +38,7 @@ try {
     `${root}/index.tsx`,
     `import React from 'react';\nimport {Composition,registerRoot} from 'remotion';\nimport {VisualComposition} from './VisualComposition';\nregisterRoot(() => <Composition id="VisualComposition" component={VisualComposition} width={${input.settings.width}} height={${input.settings.height}} fps={${input.settings.fps}} durationInFrames={${input.settings.durationFrames}} defaultProps={${JSON.stringify(input.props)}}/>);`,
   );
+  process.stderr.write('visual-stage:bundle-start\n');
   const serveUrl = await bundle({
     entryPoint: `${root}/index.tsx`,
     outDir: `${root}/bundle`,
@@ -83,7 +84,9 @@ try {
     },
     timeoutInMilliseconds: 30_000,
   };
+  process.stderr.write('visual-stage:browser-select-start\n');
   const composition = await selectComposition(common);
+  process.stderr.write('visual-stage:browser-selected\n');
   const requests =
     input.mode === 'preview'
       ? [
@@ -94,6 +97,7 @@ try {
       : input.outputs;
   const media = [];
   for (const [index, request] of requests.entries()) {
+    process.stderr.write(`visual-stage:render-${index}-${request.format}\n`);
     const location = `${root}/output-${index}.${request.format}`;
     if (request.format === 'mp4')
       await renderMedia({

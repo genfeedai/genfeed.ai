@@ -59,6 +59,22 @@ async function isolated(id, args, input, deadline = 120_000) {
       child.stdin.end(input);
     });
   } finally {
+    for (const operation of ['inspect', 'logs']) {
+      const evidence = await exec(
+        'docker',
+        operation === 'logs'
+          ? ['logs', '--tail', '100', containerName(id)]
+          : ['inspect', containerName(id)],
+        { timeout: 10_000, maxBuffer: 64 * 1024 },
+      ).catch((error) => ({
+        stdout: error.stdout ?? '',
+        stderr: error.stderr ?? error.message,
+      }));
+      await writeFile(
+        resolve(artifacts, `${id}-${operation}.txt`),
+        `${evidence.stdout}\n${evidence.stderr}`.slice(0, 64 * 1024),
+      );
+    }
     await exec('docker', ['rm', '-f', containerName(id)]).catch(() => {});
     const remaining = await exec('docker', [
       'ps',

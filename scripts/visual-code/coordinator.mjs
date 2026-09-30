@@ -53,7 +53,7 @@ export function dockerArguments(id) {
 async function command(
   binary,
   args,
-  { input, limit = MAX_BYTES + 4, signal } = {},
+  { input, limit = MAX_BYTES + 4, signal = AbortSignal.timeout(10_000) } = {},
 ) {
   return new Promise((accept, reject) => {
     const child = spawn(binary, args, {
@@ -187,6 +187,7 @@ export class Coordinator {
         invariant(existing.inputHash === hash, 'idempotency_conflict');
         return existing;
       }
+      invariant(this.running.size < 2, 'renderer_busy');
       let used = this.running.size * (MAX_BYTES + 8192);
       for (const filename of await readdir(this.directory))
         used += (await stat(resolve(this.directory, filename))).size;
@@ -395,9 +396,16 @@ async function main() {
       return json(409, { error: 'result_unavailable' });
     } catch (error) {
       const code = error instanceof Error ? error.message : 'invalid_request';
-      return json(code === 'idempotency_conflict' ? 409 : 400, {
-        error: /^[a-z_]+$/.test(code) ? code : 'invalid_request',
-      });
+      return json(
+        code === 'idempotency_conflict'
+          ? 409
+          : code === 'renderer_busy'
+            ? 503
+            : 400,
+        {
+          error: /^[a-z_]+$/.test(code) ? code : 'invalid_request',
+        },
+      );
     }
   });
   server.requestTimeout = DEADLINE_MS;
