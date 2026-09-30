@@ -16,6 +16,17 @@ const valid = {
 describe('trend-content-ideas', () => {
   it('accepts domain data and trims required strings', () =>
     expect(trendContentIdeasSchema.safeParse(valid).success).toBe(true));
+  it('rejects each missing required field', () => {
+    const value: Record<string, unknown> = { ...valid.ideas[0] };
+    const required = ['title', 'description', 'contentType'];
+    for (const key of required) {
+      const incomplete = { ...value };
+      delete incomplete[key];
+      expect(
+        trendContentIdeasSchema.safeParse({ ideas: [incomplete] }).success,
+      ).toBe(false);
+    }
+  });
   it('rejects missing fields', () =>
     expect(trendContentIdeasSchema.safeParse({}).success).toBe(false));
   it('rejects unknown envelope keys', () =>

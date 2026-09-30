@@ -306,6 +306,23 @@ describe('TrendsService', () => {
     vi.clearAllMocks();
   });
 
+  it('delegates trend ideas with accounting, brand and BYOK and propagates rejection', async () => {
+    const billing = vi.fn();
+    const brand = { label: 'Brand' };
+    const trends: TrendEntity[] = [];
+    const output = new Map();
+    const delegate = vi
+      .spyOn(trendContentIdeasService, 'generateContentIdeas')
+      .mockResolvedValueOnce(output);
+    expect(
+      await service.generateContentIdeas(trends, 2, billing, brand, 'key'),
+    ).toBe(output);
+    expect(delegate).toHaveBeenCalledWith(trends, 2, billing, brand, 'key');
+    const error = new Error('structured output failed');
+    delegate.mockRejectedValueOnce(error);
+    await expect(service.generateContentIdeas(trends)).rejects.toBe(error);
+  });
+
   it('delegates corpus freshness health to the reference corpus owner', async () => {
     const health = {
       generatedAt: '2026-06-30T08:00:00.000Z',

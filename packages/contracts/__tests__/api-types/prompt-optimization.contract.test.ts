@@ -10,6 +10,17 @@ const valid = {
 describe('prompt-optimization', () => {
   it('accepts domain data and trims required strings', () =>
     expect(promptOptimizationSchema.safeParse(valid).success).toBe(true));
+  it('rejects each missing required field', () => {
+    const value: Record<string, unknown> = { ...valid };
+    const required = Object.keys(value);
+    for (const key of required) {
+      const incomplete = { ...value };
+      delete incomplete[key];
+      expect(promptOptimizationSchema.safeParse(incomplete).success).toBe(
+        false,
+      );
+    }
+  });
   it('rejects missing fields', () =>
     expect(promptOptimizationSchema.safeParse({}).success).toBe(false));
   it('rejects unknown envelope keys', () =>

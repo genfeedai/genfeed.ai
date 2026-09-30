@@ -17,6 +17,18 @@ const valid = {
 describe('clip-highlight-detection', () => {
   it('accepts domain data and trims required strings', () =>
     expect(clipHighlightDetectionSchema.safeParse(valid).success).toBe(true));
+  it('rejects each missing required field', () => {
+    const value: Record<string, unknown> = { ...valid.highlights[0] };
+    const required = Object.keys(value);
+    for (const key of required) {
+      const incomplete = { ...value };
+      delete incomplete[key];
+      expect(
+        clipHighlightDetectionSchema.safeParse({ highlights: [incomplete] })
+          .success,
+      ).toBe(false);
+    }
+  });
   it('rejects missing fields', () =>
     expect(clipHighlightDetectionSchema.safeParse({}).success).toBe(false));
   it('rejects unknown envelope keys', () =>
@@ -25,6 +37,9 @@ describe('clip-highlight-detection', () => {
     ).toBe(false));
   it.each([
     { start_time: -1 },
+    { start_time: Infinity },
+    { end_time: -1 },
+    { end_time: Infinity },
     { end_time: 14.99 },
     { end_time: 90.01 },
     { title: ' ' },

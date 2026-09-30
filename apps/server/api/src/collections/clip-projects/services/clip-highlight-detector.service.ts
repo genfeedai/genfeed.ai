@@ -1,3 +1,4 @@
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import {
   buildStructuredResponseFormat,
   runStructuredCompletion,
@@ -15,8 +16,8 @@ export type { HighlightResult } from '@genfeedai/contracts/api-types/contracts';
  * Clip Highlight Detector
  *
  * Shared highlight-detection action for clip analysis and generation workflows.
- * Owns the highlight prompt, OpenRouter call, and JSON
- * parse/validation/fallback behavior so workflow callers cannot drift.
+ * Owns the highlight prompt, OpenRouter call, schema validation and explicit
+ * deterministic fallback behavior so workflow callers cannot drift.
  */
 
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
@@ -167,7 +168,10 @@ Select clips with the highest virality scores for the highlights field.`;
         throw error;
       }
       this.logger.warn(`${this.logContext} using deterministic fallback`, {
-        code: 'clip_highlight_provider_unavailable',
+        code:
+          error instanceof LlmStructuredOutputError
+            ? 'clip_highlight_invalid_output'
+            : 'clip_highlight_provider_unavailable',
       });
       return this.buildDeterministicFallback(segments, maxClips);
     }
