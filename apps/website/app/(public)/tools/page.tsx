@@ -1,5 +1,5 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import ToolsContent from '@public/tools/tools-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Free AI Content Tools',

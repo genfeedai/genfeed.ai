@@ -1,10 +1,9 @@
-// biome-ignore assist/source/organizeImports: External packages precede project aliases.
-import { ImageResponse } from 'next/og';
-
+import { ARTICLE_OG_CARDS } from '@data/editorial-og.data';
 import { loadSatoshiSatoriFonts } from '@genfeedai/fonts/og';
-
+import { renderMarketingOg } from '@web-components/og/marketing-og';
 import { getPublicArticleBySlugCached } from '@website/(content)/articles/[slug]/article-loader';
 import { getArticleCoverPalette } from '@website/(content)/articles/article-cover.palette';
+import { ImageResponse } from 'next/og';
 
 import { BrandMark } from './brand-mark';
 import { getHeadlineSize, truncateHeadline } from './headline';
@@ -33,6 +32,18 @@ export async function GET(
 ): Promise<ImageResponse> {
   const { slug } = await params;
   const article = await getPublicArticleBySlugCached(slug).catch(() => null);
+
+  const card = Object.hasOwn(ARTICLE_OG_CARDS, slug)
+    ? ARTICLE_OG_CARDS[slug as keyof typeof ARTICLE_OG_CARDS]
+    : undefined;
+  if (
+    card &&
+    article?.coverImageUrl
+      ?.split('?')[0]
+      ?.endsWith(`/assets/cards/articles/${card}.webp`)
+  ) {
+    return renderMarketingOg(card);
+  }
 
   const palette = getArticleCoverPalette(slug);
   const label = article?.label?.trim() || 'Genfeed.ai';

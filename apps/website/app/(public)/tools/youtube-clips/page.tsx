@@ -1,5 +1,5 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import YoutubeClipsContent from '@public/tools/youtube-clips/youtube-clips-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 import PageLayout from '@web-components/PageLayout';
 import { Scissors } from 'lucide-react';
 

@@ -1,5 +1,5 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import SelfHostedContent from '@public/self-hosted/self-hosted-content';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Self-Host Genfeed',

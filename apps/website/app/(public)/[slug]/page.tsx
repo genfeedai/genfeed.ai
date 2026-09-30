@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { getAllProductSlugs, type Product } from '@data/products.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { getProductBySlugCached } from '@public/[slug]/product-loader';
@@ -36,9 +37,8 @@ export function buildProductPageJsonLd(product: Product, url: string) {
 
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
   const { slug } = await params;
   const product = await getProductBySlugCached(slug);
 
@@ -51,6 +51,8 @@ export async function generateMetadata(
   const title = `${product.seoTitle ?? `${product.name} | ${product.tagline}`} | ${metadata.name}`;
   const description = product.description;
   const url = `${EnvironmentService.apps.website}/${product.slug}`;
+
+  const previousImages = [getMarketingOgImage(`/${slug}`, product.name)];
 
   return {
     alternates: {

@@ -82,7 +82,7 @@ export async function renderMarketingOg(
           letterSpacing: '-0.04em',
           lineHeight: 1.05,
           position: 'absolute',
-          top: card.headlineTop,
+          top: artwork ? card.headlineTop : Math.max(card.headlineTop, 144),
           width: card.headlineWidth,
         }}
       >
