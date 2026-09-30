@@ -24,7 +24,7 @@ describe('private operator pricing boundary', () => {
       get: () => 'api.example',
       originalUrl: '/v1/admin/model-pricing',
     } as never);
-    expect(response.data.attributes.rows).toEqual([]);
+    expect(response).toMatchObject({ data: { attributes: { rows: [] } } });
     const ordinary = ModelSerializer.serialize({
       id: 'ordinary',
       providerCostUsd: 0.2,
