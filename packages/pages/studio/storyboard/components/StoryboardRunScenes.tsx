@@ -234,6 +234,7 @@ export default function StoryboardRunScenes({
         isOpen={isPickerOpen}
         onOpenChange={setPickerOpen}
         items={videos.map((video) => ({
+          brandId: video.brandId ?? null,
           id: video.id,
           contentType: 'video',
           contentTitle: getIngredientDisplayLabel(video),

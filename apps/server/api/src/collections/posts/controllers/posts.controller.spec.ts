@@ -500,6 +500,7 @@ describe('PostsService.listContentMentions', () => {
   it('returns recent organization posts as content mentions', async () => {
     prisma.post.findMany.mockResolvedValue([
       {
+        brandId: 'brand-1',
         category: PostCategory.TEXT,
         description: 'Fallback text',
         entityArticle: null,
@@ -511,6 +512,7 @@ describe('PostsService.listContentMentions', () => {
         label: 'Launch thread',
       },
       {
+        brandId: null,
         category: PostCategory.IMAGE,
         description: 'Article fallback',
         entityArticle: {
@@ -536,18 +538,35 @@ describe('PostsService.listContentMentions', () => {
     );
     expect(result).toEqual([
       {
+        brandId: 'brand-1',
         contentTitle: 'Launch thread',
         contentType: 'text',
         id: 'post-1',
         thumbnailUrl: 'https://cdn.test/image.png',
       },
       {
+        brandId: null,
         contentTitle: 'Article title',
         contentType: 'image',
         id: 'post-2',
         thumbnailUrl: 'https://cdn.test/article.png',
       },
     ]);
+  });
+
+  it('filters the conversation brand without widening organization or soft-delete scope', async () => {
+    prisma.post.findMany.mockResolvedValue([]);
+    await service.listContentMentions('org-1', 'brand-1');
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ brandId: true }),
+        where: {
+          brandId: 'brand-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+      }),
+    );
   });
 
   it('does not query without organization scope', async () => {

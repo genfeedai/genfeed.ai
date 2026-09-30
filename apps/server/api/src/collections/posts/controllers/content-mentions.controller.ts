@@ -9,6 +9,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -22,6 +23,7 @@ export class ContentMentionsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getMentions(
     @CurrentUser() user: User,
+    @Query('brandId') brandId?: string,
   ): Promise<AgentContentMentionsResponse> {
     if (!user.organizationId) {
       throw new BadRequestException({
@@ -32,6 +34,7 @@ export class ContentMentionsController {
 
     const mentions = await this.postsService.listContentMentions(
       user.organizationId,
+      brandId,
     );
 
     return { mentions };

@@ -15,12 +15,16 @@ function apiServiceStub(
 describe('useContentMentions', () => {
   it('exposes the fetched mentions once loading settles', async () => {
     const mentions = [
-      { contentTitle: 'Launch thread', contentType: 'text', id: 'post-1' },
+      {
+        brandId: 'brand-1',
+        contentTitle: 'Launch thread',
+        contentType: 'text',
+        id: 'post-1',
+      },
     ];
 
-    const { result } = renderHook(() =>
-      useContentMentions(apiServiceStub(Promise.resolve(mentions))),
-    );
+    const api = apiServiceStub(Promise.resolve(mentions));
+    const { result } = renderHook(() => useContentMentions(api));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.mentions).toEqual(mentions);
@@ -38,11 +42,57 @@ describe('useContentMentions', () => {
     );
     decodeFailure.catch(() => {});
 
-    const { result } = renderHook(() =>
-      useContentMentions(apiServiceStub(decodeFailure)),
-    );
+    const api = apiServiceStub(decodeFailure);
+    const { result } = renderHook(() => useContentMentions(api));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.mentions).toEqual([]);
   });
+});
+
+it('clears old scope and aborts its request when the conversation brand changes', async () => {
+  let resolveOld!: (
+    value: Awaited<ReturnType<AgentApiService['getContentMentions']>>,
+  ) => void;
+  const pending = new Promise<
+    Awaited<ReturnType<AgentApiService['getContentMentions']>>
+  >((resolve) => {
+    resolveOld = resolve;
+  });
+  const getContentMentions = vi
+    .fn()
+    .mockReturnValueOnce(pending)
+    .mockResolvedValueOnce([
+      {
+        brandId: 'brand-2',
+        contentTitle: 'New scope',
+        contentType: 'text',
+        id: 'post-2',
+      },
+    ]);
+  const api = { getContentMentions } as unknown as AgentApiService;
+  const { result, rerender } = renderHook(
+    ({ brandId }) => useContentMentions(api, brandId),
+    {
+      initialProps: { brandId: 'brand-1' },
+    },
+  );
+  const oldSignal = getContentMentions.mock.calls[0]?.[0] as AbortSignal;
+  rerender({ brandId: 'brand-2' });
+  expect(oldSignal.aborted).toBe(true);
+  expect(getContentMentions).toHaveBeenLastCalledWith(
+    expect.any(AbortSignal),
+    'brand-2',
+  );
+  await waitFor(() => expect(result.current.mentions[0]?.id).toBe('post-2'));
+  resolveOld([
+    {
+      brandId: 'brand-1',
+      contentTitle: 'Old scope',
+      contentType: 'text',
+      id: 'post-1',
+    },
+  ]);
+  await pending;
+  expect(result.current.mentions[0]?.id).toBe('post-2');
 });

@@ -15,7 +15,8 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const storeState = {
-  activeThreadId: null,
+  activeThreadId: null as string | null,
+  threads: [] as Array<{ id: string; brandId: string | null }>,
   clearComposerSeed: vi.fn(),
   composerSeed: null,
 };
@@ -24,8 +25,11 @@ vi.mock('@genfeedai/agent/hooks/use-brand-mentions', () => ({
   useBrandMentions: () => ({ mentions: [] }),
 }));
 
+const { contentMentionsMock } = vi.hoisted(() => ({
+  contentMentionsMock: vi.fn(() => ({ isLoading: false, mentions: [] })),
+}));
 vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
-  useContentMentions: () => ({ isLoading: false, mentions: [] }),
+  useContentMentions: contentMentionsMock,
 }));
 
 vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({
@@ -397,6 +401,7 @@ describe('useAgentChatInput references', () => {
         contentType: 'post',
         id: 'post-1',
         label: 'Launch post',
+        isSkipped: true,
         thumbnailUrl: undefined,
         type: 'content',
       },
@@ -404,6 +409,7 @@ describe('useAgentChatInput references', () => {
         contentType: 'post',
         id: 'post-2',
         label: 'Campaign brief',
+        isSkipped: true,
         thumbnailUrl: undefined,
         type: 'content',
       },
@@ -414,8 +420,8 @@ describe('useAgentChatInput references', () => {
       await result.current.handleSend();
     });
 
-    // Content-picker posts span every brand, so they stay display-only: only
-    // the workspace's own references are sent.
+    // Legacy posts have no known canonical brand; only verified workspace
+    // references can be sent until the posts are picked again.
     expect(onSend).toHaveBeenCalledWith(
       expect.any(String),
       expect.any(Array),
@@ -1124,5 +1130,111 @@ describe('useAgentChatInput attached record brand scope', () => {
     const options = await sendWithAttached(undefined);
 
     expect(options?.artifactReferences ?? []).toEqual([]);
+  });
+});
+
+describe('useAgentChatInput picked post context', () => {
+  function BoundWrapper({ children }: { children: ReactNode }) {
+    return (
+      <ConversationComposerShellProvider
+        brandId="route-brand"
+        contextLabel="Conversation"
+        draftScopeKey={draftScopeKey}
+        portalTarget={null}
+        shellState="canvas"
+      >
+        {children}
+      </ConversationComposerShellProvider>
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    storeState.activeThreadId = 'thread-1';
+    storeState.threads = [{ id: 'thread-1', brandId: 'brand-1' }];
+    microphoneState.isListening = false;
+    microphoneState.isTranscribing = false;
+  });
+
+  afterEach(() => {
+    storeState.activeThreadId = null;
+    storeState.threads = [];
+    sessionStorage.clear();
+  });
+
+  it.each(['brand-1', 'brand-2', null])(
+    'sends successfully while including only matching picked posts (%s)',
+    async (pickedBrandId) => {
+      const onSend = vi.fn().mockResolvedValue(true);
+      const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+        wrapper: BoundWrapper,
+      });
+      await waitFor(() => expect(result.current.editor).not.toBeNull());
+      expect(contentMentionsMock).toHaveBeenLastCalledWith(null, 'brand-1');
+      act(() => {
+        result.current.handleSelectContentReference({
+          brandId: pickedBrandId,
+          contentTitle: 'Picked post',
+          contentType: 'text',
+          id: 'picked-post',
+        });
+        result.current.editor?.commands.setContent('Review this post');
+      });
+      expect(result.current.references[0]?.isSkipped ?? false).toBe(
+        pickedBrandId !== 'brand-1',
+      );
+      await act(async () => {
+        await result.current.handleSend();
+      });
+      expect(onSend).toHaveBeenCalledTimes(1);
+      const options = onSend.mock.calls[0]?.[3];
+      expect(options.artifactReferences ?? []).toEqual(
+        pickedBrandId === 'brand-1'
+          ? [
+              {
+                brandId: 'brand-1',
+                kind: 'post',
+                organizationId: 'org-1',
+                recordId: 'picked-post',
+                serializer: 'post',
+              },
+            ]
+          : [],
+      );
+      expect(options.brandId).toBe('brand-1');
+      expect(result.current.editor?.getText()).toBe('');
+    },
+  );
+
+  it('uses organization scope for an unbound conversation even on a brand route', async () => {
+    storeState.threads = [{ id: 'thread-1', brandId: null }];
+    const onSend = vi.fn().mockResolvedValue(true);
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: BoundWrapper,
+    });
+    await waitFor(() => expect(result.current.editor).not.toBeNull());
+    expect(contentMentionsMock).toHaveBeenLastCalledWith(null, undefined);
+    act(() => {
+      for (const brandId of ['brand-2', null]) {
+        result.current.handleSelectContentReference({
+          brandId,
+          contentTitle: 'Post',
+          contentType: 'text',
+          id: `post-${brandId}`,
+        });
+      }
+      result.current.editor?.commands.setContent('Compare these');
+    });
+    await act(async () => {
+      await result.current.handleSend();
+    });
+    expect(onSend.mock.calls[0]?.[3]).toMatchObject({
+      artifactReferences: [
+        { brandId: 'brand-2', kind: 'post', recordId: 'post-brand-2' },
+        { kind: 'post', recordId: 'post-null' },
+      ],
+    });
+    expect(onSend.mock.calls[0]?.[3].brandId).toBeUndefined();
   });
 });
