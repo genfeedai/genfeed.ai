@@ -144,6 +144,7 @@
         "unavailableHealth": "Health unavailable",
         "missingHealth": "No saved health is available for this platform. Reload to check again.",
         "notRecorded": "Not recorded",
+        "noSuccessfulRefresh": "No successful refresh",
         "status": {
           "healthy": "healthy",
           "stale": "stale",
@@ -161,7 +162,8 @@
         "failure": {
           "empty_source_preview": "No source previews were observed.",
           "fallback_source_preview": "Saved fallback previews are being used.",
-          "stale_source_preview": "Saved source previews are stale."
+          "stale_source_preview": "Saved source previews are stale.",
+          "refresh_failed": "The latest provider refresh failed or is unavailable."
         },
         "sourceTimestampLabel": "Last observed",
         "lastRefreshLabel": "Last refresh",

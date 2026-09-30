@@ -1,3 +1,4 @@
+import { recordTrendProviderOutcome } from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type {
   ServerLinkedInTrend,
@@ -67,10 +68,13 @@ export class LinkedInTrendResolverService
         return toServerTrends(liveTopics);
       }
 
+      if (scrapedSources.some((result) => result.status === 'rejected'))
+        recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.warn(
         `${url} - public LinkedIn scrape returned no usable topics, returning no observed trends`,
       );
     } catch (error: unknown) {
+      recordTrendProviderOutcome('native_failed', 'native_failed');
       this.loggerService.warn(
         `${url} - public LinkedIn scrape failed, returning no observed trends`,
         { error: error instanceof Error ? error.message : String(error) },

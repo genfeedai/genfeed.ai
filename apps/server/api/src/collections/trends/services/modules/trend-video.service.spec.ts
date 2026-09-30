@@ -81,6 +81,8 @@ describe('TrendVideoService', () => {
     updatedAt: new Date(),
   });
 
+  const refreshHealth = { record: vi.fn().mockResolvedValue(undefined) };
+
   beforeEach(() => {
     vi.clearAllMocks();
 
@@ -112,6 +114,7 @@ describe('TrendVideoService', () => {
       mockCacheService as never,
       mockApifyService as never,
       mockYoutubeService as never,
+      refreshHealth as never,
     );
   });
 
@@ -448,5 +451,59 @@ describe('TrendVideoService', () => {
       expect(mockPrisma.trendingSound.update).not.toHaveBeenCalled();
       expect(mockPrisma.trendingSound.create).toHaveBeenCalledTimes(1);
     });
+  });
+  it.each(['native_available', 'fallback_empty', 'fallback_failed'] as const)(
+    'records completed video dataset outcome %s',
+    async (outcome) => {
+      if (outcome === 'native_available')
+        mockYoutubeService.getTrends.mockResolvedValue([
+          {
+            id: 'video-1',
+            title: 'News',
+            viewCount: 1,
+            likeCount: 0,
+            commentCount: 0,
+          },
+        ]);
+      else
+        mockYoutubeService.getTrends.mockRejectedValue(
+          new Error('native secret'),
+        );
+      if (outcome === 'fallback_failed')
+        mockApifyService.getYouTubeVideos.mockRejectedValue(
+          new Error('fallback secret'),
+        );
+      else mockApifyService.getYouTubeVideos.mockResolvedValue([]);
+      await service.fetchAndCacheViralVideos('youtube');
+      expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+        expect.objectContaining({
+          dataset: 'videos',
+          platform: 'youtube',
+          outcome,
+          lastAttemptAt: expect.any(String),
+        }),
+      ]);
+    },
+  );
+
+  it('records empty hashtag and sound refreshes instead of losing zero-count attempts', async () => {
+    mockApifyService.getTrendingHashtags.mockResolvedValue([]);
+    mockApifyService.getTikTokSounds.mockResolvedValue([]);
+    await service.fetchAndCacheHashtags('tiktok');
+    await service.fetchAndCacheSounds();
+    expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+      expect.objectContaining({
+        dataset: 'hashtags',
+        outcome: 'fallback_empty',
+        lastSuccessfulRefreshAt: expect.any(String),
+      }),
+    ]);
+    expect(refreshHealth.record).toHaveBeenCalledWith(null, [
+      expect.objectContaining({
+        dataset: 'sounds',
+        outcome: 'fallback_empty',
+        lastSuccessfulRefreshAt: expect.any(String),
+      }),
+    ]);
   });
 });

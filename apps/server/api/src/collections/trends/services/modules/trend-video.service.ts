@@ -5,6 +5,14 @@ import type {
 import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
 import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
 import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
+import { TrendRefreshHealthService } from '@api/collections/trends/services/modules/trend-refresh-health.service';
+import {
+  captureTrendRefreshEvidence,
+  getTrendNativeFailureReason,
+  recordTrendProviderOutcome,
+  recordTrendRefreshFailure,
+  withTrendRefreshAttempt,
+} from '@api/collections/trends/utils/trend-refresh-evidence.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { ViralScoringUtil } from '@api/services/integrations/apify/utils/viral-scoring.util';
@@ -34,6 +42,7 @@ export class TrendVideoService {
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
     private readonly youtubeService: YoutubeService,
+    private readonly refreshHealth: TrendRefreshHealthService,
   ) {}
 
   /**
@@ -157,100 +166,121 @@ export class TrendVideoService {
       return 0;
     }
 
-    try {
-      const videos = await fetcher();
-      const expiresAt = new Date(
-        Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
-      );
+    const captured = await captureTrendRefreshEvidence(
+      () =>
+        withTrendRefreshAttempt(platform, 'videos', 'global', async () => {
+          let isFetched = false;
+          try {
+            const videos = await fetcher();
+            if (platform !== 'youtube')
+              recordTrendProviderOutcome(
+                videos.length ? 'fallback_available' : 'fallback_empty',
+                'native_unavailable',
+              );
+            isFetched = true;
+            const expiresAt = new Date(
+              Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
+            );
 
-      // Existing records match on externalId + platform inside the JSON `data`
-      // blob, so index the table once for the whole batch instead of re-scanning
-      // it on every iteration.
-      const existingVideoDocs =
-        videos.length > 0
-          ? await this.prisma.trendingVideo.findMany({
-              orderBy: { createdAt: 'desc' },
-              take: 1000,
-              where: { isDeleted: false },
-            })
-          : [];
-      const existingVideoIds = this.indexTrendDocsByKey(
-        existingVideoDocs,
-        (d) =>
-          typeof d.externalId === 'string' && typeof d.platform === 'string'
-            ? trendKey(d.platform, d.externalId)
-            : null,
-      );
+            // Existing records match on externalId + platform inside the JSON `data`
+            // blob, so index the table once for the whole batch instead of re-scanning
+            // it on every iteration.
+            const existingVideoDocs =
+              videos.length > 0
+                ? await this.prisma.trendingVideo.findMany({
+                    orderBy: { createdAt: 'desc' },
+                    take: 1000,
+                    where: { isDeleted: false },
+                  })
+                : [];
+            const existingVideoIds = this.indexTrendDocsByKey(
+              existingVideoDocs,
+              (d) =>
+                typeof d.externalId === 'string' &&
+                typeof d.platform === 'string'
+                  ? trendKey(d.platform, d.externalId)
+                  : null,
+            );
 
-      for (const video of videos) {
-        const externalId = video.externalId as string | undefined;
+            for (const video of videos) {
+              const externalId = video.externalId as string | undefined;
 
-        // Find existing record by externalId + platform in data (in-memory match)
-        if (externalId) {
-          const videoKey = trendKey(platform, externalId);
-          const matchId = existingVideoIds.get(videoKey);
+              // Find existing record by externalId + platform in data (in-memory match)
+              if (externalId) {
+                const videoKey = trendKey(platform, externalId);
+                const matchId = existingVideoIds.get(videoKey);
 
-          const dataPayload = {
-            ...video,
-            expiresAt,
-            isCurrent: true,
-            isDeleted: false,
-            lastSeenAt: new Date(),
-          };
+                const dataPayload = {
+                  ...video,
+                  expiresAt,
+                  isCurrent: true,
+                  isDeleted: false,
+                  lastSeenAt: new Date(),
+                };
 
-          if (matchId) {
-            await this.prisma.trendingVideo.update({
-              data: { data: dataPayload as Prisma.InputJsonValue },
-              where: { id: matchId },
-            });
-          } else {
-            const created = await this.prisma.trendingVideo.create({
-              data: {
-                data: dataPayload as Prisma.InputJsonValue,
-                isDeleted: false,
-              },
-            });
-            // Keep the index authoritative so a key repeated inside this batch
-            // updates the row we just created instead of duplicating it.
-            if (created.id) {
-              existingVideoIds.set(videoKey, created.id);
+                if (matchId) {
+                  await this.prisma.trendingVideo.update({
+                    data: { data: dataPayload as Prisma.InputJsonValue },
+                    where: { id: matchId },
+                  });
+                } else {
+                  const created = await this.prisma.trendingVideo.create({
+                    data: {
+                      data: dataPayload as Prisma.InputJsonValue,
+                      isDeleted: false,
+                    },
+                  });
+                  // Keep the index authoritative so a key repeated inside this batch
+                  // updates the row we just created instead of duplicating it.
+                  if (created.id) {
+                    existingVideoIds.set(videoKey, created.id);
+                  }
+                }
+              } else {
+                await this.prisma.trendingVideo.create({
+                  data: {
+                    data: {
+                      ...video,
+                      expiresAt,
+                      isCurrent: true,
+                      isDeleted: false,
+                      lastSeenAt: new Date(),
+                    } as Prisma.InputJsonValue,
+                    isDeleted: false,
+                  },
+                });
+              }
             }
-          }
-        } else {
-          await this.prisma.trendingVideo.create({
-            data: {
-              data: {
-                ...video,
-                expiresAt,
-                isCurrent: true,
-                isDeleted: false,
-                lastSeenAt: new Date(),
-              } as Prisma.InputJsonValue,
-              isDeleted: false,
-            },
-          });
-        }
-      }
 
-      this.loggerService.log(
-        `Cached ${videos.length} viral videos for ${platform}`,
-      );
-      return videos.length;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `Failed to fetch viral videos for ${platform}`,
-        error,
-      );
-      return 0;
-    }
+            this.loggerService.log(
+              `Cached ${videos.length} viral videos for ${platform}`,
+            );
+            return videos.length;
+          } catch (error: unknown) {
+            recordTrendRefreshFailure(
+              isFetched ? 'persistence_failed' : 'provider_failed',
+            );
+            this.loggerService.error(
+              `Failed to fetch viral videos for ${platform}`,
+              error,
+            );
+            return 0;
+          }
+        }),
+      (evidence) => this.refreshHealth.record(null, evidence),
+    );
+    return captured.result;
   }
 
   private async fetchYoutubeVideosNativeFirst(
     limit: number,
   ): Promise<Record<string, unknown>[]> {
+    let reason: 'native_empty' | 'native_failed' | 'native_unavailable' =
+      'native_empty';
     try {
       const nativeVideos = await this.youtubeService.getTrends('US', limit);
       if (nativeVideos.length > 0) {
+        recordTrendProviderOutcome('native_available');
         return nativeVideos.map((video) => {
           const hoursAgo = this.getHoursSincePublication(video.publishedAt);
           const metrics = ViralScoringUtil.calculateVideoMetrics({
@@ -276,17 +306,24 @@ export class TrendVideoService {
         });
       }
 
+      reason = getTrendNativeFailureReason() ?? 'native_empty';
       this.loggerService.warn(
         'YouTube native video discovery returned no signal; falling back to governed Apify',
       );
     } catch (error: unknown) {
+      reason = 'native_failed';
       this.loggerService.warn(
         'YouTube native video discovery failed; falling back to governed Apify',
         { error: error instanceof Error ? error.message : 'unknown' },
       );
     }
 
+    recordTrendProviderOutcome('fallback_failed', 'provider_failed');
     const fallbackVideos = await this.apifyService.getYouTubeVideos(limit);
+    recordTrendProviderOutcome(
+      fallbackVideos.length ? 'fallback_available' : 'fallback_empty',
+      reason,
+    );
     return fallbackVideos.map((video) => ({ ...video }));
   }
 
@@ -367,79 +404,100 @@ export class TrendVideoService {
     platform: string,
     limit: number = 12,
   ): Promise<number> {
-    try {
-      const hashtags = await this.apifyService.getTrendingHashtags(
-        platform,
-        limit,
-      );
+    const captured = await captureTrendRefreshEvidence(
+      () =>
+        withTrendRefreshAttempt(platform, 'hashtags', 'global', async () => {
+          let isFetched = false;
+          try {
+            const hashtags = await this.apifyService.getTrendingHashtags(
+              platform,
+              limit,
+            );
 
-      if (hashtags.length === 0) {
-        return 0;
-      }
+            recordTrendProviderOutcome(
+              hashtags.length ? 'fallback_available' : 'fallback_empty',
+              'native_unavailable',
+            );
+            isFetched = true;
+            if (hashtags.length === 0) {
+              return 0;
+            }
 
-      const expiresAt = new Date(
-        Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
-      );
+            const expiresAt = new Date(
+              Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
+            );
 
-      // One indexed read for the whole batch instead of one full scan per item.
-      const existingHashtagDocs = await this.prisma.trendingHashtag.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-        where: { isDeleted: false },
-      });
-      const existingHashtagIds = this.indexTrendDocsByKey(
-        existingHashtagDocs,
-        (d) =>
-          typeof d.hashtag === 'string' && typeof d.platform === 'string'
-            ? trendKey(d.platform, d.hashtag)
-            : null,
-      );
+            // One indexed read for the whole batch instead of one full scan per item.
+            const existingHashtagDocs =
+              await this.prisma.trendingHashtag.findMany({
+                orderBy: { createdAt: 'desc' },
+                take: 1000,
+                where: { isDeleted: false },
+              });
+            const existingHashtagIds = this.indexTrendDocsByKey(
+              existingHashtagDocs,
+              (d) =>
+                typeof d.hashtag === 'string' && typeof d.platform === 'string'
+                  ? trendKey(d.platform, d.hashtag)
+                  : null,
+            );
 
-      for (const hashtag of hashtags) {
-        const hashtagKey = (hashtag as unknown as Record<string, unknown>)
-          .hashtag as string | undefined;
+            for (const hashtag of hashtags) {
+              const hashtagKey = (hashtag as unknown as Record<string, unknown>)
+                .hashtag as string | undefined;
 
-        const indexKey = hashtagKey ? trendKey(platform, hashtagKey) : null;
-        const matchId = indexKey ? existingHashtagIds.get(indexKey) : undefined;
+              const indexKey = hashtagKey
+                ? trendKey(platform, hashtagKey)
+                : null;
+              const matchId = indexKey
+                ? existingHashtagIds.get(indexKey)
+                : undefined;
 
-        const dataPayload = {
-          ...hashtag,
-          expiresAt,
-          isCurrent: true,
-          isDeleted: false,
-          lastSeenAt: new Date(),
-        };
+              const dataPayload = {
+                ...hashtag,
+                expiresAt,
+                isCurrent: true,
+                isDeleted: false,
+                lastSeenAt: new Date(),
+              };
 
-        if (matchId) {
-          await this.prisma.trendingHashtag.update({
-            data: { data: dataPayload as Prisma.InputJsonValue },
-            where: { id: matchId },
-          });
-        } else {
-          const created = await this.prisma.trendingHashtag.create({
-            data: {
-              data: dataPayload as Prisma.InputJsonValue,
-              isDeleted: false,
-            },
-          });
-          // Keep the index authoritative for keys repeated inside this batch.
-          if (indexKey && created.id) {
-            existingHashtagIds.set(indexKey, created.id);
+              if (matchId) {
+                await this.prisma.trendingHashtag.update({
+                  data: { data: dataPayload as Prisma.InputJsonValue },
+                  where: { id: matchId },
+                });
+              } else {
+                const created = await this.prisma.trendingHashtag.create({
+                  data: {
+                    data: dataPayload as Prisma.InputJsonValue,
+                    isDeleted: false,
+                  },
+                });
+                // Keep the index authoritative for keys repeated inside this batch.
+                if (indexKey && created.id) {
+                  existingHashtagIds.set(indexKey, created.id);
+                }
+              }
+            }
+
+            this.loggerService.log(
+              `Cached ${hashtags.length} hashtags for ${platform}`,
+            );
+            return hashtags.length;
+          } catch (error: unknown) {
+            recordTrendRefreshFailure(
+              isFetched ? 'persistence_failed' : 'provider_failed',
+            );
+            this.loggerService.error(
+              `Failed to fetch hashtags for ${platform}`,
+              error,
+            );
+            return 0;
           }
-        }
-      }
-
-      this.loggerService.log(
-        `Cached ${hashtags.length} hashtags for ${platform}`,
-      );
-      return hashtags.length;
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `Failed to fetch hashtags for ${platform}`,
-        error,
-      );
-      return 0;
-    }
+        }),
+      (evidence) => this.refreshHealth.record(null, evidence),
+    );
+    return captured.result;
   }
 
   // ==================== Trending Sounds ====================
@@ -500,68 +558,85 @@ export class TrendVideoService {
    * Fetch and store trending sounds from Apify (TikTok)
    */
   async fetchAndCacheSounds(limit: number = 12): Promise<number> {
-    try {
-      const sounds = await this.apifyService.getTikTokSounds(limit);
+    const captured = await captureTrendRefreshEvidence(
+      () =>
+        withTrendRefreshAttempt('tiktok', 'sounds', 'global', async () => {
+          let isFetched = false;
+          try {
+            const sounds = await this.apifyService.getTikTokSounds(limit);
 
-      if (sounds.length === 0) {
-        return 0;
-      }
+            recordTrendProviderOutcome(
+              sounds.length ? 'fallback_available' : 'fallback_empty',
+              'native_unavailable',
+            );
+            isFetched = true;
+            if (sounds.length === 0) {
+              return 0;
+            }
 
-      const expiresAt = new Date(
-        Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
-      );
+            const expiresAt = new Date(
+              Date.now() + this.TREND_SIGNAL_DOCUMENT_TTL_SECONDS * 1000,
+            );
 
-      // One indexed read for the whole batch instead of one full scan per item.
-      const existingSoundDocs = await this.prisma.trendingSound.findMany({
-        orderBy: { createdAt: 'desc' },
-        take: 1000,
-        where: { isDeleted: false },
-      });
-      const existingSoundIds = this.indexTrendDocsByKey(
-        existingSoundDocs,
-        (d) => (typeof d.soundId === 'string' ? d.soundId : null),
-      );
+            // One indexed read for the whole batch instead of one full scan per item.
+            const existingSoundDocs = await this.prisma.trendingSound.findMany({
+              orderBy: { createdAt: 'desc' },
+              take: 1000,
+              where: { isDeleted: false },
+            });
+            const existingSoundIds = this.indexTrendDocsByKey(
+              existingSoundDocs,
+              (d) => (typeof d.soundId === 'string' ? d.soundId : null),
+            );
 
-      for (const sound of sounds) {
-        const soundId = (sound as unknown as Record<string, unknown>).soundId as
-          | string
-          | undefined;
+            for (const sound of sounds) {
+              const soundId = (sound as unknown as Record<string, unknown>)
+                .soundId as string | undefined;
 
-        const matchId = soundId ? existingSoundIds.get(soundId) : undefined;
+              const matchId = soundId
+                ? existingSoundIds.get(soundId)
+                : undefined;
 
-        const dataPayload = {
-          ...sound,
-          expiresAt,
-          isCurrent: true,
-          isDeleted: false,
-          lastSeenAt: new Date(),
-        };
+              const dataPayload = {
+                ...sound,
+                expiresAt,
+                isCurrent: true,
+                isDeleted: false,
+                lastSeenAt: new Date(),
+              };
 
-        if (matchId) {
-          await this.prisma.trendingSound.update({
-            data: { data: dataPayload as Prisma.InputJsonValue },
-            where: { id: matchId },
-          });
-        } else {
-          const created = await this.prisma.trendingSound.create({
-            data: {
-              data: dataPayload as Prisma.InputJsonValue,
-              isDeleted: false,
-            },
-          });
-          // Keep the index authoritative for ids repeated inside this batch.
-          if (soundId && created.id) {
-            existingSoundIds.set(soundId, created.id);
+              if (matchId) {
+                await this.prisma.trendingSound.update({
+                  data: { data: dataPayload as Prisma.InputJsonValue },
+                  where: { id: matchId },
+                });
+              } else {
+                const created = await this.prisma.trendingSound.create({
+                  data: {
+                    data: dataPayload as Prisma.InputJsonValue,
+                    isDeleted: false,
+                  },
+                });
+                // Keep the index authoritative for ids repeated inside this batch.
+                if (soundId && created.id) {
+                  existingSoundIds.set(soundId, created.id);
+                }
+              }
+            }
+
+            this.loggerService.log(`Cached ${sounds.length} trending sounds`);
+            return sounds.length;
+          } catch (error: unknown) {
+            recordTrendRefreshFailure(
+              isFetched ? 'persistence_failed' : 'provider_failed',
+            );
+            this.loggerService.error('Failed to fetch trending sounds', error);
+            return 0;
           }
-        }
-      }
-
-      this.loggerService.log(`Cached ${sounds.length} trending sounds`);
-      return sounds.length;
-    } catch (error: unknown) {
-      this.loggerService.error('Failed to fetch trending sounds', error);
-      return 0;
-    }
+        }),
+      (evidence) => this.refreshHealth.record(null, evidence),
+    );
+    return captured.result;
   }
 
   // ==================== Viral Leaderboard ====================

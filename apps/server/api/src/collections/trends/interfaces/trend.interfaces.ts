@@ -1,3 +1,4 @@
+import type { TrendRefreshHealth } from '@genfeedai/contracts/interfaces';
 import type { PaidCreativeProvider } from '@genfeedai/integrations/ads';
 
 export interface TrendData {
@@ -318,7 +319,8 @@ export interface TrendProviderFailureSummary {
   reason:
     | 'empty_source_preview'
     | 'fallback_source_preview'
-    | 'stale_source_preview';
+    | 'stale_source_preview'
+    | 'refresh_failed';
   affectedTrendCount: number;
   latestObservedAt?: string;
   message: string;
@@ -327,6 +329,7 @@ export interface TrendProviderFailureSummary {
 }
 
 export interface TrendCorpusFreshnessResult {
+  refreshHealth?: TrendRefreshHealth[];
   generatedAt: string;
   status: TrendCorpusFreshnessStatus;
   thresholds: {
