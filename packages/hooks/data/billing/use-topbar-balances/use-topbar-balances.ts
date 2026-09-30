@@ -8,8 +8,11 @@ import type {
   UseTopbarBalancesReturn,
 } from '@genfeedai/contracts/interfaces';
 import { CreditsService } from '@genfeedai/services/billing/credits.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
@@ -39,26 +42,62 @@ const EMPTY_SEGMENTS: ITopbarBalanceSegment[] = [];
 
 export function useTopbarBalances(): UseTopbarBalancesReturn {
   const { organizationId } = useBrand();
+  const {
+    isLoaded: isAuthLoaded,
+    isSignedIn,
+    orgId,
+    sessionId,
+    userId,
+  } = useAuthIdentity();
+  const isDesktop = useIsDesktopClient();
+  const apiEndpoint = EnvironmentService.apiEndpoint;
   const queryClient = useQueryClient();
-  const showCredits = shouldShowCreditsNav();
-  const getCreditsService = useAuthedService((token: string) =>
-    CreditsService.getInstance(token),
+  const showCredits = shouldShowCreditsNav({
+    clientSurface: isDesktop ? 'desktop' : 'web',
+  });
+  const getCreditsService = useAuthedService(
+    (token: string) => new CreditsService(token),
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runtime endpoint getter must invalidate the wallet scope
   const queryKey = useMemo(
-    () => ['topbar-balances', organizationId ?? 'no-org'],
-    [organizationId],
+    () => [
+      'topbar-balances',
+      apiEndpoint,
+      sessionId,
+      userId,
+      organizationId ?? 'no-org',
+    ],
+    [apiEndpoint, sessionId, userId, organizationId],
   );
 
-  const isEnabled = showCredits && Boolean(organizationId);
+  const isEnabled =
+    showCredits &&
+    // Hydration may start with the web snapshot in a hosted Electron page.
+    // Never let that cosmetic snapshot authorize a request for unknown desktop context.
+    shouldShowCreditsNav() &&
+    isAuthLoaded &&
+    isSignedIn &&
+    Boolean(userId) &&
+    Boolean(sessionId) &&
+    Boolean(organizationId) &&
+    orgId === organizationId;
 
-  const { data, isFetching, isPending, refetch } = useQuery({
+  const { data, isError, isFetching, isPending, refetch } = useQuery({
     enabled: isEnabled,
-    queryFn: async (): Promise<TopbarBalancesSnapshot> => {
+    queryFn: async ({ signal }): Promise<TopbarBalancesSnapshot> => {
       try {
         const service = await getCreditsService();
+        if (signal.aborted || EnvironmentService.apiEndpoint !== apiEndpoint)
+          throw new DOMException('Wallet scope changed', 'AbortError');
         const balances = await service.getTopbarBalances();
-        const segments = balances.segments ?? EMPTY_SEGMENTS;
+        if (signal.aborted || EnvironmentService.apiEndpoint !== apiEndpoint)
+          throw new DOMException('Wallet scope changed', 'AbortError');
+        const segments = (balances.segments ?? EMPTY_SEGMENTS).filter(
+          (segment) =>
+            typeof segment.balance === 'number' &&
+            Number.isFinite(segment.balance),
+        );
 
         return {
           genfeedBalance:
@@ -69,7 +108,12 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
       } catch (error: unknown) {
         const requestError = error as OptionalBalanceRequestError;
 
-        if (!requestError.isCancelled && !requestError.silent) {
+        if (
+          !signal.aborted &&
+          !(error instanceof DOMException && error.name === 'AbortError') &&
+          !requestError.isCancelled &&
+          !requestError.silent
+        ) {
           logger.warn('useTopbarBalances: failed to fetch balances', {
             error,
             reportToSentry: false,
@@ -97,10 +141,15 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     }
   }, []);
 
-  useEffect(() => clearReconcileTimeout, [clearReconcileTimeout]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cancel reconciliation whenever wallet scope or readiness changes
+  useEffect(
+    () => clearReconcileTimeout,
+    [clearReconcileTimeout, queryKey, isEnabled],
+  );
 
   const publishGenfeedBalance = useCallback(
     (balance: number) => {
+      if (!isEnabled || !Number.isFinite(balance)) return;
       queryClient.setQueryData<TopbarBalancesSnapshot>(
         queryKey,
         (previous) => ({
@@ -115,12 +164,12 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
         void refetch();
       }, SOCKET_RECONCILE_DELAY_MS);
     },
-    [clearReconcileTimeout, queryClient, queryKey, refetch],
+    [clearReconcileTimeout, isEnabled, queryClient, queryKey, refetch],
   );
 
   useEffect(() => {
     const handleRefresh = () => {
-      void refetch();
+      if (isEnabled) void refetch();
     };
 
     window.addEventListener(REFRESH_EVENT, handleRefresh);
@@ -128,20 +177,24 @@ export function useTopbarBalances(): UseTopbarBalancesReturn {
     return () => {
       window.removeEventListener(REFRESH_EVENT, handleRefresh);
     };
-  }, [refetch]);
+  }, [isEnabled, refetch]);
 
   const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+    if (isEnabled) await refetch();
+  }, [isEnabled, refetch]);
 
   return {
-    genfeedBalance: data?.genfeedBalance ?? null,
-    isLoaded: data !== undefined,
+    genfeedBalance:
+      isEnabled && !isError ? (data?.genfeedBalance ?? null) : null,
+    isLoaded: isEnabled && !isError && data !== undefined,
     // A disabled query stays `pending` forever, which would pin the chip to a
     // skeleton for an org that has no wallet at all.
     isLoading: isEnabled && (isPending || isFetching),
     publishGenfeedBalance,
     refresh,
-    segments: data?.segments ?? EMPTY_SEGMENTS,
+    segments:
+      isEnabled && !isError
+        ? (data?.segments ?? EMPTY_SEGMENTS)
+        : EMPTY_SEGMENTS,
   };
 }

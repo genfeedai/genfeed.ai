@@ -8,6 +8,7 @@ import {
 import { getVideoResolutionLabel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { StudioGenerationSummaryProps } from '@genfeedai/props/studio/studio-generate.props';
 import { buildStudioPromptData } from '@pages/studio/generate/utils/studio-generate-settings';
 import { resolveStudioGenerateCapabilities } from '@pages/studio/generate/utils/studio-generate-types';
@@ -25,7 +26,10 @@ export default function StudioGenerationSummary({
   const translate = useTranslations('pages.studioGenerate');
   const { orgHref } = useOrgUrl();
   const { genfeedBalance, isLoaded, isLoading } = useTopbarBalances();
-  const showCredits = shouldShowCreditsNav();
+  const isDesktop = useIsDesktopClient();
+  const showCredits = shouldShowCreditsNav({
+    clientSurface: isDesktop ? 'desktop' : 'web',
+  });
   const capabilities = resolveStudioGenerateCapabilities(
     type,
     settings.modelKey,
