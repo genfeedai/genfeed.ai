@@ -3,7 +3,9 @@ import { loadMarketingSatoriFonts } from '@genfeedai/fonts/og';
 import { BrandMark } from '@website/(content)/articles/[slug]/og/brand-mark';
 import { ImageResponse } from 'next/og';
 
-async function loadArtwork(url: string): Promise<string | null> {
+async function loadArtwork(url: string | null): Promise<string | null> {
+  if (!url) return null;
+
   try {
     const response = await fetch(url, {
       next: { revalidate: 3600 },
@@ -74,14 +76,14 @@ export async function renderMarketingOg(
           display: 'flex',
           flexDirection: 'column',
           fontFamily: 'Zodiak',
-          fontSize: 58,
+          fontSize: card.headlineFontSize,
           fontWeight: 400,
           left: 40,
           letterSpacing: '-0.04em',
-          lineHeight: 1.16,
+          lineHeight: 1.05,
           position: 'absolute',
-          top: 230,
-          width: 400,
+          top: card.headlineTop,
+          width: card.headlineWidth,
         }}
       >
         {card.headline.map((line) => (

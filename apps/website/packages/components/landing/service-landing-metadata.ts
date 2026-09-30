@@ -1,3 +1,4 @@
+import { isMarketingOgCard } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import type { ServiceLandingConfig } from '@web-components/landing/service-landings.data';
 import type { Metadata } from 'next';
@@ -15,7 +16,9 @@ export const createServiceLandingMetadata = (
     alt: config.metaTitle,
     height: 630,
     type: 'image/png',
-    url: config.slug === 'x' ? `${url}/og` : metadata.cards.default,
+    url: isMarketingOgCard(config.slug)
+      ? `${metadata.url}/og/${config.slug}`
+      : metadata.cards.default,
     width: 1200,
   };
 
