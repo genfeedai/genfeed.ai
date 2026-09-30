@@ -621,7 +621,12 @@ describe('AgentChatInput', () => {
     const onSend = vi.fn().mockResolvedValue(true);
     const user = userEvent.setup();
     render(<AgentChatInput onSend={onSend} />);
-    await user.click(screen.getByRole('button', { name: 'Add context' }));
+    fireEvent.pointerDown(screen.getByLabelText('Add context'));
+    fireEvent.click(
+      await screen.findByRole('menuitem', {
+        name: 'Reference library content',
+      }),
+    );
     await user.click(
       await screen.findByRole('option', { name: 'Reference Launch post' }),
     );
