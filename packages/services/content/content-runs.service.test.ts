@@ -488,9 +488,18 @@ describe('ContentRunsService canonical storyboard drafts', () => {
   };
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPost.mockResolvedValue({ data: {} });
-    mockPatch.mockResolvedValue({ data: {} });
-    mockGet.mockResolvedValue({ data: {} });
+    const response = {
+      data: {
+        data: {
+          id: run.id,
+          type: 'storyboard-run',
+          attributes: { config: run.config },
+        },
+      },
+    };
+    mockPost.mockResolvedValue(response);
+    mockPatch.mockResolvedValue(response);
+    mockGet.mockResolvedValue(response);
     mockDeserializeResource.mockReturnValue(run);
   });
   it('reads exact capabilities without JSON:API deserialization and rejects malformed timing data', async () => {
@@ -548,7 +557,9 @@ describe('ContentRunsService canonical storyboard drafts', () => {
         seedImageAssetId: 'image-1',
       },
     };
-    expect(await service.createStoryboardRun('brand-1', input)).toEqual(run);
+    expect(await service.createStoryboardRun('brand-1', input)).toMatchObject(
+      run,
+    );
     expect(mockPost).toHaveBeenCalledWith(
       '/brands/brand-1/storyboard-runs',
       input,
@@ -580,9 +591,16 @@ describe('ContentRunsService canonical storyboard drafts', () => {
       '/brands/brand-1/storyboard-runs/run-1',
       { signal },
     );
-    mockDeserializeResource.mockReturnValue({
-      ...run,
-      config: { ...run.config, contract: 'brand-remix-run' },
+    mockGet.mockResolvedValue({
+      data: {
+        data: {
+          id: run.id,
+          type: 'storyboard-run',
+          attributes: {
+            config: { ...run.config, contract: 'brand-remix-run' },
+          },
+        },
+      },
     });
     await expect(
       service.getStoryboardRun('brand-1', 'run-1'),

@@ -35,6 +35,10 @@ const BASE_CRUD_LIST = '__BASE_CRUD_LIST__';
  * inherit their collection routes from `BaseCRUDController`.
  */
 const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
+  storyboardRuns: {
+    file: 'collections/content-runs/controllers/storyboard-runs.controller.ts',
+    prefix: 'brands/:brandId/storyboard-runs',
+  },
   remixRuns: {
     file: 'collections/content-runs/controllers/content-runs.controller.ts',
     prefix: '',
@@ -199,6 +203,12 @@ interface ContractRoute {
  * route below plus the coverage assertion.
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
+  {
+    method: 'Get',
+    sub: ':runId/capabilities',
+    controller: 'storyboardRuns',
+    tools: ['storyboard_run_capabilities'],
+  },
   {
     method: 'Post',
     sub: 'import-post',

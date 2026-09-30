@@ -41,7 +41,7 @@ export class StoryboardSourceService {
       );
       const asset = await this.prisma.ingredient.findFirst({
         where: scopedWhere(organizationId, { brandId, id: source.assetId }),
-        select: { label: true, updatedAt: true },
+        select: { metadata: { select: { label: true } }, updatedAt: true },
       });
       if (!asset || asset.updatedAt.toISOString() !== video.assetUpdatedAt)
         throw new ConflictException(
@@ -52,7 +52,7 @@ export class StoryboardSourceService {
         capturedAt,
         assetId: source.assetId,
         assetUpdatedAt: video.assetUpdatedAt,
-        title: asset.label ?? '',
+        title: asset.metadata?.label ?? '',
         durationSeconds: video.durationSeconds,
         sizeBytes: video.sizeBytes,
       };

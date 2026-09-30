@@ -10,7 +10,7 @@ function setup() {
     ingredient: {
       findFirst: vi.fn(async () => ({
         id: 'video-1',
-        label: 'Owned footage',
+        metadata: { label: 'Owned footage' },
         updatedAt,
       })),
       findMany: vi.fn(),
@@ -88,7 +88,7 @@ describe('Storyboard source snapshots', () => {
     });
     prisma.ingredient.findFirst.mockResolvedValue({
       id: 'video-1',
-      label: 'Owned footage',
+      metadata: { label: 'Owned footage' },
       updatedAt: changed,
     });
     await expect(

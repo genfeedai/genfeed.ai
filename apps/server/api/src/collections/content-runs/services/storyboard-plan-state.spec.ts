@@ -134,3 +134,60 @@ describe('Storyboard persisted edit and approval', () => {
     expect(storyboardShotPrompt(plan, 'shot-1').dialogueMode).toBe('lip_sync');
   });
 });
+
+describe('Shot cast image-conditioning freshness', () => {
+  it('stales A-to-B reference changes and rejects approval while retaining an unaffected shot', () => {
+    const config = fixture();
+    config.plan.cast[0].referenceAssetIds = ['portrait-A'];
+    config.plan.cast.push({
+      id: 'cast-2',
+      name: 'Guest',
+      voiceId: 'voice-2',
+      referenceAssetIds: ['portrait-B'],
+    });
+    const submitted = structuredClone(config.plan);
+    submitted.shots[0].speakerId = 'cast-2';
+    const next = editStoryboardPlan(config, submitted);
+    expect(next.plan.shots[0].stillFreshness).toBe('stale');
+    expect(next.plan.shots[1].stillFreshness).toBe('fresh');
+    expect(() => approveStoryboardPlan(next)).toThrow();
+  });
+  it('stales a null-to-cast image reference change', () => {
+    const config = fixture();
+    delete config.plan.shots[0].speakerId;
+    config.plan.cast[0].referenceAssetIds = ['portrait-A'];
+    const submitted = structuredClone(config.plan);
+    submitted.shots[0].speakerId = 'cast-1';
+    expect(
+      editStoryboardPlan(config, submitted).plan.shots[0].stillFreshness,
+    ).toBe('stale');
+  });
+  it('preserves freshness for different speakers with the same effective image references', () => {
+    const config = fixture();
+    config.plan.cast[0].referenceAssetIds = ['portrait-shared'];
+    config.plan.cast.push({
+      id: 'cast-2',
+      name: 'Guest',
+      voiceId: 'voice-2',
+      referenceAssetIds: ['portrait-shared'],
+    });
+    const submitted = structuredClone(config.plan);
+    submitted.shots[0].speakerId = 'cast-2';
+    expect(
+      editStoryboardPlan(config, submitted).plan.shots[0].stillFreshness,
+    ).toBe('fresh');
+  });
+  it('preserves voice-only changes but stales changed image conditioning for the same speaker', () => {
+    const config = fixture();
+    const voiceOnly = structuredClone(config.plan);
+    voiceOnly.cast[0].voiceId = 'voice-2';
+    expect(
+      editStoryboardPlan(config, voiceOnly).plan.shots[0].stillFreshness,
+    ).toBe('fresh');
+    const imageChange = structuredClone(config.plan);
+    imageChange.cast[0].referenceAssetIds = ['portrait-B'];
+    expect(
+      editStoryboardPlan(config, imageChange).plan.shots[0].stillFreshness,
+    ).toBe('stale');
+  });
+});
