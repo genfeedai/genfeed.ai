@@ -99,7 +99,7 @@ export function resolveStudioGenerationCost({
   if (
     model.isFree === true &&
     model.cost === 0 &&
-    (model.costPerUnit ?? 0) === 0 &&
+    (isMetered ? model.costPerUnit === 0 : (model.costPerUnit ?? 0) === 0) &&
     (model.minCost ?? 0) === 0
   ) {
     return { credits: 0, status: 'estimated' };

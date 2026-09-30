@@ -179,6 +179,36 @@ describe('resolveStudioGenerationCost', () => {
     },
   );
 
+  it('preserves native video batch semantics when the registry supports them', () => {
+    const key = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5;
+    const previous = MODEL_OUTPUT_CAPABILITIES[key];
+    MODEL_OUTPUT_CAPABILITIES[key] = { ...previous, isBatchSupported: true };
+    try {
+      const model = catalogModel({
+        key,
+        category: ModelCategory.VIDEO,
+        cost: 7,
+        isBatchSupported: false,
+      });
+      const settings = {
+        ...videoSettings,
+        modelKey: key,
+        resolution: '720p',
+        outputs: 4,
+      };
+      expect(
+        resolveStudioGenerationCost({
+          isLoadingModels: false,
+          model,
+          settings,
+          type: 'video',
+        }),
+      ).toEqual({ credits: 7, status: 'estimated' });
+    } finally {
+      MODEL_OUTPUT_CAPABILITIES[key] = previous;
+    }
+  });
+
   it('keeps loading, Auto and unavailable distinct', () => {
     expect(
       resolveStudioGenerationCost({
@@ -207,6 +237,7 @@ describe('resolveStudioGenerationCost', () => {
 
   it.each<Partial<IModel>>([
     { cost: 0 },
+    { cost: 0, isFree: true, pricingType: PricingType.PER_MEGAPIXEL },
     { cost: Number.NaN },
     { cost: Number.POSITIVE_INFINITY },
     { minCost: Number.NaN },

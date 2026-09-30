@@ -50,7 +50,7 @@ export default function StudioGenerationSummary({
       ? translate('inspector.durationSeconds', { seconds: promptData.duration })
       : undefined,
     capabilities.hasOutputs
-      ? translate('summary.outputs', { count: promptData.outputs })
+      ? translate('summary.outputs', { count: promptData.outputs ?? 1 })
       : undefined,
   ].filter(Boolean);
   const balance =
