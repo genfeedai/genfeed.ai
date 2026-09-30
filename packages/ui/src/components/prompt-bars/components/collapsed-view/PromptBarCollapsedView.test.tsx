@@ -1,3 +1,8 @@
+import {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import { describe, expect, it, vi } from 'vitest';
@@ -50,7 +55,7 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: import('react').ComponentProps<'img'>) => (
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
     <input type="image" src={src} alt={alt} />
   ),
 }));
@@ -70,9 +75,9 @@ describe('PromptBarCollapsedView', () => {
 
   const defaultProps = {
     activeGenerationsCount: 0,
-    categoryType: 'image' as const,
+    categoryType: IngredientCategory.IMAGE,
     collapsedInputRef: { current: null },
-    currentModelCategory: 'image',
+    currentModelCategory: ModelCategory.IMAGE,
     form: mockForm as unknown as import('react').ComponentProps<
       typeof PromptBarCollapsedView
     >['form'],
@@ -95,12 +100,12 @@ describe('PromptBarCollapsedView', () => {
     onTextChange: vi.fn(),
     outputs: 1,
     placeholder: 'Enter text…',
-    referenceSource: null,
+    referenceSource: '' as const,
     references: [],
     generationMeter: null,
     selectedModelCost: 1,
     toggleVoice: vi.fn(),
-    watchedFormat: 'portrait',
+    watchedFormat: IngredientFormat.PORTRAIT,
   };
 
   it('should render without crashing', () => {

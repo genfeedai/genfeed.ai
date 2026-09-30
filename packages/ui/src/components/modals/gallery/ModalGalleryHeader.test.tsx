@@ -32,8 +32,10 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
     <div data-testid="tabs">
       {(tabs ?? []).map((tab) => (
         <button
-          key={typeof tab === 'string' ? tab : tab.id}
-          onClick={() => onTabChange?.(typeof tab === 'string' ? tab : tab.id)}
+          key={typeof tab === 'string' ? tab : (tab.id ?? tab.label)}
+          onClick={() =>
+            onTabChange?.(typeof tab === 'string' ? tab : (tab.id ?? tab.label))
+          }
         >
           {typeof tab === 'string' ? tab : tab.label}
         </button>
@@ -68,7 +70,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: import('react').ComponentProps<'img'>) => (
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
     <input type="image" src={src} alt={alt} />
   ),
 }));
