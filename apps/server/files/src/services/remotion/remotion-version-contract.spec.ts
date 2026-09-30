@@ -59,6 +59,12 @@ describe('Remotion version contract', () => {
       'dependencies',
     );
 
+    const propsDependencies = readStringMap(
+      readJsonRecord(path.join(repositoryRoot, 'packages/props/package.json')),
+      'dependencies',
+    );
+
+    expect(propsDependencies['@remotion/player']).toBe(expectedRemotionVersion);
     expect(filesDependencies.remotion).toBe(expectedRemotionVersion);
     expect(filesDependencies['@remotion/bundler']).toBe(
       expectedRemotionVersion,

@@ -4,8 +4,8 @@
     "@genfeedai/helpers": "workspace:*",
     "@tanstack/react-query": "5.104.0",
     "@tiptap/core": "3.31.3",
-    "lucide-react": "1.48.0",
-    "next-intl": "4.14.7",
+    "lucide-react": "1.49.0",
+    "next-intl": "4.14.8",
     "react": "19.3.0",
     "@genfeedai/contracts": "workspace:*"
   },
