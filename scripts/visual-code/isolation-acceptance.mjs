@@ -150,8 +150,21 @@ const rendered = await isolated(
   dockerArguments(input.id),
   encodeFrame(input),
 );
-assert.equal(rendered.code, 0, rendered.stderr);
-const result = validateResult(decodeFrame(rendered.bytes), input);
+const decoded = decodeFrame(rendered.bytes);
+await writeFile(
+  resolve(artifacts, 'runner-diagnostics.json'),
+  JSON.stringify(
+    {
+      code: rendered.code,
+      diagnostics: decoded.diagnostics,
+      stderr: rendered.stderr.slice(0, 8192),
+    },
+    null,
+    2,
+  ),
+);
+assert.equal(rendered.code, 0, JSON.stringify(decoded.diagnostics));
+const result = validateResult(decoded, input);
 assert.deepEqual(result.diagnostics, []);
 for (const [index, media] of result.media.entries())
   await writeFile(

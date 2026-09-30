@@ -45,6 +45,7 @@ try {
     entryPoint: `${root}/index.tsx`,
     outDir: `${root}/bundle`,
     publicDir: `${root}/public`,
+    enableCaching: false,
     webpackOverride: (config) => ({
       ...config,
       cache: false,
