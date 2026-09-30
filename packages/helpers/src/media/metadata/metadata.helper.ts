@@ -1,11 +1,10 @@
-import { cdnAsset } from '../cdn/cdn.helper';
+const WEBSITE_URL = 'https://genfeed.ai';
 
 export const metadata = {
   cards: {
-    // Absolute CDN URL — social crawlers (OG/Twitter) fetch this directly.
-    // A site-relative path here resolves against metadataBase (the site
-    // domain) where the file does not exist.
-    default: cdnAsset('/assets/cards/default.jpg'),
+    // The website composes the headline over versioned CDN artwork.
+    // Keep this absolute: consumers may have a different metadataBase.
+    default: `${WEBSITE_URL}/og`,
   },
   // Says what Genfeed is before it says what it has: "AI content studio" is a
   // category every competitor also claims, and it names no mechanism, output
@@ -22,5 +21,5 @@ export const metadata = {
     'AI video generator',
   ],
   name: 'Genfeed.ai',
-  url: 'https://genfeed.ai',
+  url: WEBSITE_URL,
 };
