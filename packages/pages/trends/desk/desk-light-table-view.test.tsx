@@ -15,6 +15,7 @@ import type { AnchorHTMLAttributes, MouseEvent, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  isPseudo: false,
   navigate: vi.fn(),
   openRemix: vi.fn().mockResolvedValue(undefined),
 }));
@@ -48,9 +49,22 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const { DEFAULT_LOCALE, PSEUDO_LOCALE } = await import(
+    '@genfeedai/contracts/constants'
+  );
+  const { createTranslateFromCatalog } = await import(
+    '@ui/tests/next-intl.stub'
+  );
+  const { loadMessages } = await import('@app-tests/../i18n/messages');
+  return {
+    useTranslations: (namespace: string) =>
+      createTranslateFromCatalog(
+        loadMessages(mocks.isPseudo ? PSEUDO_LOCALE : DEFAULT_LOCALE),
+      )(namespace),
+  };
 });
+
+import { translateFromPseudoCatalog } from '@app-tests/next-intl.stub';
 
 vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
   useOptionalDiscoveryRemix: () => ({ openRemix: mocks.openRemix }),
@@ -133,6 +147,22 @@ function openOverflow() {
 describe('DeskLightTableView', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.isPseudo = false;
+  });
+
+  it('localizes the untitled fallback and selection label without changing selection behavior', () => {
+    mocks.isPseudo = true;
+    const translate = translateFromPseudoCatalog('common.trends.card');
+    const item = buildItem({ title: '', text: '', trendTopic: '' });
+    const props = renderView({ items: [item] });
+    expect(screen.getByText(translate('untitled'))).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: translate('select', { title: item.key }),
+      }),
+    );
+    expect(props.onToggleSelect).toHaveBeenCalledWith(item.key);
+    expect(screen.queryByText('Untitled')).toBeNull();
   });
 
   it('lays cards out on the container-query ladder, up to four columns', () => {

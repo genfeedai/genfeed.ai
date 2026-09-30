@@ -101,7 +101,6 @@ export default function AnalyticsOverview({
       gridCols={{
         desktop: showPostsCount ? 6 : 5,
         mobile: 1,
-        tablet: 2,
       }}
       className={className}
     />

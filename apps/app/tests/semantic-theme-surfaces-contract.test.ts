@@ -60,7 +60,6 @@ const CARD_MIGRATION_SOURCES = [
 
 const OVERLAY_MENU_SOURCES = [
   'app/(protected)/[orgSlug]/[brandSlug]/workspace/workspace-task-brand-mention-list.tsx',
-  'src/features/workflows/pages/library/WorkflowCardDropdown.tsx',
 ] as const;
 
 const ICONIC_STATUS_SOURCES = [

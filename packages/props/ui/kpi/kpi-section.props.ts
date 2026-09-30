@@ -9,7 +9,6 @@ export interface KPISectionProps {
   headerActions?: ReactNode;
   gridCols?: {
     mobile?: number;
-    tablet?: number;
     desktop?: number;
   };
   className?: string;

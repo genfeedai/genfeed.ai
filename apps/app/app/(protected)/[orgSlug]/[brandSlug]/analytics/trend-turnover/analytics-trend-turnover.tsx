@@ -95,7 +95,7 @@ export default function AnalyticsTrendTurnover() {
       </header>
 
       <KPISection
-        gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
+        gridCols={{ desktop: 4, mobile: 1 }}
         className="bg-background"
         isLoading={isLoading}
         items={[

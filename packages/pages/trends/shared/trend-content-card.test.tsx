@@ -6,45 +6,49 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   isRemixAvailable: true,
+  isPseudo: false,
+  brandId: 'brand-1' as string | null,
+  copyToClipboard: vi.fn(),
+  createResearchBriefRun: vi.fn(),
+  notifyError: vi.fn(),
+  notifySuccess: vi.fn(),
   openRemix: vi.fn(),
   push: vi.fn(),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const messages: Record<string, string> = {
-      'actions.copyPrompt': 'Copy prompt',
-      'actions.openSource': 'Open source',
-      'actions.remix': 'Remix',
-      'actions.remixUnavailable': 'Remix unavailable',
-      'actions.saveBrief': 'Save brief',
-      'actions.savingBrief': 'Saving brief…',
-      'actions.selectedAsContext': 'Selected for context',
-      'actions.sendToAgent': 'Send to agent',
-      'actions.useAsContext': 'Use as context',
-      moreActions: 'More actions',
-    };
-    return messages[key] ?? key;
-  },
-}));
-
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog, translateFromPseudoCatalog } = await import(
+    '@app-tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) =>
+      (mocks.isPseudo ? translateFromPseudoCatalog : translateFromCatalog)(
+        namespace,
+      ),
+  };
+});
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useParams: () => ({ brandSlug: 'brand-1', orgSlug: 'org-1' }),
   useRouter: () => ({ push: mocks.push }),
 }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrandId: () => 'brand-1',
+  useBrandId: () => mocks.brandId,
 }));
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: (path: string) => `/org-1/brand-1${path}` }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => async () => ({ createResearchBriefRun: vi.fn() }),
+  useAuthedService: () => async () => ({
+    createResearchBriefRun: mocks.createResearchBriefRun,
+  }),
 }));
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
+    getInstance: () => ({
+      error: mocks.notifyError,
+      success: mocks.notifySuccess,
+    }),
   },
 }));
 vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
@@ -52,12 +56,23 @@ vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
     mocks.isRemixAvailable ? { openRemix: mocks.openRemix } : null,
 }));
 
+vi.mock('@services/core/clipboard.service', () => ({
+  ClipboardService: {
+    getInstance: () => ({ copyToClipboard: mocks.copyToClipboard }),
+  },
+}));
+
+import { translateFromPseudoCatalog } from '@app-tests/next-intl.stub';
 import TrendContentCard from './trend-content-card';
 
 // Radix opens the dropdown on pointerdown, which jsdom does not synthesize
 // from a click — fire both, as the other overflow-menu specs do.
 function openOverflow() {
-  const trigger = screen.getByRole('button', { name: 'More actions' });
+  const trigger = screen.getByRole('button', {
+    name: mocks.isPseudo
+      ? translateFromPseudoCatalog('ui.collection')('moreActions')
+      : 'More actions',
+  });
   fireEvent.pointerDown(trigger);
   fireEvent.click(trigger);
 }
@@ -83,7 +98,90 @@ describe('TrendContentCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isRemixAvailable = true;
+    mocks.isPseudo = false;
+    mocks.brandId = 'brand-1';
+    mocks.copyToClipboard.mockResolvedValue(undefined);
+    mocks.createResearchBriefRun.mockResolvedValue({ id: 'run-1' });
   });
+
+  it.each(['live', 'fallback'] as const)(
+    'localizes the %s source badge',
+    (sourcePreviewState) => {
+      mocks.isPseudo = true;
+      const translate = translateFromPseudoCatalog('common.trends.card');
+      render(
+        <TrendContentCard
+          item={{
+            ...item,
+            sourcePreviewState,
+            thumbnailUrl: 'https://example.com/preview.jpg',
+          }}
+        />,
+      );
+      expect(
+        screen.getByText(translate(`sourceStatus.${sourcePreviewState}`)),
+      ).toBeVisible();
+      expect(screen.queryByText('Live source')).toBeNull();
+      expect(screen.queryByText('Saved fallback')).toBeNull();
+    },
+  );
+
+  it.each([false, true])(
+    'localizes copy-prompt notifications (failure: %s)',
+    async (isFailure) => {
+      mocks.isPseudo = true;
+      if (isFailure)
+        mocks.copyToClipboard.mockRejectedValue(
+          new Error('clipboard unavailable'),
+        );
+      const translate = translateFromPseudoCatalog('common.trends.card');
+      render(<TrendContentCard item={item} />);
+      openOverflow();
+      fireEvent.click(
+        screen.getByRole('menuitem', { name: translate('actions.copyPrompt') }),
+      );
+      await waitFor(() =>
+        expect(
+          isFailure ? mocks.notifyError : mocks.notifySuccess,
+        ).toHaveBeenCalledWith(
+          isFailure
+            ? translate('notifications.copyPromptFailed')
+            : translate('notifications.promptCopied'),
+        ),
+      );
+    },
+  );
+
+  it.each(['success', 'failure', 'missing-brand'] as const)(
+    'localizes save-brief notifications: %s',
+    async (outcome) => {
+      mocks.isPseudo = true;
+      if (outcome === 'failure')
+        mocks.createResearchBriefRun.mockRejectedValue(
+          new Error('brief unavailable'),
+        );
+      if (outcome === 'missing-brand') mocks.brandId = null;
+      const translate = translateFromPseudoCatalog('common.trends.card');
+      render(<TrendContentCard item={item} />);
+      openOverflow();
+      fireEvent.click(
+        screen.getByRole('menuitem', { name: translate('actions.saveBrief') }),
+      );
+      const expected =
+        outcome === 'success'
+          ? translate('notifications.briefSaved')
+          : outcome === 'failure'
+            ? translate('notifications.saveBriefFailed')
+            : translate('notifications.selectBrand');
+      await waitFor(() =>
+        expect(
+          outcome === 'success' ? mocks.notifySuccess : mocks.notifyError,
+        ).toHaveBeenCalledWith(expected),
+      );
+      if (outcome === 'missing-brand')
+        expect(mocks.createResearchBriefRun).not.toHaveBeenCalled();
+    },
+  );
 
   it('opens Discovery remix for an imported X trend reference', () => {
     render(<TrendContentCard item={item} />);
@@ -256,7 +354,11 @@ describe('TrendContentCard', () => {
     const user = userEvent.setup();
     render(<TrendContentCard item={item} />);
 
-    const trigger = screen.getByRole('button', { name: 'More actions' });
+    const trigger = screen.getByRole('button', {
+      name: mocks.isPseudo
+        ? translateFromPseudoCatalog('ui.collection')('moreActions')
+        : 'More actions',
+    });
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
 
     trigger.focus();
