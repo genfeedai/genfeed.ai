@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { bundle } from '@remotion/bundler';
 import {
+  openBrowser,
   renderMedia,
   renderStill,
   selectComposition,
@@ -17,6 +18,7 @@ import {
 // This entrypoint runs exclusively inside the credential-free runsc container.
 const output = process.stdout.write.bind(process.stdout);
 process.stdout.write = (...args) => process.stderr.write(...args);
+let browser;
 const timeout = setTimeout(() => process.exit(124), DEADLINE_MS);
 const allowed = new Set([
   'react',
@@ -45,6 +47,7 @@ try {
     publicDir: `${root}/public`,
     webpackOverride: (config) => ({
       ...config,
+      cache: false,
       resolve: { ...config.resolve, modules: ['/runtime/node_modules'] },
       plugins: [
         ...(config.plugins ?? []),
@@ -73,7 +76,17 @@ try {
       ],
     }),
   });
+  process.stderr.write('visual-stage:browser-open-start\n');
+  browser = await openBrowser('chrome', {
+    browserExecutable: '/usr/bin/chromium',
+    logLevel: 'verbose',
+    chromiumOptions: { enableMultiProcessOnLinux: true },
+  });
+  process.stderr.write('visual-stage:browser-opened\n');
   const common = {
+    puppeteerInstance: browser,
+    logLevel: 'verbose',
+
     serveUrl,
     id: 'VisualComposition',
     inputProps: input.props,
@@ -140,5 +153,6 @@ try {
   );
   process.exitCode = 1;
 } finally {
+  await browser?.close({ silent: true });
   clearTimeout(timeout);
 }
