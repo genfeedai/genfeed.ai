@@ -97,7 +97,7 @@ export default function AutomationOverviewPage() {
           <RunStatsStrip isLoading={isLoading} stats={stats} />
 
           <KPISection
-            gridCols={{ desktop: 2, mobile: 2, tablet: 2 }}
+            gridCols={{ desktop: 2, mobile: 2 }}
             isLoading={areAgentsLoading || workflowsQuery.isLoading}
             items={[
               {

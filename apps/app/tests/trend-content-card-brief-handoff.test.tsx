@@ -63,20 +63,10 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
-    const messages: Record<string, string> = {
-      'actions.copyPrompt': 'Copy prompt',
-      'actions.openSource': 'Open source',
-      'actions.remix': 'Remix',
-      'actions.saveBrief': 'Save brief',
-      'actions.savingBrief': 'Saving brief…',
-      'actions.sendToAgent': 'Send to agent',
-      moreActions: 'More actions',
-    };
-    return messages[key] ?? key;
-  },
-}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
 
 describe('TrendContentCard brief handoff', () => {
   beforeEach(() => {

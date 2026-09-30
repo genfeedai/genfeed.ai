@@ -270,7 +270,7 @@ export default function OutreachCampaignDetail() {
 
         <KPISection
           title="Target Statistics"
-          gridCols={{ desktop: 6, mobile: 2, tablet: 3 }}
+          gridCols={{ desktop: 6, mobile: 2 }}
           items={kpiItems}
           isLoading={isLoading}
         />

@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE } from '@genfeedai/contracts/constants';
+import { DEFAULT_LOCALE, PSEUDO_LOCALE } from '@genfeedai/contracts/constants';
 import {
   createTranslateFromCatalog,
   type MessageCatalog,
@@ -20,3 +20,7 @@ const catalog = loadMessages(DEFAULT_LOCALE) as unknown as MessageCatalog;
  * surfaces as a failed assertion rather than a silent blank.
  */
 export const translateFromCatalog = createTranslateFromCatalog(catalog);
+
+export const translateFromPseudoCatalog = createTranslateFromCatalog(
+  loadMessages(PSEUDO_LOCALE) as unknown as MessageCatalog,
+);

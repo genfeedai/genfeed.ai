@@ -285,7 +285,7 @@ export default function BusinessDashboard() {
             value: formatCurrency(data?.revenue.mtd ?? 0),
           },
         ]}
-        gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
+        gridCols={{ desktop: 4, mobile: 2 }}
         isLoading={isLoading}
       />
 
@@ -306,7 +306,7 @@ export default function BusinessDashboard() {
             value: formatCompactNumberIntl(data?.credits.consumed ?? 0),
           },
         ]}
-        gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
+        gridCols={{ desktop: 2, mobile: 1 }}
         isLoading={isLoading}
       />
 
@@ -332,7 +332,7 @@ export default function BusinessDashboard() {
             value: formatCompactNumberIntl(data?.ingredients.last30d ?? 0),
           },
         ]}
-        gridCols={{ desktop: 3, mobile: 1, tablet: 3 }}
+        gridCols={{ desktop: 3, mobile: 1 }}
         isLoading={isLoading}
       />
 

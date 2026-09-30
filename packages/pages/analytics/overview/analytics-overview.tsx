@@ -172,7 +172,7 @@ export default function AnalyticsOverview({
 
         {primaryKpiItems.length > 0 && (
           <KPISection
-            gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
+            gridCols={{ desktop: 4, mobile: 1 }}
             className="mb-0 bg-background"
             isLoading={isLoading}
             items={primaryKpiItems}
@@ -181,7 +181,7 @@ export default function AnalyticsOverview({
 
         {secondaryKpiItems.length > 0 && (
           <KPISection
-            gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
+            gridCols={{ desktop: 2, mobile: 1 }}
             className="mb-0 bg-background"
             isLoading={isLoading}
             items={secondaryKpiItems}

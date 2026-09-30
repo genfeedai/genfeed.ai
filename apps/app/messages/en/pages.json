@@ -2308,7 +2308,17 @@
         "description": "Voice, music, and caption assets ready for reuse."
       }
     },
+    "recentActivity": {
+      "empty": "No activity yet.",
+      "title": "Recent Activity"
+    },
+    "recentTasks": {
+      "empty": "No recent tasks.",
+      "title": "Recent Tasks"
+    },
+    "recentViewAll": "View All →",
     "relativeTime": {
+      "unknown": "unknown",
       "justNow": "just now",
       "minutesAgo": "{minutes}m ago",
       "hoursAgo": "{hours}h ago",

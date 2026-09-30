@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { translateFromPseudoCatalog } from '@app-tests/next-intl.stub';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -7,7 +8,7 @@ import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DashboardAgentCards,
   DashboardRecentActivity,
@@ -16,6 +17,8 @@ import {
   WorkspaceDashboard,
 } from './workspace-dashboard';
 
+const localeMocks = vi.hoisted(() => ({ isPseudo: false }));
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     href: (path: string) => `/demo/FUDNEWS${path}`,
@@ -23,8 +26,15 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 }));
 
 vi.mock('next-intl', async () => {
-  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
-  return { useTranslations: translateFromCatalog };
+  const { translateFromCatalog, translateFromPseudoCatalog } = await import(
+    '@app-tests/next-intl.stub'
+  );
+  return {
+    useTranslations: (namespace: string) =>
+      (localeMocks.isPseudo
+        ? translateFromPseudoCatalog
+        : translateFromCatalog)(namespace),
+  };
 });
 
 vi.mock('next/link', () => ({
@@ -155,6 +165,50 @@ function makeTask(overrides: Record<string, unknown> = {}) {
 }
 
 describe('workspace dashboard sections', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    localeMocks.isPseudo = false;
+  });
+
+  it.each([
+    [30_000, 'justNow', {}],
+    [5 * 60_000, 'minutesAgo', { minutes: 5 }],
+    [3 * 3_600_000, 'hoursAgo', { hours: 3 }],
+    [2 * 86_400_000, 'daysAgo', { days: 2 }],
+    [null, 'unknown', {}],
+    ['invalid', 'unknown', {}],
+  ] as const)(
+    'localizes both recent-panel timestamps: %s',
+    (age, key, values) => {
+      localeMocks.isPseudo = true;
+      vi.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-30T10:00:00Z'));
+      const source =
+        typeof age === 'number'
+          ? new Date(Date.now() - age).toISOString()
+          : age;
+      const task = makeTask({ createdAt: source, updatedAt: source });
+      const { container } = render(
+        <>
+          <DashboardRecentActivity workspaceTasks={[task] as never} />
+          <DashboardRecentTasks workspaceTasks={[task] as never} />
+        </>,
+      );
+      const translate = translateFromPseudoCatalog('pages.workspaceOverview');
+      const expected = translateFromPseudoCatalog(
+        'pages.workspaceOverview.relativeTime',
+      )(key, values);
+      expect(screen.getByText(translate('recentActivity.title'))).toBeVisible();
+      expect(screen.getByText(translate('recentTasks.title'))).toBeVisible();
+      expect(container.textContent).not.toContain('NaN');
+      const timestamps = container.querySelectorAll(
+        'span[class~="text-foreground/35"]',
+      );
+      expect(timestamps).toHaveLength(2);
+      for (const timestamp of timestamps)
+        expect(timestamp.textContent).toBe(expected);
+    },
+  );
+
   it('renders agent cards with live, queued, completed, and view-all states', () => {
     const { container } = render(
       <DashboardAgentCards
