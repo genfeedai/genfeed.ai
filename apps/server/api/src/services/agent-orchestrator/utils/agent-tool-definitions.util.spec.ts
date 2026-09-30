@@ -167,6 +167,20 @@ describe('provider-compatible tool definitions', () => {
     visit(buildParams('google/gemini-3.5-flash-lite').tools);
   });
 
+  it('keeps visual fps numeric while describing its canonical allowed values for Gemini', () => {
+    const projected = buildParams('google/gemini-3.5-flash-lite').tools;
+    const canonical = buildToolDefinitions();
+    const fps = (tools: typeof canonical) =>
+      JSON.stringify(
+        tools.find((tool) => tool.function.name === 'generate_visual_code')
+          ?.function.parameters,
+      );
+    expect(fps(projected)).toContain('Allowed values: 24, 30.');
+    expect(fps(projected)).not.toContain('"enum":[24,30]');
+    expect(fps(canonical)).toContain('"enum":[24,30]');
+    expect(fps(projected)).toContain('"type":"number"');
+  });
+
   it('preserves canonical schemas for non-Gemini providers', () => {
     const tools = buildToolDefinitions();
     const params = buildAgentChatCompletionParams({

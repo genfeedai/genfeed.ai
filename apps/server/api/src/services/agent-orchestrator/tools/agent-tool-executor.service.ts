@@ -1,4 +1,5 @@
 import { mergeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
+import { VisualProjectsService } from '@api/collections/visual-projects/services/visual-projects.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   type ApiKeyPublishingContext,
@@ -61,7 +62,11 @@ import type {
   AgentThreadModeValue,
   CuratedActionName,
 } from '@genfeedai/actions';
-import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import {
+  getToolByName,
+  getToolsForSurface,
+  VISUAL_CODE_ACTION_ALIASES,
+} from '@genfeedai/actions';
 import {
   ActionOrigin,
   type RouterPriority,
@@ -233,6 +238,9 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
 export class AgentToolExecutorService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
 
+  @Inject(VisualProjectsService)
+  private readonly visualProjects!: VisualProjectsService;
+
   @Inject(AgentWorkObjectService)
   private readonly workObjects!: AgentWorkObjectService;
 
@@ -283,6 +291,7 @@ export class AgentToolExecutorService implements OnModuleInit {
     for (const toolName of getToolsForSurface('agent').map(
       (tool) => tool.name,
     )) {
+      if (Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)) continue;
       const definition = getToolByName(toolName);
       if (
         !definition ||
@@ -479,7 +488,11 @@ export class AgentToolExecutorService implements OnModuleInit {
         context,
         {
           dispatchPreview: (previewToolName, previewParams, previewContext) =>
-            this.dispatch(previewToolName, previewParams, previewContext),
+            this.dispatchRegisteredTool(
+              previewToolName,
+              previewParams,
+              previewContext,
+            ),
           prepareHandler: this.prepareHandler,
           publishHandler: this.publishHandler,
           routeRewriteService: this.routeRewriteService,
@@ -510,7 +523,11 @@ export class AgentToolExecutorService implements OnModuleInit {
                   parameters,
                   context,
                 )
-              : await this.dispatch(toolName, parameters, context);
+              : await this.dispatchRegisteredTool(
+                  toolName,
+                  parameters,
+                  context,
+                );
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -573,6 +590,36 @@ export class AgentToolExecutorService implements OnModuleInit {
       throw new Error(
         `An explicit thread brand context is required for ${toolName}.`,
       );
+    }
+  }
+
+  private dispatchRegisteredTool(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return Object.hasOwn(VISUAL_CODE_ACTION_ALIASES, toolName)
+      ? this.dispatchVisualCode(toolName, params, ctx)
+      : this.dispatch(toolName, params, ctx);
+  }
+  private async dispatchVisualCode(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    switch (toolName) {
+      case 'get_visual_code_catalog':
+      case 'quote_visual_code_generation':
+      case 'generate_visual_code':
+      case 'get_visual_code_project':
+      case 'revise_visual_code_project':
+      case 'export_visual_code_project':
+      case 'cancel_visual_code_project':
+      case 'retry_visual_code_project':
+        return this.visualProjects.executeAgentAction(toolName, params, ctx);
+
+      default:
+        throw new Error('Unsupported visual-code action');
     }
   }
 

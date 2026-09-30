@@ -38,6 +38,7 @@ describe('LlmDispatcherService', () => {
   };
   let byokService: {
     resolveApiKey: ReturnType<typeof vi.fn>;
+    lookupApiKey: ReturnType<typeof vi.fn>;
     updateOAuthTokens: ReturnType<typeof vi.fn>;
   };
   let llmInstanceService: { ensureRunning: ReturnType<typeof vi.fn> };
@@ -93,6 +94,7 @@ describe('LlmDispatcherService', () => {
     };
     byokService = {
       resolveApiKey: vi.fn().mockResolvedValue(null),
+      lookupApiKey: vi.fn().mockResolvedValue(undefined),
       updateOAuthTokens: vi.fn(),
     };
     llmInstanceService = {
@@ -849,6 +851,111 @@ describe('LlmDispatcherService', () => {
         OpenRouterChatCompletionParams,
       ];
       expect(sent.response_format?.json_schema.name).toBe('content_plan');
+    });
+  });
+  describe('guarded visual completion routes', () => {
+    const params = {
+      model: 'openai/test',
+      messages: [{ role: 'user', content: 'test' }],
+    } as OpenRouterChatCompletionParams;
+    it('discovers native platform routes without provider calls or credential refresh', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'OPENAI_API_KEY' ? 'platform' : undefined,
+      );
+      await expect(
+        service.getCompletionRoute(params.model, 'org'),
+      ).resolves.toEqual({
+        modelKey: params.model,
+        provider: 'openai',
+        isByok: false,
+        isAvailable: true,
+      });
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
+      expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
+      expect(byokService.resolveApiKey).not.toHaveBeenCalled();
+    });
+    it('uses native BYOK and discovers same-model OpenRouter fallback when native credentials are absent', async () => {
+      configService.get.mockReturnValue(undefined);
+      byokService.lookupApiKey.mockImplementation(
+        async (_org: string, provider: string) =>
+          provider === ByokProvider.OPENAI ? { apiKey: 'own' } : undefined,
+      );
+      expect(
+        await service.getCompletionRoute(params.model, 'org'),
+      ).toMatchObject({ provider: 'openai', isByok: true });
+      byokService.lookupApiKey.mockImplementation(
+        async (_org: string, provider: string) =>
+          provider === ByokProvider.OPENROUTER
+            ? { apiKey: 'router' }
+            : undefined,
+      );
+      expect(
+        await service.getCompletionRoute(params.model, 'org'),
+      ).toMatchObject({
+        modelKey: params.model,
+        provider: 'openrouter',
+        isByok: true,
+      });
+    });
+    it('fails closed on missing credentials, lookup failure and loss of the quoted BYOK route', async () => {
+      configService.get.mockReturnValue(undefined);
+      expect(
+        await service.getCompletionRoute(params.model, 'org'),
+      ).toMatchObject({ isAvailable: false });
+      byokService.lookupApiKey.mockRejectedValueOnce(
+        new Error('decryption unavailable'),
+      );
+      await expect(
+        service.getCompletionRoute(params.model, 'org'),
+      ).rejects.toThrow('decryption unavailable');
+      await expect(
+        service.chatCompletionForRoute(params, 'org', {
+          modelKey: params.model,
+          provider: 'openai',
+          isByok: true,
+          isAvailable: true,
+        }),
+      ).rejects.toThrow('quote_changed');
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+    });
+    it('does not retry expired credentials or replace a failing free router model', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'OPENROUTER_API_KEY' ? 'platform' : undefined,
+      );
+      const free = { ...params, model: 'openrouter/free' };
+      const expected = await service.getCompletionRoute(free.model, 'org');
+      openRouterService.chatCompletion.mockRejectedValueOnce({ status: 401 });
+      await expect(
+        service.chatCompletionForRoute(free, 'org', expected),
+      ).rejects.toEqual({ status: 401 });
+      expect(openRouterService.chatCompletion).toHaveBeenCalledTimes(1);
+      expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+        free,
+        undefined,
+      );
+      expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
+    });
+    it('uses only the configured local endpoint and never starts a GPU or falls back', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://localhost:8000' : undefined,
+      );
+      const local = { ...params, model: 'local/test' };
+      const expected = await service.getCompletionRoute(local.model, 'org');
+      openAiLlmService.chatCompletion.mockRejectedValueOnce(
+        new Error('offline'),
+      );
+      await expect(
+        service.chatCompletionForRoute(local, 'org', expected),
+      ).rejects.toThrow('offline');
+      expect(openAiLlmService.chatCompletion).toHaveBeenCalledWith(
+        local,
+        undefined,
+        'http://localhost:8000/v1',
+      );
+      expect(llmInstanceService.ensureRunning).not.toHaveBeenCalled();
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+      expect(byokService.lookupApiKey).not.toHaveBeenCalled();
     });
   });
 });

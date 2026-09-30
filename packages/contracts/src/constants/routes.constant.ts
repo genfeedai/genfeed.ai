@@ -340,6 +340,7 @@ export const APP_ROUTES = {
    * image/video/avatar/music tabs were retired.
    */
   STUDIO: {
+    MOTION: '/studio/motion',
     BATCH: '/studio/batch',
     BATCH_NEW: '/studio/batch/new',
     CLIPS: '/studio/clips',

@@ -166,6 +166,7 @@ export * from './content/template.interface';
 export * from './content/template-ui.interface';
 export * from './content/video-continuity-qa.interface';
 export * from './content/video-stitch.interface';
+export * from './content/visual-code.interface';
 export * from './content/x-article-metadata.interface';
 export * from './core/api.interface';
 export * from './core/api-key.interface';

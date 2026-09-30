@@ -70,3 +70,4 @@ export * from '@serializers/configs/content/video.config';
 export * from './remotion-composition.config';
 
 export * from './remotion-render.config';
+export * from './visual-project.config';

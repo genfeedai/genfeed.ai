@@ -143,6 +143,7 @@ export * from './video.enum';
 export * from './video-processing.enum';
 export * from './video-resolution.enum';
 export * from './view-type.enum';
+export * from './visual-code.enum';
 export * from './voice.enum';
 export * from './vote.enum';
 export * from './warmup.enum';

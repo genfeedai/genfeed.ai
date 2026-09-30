@@ -575,6 +575,8 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  visualProjects VisualProject[]
+  visualRevisions VisualRevision[]
   approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
   publishedBrandOsPublications BrandOsPublication[] @relation("BrandOsPublisher")
   revokedBrandOsPublications BrandOsPublication[] @relation("BrandOsRevoker")
@@ -743,6 +745,8 @@ model User {
 }
 
 model Organization {
+  visualProjects VisualProject[]
+  visualRevisions VisualRevision[]
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
   knowledgeSources KnowledgeSource[]
@@ -974,6 +978,8 @@ model McpApproval {
 }
 
 model Brand {
+  visualProjects VisualProject[]
+  visualRevisions VisualRevision[]
   brandOsRevisionVersion Int @default(0)
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
@@ -8042,4 +8048,69 @@ model SystemNotificationSettings {
   eventTypes String[]
   updatedAt DateTime @updatedAt
   @@map("system_notification_settings")
+}
+
+model VisualProject {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  label String
+  requestId String
+  inputHash String
+  currentRevision Int @default(1)
+  revisions VisualRevision[]
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, brandId, requestId])
+  @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("visual_projects")
+}
+
+model VisualRevision {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  projectId String
+  project VisualProject @relation(fields: [projectId], references: [id])
+  number Int
+  requestId String
+  inputHash String
+  prompt String?
+  sourceCode String?
+  sourceHash String?
+  modelKey String?
+  rendererVersion String
+  settings Json
+  props Json @default("{}")
+  sourceAssetIds Json @default("[]")
+  status String @default("queued")
+  progress Int @default(0)
+  workflowExecutionId String?
+  reservationId String?
+  maximumCredits Float
+  consumedCredits Float @default(0)
+  receipts Json @default("[]")
+  preview Json @default("[]")
+  outputRequests Json @default("[{\"format\":\"mp4\"}]")
+  outputs Json @default("[]")
+  diagnostics Json @default("[]")
+  cancelRequestedAt DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, number])
+  @@unique([projectId, requestId])
+  @@index([organizationId, brandId, projectId, status, isDeleted])
+  @@map("visual_revisions")
 }

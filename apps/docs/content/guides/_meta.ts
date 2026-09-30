@@ -12,6 +12,7 @@ export default {
     type: 'separator',
   },
   index: 'Overview',
+  'visual-code': 'Motion: Visual Code',
   'keyboard-shortcuts': 'Keyboard Shortcuts',
   'package-ownership': 'Package Ownership',
   publishing: 'Publishing',

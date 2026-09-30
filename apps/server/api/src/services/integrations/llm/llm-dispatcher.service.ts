@@ -1,5 +1,6 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
+import type { ILlmCompletionRoute } from '@api/services/integrations/llm/dto/llm-completion-route.dto';
 import type { LlmStructuredCompletionParams } from '@api/services/integrations/llm/dto/llm-structured-output.dto';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
@@ -167,6 +168,97 @@ export class LlmDispatcherService {
     // OAuth tokens are used as-is; if expired, the 401 retry in
     // chatCompletion() handles refresh via tryRefreshAndRetry().
     return byokKey.apiKey;
+  }
+
+  private async resolveGuardedRoute(modelKey: string, organizationId: string) {
+    const preferred = this.preferredProviderForModel(modelKey);
+    if (preferred === 'local') {
+      const endpoint = String(
+        this.configService.get('GPU_LLM_URL') || '',
+      ).trim();
+      return {
+        route: {
+          modelKey,
+          provider: preferred,
+          isByok: false,
+          isAvailable: Boolean(endpoint),
+        } satisfies ILlmCompletionRoute,
+        apiKeyOverride: undefined,
+        endpoint,
+      };
+    }
+    let provider = preferred;
+    let key = await this.byokService.lookupApiKey(
+      organizationId,
+      this.resolveByokProvider(provider),
+    );
+    if (provider !== 'openrouter' && !key && !this.hasPlatformKey(provider)) {
+      provider = 'openrouter';
+      key = await this.byokService.lookupApiKey(
+        organizationId,
+        ByokProvider.OPENROUTER,
+      );
+    }
+    return {
+      route: {
+        modelKey,
+        provider,
+        isByok: Boolean(key),
+        isAvailable: Boolean(key) || this.hasPlatformKey(provider),
+      } satisfies ILlmCompletionRoute,
+      apiKeyOverride: key?.apiKey,
+      endpoint: undefined,
+    };
+  }
+  async getCompletionRoute(
+    modelKey: string,
+    organizationId: string,
+  ): Promise<ILlmCompletionRoute> {
+    return (await this.resolveGuardedRoute(modelKey, organizationId)).route;
+  }
+  async chatCompletionForRoute(
+    params: OpenRouterChatCompletionParams,
+    organizationId: string,
+    expectedRoute: ILlmCompletionRoute,
+    callContext?: ILlmCompletionCallContext,
+  ): Promise<OpenRouterChatCompletionResponse> {
+    const { route, apiKeyOverride, endpoint } = await this.resolveGuardedRoute(
+      params.model,
+      organizationId,
+    );
+    if (
+      ['modelKey', 'provider', 'isByok', 'isAvailable'].some(
+        (key) =>
+          route[key as keyof ILlmCompletionRoute] !==
+          expectedRoute[key as keyof ILlmCompletionRoute],
+      )
+    )
+      throw new Error('quote_changed');
+    if (!route.isAvailable) throw new Error('route_unavailable');
+    const dispatch = () => {
+      switch (route.provider) {
+        case 'anthropic':
+          return this.anthropicService.chatCompletion(params, apiKeyOverride);
+        case 'openai':
+          return this.openAiLlmService.chatCompletion(params, apiKeyOverride);
+        case 'local':
+          return this.openAiLlmService.chatCompletion(
+            params,
+            undefined,
+            `${endpoint?.replace(/\/$/, '')}/v1`,
+          );
+        default:
+          return this.openRouterService.chatCompletion(params, apiKeyOverride);
+      }
+    };
+    return this.dispatchWithTelemetry(
+      dispatch,
+      params,
+      organizationId,
+      route.provider,
+      route.isByok,
+      callContext,
+    );
   }
 
   /**
