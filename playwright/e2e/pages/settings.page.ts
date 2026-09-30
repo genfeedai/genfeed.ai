@@ -62,9 +62,10 @@ export class SettingsPage {
     this.localeTrigger = page.getByTestId('personal-locale-trigger');
     this.appearanceTrigger = page.getByTestId('personal-appearance-trigger');
     this.agentModeTrigger = page.getByTestId('personal-agent-mode-trigger');
-    // The user's avatar renders in the sidebar account menu
-    // (SidebarUserProfile), not on the settings page.
-    this.accountMenuAvatar = this.settingsNav
+    // The user's account menu lives in the app rail, outside the settings
+    // navigation sidebar. Scope to its owner to avoid the mobile drawer copy.
+    this.accountMenuAvatar = page
+      .getByTestId('app-rail-account')
       .getByRole('button', { name: 'Open account menu' })
       .locator('img');
 
