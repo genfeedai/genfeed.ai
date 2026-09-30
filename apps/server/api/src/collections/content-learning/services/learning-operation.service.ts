@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { learningFence } from '@api/collections/content-learning/services/learning-dependency.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
@@ -77,6 +78,7 @@ export class LearningOperationService {
     ]);
     const payloadHash = learningHash([input.type, scope, input.payload]);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'exclusive');
       const account = await this.lockedAccount(
         tx,
         input.actor.organizationId,

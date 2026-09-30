@@ -1,4 +1,7 @@
-import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import {
   type LearningActor,
   LearningOperationService,
@@ -429,6 +432,7 @@ export class LearningAccountService {
         body,
       ]);
     return this.prisma.$transaction(async (tx) => {
+      await learningFence(tx, 'exclusive');
       await tx.contentLearningBrandPreference.upsert({
         where: {
           organizationId_brandId: {

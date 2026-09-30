@@ -438,7 +438,6 @@ export class LearningDecisionService {
       if (post?.learningDecisionId === decisionId) {
         if (decision?.finalArtifactHash !== hash)
           throw new ConflictException('Published artifact binding differs');
-        return { valid: true };
       }
       const reason =
         !post || !decision

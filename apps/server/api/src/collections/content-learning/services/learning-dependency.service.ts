@@ -1,6 +1,14 @@
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { type Prisma } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
+export async function learningFence(
+  tx: Prisma.TransactionClient,
+  mode: 'shared' | 'exclusive',
+): Promise<void> {
+  if (mode === 'shared')
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock_shared(5728, 1)::text`;
+  else await tx.$queryRaw`SELECT pg_advisory_xact_lock(5728, 1)::text`;
+}
 @Injectable()
 export class LearningDependencyService {
   constructor(private readonly prisma: PrismaService) {}

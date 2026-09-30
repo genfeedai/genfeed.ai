@@ -87,6 +87,18 @@ export interface LearningNumericRow {
   reward: number;
   synthetic: boolean;
 }
+export interface LearningCellDescriptor {
+  platform: string;
+  format: LearningFormat;
+  objective: LearningObjective;
+  exposureSource: LearningMetricName;
+  metricWeights: Array<[LearningMetricName, number]>;
+  retention: boolean;
+  windowId: '48h-v1';
+  configVersion: 'rl-reward-v1-experimental';
+  featureSchema: 'numeric-nine-v1';
+  armCatalogVersion: 'learning-arms-v1';
+}
 export interface LearningScope {
   organizationId: string;
   brandId: string;

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   checkpointValidity,
   learningCapability,
+  learningDescriptorTuple,
+  learningRegisteredProfiles,
 } from '../../src/learning/capabilities';
 import { computeLearningReward } from '../../src/learning/reward';
 
@@ -55,7 +57,7 @@ describe('experimental account-relative reward', () => {
     ).toBeNull();
     expect(
       learningCapability('youtube', 'video', 'engagement', [
-        'exposure',
+        'videoViews',
         'likes',
         'comments',
       ])?.mask,
@@ -97,4 +99,42 @@ describe('experimental account-relative reward', () => {
       }),
     ).toBe('delayed');
   });
+});
+
+it('keeps masks, exposure sources and configurations as distinct immutable profile tuples', () => {
+  const profiles = learningRegisteredProfiles('twitter', 'text', 'engagement');
+  expect(profiles.map((profile) => profile.capability.mask)).toEqual([
+    'LCSS',
+    'LCS',
+  ]);
+  expect(learningDescriptorTuple(profiles[0].descriptor)).not.toEqual(
+    learningDescriptorTuple(profiles[1].descriptor),
+  );
+  expect(profiles[0].descriptor.metricWeights).toEqual([
+    ['comments', 2],
+    ['likes', 1],
+    ['saves', 4],
+    ['shares', 4],
+  ]);
+  expect(
+    learningRegisteredProfiles('youtube', 'video', 'engagement').map(
+      (profile) => profile.capability.mask,
+    ),
+  ).toEqual(['LCS', 'LC']);
+  expect(
+    learningCapability('twitter', 'text', 'engagement', [
+      'views',
+      'likes',
+      'comments',
+      'shares',
+    ]),
+  ).toBeNull();
+  expect(
+    learningCapability('twitter', 'text', 'engagement', [
+      'impressions',
+      'likes',
+      'comments',
+      'shares',
+    ])?.mask,
+  ).toBe('LCS');
 });

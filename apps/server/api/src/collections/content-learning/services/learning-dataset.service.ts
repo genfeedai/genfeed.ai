@@ -1,5 +1,8 @@
 import { createHmac, randomBytes } from 'node:crypto';
-import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import {
+  LearningDependencyService,
+  learningFence,
+} from '@api/collections/content-learning/services/learning-dependency.service';
 import { learningHash } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LearningNumericRow } from '@genfeedai/contracts';
@@ -140,7 +143,8 @@ export class LearningDatasetService {
     const scope = learningHash(['dataset-create', input.organizationId]);
     const payloadHash = learningHash(['dataset-create', input]);
     return this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))`;
+      await learningFence(tx, 'shared');
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${learningHash([input.actorId, scope, input.requestId])}, 0))::text`;
       const previous = await tx.contentLearningOperation.findFirst({
         where: {
           actorId: input.actorId,
