@@ -274,6 +274,8 @@ describe.skipIf(!connectionString)(
         `${userId}-a-video`,
         `${userId}-a-image`,
         `${userId}-b-video`,
+        null,
+        null,
         `${userId}-a-video`,
       ]);
       expect(projected[0]?.evaluation).toMatchObject({
