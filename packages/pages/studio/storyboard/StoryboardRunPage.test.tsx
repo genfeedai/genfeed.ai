@@ -3,6 +3,7 @@ import {
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
+import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardRunRecipe } from '@genfeedai/contracts/interfaces';
 import type {
   StoryboardRunPanelProps,
@@ -78,7 +79,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-import StoryboardRunPage from './StoryboardRunPage';
+import { LegacyStoryboardRunPage as StoryboardRunPage } from './StoryboardRunPage';
 
 const run = {
   draft: {
@@ -103,6 +104,36 @@ const run = {
     title: 'Proof-led hook',
   },
 } as unknown as BrandRemixRunView;
+
+function handoffPipeline(
+  videos: Record<string, BrandRemixScenePipeline['scenes'][string]['video']>,
+): BrandRemixScenePipeline {
+  return {
+    version: 1,
+    language: 'en',
+    state: 'ready',
+    cancellationGeneration: 0,
+    receipts: [],
+    replacedAssetIds: [],
+    scenes: Object.fromEntries(
+      Object.entries(videos).map(([id, video]) => [
+        id,
+        {
+          identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+          referenceAssetIds: [],
+          image: { attempt: 1, state: 'ready', assetId: `image-${id}` },
+          video,
+          replacedAssetIds: [],
+        },
+      ]),
+    ),
+    assembly: {
+      assetId: 'assembled',
+      orderedAssetIds: [],
+      transcription: { attempt: 1, state: 'ready' },
+    },
+  };
+}
 
 describe('StoryboardRunPage', () => {
   beforeEach(() => {
@@ -186,15 +217,11 @@ describe('StoryboardRunPage', () => {
             { id: 'a', ordinal: 2, visualIntent: 'First' },
           ],
         },
-        scenePipeline: {
-          state: 'ready',
-          scenes: {
-            a: { video: { state: 'ready', assetId: 'clip-a' } },
-            b: { video: { state: 'ready', assetId: 'clip-b' } },
-          },
-          assembly: { state: 'ready', assetId: 'assembled' },
-        },
-      } as unknown as BrandRemixRunView,
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'ready', assetId: 'clip-a' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
     };
     render(<StoryboardRunPage runId="run-1" />);
     const href = screen
@@ -218,15 +245,11 @@ describe('StoryboardRunPage', () => {
             { id: 'a', ordinal: 2, visualIntent: 'First' },
           ],
         },
-        scenePipeline: {
-          state: 'ready',
-          scenes: {
-            a: { video: { state: 'failed' } },
-            b: { video: { state: 'ready', assetId: 'clip-b' } },
-          },
-          assembly: { state: 'ready', assetId: 'assembled' },
-        },
-      } as unknown as BrandRemixRunView,
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'failed' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
     };
     render(<StoryboardRunPage runId="run-1" />);
     expect(screen.queryByRole('link', { name: 'Open in Editor' })).toBeNull();

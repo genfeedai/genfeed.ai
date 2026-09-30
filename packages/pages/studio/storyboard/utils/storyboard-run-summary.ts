@@ -1,4 +1,5 @@
 import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts';
+import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 
 const ATTENTION_PHASES = new Set<BrandRemixRunSummary['phase']>([
   'failed',
@@ -13,8 +14,12 @@ const ATTENTION_SCENE_STATES = new Set<
  * stopped part-way, waits on a quote, or has outputs waiting to go to review.
  */
 export function isStoryboardRunNeedingAttention(
-  run: BrandRemixRunSummary,
+  run: StoryboardListRun,
 ): boolean {
+  if ('state' in run)
+    return ['quoted', 'partial_failure', 'blocked', 'cancelled'].includes(
+      run.state,
+    );
   return (
     ATTENTION_PHASES.has(run.phase) ||
     (run.scenePipelineState !== undefined &&

@@ -8,9 +8,13 @@ import type {
   BrandRemixDraftEdits,
   BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts/brand-remix-run-summary.contract';
 import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardPlan } from '@genfeedai/contracts/api-types/contracts/storyboard-plan.contract';
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+import type { StoryboardRunSummary } from '@genfeedai/contracts/api-types/contracts/storyboard-run-summary.contract';
+import type { StoryboardSourceSelector } from '@genfeedai/contracts/api-types/contracts/storyboard-source.contract';
 import type {
   IImage,
   StoryboardRunRecipe,
@@ -18,6 +22,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { IStoryboardMergeSettings } from '@genfeedai/contracts/interfaces/components/storyboard.interface';
 import type { CameraMovementPreset } from '@genfeedai/contracts/interfaces/studio/camera-movement.interface';
+import type { Ref } from 'react';
 import type { MergeProgressStep } from './merge.props';
 
 export interface EaseCurveSelectorProps {
@@ -175,14 +180,44 @@ export interface StoryboardSaveIndicatorProps {
   readonly onRetry: () => void;
 }
 
+export interface StoryboardPlanEditorHandle {
+  flush: () => Promise<StoryboardSaveSnapshot<StoryboardPlan>>;
+}
+
 export interface StoryboardPlanEditorProps {
+  readonly ref?: Ref<StoryboardPlanEditorHandle>;
   readonly run: StoryboardRun;
-  readonly supportedDurations?: readonly number[];
+  readonly isSourceSaving?: boolean;
+  readonly onSaveStatusChange?: (
+    status: StoryboardSaveIndicatorProps['status'],
+  ) => void;
+  readonly saveSource?: (
+    revision: number,
+    source: StoryboardSourceSelector,
+  ) => Promise<StoryboardRun>;
+  readonly capabilities?: StoryboardRunCapabilities;
+  readonly capabilityError?: string;
+  readonly refreshCapabilities?: () => void;
   readonly savePlan: (
     revision: number,
     plan: StoryboardPlan,
     signal: AbortSignal,
+    capabilityVersion?: string,
   ) => Promise<StoryboardRun>;
   readonly resetPlan: (revision: number) => Promise<StoryboardRun>;
   readonly approvePlan: (revision: number) => Promise<StoryboardRun>;
 }
+
+export type StoryboardDraftPageProps = Pick<
+  StoryboardPlanEditorProps,
+  | 'run'
+  | 'saveSource'
+  | 'savePlan'
+  | 'resetPlan'
+  | 'approvePlan'
+  | 'capabilities'
+  | 'capabilityError'
+  | 'refreshCapabilities'
+>;
+
+export type StoryboardListRun = StoryboardRunSummary | BrandRemixRunSummary;

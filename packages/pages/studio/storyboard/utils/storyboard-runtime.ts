@@ -11,18 +11,19 @@ export function snapStoryboardDuration(
     availableSeconds <= 0
   )
     return undefined;
-  return [
+  const closest = [
     ...new Set(
       supported.filter(
         (duration) =>
-          Number.isFinite(duration) &&
-          duration > 0 &&
-          duration <= availableSeconds,
+          Number.isFinite(duration) && duration > 0 && duration <= 60,
       ),
     ),
   ].sort(
     (a, b) => Math.abs(a - requested) - Math.abs(b - requested) || a - b,
   )[0];
+  return closest !== undefined && closest <= availableSeconds
+    ? closest
+    : undefined;
 }
 
 export function storyboardRuntimeRanges(

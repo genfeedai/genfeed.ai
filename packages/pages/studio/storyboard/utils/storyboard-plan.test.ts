@@ -12,6 +12,7 @@ const plan: StoryboardPlan = {
   title: 'Plan',
   logline: '',
   format: '9:16',
+  videoModelKey: null,
   runtimeBudgetSeconds: 10,
   styleReferenceAssetIds: [],
   cast: [],

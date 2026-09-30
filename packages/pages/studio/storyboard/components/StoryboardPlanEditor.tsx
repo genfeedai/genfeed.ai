@@ -1,5 +1,7 @@
 'use client';
 
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
+
 import {
   useConfirmModal,
   useGalleryModal,
@@ -22,6 +24,7 @@ import StoryboardSaveIndicator from '@pages/studio/storyboard/components/Storybo
 import StoryboardSelect from '@pages/studio/storyboard/components/StoryboardSelect';
 import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { useStoryboardAutosave } from '@pages/studio/storyboard/hooks/use-storyboard-autosave';
+import { normalizeStoryboardModel } from '@pages/studio/storyboard/utils/storyboard-capabilities';
 import {
   editStoryboardShot,
   editStoryboardStyle,
@@ -38,15 +41,20 @@ import Field from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ArrowDown, ArrowUp, Plus, RotateCcw, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useImperativeHandle, useState } from 'react';
 
 /** Draft edits persist independently of paid planning or video execution. */
 export default function StoryboardPlanEditor({
+  ref,
   run,
+  isSourceSaving = false,
+  onSaveStatusChange,
   savePlan,
   resetPlan,
   approvePlan,
-  supportedDurations = [],
+  capabilities,
+  capabilityError,
+  refreshCapabilities,
 }: StoryboardPlanEditorProps) {
   const { openConfirm } = useConfirmModal();
   const { openGallery } = useGalleryModal();
@@ -58,16 +66,43 @@ export default function StoryboardPlanEditor({
     scope: `${run.brandId}:${run.id}`,
     initial: { revision: run.config.revision, value: run.config.plan },
     save: async (snapshot, signal) => {
-      const result = await savePlan(snapshot.revision, snapshot.value, signal);
-      return { revision: result.config.revision, value: result.config.plan };
+      try {
+        const result = await savePlan(
+          snapshot.revision,
+          snapshot.value,
+          signal,
+          capabilities?.capabilityVersion,
+        );
+        return { revision: result.config.revision, value: result.config.plan };
+      } catch (caught) {
+        refreshCapabilities?.();
+        throw caught;
+      }
     },
   });
+  useImperativeHandle(ref, () => ({ flush: autosave.flush }), [autosave.flush]);
+  useEffect(() => {
+    onSaveStatusChange?.(autosave.status);
+  }, [onSaveStatusChange, autosave.status]);
   const plan = autosave.value;
+  const currentCapabilities =
+    capabilities?.runId === run.id &&
+    capabilities.runRevision === autosave.revision
+      ? capabilities
+      : undefined;
+  const model =
+    plan.videoModelKey === currentCapabilities?.requestedModelKey
+      ? currentCapabilities?.effectiveModel
+      : currentCapabilities?.eligibleModels.find(
+          (candidate) => candidate.key === plan.videoModelKey,
+        );
+  const supportedDurations = model?.supportedDurationsSeconds ?? [];
+  const timingDisabled =
+    autosave.status === 'saving' || !model || !currentCapabilities;
   const isDisabled =
     working ||
-    ['planning', 'analysing', 'generating', 'assembling'].includes(
-      run.config.state,
-    );
+    isSourceSaving ||
+    ['analysing', 'generating', 'assembling'].includes(run.config.state);
   const assets = useStoryboardAssets(
     `${run.id}:${autosave.revision}`,
     run.brandId,
@@ -84,6 +119,8 @@ export default function StoryboardPlanEditor({
     ],
   );
   const problems = storyboardApprovalProblems(plan);
+  if (!supportedDurations.length)
+    problems.push('Video model capabilities are unavailable.');
   const approved =
     autosave.status === 'saved' &&
     run.config.approvedRevision === autosave.revision;
@@ -239,6 +276,19 @@ export default function StoryboardPlanEditor({
           />
         </div>
       </div>
+      {capabilityError || currentCapabilities?.status === 'unavailable' ? (
+        <div role="status" className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            {capabilityError ||
+              `Video model unavailable: ${currentCapabilities?.reasonCode?.toLowerCase().replaceAll('_', ' ')}. Text edits and shot deletion remain available.`}
+          </p>
+          <Button
+            label="Reload model capabilities"
+            variant={ButtonVariant.SECONDARY}
+            onClick={refreshCapabilities}
+          />
+        </div>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-destructive">
           {error}
@@ -276,13 +326,70 @@ export default function StoryboardPlanEditor({
               }
             />
           </Field>
+          <Field label="Video model">
+            <StoryboardSelect
+              ariaLabel="Video model"
+              value={plan.videoModelKey ?? '__automatic__'}
+              placeholder="Choose video model"
+              isDisabled={
+                isDisabled ||
+                autosave.status === 'saving' ||
+                !currentCapabilities?.eligibleModels.length
+              }
+              options={[
+                ...(currentCapabilities?.requestedModelKey === null &&
+                currentCapabilities.effectiveModel
+                  ? [
+                      {
+                        value: '__automatic__',
+                        label: `Automatic: ${currentCapabilities.effectiveModel.label}`,
+                      },
+                    ]
+                  : []),
+                ...(currentCapabilities?.eligibleModels.map((candidate) => ({
+                  value: candidate.key,
+                  label: candidate.label,
+                })) ?? []),
+              ]}
+              onChange={(key) => {
+                const selected =
+                  key === '__automatic__'
+                    ? currentCapabilities?.effectiveModel
+                    : currentCapabilities?.eligibleModels.find(
+                        (candidate) => candidate.key === key,
+                      );
+                if (!selected) return;
+                try {
+                  edit(
+                    normalizeStoryboardModel(
+                      {
+                        ...plan,
+                        videoModelKey:
+                          key === '__automatic__' ? null : (key ?? null),
+                      },
+                      selected,
+                    ),
+                  );
+                } catch (caught) {
+                  setError(
+                    caught instanceof Error
+                      ? caught.message
+                      : 'Could not switch video model.',
+                  );
+                }
+              }}
+            />
+          </Field>
           <Field label="Format">
             <StoryboardSelect
               ariaLabel="Format"
               value={plan.format}
               placeholder="Choose format"
-              isDisabled={isDisabled}
-              options={['9:16', '16:9', '1:1'].map((value) => ({
+              isDisabled={isDisabled || timingDisabled}
+              options={(
+                model?.supportedFormats.filter((format) => format !== '4:5') ??
+                []
+              ).map((value) => ({
                 value,
                 label: value,
               }))}
@@ -298,7 +405,7 @@ export default function StoryboardPlanEditor({
               min={1}
               max={60}
               value={plan.runtimeBudgetSeconds ?? ''}
-              disabled={isDisabled}
+              disabled={isDisabled || timingDisabled}
               onChange={(event) =>
                 edit({
                   ...plan,
@@ -532,6 +639,33 @@ export default function StoryboardPlanEditor({
               label={`Shot ${shot.ordinal}`}
               description={`Still: ${shot.stillFreshness}`}
             >
+              <div className="mb-3 max-w-sm">
+                {shot.stillAssetId &&
+                assets[`image:${shot.stillAssetId}`]?.cdnUrl ? (
+                  <AgentMediaArtifactPreview
+                    displayMode="featured"
+                    assets={[
+                      {
+                        kind: 'image',
+                        url: assets[`image:${shot.stillAssetId}`].cdnUrl || '',
+                        title: storyboardAssetLabel(
+                          assets[`image:${shot.stillAssetId}`],
+                          `Shot ${shot.ordinal}`,
+                        ),
+                        width:
+                          assets[`image:${shot.stillAssetId}`].metadataWidth,
+                        height:
+                          assets[`image:${shot.stillAssetId}`].metadataHeight,
+                        alt: `Still for shot ${shot.ordinal}`,
+                      },
+                    ]}
+                  />
+                ) : (
+                  <p className="flex aspect-video items-center justify-center rounded-md border border-border text-xs text-muted-foreground">
+                    Still preview unavailable
+                  </p>
+                )}
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Section">
                   <Input
@@ -549,10 +683,36 @@ export default function StoryboardPlanEditor({
                     min={1}
                     max={60}
                     value={shot.durationSeconds ?? ''}
-                    disabled={isDisabled || !supportedDurations.length}
+                    disabled={isDisabled || timingDisabled}
                     onChange={(event) =>
                       duration(shot, Number(event.target.value))
                     }
+                  />
+                </Field>
+                <Field label="Transition">
+                  <StoryboardSelect
+                    ariaLabel={`Shot ${shot.ordinal} transition`}
+                    value={shot.transition}
+                    placeholder="Choose transition"
+                    isDisabled={isDisabled || timingDisabled}
+                    options={[
+                      { value: 'cut', label: 'Cut' },
+                      { value: 'stitch', label: 'Stitch' },
+                      ...(model?.hasInterpolation &&
+                      index < plan.shots.length - 1 &&
+                      shot.stillFreshness === 'fresh' &&
+                      plan.shots[index + 1]?.stillFreshness === 'fresh'
+                        ? [{ value: 'interpolate', label: 'Interpolate' }]
+                        : []),
+                    ]}
+                    onChange={(value) => {
+                      if (
+                        value === 'cut' ||
+                        value === 'stitch' ||
+                        value === 'interpolate'
+                      )
+                        patchShot(shot, { transition: value });
+                    }}
                   />
                 </Field>
                 <Field label="Action" className="sm:col-span-2">
@@ -631,7 +791,7 @@ export default function StoryboardPlanEditor({
                   ariaLabel={`Move shot ${shot.ordinal} up`}
                   icon={<ArrowUp className="size-4" />}
                   variant={ButtonVariant.SECONDARY}
-                  disabled={isDisabled || index === 0}
+                  disabled={isDisabled || timingDisabled || index === 0}
                   onClick={() =>
                     edit(reorderStoryboardShots(plan, shot.id, -1))
                   }
@@ -640,7 +800,11 @@ export default function StoryboardPlanEditor({
                   ariaLabel={`Move shot ${shot.ordinal} down`}
                   icon={<ArrowDown className="size-4" />}
                   variant={ButtonVariant.SECONDARY}
-                  disabled={isDisabled || index === plan.shots.length - 1}
+                  disabled={
+                    isDisabled ||
+                    timingDisabled ||
+                    index === plan.shots.length - 1
+                  }
                   onClick={() => edit(reorderStoryboardShots(plan, shot.id, 1))}
                 />
                 <Button
@@ -659,9 +823,7 @@ export default function StoryboardPlanEditor({
         label="Add shot"
         icon={<Plus className="size-4" />}
         variant={ButtonVariant.SECONDARY}
-        disabled={
-          isDisabled || plan.shots.length >= 12 || !supportedDurations.length
-        }
+        disabled={isDisabled || plan.shots.length >= 12 || timingDisabled}
         onClick={addShot}
       />
       {problems.length ? (

@@ -6,7 +6,10 @@ import type { StoryboardRunPageProps } from '@genfeedai/props/studio/storyboard.
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import StoryboardRunPanel from '@pages/studio/storyboard/components/StoryboardRunPanel';
 import StoryboardRunRecipe from '@pages/studio/storyboard/components/StoryboardRunRecipe';
+import { useDurableStoryboardRun } from '@pages/studio/storyboard/hooks/use-durable-storyboard-run';
+import { useStoryboardCapabilities } from '@pages/studio/storyboard/hooks/use-storyboard-capabilities';
 import { useStoryboardRun } from '@pages/studio/storyboard/hooks/use-storyboard-run';
+import StoryboardDraftPage from '@pages/studio/storyboard/StoryboardDraftPage';
 import { getStoryboardEditorSeed } from '@pages/studio/storyboard/utils/storyboard-editor-seed';
 import { buildStoryboardRunEdits } from '@pages/studio/storyboard/utils/storyboard-run';
 import Alert from '@ui/feedback/alert/Alert';
@@ -17,7 +20,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 /** One storyboard run, restored from its latest saved server revision. */
-export default function StoryboardRunPage({
+export function LegacyStoryboardRunPage({
   runId,
 }: StoryboardRunPageProps): ReactElement {
   const translate = useTranslations('pages.studioStoryboard.runPage');
@@ -52,7 +55,9 @@ export default function StoryboardRunPage({
         shot.video,
       ]),
     ),
-    assembly: pipeline?.assembly,
+    assembly: pipeline?.assembly
+      ? { state: pipeline.state, assetId: pipeline.assembly.assetId }
+      : undefined,
   });
   const backLink = (
     <div className="flex flex-wrap items-center gap-2">
@@ -150,6 +155,60 @@ export default function StoryboardRunPage({
             saveScenes,
           }}
         />
+      </div>
+    </Container>
+  );
+}
+
+/** Native drafts use the neutral API; existing Discovery runs remain reachable until migration. */
+export default function StoryboardRunPage({
+  runId,
+}: StoryboardRunPageProps): ReactElement {
+  const {
+    run,
+    error,
+    notFound,
+    refresh,
+    savePlan,
+    saveSource,
+    resetPlan,
+    approvePlan,
+  } = useDurableStoryboardRun(runId);
+  const modelCapabilities = useStoryboardCapabilities(
+    runId,
+    run?.config.revision,
+  );
+  if (notFound) return <LegacyStoryboardRunPage runId={runId} />;
+  if (run)
+    return (
+      <StoryboardDraftPage
+        run={run}
+        savePlan={savePlan}
+        saveSource={saveSource}
+        resetPlan={resetPlan}
+        approvePlan={approvePlan}
+        {...modelCapabilities}
+      />
+    );
+  return (
+    <Container label="Storyboard">
+      <div className="mx-auto max-w-5xl space-y-3">
+        {error ? (
+          <>
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+            <Button
+              label="Retry loading"
+              variant={ButtonVariant.SECONDARY}
+              onClick={refresh}
+            />
+          </>
+        ) : (
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading storyboard…
+          </p>
+        )}
       </div>
     </Container>
   );

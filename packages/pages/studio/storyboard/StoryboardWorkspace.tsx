@@ -12,6 +12,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MergeProgressPanel from '@pages/studio/storyboard/components/MergeProgressPanel';
 import MergeSettingsPanel from '@pages/studio/storyboard/components/MergeSettingsPanel';
 import SceneFrameRow from '@pages/studio/storyboard/components/SceneFrameRow';
+import StoryboardCreate from '@pages/studio/storyboard/components/StoryboardCreate';
 import { StoryboardPanel } from '@pages/studio/storyboard/components/StoryboardPanel';
 import {
   type StoryboardWorkspaceMode,
@@ -62,7 +63,7 @@ const MODE_OPTIONS: Array<{
   },
 ];
 
-export default function StoryboardWorkspace() {
+export function LegacyStoryboardWorkspace() {
   const translate = useTranslations('pages.studioStoryboard');
   const { openGallery } = useGalleryModal();
   const { href } = useOrgUrl();
@@ -437,5 +438,35 @@ export default function StoryboardWorkspace() {
         </div>
       </Container>
     </div>
+  );
+}
+
+/** New runs start with a persisted brief or owned video, independently of paid execution. */
+export default function StoryboardWorkspace() {
+  const { href } = useOrgUrl();
+  return (
+    <Container
+      label="New storyboard"
+      description="Start with a brief or your own video."
+      right={
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={href(APP_ROUTES.STUDIO.STORYBOARD)}>All storyboards</Link>
+        </Button>
+      }
+    >
+      <div className="mx-auto w-full max-w-5xl space-y-4">
+        <StoryboardCreate />
+        <Card
+          label="Remix from Discovery"
+          description="Open a saved source and continue its storyboard."
+        >
+          <Button asChild variant={ButtonVariant.SECONDARY}>
+            <Link href={href(APP_ROUTES.DISCOVERY.OVERVIEW)}>
+              Browse Discovery
+            </Link>
+          </Button>
+        </Card>
+      </div>
+    </Container>
   );
 }

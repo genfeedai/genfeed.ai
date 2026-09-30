@@ -1,4 +1,5 @@
 import type { StoryboardRun } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
+import type { StoryboardRunCapabilities } from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import StoryboardPlanEditor from './StoryboardPlanEditor';
@@ -44,6 +45,7 @@ const run: StoryboardRun = {
       title: 'Plan',
       logline: 'A scene',
       format: '9:16',
+      videoModelKey: null,
       runtimeBudgetSeconds: 10,
       styleReferenceAssetIds: [],
       cast: [],
@@ -60,6 +62,29 @@ const run: StoryboardRun = {
     },
   },
 };
+function capabilities(durations: number[]): StoryboardRunCapabilities {
+  const model = {
+    key: 'model',
+    label: 'Fixture video model',
+    provider: 'fixture',
+    supportedDurationsSeconds: durations,
+    defaultDurationSeconds: null,
+    hasInterpolation: false,
+    supportedFormats: ['9:16' as const],
+    capabilitySource: 'catalog' as const,
+  };
+  return {
+    version: 1,
+    runId: run.id,
+    runRevision: 1,
+    capabilityVersion: 'a'.repeat(64),
+    status: 'available',
+    requestedModelKey: null,
+    effectiveModel: model,
+    eligibleModels: [model],
+    reasonCode: null,
+  };
+}
 const update = async (
   revision: number,
   plan: StoryboardRun['config']['plan'],
@@ -74,7 +99,7 @@ describe('persisted storyboard plan editor', () => {
         savePlan={save}
         resetPlan={vi.fn()}
         approvePlan={approve}
-        supportedDurations={[5]}
+        capabilities={capabilities([5])}
       />,
     );
     fireEvent.change(screen.getByLabelText('Title'), {
@@ -91,7 +116,7 @@ describe('persisted storyboard plan editor', () => {
         savePlan={vi.fn(update)}
         resetPlan={vi.fn()}
         approvePlan={vi.fn()}
-        supportedDurations={[5, 10]}
+        capabilities={capabilities([5, 10])}
       />,
     );
     fireEvent.change(screen.getAllByLabelText('Duration (seconds)')[0], {
@@ -108,6 +133,7 @@ describe('persisted storyboard plan editor', () => {
         savePlan={vi.fn().mockRejectedValue(new Error('Revision conflict'))}
         resetPlan={vi.fn()}
         approvePlan={approve}
+        capabilities={capabilities([5])}
       />,
     );
     fireEvent.change(screen.getByLabelText('Title'), {

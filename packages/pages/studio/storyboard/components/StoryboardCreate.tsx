@@ -31,6 +31,12 @@ export default function StoryboardCreate() {
   const [brief, setBrief] = useState('');
   const [format, setFormat] = useState<'9:16' | '16:9' | '1:1'>('9:16');
   const [budget, setBudget] = useState('');
+  const [seed, setSeed] = useState<{
+    brandId: string;
+    id: string;
+    title: string;
+  }>();
+  const image = seed?.brandId === brandId ? seed : undefined;
   const [selected, setSelected] = useState<{
     brandId: string;
     id: string;
@@ -43,16 +49,23 @@ export default function StoryboardCreate() {
   const video = selected?.brandId === brandId ? selected : undefined;
   const valid =
     mode === 'brief'
-      ? brief.trim().length > 0 && brief.trim().length <= 2000 && validBudget
+      ? (brief.trim().length > 0 || Boolean(image)) &&
+        brief.trim().length <= 2000 &&
+        validBudget
       : Boolean(video);
   async function submit() {
     if (!valid || isCreating) return;
     const input =
       mode === 'brief'
         ? {
-            source: { kind: 'brief' as const, brief: brief.trim() },
+            source: {
+              kind: 'brief' as const,
+              brief: brief.trim(),
+              ...(image ? { seedImageAssetId: image.id } : {}),
+            },
             planSettings: {
               format,
+              videoModelKey: null,
               runtimeBudgetSeconds: Number(budget),
               styleReferenceAssetIds: [],
               cast: [],
@@ -146,6 +159,45 @@ export default function StoryboardCreate() {
               onChange={(event) => setBudget(event.target.value)}
             />
           </Field>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+            <Button
+              label="Choose a starting image"
+              variant={ButtonVariant.SECONDARY}
+              disabled={isCreating}
+              onClick={() =>
+                openGallery({
+                  category: IngredientCategory.IMAGE,
+                  maxSelectableItems: 1,
+                  title: 'Starting image',
+                  onSelect: (items) => {
+                    const item = items.find(
+                      (candidate) =>
+                        candidate.brandId === brandId && !candidate.isDeleted,
+                    );
+                    if (item && brandId)
+                      setSeed({
+                        brandId,
+                        id: item.id,
+                        title: storyboardAssetLabel(item, 'Starting image'),
+                      });
+                  },
+                })
+              }
+            />
+            {image ? (
+              <Button
+                label={`${image.title} ×`}
+                ariaLabel={`Remove ${image.title}`}
+                variant={ButtonVariant.SECONDARY}
+                disabled={isCreating}
+                onClick={() => setSeed(undefined)}
+              />
+            ) : null}
+            <p className="text-xs text-muted-foreground">
+              A starting image can replace the brief. It is saved as a reference
+              and requires generated stills before approval.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">

@@ -9,6 +9,8 @@ describe('model-backed storyboard runtime', () => {
     expect(snapStoryboardDuration(6, [4, 8], 20)).toBe(4);
     expect(snapStoryboardDuration(10, [4, 8, 12], 9)).toBe(8);
     expect(snapStoryboardDuration(3, [4, 8], 3)).toBeUndefined();
+    expect(snapStoryboardDuration(7, [5, 8], 7)).toBeUndefined();
+    expect(snapStoryboardDuration(61, [61], 70)).toBeUndefined();
     expect(snapStoryboardDuration(5, [], 20)).toBeUndefined();
     expect(snapStoryboardDuration(Number.NaN, [4], 20)).toBeUndefined();
   });
