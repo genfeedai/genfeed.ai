@@ -328,7 +328,7 @@ describe('authoritative bill-time quote snapshots', () => {
     ).toBe('unresolved');
   });
   it('preserves admission selector applicability when only an unconditional rate matches', () => {
-    const profile = {
+    const profile: ModelBillablePricingProfile = {
       ...model,
       rateVersion: 'v1',
       requiredSelectorKeys: ['mode'],
@@ -387,12 +387,15 @@ describe('authoritative bill-time quote snapshots', () => {
         successfulRequests: 1,
       }),
     ).toEqual({ status: 'priced', credits: 10, billableProviderCostUsd: 0.1 });
-    for (const selectors of [
+    const changedSelectors: NonNullable<
+      ModelBillableQuoteRequest['selectors']
+    >[] = [
       { mode: 'pro', resolution: '720p' },
       { mode: 'standard' },
       { mode: 'standard', resolution: '720p', quality: 'high' },
       {},
-    ]) {
+    ];
+    for (const selectors of changedSelectors) {
       expect(
         quoteModelBillableCompletion(quote.snapshot, {
           completedOutputs: 2,
@@ -413,7 +416,7 @@ describe('authoritative bill-time quote snapshots', () => {
     ).toEqual({ status: 'priced', credits: 20, billableProviderCostUsd: 0.2 });
   });
   it('rejects zero aggregate paid usage at admission and completed usage without changing empty completion', () => {
-    const profile = {
+    const profile: ModelBillablePricingProfile = {
       ...model,
       rateVersion: 'v1',
       reviewedPricing: {
