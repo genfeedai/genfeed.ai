@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import type { CreateVisualProjectDto } from '@api/collections/visual-projects/dto/create-visual-project.dto';
+import type { QuoteVisualProjectDto } from '@api/collections/visual-projects/dto/quote-visual-project.dto';
 import {
   SYSTEM_WORKFLOW_METADATA_KEY,
   SYSTEM_WORKFLOW_PRINCIPAL_ID,
@@ -111,6 +112,11 @@ function createInput(
     maximumCredits,
   };
 }
+function quoteRequest(input: CreateVisualProjectDto): QuoteVisualProjectDto {
+  const { maximumCredits: _maximumCredits, ...quoteInput } = input;
+  return { operation: 'create', input: quoteInput };
+}
+
 async function quote(
   fixture: VisualCodeAcceptanceFixture,
   actor: VisualCodeAcceptanceActor,
@@ -119,7 +125,7 @@ async function quote(
   const response = await fixture.controller.quote(
     fixture.request(actor.user),
     actor.user,
-    { operation: 'create', input: { ...input } },
+    quoteRequest(input),
   );
   return quoteResponse.parse(response).data.attributes.maximumCredits;
 }
@@ -583,10 +589,11 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
       const input = createInput(actor, 100, `free-${operation}`);
       await expect(
         operation === 'quote'
-          ? fixture.controller.quote(fixture.request(actor.user), actor.user, {
-              operation: 'create',
-              input: { ...input },
-            })
+          ? fixture.controller.quote(
+              fixture.request(actor.user),
+              actor.user,
+              quoteRequest(input),
+            )
           : fixture.controller.create(
               fixture.request(actor.user),
               actor.user,
@@ -648,7 +655,7 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
             ? fixture.controller.quote(
                 fixture.request(actor.user),
                 actor.user,
-                { operation: 'create', input: { ...input } },
+                quoteRequest(input),
               )
             : fixture.controller.create(
                 fixture.request(actor.user),
@@ -731,7 +738,7 @@ describe('visual-code connected backend and canonical Library acceptance', () =>
             ? fixture.controller.quote(
                 fixture.request(actor.user),
                 actor.user,
-                { operation: 'create', input: { ...input } },
+                quoteRequest(input),
               )
             : fixture.controller.create(
                 fixture.request(actor.user),
