@@ -157,6 +157,10 @@ export function quoteReviewedProviderPricing(
   const providerCostUsd = sumDecimalPricing(componentCosts);
   if (!Number.isFinite(providerCostUsd))
     return unresolved('Provider cost is outside supported precision');
+  if (providerCostUsd === 0 && !pricing.isFree)
+    return unresolved(
+      'Zero provider cost requires an explicit free designation',
+    );
   return {
     status: 'priced',
     providerCostUsd,

@@ -220,6 +220,44 @@ describe('reviewed provider variant quotes', () => {
       ),
     ).toEqual({ status: 'priced', providerCostUsd: 0.202, credits: 21 });
   });
+  it.each([
+    { unit: 'second' as const, includedUnits: 5, input: { duration: 5 } },
+    {
+      unit: 'input-token' as const,
+      includedUnits: 0,
+      input: { inputTokens: 0 },
+    },
+    { unit: 'character' as const, includedUnits: 0, input: { characters: 0 } },
+    { unit: 'reference' as const, includedUnits: 0, input: { references: 0 } },
+  ])('zero aggregate cost requires explicit free pricing: %j', (example) => {
+    const profile: ReviewedProviderPricing = {
+      ...pricing,
+      rates: [
+        {
+          component: 'usage',
+          unit: example.unit,
+          unitPriceUsd: 0.1,
+          includedUnits: example.includedUnits,
+          when: {},
+        },
+      ],
+    };
+    expect(quoteReviewedProviderPricing(profile, example.input, 1)).toEqual({
+      status: 'unresolved',
+      reason: 'Zero provider cost requires an explicit free designation',
+    });
+    expect(
+      quoteReviewedProviderPricing(
+        { ...profile, isFree: true },
+        example.input,
+        1,
+      ),
+    ).toEqual({
+      status: 'priced',
+      providerCostUsd: 0,
+      credits: 0,
+    });
+  });
   it('zero price requires an explicit reviewed free designation', () => {
     const zero: ReviewedProviderPricing = {
       ...pricing,
