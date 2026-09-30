@@ -161,8 +161,8 @@ test('edits and approves a persisted draft through the actual route with loaded 
                   id === 'coffee-opening'
                     ? 'Morning coffee reference'
                     : 'Coffee and pastry',
-                width: 1200,
-                height: 800,
+                width: id === 'coffee-opening' ? 6016 : 4160,
+                height: id === 'coffee-opening' ? 4016 : 6240,
               },
             },
           },
@@ -245,6 +245,26 @@ test('edits and approves a persisted draft through the actual route with loaded 
               ),
           )
           .toBeGreaterThan(0);
+        for (const shotNumber of state === 'unavailable' ? [1] : [1, 2]) {
+          const still = page
+            .getByRole('region', { name: `Shot ${shotNumber}`, exact: true })
+            .locator('img')
+            .first();
+          await still.scrollIntoViewIfNeeded();
+          await expect
+            .poll(() =>
+              still.evaluate(
+                (image) =>
+                  image instanceof HTMLImageElement &&
+                  image.complete &&
+                  image.naturalWidth > 0,
+              ),
+            )
+            .toBe(true);
+        }
+        await page
+          .getByLabel('Title', { exact: true })
+          .scrollIntoViewIfNeeded();
         expect(
           await page.evaluate(() => document.documentElement.scrollWidth),
         ).toBeLessThanOrEqual(width);
@@ -281,7 +301,9 @@ test('edits and approves a persisted draft through the actual route with loaded 
   );
   await page.reload();
   await expect(
-    page.getByText('Still preview unavailable', { exact: true }),
+    page
+      .getByRole('region', { name: 'Shot 2', exact: true })
+      .getByText('Still preview unavailable', { exact: true }),
   ).toBeVisible();
   await captureMatrix('unavailable');
   expect(
