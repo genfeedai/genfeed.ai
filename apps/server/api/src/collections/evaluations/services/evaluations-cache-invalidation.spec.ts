@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { EvaluationsModule } from '@api/collections/evaluations/evaluations.module';
+import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -11,6 +12,7 @@ import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EvaluationType, Status } from '@genfeedai/contracts';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Global, Module, type Type } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -18,7 +20,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 function fixture(withCache = true) {
   const order: string[] = [];
-  const evaluation = {
+  const evaluation: EvaluationDocument = {
     id: 'evaluation',
     organizationId: 'org',
     userId: 'user',
@@ -30,16 +32,20 @@ function fixture(withCache = true) {
       scores: { engagement: { overall: 80 } },
     },
     isDeleted: false,
+    createdAt: new Date(0),
+    updatedAt: new Date(1),
   };
   let persisted = evaluation;
-  const create = vi.fn(async ({ data }) => {
+  const create = vi.fn(async ({ data }: Prisma.EvaluationCreateArgs) => {
     order.push('write');
-    persisted = { ...persisted, ...data };
+    persisted = { ...persisted, ...(data as Partial<EvaluationDocument>) };
     return persisted;
   });
-  const update = vi.fn(async ({ data }) => {
-    order.push(`update:${data.data?.status ?? 'patch'}`);
-    persisted = { ...persisted, ...data };
+  const update = vi.fn(async ({ data }: Prisma.EvaluationUpdateArgs) => {
+    order.push(
+      `update:${(data.data as Record<string, unknown> | undefined)?.status ?? 'patch'}`,
+    );
+    persisted = { ...persisted, ...(data as Partial<EvaluationDocument>) };
     return persisted;
   });
   const prisma = {
@@ -64,9 +70,9 @@ function fixture(withCache = true) {
   const ai = { overallScore: 80, scores: { engagement: { overall: 80 } } };
   const evaluate = vi.fn(
     async (
-      _content,
-      _context,
-      _organization,
+      _content: unknown,
+      _context: unknown,
+      _organization: string,
       charge: (amount: number) => void,
     ) => {
       order.push('provider');
@@ -91,7 +97,7 @@ function fixture(withCache = true) {
     getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
   };
   const websocket = {
-    emit: vi.fn(async (_event, data) => {
+    emit: vi.fn(async (_event: string, data: { status: Status }) => {
       order.push(`event:${data.status}`);
     }),
   };
@@ -136,6 +142,13 @@ function fixture(withCache = true) {
     order,
   };
 }
+function rejectCache(f: ReturnType<typeof fixture>) {
+  f.cache.invalidateByTags.mockImplementation(async () => {
+    f.order.push('cache');
+    throw new Error('cache offline');
+  });
+}
+
 const run = (
   service: EvaluationsService,
   type: 'image' | 'video' | 'article',
@@ -183,9 +196,11 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
     'contains cache rejection without repeating %s provider or charge',
     async (type) => {
       const f = fixture();
-      f.cache.invalidateByTags.mockRejectedValue(new Error('cache offline'));
+      rejectCache(f);
       const row = await run(f.service, type);
-      expect(row.data.status).toBe(Status.COMPLETED);
+      expect((row.data as Record<string, unknown>).status).toBe(
+        Status.COMPLETED,
+      );
       expect(f.operations.evaluateVideo).toHaveBeenCalledTimes(1);
       expect(f.credits.deductCreditsFromOrganization).toHaveBeenCalledTimes(1);
       expect(f.credits.refundOrganizationCredits).not.toHaveBeenCalled();
@@ -209,7 +224,7 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
   });
   it('publishes processing then completion, containing cache failure at both boundaries', async () => {
     const f = fixture();
-    f.cache.invalidateByTags.mockRejectedValue(new Error('cache offline'));
+    rejectCache(f);
     const row = await f.service.evaluatePost(
       'content',
       EvaluationType.PRE_PUBLICATION,
@@ -217,7 +232,9 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
       'user',
       'brand',
     );
-    expect(row.data.status).toBe(Status.PROCESSING);
+    expect((row.data as Record<string, unknown>).status).toBe(
+      Status.PROCESSING,
+    );
     await vi.waitFor(() =>
       expect(f.websocket.emit).toHaveBeenCalledWith(
         expect.any(String),
@@ -230,11 +247,19 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
     expect(f.credits.refundOrganizationCredits).not.toHaveBeenCalled();
     expect(f.operations.evaluatePost).toHaveBeenCalledTimes(1);
     expect(f.credits.deductCreditsFromOrganization).toHaveBeenCalledTimes(1);
-    expect(f.order.indexOf('write')).toBeLessThan(f.order.indexOf('provider'));
+    expect(f.order).toEqual([
+      'write',
+      'cache',
+      'provider',
+      'settle',
+      'update:completed',
+      'cache',
+      'event:completed',
+    ]);
   });
   it('keeps genuine failure/refund behavior once when completion persistence and failed-cache invalidation reject', async () => {
     const f = fixture();
-    f.cache.invalidateByTags.mockRejectedValue(new Error('cache offline'));
+    rejectCache(f);
     f.prisma.evaluation.update.mockRejectedValueOnce(
       new Error('completion write failed'),
     );
@@ -258,6 +283,16 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
     expect(f.credits.refundOrganizationCredits).toHaveBeenCalledTimes(1);
     expect(f.operations.evaluatePost).toHaveBeenCalledTimes(1);
     expect(f.cache.invalidateByTags).toHaveBeenCalledTimes(2);
+    expect(f.order).toEqual([
+      'write',
+      'cache',
+      'provider',
+      'settle',
+      'update:failed',
+      'cache',
+      'refund',
+      'event:failed',
+    ]);
   });
   it.each(['post', 'article', 'video', 'image'])(
     'runs the actual inherited patch once and uses committed %s identity',
@@ -327,6 +362,134 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
     );
     expect(f.cache.invalidateByTags).toHaveBeenCalledTimes(2);
   });
+
+  it('awaits the processing cache attempt before starting background evaluation', async () => {
+    const f = fixture();
+    let release: () => void = () => {};
+    f.cache.invalidateByTags.mockImplementationOnce(() => {
+      f.order.push('cache:pending');
+      return new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    });
+    const pending = f.service.evaluatePost(
+      'content',
+      EvaluationType.PRE_PUBLICATION,
+      'org',
+      'user',
+      'brand',
+    );
+    await vi.waitFor(() =>
+      expect(f.cache.invalidateByTags).toHaveBeenCalledTimes(1),
+    );
+    expect(f.order).toEqual(['write', 'cache:pending']);
+    expect(f.operations.evaluatePost).not.toHaveBeenCalled();
+    expect(f.websocket.emit).not.toHaveBeenCalled();
+    release();
+    await pending;
+    await vi.waitFor(() => expect(f.websocket.emit).toHaveBeenCalledTimes(1));
+    expect(f.order).toEqual([
+      'write',
+      'cache:pending',
+      'provider',
+      'settle',
+      'update:completed',
+      'cache',
+      'event:completed',
+    ]);
+  });
+  it.each([Status.COMPLETED, Status.FAILED])(
+    'awaits the persisted %s cache attempt before its websocket event',
+    async (status) => {
+      const f = fixture();
+      if (status === Status.FAILED)
+        f.operations.evaluatePost.mockRejectedValueOnce(
+          new Error('genuine provider failure'),
+        );
+      let rejectPending: (error: Error) => void = () => {};
+      f.cache.invalidateByTags
+        .mockImplementationOnce(async () => {
+          f.order.push('cache:processing');
+        })
+        .mockImplementationOnce(() => {
+          f.order.push(`cache:${status}:pending`);
+          return new Promise<void>((_resolve, reject) => {
+            rejectPending = reject;
+          });
+        });
+      await f.service.evaluatePost(
+        'content',
+        EvaluationType.PRE_PUBLICATION,
+        'org',
+        'user',
+        'brand',
+      );
+      await vi.waitFor(() =>
+        expect(f.cache.invalidateByTags).toHaveBeenCalledTimes(2),
+      );
+      expect(f.websocket.emit).not.toHaveBeenCalled();
+      expect(f.prisma.evaluation.update).toHaveBeenCalledTimes(1);
+      expect(f.order.at(-2)).toBe(`update:${status}`);
+      expect(f.order.at(-1)).toBe(`cache:${status}:pending`);
+      rejectPending(new Error('cache offline'));
+      await vi.waitFor(() =>
+        expect(f.websocket.emit).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({ status }),
+        ),
+      );
+      expect(f.order.at(-1)).toBe(`event:${status}`);
+      expect(f.prisma.evaluation.update).toHaveBeenCalledTimes(1);
+      expect(f.operations.evaluatePost).toHaveBeenCalledTimes(1);
+      expect(f.credits.refundOrganizationCredits).not.toHaveBeenCalled();
+    },
+  );
+  it('keeps a successful inherited patch unchanged when its content cache rejects', async () => {
+    const f = fixture();
+    rejectCache(f);
+    const result = await f.service.patch('evaluation', { isDeleted: true }, [
+      'user',
+    ]);
+    expect(result).toBe(
+      await f.prisma.evaluation.update.mock.results[0]?.value,
+    );
+    expect(result.isDeleted).toBe(true);
+    expect(f.order).toEqual(['update:patch', 'cache']);
+    expect(f.prisma.evaluation.update).toHaveBeenCalledTimes(1);
+    expect(f.credits.refundOrganizationCredits).not.toHaveBeenCalled();
+    expect(f.operations.evaluateVideo).not.toHaveBeenCalled();
+    expect(f.websocket.emit).not.toHaveBeenCalled();
+  });
+  it.each(['review', 'performance'] as const)(
+    'keeps successful %s mutation unchanged when its cache rejects',
+    async (kind) => {
+      const f = fixture();
+      rejectCache(f);
+      const result =
+        kind === 'review'
+          ? await f.service.recordReviewerFeedback(
+              'evaluation',
+              'org',
+              'user',
+              { comment: 'Saved observation' },
+            )
+          : await f.service.syncPostPublicationPerformance(
+              'evaluation',
+              'org',
+              { views: 100, likes: 5 },
+            );
+      expect(result).toBe(
+        await f.prisma.evaluation.update.mock.results[0]?.value,
+      );
+      expect(f.order).toEqual(['update:completed', 'cache']);
+      expect(f.prisma.evaluation.update).toHaveBeenCalledTimes(1);
+      expect(f.cache.invalidateByTags).toHaveBeenCalledTimes(1);
+      expect(f.credits.refundOrganizationCredits).not.toHaveBeenCalled();
+      expect(f.credits.deductCreditsFromOrganization).not.toHaveBeenCalled();
+      expect(f.operations.evaluateVideo).not.toHaveBeenCalled();
+      expect(f.websocket.emit).not.toHaveBeenCalled();
+    },
+  );
   it('retains legacy isolated construction without a cache dependency', async () => {
     const f = fixture(false);
     await expect(run(f.service, 'video')).resolves.toMatchObject({
