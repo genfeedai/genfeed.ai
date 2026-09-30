@@ -104,7 +104,7 @@ export class LearningRunService {
       });
       return null;
     }
-    await this.prisma.contentLearningRun.updateMany({
+    const claimed = await this.prisma.contentLearningRun.updateMany({
       where: {
         id: runId,
         status: { in: ['pending', 'failed'] },
@@ -112,6 +112,10 @@ export class LearningRunService {
       },
       data: { status: 'running', startedAt: new Date(), error: null },
     });
+    if (claimed.count !== 1)
+      return this.prisma.contentLearningRun.findFirst({
+        where: { id: runId, isDeleted: false },
+      });
     const started = Date.now(),
       rows = await this.prisma.contentLearningDatasetEntry.findMany({
         where: { datasetId: dataset.id, isDeleted: false },

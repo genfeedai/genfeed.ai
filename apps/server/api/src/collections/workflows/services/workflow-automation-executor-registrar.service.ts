@@ -10,6 +10,7 @@ import {
   AUTOMATION_ACTION_IDS,
   AUTOMATION_WORKFLOW_IDS,
 } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { ContentLearningWorkflowService } from '@api/collections/workflows/services/content-learning-workflow.service';
 import { ContentProductionWorkflowService } from '@api/collections/workflows/services/content-production-workflow.service';
 import { LivestreamBotWorkflowService } from '@api/collections/workflows/services/livestream-bot-workflow.service';
 import { PaidCreativeResearchWorkflowService } from '@api/collections/workflows/services/paid-creative-research-workflow.service';
@@ -17,6 +18,7 @@ import { ReplyPollingWorkflowService } from '@api/collections/workflows/services
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { AD_AUTOMATION_ACTION_IDS } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { ANALYTICS_SYNC_ACTION_IDS } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { CONTENT_LEARNING_ACTION_IDS } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import {
   buildActionExecutionInput,
@@ -50,9 +52,12 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
     @Optional()
     private readonly agentReportDelivery?: WorkflowNotificationDeliveryService,
+    @Optional()
+    private readonly contentLearningWorkflowService?: ContentLearningWorkflowService,
   ) {}
 
   register(engine: WorkflowEngine): void {
+    this.registerContentLearningExecutors(engine);
     this.registerAgentReportExecutors(engine);
     this.registerAdAutomationExecutors(engine);
     this.registerAdBulkUploadExecutors(engine);
@@ -64,6 +69,19 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
     this.registerPaidCreativeResearchExecutors(engine);
+  }
+
+  private registerContentLearningExecutors(engine: WorkflowEngine): void {
+    const service = this.contentLearningWorkflowService;
+    if (!service) return;
+    for (const action of Object.values(CONTENT_LEARNING_ACTION_IDS))
+      engine.registerExecutor(action, (node, inputs, context) =>
+        service.execute(
+          action,
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
+      );
   }
 
   private registerAgentReportExecutors(engine: WorkflowEngine): void {

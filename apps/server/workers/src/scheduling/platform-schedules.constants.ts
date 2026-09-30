@@ -20,6 +20,8 @@ export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 export const PLATFORM_SCHEDULED_TASKS = {
   PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
   ANALYTICS_SYNC: 'analytics-sync',
+  CONTENT_LEARNING_RECONCILE: 'content-learning-reconcile',
+  CONTENT_LEARNING_RETENTION: 'content-learning-retention',
   CONTENT_LOOP_AUTOPILOT: 'content-loop-autopilot',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile',
@@ -67,6 +69,14 @@ export type PlatformSchedule = {
 };
 
 export const PLATFORM_SCHEDULE_CATALOG = {
+  [PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RECONCILE]: {
+    pattern: '*/5 * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RETENTION]: {
+    pattern: '20 3 * * *',
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: {
     pattern: '* * * * *',
     timezone: 'UTC',

@@ -23,6 +23,14 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
 const DUE_STRATEGY_GATED_TEMPLATE_ID = 'proactive-agent-strategies';
 
 const WORKFLOWS = {
+  'content-learning.reconcile': {
+    canonicalId: 'content-learning.reconcile',
+    interval: 5 * 60 * 1000,
+  },
+  'content-learning.retention': {
+    canonicalId: 'content-learning.retention',
+    interval: 24 * 60 * 60 * 1000,
+  },
   'analytics-sync': {
     canonicalId: 'analytics-sync',
     interval: 6 * 60 * 60 * 1000,
