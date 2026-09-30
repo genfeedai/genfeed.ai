@@ -144,6 +144,15 @@ it.each([
   { published: false },
   { unchanged: false },
   { generated: false },
+  {
+    generated: false,
+    approved: false,
+    published: false,
+    unchanged: false,
+    reward: null,
+    publishable: null,
+    readinessKnown: true,
+  },
 ])('blocks inconsistent or nonfinite online evidence: %j', (patch) => {
   expect(() =>
     buildLearningExperimentReport({
@@ -178,4 +187,16 @@ it('exposes only a safe code and field path for invalid stored evidence', () => 
     return;
   }
   throw new Error('Expected invalid evidence rejection');
+});
+
+it('rejects unsafe aggregate diagnostic counts before serializing any report', () => {
+  expect(() =>
+    buildLearningExperimentReport({
+      ...input,
+      observations: observations.map((row) => ({
+        ...row,
+        attemptCount: Number.MAX_SAFE_INTEGER,
+      })),
+    }),
+  ).toThrow(LearningEvidenceValidationError);
 });

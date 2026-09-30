@@ -62,6 +62,7 @@ export interface LearningGenerationReceipt {
   reason?: string;
   mode: ContentLearningMode | 'no_destination' | 'unavailable';
   accountRevision?: number;
+  scopeRevision?: number;
   epoch?: number;
   armId?: ContentLearningArm;
   probabilities?: Record<string, number>;
@@ -69,6 +70,11 @@ export interface LearningGenerationReceipt {
   assignment?: 'pilot' | 'control';
   assignmentProbability?: number;
   executionProbability?: number;
+  executionProbabilities?: Record<string, number>;
+  treatmentProbabilities?: Record<string, number>;
+  controlProbabilities?: Record<string, number>;
+  cellDescriptor?: LearningCellDescriptor;
+  descriptorHash?: string;
   policyVersionId?: string;
   sharedReleaseId?: string;
   sharedReleaseRevision?: number;
@@ -411,4 +417,38 @@ export interface LearningCostAttributionV1 {
   nodeId?: string;
   runId?: string;
   ingredientId?: string;
+}
+
+export type LearningDependencyKindV1 =
+  | 'dataset'
+  | 'run'
+  | 'shared-policy'
+  | 'release'
+  | 'config'
+  | 'organization'
+  | 'brand'
+  | 'credential'
+  | 'post'
+  | 'account'
+  | 'checkpoint'
+  | 'baseline'
+  | 'decision'
+  | 'reward'
+  | 'policy'
+  | 'consent'
+  | 'experiment'
+  | 'enrollment'
+  | 'opportunity'
+  | 'experiment-event'
+  | 'provider_attempt'
+  | 'llm_vendor_cost'
+  | 'media_vendor_cost'
+  | 'publish_approval'
+  | 'post_publish_finalization'
+  | 'content_version_pin';
+export interface LearningDependencyRefV1 {
+  kind: LearningDependencyKindV1;
+  id: string;
+  organizationId: string | null;
+  version: string;
 }

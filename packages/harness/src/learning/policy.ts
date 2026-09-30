@@ -139,3 +139,29 @@ export function sampleLearningArm(
   }
   throw new Error('invalid_distribution');
 }
+
+/** Validate both pre-draw policies and retain the mixed assignment propensity. */
+export function learningExecutionProbabilities(
+  treatment: Record<LearningArmId, number>,
+  control: Record<LearningArmId, number>,
+  treatmentProbability: number,
+): Record<LearningArmId, number> {
+  if (
+    !Number.isFinite(treatmentProbability) ||
+    treatmentProbability < 0 ||
+    treatmentProbability > 1
+  )
+    throw new Error('invalid_assignment_probability');
+  // Sampling validates every arm before returning, including zero-mass arms.
+  sampleLearningArm(treatment, 0);
+  sampleLearningArm(control, 0);
+  const marginal = Object.fromEntries(
+    LEARNING_ARMS.map((arm) => [
+      arm,
+      treatmentProbability * treatment[arm] +
+        (1 - treatmentProbability) * control[arm],
+    ]),
+  ) as Record<LearningArmId, number>;
+  sampleLearningArm(marginal, 0);
+  return marginal;
+}

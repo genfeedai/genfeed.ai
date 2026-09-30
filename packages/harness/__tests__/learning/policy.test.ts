@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { learningFeatures } from '../../src/learning/features';
 import {
   initializeLearningPolicy,
+  learningExecutionProbabilities,
   learningProbabilities,
   sampleLearningArm,
   solveLearningRidge,
@@ -17,6 +18,52 @@ describe('ridge epsilon replay', () => {
         0,
       ),
     ).toThrow('invalid_distribution');
+  });
+  it('logs the full private marginal whichever assignment group was drawn', () => {
+    const treatment = {
+      'baseline-v1': 0.95 + 0.05 / 3,
+      'question-example-v1': 0.05 / 3,
+      'proof-steps-v1': 0.05 / 3,
+    };
+    const control = {
+      'baseline-v1': 1,
+      'question-example-v1': 0,
+      'proof-steps-v1': 0,
+    };
+    const marginal = learningExecutionProbabilities(treatment, control, 0.1);
+    expect(marginal['baseline-v1']).toBeCloseTo(0.9966666667, 9);
+    expect(marginal['proof-steps-v1']).toBeCloseTo(0.0016666667, 9);
+    expect(Object.values(marginal).reduce((a, b) => a + b, 0)).toBeCloseTo(1);
+    expect(learningExecutionProbabilities(treatment, control, 0)).toEqual(
+      control,
+    );
+  });
+  it('uses the actual frozen shared control and rejects malformed unused vectors', () => {
+    const treatment = {
+      'baseline-v1': 0.2,
+      'question-example-v1': 0.3,
+      'proof-steps-v1': 0.5,
+    };
+    const control = {
+      'baseline-v1': 0.6,
+      'question-example-v1': 0.3,
+      'proof-steps-v1': 0.1,
+    };
+    expect(learningExecutionProbabilities(treatment, control, 0.5)).toEqual({
+      'baseline-v1': 0.4,
+      'question-example-v1': 0.3,
+      'proof-steps-v1': 0.3,
+    });
+    expect(() =>
+      learningExecutionProbabilities(
+        treatment,
+        { ...control, 'proof-steps-v1': NaN },
+        1,
+      ),
+    ).toThrow('invalid_distribution');
+    expect(() =>
+      learningExecutionProbabilities(treatment, control, Infinity),
+    ).toThrow('invalid_assignment_probability');
   });
   const features = learningFeatures({
     decisionAt: new Date('2026-09-30T12:00:00Z'),

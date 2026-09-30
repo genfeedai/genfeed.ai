@@ -48,21 +48,40 @@ function validateObservations(
   rows: readonly LearningExperimentObservation[],
 ): void {
   const seen = new Set<string>();
+  let attemptTotal = 0n,
+    descendantTotal = 0n;
   const reject = (index: number, field: string): never => {
     throw new LearningEvidenceValidationError(
       `observations[${index}].${field}`,
     );
   };
   rows.forEach((row, index) => {
-    if (typeof row.id !== 'string' || !row.id || seen.has(row.id))
+    if (
+      typeof row.id !== 'string' ||
+      !row.id ||
+      row.id.length > 256 ||
+      seen.has(row.id)
+    )
       reject(index, 'id');
     seen.add(row.id);
+    if (
+      typeof row.accountGroup !== 'string' ||
+      !row.accountGroup ||
+      row.accountGroup.length > 256
+    )
+      reject(index, 'accountGroup');
     if (!['control', 'treatment'].includes(row.group)) reject(index, 'group');
     if (!Number.isFinite(new Date(row.assignedAt).getTime()))
       reject(index, 'assignedAt');
     for (const field of ['attemptCount', 'publishedDescendants'] as const)
       if (!Number.isSafeInteger(row[field]) || row[field] < 0)
         reject(index, field);
+    attemptTotal += BigInt(row.attemptCount);
+    descendantTotal += BigInt(row.publishedDescendants);
+    if (attemptTotal > BigInt(Number.MAX_SAFE_INTEGER))
+      reject(index, 'attemptCount');
+    if (descendantTotal > BigInt(Number.MAX_SAFE_INTEGER))
+      reject(index, 'publishedDescendants');
     if (
       row.costMicros !== null &&
       (!Number.isSafeInteger(row.costMicros) || row.costMicros < 0)
@@ -99,6 +118,7 @@ function validateObservations(
         row.publishable === true)
     )
       reject(index, 'generated');
+    if (row.readinessKnown && !row.generated) reject(index, 'readinessKnown');
     if (row.unchanged && !row.published) reject(index, 'unchanged');
     if (!row.readinessKnown && row.publishable !== null)
       reject(index, 'publishable');
