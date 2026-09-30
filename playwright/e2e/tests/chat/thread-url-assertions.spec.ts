@@ -7,7 +7,7 @@ test.describe('Exact chat thread URL assertions', () => {
 
   test('matches literal regex metacharacters in the expected URL', () => {
     const expectedUrl =
-      'https://app.example.test/test-org/agent/thread.[1](2){3}+*^$|?view=plan+review#draft';
+      'https://app.example.test/test-org/agent/thread.[1](2)+*^$|?view=plan{3}+review#draft';
     const matcher = exactUrlPattern(expectedUrl, baseUrl);
 
     expect(expectedUrl).toMatch(matcher);
