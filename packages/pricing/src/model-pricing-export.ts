@@ -16,6 +16,7 @@ export function exportModelPricingCsv(report: AdminModelPricingReport): string {
   const columns = [
     'Retrieved at',
     'Source',
+    'Configured generation margin multiplier',
     'Model',
     'Provider',
     'Category',
@@ -52,6 +53,7 @@ export function exportModelPricingCsv(report: AdminModelPricingReport): string {
   const rows = report.rows.map((row) => [
     report.retrievedAt,
     report.source,
+    report.marginMultiplierGeneration,
     row.key,
     row.provider,
     row.category,

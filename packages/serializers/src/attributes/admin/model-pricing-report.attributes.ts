@@ -4,5 +4,6 @@ export const modelPricingReportAttributes = createEntityAttributes([
   'retrievedAt',
   'source',
   'isConversionPolicyConfigured',
+  'marginMultiplierGeneration',
   'rows',
 ]);

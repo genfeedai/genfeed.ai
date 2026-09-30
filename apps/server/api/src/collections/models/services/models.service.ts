@@ -1,7 +1,8 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { projectModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
@@ -35,30 +36,6 @@ const PAGINATION_OPTION_KEYS = new Set([
   'sort',
   'useFacet',
 ]);
-
-const IMAGE_FAL_SCHEMA_FAMILIES = new Set([
-  'image-edit-multi-v1',
-  'image-edit-single-v1',
-  'image-text-v1',
-]);
-const VIDEO_FAL_SCHEMA_FAMILIES = new Set(['video-image-v1', 'video-text-v1']);
-
-function isFalSchemaFamilyCompatible(
-  category: string,
-  schemaFamily: string,
-): boolean {
-  if (IMAGE_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
-    return [ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].includes(
-      category as ModelCategory,
-    );
-  }
-  if (VIDEO_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
-    return [ModelCategory.VIDEO, ModelCategory.VIDEO_EDIT].includes(
-      category as ModelCategory,
-    );
-  }
-  return false;
-}
 
 type FindAvailableModelsParams = {
   category?: string;
@@ -463,52 +440,11 @@ export class ModelsService extends BaseService<
   }
 
   /** Exact internal lookup for billing; no version stripping or display samples. */
-  async findBillablePricingProfile(
+  findBillablePricingProfile(
     key: string,
     organizationId?: string,
   ): Promise<ModelBillablePricingProfile | null> {
-    const model = await this.prisma.model.findFirst({
-      // tenant-scope-ignore: withRegistryVisibility restricts to the supplied org plus global rows and excludes soft deletes.
-      where: this.normalizeWhereForModel(
-        this.withRegistryVisibility({
-          key,
-          ...(organizationId ? { organizationId } : { organizationId: null }),
-        }),
-      ) as Prisma.ModelWhereInput,
-      select: {
-        key: true,
-        endpoint: true,
-        provider: true,
-        isActive: true,
-        isDeleted: true,
-        isFree: true,
-        pricingType: true,
-        providerCostUsd: true,
-        cost: true,
-        costPerUnit: true,
-        minCost: true,
-        hasResolutionOptions: true,
-        hasAudioToggle: true,
-        providerInputSchema: true,
-        reviewedProviderContractVersion: true,
-        pendingProviderContractVersion: true,
-        providerContracts: {
-          select: {
-            provider: true,
-            endpoint: true,
-            version: true,
-            reviewStatus: true,
-            mappingStatus: true,
-            pricing: true,
-            conditionalDimensions: true,
-            discoveredAt: true,
-          },
-        },
-      },
-    });
-    return model
-      ? projectModelBillablePricingProfile(model, model.providerContracts)
-      : null;
+    return findModelBillablePricingProfile(this.prisma, key, organizationId);
   }
 
   override async findOne(

@@ -1,3 +1,4 @@
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
   ModelBillablePricingProfile,
   ProviderBillingUnit,
@@ -256,4 +257,55 @@ export function projectModelBillablePricingProfile(
       requiredSelectorKeys.length > 0 ||
       Object.keys(record(contract?.conditionalDimensions)).length > 0,
   };
+}
+
+/** Exact catalog lookup: the supplied tenant plus global rows, excluding deletes. */
+export async function findModelBillablePricingProfile(
+  prisma: PrismaService,
+  key: string,
+  organizationId?: string,
+): Promise<ModelBillablePricingProfile | null> {
+  // tenant-scope-ignore: this catalog lookup explicitly permits only the supplied organization or global organizationId:null rows and excludes soft deletes.
+  const model = await prisma.model.findFirst({
+    where: {
+      key,
+      isDeleted: false,
+      OR: organizationId
+        ? [{ organizationId }, { organizationId: null }]
+        : [{ organizationId: null }],
+    },
+    select: {
+      key: true,
+      endpoint: true,
+      provider: true,
+      isActive: true,
+      isDeleted: true,
+      isFree: true,
+      pricingType: true,
+      providerCostUsd: true,
+      cost: true,
+      costPerUnit: true,
+      minCost: true,
+      hasResolutionOptions: true,
+      hasAudioToggle: true,
+      providerInputSchema: true,
+      reviewedProviderContractVersion: true,
+      pendingProviderContractVersion: true,
+      providerContracts: {
+        select: {
+          provider: true,
+          endpoint: true,
+          version: true,
+          reviewStatus: true,
+          mappingStatus: true,
+          pricing: true,
+          conditionalDimensions: true,
+          discoveredAt: true,
+        },
+      },
+    },
+  });
+  return model
+    ? projectModelBillablePricingProfile(model, model.providerContracts)
+    : null;
 }

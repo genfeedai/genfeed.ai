@@ -5,6 +5,7 @@ import { ButtonVariant, PageScope } from '@genfeedai/contracts';
 import ModelsList from '@pages/models/list/models-list';
 import type { AdminModelType } from '@props/admin/models.props';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import ModelPricingTable from './model-pricing-table';
 
@@ -13,6 +14,7 @@ export default function AdminModelsPageContent({
 }: {
   type: AdminModelType;
 }) {
+  const t = useTranslations('pages.adminModelPricing');
   const [isPricingVisible, setIsPricingVisible] = useState(false);
   const { setRefreshModels } = useModelsContext();
 
@@ -26,7 +28,7 @@ export default function AdminModelsPageContent({
           aria-pressed={!isPricingVisible}
           onClick={() => setIsPricingVisible(false)}
         >
-          Catalog
+          {t('catalog')}
         </Button>
         <Button
           variant={
@@ -35,7 +37,7 @@ export default function AdminModelsPageContent({
           aria-pressed={isPricingVisible}
           onClick={() => setIsPricingVisible(true)}
         >
-          Pricing
+          {t('pricing')}
         </Button>
       </div>
       {isPricingVisible ? (
