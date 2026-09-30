@@ -525,6 +525,12 @@ describe('AppProtectedTopbar', () => {
 
     const railToggle = screen.getByTestId('topbar-inspector-toggle');
     const drawerToggle = screen.getByTestId('topbar-inspector-drawer-toggle');
+    expect(railToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      railToggle.getAttribute('aria-label') ?? '',
+    );
+    expect(drawerToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      drawerToggle.getAttribute('aria-label') ?? '',
+    );
     expect(railToggle).toBeDisabled();
     expect(railToggle).toHaveAccessibleName('Select an item to see details');
     expect(drawerToggle).toBeDisabled();
@@ -562,6 +568,9 @@ describe('AppProtectedTopbar', () => {
 
     const dockToggle = screen.getByTestId('topbar-agent-dock-toggle');
     expect(dockToggle).toBeDisabled();
+    expect(dockToggle.closest('[tabindex="0"]')).toHaveAccessibleName(
+      'Agent is the main view here',
+    );
     expect(dockToggle).toHaveAccessibleName('Agent is the main view here');
 
     fireEvent.click(dockToggle);

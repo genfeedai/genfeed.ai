@@ -16,6 +16,7 @@ import {
   getActivityMediaPreviewUrl,
   getActivitySourceLabel,
   getActivityTypeKind,
+  getGenerationCreditAmount,
 } from './activities-list.utils';
 
 describe('getActivityDescription', () => {
@@ -165,5 +166,36 @@ describe('getActivityDescription', () => {
     expect(
       getActivityMediaPreviewUrl(activity, { status: 'failed' }),
     ).toBeUndefined();
+  });
+});
+
+describe('generation credit amounts', () => {
+  it('never treats credits in unrelated activity JSON as a generation charge', () => {
+    expect(
+      getGenerationCreditAmount({
+        key: 'organization.update.completed',
+        value: '{"credits":12}',
+      }),
+    ).toBeNull();
+  });
+  it('reads settled media generation charges only', () => {
+    expect(
+      getGenerationCreditAmount({
+        key: 'image.generate.completed',
+        value: '{"credits":12}',
+      }),
+    ).toBe(12);
+    expect(
+      getGenerationCreditAmount({
+        key: 'image.generate.processing',
+        value: '{"credits":12}',
+      }),
+    ).toBeNull();
+    expect(
+      getGenerationCreditAmount({
+        key: 'image.upscale.completed',
+        value: '{"credits":12}',
+      }),
+    ).toBeNull();
   });
 });

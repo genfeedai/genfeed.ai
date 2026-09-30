@@ -213,6 +213,33 @@ describe('useAgentThreadStatusPush', () => {
     expect(metrics.count).toHaveBeenCalledWith('unknown_thread');
   });
 
+  it('does not reload again for an unresolved ID after a successful reload', async () => {
+    mount();
+    push(statusEvent({ threadId: 'outside-page' }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    push(statusEvent({ threadId: 'outside-page', sequence: 6 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(reloadThreads).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows an unresolved ID to retry after a failed reload', async () => {
+    reloadThreads.mockResolvedValueOnce(false);
+    mount();
+    push(statusEvent({ threadId: 'outside-page' }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    push(statusEvent({ threadId: 'outside-page', sequence: 6 }));
+    await act(async () => {
+      vi.advanceTimersByTime(1_000);
+    });
+    expect(reloadThreads).toHaveBeenCalledTimes(2);
+  });
+
   describe('reconnect', () => {
     it('reloads the list when the channel connects, and again on every reconnect', () => {
       socket.connectionState = 'connecting';

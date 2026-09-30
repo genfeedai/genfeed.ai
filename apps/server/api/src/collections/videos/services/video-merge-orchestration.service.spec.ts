@@ -89,6 +89,17 @@ describe('VideoMergeOrchestrationService', () => {
     });
   });
 
+  it.each([
+    { zoomEaseCurve: VideoEaseCurve.EASE_IN_OUT_CUBIC },
+    { zoomConfigs: [{ startZoom: 1, endZoom: 1.2 }] },
+  ])('rejects unsupported zoom before creating a merge', async (zoom) => {
+    await expect(service.mergeVideos(user, makeDto(zoom))).rejects.toThrow(
+      'Zoom effects are not supported when merging videos',
+    );
+    expect(fixture.queued).toEqual([]);
+    expect(fixture.outputs()).toEqual([]);
+  });
+
   it('returns the processing output before the merge job finishes', async () => {
     const output = await service.mergeVideos(
       user,

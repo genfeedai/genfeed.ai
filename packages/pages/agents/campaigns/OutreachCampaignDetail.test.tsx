@@ -67,6 +67,22 @@ describe('OutreachCampaignDetail', () => {
     vi.clearAllMocks();
   });
 
+  it('hides the Needs you Resume action for a paused unavailable pair', () => {
+    mockDetail({
+      campaignType: CampaignType.MANUAL,
+      label: 'Legacy Reddit',
+      platform: CampaignPlatform.REDDIT,
+      status: CampaignStatus.PAUSED,
+    });
+    render(<OutreachCampaignDetail />);
+    expect(
+      screen.queryByRole('heading', { name: 'Needs you' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      /This platform is not available/i,
+    );
+  });
+
   it('shows a historical unavailable campaign and disables unsafe actions', async () => {
     const user = userEvent.setup();
     const handleStartCampaign = vi.fn();
