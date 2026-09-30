@@ -72,10 +72,23 @@ export default function StoryboardPlanEditor({
   const [selectedShotId, setSelectedShotId] = useState<string>();
   const [error, setError] = useState<string>();
   const [working, setWorking] = useState(false);
+  const persistedPlan = run.config.plan;
   const autosave = useStoryboardAutosave<StoryboardPlan>({
     binding: draft,
     scope: `${run.brandId}:${run.id}`,
-    initial: { revision: run.config.revision, value: run.config.plan },
+    initial: {
+      revision: run.config.revision,
+      value: persistedPlan ?? {
+        title: '',
+        logline: '',
+        format: '9:16',
+        videoModelKey: null,
+        runtimeBudgetSeconds: null,
+        styleReferenceAssetIds: [],
+        cast: [],
+        shots: [],
+      },
+    },
     save: async (snapshot, signal) => {
       try {
         if (
@@ -95,6 +108,7 @@ export default function StoryboardPlanEditor({
           signal,
           capabilities?.capabilityVersion,
         );
+        if (!result.config.plan) throw new Error('Storyboard has no plan.');
         return { revision: result.config.revision, value: result.config.plan };
       } catch (caught) {
         refreshCapabilities?.();

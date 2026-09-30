@@ -15,6 +15,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { eligibleStoryboardVoices } from '@pages/studio/storyboard/hooks/use-storyboard-voices';
 import { requiresStoryboardTimingCapabilities } from '@pages/studio/storyboard/utils/storyboard-capabilities';
+import { sessionActiveOrganizationId } from '@pages/studio/storyboard/utils/storyboard-session';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -100,7 +101,7 @@ export function useDurableStoryboardRun(runId: string) {
               )
                 return false;
               const session = await getSession();
-              const currentOrg = session.data?.session.activeOrganizationId;
+              const currentOrg = sessionActiveOrganizationId(session);
               return (
                 !session.error &&
                 session.data?.user.id === userId &&
@@ -206,6 +207,15 @@ export function useDurableStoryboardRun(runId: string) {
                       {
                         status: '409',
                         detail: 'Storyboard changed. Review the saved version.',
+                      },
+                    ],
+                  };
+                if (!current.config.plan)
+                  throw {
+                    errors: [
+                      {
+                        status: '422',
+                        detail: 'Storyboard has no plan.',
                       },
                     ],
                   };
@@ -317,6 +327,7 @@ export function useDurableStoryboardRun(runId: string) {
         persisted?.config.revision !== revision
       )
         throw new Error('Storyboard changed. Reload before saving.');
+      if (!persisted.config.plan) throw new Error('Storyboard has no plan.');
       const timingChanged = requiresStoryboardTimingCapabilities(
         persisted.config.plan,
         plan,

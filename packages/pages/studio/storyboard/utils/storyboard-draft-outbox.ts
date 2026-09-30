@@ -86,6 +86,7 @@ export function storyboardDraftKey(scope: StoryboardDraftScope) {
   return `genfeed:storyboard-draft:v1:${JSON.stringify(scopeSchema.parse(scope))}`;
 }
 export function storyboardDraftValue(run: StoryboardRun): StoryboardDraftValue {
+  if (!run.config.plan) throw new Error('Storyboard has no plan.');
   return { plan: run.config.plan, source: run.config.sourceSnapshot.selector };
 }
 const queues = new Map<string, StoryboardDraftOutbox>();
@@ -566,6 +567,7 @@ export class StoryboardDraftOutbox {
   adopt = (run: StoryboardRun) => {
     this.checkRun(run);
     if (run.config.revision < this.envelope.revision) return;
+    if (!run.config.plan) throw new Error('Storyboard has no plan.');
     this.envelope.value = {
       ...this.envelope.value,
       plan: this.withFreshness(this.envelope.value.plan, run.config.plan),
