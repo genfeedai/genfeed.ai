@@ -236,12 +236,14 @@ async function sendAndAwaitThreadRoute(
 ): Promise<string> {
   await agentPage.goto();
   await assertNoErrorBoundaryFallback(authenticatedPage, agentPage.url);
-  await agentPage.sendPrompt(prompt);
-
   const expectedThreadUrl = orgPath(`${APP_ROUTES.AGENT.ROOT}/${threadId}`);
-  await expect(authenticatedPage).toHaveURL(
-    exactUrlPattern(expectedThreadUrl, authenticatedPage.url()),
+  const expectedThreadUrlPattern = exactUrlPattern(
+    expectedThreadUrl,
+    authenticatedPage.url(),
   );
+
+  await agentPage.sendPrompt(prompt);
+  await expect(authenticatedPage).toHaveURL(expectedThreadUrlPattern);
   await assertNoErrorBoundaryFallback(authenticatedPage, expectedThreadUrl);
   return expectedThreadUrl;
 }
