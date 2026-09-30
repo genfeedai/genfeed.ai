@@ -9,6 +9,7 @@ import {
 } from '@api/collections/content-learning/services/learning-operation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type {
+  LearningCellDescriptor,
   LearningCollectionReceiptV1,
   LearningMetrics,
   LearningScope,
@@ -17,6 +18,8 @@ import {
   checkpointValidity,
   type LearningMeasurement,
   learningCapability,
+  learningDescriptorTuple,
+  learningRegisteredProfiles,
   median,
   weightedMeasurement,
 } from '@genfeedai/harness';
@@ -26,6 +29,63 @@ import {
   toPrismaJson,
 } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+interface LearningCheckpointProfile {
+  profileId: string;
+  descriptor: LearningCellDescriptor;
+  measurement: LearningMeasurement | null;
+}
+export function learningCheckpointProfiles(
+  platform: string,
+  format: string,
+  metrics: LearningMetrics,
+): LearningCheckpointProfile[] {
+  const objectives = [
+    'awareness',
+    'engagement',
+    'authority-proxy',
+    'conversion-click',
+    'retention-watch',
+  ] as const;
+  return objectives.flatMap((objective) =>
+    learningRegisteredProfiles(platform, format, objective).map(
+      ({ descriptor, capability }) => {
+        const required = [
+          descriptor.exposureSource,
+          ...descriptor.metricWeights.map(([metric]) => metric),
+        ];
+        const available = required.every(
+          (metric) =>
+            metrics.metrics[metric]?.availability === 'observed' &&
+            typeof metrics.metrics[metric]?.value === 'number' &&
+            Number.isFinite(metrics.metrics[metric]?.value) &&
+            Number(metrics.metrics[metric]?.value) >= 0,
+        );
+        const values = Object.fromEntries(
+          Object.entries(metrics.metrics).flatMap(([name, metric]) =>
+            metric?.availability === 'observed' &&
+            typeof metric.value === 'number' &&
+            Number.isFinite(metric.value) &&
+            metric.value >= 0
+              ? [[name, metric.value]]
+              : [],
+          ),
+        );
+        return {
+          profileId: learningHash(learningDescriptorTuple(descriptor)),
+          descriptor,
+          measurement: available
+            ? weightedMeasurement(
+                values[descriptor.exposureSource],
+                values,
+                capability,
+              )
+            : null,
+        };
+      },
+    ),
+  );
+}
 export function parseLearningMeasurement(
   value: unknown,
 ): LearningMeasurement | null {
@@ -379,6 +439,14 @@ export class LearningCheckpointService {
             collection,
             measurement: collection.outcome === 'observed' ? measurement : null,
             metricAvailability: input.learningMetrics.metrics,
+            profiles:
+              collection.outcome === 'observed'
+                ? learningCheckpointProfiles(
+                    platform,
+                    input.format,
+                    input.learningMetrics,
+                  )
+                : [],
             profile: input.objective,
             mask: capability?.mask,
             timeBasis: providerAsOf ? 'provider_as_of' : 'collection_time',

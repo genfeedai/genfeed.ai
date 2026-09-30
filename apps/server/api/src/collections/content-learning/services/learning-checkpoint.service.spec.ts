@@ -2,6 +2,7 @@ import type { LearningAccountService } from '@api/collections/content-learning/s
 import {
   LearningCheckpointService,
   learningCheckpointCollection,
+  learningCheckpointProfiles,
 } from '@api/collections/content-learning/services/learning-checkpoint.service';
 import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -265,4 +266,57 @@ describe('fixed physical provider observation fulfillment', () => {
       expect(f.prisma.contentLearningCheckpoint.create).not.toHaveBeenCalled();
     },
   );
+});
+
+describe('immutable physical observation profile projections', () => {
+  it('derives all registered projections once and keeps missing saves distinct from observed zero', () => {
+    const metrics = captureLearningMetrics(
+      { impressions: 1000, views: 1200, likes: 10, comments: 5, shares: 2 },
+      {
+        impressions: 'impressions',
+        views: 'views',
+        likes: 'likes',
+        comments: 'comments',
+        shares: 'shares',
+        saves: 'saves',
+      },
+    );
+    const missing = learningCheckpointProfiles(
+      'twitter',
+      'text',
+      metrics,
+    ).filter((profile) => profile.descriptor.objective === 'engagement');
+    expect(missing).toHaveLength(2);
+    expect(missing[0].measurement).toBeNull();
+    expect(missing[1].measurement).toMatchObject({
+      exposure: 1000,
+      weightedActions: 28,
+    });
+    const observedZero = learningCheckpointProfiles('twitter', 'text', {
+      ...metrics,
+      metrics: {
+        ...metrics.metrics,
+        saves: { availability: 'observed', value: 0, source: 'bookmark_count' },
+      },
+    }).filter((profile) => profile.descriptor.objective === 'engagement');
+    expect(observedZero[0].profileId).toBe(missing[0].profileId);
+    expect(observedZero[0].measurement).toMatchObject({
+      exposure: 1000,
+      weightedActions: 28,
+    });
+    expect(observedZero[0].profileId).not.toBe(observedZero[1].profileId);
+  });
+  it('does not invent missing exposure or substitute an unsupported pin-click metric', () => {
+    const metrics = captureLearningMetrics(
+      { impressions: 1000, pinClicks: 99 },
+      { impressions: 'impressions', clicks: 'outbound_clicks' },
+    );
+    const profiles = learningCheckpointProfiles('pinterest', 'image', metrics);
+    expect(
+      profiles.find(
+        (profile) => profile.descriptor.objective === 'conversion-click',
+      )?.measurement,
+    ).toBeNull();
+    expect(learningCheckpointProfiles('unknown', 'text', metrics)).toEqual([]);
+  });
 });
