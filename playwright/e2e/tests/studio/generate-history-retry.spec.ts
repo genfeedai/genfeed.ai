@@ -155,6 +155,9 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await retry.focus();
       await page.keyboard.press('Enter');
       await expect(retry).toBeDisabled();
+      await expect(retry).toHaveAttribute('aria-busy', 'true');
+      await expect(retry).toHaveText('Retry history');
+      await expect(retry).toBeVisible();
       await expect(
         page.getByRole('status').filter({ hasText: 'Retrying history…' }),
       ).toBeVisible();
@@ -179,6 +182,39 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await expect(
         restoredCard.getByRole('button', { name: 'More', exact: true }),
       ).toBeAttached();
+      const restoredVideo = restoredCard.locator('video');
+      await expect(restoredVideo).toHaveCount(1);
+      await expect(restoredVideo).toBeVisible();
+      await expect(restoredVideo).toHaveCSS('opacity', '1');
+      const readMediaState = () =>
+        restoredVideo.evaluate((video: HTMLVideoElement) => ({
+          hasCurrentFrame:
+            video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA,
+          width: video.videoWidth,
+          height: video.videoHeight,
+          source: video.currentSrc,
+          error: video.error?.code ?? null,
+        }));
+      await expect.poll(readMediaState).toEqual({
+        hasCurrentFrame: true,
+        width: 108,
+        height: 192,
+        source: 'https://cdn.genfeed.ai/mock/history-restored.mp4',
+        error: null,
+      });
+      await expect(
+        restoredCard.getByRole('img', {
+          name: 'Video unavailable',
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      await expect(
+        restoredCard.locator('.masonry-skeleton, .animate-pulse'),
+      ).toHaveCount(0);
+      await testInfo.attach('decoded-media-state', {
+        body: JSON.stringify(await readMediaState(), null, 2),
+        contentType: 'application/json',
+      });
       await expect(alert).toHaveCount(0);
       await expect(
         page.getByRole('dialog', { name: 'Request failed', exact: true }),

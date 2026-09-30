@@ -1305,16 +1305,17 @@ export default function StudioGenerateWorkspace(): ReactElement {
                       {translate(`history.${galleryError}FailedDescription`)}
                     </p>
                     <Button
+                      aria-busy={isLoadingGallery}
                       ariaLabel={translate('history.retry')}
                       className="mt-3"
                       disabled={isLoadingGallery}
+                      icon={<RotateCcw aria-hidden="true" className="size-4" />}
                       isLoading={isLoadingGallery}
                       onClick={refresh}
                       size={ButtonSize.SM}
                       variant={ButtonVariant.SECONDARY}
                       withWrapper={false}
                     >
-                      <RotateCcw aria-hidden="true" className="size-4" />
                       {translate('history.retry')}
                     </Button>
                   </AlertDescription>

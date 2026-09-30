@@ -505,6 +505,9 @@ describe('StudioGenerateWorkspace', () => {
     );
     expect(screen.queryByTestId('studio-results')).not.toBeInTheDocument();
     const retry = screen.getByRole('button', { name: 'history.retry' });
+    expect(retry).toHaveAttribute('aria-busy', 'false');
+    expect(retry).toHaveTextContent('history.retry');
+    expect(screen.getByText('history.retry')).toBeVisible();
     retry.focus();
     fireEvent.click(retry);
     expect(refresh).toHaveBeenCalledTimes(1);
@@ -519,7 +522,13 @@ describe('StudioGenerateWorkspace', () => {
     expect(
       screen.getByRole('button', { name: 'history.retry' }),
     ).toBeDisabled();
+    expect(retry).toHaveAttribute('aria-busy', 'true');
+    expect(retry).toHaveTextContent('history.retry');
+    expect(screen.getByText('history.retry')).toBeVisible();
+    fireEvent.click(retry);
+    expect(refresh).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('status')).toHaveTextContent('history.retrying');
+    expect(screen.getByRole('status')).toBeVisible();
     expect(screen.getByRole('alert')).toBeInTheDocument();
     mocks.gallery.mockReturnValue({
       galleryError: null,
