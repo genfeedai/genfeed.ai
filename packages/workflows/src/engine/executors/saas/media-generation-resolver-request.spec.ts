@@ -1,10 +1,8 @@
 import { GENFEED_ACTION_NODE_TYPE } from '@genfeedai/actions';
-import type {
-  ExecutableNode,
-  ExecutionContext,
-} from '@genfeedai/workflows/engine';
-import { unwrapExecutableActionNode } from '@genfeedai/workflows/engine';
 import { describe, expect, it, vi } from 'vitest';
+import type { ExecutionContext } from '../../execution/engine';
+import type { ExecutableNode } from '../../types';
+import { unwrapExecutableActionNode } from '../../utils/action-node';
 import { ImageGenExecutor } from './image-gen-executor';
 import {
   buildImageGenerationResolverRequest,

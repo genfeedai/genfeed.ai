@@ -1,4 +1,4 @@
-import type { ExecutableNode } from '@genfeedai/workflows/engine';
+import type { ExecutableNode } from '../../types';
 
 export interface MediaGenerationResolverRequest {
   model: string;
