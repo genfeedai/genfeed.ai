@@ -94,6 +94,28 @@ describe('conservative smoke pruning', () => {
     ).toEqual([]);
   });
 
+  it('rejects reset-hook local fixtures rather than mistaking them for suite fixtures', () => {
+    for (const setup of [
+      'let service; service = buildService();',
+      'const { service } = buildHarness(); service = buildService();',
+    ])
+      expect(
+        analyzeSmokeTests(
+          FILE,
+          suite(SMOKE, WITNESS).replace('service = buildService();', setup),
+        ),
+      ).toEqual([]);
+    expect(
+      analyzeSmokeTests(
+        FILE,
+        suite(SMOKE, WITNESS).replace(
+          'beforeEach(() =>',
+          'beforeEach((service) =>',
+        ),
+      ),
+    ).toEqual([]);
+  });
+
   it('does not use skipped or conditional tests as witnesses', () => {
     for (const witness of [
       WITNESS.replace("it('returns", "it.skip('returns"),
@@ -121,6 +143,9 @@ describe('conservative smoke pruning', () => {
   it('rejects witnesses that replace or shadow the fixture', () => {
     for (const setup of [
       'const service = buildService();',
+      'const { service } = buildHarness();',
+      'const [service] = buildHarness();',
+      'const { nested: { service } } = buildHarness();',
       'service = buildService();',
       'service ??= buildService();',
       '({ service } = buildHarness());',
@@ -176,6 +201,35 @@ describe('conservative smoke pruning', () => {
       suite(SMOKE, WITNESS).replace('describe(', 'describe.skipIf(enabled)('),
     ])
       expect(analyzeSmokeTests(FILE, source)).toEqual([]);
+  });
+
+  it('does not mistake deferred generator bodies for executed callbacks', () => {
+    for (const callback of ['function* ()', 'async function* ()']) {
+      expect(
+        analyzeSmokeTests(
+          FILE,
+          suite(SMOKE, WITNESS.replace('async () =>', callback)),
+        ),
+      ).toEqual([]);
+      expect(
+        analyzeSmokeTests(
+          FILE,
+          suite(SMOKE, WITNESS).replace(
+            'beforeEach(() =>',
+            `beforeEach(${callback}`,
+          ),
+        ),
+      ).toEqual([]);
+      expect(
+        analyzeSmokeTests(
+          FILE,
+          suite(SMOKE, WITNESS).replace(
+            "describe('Service', () =>",
+            `describe('Service', ${callback}`,
+          ),
+        ),
+      ).toEqual([]);
+    }
   });
 
   it('does not reinterpret custom or non-Vitest runner bindings', () => {

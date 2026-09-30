@@ -75,6 +75,7 @@ export function isEligibleTestPath(file: string): boolean {
 function namedCall(node: ts.Node, name: string): node is ts.CallExpression {
   return (
     ts.isCallExpression(node) &&
+    !node.questionDotToken &&
     ts.isIdentifier(node.expression) &&
     node.expression.text === name
   );
@@ -85,6 +86,7 @@ function callbackBlock(call: ts.CallExpression): ts.Block | undefined {
   if (
     !callback ||
     (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
+    (ts.isFunctionExpression(callback) && Boolean(callback.asteriskToken)) ||
     callback.parameters.length > 0 ||
     !ts.isBlock(callback.body)
   )
@@ -140,6 +142,23 @@ function assignsSubject(node: ts.Node, subject: string): boolean {
   );
 }
 
+function bindsSubject(name: ts.BindingName, subject: string): boolean {
+  if (ts.isIdentifier(name)) return name.text === subject;
+  return name.elements.some(
+    (element) =>
+      ts.isBindingElement(element) && bindsSubject(element.name, subject),
+  );
+}
+
+function declaresSubject(node: ts.Node, subject: string): boolean {
+  return (
+    ((ts.isVariableDeclaration(node) || ts.isParameter(node)) &&
+      bindsSubject(node.name, subject)) ||
+    ((ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) &&
+      node.name?.text === subject)
+  );
+}
+
 function fixtureResets(block: ts.Block, subject: string): boolean {
   return block.statements.some((statement) => {
     if (
@@ -151,11 +170,14 @@ function fixtureResets(block: ts.Block, subject: string): boolean {
     if (
       !callback ||
       (!ts.isArrowFunction(callback) && !ts.isFunctionExpression(callback)) ||
-      !ts.isBlock(callback.body)
+      !ts.isBlock(callback.body) ||
+      (ts.isFunctionExpression(callback) && Boolean(callback.asteriskToken)) ||
+      callback.parameters.length > 0
     )
       return false;
     let conditionalReset = false;
     function inspectSetup(node: ts.Node): void {
+      if (declaresSubject(node, subject)) conditionalReset = true;
       if (ts.isFunctionLike(node)) return;
       if (
         ts.isReturnStatement(node) ||
@@ -214,12 +236,7 @@ function isWitness(test: TestCase, subject: string): boolean {
       ts.isThrowStatement(node)
     )
       isUnsafe = true;
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === subject
-    )
-      isUnsafe = true;
+    if (declaresSubject(node, subject)) isUnsafe = true;
     if (
       ts.isBinaryExpression(node) &&
       node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment &&
