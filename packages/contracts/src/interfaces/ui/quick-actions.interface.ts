@@ -48,6 +48,7 @@ export interface IActionHandlers {
   onSetAsLogo?: (ingredient: IIngredient) => void;
   onSetAsBanner?: (ingredient: IIngredient) => void;
   onManageTags?: (ingredient: IIngredient) => void;
+  onRemixVideo?: (ingredient: IIngredient) => void | Promise<void>;
   onOpenInEditor?: (ingredient: IIngredient) => void;
   onResize?: (ingredient: IIngredient, format: IngredientFormat) => void;
 }
@@ -55,6 +56,7 @@ export interface IActionHandlers {
 /** Translated copy for quick actions whose labels are resolved by the host. */
 export interface IQuickActionCopy {
   openInEditor: { label: string; tooltip: string };
+  remixThisVideo?: { label: string; tooltip: string };
   resize: Record<IngredientFormat, string>;
 }
 
@@ -85,6 +87,7 @@ export interface QuickActionsProps {
 }
 
 export interface ILoadingStates {
+  isCreatingStoryboard?: boolean;
   isPublishing?: boolean;
   isUpscaling?: boolean;
   isExtending?: boolean;

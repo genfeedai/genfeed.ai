@@ -82,7 +82,9 @@ export async function loadStudioGalleryIngredients(
   let totalPages = 1;
   do {
     signal.throwIfAborted();
-    const result = await service.findAllPage({ ...query, page }, signal);
+    const result = await service.findAllPage({ ...query, page }, signal, {
+      handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+    });
     for (const ingredient of result.items)
       collected.set(ingredient.id, ingredient);
     totalPages = result.totalPages;

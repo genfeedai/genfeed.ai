@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
+import { type IngredientFormat, IngredientStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   VIDEO_FORMAT_DIMENSIONS,
@@ -11,6 +11,7 @@ import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import type { StudioGenerateAssetActions } from '@genfeedai/props/studio/studio-generate.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useStoryboardEntry } from '@hooks/ui/use-storyboard-entry/use-storyboard-entry';
 import {
   useConfirmModal,
   useIngredientOverlay,
@@ -42,6 +43,7 @@ export function useStudioGenerateAssetActions({
   onRefresh,
 }: UseStudioGenerateAssetActionsParams): StudioGenerateAssetActions {
   const translate = useTranslations('pages.studioGenerate');
+  const { createFromAsset } = useStoryboardEntry();
   const router = useRouter();
   const { href } = useOrgUrl();
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
@@ -267,15 +269,11 @@ export function useStudioGenerateAssetActions({
       onResize,
       onSeeDetails,
       onToggleFavorite,
-      onUseAsVideoReference: (ingredient: IIngredient) =>
-        router.push(
-          href(
-            `${APP_ROUTES.STUDIO.STORYBOARD_NEW}?mode=scenes&referenceImageId=${ingredient.id}&format=${ingredient.ingredientFormat || IngredientFormat.PORTRAIT}`,
-          ),
-        ),
+      onUseAsVideoReference: createFromAsset,
     }),
     [
       changeStatus,
+      createFromAsset,
       onAttachReference,
       onCopyPrompt,
       onDeleteIngredient,
@@ -286,8 +284,6 @@ export function useStudioGenerateAssetActions({
       onSeeDetails,
       onToggleFavorite,
       openPostBatchModal,
-      href,
-      router,
     ],
   );
 }

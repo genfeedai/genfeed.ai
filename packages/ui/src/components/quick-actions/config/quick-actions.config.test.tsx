@@ -1,8 +1,59 @@
+import {
+  AssetScope,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import * as QuickActionsConfig from '@ui/quick-actions/config/quick-actions.config';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('QuickActionsConfig', () => {
+  it('offers keyboard-named video remix only for eligible user media and keeps Editor separate', async () => {
+    const handler = vi.fn();
+    const ingredient = {
+      id: 'owned-video',
+      scope: AssetScope.USER,
+      category: IngredientCategory.VIDEO,
+      status: IngredientStatus.UPLOADED,
+    } as IIngredient;
+    const copy = { label: 'Remix this video', tooltip: 'Remix this video' };
+    const action = QuickActionsConfig.createRemixVideoAction(
+      ingredient,
+      handler,
+      copy,
+    );
+    expect(action).toMatchObject({
+      id: 'remix-video',
+      label: 'Remix this video',
+      tooltip: 'Remix this video',
+    });
+    await action?.onClick();
+    expect(handler).toHaveBeenCalledWith(ingredient);
+    expect(
+      QuickActionsConfig.createOpenInEditorAction(ingredient, handler, {
+        label: 'Open in Editor',
+        tooltip: 'Open in Editor',
+      })?.id,
+    ).toBe('open-in-editor');
+    for (const patch of [
+      { scope: AssetScope.PUBLIC },
+      { isDeleted: true },
+      { status: IngredientStatus.PROCESSING },
+    ]) {
+      expect(
+        QuickActionsConfig.createRemixVideoAction(
+          { ...ingredient, ...patch },
+          handler,
+          copy,
+        ),
+      ).toBeNull();
+    }
+    expect(
+      QuickActionsConfig.createRemixVideoAction(ingredient, handler, copy, true)
+        ?.isLoading,
+    ).toBe(true);
+  });
+
   it('should create action configurations correctly', () => {
     const mockIngredient = { id: '1', label: 'Test' } as Partial<IIngredient>;
     const mockHandler = vi.fn();

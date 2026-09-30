@@ -16,6 +16,7 @@ import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import LibraryAssetTypeBadge from '@ui/ingredients/library-asset-type-badge';
 import { Button } from '@ui/primitives/button';
+import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { format } from 'date-fns';
 import { Maximize2 } from 'lucide-react';
 import Image from 'next/image';
@@ -221,6 +222,7 @@ export default function IngredientInspectorRail({
         />
       </dl>
 
+      <IngredientQuickActions align="start" selectedIngredient={ingredient} />
       <InspectorNote label="Prompt" text={ingredient.promptText} />
     </aside>
   );

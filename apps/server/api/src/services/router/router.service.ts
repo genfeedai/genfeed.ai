@@ -257,13 +257,23 @@ export class RouterService {
   public async resolveModelKey(
     request: ModelResolutionRequest,
   ): Promise<ModelResolution> {
-    const models = await this.getUsableModels(
+    const usable = await this.getUsableModels(
       request.category,
       request.organizationId,
     );
+    const models = request.eligibleModelKeys
+      ? usable.filter((model) =>
+          request.eligibleModelKeys?.includes(String(model.key)),
+        )
+      : usable;
 
     const candidate = await this.resolveExplicitCandidate(
-      request.candidates,
+      request.eligibleModelKeys
+        ? request.candidates?.filter(
+            (candidate) =>
+              candidate && request.eligibleModelKeys?.includes(candidate),
+          )
+        : request.candidates,
       request.category,
       request.organizationId,
       models,

@@ -5,6 +5,7 @@ import type {
   IActionHandlers,
   IQuickAction,
 } from '@genfeedai/contracts/interfaces/ui/quick-actions.interface';
+import { isStoryboardEntryAsset } from '@hooks/ui/use-storyboard-entry/storyboard-entry-eligibility';
 import {
   Archive,
   ArrowLeftRight,
@@ -443,6 +444,28 @@ export const createOpenInEditorAction = (
     tooltip: copy.tooltip,
     tooltipPosition: 'top',
   });
+
+export const createRemixVideoAction = (
+  ingredient: IIngredient,
+  handler: IActionHandlers['onRemixVideo'],
+  copy: { label: string; tooltip: string },
+  isLoading?: boolean,
+): IQuickAction | null =>
+  isStoryboardEntryAsset(ingredient)
+    ? createStandardAction(
+        ingredient,
+        handler,
+        {
+          icon: <Clapperboard className={ICON_CLASS} />,
+          id: 'remix-video',
+          label: copy.label,
+          tooltip: copy.tooltip,
+          showInMenu: true,
+          tooltipPosition: 'top',
+        },
+        isLoading,
+      )
+    : null;
 
 /**
  * Rescales to the target format's dimensions. Distinct from the Reframe

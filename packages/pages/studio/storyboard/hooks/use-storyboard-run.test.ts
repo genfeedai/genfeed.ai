@@ -156,6 +156,16 @@ describe('useStoryboardRun', () => {
     mocks.subscribe.mockReturnValue(mocks.unsubscribe);
   });
 
+  it('does not render a run returned for another brand', async () => {
+    mocks.findBrandRemixRun.mockResolvedValue({
+      ...run,
+      brandId: 'another-brand',
+    });
+    const { result } = renderHook(() => useStoryboardRun('run-1'));
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.run).toBeNull();
+  });
+
   it('restores the durable run and resubscribes its in-flight assets', async () => {
     const { result } = renderHook(() => useStoryboardRun('run-1'));
 

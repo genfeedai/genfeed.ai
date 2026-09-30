@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant, ViewType } from '@genfeedai/contracts';
-import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCollectionViewPreference } from '@hooks/utils/use-collection-view-preference/use-collection-view-preference';
 import { useStoryboardRuns } from '@pages/studio/storyboard/hooks/use-storyboard-runs';
@@ -32,13 +32,13 @@ export default function StoryboardRunsPage(): ReactElement {
   });
   const needsAttention = runs.filter(isStoryboardRunNeedingAttention);
 
-  function runHref(run: BrandRemixRunSummary): string {
+  function runHref(run: StoryboardListRun): string {
     return href(
       `${APP_ROUTES.STUDIO.STORYBOARD}/${encodeURIComponent(run.id)}`,
     );
   }
 
-  function actions(run: BrandRemixRunSummary): ReactElement {
+  function actions(run: StoryboardListRun): ReactElement {
     return (
       <CollectionItemActions
         primary={
@@ -55,11 +55,21 @@ export default function StoryboardRunsPage(): ReactElement {
     );
   }
 
-  function facts(run: BrandRemixRunSummary): ReactElement {
+  function facts(run: StoryboardListRun): ReactElement {
     return (
       <>
-        <span>{translate(`sourceKinds.${run.sourceKind}`)}</span>
-        <span>{translate(`phases.${run.phase}`)}</span>
+        <span>
+          {translate(
+            `sourceKinds.${'sourceLabel' in run ? run.sourceLabel : run.sourceKind}`,
+          )}
+        </span>
+        <span>
+          {'phase' in run
+            ? translate(`phases.${run.phase}`)
+            : translate.has?.(`states.${run.state}`)
+              ? translate(`states.${run.state}`)
+              : run.state.replaceAll('_', ' ')}
+        </span>
         <span>{translate('shotCount', { count: run.shotCount })}</span>
         {run.runtimeSeconds === null ? null : (
           <span>{translate('runtime', { seconds: run.runtimeSeconds })}</span>
@@ -73,7 +83,7 @@ export default function StoryboardRunsPage(): ReactElement {
     );
   }
 
-  function row(run: BrandRemixRunSummary): ReactElement {
+  function row(run: StoryboardListRun): ReactElement {
     return (
       <ListRow
         data-testid="storyboard-run-row"

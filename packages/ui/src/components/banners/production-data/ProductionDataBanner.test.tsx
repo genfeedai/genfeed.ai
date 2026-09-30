@@ -72,6 +72,25 @@ describe('ProductionDataBanner', () => {
     });
   });
 
+  it.each([
+    'NEXT_PUBLIC_PLAYWRIGHT_TEST',
+    'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
+  ] as const)('reads the real public flag %s', (name) => {
+    vi.stubEnv(name, 'true');
+    expect(productionDataBannerRuntime.getPublicEnv(name)).toBe('true');
+  });
+
+  it('returns undefined for an unset public flag', () => {
+    expect(
+      productionDataBannerRuntime.getPublicEnv('NEXT_PUBLIC_PLAYWRIGHT_TEST'),
+    ).toBeUndefined();
+    expect(
+      productionDataBannerRuntime.getPublicEnv(
+        'NEXT_PUBLIC_PLAYWRIGHT_BANNER_SKIP',
+      ),
+    ).toBeUndefined();
+  });
+
   it('shows banner when db-mode is production on localhost', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ mode: 'production' }), { status: 200 }),
