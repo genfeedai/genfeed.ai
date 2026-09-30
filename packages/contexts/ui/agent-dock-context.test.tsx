@@ -8,15 +8,34 @@ import {
   useAgentDock,
 } from '@genfeedai/contexts/ui/agent-dock-context';
 import type { AgentDockContentReference } from '@props/ui/agent-dock.props';
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { useEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    clear: () => {
+      store = {};
+    },
+    getItem: (key: string) => store[key] ?? null,
+    key: (index: number) => Object.keys(store)[index] ?? null,
+    get length() {
+      return Object.keys(store).length;
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    setItem: (key: string, value: string) => {
+      store[key] = value;
+    },
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: localStorageMock,
+});
 
 const REFERENCE: AgentDockContentReference = {
   contentTitle: 'Spring launch still',
@@ -82,7 +101,7 @@ describe('AgentDockProvider', () => {
     );
   });
 
-  it('restores a clamped height and stays closed while dock chrome is hidden', async () => {
+  it('restores a clamped height and stays closed while dock chrome is hidden', () => {
     expect(AGENT_DOCK_CHROME_VISIBLE).toBe(false);
     window.localStorage.setItem(
       AGENT_DOCK_STORAGE_KEY,
@@ -91,11 +110,9 @@ describe('AgentDockProvider', () => {
 
     renderDock();
 
-    await waitFor(() => {
-      expect(screen.getByTestId('dock')).toHaveTextContent(
-        `closed:${AGENT_DOCK_MAX_HEIGHT}`,
-      );
-    });
+    expect(screen.getByTestId('dock')).toHaveTextContent(
+      `closed:${AGENT_DOCK_MAX_HEIGHT}`,
+    );
 
     act(() => {
       latestDock?.setHeight(10);
