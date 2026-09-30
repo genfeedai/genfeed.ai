@@ -1,4 +1,5 @@
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
+import type { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
 import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
 import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
@@ -57,6 +58,7 @@ function setup() {
     planning as unknown as BrandRemixRunPlanningService,
     source as unknown as StoryboardSourceService,
     {} as StoryboardRunStoreService,
+    {} as StoryboardRunCapabilitiesService,
   );
   return { service, prisma, planning, source, create, findFirst };
 }

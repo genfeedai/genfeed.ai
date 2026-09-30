@@ -28,6 +28,10 @@ import {
   type UpdateStoryboardSource,
 } from '@genfeedai/contracts/api-types/contracts/storyboard-run.contract';
 import {
+  type StoryboardRunCapabilities,
+  storyboardRunCapabilitiesSchema,
+} from '@genfeedai/contracts/api-types/contracts/storyboard-run-capabilities.contract';
+import {
   type ListStoryboardRuns,
   type StoryboardRunSummary,
   storyboardRunSummarySchema,
@@ -106,6 +110,18 @@ export class ContentRunsService extends HTTPBaseService {
       ContentRunsService,
       token,
     ) as ContentRunsService;
+  }
+
+  async getStoryboardRunCapabilities(
+    brandId: string,
+    runId: string,
+    signal?: AbortSignal,
+  ): Promise<StoryboardRunCapabilities> {
+    const response = await this.instance.get<StoryboardRunCapabilities>(
+      `/brands/${encodeURIComponent(brandId)}/storyboard-runs/${encodeURIComponent(runId)}/capabilities`,
+      { signal },
+    );
+    return storyboardRunCapabilitiesSchema.parse(response.data);
   }
 
   async createStoryboardRun(

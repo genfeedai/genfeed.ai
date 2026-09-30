@@ -4,6 +4,7 @@ import {
   createStoryboardRunSchema,
   storyboardRunConfigSchema,
 } from '../../src/api-types/contracts/storyboard-run.contract';
+import { storyboardVideoModelCapabilitySchema } from '../../src/api-types/contracts/storyboard-run-capabilities.contract';
 import { createStoryboardRunQuoteSchema } from '../../src/api-types/contracts/storyboard-run-quote.contract';
 import { storyboardSourceSnapshotSchema } from '../../src/api-types/contracts/storyboard-source.contract';
 
@@ -18,6 +19,45 @@ const plan = {
   shots: [],
 };
 describe('Canonical storyboard contract', () => {
+  it('accepts provider-qualified keys, requires ordered durations and refuses invented defaults', () => {
+    const model = {
+      key: 'provider/video-model',
+      label: 'Video',
+      provider: 'replicate',
+      supportedDurationsSeconds: [4, 6],
+      defaultDurationSeconds: null,
+      hasInterpolation: false,
+      supportedFormats: ['9:16'],
+      capabilitySource: 'catalog',
+    };
+    expect(storyboardVideoModelCapabilitySchema.safeParse(model).success).toBe(
+      true,
+    );
+    expect(
+      storyboardVideoModelCapabilitySchema.safeParse({
+        ...model,
+        supportedDurationsSeconds: [6, 4],
+      }).success,
+    ).toBe(false);
+    expect(
+      storyboardVideoModelCapabilitySchema.safeParse({
+        ...model,
+        supportedDurationsSeconds: [],
+      }).success,
+    ).toBe(false);
+    expect(
+      storyboardVideoModelCapabilitySchema.safeParse({
+        ...model,
+        defaultDurationSeconds: 5,
+      }).success,
+    ).toBe(false);
+    expect(
+      storyboardPlanSchema.parse({ ...plan, videoModelKey: model.key })
+        .videoModelKey,
+    ).toBe(model.key);
+    expect(storyboardPlanSchema.parse(plan).videoModelKey).toBeNull();
+  });
+
   it('requires an intent UUID and accepts a seeded draft without settings or invented budget', () => {
     expect(
       createStoryboardRunSchema.parse({

@@ -23,6 +23,7 @@ function fixture(): StoryboardRunConfig {
     plan: {
       title: 'Product',
       logline: '',
+      videoModelKey: null,
       format: '9:16',
       runtimeBudgetSeconds: 10,
       styleReferenceAssetIds: [],

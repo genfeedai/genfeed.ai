@@ -56,6 +56,7 @@ import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
+import { storyboardToolSchemas } from '@mcp/tools/storyboard.schemas';
 import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
 import {
   handleToolDiscoveryTool,
@@ -179,6 +180,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'storyboard-capabilities'
   | 'remix'
   | 'scheduler'
   | 'skills-pro'
@@ -400,6 +402,8 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (name === 'storyboard_run_capabilities')
+      return 'storyboard-capabilities';
     if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
@@ -457,6 +461,16 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'storyboard-capabilities': {
+        const result = await this.clientService.getStoryboardRunCapabilities(
+          storyboardToolSchemas.storyboard_run_capabilities.parse(args),
+        );
+        return {
+          content: [
+            { type: 'text' as const, text: JSON.stringify(result, null, 2) },
+          ],
+        };
+      }
       case 'remix':
         return handleRemixTool(this.clientService, name, args);
       case 'scheduler':

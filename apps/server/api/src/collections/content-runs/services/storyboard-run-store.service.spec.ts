@@ -18,6 +18,7 @@ const config: StoryboardRunConfig = {
   plan: {
     title: '',
     logline: '',
+    videoModelKey: null,
     format: '9:16',
     runtimeBudgetSeconds: 10,
     cast: [],

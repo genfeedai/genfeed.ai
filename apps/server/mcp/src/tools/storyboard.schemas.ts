@@ -16,6 +16,7 @@ const scope = { brandId: storyboardIdSchema };
 const run = { ...scope, runId: storyboardIdSchema };
 // Exported schemas do not register unfinished paid tools. API ownership gates remain authoritative.
 export const storyboardToolSchemas = {
+  storyboard_run_capabilities: z.object(run).strict(),
   storyboard_run_create: createStoryboardRunSchema.extend(scope).strict(),
   storyboard_run_list: listStoryboardRunsSchema.extend(scope).strict(),
   storyboard_run_get: z.object(run).strict(),

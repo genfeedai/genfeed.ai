@@ -7,9 +7,15 @@ import {
   RUN_SELECT,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import {
+  normalizeStoryboardTiming,
+  requiresStoryboardCapabilities,
+  storyboardCapabilityError,
+} from '@api/collections/content-runs/services/storyboard-plan-capabilities';
+import {
   approveStoryboardPlan,
   editStoryboardPlan,
 } from '@api/collections/content-runs/services/storyboard-plan-state';
+import { StoryboardRunCapabilitiesService } from '@api/collections/content-runs/services/storyboard-run-capabilities.service';
 import {
   projectStoryboardRun,
   StoryboardRunStoreService,
@@ -41,6 +47,7 @@ import {
 import {
   BadRequestException,
   ConflictException,
+  HttpStatus,
   Injectable,
 } from '@nestjs/common';
 import type { ZodType } from 'zod';
@@ -74,6 +81,7 @@ export class StoryboardRunsService {
     private readonly planning: BrandRemixRunPlanningService,
     private readonly source: StoryboardSourceService,
     private readonly store: StoryboardRunStoreService,
+    private readonly capabilities: StoryboardRunCapabilitiesService,
   ) {}
 
   async create(
@@ -129,6 +137,7 @@ export class StoryboardRunsService {
               input.source,
             );
             const settings = input.planSettings ?? {
+              videoModelKey: null,
               format: '9:16' as const,
               runtimeBudgetSeconds:
                 'durationSeconds' in sourceSnapshot
@@ -273,7 +282,37 @@ export class StoryboardRunsService {
       runId,
       input.expectedRevision,
     );
-    const next = editStoryboardPlan(config, input.plan);
+    const previousCapabilities = await this.capabilities.resolve(
+      organizationId,
+      brandId,
+      runId,
+      config,
+    );
+    const nextCapabilities = requiresStoryboardCapabilities(
+      config.plan,
+      input.plan,
+    )
+      ? await this.capabilities.resolve(organizationId, brandId, runId, {
+          ...config,
+          plan: input.plan,
+        })
+      : previousCapabilities;
+    // The UI acknowledges the saved plan's capability snapshot before requesting a new model/format.
+    if (
+      input.capabilityVersion &&
+      input.capabilityVersion !== previousCapabilities.capabilityVersion
+    )
+      storyboardCapabilityError(
+        'STORYBOARD_CAPABILITIES_CHANGED',
+        HttpStatus.CONFLICT,
+      );
+    const normalized = normalizeStoryboardTiming(
+      config.plan,
+      input.plan,
+      nextCapabilities,
+      input.capabilityVersion ? nextCapabilities.capabilityVersion : undefined,
+    );
+    const next = editStoryboardPlan(config, normalized);
     await this.source.validatePlanAssets(organizationId, brandId, next.plan);
     return this.store.save(organizationId, brandId, runId, config, next);
   }
@@ -295,7 +334,19 @@ export class StoryboardRunsService {
       throw new ConflictException(
         'This storyboard has no generated plan to restore.',
       );
-    const next = editStoryboardPlan(config, config.generatedPlan);
+    const capabilities = await this.capabilities.resolve(
+      organizationId,
+      brandId,
+      runId,
+      { ...config, plan: config.generatedPlan },
+    );
+    const restored = normalizeStoryboardTiming(
+      config.plan,
+      config.generatedPlan,
+      capabilities,
+      capabilities.capabilityVersion,
+    );
+    const next = editStoryboardPlan(config, restored);
     await this.source.validatePlanAssets(organizationId, brandId, next.plan);
     return this.store.save(organizationId, brandId, runId, config, next);
   }
@@ -319,6 +370,29 @@ export class StoryboardRunsService {
       config.sourceSnapshot,
     );
     await this.source.validatePlanAssets(organizationId, brandId, config.plan);
+    const capabilities = await this.capabilities.resolve(
+      organizationId,
+      brandId,
+      runId,
+      config,
+    );
+    if (capabilities.status !== 'available')
+      storyboardCapabilityError(
+        capabilities.reasonCode ?? 'MODEL_CAPABILITIES_UNAVAILABLE',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    const normalized = normalizeStoryboardTiming(
+      config.plan,
+      config.plan,
+      capabilities,
+      capabilities.capabilityVersion,
+      true,
+    );
+    if (JSON.stringify(normalized.shots) !== JSON.stringify(config.plan.shots))
+      storyboardCapabilityError(
+        'STORYBOARD_CAPABILITIES_CHANGED',
+        HttpStatus.CONFLICT,
+      );
     return this.store.save(
       organizationId,
       brandId,

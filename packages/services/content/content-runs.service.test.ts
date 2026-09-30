@@ -477,6 +477,7 @@ describe('ContentRunsService canonical storyboard drafts', () => {
       plan: {
         title: '',
         logline: '',
+        videoModelKey: null,
         format: '9:16',
         runtimeBudgetSeconds: null,
         cast: [],
@@ -491,6 +492,51 @@ describe('ContentRunsService canonical storyboard drafts', () => {
     mockPatch.mockResolvedValue({ data: {} });
     mockGet.mockResolvedValue({ data: {} });
     mockDeserializeResource.mockReturnValue(run);
+  });
+  it('reads exact capabilities without JSON:API deserialization and rejects malformed timing data', async () => {
+    const response = {
+      version: 1,
+      runId: 'run-1',
+      runRevision: 1,
+      capabilityVersion: 'a'.repeat(64),
+      status: 'available',
+      requestedModelKey: 'custom/video',
+      reasonCode: null,
+      eligibleModels: [],
+      effectiveModel: {
+        key: 'custom/video',
+        label: 'Custom',
+        provider: 'replicate',
+        supportedDurationsSeconds: [4, 6],
+        defaultDurationSeconds: 4,
+        hasInterpolation: false,
+        supportedFormats: ['9:16'],
+        capabilitySource: 'catalog',
+      },
+    };
+    mockGet.mockResolvedValue({ data: response });
+    const service = new ContentRunsService('token');
+    const signal = new AbortController().signal;
+    expect(
+      await service.getStoryboardRunCapabilities('brand-1', 'run-1', signal),
+    ).toEqual(response);
+    expect(mockGet).toHaveBeenCalledWith(
+      '/brands/brand-1/storyboard-runs/run-1/capabilities',
+      { signal },
+    );
+    expect(mockDeserializeResource).not.toHaveBeenCalled();
+    mockGet.mockResolvedValue({
+      data: {
+        ...response,
+        effectiveModel: {
+          ...response.effectiveModel,
+          supportedDurationsSeconds: [6, 4],
+        },
+      },
+    });
+    await expect(
+      service.getStoryboardRunCapabilities('brand-1', 'run-1'),
+    ).rejects.toThrow();
   });
   it('creates one explicit intent without adding settings or rewriting its UUID', async () => {
     const service = new ContentRunsService('token');
