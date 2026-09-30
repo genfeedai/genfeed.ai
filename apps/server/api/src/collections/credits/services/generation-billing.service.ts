@@ -4,6 +4,13 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { GenerationQuoteGroupService } from '@api/collections/credits/services/generation-quote-group.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
+import { generationUsageReceiptSchema as usageReceiptSchema } from '@api/helpers/utils/credits/generation-submission-evidence.schema';
+import {
+  generationSubmissionIntentSchema,
+  persistSubmissionFailure,
+  persistSubmissionRejection,
+  submittedGenerationMetadataSchema,
+} from '@api/helpers/utils/credits/persist-submission-failure.util';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -24,16 +31,6 @@ import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
-
-const usageReceiptSchema = z.object({
-  kind: z.literal('byok'),
-  amount: z.number().finite().nonnegative(),
-  description: z.string(),
-  expiresAt: z.iso.datetime(),
-  source: z.enum(ActivitySource),
-  state: z.enum(['pending', 'recorded', 'failed']),
-  userId: z.string().min(1),
-});
 
 /** The request-shaped input every generation billing step reads. */
 export interface GenerationBillingRequest {
@@ -149,7 +146,11 @@ export class GenerationBillingService {
    */
   async bindOutput(
     request: GenerationBillingRequest,
-    output: { credits: number; ingredientId: string },
+    output: {
+      credits: number;
+      ingredientId: string;
+      submissionIntentProvider?: string;
+    },
   ): Promise<void> {
     const config = request.creditsConfig;
     const organizationId = request.user?.organizationId;
@@ -180,7 +181,17 @@ export class GenerationBillingService {
     const bound = await this.credits.bindReservationOutput({
       amount: output.credits,
       expiresAt: new Date(Date.now() + MEDIA_GENERATION_HOLD_TTL_MS),
-      metadata: { assetId: output.ingredientId },
+      metadata: {
+        assetId: output.ingredientId,
+        ...(output.submissionIntentProvider
+          ? {
+              submissionIntent: {
+                version: 1,
+                provider: output.submissionIntentProvider,
+              },
+            }
+          : {}),
+      },
       organizationId,
       reservationId: config.reservationId,
       workloadId: output.ingredientId,
@@ -254,6 +265,34 @@ export class GenerationBillingService {
     });
   }
 
+  async recordProviderFailure(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await persistSubmissionFailure(
+      this.prisma,
+      {
+        id: ingredientId,
+        organizationId,
+        isDeleted: false,
+        status: IngredientStatus.FAILED,
+      },
+      { status: IngredientStatus.FAILED },
+      true,
+    );
+  }
+
+  recordSubmissionRejection(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    return persistSubmissionRejection(
+      this.prisma,
+      ingredientId,
+      organizationId,
+    );
+  }
+
   /** Success: queue one reserved settlement for the output's hold. */
   async settleOutput(
     ingredientId: string,
@@ -296,7 +335,11 @@ export class GenerationBillingService {
 
   private async bindByokOutput(
     request: GenerationBillingRequest,
-    output: { credits: number; ingredientId: string },
+    output: {
+      credits: number;
+      ingredientId: string;
+      submissionIntentProvider?: string;
+    },
     organizationId: string,
   ): Promise<void> {
     const config = request.creditsConfig;
@@ -313,6 +356,7 @@ export class GenerationBillingService {
       source: config.source ?? ActivitySource.SCRIPT,
       state: 'pending',
       userId,
+      submissionIntentProvider: output.submissionIntentProvider,
     });
     const linked = await this.prisma.ingredient.updateMany({
       data: { generationBilling: toPrismaJson(receipt) },
@@ -472,6 +516,14 @@ export class GenerationBillingService {
         try {
           if (SETTLEABLE_STATUSES.includes(row.status)) {
             await this.settleByokOutput(row.id, row.organizationId);
+          } else if (receipt.submissionIntentProvider) {
+            if (
+              receipt.confirmedFailure?.ingredientId === row.id &&
+              receipt.confirmedFailure.provider ===
+                receipt.submissionIntentProvider
+            ) {
+              await this.failByokOutput(row.id, row.organizationId);
+            } else continue;
           } else if (TERMINAL_FAILURE_STATUSES.includes(row.status)) {
             await this.failByokOutput(row.id, row.organizationId);
           } else if (new Date(receipt.expiresAt) <= now) {
@@ -577,6 +629,7 @@ export class GenerationBillingService {
       id: string;
       organizationId: string;
       workloadId: string | null;
+      metadata?: unknown;
     }>,
     now: Date,
   ): Promise<number> {
@@ -613,6 +666,31 @@ export class GenerationBillingService {
           SETTLEABLE_STATUSES.includes(status)
         ) {
           await this.settleOutput(ingredientId, hold.organizationId);
+        } else if (
+          generationSubmissionIntentSchema.safeParse(hold.metadata).success
+        ) {
+          const proof = submittedGenerationMetadataSchema.safeParse(
+            hold.metadata,
+          );
+          const evidence = proof.success ? proof.data : null;
+          if (
+            evidence?.assetId === ingredientId &&
+            evidence.confirmedFailure?.ingredientId === ingredientId &&
+            evidence.confirmedFailure.provider ===
+              evidence.submissionIntent.provider
+          ) {
+            await this.credits.releaseReservation({
+              organizationId: hold.organizationId,
+              reservationId: hold.id,
+              expectedReservationMetadata: z
+                .record(z.string(), z.unknown())
+                .parse(hold.metadata),
+            });
+            acted += 1;
+          }
+          // A bound submission may have reached the provider. Library deletion,
+          // generic failure and elapsed time cannot establish negative proof.
+          continue;
         } else if (
           !ingredient ||
           ingredient.isDeleted ||

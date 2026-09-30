@@ -34,6 +34,10 @@ export class WebhookGenerationSettlementService {
   ): Promise<void> {
     if (!organizationId) return;
     try {
+      await this.generationBilling.recordProviderFailure(
+        ingredientId,
+        organizationId,
+      );
       await this.generationBilling.releaseOutput(ingredientId, organizationId);
     } catch (error: unknown) {
       this.loggerService.error(

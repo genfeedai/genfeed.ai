@@ -4,6 +4,7 @@ import { AvatarVideoBillingService } from '@api/collections/videos/services/avat
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { ByokProvider, VoiceProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -122,10 +123,20 @@ describe('AvatarVideoGenerationService', () => {
       websocketService as never,
     );
 
+    const billingTransaction = {
+      $queryRaw: vi.fn(),
+      creditReservation: { findFirst: vi.fn().mockResolvedValue(null) },
+      ingredient: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    const billingPrisma = {
+      $transaction: async (
+        operation: (tx: typeof billingTransaction) => Promise<void>,
+      ) => operation(billingTransaction),
+    };
     const generationBilling = new GenerationBillingService(
       creditsUtilsService as never,
       creditDeductionQueueService as never,
-      {} as never,
+      billingPrisma as never,
       loggerService,
       {
         reconcileOutput: vi.fn().mockResolvedValue(false),
@@ -469,7 +480,7 @@ describe('AvatarVideoGenerationService', () => {
     } = createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
     heygenService.generatePhotoAvatarVideo.mockRejectedValue(
-      new Error('HeyGen down'),
+      new HeyGenSubmissionRejectedError(),
     );
 
     await expect(
@@ -493,6 +504,58 @@ describe('AvatarVideoGenerationService', () => {
       creditsUtilsService.deductCreditsFromOrganization,
     ).not.toHaveBeenCalled();
   });
+
+  it.each([
+    'response lost after acceptance',
+    'submission returned no operation identity',
+  ])(
+    'retains the actual service output and bound funding when %s',
+    async (message) => {
+      const {
+        service,
+        brandsService,
+        heygenService,
+        failedGenerationService,
+        creditsUtilsService,
+      } = createService();
+      brandsService.findOne.mockResolvedValue({
+        agentConfig: {},
+        id: 'brand-1',
+      });
+      heygenService.generatePhotoAvatarVideo.mockRejectedValue(
+        new Error(message),
+      );
+      await expect(
+        service.generateAvatarVideo(
+          {
+            heygenVoiceId: 'voice-1',
+            photoUrl: 'https://cdn.example/avatar.png',
+            text: 'Speech',
+          },
+          context,
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ detail: message }),
+      });
+      expect(creditsUtilsService.bindReservationOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: {
+            assetId: 'avatar-ingredient-1',
+            submissionIntent: { version: 1, provider: ByokProvider.HEYGEN },
+          },
+        }),
+      );
+      expect(
+        failedGenerationService.handleFailedVideoGeneration,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.findReservationForWorkload,
+      ).not.toHaveBeenCalled();
+      expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalledWith(
+        expect.objectContaining({ reservationId: 'avatar-output-hold' }),
+      );
+    },
+  );
 
   it('fails closed instead of rendering free when the model row has no price', async () => {
     const {
@@ -759,7 +822,7 @@ describe('AvatarVideoGenerationService', () => {
       createService();
     brandsService.findOne.mockResolvedValue({ agentConfig: {}, id: 'brand-1' });
     heygenService.generatePhotoAvatarVideo.mockRejectedValue(
-      new Error('HeyGen rejected the job'),
+      new HeyGenSubmissionRejectedError(),
     );
 
     await expect(
@@ -778,7 +841,7 @@ describe('AvatarVideoGenerationService', () => {
     const [, , , , , activityMetadata] =
       failedGenerationService.handleFailedVideoGeneration.mock.calls[0];
     expect(JSON.parse((activityMetadata as { value: string }).value)).toEqual({
-      error: 'HeyGen rejected the job',
+      error: 'HeyGen rejected the submission due to insufficient credit.',
       ingredientId: 'avatar-ingredient-1',
     });
   });

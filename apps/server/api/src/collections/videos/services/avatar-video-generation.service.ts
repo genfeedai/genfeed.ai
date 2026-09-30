@@ -33,6 +33,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { ManagedInferenceRuntimeService } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.service';
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
@@ -142,6 +143,7 @@ export class AvatarVideoGenerationService {
     let billing: GenerationBillingRequest | undefined;
     let ownsBillingPool = false;
     let providerAccepted = false;
+    let providerSubmissionStarted = false;
 
     try {
       const brand = await this.findBrandForContext(context);
@@ -216,9 +218,11 @@ export class AvatarVideoGenerationService {
         await this.avatarBilling.bindOutput(billing, {
           credits: billing.creditsConfig?.amount ?? funding.credits,
           ingredientId,
+          submissionIntentProvider: ByokProvider.HEYGEN,
         });
       }
 
+      providerSubmissionStarted = true;
       const externalId = await this.heygenService.generatePhotoAvatarVideo(
         ingredientId,
         photoUrl,
@@ -251,13 +255,13 @@ export class AvatarVideoGenerationService {
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
 
-      if (ingredientId && !providerAccepted) {
-        await this.recordGenerationFailure(ingredientId, context, error);
-        await this.avatarBilling.releaseGenerationHold(
-          ingredientId,
-          context.organizationId,
-        );
-      }
+      await this.failUnsubmittedOrRejectedAvatar(
+        ingredientId,
+        context,
+        error,
+        providerSubmissionStarted,
+        providerAccepted,
+      );
 
       throw this.generationFailure(error);
     } finally {
@@ -267,6 +271,33 @@ export class AvatarVideoGenerationService {
         await this.avatarBilling.releasePool(billing);
       }
     }
+  }
+
+  private async failUnsubmittedOrRejectedAvatar(
+    ingredientId: string | null,
+    context: AvatarVideoGenerationContext,
+    error: unknown,
+    providerSubmissionStarted: boolean,
+    providerAccepted: boolean,
+  ): Promise<void> {
+    if (
+      !ingredientId ||
+      providerAccepted ||
+      (providerSubmissionStarted &&
+        !(error instanceof HeyGenSubmissionRejectedError))
+    )
+      return;
+    if (error instanceof HeyGenSubmissionRejectedError) {
+      await this.avatarBilling.recordSubmissionRejection(
+        ingredientId,
+        context.organizationId,
+      );
+    }
+    await this.recordGenerationFailure(ingredientId, context, error);
+    await this.avatarBilling.releaseGenerationHold(
+      ingredientId,
+      context.organizationId,
+    );
   }
 
   /**

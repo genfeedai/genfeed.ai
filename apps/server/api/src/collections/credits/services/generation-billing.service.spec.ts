@@ -47,7 +47,13 @@ describe('GenerationBillingService', () => {
   };
   const queue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
   const prisma = {
-    creditReservation: { findMany: vi.fn() },
+    $transaction: vi.fn(),
+    $queryRaw: vi.fn(),
+    creditReservation: {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      updateMany: vi.fn(),
+    },
     ingredient: { findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn() },
     creditTransaction: { findFirst: vi.fn() },
   };
@@ -418,6 +424,95 @@ describe('GenerationBillingService', () => {
           hold({ id: `hold_${workloadId}`, workloadId }),
       );
     });
+
+    it.each(['expired', 'deleted', 'failed', 'missing'])(
+      'retains a durable submission intent despite an unresolved %s library projection',
+      async (state) => {
+        prisma.creditReservation.findMany.mockResolvedValue([
+          {
+            ...row('intent', new Date(NOW.getTime() - 1)),
+            metadata: {
+              assetId: 'intent',
+              submissionIntent: { version: 1, provider: 'heygen' },
+            },
+          },
+        ]);
+        prisma.ingredient.findMany.mockResolvedValue(
+          state === 'missing'
+            ? []
+            : [
+                {
+                  ...ingredient(
+                    'intent',
+                    state === 'failed'
+                      ? IngredientStatus.FAILED
+                      : IngredientStatus.PROCESSING,
+                  ),
+                  isDeleted: state === 'deleted',
+                },
+              ],
+        );
+        expect(await service.reconcile(NOW)).toBe(0);
+        expect(credits.releaseReservation).not.toHaveBeenCalled();
+        expect(prisma.ingredient.updateMany).not.toHaveBeenCalled();
+        expect(queue.queueDeduction).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['submission-rejected', 'provider-terminal'])(
+      'recovers %s proof after its first release fails',
+      async (kind) => {
+        let metadata: Record<string, unknown> = {
+          assetId: 'intent',
+          submissionIntent: { version: 1, provider: 'heygen' },
+        };
+        prisma.$transaction.mockImplementation(async (operation) =>
+          operation(prisma),
+        );
+        prisma.creditReservation.findFirst.mockImplementation(async () => ({
+          id: 'hold_intent',
+          status: CreditReservationStatus.RESERVED,
+          metadata,
+        }));
+        prisma.creditReservation.updateMany.mockImplementation(
+          async ({ data }) => {
+            metadata = data.metadata;
+            return { count: 1 };
+          },
+        );
+        if (kind === 'submission-rejected')
+          await service.recordSubmissionRejection('intent', 'org_1');
+        else await service.recordProviderFailure('intent', 'org_1');
+        expect(metadata).toMatchObject({
+          confirmedFailure: {
+            ingredientId: 'intent',
+            provider: 'heygen',
+            kind,
+          },
+        });
+        credits.findReservationForWorkload.mockResolvedValue(
+          hold({ id: 'hold_intent', workloadId: 'intent', metadata }),
+        );
+        credits.releaseReservation
+          .mockRejectedValueOnce(new Error('Ledger unavailable'))
+          .mockResolvedValue(undefined);
+        await expect(service.releaseOutput('intent', 'org_1')).rejects.toThrow(
+          'Ledger unavailable',
+        );
+        prisma.creditReservation.findMany.mockResolvedValue([
+          { ...row('intent'), metadata },
+        ]);
+        prisma.ingredient.findMany.mockResolvedValue([
+          ingredient('intent', IngredientStatus.FAILED),
+        ]);
+        expect(await service.reconcile(NOW)).toBe(1);
+        expect(credits.releaseReservation).toHaveBeenLastCalledWith({
+          organizationId: 'org_1',
+          reservationId: 'hold_intent',
+          expectedReservationMetadata: metadata,
+        });
+      },
+    );
 
     it('settles finished output, releases failed output, and fails one that outlived its hold', async () => {
       prisma.creditReservation.findMany.mockResolvedValue([

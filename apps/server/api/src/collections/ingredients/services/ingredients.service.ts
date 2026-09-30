@@ -13,6 +13,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { persistQuoteGroupDisposition } from '@api/helpers/utils/credits/persist-quote-group-completion.util';
+import { persistSubmissionFailure } from '@api/helpers/utils/credits/persist-submission-failure.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -453,12 +454,19 @@ export class IngredientsService extends BaseService<
           organizationId,
           isDeleted: where.isDeleted ?? false,
         };
-        const completed = await persistQuoteGroupDisposition(
-          this.prisma,
-          ownedWhere,
-          data,
-          update.isGenerationFailureConfirmed === true,
-        );
+        const completed =
+          (await persistQuoteGroupDisposition(
+            this.prisma,
+            ownedWhere,
+            data,
+            update.isGenerationFailureConfirmed === true,
+          )) ??
+          (await persistSubmissionFailure(
+            this.prisma,
+            ownedWhere,
+            data,
+            update.isGenerationFailureConfirmed === true,
+          ));
         const result =
           completed ??
           (await this.prisma.ingredient.updateMany({

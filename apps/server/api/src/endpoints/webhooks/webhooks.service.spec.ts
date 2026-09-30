@@ -147,6 +147,7 @@ describe('WebhooksService', () => {
         {
           provide: GenerationBillingService,
           useValue: {
+            recordProviderFailure: vi.fn().mockResolvedValue(undefined),
             releaseOutput: vi.fn().mockResolvedValue('no-hold'),
             settleOutput: vi.fn().mockResolvedValue('no-hold'),
           },
@@ -704,6 +705,17 @@ describe('WebhooksService', () => {
         expect(generationBilling.releaseOutput).toHaveBeenCalledExactlyOnceWith(
           mockIngredientId.toString(),
           mockOrgId,
+        );
+        expect(
+          generationBilling.recordProviderFailure,
+        ).toHaveBeenCalledExactlyOnceWith(
+          mockIngredientId.toString(),
+          mockOrgId,
+        );
+        expect(
+          generationBilling.recordProviderFailure.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          generationBilling.releaseOutput.mock.invocationCallOrder[0],
         );
         expect(websocketService.publishMediaFailed).not.toHaveBeenCalled();
       },

@@ -1,11 +1,13 @@
 import process from 'node:process';
 import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { ApiKeyCategory } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 
 type HeyGenApiRecord = Record<string, unknown>;
@@ -179,13 +181,22 @@ export class HeyGenService {
         ),
       );
 
+      if (res.status === 402) throw new HeyGenSubmissionRejectedError();
       if (res.status !== 200) {
         throw new Error('HeyGen API returned non-200 status');
       }
 
-      return res.data.data?.video_id || res.data.data?.task_id;
+      const externalId: unknown =
+        res.data.data?.video_id || res.data.data?.task_id;
+      if (typeof externalId !== 'string' || !externalId.trim()) {
+        throw new Error('HeyGen submission returned no operation identity');
+      }
+      return externalId;
     } catch (error: unknown) {
       this.loggerService.error(`${url} error`, error);
+      if (isAxiosError(error) && error.response?.status === 402) {
+        throw new HeyGenSubmissionRejectedError();
+      }
       throw error;
     }
   }

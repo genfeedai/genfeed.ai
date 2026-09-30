@@ -375,4 +375,22 @@ describe('WorkflowNodeContinuationService', () => {
       }),
     );
   });
+  it('does not fabricate provider failure from an expired unacknowledged submission intent', async () => {
+    workflowNodeContinuation.findMany.mockResolvedValue([
+      {
+        ...baseContinuation,
+        externalId: null,
+        status: WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+        updatedAt: new Date(0),
+      },
+    ]);
+    await expect(service.findReconciliationCandidates()).resolves.toEqual([]);
+    expect(workflowNodeContinuation.updateMany).not.toHaveBeenCalled();
+    const query = JSON.stringify(
+      workflowNodeContinuation.findMany.mock.calls[0][0],
+    );
+    expect(query).not.toContain(
+      WorkflowNodeContinuationStatus.PENDING_SUBMISSION,
+    );
+  });
 });

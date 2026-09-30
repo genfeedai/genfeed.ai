@@ -1,6 +1,11 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
+import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
+import {
+  AgentFailureReason,
+  IngredientCategory,
+  MetadataExtension,
+} from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -149,7 +154,11 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
         failProviderSubmission,
       } as never,
     );
-    const providerError = new Error('provider rejected the request');
+    const providerError = new ReplicateProviderError(
+      AgentFailureReason.INSUFFICIENT_CREDITS,
+      'provider rejected the request',
+      { statusCode: 402, isRetryable: false },
+    );
 
     await expect(
       service.createAndLinkProcessingOutput({
@@ -190,6 +199,77 @@ describe('WorkflowEngineExecutorHelperService.createAndLinkProcessingOutput', ()
       organizationId: 'org-1',
     });
   });
+  it.each(['ambiguous submission', 'accepted identity persistence'])(
+    'preserves provider intent when %s fails',
+    async (failurePoint) => {
+      const error = new Error(failurePoint);
+      const failProviderSubmission = vi.fn();
+      const markProviderSubmitted = vi.fn().mockRejectedValue(error);
+      const runProvider =
+        failurePoint === 'ambiguous submission'
+          ? vi.fn().mockRejectedValue(error)
+          : vi.fn().mockResolvedValue('accepted-job');
+      const service = new WorkflowEngineExecutorHelperService(
+        {} as ConfigService,
+        {
+          createMediaDocumentsInternal: vi.fn().mockResolvedValue({
+            ingredientData: { id: 'ingredient-1' },
+            metadataData: { id: 'metadata-1' },
+          }),
+        } as never,
+        { patch: vi.fn() } as never,
+        { patch: vi.fn() } as never,
+        {
+          createBeforeProviderSubmission: vi
+            .fn()
+            .mockResolvedValue({ continuationId: 'continuation-1' }),
+          failProviderSubmission,
+          markProviderSubmitted,
+        } as never,
+      );
+      await expect(
+        service.createAndLinkProcessingOutput({
+          continuation: {
+            actionId: 'videoGen',
+            context: {
+              executionId: 'execution-1',
+              organizationId: 'org-1',
+              runId: 'run-1',
+              userId: 'user-1',
+              workflowId: 'workflow-1',
+              workflowVersionId: 'version-1',
+            },
+            node: {
+              config: {},
+              id: 'generate',
+              inputs: [],
+              label: 'Generate',
+              type: 'videoGen',
+            },
+            provider: 'replicate',
+          },
+          output: {
+            brandId: 'brand-1',
+            category: IngredientCategory.VIDEO,
+            extension: MetadataExtension.MP4,
+            organizationId: 'org-1',
+            userId: 'user-1',
+          },
+          resultUrl: (id) => `/videos/${id}`,
+          runProvider,
+        }),
+      ).rejects.toBe(error);
+      expect(failProviderSubmission).not.toHaveBeenCalled();
+      if (failurePoint === 'accepted identity persistence') {
+        expect(markProviderSubmitted).toHaveBeenCalledExactlyOnceWith({
+          continuationId: 'continuation-1',
+          externalId: 'accepted-job',
+          organizationId: 'org-1',
+        });
+      } else expect(markProviderSubmitted).not.toHaveBeenCalled();
+    },
+  );
+
   it('records the BYOK credential reference on the provider continuation', async () => {
     const createBeforeProviderSubmission = vi
       .fn()

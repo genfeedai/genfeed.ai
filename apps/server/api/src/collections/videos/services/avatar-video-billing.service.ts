@@ -63,6 +63,16 @@ export class AvatarVideoBillingService {
     });
   }
 
+  recordSubmissionRejection(
+    ingredientId: string,
+    organizationId: string,
+  ): Promise<void> {
+    return this.generationBilling.recordSubmissionRejection(
+      ingredientId,
+      organizationId,
+    );
+  }
+
   async releaseGenerationHold(
     ingredientId: string,
     organizationId: string,

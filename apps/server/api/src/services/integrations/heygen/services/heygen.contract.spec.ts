@@ -1,8 +1,10 @@
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
+import { HeyGenSubmissionRejectedError } from '@api/services/integrations/heygen/errors/heygen-submission-rejected.error';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { isAxiosError } from 'axios';
 import { of, throwError } from 'rxjs';
 
 /**
@@ -165,6 +167,36 @@ describe('HeyGenService (contract)', () => {
         audio_url: 'https://a/audio.mp3',
         type: 'audio',
       });
+    });
+
+    it('classifies an explicit HTTP402 payment rejection, preserving transport ambiguity', async () => {
+      vi.mocked(isAxiosError).mockReturnValueOnce(true);
+      httpService.post.mockReturnValueOnce(
+        throwError(() => ({ isAxiosError: true, response: { status: 402 } })),
+      );
+      await expect(
+        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
+          voiceId: 'voice',
+        }),
+      ).rejects.toBeInstanceOf(HeyGenSubmissionRejectedError);
+      const transportError = new Error('Response lost');
+      httpService.post.mockReturnValueOnce(throwError(() => transportError));
+      await expect(
+        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
+          voiceId: 'voice',
+        }),
+      ).rejects.toBe(transportError);
+    });
+
+    it('treats a success response missing its operation identity as unresolved', async () => {
+      httpService.post.mockReturnValueOnce(
+        of({ status: 200, data: { data: {} } }),
+      );
+      await expect(
+        service.generatePhotoAvatarVideo('meta', 'https://p/photo.png', {
+          voiceId: 'voice',
+        }),
+      ).rejects.toThrow('HeyGen submission returned no operation identity');
     });
 
     it('rejects when neither audio url nor voice id is supplied', async () => {
