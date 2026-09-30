@@ -11,7 +11,11 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { CacheClientService } from '@api/services/cache/cache-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { EvaluationType, Status } from '@genfeedai/contracts';
+import {
+  EvaluationType,
+  IngredientCategory,
+  Status,
+} from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Global, Module, type Type } from '@nestjs/common';
@@ -24,7 +28,7 @@ function fixture(withCache = true) {
     id: 'evaluation',
     organizationId: 'org',
     userId: 'user',
-    contentType: 'video',
+    contentType: IngredientCategory.VIDEO,
     contentId: 'content',
     data: {
       status: Status.COMPLETED,
@@ -108,6 +112,7 @@ function fixture(withCache = true) {
       content: 'Saved article',
       label: 'Saved',
       text: 'Saved post',
+      description: 'Saved post',
       category: 'text',
     }),
     getChildren: vi.fn().mockResolvedValue([]),
@@ -209,7 +214,12 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
         expect.any(String),
         expect.objectContaining({
           evaluationId: row.id,
-          contentType: type,
+          contentType:
+            type === 'article'
+              ? 'article'
+              : type === 'image'
+                ? IngredientCategory.IMAGE
+                : IngredientCategory.VIDEO,
           contentId: 'content',
         }),
       );
@@ -294,9 +304,14 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
       'event:failed',
     ]);
   });
-  it.each(['post', 'article', 'video', 'image'])(
+  it.each([
+    ['post', ['posts']],
+    ['article', ['articles']],
+    [IngredientCategory.VIDEO, ['videos', 'ingredients']],
+    [IngredientCategory.IMAGE, ['images', 'ingredients']],
+  ] as const)(
     'runs the actual inherited patch once and uses committed %s identity',
-    async (type) => {
+    async (type, tags) => {
       const f = fixture();
       f.prisma.evaluation.update.mockResolvedValue({
         ...f.evaluation,
@@ -312,11 +327,7 @@ describe('Evaluation committed-content cache invalidation (#4616)', () => {
         data: { isDeleted: true },
         include: { user: true },
       });
-      expect(f.cache.invalidateByTags).toHaveBeenCalledWith(
-        type === 'post' || type === 'article'
-          ? [`${type}s`]
-          : [`${type}s`, 'ingredients'],
-      );
+      expect(f.cache.invalidateByTags).toHaveBeenCalledWith([...tags]);
       expect(result).toBe(
         await f.prisma.evaluation.update.mock.results[0]?.value,
       );
