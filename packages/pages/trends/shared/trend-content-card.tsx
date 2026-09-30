@@ -133,12 +133,12 @@ export default function TrendContentCard({
       await clipboardService.copyToClipboard(
         buildTrendSourcePrompt(trend, sourceItem),
       );
-      notificationsService.success('Prompt copied');
+      notificationsService.success(translate('notifications.promptCopied'));
     } catch (error) {
       logger.error('Failed to copy trend content prompt', error);
-      notificationsService.error('Failed to copy prompt');
+      notificationsService.error(translate('notifications.copyPromptFailed'));
     }
-  }, [clipboardService, notificationsService, sourceItem, trend]);
+  }, [clipboardService, notificationsService, sourceItem, translate, trend]);
 
   const safeSourceUrl = getSafeExternalUrl(item.sourceUrl);
   const agentHref = useMemo(
@@ -167,7 +167,7 @@ export default function TrendContentCard({
 
   const handleSaveBrief = useCallback(async () => {
     if (!brandId) {
-      notificationsService.error('Select a brand before saving a brief');
+      notificationsService.error(translate('notifications.selectBrand'));
       return;
     }
 
@@ -196,10 +196,10 @@ export default function TrendContentCard({
         trendId: item.trendId,
         trendTopic: item.trendTopic,
       });
-      notificationsService.success('Brief saved to Content Runs');
+      notificationsService.success(translate('notifications.briefSaved'));
     } catch (error) {
       logger.error('Failed to save research brief', error);
-      notificationsService.error('Failed to save brief');
+      notificationsService.error(translate('notifications.saveBriefFailed'));
     } finally {
       setIsSavingBrief(false);
     }
@@ -210,6 +210,7 @@ export default function TrendContentCard({
     notificationsService,
     previewText,
     previewTitle,
+    translate,
   ]);
 
   const overflowActions = useMemo<CollectionOverflowAction[]>(() => {
@@ -337,8 +338,8 @@ export default function TrendContentCard({
             </Badge>
             <Badge variant="ghost">
               {item.sourcePreviewState === 'live'
-                ? 'Live source'
-                : 'Saved fallback'}
+                ? translate('sourceStatus.live')
+                : translate('sourceStatus.fallback')}
             </Badge>
           </div>
         </div>

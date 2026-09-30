@@ -401,7 +401,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
         <KPISection
           title={detail('usage')}
-          gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
+          gridCols={{ desktop: 4, mobile: 2 }}
           items={[
             {
               description: detail('budget', {

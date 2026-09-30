@@ -50,7 +50,7 @@ export default function AgentCampaignDetailHeader({
 
       <KPISection
         title="Program Overview"
-        gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
+        gridCols={{ desktop: 4, mobile: 2 }}
         items={[
           {
             description: 'Active agent strategies',

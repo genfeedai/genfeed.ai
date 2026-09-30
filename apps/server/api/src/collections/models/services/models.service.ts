@@ -1,6 +1,8 @@
 import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
 import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { findModelBillablePricingProfile } from '@api/collections/models/utils/model-billable-pricing-profile.util';
+import { isFalSchemaFamilyCompatible } from '@api/collections/models/utils/model-schema-family.util';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { isReplicateSchemaFamilyCompatible } from '@api/services/integrations/replicate/services/replicate-contract';
@@ -15,6 +17,7 @@ import {
 import type {
   IModelProviderContractSnapshot,
   IModelProviderContracts,
+  ModelBillablePricingProfile,
 } from '@genfeedai/contracts/interfaces';
 import { withLiveModelCreditPricing } from '@genfeedai/pricing';
 import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
@@ -33,30 +36,6 @@ const PAGINATION_OPTION_KEYS = new Set([
   'sort',
   'useFacet',
 ]);
-
-const IMAGE_FAL_SCHEMA_FAMILIES = new Set([
-  'image-edit-multi-v1',
-  'image-edit-single-v1',
-  'image-text-v1',
-]);
-const VIDEO_FAL_SCHEMA_FAMILIES = new Set(['video-image-v1', 'video-text-v1']);
-
-function isFalSchemaFamilyCompatible(
-  category: string,
-  schemaFamily: string,
-): boolean {
-  if (IMAGE_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
-    return [ModelCategory.IMAGE, ModelCategory.IMAGE_EDIT].includes(
-      category as ModelCategory,
-    );
-  }
-  if (VIDEO_FAL_SCHEMA_FAMILIES.has(schemaFamily)) {
-    return [ModelCategory.VIDEO, ModelCategory.VIDEO_EDIT].includes(
-      category as ModelCategory,
-    );
-  }
-  return false;
-}
 
 type FindAvailableModelsParams = {
   category?: string;
@@ -458,6 +437,14 @@ export class ModelsService extends BaseService<
       scopedParams.OR = orgVisibilityOr;
     }
     return scopedParams;
+  }
+
+  /** Exact internal lookup for billing; no version stripping or display samples. */
+  findBillablePricingProfile(
+    key: string,
+    organizationId?: string,
+  ): Promise<ModelBillablePricingProfile | null> {
+    return findModelBillablePricingProfile(this.prisma, key, organizationId);
   }
 
   override async findOne(
