@@ -14,7 +14,6 @@ import { useQuery } from '@tanstack/react-query';
 import AppTable from '@ui/display/table/Table';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import { saveAs } from 'file-saver';
 import { Download, RefreshCw } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -224,13 +223,21 @@ export default function ModelPricingTable() {
             variant={ButtonVariant.SECONDARY}
             disabled={!report || !!error || isFetching}
             onClick={() => {
-              if (report)
-                saveAs(
-                  new Blob([exportModelPricingCsv({ ...report, rows })], {
-                    type: 'text/csv;charset=utf-8',
-                  }),
-                  `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`,
-                );
+              if (!report) return;
+              const blob = new Blob(
+                [exportModelPricingCsv({ ...report, rows })],
+                {
+                  type: 'text/csv;charset=utf-8',
+                },
+              );
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `model-pricing-${report.retrievedAt.replaceAll(':', '-')}.csv`;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+              URL.revokeObjectURL(url);
             }}
           >
             <Download />
