@@ -13,6 +13,19 @@ import { expect, test } from '../../fixtures/auth.fixture';
 // biome-ignore lint/suspicious/noUndeclaredEnvVars: this direct Playwright visual fixture input is outside Turbo caching.
 const previewFixtureDirectory = process.env.STORYBOARD_PREVIEW_FIXTURE_DIR;
 async function previewResponse(file: string) {
+  if (/^coffee-clip-[12]\.mp4$/.test(file)) {
+    // Reuse the repository's decodable one-second clip for a paused preview.
+    // Timeline timings below are server-fixture values, not provider-duration evidence.
+    return {
+      body: await readFile(
+        path.join(
+          process.cwd(),
+          'playwright/e2e/fixtures/media/studio-clip.mp4',
+        ),
+      ),
+      contentType: 'video/mp4',
+    };
+  }
   if (file !== 'coffee-opening.jpg' && file !== 'coffee-close.jpg')
     throw new Error('Unknown fixture media.');
   if (previewFixtureDirectory)
@@ -395,7 +408,7 @@ test('edits and approves a persisted draft through the actual route with loaded 
           id: `editor-shot-${index + 1}`,
           ingredientId: id,
           // This fixture proves timeline loading/timing, not generated video playback.
-          ingredientUrl: '',
+          ingredientUrl: `https://cdn.genfeed.ai/fixture/${id}.mp4`,
           startFrame: index * 150,
           durationFrames: 150,
           sourceStartFrame: 0,
