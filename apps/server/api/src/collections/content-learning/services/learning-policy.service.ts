@@ -14,28 +14,28 @@ export function parseLearningPolicy(
   value: unknown,
 ): LearningPolicyState | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const entries = new Map<string, unknown>(Object.entries(value));
   const result = initializeLearningPolicy();
+  const vector = (input: unknown): input is number[] =>
+    Array.isArray(input) &&
+    input.every(
+      (cell: unknown) => typeof cell === 'number' && Number.isFinite(cell),
+    );
+  const matrix = (input: unknown): input is number[][] =>
+    Array.isArray(input) && input.every((row: unknown) => vector(row));
   for (const arm of LEARNING_ARMS) {
-    const candidate = arm in value ? value[arm] : null;
+    const candidate = entries.get(arm);
     if (
       !candidate ||
       typeof candidate !== 'object' ||
       Array.isArray(candidate) ||
       !('a' in candidate) ||
       !('b' in candidate) ||
-      !Array.isArray(candidate.a) ||
-      !Array.isArray(candidate.b)
+      !matrix(candidate.a) ||
+      !vector(candidate.b)
     )
       return null;
-    if (
-      candidate.a.some(
-        (row) =>
-          !Array.isArray(row) || row.some((cell) => typeof cell !== 'number'),
-      ) ||
-      candidate.b.some((cell) => typeof cell !== 'number')
-    )
-      return null;
-    result[arm] = { a: candidate.a as number[][], b: candidate.b as number[] };
+    result[arm] = { a: candidate.a, b: candidate.b };
     try {
       solveLearningRidge(result[arm]);
     } catch {

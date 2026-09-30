@@ -460,3 +460,22 @@ export interface LearningDependencyRefV1 {
   organizationId: string | null;
   version: string;
 }
+
+export interface LearningAllocatedCostV1 {
+  attemptId: string;
+  ledgerKind: 'llm' | 'media';
+  ledgerId: string;
+  ledgerFingerprint: string;
+  vendorCostMicros: number;
+  opportunityIds: readonly string[];
+}
+
+export interface LearningRunDispatchReceiptV1 {
+  dispatchVersion: 1;
+  runId: string;
+  datasetId: string;
+  retryOfOperationId: string | null;
+  attemptCount: number;
+  nextAttemptAt: string | null;
+  claimedStartedAt: string | null;
+}

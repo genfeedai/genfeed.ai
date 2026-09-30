@@ -1,4 +1,5 @@
 import type {
+  LearningAllocatedCostV1,
   LearningEstimateV1,
   LearningEvaluationReportV1,
   LearningExperimentGroupV1,
@@ -18,7 +19,7 @@ export interface LearningExperimentObservation {
   unchanged: boolean;
   reward: number | null;
   censorReason?: string;
-  costMicros: number | null;
+  costAllocations: readonly LearningAllocatedCostV1[] | null;
   attemptCount: number;
   generationClosed: boolean;
   publishedDescendants: number;
@@ -48,6 +49,8 @@ function validateObservations(
   rows: readonly LearningExperimentObservation[],
 ): void {
   const seen = new Set<string>();
+  const attempts = new Map<string, string>(),
+    ledgers = new Map<string, string>();
   let attemptTotal = 0n,
     descendantTotal = 0n;
   const reject = (index: number, field: string): never => {
@@ -82,11 +85,61 @@ function validateObservations(
       reject(index, 'attemptCount');
     if (descendantTotal > BigInt(Number.MAX_SAFE_INTEGER))
       reject(index, 'publishedDescendants');
-    if (
-      row.costMicros !== null &&
-      (!Number.isSafeInteger(row.costMicros) || row.costMicros < 0)
-    )
-      reject(index, 'costMicros');
+    if (row.costAllocations !== null) {
+      if (
+        !Array.isArray(row.costAllocations) ||
+        row.costAllocations.length !== row.attemptCount ||
+        (!row.costAllocations.length && !row.generationClosed)
+      )
+        reject(index, 'costAllocations');
+      const rowAttempts = new Set<string>(),
+        rowLedgers = new Set<string>();
+      const validId = (value: unknown) =>
+        typeof value === 'string' && value.length > 0 && value.length <= 256;
+      for (const [termIndex, term] of row.costAllocations.entries()) {
+        const field = `costAllocations[${termIndex}]`;
+        if (
+          !term ||
+          !validId(term.attemptId) ||
+          !validId(term.ledgerId) ||
+          !['llm', 'media'].includes(term.ledgerKind) ||
+          typeof term.ledgerFingerprint !== 'string' ||
+          !/^[0-9a-f]{64}$/.test(term.ledgerFingerprint) ||
+          !Number.isSafeInteger(term.vendorCostMicros) ||
+          term.vendorCostMicros < 0 ||
+          !Array.isArray(term.opportunityIds) ||
+          !term.opportunityIds.length ||
+          term.opportunityIds.some((id) => !validId(id)) ||
+          new Set(term.opportunityIds).size !== term.opportunityIds.length ||
+          !term.opportunityIds.includes(row.id) ||
+          term.opportunityIds.some(
+            (id, i) => i > 0 && term.opportunityIds[i - 1] >= id,
+          )
+        )
+          reject(index, field);
+        const ledgerIdentity = JSON.stringify([term.ledgerKind, term.ledgerId]);
+        const manifest = JSON.stringify([
+          term.ledgerKind,
+          term.ledgerId,
+          term.ledgerFingerprint,
+          term.vendorCostMicros,
+          term.opportunityIds,
+        ]);
+        if (
+          rowAttempts.has(term.attemptId) ||
+          rowLedgers.has(ledgerIdentity) ||
+          (attempts.has(term.attemptId) &&
+            attempts.get(term.attemptId) !== manifest) ||
+          (ledgers.has(ledgerIdentity) &&
+            ledgers.get(ledgerIdentity) !== term.attemptId)
+        )
+          reject(index, field);
+        rowAttempts.add(term.attemptId);
+        rowLedgers.add(ledgerIdentity);
+        attempts.set(term.attemptId, manifest);
+        ledgers.set(ledgerIdentity, term.attemptId);
+      }
+    }
     if (
       row.reward !== null &&
       (!Number.isFinite(row.reward) ||
@@ -138,7 +191,146 @@ function ratio(
   const value = treatment / control;
   return Number.isFinite(value) ? value : null;
 }
-function metrics(rows: readonly LearningExperimentObservation[]) {
+interface LearningCostRational {
+  numerator: bigint;
+  denominator: bigint;
+}
+class LearningCostArithmeticError extends Error {
+  constructor(readonly reason: string) {
+    super(reason);
+  }
+}
+function gcd(a: bigint, b: bigint): bigint {
+  while (b) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a;
+}
+function reduced(numerator: bigint, denominator: bigint): LearningCostRational {
+  const factor = gcd(numerator, denominator);
+  const value = {
+    numerator: numerator / factor,
+    denominator: denominator / factor,
+  };
+  if (
+    value.numerator.toString(2).length > 4096 ||
+    value.denominator.toString(2).length > 4096
+  )
+    throw new LearningCostArithmeticError('cost_precision_budget');
+  return value;
+}
+function addCost(
+  a: LearningCostRational,
+  b: LearningCostRational,
+): LearningCostRational {
+  const factor = gcd(a.denominator, b.denominator);
+  return reduced(
+    a.numerator * (b.denominator / factor) +
+      b.numerator * (a.denominator / factor),
+    a.denominator * (b.denominator / factor),
+  );
+}
+/** Pure binary presentation conversion; never changes an observed ledger amount. */
+export function learningCostFractionValue(
+  numerator: bigint,
+  denominator: bigint,
+): { value: number | null; reason: string | null } {
+  try {
+    if (numerator < 0n || denominator <= 0n)
+      throw new LearningCostArithmeticError('non_finite_statistics');
+    const rational = reduced(numerator, denominator);
+    if (
+      rational.numerator >
+      BigInt(Number.MAX_SAFE_INTEGER) * rational.denominator
+    )
+      throw new LearningCostArithmeticError('non_finite_statistics');
+    const scaled = rational.numerator << 52n;
+    let quotient = scaled / rational.denominator;
+    const remainder = scaled % rational.denominator;
+    if (
+      remainder * 2n > rational.denominator ||
+      (remainder * 2n === rational.denominator && quotient % 2n !== 0n)
+    )
+      quotient++;
+    const value = Number(quotient) * 2 ** -52;
+    if (!Number.isFinite(value) || (rational.numerator > 0n && value === 0))
+      throw new LearningCostArithmeticError('non_finite_statistics');
+    return { value, reason: null };
+  } catch (error) {
+    if (!(error instanceof LearningCostArithmeticError)) throw error;
+    return { value: null, reason: error.reason };
+  }
+}
+function allocatedCost(
+  terms: readonly LearningAllocatedCostV1[],
+): LearningCostRational {
+  return terms.reduce(
+    (total, term) =>
+      addCost(
+        total,
+        reduced(
+          BigInt(term.vendorCostMicros),
+          BigInt(term.opportunityIds.length),
+        ),
+      ),
+    { numerator: 0n, denominator: 1n },
+  );
+}
+export function learningAllocatedCostTotal(
+  terms: readonly LearningAllocatedCostV1[],
+): { value: number | null; reason: string | null } {
+  try {
+    const value = allocatedCost(terms);
+    return learningCostFractionValue(value.numerator, value.denominator);
+  } catch (error) {
+    if (!(error instanceof LearningCostArithmeticError)) throw error;
+    return { value: null, reason: error.reason };
+  }
+}
+function groupCost(
+  items: readonly LearningExperimentObservation[],
+  reasons: Set<string>,
+): number | null {
+  if (
+    !items.length ||
+    items.some((row) => row.costAllocations === null || !row.generationClosed)
+  ) {
+    reasons.add('incomplete_cost');
+    return null;
+  }
+  try {
+    let total: LearningCostRational = { numerator: 0n, denominator: 1n };
+    for (const row of items) {
+      const cost = allocatedCost(row.costAllocations ?? []);
+      if (cost.numerator > BigInt(Number.MAX_SAFE_INTEGER) * cost.denominator)
+        throw new LearningCostArithmeticError('non_finite_statistics');
+      // Resampled observations retain multiplicity and the original allocation denominator.
+      total = addCost(total, cost);
+    }
+    if (total.numerator > BigInt(Number.MAX_SAFE_INTEGER) * total.denominator)
+      throw new LearningCostArithmeticError('non_finite_statistics');
+    const mean = reduced(
+      total.numerator,
+      total.denominator * BigInt(items.length),
+    );
+    const converted = learningCostFractionValue(
+      mean.numerator,
+      mean.denominator,
+    );
+    if (converted.reason) reasons.add(converted.reason);
+    return converted.value;
+  } catch (error) {
+    if (!(error instanceof LearningCostArithmeticError)) throw error;
+    reasons.add(error.reason);
+    return null;
+  }
+}
+function metrics(
+  rows: readonly LearningExperimentObservation[],
+  costReasons: Set<string>,
+) {
   const control = rows.filter((row) => row.group === 'control'),
     treatment = rows.filter((row) => row.group === 'treatment');
   const group = (items: readonly LearningExperimentObservation[]) => ({
@@ -149,20 +341,7 @@ function metrics(rows: readonly LearningExperimentObservation[]) {
     publishability: items.some((row) => row.publishable === null)
       ? null
       : average(items.map((row) => Number(row.publishable))),
-    cost:
-      items.some((row) => row.costMicros === null || !row.generationClosed) ||
-      items
-        .filter((row) => row.costMicros !== null)
-        .reduce(
-          (total, row) =>
-            total +
-            BigInt(
-              Number.isSafeInteger(row.costMicros) ? (row.costMicros ?? 0) : 0,
-            ),
-          0n,
-        ) > BigInt(Number.MAX_SAFE_INTEGER)
-        ? null
-        : average(items.map((row) => row.costMicros ?? 0)),
+    cost: groupCost(items, costReasons),
     cadence: items.some(
       (row) => !row.publicationEnumerationComplete || row.cadenceChanged,
     )
@@ -173,6 +352,8 @@ function metrics(rows: readonly LearningExperimentObservation[]) {
     t = group(treatment),
     difference = (a: number | null, b: number | null) =>
       a === null || b === null ? null : a - b;
+  if (c.cost === 0 && t.cost !== null && t.cost > 0)
+    costReasons.add('zero_control_cost');
   return {
     controlMean: c.reward,
     treatmentMean: t.reward,
@@ -186,6 +367,21 @@ function metrics(rows: readonly LearningExperimentObservation[]) {
 export function buildLearningExperimentReport(
   input: LearningExperimentReportInput,
 ): LearningEvaluationReportV1 {
+  if (
+    !Number.isSafeInteger(input.invalidationRevision) ||
+    input.invalidationRevision < 0
+  )
+    throw new LearningEvidenceValidationError('invalidationRevision');
+  if (!Number.isFinite(input.cutoff.getTime()))
+    throw new LearningEvidenceValidationError('cutoff');
+  for (const field of ['startAt', 'endAt'] as const)
+    if (
+      typeof input.spec[field] !== 'string' ||
+      !Number.isFinite(new Date(input.spec[field]).getTime())
+    )
+      throw new LearningEvidenceValidationError(`spec.${field}`);
+  if (new Date(input.spec.endAt) <= new Date(input.spec.startAt))
+    throw new LearningEvidenceValidationError('spec.endAt');
   validateObservations(input.observations);
   const spec = input.spec,
     reasonCodes: string[] = [],
@@ -220,7 +416,7 @@ export function buildLearningExperimentReport(
       matureEligible: rows.filter((row) => row.reward !== null).length,
       censorCounts,
       costComplete: rows.filter(
-        (row) => row.costMicros !== null && row.generationClosed,
+        (row) => row.costAllocations !== null && row.generationClosed,
       ).length,
       attemptCounts: rows.reduce((sum, row) => sum + row.attemptCount, 0),
       exposureDays: rows.length * 7,
@@ -253,7 +449,8 @@ export function buildLearningExperimentReport(
       : null;
   if (censoring !== null && censoring > 0.1)
     reasonCodes.push('differential_censoring');
-  const point = metrics(observations),
+  const costReasons = new Set<string>();
+  const point = metrics(observations, costReasons),
     keys = Object.keys(point) as Array<keyof typeof point>;
   const samples = Object.fromEntries(
     keys.map((key) => [key, [] as number[]]),
@@ -275,7 +472,7 @@ export function buildLearningExperimentReport(
     const resampled = blocks.flatMap(
         () => blocked[Math.floor(random() * blocks.length)],
       ),
-      values = metrics(resampled);
+      values = metrics(resampled, costReasons);
     for (const key of keys)
       if (values[key] !== null && Number.isFinite(values[key]))
         samples[key].push(values[key]);
@@ -285,17 +482,19 @@ export function buildLearningExperimentReport(
     const values = samples[key].sort((a, b) => a - b),
       value = point[key];
     const unavailableReasons =
-      value === null
-        ? [
-            key === 'costRatio'
-              ? 'incomplete_cost'
-              : key === 'cadenceRatio'
-                ? 'incomplete_cadence'
-                : 'insufficient_observations',
-          ]
-        : values.length !== 2000
-          ? ['numerical_instability']
-          : [];
+      key === 'costRatio' && costReasons.size
+        ? [...costReasons]
+        : value === null
+          ? [
+              key === 'costRatio'
+                ? 'incomplete_cost'
+                : key === 'cadenceRatio'
+                  ? 'incomplete_cadence'
+                  : 'insufficient_observations',
+            ]
+          : values.length !== 2000
+            ? ['numerical_instability']
+            : [];
     estimates[key] = {
       value: unavailableReasons.length ? null : value,
       lower95: unavailableReasons.length ? null : values[49],
@@ -365,7 +564,20 @@ export function buildLearningExperimentReport(
         status,
         threshold: check.threshold,
         value,
-        reasons: value === null ? estimate.unavailableReasons : [],
+        reasons:
+          value === null
+            ? estimate.unavailableReasons
+            : check.name === 'generation_cost' &&
+                observations.every(
+                  (row) =>
+                    row.costAllocations !== null &&
+                    row.generationClosed &&
+                    row.costAllocations.every(
+                      (term) => term.vendorCostMicros === 0,
+                    ),
+                )
+              ? ['zero_basis']
+              : [],
         evidenceIds,
       };
     },

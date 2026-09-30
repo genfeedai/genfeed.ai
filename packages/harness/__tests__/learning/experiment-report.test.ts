@@ -4,6 +4,8 @@ import {
   buildLearningExperimentReport,
   LearningEvidenceValidationError,
   type LearningExperimentObservation,
+  learningAllocatedCostTotal,
+  learningCostFractionValue,
 } from '../../src/learning/experiment-report';
 
 const spec: LearningExperimentSpecV1 = {
@@ -56,7 +58,16 @@ const observations: LearningExperimentObservation[] = Array.from(
     published: true,
     unchanged: true,
     reward: i % 2 ? 0.8 : 0.2,
-    costMicros: 100,
+    costAllocations: [
+      {
+        attemptId: `attempt-${i}`,
+        ledgerKind: 'llm',
+        ledgerId: `ledger-${i}`,
+        ledgerFingerprint: 'a'.repeat(64),
+        vendorCostMicros: 100,
+        opportunityIds: [String(i)],
+      },
+    ],
     attemptCount: 1,
     generationClosed: true,
     publishedDescendants: 1,
@@ -101,7 +112,7 @@ describe('frozen opportunity denominators and online gates', () => {
           publishedDescendants: 0,
           censorReason: 'generation_failed',
           reward: null,
-          costMicros: null,
+          costAllocations: null,
           generationClosed: false,
         },
       ],
@@ -199,4 +210,126 @@ it('rejects unsafe aggregate diagnostic counts before serializing any report', (
       })),
     }),
   ).toThrow(LearningEvidenceValidationError);
+});
+
+it('preserves exact one-third allocation conservation and report subset denominator', () => {
+  const term = {
+    attemptId: 'batch',
+    ledgerKind: 'llm' as const,
+    ledgerId: 'ledger',
+    ledgerFingerprint: 'a'.repeat(64),
+    vendorCostMicros: 1,
+    opportunityIds: ['a', 'b', 'c'],
+  };
+  expect(learningAllocatedCostTotal([term]).value).toBeCloseTo(1 / 3, 14);
+  expect(learningAllocatedCostTotal([term, term]).value).toBeCloseTo(2 / 3, 14);
+  expect(learningAllocatedCostTotal([term, term, term]).value).toBe(1);
+  expect(
+    learningAllocatedCostTotal([{ ...term, vendorCostMicros: 3 }]).value,
+  ).toBe(1);
+});
+it('rejects conflicting original allocation manifests and reused ledgers before aggregation', () => {
+  const rows = observations.slice(0, 2).map((row) => ({
+    ...row,
+    costAllocations: [
+      {
+        attemptId: 'batch',
+        ledgerKind: 'llm' as const,
+        ledgerId: 'ledger',
+        ledgerFingerprint: 'a'.repeat(64),
+        vendorCostMicros: 1,
+        opportunityIds: ['0', '1'],
+      },
+    ],
+  }));
+  expect(() =>
+    buildLearningExperimentReport({ ...input, observations: rows }),
+  ).not.toThrow();
+  for (const patch of [
+    { attemptId: 'other-attempt' },
+    { vendorCostMicros: 2 },
+    { opportunityIds: ['1'] },
+    { ledgerFingerprint: 'b'.repeat(64) },
+  ]) {
+    expect(() =>
+      buildLearningExperimentReport({
+        ...input,
+        observations: rows.map((row, i) =>
+          i
+            ? {
+                ...row,
+                costAllocations: row.costAllocations.map((term) => ({
+                  ...term,
+                  ...patch,
+                })),
+              }
+            : row,
+        ),
+      }),
+    ).toThrow(LearningEvidenceValidationError);
+  }
+});
+it('keeps observed zero ledger and closed zero-attempt evidence distinct from missing settlement', () => {
+  const zero = observations.map((row) => ({
+    ...row,
+    costAllocations:
+      row.costAllocations?.map((term) => ({ ...term, vendorCostMicros: 0 })) ??
+      null,
+  }));
+  expect(
+    buildLearningExperimentReport({ ...input, observations: zero }).estimates
+      .costRatio.value,
+  ).toBe(1);
+  const closed = observations.map((row) => ({
+    ...row,
+    attemptCount: 0,
+    costAllocations: [],
+  }));
+  expect(
+    buildLearningExperimentReport({ ...input, observations: closed }).groups
+      ?.control.costComplete,
+  ).toBe(120);
+  const missing = observations.map((row, i) =>
+    i === 0 ? { ...row, costAllocations: null } : row,
+  );
+  const report = buildLearningExperimentReport({
+    ...input,
+    observations: missing,
+  });
+  expect(report.groups?.control.costComplete).toBe(119);
+  expect(report.estimates.costRatio.value).toBeNull();
+});
+it('marks safe input with an overflowing exact total inconclusive without losing coverage', () => {
+  const rows = observations.map((row) => ({
+    ...row,
+    costAllocations:
+      row.costAllocations?.map((term) => ({
+        ...term,
+        vendorCostMicros: Number.MAX_SAFE_INTEGER,
+      })) ?? null,
+  }));
+  const report = buildLearningExperimentReport({
+    ...input,
+    observations: rows,
+  });
+  expect(report.status).toBe('inconclusive');
+  expect(report.groups?.control.costComplete).toBe(120);
+  expect(report.estimates.costRatio.value).toBeNull();
+  expect(report.reasonCodes).toContain('non_finite_statistics');
+  expect(JSON.stringify(report)).not.toMatch(/NaN|Infinity/);
+});
+it('bounds reduced exact arithmetic and refuses a positive amount that rounds to zero', () => {
+  expect(learningCostFractionValue(1n, 1n << 4097n)).toEqual({
+    value: null,
+    reason: 'cost_precision_budget',
+  });
+  expect(learningCostFractionValue(1n, 1n << 1000n)).toEqual({
+    value: null,
+    reason: 'non_finite_statistics',
+  });
+  expect(learningCostFractionValue(1n << 4097n, 1n << 4097n)).toEqual({
+    value: 1,
+    reason: null,
+  });
+  expect(learningCostFractionValue(0n, 3n)).toEqual({ value: 0, reason: null });
 });

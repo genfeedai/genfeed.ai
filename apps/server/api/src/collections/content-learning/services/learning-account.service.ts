@@ -326,7 +326,8 @@ export class LearningAccountService {
     });
     if (!post?.credentialId)
       throw new NotFoundException('Owned destination post not found');
-    const account = await this.ensure(actor.organizationId, post.credentialId);
+    const credentialId = post.credentialId;
+    const account = await this.ensure(actor.organizationId, credentialId);
     if (!body.isOrganic || body.isPinned)
       throw new BadRequestException(
         'Attestation must explicitly confirm organic and not pinned',
@@ -334,13 +335,13 @@ export class LearningAccountService {
     return this.operations.mutate(
       {
         actor,
-        credentialId: post.credentialId,
+        credentialId,
         ...body,
         type: 'post-eligibility',
         payload: {
           organizationId: actor.organizationId,
           brandId: post.brandId,
-          credentialId: post.credentialId,
+          credentialId,
           resourceKind: 'post',
           resourceId: postId,
           ...body,
@@ -351,7 +352,7 @@ export class LearningAccountService {
           where: {
             organizationId: actor.organizationId,
             postId,
-            credentialId: post.credentialId,
+            credentialId,
             isDeleted: false,
           },
           orderBy: { revision: 'desc' },
