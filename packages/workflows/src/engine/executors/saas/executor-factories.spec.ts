@@ -78,10 +78,7 @@ import { createVideoQaExecutor, VideoQaExecutor } from './video-qa-executor';
 
 interface FactoryCase {
   name: string;
-  // biome-ignore lint/suspicious/noExplicitAny: heterogenous constructor list in a table-driven test
-  expected: new (
-    ...args: any[]
-  ) => unknown;
+  expected: new (...args: never[]) => unknown;
   create: () => unknown;
 }
 

@@ -350,4 +350,94 @@ describe('useAnalytics', () => {
       expect(result.current).toHaveProperty('refresh');
     });
   });
+  it('follows a changed brand scopeId', async () => {
+    const { result, rerender } = renderHook(
+      ({ scopeId }) => useAnalytics({ scope: PageScope.BRAND, scopeId }),
+      { initialProps: { scopeId: 'brand-old' }, wrapper: createQueryWrapper() },
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    rerender({ scopeId: 'brand-new' });
+    expect(result.current.scopeId).toBe('brand-new');
+    expect(result.current.selectedScopeId).toBe('brand-new');
+  });
+
+  it('fetches a changed date range after server hydration', async () => {
+    const { rerender } = renderHook(
+      ({ startDate }) =>
+        useAnalytics({
+          scope: PageScope.ORGANIZATION,
+          initialData: { totalPosts: 999 },
+          revalidateOnMount: false,
+          startDate,
+          endDate: '2026-09-30',
+        }),
+      {
+        initialProps: { startDate: '2026-09-01' },
+        wrapper: createQueryWrapper(),
+      },
+    );
+    expect(mockFindOrganizationAnalytics).not.toHaveBeenCalled();
+    rerender({ startDate: '2026-09-15' });
+    await waitFor(() =>
+      expect(mockFindOrganizationAnalytics).toHaveBeenCalledWith('org-123', {
+        startDate: '2026-09-15',
+        endDate: '2026-09-30',
+      }),
+    );
+  });
+  it('follows a scope that becomes ready and discards overrides after source changes', async () => {
+    const { useBrand } = await import(
+      '@genfeedai/contexts/user/brand-context/brand-context'
+    );
+    const brandContext = vi.mocked(useBrand);
+    const original = brandContext.getMockImplementation();
+    brandContext.mockImplementation(
+      () =>
+        ({ brandId: '', organizationId: 'org-123' }) as ReturnType<
+          typeof useBrand
+        >,
+    );
+    try {
+      const { result, rerender } = renderHook(
+        () => useAnalytics({ scope: PageScope.BRAND }),
+        { wrapper: createQueryWrapper() },
+      );
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      expect(mockFindBrandAnalytics).not.toHaveBeenCalled();
+      brandContext.mockImplementation(
+        () =>
+          ({ brandId: 'ready', organizationId: 'org-123' }) as ReturnType<
+            typeof useBrand
+          >,
+      );
+      rerender();
+      await waitFor(() =>
+        expect(mockFindBrandAnalytics).toHaveBeenCalledWith('ready', undefined),
+      );
+      act(() => {
+        result.current.setSelectedScope(PageScope.ORGANIZATION);
+        result.current.setSelectedScopeId('override');
+      });
+      await waitFor(() =>
+        expect(mockFindOrganizationAnalytics).toHaveBeenCalledWith(
+          'override',
+          undefined,
+        ),
+      );
+      brandContext.mockImplementation(
+        () =>
+          ({ brandId: 'next', organizationId: 'org-123' }) as ReturnType<
+            typeof useBrand
+          >,
+      );
+      rerender();
+      expect(result.current.selectedScope).toBe(PageScope.BRAND);
+      expect(result.current.selectedScopeId).toBe('next');
+      await waitFor(() =>
+        expect(mockFindBrandAnalytics).toHaveBeenCalledWith('next', undefined),
+      );
+    } finally {
+      if (original) brandContext.mockImplementation(original);
+    }
+  });
 });

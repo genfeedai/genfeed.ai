@@ -29,5 +29,6 @@ export function useAbortEffect(
     return () => {
       controller.abort();
     };
+    // biome-ignore lint/correctness/useExhaustiveDependencies: The caller owns the dependency list; Biome checks useAbortEffect call sites.
   }, deps);
 }

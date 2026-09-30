@@ -23,6 +23,7 @@ export function CharacterMentionList({
   const translate = useTranslations('agent.characterMentions');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Changed suggestions reset keyboard selection.
   useEffect(() => {
     setSelectedIndex(0);
   }, [items]);

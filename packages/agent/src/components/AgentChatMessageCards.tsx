@@ -9,6 +9,7 @@ import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-c
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { parseScopedAppPath } from '@genfeedai/contracts/constants';
+import { keyListItems } from '@genfeedai/helpers/ui/list/key-list-items';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
@@ -297,26 +298,28 @@ export function ContentPreviewCard({
           onCopy={onCopy}
         />
       ) : (
-        textOutputs.map((text, index) => (
-          <div key={`${action.id}-text-${index}`} className="space-y-2">
-            <AgentTextArtifactPreview
-              data={{
-                content: text,
-                brandId: action.brandId,
-                credentialId: action.credentialId,
-                contentFormat: action.contentFormat,
-                platform: action.platform,
-                preheader: action.preheader,
-                subject: action.subject,
-                title:
-                  textOutputs.length > 1
-                    ? `${previewTitle} ${index + 1}`
-                    : previewTitle,
-              }}
-              onCopy={onCopy}
-            />
-          </div>
-        ))
+        keyListItems(textOutputs, (text) => text).map(
+          ({ item: text, key }, index) => (
+            <div key={key} className="space-y-2">
+              <AgentTextArtifactPreview
+                data={{
+                  content: text,
+                  brandId: action.brandId,
+                  credentialId: action.credentialId,
+                  contentFormat: action.contentFormat,
+                  platform: action.platform,
+                  preheader: action.preheader,
+                  subject: action.subject,
+                  title:
+                    textOutputs.length > 1
+                      ? `${previewTitle} ${index + 1}`
+                      : previewTitle,
+                }}
+                onCopy={onCopy}
+              />
+            </div>
+          ),
+        )
       )}
       {action.knowledgeReceipts?.length ? (
         <KnowledgeReceiptList receipts={action.knowledgeReceipts} />

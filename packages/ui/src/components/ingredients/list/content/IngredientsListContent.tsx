@@ -150,7 +150,7 @@ function IngredientLedgerAssetCell({
   const isAudio = isAudioIngredient(ingredient);
 
   return (
-    <div className="flex min-w-0 items-center gap-3">
+    <div className="flex w-64 min-w-0 max-w-64 items-center gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
           className="truncate text-sm font-medium"
@@ -280,6 +280,7 @@ export default function IngredientsListContent({
         ),
       },
       {
+        className: 'w-72',
         header: 'Asset',
         key: 'metadataLabel',
         render: (ingredient: IIngredient) => (
@@ -321,7 +322,7 @@ export default function IngredientsListContent({
           const providerLabel = getIngredientProviderLabel(ingredient);
 
           return (
-            <div className="flex min-w-0 flex-col">
+            <div className="flex w-44 min-w-0 max-w-44 flex-col">
               <span className="truncate text-sm" title={modelLabel}>
                 {modelLabel}
               </span>
@@ -455,6 +456,11 @@ export default function IngredientsListContent({
 
   const handleViewIngredient = useCallback(
     (ingredient: IIngredient) => {
+      if (scope === PageScope.BRAND) {
+        handleMediaClick(ingredient);
+        return;
+      }
+
       if (singularType === IngredientCategory.AVATAR) {
         onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
         return;
@@ -466,7 +472,13 @@ export default function IngredientsListContent({
 
       onOpenIngredientModal(ModalEnum.INGREDIENT, ingredient);
     },
-    [onOpenIngredientModal, onOpenLightbox, scope, singularType],
+    [
+      handleMediaClick,
+      onOpenIngredientModal,
+      onOpenLightbox,
+      scope,
+      singularType,
+    ],
   );
 
   const tableActions = useMemo(
@@ -506,6 +518,7 @@ export default function IngredientsListContent({
           onSelectionChange={onSelectionChange}
           getItemId={(ingredient: IIngredient) => ingredient.id}
           actions={tableActions}
+          onRowClick={scope === PageScope.BRAND ? handleMediaClick : undefined}
         />
       );
     }
@@ -598,6 +611,9 @@ export default function IngredientsListContent({
                 onSelectionChange={onSelectionChange}
                 getItemId={(ingredient: IIngredient) => ingredient.id}
                 actions={tableActions}
+                onRowClick={
+                  scope === PageScope.BRAND ? handleMediaClick : undefined
+                }
               />
             </section>
           ) : null}
@@ -615,9 +631,11 @@ export default function IngredientsListContent({
         onSelectionChange={onSelectionChange}
         getItemId={(ingredient: IIngredient) => ingredient.id}
         actions={tableActions}
+        onRowClick={scope === PageScope.BRAND ? handleMediaClick : undefined}
       />
     );
   }, [
+    activeTypeLabel,
     columns,
     filteredIngredients,
     formatFilter,
@@ -650,6 +668,7 @@ export default function IngredientsListContent({
     onPublishIngredient,
     nonVisualIngredients,
     selectedIngredientIds,
+    scope,
     singularType,
     tableActions,
     translate,
@@ -683,6 +702,7 @@ export default function IngredientsListContent({
    */
   const {
     lightboxRequestCount,
+    requestedLightboxIngredient,
     selectedIngredient: publishedIngredient,
     setSelectedAsset,
   } = useAssetSelection();
@@ -723,10 +743,14 @@ export default function IngredientsListContent({
       return;
     }
     handledLightboxRequestRef.current = lightboxRequestCount;
-    if (inspectedIngredient) {
-      openIngredientPreview(inspectedIngredient);
+    if (requestedLightboxIngredient) {
+      openIngredientPreview(requestedLightboxIngredient);
     }
-  }, [inspectedIngredient, lightboxRequestCount, openIngredientPreview]);
+  }, [
+    lightboxRequestCount,
+    openIngredientPreview,
+    requestedLightboxIngredient,
+  ]);
 
   // Leaving the library drops the selection so the composer stops citing an
   // asset the operator can no longer see.

@@ -14,7 +14,6 @@ import type {
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CreditsBarTrigger from './CreditsBarTrigger';

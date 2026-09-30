@@ -76,9 +76,10 @@ export async function getCharacterMentions(
 export async function getContentMentions(
   api: AgentBaseApiService,
   signal?: AbortSignal,
+  brandId?: string,
 ): Promise<ContentMentionItem[]> {
   const json = await api.fetchJson<AgentContentMentionsResponse>(
-    `${api.config.baseUrl}/content/mentions`,
+    `${api.config.baseUrl}/content/mentions${brandId ? `?brandId=${encodeURIComponent(brandId)}` : ''}`,
     { signal },
     'Failed to fetch content mentions',
   );

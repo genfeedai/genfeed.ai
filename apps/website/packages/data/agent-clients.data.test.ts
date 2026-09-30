@@ -11,15 +11,13 @@ import {
 } from './agent-clients.data';
 
 describe('agent clients', () => {
-  it('builds one page per slug with a search-intent title', () => {
+  it('builds one page per slug with integration-first positioning', () => {
     expect(agentClients.map((client) => client.slug)).toEqual([
       ...AGENT_CLIENT_SLUGS,
     ]);
 
     for (const client of agentClients) {
-      expect(client.title).toBe(
-        `Create and Schedule Social Media Posts with ${client.name}`,
-      );
+      expect(client.title).toBe(`Genfeed for ${client.name}`);
       expect(client.description.length).toBeLessThanOrEqual(160);
       expect(client.about.length).toBeGreaterThan(0);
     }
@@ -52,6 +50,7 @@ describe('agent clients', () => {
 
     expect(client.chatPrompt).toBeUndefined();
     expect(labels).toEqual([
+      'Claude Code plugin',
       'Connect URL',
       'Install command',
       'Configuration',

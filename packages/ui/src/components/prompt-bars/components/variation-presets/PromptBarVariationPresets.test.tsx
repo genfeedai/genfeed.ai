@@ -5,7 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ children, onClick, className }: any) => (
+  default: ({
+    children,
+    onClick,
+    className,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => (
     <button onClick={onClick} className={className}>
       {children}
     </button>
@@ -27,7 +33,9 @@ describe('PromptBarVariationPresets', () => {
   const mockSetTextValue = vi.fn();
 
   const defaultProps = {
-    form: mockForm as any,
+    form: mockForm as unknown as import('react').ComponentProps<
+      typeof PromptBarVariationPresets
+    >['form'],
     setTextValue: mockSetTextValue,
     shouldRender: true,
   };

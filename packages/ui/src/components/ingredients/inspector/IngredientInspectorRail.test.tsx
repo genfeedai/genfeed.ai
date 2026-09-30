@@ -27,6 +27,26 @@ const ingredient = {
 } as IIngredient;
 
 describe('IngredientInspectorRail', () => {
+  it('shows the complete selectable prompt with whitespace and unbroken text preserved', () => {
+    const prompt = `${'A detailed prompt line.\n'.repeat(12)}\n${'longword'.repeat(80)}`;
+    render(
+      <IngredientInspectorRail
+        ingredient={{ ...ingredient, promptText: prompt }}
+      />,
+    );
+    const note = screen.getByText(
+      (_, element) =>
+        element?.tagName === 'P' && element.textContent === prompt,
+    );
+    expect(note.textContent).toBe(prompt);
+    expect(note).toHaveClass(
+      'whitespace-pre-wrap',
+      'break-words',
+      'select-text',
+    );
+    expect(note).not.toHaveClass('line-clamp-6');
+  });
+
   it('contains the whole image in a bounded preview', () => {
     render(<IngredientInspectorRail ingredient={ingredient} />);
     expect(screen.getByRole('img', { name: 'Apple' })).toHaveClass(

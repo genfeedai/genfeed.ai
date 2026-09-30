@@ -1,4 +1,5 @@
 import { stringifyJsonLd } from '@data/json-ld';
+import { getMarketingOgImage } from '@data/marketing-og.data';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import type { Metadata, ResolvingMetadata } from 'next';
@@ -24,9 +25,9 @@ const articlesJsonLd = {
 
 export async function generateMetadata(
   _params: unknown,
-  parent: ResolvingMetadata,
+  _parent: ResolvingMetadata,
 ): Promise<Metadata> {
-  const previousImages = (await parent).openGraph?.images || [];
+  const previousImages = [getMarketingOgImage('/articles', 'Genfeed articles')];
   const images = [...previousImages];
 
   return {

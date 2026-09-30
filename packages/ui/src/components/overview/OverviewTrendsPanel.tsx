@@ -79,6 +79,7 @@ export function OverviewTrendsPanel({
         >
           {Array.from({ length: 5 }).map((_, index) => (
             <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
               key={index}
               className="h-10 animate-pulse rounded-[0.75rem] bg-muted/40"
             />

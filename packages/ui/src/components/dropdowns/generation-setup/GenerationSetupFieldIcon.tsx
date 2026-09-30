@@ -4,7 +4,6 @@ import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/st
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupFieldIconProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { useTranslations } from 'next-intl';
 import {
   Aperture,
   Camera,
@@ -27,6 +26,7 @@ import {
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const SOURCE_LABEL: Record<GenerationSetupFieldIconProps['source'], string> = {
   agent: 'Set by the agent',

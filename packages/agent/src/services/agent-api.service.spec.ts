@@ -692,6 +692,16 @@ describe('AgentApiService', () => {
       );
     });
 
+    it('encodes the conversation brand in the content picker request', async () => {
+      mockOk({ mentions: [] });
+      const controller = new AbortController();
+      await makeService().getContentMentions(controller.signal, 'brand/a+b');
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://api.test/content/mentions?brandId=brand%2Fa%2Bb',
+        expect.objectContaining({ signal: controller.signal }),
+      );
+    });
+
     it('fetches content mentions from the API', async () => {
       mockOk({
         mentions: [

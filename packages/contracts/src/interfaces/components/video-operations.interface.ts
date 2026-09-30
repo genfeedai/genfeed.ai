@@ -9,15 +9,6 @@ export interface IVideoMergeParams {
   transition?: VideoTransition;
   transitionDuration?: number;
   transitionEaseCurve?: VideoEaseCurve;
-  zoomEaseCurve?: VideoEaseCurve;
-  zoomConfigs?: Array<{
-    startZoom?: number;
-    endZoom?: number;
-    startX?: number;
-    startY?: number;
-    endX?: number;
-    endY?: number;
-  }>;
   isMuteVideoAudio?: boolean;
   musicVolume?: number;
 }

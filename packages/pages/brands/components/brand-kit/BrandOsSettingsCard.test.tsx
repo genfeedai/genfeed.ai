@@ -464,6 +464,26 @@ describe('Brand OS revision settings', () => {
       ),
     );
   });
+  it('preserves the remaining social link input when an earlier entry is removed', async () => {
+    await renderSettings();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Social links' }));
+    fireEvent.change(screen.getByLabelText('Social links 1 url'), {
+      target: { value: 'https://first.example' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add Social links' }));
+    const remainingInput = screen.getByLabelText('Social links 2 url');
+    remainingInput.focus();
+    fireEvent.change(remainingInput, {
+      target: { value: 'https://second.example' },
+    });
+    expect(screen.getByLabelText('Social links 2 url')).toBe(remainingInput);
+    fireEvent.click(
+      screen.getByRole('button', { name: /Remove Social links 1/ }),
+    );
+    expect(screen.getByLabelText('Social links 1 url')).toBe(remainingInput);
+    expect(remainingInput).toHaveValue('https://second.example');
+    expect(remainingInput).toHaveFocus();
+  });
   it('keeps approved revisions editable when export validation fails and retries only export metadata', async () => {
     mocks.listBrandOsRevisions.mockResolvedValue([
       revision({ status: 'APPROVED' }),

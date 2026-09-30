@@ -109,6 +109,7 @@ function GridPreview({
       >
         {Array.from({ length: totalCells }).map((_, index) => (
           <div
+            // biome-ignore lint/suspicious/noArrayIndexKey: Fixed layout slots have positional identity and no item state.
             key={`cell-${index + 1}`}
             className="bg-primary/20 text-2xs flex items-center justify-center text-primary"
           >

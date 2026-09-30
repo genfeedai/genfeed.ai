@@ -107,6 +107,7 @@ export default function CorpusHealthPanel({
     ...(health?.summary.platforms ?? []),
     ...(health?.segments.map(({ platform }) => platform) ?? []),
     ...(health?.providerFailures.map(({ platform }) => platform) ?? []),
+    ...(health?.refreshHealth?.map(({ platform }) => platform) ?? []),
   ]);
   // Expected platforms always get a row: one healthy platform must not hide
   // another platform that has no saved coverage.
@@ -186,11 +187,27 @@ export default function CorpusHealthPanel({
             const label = formatPlatformLabel(platform);
             const isChecking = !health && !isUnavailable;
             const hasSegments = !isUnavailable && segments.length > 0;
-            const platformStatus = resolvePlatformStatus(
-              segments.map((segment) => segment.status),
-            );
+            const platformStatus = failures.length
+              ? 'degraded'
+              : resolvePlatformStatus(
+                  segments.map((segment) => segment.status),
+                );
             const latestSeenAt = segments
               .map((segment) => segment.latestSeenAt ?? null)
+              .filter((value): value is string => Boolean(value))
+              .sort()
+              .at(-1);
+
+            const refreshes =
+              health?.refreshHealth?.filter(
+                (refresh) => normalizePlatform(refresh.platform) === platform,
+              ) ?? [];
+            const latestAttempt = refreshes
+              .map((refresh) => refresh.lastAttemptAt)
+              .sort()
+              .at(-1);
+            const latestRefresh = refreshes
+              .map((refresh) => refresh.lastSuccessfulRefreshAt)
               .filter((value): value is string => Boolean(value))
               .sort()
               .at(-1);
@@ -245,8 +262,14 @@ export default function CorpusHealthPanel({
                   <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
                     {[
                       ['sourceTimestampLabel', formatTimestamp(latestSeenAt)],
-                      ['lastRefreshLabel', null],
-                      ['lastAttemptLabel', null],
+                      [
+                        'lastRefreshLabel',
+                        formatTimestamp(latestRefresh) ??
+                          (latestAttempt
+                            ? translate('noSuccessfulRefresh')
+                            : null),
+                      ],
+                      ['lastAttemptLabel', formatTimestamp(latestAttempt)],
                     ].map(([key, value]) => (
                       <div className="flex items-baseline gap-1" key={key}>
                         <dt className="text-foreground/45">

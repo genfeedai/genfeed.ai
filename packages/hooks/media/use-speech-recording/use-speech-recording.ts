@@ -69,6 +69,8 @@ export function useSpeechRecording({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const generationRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -98,6 +100,13 @@ export function useSpeechRecording({
 
   const startRecording = async (): Promise<boolean> => {
     const url = 'useSpeechRecording startRecording';
+    if (!isMountedRef.current) return false;
+    const generation = ++generationRef.current;
+    const ownsRecording = () =>
+      isMountedRef.current && generationRef.current === generation;
+    cleanup();
+    setIsRecording(false);
+    setIsProcessing(false);
 
     try {
       setError(null);
@@ -110,6 +119,12 @@ export function useSpeechRecording({
         },
       });
 
+      if (!ownsRecording()) {
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
+        return false;
+      }
       streamRef.current = stream;
 
       const mediaRecorder = new MediaRecorder(stream, {
@@ -120,13 +135,14 @@ export function useSpeechRecording({
       chunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (ownsRecording() && event.data.size > 0) {
           chunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        await processRecording();
+        if (!ownsRecording()) return;
+        await processRecording(generation);
       };
 
       mediaRecorder.start();
@@ -135,6 +151,9 @@ export function useSpeechRecording({
       logger.info(`${url} recording started`);
       return true;
     } catch (error: unknown) {
+      if (!ownsRecording()) return false;
+      cleanup();
+      setIsRecording(false);
       logger.error(`${url} failed`, error);
 
       const errorMessage = getStartRecordingErrorMessage(error);
@@ -152,7 +171,9 @@ export function useSpeechRecording({
     }
   };
 
-  const processRecording = async (): Promise<void> => {
+  const processRecording = async (generation: number): Promise<void> => {
+    const ownsRecording = () =>
+      isMountedRef.current && generationRef.current === generation;
     const url = 'useSpeechRecording processRecording';
 
     try {
@@ -173,12 +194,15 @@ export function useSpeechRecording({
         type: audioBlob.type,
       });
 
+      cleanup();
       const speechService = await getSpeechService();
+      if (!ownsRecording()) return;
       const result = await speechService.transcribeAudio(audioFile, {
         language,
         prompt,
       });
 
+      if (!ownsRecording()) return;
       logger.info(`${url} transcription completed`, {
         creditsUsed: result.creditsUsed,
         duration: result.duration,
@@ -189,16 +213,17 @@ export function useSpeechRecording({
       onTranscription?.(result);
       setError(null);
     } catch (error: unknown) {
+      if (!ownsRecording()) return;
       logger.error(`${url} failed`, error);
 
       const errorMessage = getTranscriptionErrorMessage(error);
       setError(errorMessage);
       onError?.(errorMessage);
     } finally {
-      setIsProcessing(false);
-
-      // Clean up
-      cleanup();
+      if (ownsRecording()) {
+        setIsProcessing(false);
+        cleanup();
+      }
     }
   };
 
@@ -226,7 +251,10 @@ export function useSpeechRecording({
 
   // Cleanup on unmount
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
+      generationRef.current += 1;
       cleanup();
     };
   }, [cleanup]);

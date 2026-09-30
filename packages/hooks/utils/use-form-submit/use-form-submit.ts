@@ -1,5 +1,5 @@
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useFormSubmitWithState(handler: () => void | Promise<void>) {
   const pathname = usePathname();
@@ -8,10 +8,10 @@ export function useFormSubmitWithState(handler: () => void | Promise<void>) {
   const isSubmittingRef = useRef(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const setSubmittingState = (nextValue: boolean) => {
+  const setSubmittingState = useCallback((nextValue: boolean) => {
     isSubmittingRef.current = nextValue;
     setIsSubmitting(nextValue);
-  };
+  }, []);
 
   useEffect(() => {
     const hasPathChanged = pathname !== prevPathRef.current;

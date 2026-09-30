@@ -1,7 +1,7 @@
-import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-metadata.helper';
 import { FREE_SKILL_COUNT } from '@public/skills/_data';
 import SkillsContent from '@public/skills/skills-content';
 import { getSkillsRegistry } from '@public/skills/skills-loader';
+import { createPageMetadataWithCanonical } from '@web-components/og/marketing-metadata';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'AI Skills for Content, SEO and GTM',

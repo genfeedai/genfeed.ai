@@ -115,4 +115,27 @@ describe('useTopPosts', () => {
 
     expect(result.current.topPosts).toEqual([]);
   });
+  it('uses hydration only for its initial brand and platform', async () => {
+    const { result, rerender } = renderHook(
+      ({ brandId, platform }) =>
+        useTopPosts({
+          brandId,
+          platform,
+          initialData: [],
+          revalidateOnMount: false,
+        }),
+      {
+        initialProps: { brandId: 'brand-1', platform: 'instagram' },
+        wrapper: createQueryWrapper(),
+      },
+    );
+    expect(mockGetTopContent).not.toHaveBeenCalled();
+    rerender({ brandId: 'brand-2', platform: 'youtube' });
+    await waitFor(() =>
+      expect(mockGetTopContent).toHaveBeenCalledWith(
+        expect.objectContaining({ brand: 'brand-2', platform: 'youtube' }),
+      ),
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  });
 });

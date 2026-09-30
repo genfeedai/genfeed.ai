@@ -15,7 +15,7 @@ import {
 } from '@helpers/data/cache/cache.helper';
 import { getDateRangeKeys } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const LEADERBOARD_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -116,106 +116,123 @@ export function useLeaderboards(
     [scope, startDateKey, endDateKey],
   );
 
-  const fetchLeaderboards = useCallback(async () => {
-    if (!startDateKey || !endDateKey) {
-      return;
-    }
+  const hydrationKey = JSON.stringify([brandsCacheKey, options.refreshTrigger]);
+  const [hydration] = useState(() => ({
+    key: hydrationKey,
+    hasData:
+      options.initialBrandsLeaderboard != null ||
+      options.initialOrgsLeaderboard != null,
+  }));
+  const skipInitialFetch =
+    hydration.hasData &&
+    hydration.key === hydrationKey &&
+    (options.revalidateOnMount ?? false) === false;
+  const requestRef = useRef<AbortController | null>(null);
+  useEffect(() => () => requestRef.current?.abort(), []);
 
-    try {
-      setIsLeaderboardLoading(true);
-
-      const service = await getAnalyticsService();
-      const query: ILeaderboardQueryParams = {
-        endDate: endDateKey,
-        limit: 5,
-        sort: AnalyticsMetric.ENGAGEMENT,
-        startDate: startDateKey,
-      };
-
-      const [orgsData, brandsData] = await Promise.all([
-        scope === PageScope.SUPERADMIN
-          ? service.getOrganizationsLeaderboard(query)
-          : Promise.resolve([]),
-        service.getBrandsLeaderboard(query),
-      ]);
-
-      setOrgsLeaderboard(orgsData);
-      setBrandsLeaderboard(brandsData);
-
-      if (ORGS_LEADERBOARD_CACHE && ORGS_LEADERBOARD_CACHE_META) {
-        ORGS_LEADERBOARD_CACHE.set(
-          orgsCacheKey,
-          orgsData,
-          LEADERBOARD_CACHE_TTL_MS,
-        );
-        ORGS_LEADERBOARD_CACHE_META.set(
-          orgsCacheKey,
-          new Date().toISOString(),
-          LEADERBOARD_CACHE_TTL_MS,
-        );
+  const fetchLeaderboards = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!startDateKey || !endDateKey) {
+        return;
       }
 
-      if (BRANDS_LEADERBOARD_CACHE && BRANDS_LEADERBOARD_CACHE_META) {
-        BRANDS_LEADERBOARD_CACHE.set(
-          brandsCacheKey,
-          brandsData,
-          LEADERBOARD_CACHE_TTL_MS,
-        );
-        BRANDS_LEADERBOARD_CACHE_META.set(
-          brandsCacheKey,
-          new Date().toISOString(),
-          LEADERBOARD_CACHE_TTL_MS,
-        );
-      }
+      requestRef.current?.abort();
+      const controller = new AbortController();
+      requestRef.current = controller;
+      const isCancelled = () =>
+        controller.signal.aborted || Boolean(signal?.aborted);
+      try {
+        setIsLeaderboardLoading(true);
 
-      setIsLeaderboardUsingCache(false);
-      setLeaderboardCachedAt(null);
-    } catch (error) {
-      logger.error('Failed to fetch leaderboards', error);
+        const service = await getAnalyticsService();
+        const query: ILeaderboardQueryParams = {
+          endDate: endDateKey,
+          limit: 5,
+          sort: AnalyticsMetric.ENGAGEMENT,
+          startDate: startDateKey,
+        };
 
-      const cachedOrgs = ORGS_LEADERBOARD_CACHE?.get(orgsCacheKey) ?? [];
-      const cachedBrands = BRANDS_LEADERBOARD_CACHE?.get(brandsCacheKey) ?? [];
-      const cachedOrgsAt =
-        ORGS_LEADERBOARD_CACHE_META?.get(orgsCacheKey) ?? null;
-      const cachedBrandsAt =
-        BRANDS_LEADERBOARD_CACHE_META?.get(brandsCacheKey) ?? null;
+        const [orgsData, brandsData] = await Promise.all([
+          scope === PageScope.SUPERADMIN
+            ? service.getOrganizationsLeaderboard(query)
+            : Promise.resolve([]),
+          service.getBrandsLeaderboard(query),
+        ]);
 
-      if (cachedOrgs.length > 0 || cachedBrands.length > 0) {
-        setOrgsLeaderboard(cachedOrgs);
-        setBrandsLeaderboard(cachedBrands);
-        setIsLeaderboardUsingCache(true);
-        setLeaderboardCachedAt(cachedBrandsAt ?? cachedOrgsAt);
-      } else {
+        if (isCancelled()) return;
+        setOrgsLeaderboard(orgsData);
+        setBrandsLeaderboard(brandsData);
+
+        if (ORGS_LEADERBOARD_CACHE && ORGS_LEADERBOARD_CACHE_META) {
+          ORGS_LEADERBOARD_CACHE.set(
+            orgsCacheKey,
+            orgsData,
+            LEADERBOARD_CACHE_TTL_MS,
+          );
+          ORGS_LEADERBOARD_CACHE_META.set(
+            orgsCacheKey,
+            new Date().toISOString(),
+            LEADERBOARD_CACHE_TTL_MS,
+          );
+        }
+
+        if (BRANDS_LEADERBOARD_CACHE && BRANDS_LEADERBOARD_CACHE_META) {
+          BRANDS_LEADERBOARD_CACHE.set(
+            brandsCacheKey,
+            brandsData,
+            LEADERBOARD_CACHE_TTL_MS,
+          );
+          BRANDS_LEADERBOARD_CACHE_META.set(
+            brandsCacheKey,
+            new Date().toISOString(),
+            LEADERBOARD_CACHE_TTL_MS,
+          );
+        }
+
         setIsLeaderboardUsingCache(false);
         setLeaderboardCachedAt(null);
+      } catch (error) {
+        if (isCancelled()) return;
+        logger.error('Failed to fetch leaderboards', error);
+
+        const cachedOrgs = ORGS_LEADERBOARD_CACHE?.get(orgsCacheKey) ?? [];
+        const cachedBrands =
+          BRANDS_LEADERBOARD_CACHE?.get(brandsCacheKey) ?? [];
+        const cachedOrgsAt =
+          ORGS_LEADERBOARD_CACHE_META?.get(orgsCacheKey) ?? null;
+        const cachedBrandsAt =
+          BRANDS_LEADERBOARD_CACHE_META?.get(brandsCacheKey) ?? null;
+
+        if (cachedOrgs.length > 0 || cachedBrands.length > 0) {
+          setOrgsLeaderboard(cachedOrgs);
+          setBrandsLeaderboard(cachedBrands);
+          setIsLeaderboardUsingCache(true);
+          setLeaderboardCachedAt(cachedBrandsAt ?? cachedOrgsAt);
+        } else {
+          setIsLeaderboardUsingCache(false);
+          setLeaderboardCachedAt(null);
+        }
+      } finally {
+        if (!isCancelled()) setIsLeaderboardLoading(false);
       }
-    } finally {
-      setIsLeaderboardLoading(false);
-    }
-  }, [
-    brandsCacheKey,
-    endDateKey,
-    getAnalyticsService,
-    orgsCacheKey,
-    scope,
-    startDateKey,
-  ]);
+    },
+    [
+      brandsCacheKey,
+      endDateKey,
+      getAnalyticsService,
+      orgsCacheKey,
+      scope,
+      startDateKey,
+    ],
+  );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: The key includes explicit refresh events that restart the request.
   useEffect(() => {
-    if (
-      (options.initialBrandsLeaderboard || options.initialOrgsLeaderboard) &&
-      options.revalidateOnMount === false
-    ) {
-      return;
-    }
-
-    fetchLeaderboards();
-  }, [
-    fetchLeaderboards,
-    options.initialBrandsLeaderboard,
-    options.initialOrgsLeaderboard,
-    options.revalidateOnMount,
-  ]);
+    if (skipInitialFetch) return;
+    const controller = new AbortController();
+    void fetchLeaderboards(controller.signal);
+    return () => controller.abort();
+  }, [fetchLeaderboards, skipInitialFetch, hydrationKey]);
 
   return {
     brandsLeaderboard,

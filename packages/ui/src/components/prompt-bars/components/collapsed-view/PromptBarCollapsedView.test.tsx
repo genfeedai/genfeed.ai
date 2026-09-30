@@ -1,3 +1,8 @@
+import {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+} from '@genfeedai/contracts';
 import { render, screen } from '@testing-library/react';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,9 +13,12 @@ vi.mock('react-hook-form', () => ({
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ children, onClick }: any) => (
-    <button onClick={onClick}>{children}</button>
-  ),
+  default: ({
+    children,
+    onClick,
+  }: import('react').ComponentProps<
+    typeof import('@ui/buttons/base/Button').default
+  >) => <button onClick={onClick}>{children}</button>,
 }));
 
 const promptEditorProps: { extraExtensions?: unknown } = {};
@@ -47,7 +55,9 @@ vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: ({ src, alt }: any) => <input type="image" src={src} alt={alt} />,
+  default: ({ src, alt }: import('react').ComponentProps<'input'>) => (
+    <input type="image" src={src} alt={alt} />
+  ),
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({
@@ -65,15 +75,18 @@ describe('PromptBarCollapsedView', () => {
 
   const defaultProps = {
     activeGenerationsCount: 0,
-    categoryType: 'image' as const,
+    categoryType: IngredientCategory.IMAGE,
     collapsedInputRef: { current: null },
-    currentModelCategory: 'image',
-    form: mockForm as any,
+    currentModelCategory: ModelCategory.IMAGE,
+    form: mockForm as unknown as import('react').ComponentProps<
+      typeof PromptBarCollapsedView
+    >['form'],
     formatIcon: <span>icon</span>,
     generateLabel: 'Generate',
     isDisabled: false,
     isFormValid: true,
     isGenerateDisabled: false,
+    isGenerateBlocked: false,
     isGenerating: false,
     isInternalUpdateRef: { current: false },
     isProcessing: false,
@@ -87,12 +100,12 @@ describe('PromptBarCollapsedView', () => {
     onTextChange: vi.fn(),
     outputs: 1,
     placeholder: 'Enter text…',
-    referenceSource: null,
+    referenceSource: '' as const,
     references: [],
     generationMeter: null,
     selectedModelCost: 1,
     toggleVoice: vi.fn(),
-    watchedFormat: 'portrait',
+    watchedFormat: IngredientFormat.PORTRAIT,
   };
 
   it('should render without crashing', () => {

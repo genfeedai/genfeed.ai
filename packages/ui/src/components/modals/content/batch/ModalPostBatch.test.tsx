@@ -11,11 +11,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/modal/Modal').default
+  >) => <div data-testid="modal">{children}</div>,
 }));
 
 vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
+  default: ({
+    children,
+  }: import('react').ComponentProps<
+    typeof import('@ui/modals/actions/ModalActions').default
+  >) => <div>{children}</div>,
 }));
 
 vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({

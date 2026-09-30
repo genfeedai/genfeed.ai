@@ -56,7 +56,7 @@ describe('getPublicArticlesPageCached', () => {
 });
 
 describe('generateMetadata', () => {
-  it('canonicalises /articles and reuses parent OpenGraph images', async () => {
+  it('canonicalises /articles and assigns its dedicated image', async () => {
     const parent = Promise.resolve({
       openGraph: { images: [{ url: 'https://cdn.genfeed.ai/og.png' }] },
     }) as unknown as Parameters<typeof generateMetadata>[1];
@@ -65,15 +65,27 @@ describe('generateMetadata', () => {
 
     expect(meta.alternates?.canonical).toMatch(/\/articles$/);
     expect(meta.openGraph?.images).toEqual([
-      { url: 'https://cdn.genfeed.ai/og.png' },
+      expect.objectContaining({
+        url: 'https://genfeed.ai/og/articles',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
     ]);
     expect(meta.twitter?.card).toBe('summary_large_image');
   });
 
-  it('tolerates a parent without OpenGraph images', async () => {
+  it('assigns its dedicated image without parent images', async () => {
     const meta = await generateMetadata(undefined, EMPTY_PARENT);
 
-    expect(meta.openGraph?.images).toEqual([]);
+    expect(meta.openGraph?.images).toEqual([
+      expect.objectContaining({
+        url: 'https://genfeed.ai/og/articles',
+        width: 1200,
+        height: 630,
+        type: 'image/png',
+      }),
+    ]);
   });
 });
 
