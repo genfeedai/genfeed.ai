@@ -3,6 +3,7 @@ import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { StoryboardRunsController } from '@api/collections/content-runs/controllers/storyboard-runs.controller';
 import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
 import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
@@ -32,6 +33,9 @@ import { ContentRunRecommendationsService } from '@api/collections/content-runs/
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { PausedMetaCampaignDraftService } from '@api/collections/content-runs/services/paused-meta-campaign-draft.service';
 import { PausedXAdsCampaignDraftService } from '@api/collections/content-runs/services/paused-x-ads-campaign-draft.service';
+import { StoryboardRunStoreService } from '@api/collections/content-runs/services/storyboard-run-store.service';
+import { StoryboardRunsService } from '@api/collections/content-runs/services/storyboard-runs.service';
+import { StoryboardSourceService } from '@api/collections/content-runs/services/storyboard-source.service';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { ModelsModule } from '@api/collections/models/models.module';
@@ -59,8 +63,13 @@ import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [BrandRemixGenerationController, ContentRunsController],
+  controllers: [
+    StoryboardRunsController,
+    BrandRemixGenerationController,
+    ContentRunsController,
+  ],
   exports: [
+    StoryboardRunsService,
     BrandRemixSceneService,
     BrandRemixRunsService,
     ContentRunsService,
@@ -93,6 +102,9 @@ import { Module } from '@nestjs/common';
     XAdsModule,
   ],
   providers: [
+    StoryboardRunsService,
+    StoryboardRunStoreService,
+    StoryboardSourceService,
     AgentGenerationEstimateService,
     BrandRemixSceneService,
     BrandRemixSceneStoreService,

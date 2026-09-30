@@ -67,11 +67,11 @@ export * from '@serializers/server/content/release-group.serializer';
 export * from '@serializers/server/content/rss-source.serializer';
 export * from '@serializers/server/content/schedule.serializer';
 export * from '@serializers/server/content/speech-transcription.serializer';
+export * from '@serializers/server/content/storyboard-run.serializer';
+export * from '@serializers/server/content/storyboard-run-summary.serializer';
 export * from '@serializers/server/content/studio-generate-draft.serializer';
 export * from '@serializers/server/content/studio-look.serializer';
 export * from '@serializers/server/content/template.serializer';
 export * from '@serializers/server/content/workspace-task-realtime.builder';
-
 export * from './remotion-composition.serializer';
-
 export * from './remotion-render.serializer';
