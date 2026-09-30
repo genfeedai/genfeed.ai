@@ -468,7 +468,6 @@
     "packages/pages/studio/storyboard/components/MergeProgressPanel.tsx": 2,
     "packages/pages/studio/storyboard/components/MergeSettingsPanel.tsx": 7,
     "packages/pages/studio/storyboard/components/SceneFrameRow.tsx": 4,
-    "packages/pages/studio/storyboard/StoryboardWorkspace.tsx": 25,
     "packages/pages/trainings/list/components/TrainingsTableActions.tsx": 3,
     "packages/pages/trainings/list/components/TrainingsTableColumns.tsx": 8,
     "packages/pages/trainings/list/trainings-list.tsx": 6,
