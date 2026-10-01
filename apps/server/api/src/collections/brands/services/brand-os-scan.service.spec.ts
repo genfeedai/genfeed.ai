@@ -76,6 +76,11 @@ function envelope(): WebsiteBrandScrapeEvidence {
     ],
   };
 }
+function storedJson(value: unknown): Prisma.JsonValue {
+  // The write normalizer performs a JSON roundtrip, including undefined removal
+  // and JSON null normalization; this fixture represents its persisted read value.
+  return toPrismaJson(value) as Prisma.JsonValue;
+}
 function approved(): BrandOsRevision {
   const content = buildBrandKitDraftFromBrand({
     id: BRAND,
@@ -102,7 +107,7 @@ function approved(): BrandOsRevision {
     id: 'approved-A',
     brandId: BRAND,
     organizationId: ORG,
-    content: toPrismaJson(content),
+    content: storedJson(content),
     status: BrandOsRevisionStatus.APPROVED,
     version: 1,
     isDeleted: false,
@@ -118,6 +123,28 @@ function harness(initial: BrandOsRevision[] = []) {
   const state: ScanDatabase = {
     brand: {
       id: BRAND,
+      createdAt: NOW,
+      updatedAt: NOW,
+      userId: null,
+      slug: BRAND,
+      isDefault: false,
+      scope: 'USER',
+      isActive: true,
+      isHighlighted: false,
+      isFleetEnabled: false,
+      referenceImages: [],
+      voiceIngredientId: null,
+      musicIngredientId: null,
+      defaultVideoModel: null,
+      isPromptEnhancementEnabled: null,
+      defaultImageModel: null,
+      defaultImageToVideoModel: null,
+      defaultMusicModel: null,
+      watermarkText: null,
+      watermarkLogoId: null,
+      watermarkOpacity: 0.35,
+      watermarkPosition: 'bottom-right',
+      isSocialHistoryImportEnabled: true,
       organizationId: ORG,
       isDeleted: false,
       label: 'Current Brand',
@@ -129,7 +156,7 @@ function harness(initial: BrandOsRevision[] = []) {
       backgroundColor: 'transparent',
       agentConfig: { unrelated: 'retained' },
       brandOsRevisionVersion: initial.length,
-    } as Brand,
+    },
     rows: structuredClone(initial),
   };
   const tx = {
@@ -144,9 +171,7 @@ function harness(initial: BrandOsRevision[] = []) {
       ),
       update: vi.fn(async (args: Prisma.BrandUpdateArgs) => {
         if (args.data.agentConfig !== undefined)
-          state.brand.agentConfig = JSON.parse(
-            JSON.stringify(args.data.agentConfig),
-          ) as Prisma.JsonValue;
+          state.brand.agentConfig = storedJson(args.data.agentConfig);
         if (args.data.brandOsRevisionVersion)
           state.brand.brandOsRevisionVersion++;
         return structuredClone(state.brand);
@@ -166,7 +191,7 @@ function harness(initial: BrandOsRevision[] = []) {
           ...approved(),
           id: `draft-${state.brand.brandOsRevisionVersion}`,
           version: state.brand.brandOsRevisionVersion,
-          content: JSON.parse(JSON.stringify(data.content)) as Prisma.JsonValue,
+          content: storedJson(data.content),
           status: BrandOsRevisionStatus.DRAFT,
           approvedAt: null,
         };
@@ -319,7 +344,7 @@ describe('BrandOsScanService durable bounded scan', () => {
   );
   it('persists ready as reviewable DRAFT only when helper readiness and all diagnostics allow it', async () => {
     const h = harness();
-    h.state.brand.agentConfig = toPrismaJson({
+    h.state.brand.agentConfig = storedJson({
       voice: { tone: 'direct', style: 'concise' },
     });
     const complete = envelope();
@@ -465,7 +490,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     const before = approved();
     const content = before.content as unknown as Record<string, unknown>;
     content.generationRules = { schemaVersion: 9 };
-    before.content = toPrismaJson(content);
+    before.content = storedJson(content);
     const h = harness([before]);
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.invalid_baseline',
@@ -517,7 +542,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     const before = approved();
     const content = before.content as unknown as IBrandKitDraft;
     content.status = 'ready';
-    before.content = toPrismaJson(content);
+    before.content = storedJson(content);
     const h = harness([before]);
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.invalid_content',
@@ -582,7 +607,7 @@ describe('BrandOsScanService durable bounded scan', () => {
         '界'.repeat(Math.floor(paddingBytes / 3)) +
         'x'.repeat(paddingBytes % 3);
       baseline.evidence[0].excerpt = padding;
-      baselineRow.content = toPrismaJson(baseline);
+      baselineRow.content = storedJson(baseline);
       const before = structuredClone(baselineRow);
       const draft = buildBrandKitDraftFromWebsiteScrape(
         source,
@@ -624,7 +649,7 @@ describe('BrandOsScanService durable bounded scan', () => {
     if (!content.fields.promptGuidelines)
       throw new Error('Fixture guidance field missing');
     content.fields.promptGuidelines.currentValue = '界'.repeat(90000);
-    before.content = toPrismaJson(content);
+    before.content = storedJson(content);
     const h = harness([before]);
     expect((await h.service.start(h.input)).errorCode).toBe(
       'brand_scan.content_too_large',
@@ -667,7 +692,7 @@ describe('BrandOsScanService durable bounded scan', () => {
         prior.status = 'running';
         prior.startedAt = new Date().toISOString();
         if (outcome === 'replaced') prior.id = randomUUID();
-        h.state.brand.agentConfig = toPrismaJson({
+        h.state.brand.agentConfig = storedJson({
           unrelated: 'retained',
           brandOsScan: prior,
         });
@@ -698,7 +723,7 @@ describe('BrandOsScanService durable bounded scan', () => {
   });
   it('does not reset malformed stored markers', async () => {
     const h = harness();
-    h.state.brand.agentConfig = toPrismaJson({
+    h.state.brand.agentConfig = storedJson({
       brandOsScan: { schemaVersion: 7 },
       unrelated: 'retained',
     });

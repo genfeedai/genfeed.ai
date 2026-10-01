@@ -31,6 +31,142 @@ if (explicitlyRequested && !connectionString)
   throw new Error(
     'BRAND_ONBOARDING_TEST_DATABASE_URL is required for the requested PostgreSQL proof',
   );
+interface ScanDatabaseFactories {
+  createAdapter: (connectionString: string) => PrismaPg;
+  createClient: (adapter: PrismaPg) => PrismaClient;
+}
+const INVALID_SCAN_DATABASE =
+  'Scan proof requires a loopback PostgreSQL database brand_onboarding_5785';
+function validateScanDatabaseUrl(value: string): string {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(INVALID_SCAN_DATABASE);
+  }
+  const blockedKeys = new Set([
+    'host',
+    'hostaddr',
+    'service',
+    'database',
+    'dbname',
+  ]);
+  if (
+    !['postgres:', 'postgresql:'].includes(url.protocol) ||
+    !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname) ||
+    url.pathname !== '/brand_onboarding_5785' ||
+    [...url.searchParams.keys()].some((key) =>
+      blockedKeys.has(key.toLowerCase()),
+    )
+  )
+    throw new Error(INVALID_SCAN_DATABASE);
+  return value;
+}
+function createIsolatedScanDatabase(
+  value: string,
+  factories: ScanDatabaseFactories,
+): PrismaClient {
+  const admitted = validateScanDatabaseUrl(value);
+  const adapter = factories.createAdapter(admitted);
+  return factories.createClient(adapter);
+}
+const scanDatabaseFactories: ScanDatabaseFactories = {
+  createAdapter: (connectionString) => new PrismaPg({ connectionString }),
+  createClient: (adapter) => new PrismaClient({ adapter }),
+};
+function rejectedFactories() {
+  return {
+    createAdapter: vi.fn<ScanDatabaseFactories['createAdapter']>(),
+    createClient: vi.fn<ScanDatabaseFactories['createClient']>(),
+  };
+}
+describe('Isolated scan database admission before construction', () => {
+  it.each([
+    'not a URL',
+    'http://localhost/brand_onboarding_5785',
+    'https://localhost/brand_onboarding_5785',
+    'file:///brand_onboarding_5785',
+    'postgres://remote.example/brand_onboarding_5785',
+    'postgres://127.0.0.2/brand_onboarding_5785',
+    'postgres://localhost.evil/brand_onboarding_5785',
+    'postgres:///brand_onboarding_5785',
+    'postgres://localhost/other_database',
+    'postgres://localhost',
+    'postgres://localhost/brand_onboarding_5785/',
+    'postgres://localhost/%62rand_onboarding_5785',
+    'postgres://localhost/brand_onboarding_5785?%68ost=localhost',
+  ])('rejects unsafe routing before either factory: %s', (value) => {
+    const factories = rejectedFactories();
+    expect(() => createIsolatedScanDatabase(value, factories)).toThrow(
+      INVALID_SCAN_DATABASE,
+    );
+    expect(factories.createAdapter).not.toHaveBeenCalled();
+    expect(factories.createClient).not.toHaveBeenCalled();
+  });
+  it.each(['host', 'HOST', 'hostaddr', 'service', 'database', 'dbname'])(
+    'rejects decoded routing override %s regardless of value',
+    (key) => {
+      const url = new URL('postgres://localhost/brand_onboarding_5785');
+      url.searchParams.append(key, 'localhost');
+      const factories = rejectedFactories();
+      expect(() =>
+        createIsolatedScanDatabase(url.toString(), factories),
+      ).toThrow(INVALID_SCAN_DATABASE);
+      expect(factories.createAdapter).not.toHaveBeenCalled();
+      expect(factories.createClient).not.toHaveBeenCalled();
+    },
+  );
+  it('rejects repeated safe and unsafe host overrides before construction', () => {
+    const url = new URL('postgres://localhost/brand_onboarding_5785');
+    url.searchParams.append('host', 'localhost');
+    url.searchParams.append('host', 'remote.example');
+    const factories = rejectedFactories();
+    expect(() => createIsolatedScanDatabase(url.toString(), factories)).toThrow(
+      INVALID_SCAN_DATABASE,
+    );
+    expect(factories.createAdapter).not.toHaveBeenCalled();
+    expect(factories.createClient).not.toHaveBeenCalled();
+  });
+  it('never includes supplied credentials or URL in the admission error', () => {
+    const url = new URL('postgres://remote.example/brand_onboarding_5785');
+    url.username = 'synthetic_scan_user';
+    url.password = 'synthetic_scan_password';
+    const factories = rejectedFactories();
+    let message = '';
+    try {
+      createIsolatedScanDatabase(url.toString(), factories);
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toBe(INVALID_SCAN_DATABASE);
+    expect(message).not.toContain(url.username);
+    expect(message).not.toContain(url.password);
+    expect(message).not.toContain(url.toString());
+    expect(factories.createAdapter).not.toHaveBeenCalled();
+    expect(factories.createClient).not.toHaveBeenCalled();
+  });
+  it.each([
+    'postgres://localhost/brand_onboarding_5785',
+    'postgresql://localhost/brand_onboarding_5785',
+    'postgres://127.0.0.1:5432/brand_onboarding_5785?sslmode=disable',
+    'postgresql://[::1]:5432/brand_onboarding_5785?sslmode=disable',
+  ])(
+    'admits the original loopback URL before the sentinel factory: %s',
+    (value) => {
+      const sentinel = new Error('admitted before real construction');
+      const factories = rejectedFactories();
+      factories.createAdapter.mockImplementation(() => {
+        throw sentinel;
+      });
+      expect(() => createIsolatedScanDatabase(value, factories)).toThrow(
+        sentinel,
+      );
+      expect(factories.createAdapter).toHaveBeenCalledExactlyOnceWith(value);
+      expect(factories.createClient).not.toHaveBeenCalled();
+    },
+  );
+});
+
 interface DatabaseIdentity {
   name: string;
 }
@@ -81,7 +217,7 @@ describe.skipIf(!connectionString)(
   () => {
     // No connection to DATABASE_URL or any active application database.
     const prisma = connectionString
-      ? new PrismaClient({ adapter: new PrismaPg({ connectionString }) })
+      ? createIsolatedScanDatabase(connectionString, scanDatabaseFactories)
       : null;
     function database(): PrismaClient {
       if (!prisma)
@@ -170,8 +306,6 @@ describe.skipIf(!connectionString)(
     beforeEach(async () => {
       if (!connectionString)
         throw new Error('BRAND_ONBOARDING_TEST_DATABASE_URL is required');
-      if (new URL(connectionString).pathname !== '/brand_onboarding_5785')
-        throw new Error('Scan proof requires database brand_onboarding_5785');
       const db = database();
       const names = await db.$queryRaw<DatabaseIdentity[]>(
         Prisma.sql`SELECT current_database() AS name`,
@@ -279,7 +413,12 @@ describe.skipIf(!connectionString)(
           id: brandId,
           organizationId,
           isDeleted: false,
-          agentConfig: { equals: previous.agentConfig },
+          agentConfig: {
+            equals:
+              previous.agentConfig === null
+                ? Prisma.JsonNull
+                : toPrismaJson(previous.agentConfig),
+          },
         },
         data: {
           agentConfig: toPrismaJson({
