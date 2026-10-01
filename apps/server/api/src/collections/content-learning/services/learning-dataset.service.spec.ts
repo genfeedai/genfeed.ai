@@ -3,7 +3,7 @@ import {
   LearningDatasetService,
   validateLearningRows,
 } from '@api/collections/content-learning/services/learning-dataset.service';
-import type { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
+import { LearningDependencyService } from '@api/collections/content-learning/services/learning-dependency.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -231,37 +231,42 @@ describe('bounded dataset graph validation', () => {
     expect(f.tx.contentLearningReward.findMany).toHaveBeenCalledTimes(1);
     expect(f.tx.contentLearningDependency.findMany).toHaveBeenCalledTimes(2);
   });
-  it.each([
-    [],
-    [{ ...edge, valid: false }],
-    [{ ...edge, sourceKind: 'unknown' }],
-    [{ ...edge, sourceVersion: 'current' }],
-    [{ ...edge, sourceVersion: 'changed' }],
-    [{ ...edge, sourceOrganizationId: 'org' }],
-    [{ ...edge, sourceId: 'missing' }],
+  it.each(
     [
-      {
-        ...edge,
-        sourceKind: 'reward',
-        sourceId: 'reward',
-        sourceVersion: '1',
-        sourceOrganizationId: 'org',
-      },
-    ],
-    [
-      {
-        ...edge,
-        sourceKind: 'reward',
-        sourceId: 'reward',
-        sourceVersion: '1',
-        sourceOrganizationId: 'foreign',
-      },
-    ],
-  ])('rejects invalid/missing/scoped/cyclic dependencies %#', async (edges) => {
-    const f = graph(edges);
-    await f.graph.load([root]);
-    expect(f.graph.valid(root)).toBe(false);
-  });
+      [],
+      [{ ...edge, valid: false }],
+      [{ ...edge, sourceKind: 'unknown' }],
+      [{ ...edge, sourceVersion: 'current' }],
+      [{ ...edge, sourceVersion: 'changed' }],
+      [{ ...edge, sourceOrganizationId: 'org' }],
+      [{ ...edge, sourceId: 'missing' }],
+      [
+        {
+          ...edge,
+          sourceKind: 'reward',
+          sourceId: 'reward',
+          sourceVersion: '1',
+          sourceOrganizationId: 'org',
+        },
+      ],
+      [
+        {
+          ...edge,
+          sourceKind: 'reward',
+          sourceId: 'reward',
+          sourceVersion: '1',
+          sourceOrganizationId: 'foreign',
+        },
+      ],
+    ].map((edges) => ({ edges })),
+  )(
+    'rejects invalid/missing/scoped/cyclic dependencies %#',
+    async ({ edges }) => {
+      const f = graph(edges);
+      await f.graph.load([root]);
+      expect(f.graph.valid(root)).toBe(false);
+    },
+  );
   it('rejects node, edge and depth overflow with small configured bounds', async () => {
     for (const limits of [
       { nodes: 1, edges: 10, levels: 10 },
@@ -270,6 +275,123 @@ describe('bounded dataset graph validation', () => {
     ]) {
       await expect(graph([edge], limits).graph.load([root])).rejects.toThrow(
         'selection too large',
+      );
+    }
+  });
+});
+
+describe('dataset pin parity with the shared resolver', () => {
+  it('resolves all registered kinds with current immutable pin semantics', async () => {
+    const kinds = [
+      'organization',
+      'brand',
+      'credential',
+      'post',
+      'account',
+      'consent',
+      'checkpoint',
+      'baseline',
+      'decision',
+      'reward',
+      'policy',
+      'dataset',
+      'run',
+      'shared-policy',
+      'release',
+      'config',
+      'experiment',
+      'enrollment',
+      'opportunity',
+      'experiment-event',
+      'provider_attempt',
+      'llm_vendor_cost',
+      'media_vendor_cost',
+      'publish_approval',
+      'post_publish_finalization',
+      'content_version_pin',
+    ] as const;
+    const value = {
+      id: 'id',
+      organizationId: 'id',
+      accountId: 'id',
+      epoch: 2,
+      sharingConsentVersion: 3,
+      version: 3,
+      revision: 4,
+      fingerprint: 'fingerprint',
+      payloadHash: 'payload',
+      manifestHash: 'manifest',
+      configHash: 'hash',
+      specHash: 'spec',
+      accountEpoch: 2,
+      consentNoticeVersion: 'notice',
+      sourceId: 'id',
+      sourceRevision: 'revision',
+      learningAttemptId: 'attempt',
+      updatedAt: new Date('2026-09-01'),
+      artifactVersionPinId: 'artifact',
+      postId: 'id',
+      completedAt: new Date('2026-09-01'),
+      source: 'fixture',
+      contentDigest: 'digest',
+      granted: true,
+      revokedAt: null,
+    };
+    const names = [
+      'organization',
+      'brand',
+      'credential',
+      'post',
+      'contentLearningAccount',
+      'contentLearningConsent',
+      'contentLearningCheckpoint',
+      'contentLearningBaseline',
+      'contentLearningDecision',
+      'contentLearningReward',
+      'contentLearningPolicyVersion',
+      'contentLearningDataset',
+      'contentLearningRun',
+      'contentLearningSharedPolicy',
+      'contentLearningRelease',
+      'contentLearningExperiment',
+      'contentLearningEnrollment',
+      'contentLearningOpportunity',
+      'contentLearningExperimentEvent',
+      'llmVendorCost',
+      'mediaVendorCost',
+      'publishApproval',
+      'postPublishFinalization',
+      'contentVersionPin',
+    ];
+    const tx = Object.fromEntries(
+      names.map((name) => [
+        name,
+        {
+          findMany: vi.fn().mockResolvedValue([value]),
+          findFirst: vi.fn().mockResolvedValue(value),
+        },
+      ]),
+    );
+    Object.assign(tx, { $queryRaw: vi.fn().mockResolvedValue([value]) });
+    const prisma = tx as unknown as PrismaService;
+    const shared = new LearningDependencyService(prisma);
+    const graph = new LearningDatasetGraph(prisma);
+    for (const kind of kinds) {
+      const global = [
+        'dataset',
+        'run',
+        'shared-policy',
+        'release',
+        'config',
+      ].includes(kind);
+      const id = kind === 'config' ? 'numeric-nine-v1' : 'id',
+        organizationId = global ? null : 'id';
+      const resolved = await shared.resolve(kind, id, organizationId, prisma);
+      expect((await graph.pins(kind, [id], organizationId)).get(id)).toBe(
+        resolved.version,
+      );
+      expect((await graph.pins(kind, [id], global ? 'wrong' : null)).size).toBe(
+        0,
       );
     }
   });
