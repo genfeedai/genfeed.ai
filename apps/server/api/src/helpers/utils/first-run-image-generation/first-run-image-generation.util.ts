@@ -52,3 +52,54 @@ export function collectFirstRunReferenceIds(
 
   return [...new Set(ids)].slice(0, FIRST_RUN_REFERENCE_LIMIT);
 }
+
+export type FirstRunOnboardingImageBodyInput = {
+  brandId?: string;
+  height: number;
+  onReferenceError?: (error: unknown) => void;
+  organizationId: string;
+  prompt: string;
+  resolveBrandKitAssets?: (
+    brandId: string,
+    organizationId: string,
+  ) => Promise<IBrandKitResolvedAssets>;
+  runId?: string;
+  strategyId?: string;
+  width: number;
+};
+
+async function readFirstRunBrandVisualReferenceIds(
+  input: FirstRunOnboardingImageBodyInput,
+): Promise<string[]> {
+  if (!input.brandId || !input.resolveBrandKitAssets) {
+    return [];
+  }
+
+  try {
+    return collectFirstRunReferenceIds(
+      await input.resolveBrandKitAssets(input.brandId, input.organizationId),
+    );
+  } catch (error: unknown) {
+    input.onReferenceError?.(error);
+    return [];
+  }
+}
+
+export async function buildFirstRunOnboardingImageBody(
+  input: FirstRunOnboardingImageBodyInput,
+): Promise<Record<string, unknown>> {
+  const routing = resolveFirstRunImageRouting();
+  const references = await readFirstRunBrandVisualReferenceIds(input);
+
+  return {
+    ...routing,
+    height: input.height,
+    prompt: input.prompt,
+    text: input.prompt,
+    waitForCompletion: true,
+    width: input.width,
+    ...(references.length > 0 ? { references } : {}),
+    ...(input.runId ? { workflowExecutionId: input.runId } : {}),
+    ...(input.strategyId ? { agentStrategyId: input.strategyId } : {}),
+  };
+}

@@ -29,6 +29,22 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock('next-intl', () => {
+  const copy: Record<string, string> = {
+    compiled: 'Compiled',
+    empty: 'No generations found',
+    enhanced: 'Enhanced',
+    loadError: 'Failed to load generation reviews',
+    noImage: 'No image',
+    original: 'Original',
+    resultAlt: 'Generated result',
+    title: 'Generation reviews',
+  };
+  return {
+    useTranslations: () => (key: string) => copy[key] ?? key,
+  };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));

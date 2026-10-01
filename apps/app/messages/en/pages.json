@@ -3830,6 +3830,19 @@
     "open": "Open template {name}",
     "details": "View details"
   },
+  "adminGenerations": {
+    "compiled": "Compiled",
+    "description": "Inspect generated images with original, enhanced, and compiled prompts",
+    "empty": "No generations found",
+    "enhanced": "Enhanced",
+    "layoutTitle": "Generations",
+    "loadError": "Failed to load generation reviews",
+    "noImage": "No image",
+    "original": "Original",
+    "promptsTab": "Prompts",
+    "resultAlt": "Generated result",
+    "title": "Generation reviews"
+  },
   "adminWorkflows": {
     "actions": {
       "delete": "Delete",

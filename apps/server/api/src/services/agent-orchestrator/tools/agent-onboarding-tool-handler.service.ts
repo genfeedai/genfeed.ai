@@ -8,10 +8,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import {
-  collectFirstRunReferenceIds,
-  resolveFirstRunImageRouting,
-} from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
+import { buildFirstRunOnboardingImageBody } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -910,27 +907,6 @@ export class AgentOnboardingToolHandler {
       success: true,
     };
   }
-  private async readBrandVisualReferenceIds(
-    ctx: ToolExecutionContext,
-  ): Promise<string[]> {
-    if (!ctx.brandId || !this.brandsService.resolveBrandKitAssets) {
-      return [];
-    }
-
-    try {
-      const kit = await this.brandsService.resolveBrandKitAssets(
-        ctx.brandId,
-        ctx.organizationId,
-      );
-      return collectFirstRunReferenceIds(kit);
-    } catch (error: unknown) {
-      this.loggerService.warn('Onboarding image skipped brand references', {
-        brandId: ctx.brandId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return [];
-    }
-  }
 
   private async generateOnboardingImage(
     prompt: string,
@@ -951,19 +927,21 @@ export class AgentOnboardingToolHandler {
     const dimensions = resolveAgentGenerationDimensions(
       DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
-    const routing = resolveFirstRunImageRouting();
-    const references = await this.readBrandVisualReferenceIds(ctx);
-    const body: Record<string, unknown> = {
-      ...routing,
+    const body = await buildFirstRunOnboardingImageBody({
+      brandId: ctx.brandId,
       height: dimensions.height,
+      onReferenceError: (error) =>
+        this.loggerService.warn('Onboarding image skipped brand references', {
+          brandId: ctx.brandId,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      organizationId: ctx.organizationId,
       prompt,
-      text: prompt,
-      waitForCompletion: true,
+      resolveBrandKitAssets: this.brandsService.resolveBrandKitAssets,
+      runId: ctx.runId,
+      strategyId: ctx.strategyId,
       width: dimensions.width,
-      ...(references.length > 0 ? { references } : {}),
-      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
-      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-    };
+    });
 
     try {
       const response = toMediaResponseRecord(

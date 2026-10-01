@@ -15,6 +15,7 @@ import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagina
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 const GENERATION_SKELETON_KEYS = [
@@ -62,6 +63,7 @@ function readResultImageUrl(ingredient: Ingredient): string {
 }
 
 function GenerationsPageContent() {
+  const t = useTranslations('pages.adminGenerations');
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString() ?? '';
   const parsedSearchParams = useMemo(
@@ -103,14 +105,14 @@ function GenerationsPageContent() {
           return;
         }
         logger.error('Failed to load generation reviews', error);
-        notificationsService.error('Failed to load generation reviews');
+        notificationsService.error(t('loadError'));
       } finally {
         if (!signal.aborted) {
           setIsLoading(false);
         }
       }
     },
-    [getIngredientsService, notificationsService, currentPage],
+    [getIngredientsService, notificationsService, currentPage, t],
   );
 
   useEffect(() => {
@@ -121,7 +123,7 @@ function GenerationsPageContent() {
 
   return (
     <WorkspaceSurface
-      title="Generation reviews"
+      title={t('title')}
       tone="muted"
       data-testid="content-generations-surface"
     >
@@ -131,7 +133,7 @@ function GenerationsPageContent() {
             <SkeletonCard key={key} showImage />
           ))
         ) : generations.length === 0 ? (
-          <CardEmptyContent label="No generations found" />
+          <CardEmptyContent label={t('empty')} />
         ) : (
           <>
             {generations.map((ingredient) => {
@@ -146,7 +148,7 @@ function GenerationsPageContent() {
                     <div className="overflow-hidden rounded-md bg-foreground/5">
                       {imageUrl ? (
                         <Image
-                          alt={original || 'Generated result'}
+                          alt={original || t('resultAlt')}
                           className="aspect-square w-full object-cover"
                           height={256}
                           src={imageUrl}
@@ -155,7 +157,7 @@ function GenerationsPageContent() {
                         />
                       ) : (
                         <div className="flex aspect-square items-center justify-center text-sm text-foreground/60">
-                          No image
+                          {t('noImage')}
                         </div>
                       )}
                     </div>
@@ -178,7 +180,7 @@ function GenerationsPageContent() {
                       </p>
                       {original ? (
                         <div className="mb-3">
-                          <p className="mb-1 font-medium">Original</p>
+                          <p className="mb-1 font-medium">{t('original')}</p>
                           <p className="whitespace-pre-wrap text-foreground/80">
                             {original}
                           </p>
@@ -186,7 +188,7 @@ function GenerationsPageContent() {
                       ) : null}
                       {enhanced ? (
                         <div className="mb-3">
-                          <p className="mb-1 font-medium">Enhanced</p>
+                          <p className="mb-1 font-medium">{t('enhanced')}</p>
                           <p className="whitespace-pre-wrap text-foreground/80">
                             {enhanced}
                           </p>
@@ -194,7 +196,7 @@ function GenerationsPageContent() {
                       ) : null}
                       {ingredient.generationPrompt ? (
                         <div>
-                          <p className="mb-1 font-medium">Compiled</p>
+                          <p className="mb-1 font-medium">{t('compiled')}</p>
                           <p className="whitespace-pre-wrap text-foreground/80">
                             {ingredient.generationPrompt}
                           </p>

@@ -6,9 +6,11 @@ import type { LayoutProps } from '@props/layout/layout.props';
 import Container from '@ui/layout/container/Container';
 import { Image } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 export default function GenerationsLayout({ children }: LayoutProps) {
+  const t = useTranslations('pages.adminGenerations');
   const { refresh } = useRouter();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -20,14 +22,20 @@ export default function GenerationsLayout({ children }: LayoutProps) {
 
   return (
     <Container
-      label="Generations"
-      description="Inspect generated images with original, enhanced, and compiled prompts"
+      label={t('layoutTitle')}
+      description={t('description')}
       icon={Image}
       headerTabs={{
         fullWidth: false,
         tabs: [
-          { href: APP_ROUTES.ADMIN.CONTENT.GENERATIONS, label: 'Generations' },
-          { href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST, label: 'Prompts' },
+          {
+            href: APP_ROUTES.ADMIN.CONTENT.GENERATIONS,
+            label: t('layoutTitle'),
+          },
+          {
+            href: APP_ROUTES.ADMIN.CONTENT.PROMPTS_LIST,
+            label: t('promptsTab'),
+          },
         ],
       }}
       right={
