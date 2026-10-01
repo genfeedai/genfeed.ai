@@ -1,6 +1,13 @@
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import { Metadata } from '@genfeedai/models/content/metadata.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { useStoryboardAssets } from '@pages/studio/storyboard/hooks/use-storyboard-assets';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@pages/studio/storyboard/hooks/use-storyboard-assets', () => ({
+  useStoryboardAssets: vi.fn(() => ({})),
+}));
 
 const mocks = vi.hoisted(() => ({
   openGallery: vi.fn(),
@@ -58,6 +65,7 @@ const run = {
     reviewRequired: true,
     target: { kind: 'organic', platform: 'tiktok' },
   },
+  brandId: 'brand-1',
   id: 'run-1',
   phase: 'prefilled',
   revision: 1,
@@ -66,7 +74,32 @@ const run = {
 describe('StoryboardRunRecipe', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(useStoryboardAssets).mockReturnValue({});
   });
+
+  it.each([undefined, '', '   '])(
+    'renders a contextual name for a real unnamed Image (%j)',
+    (label) => {
+      const asset = new Image({
+        id: 'style-ref',
+        brandId: 'brand-1',
+        ...(label === undefined ? {} : { metadata: new Metadata({ label }) }),
+      });
+      vi.mocked(useStoryboardAssets).mockReturnValue({
+        'image:style-ref': asset,
+      });
+      render(
+        <StoryboardRunRecipe
+          isWorking={false}
+          onGenerate={vi.fn()}
+          run={run}
+        />,
+      );
+      expect(screen.getByText('Reference 1')).toBeVisible();
+      expect(screen.queryByText('style-re')).toBeNull();
+      expect(screen.queryByText('style-ref')).toBeNull();
+    },
+  );
 
   it('restores the saved recipe and generates with the edited values', () => {
     const onGenerate = vi.fn();
@@ -109,11 +142,22 @@ describe('StoryboardRunRecipe', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add references' }));
     const [{ onSelect }] = mocks.openGallery.mock.calls[0] as [
-      { onSelect: (items: Array<{ id: string }>) => void },
+      {
+        onSelect: (
+          items: Array<{ id: string; brandId: string; metadataLabel: string }>,
+        ) => void;
+      },
     ];
-    act(() => onSelect([{ id: 'library-1' }, { id: 'style-ref' }]));
+    act(() =>
+      onSelect([
+        { id: 'library-1', brandId: 'brand-1', metadataLabel: 'Product photo' },
+        { id: 'style-ref', brandId: 'brand-1', metadataLabel: 'Style photo' },
+      ]),
+    );
+    expect(screen.getByText('Product photo')).toBeVisible();
+    expect(screen.queryByText('library-1')).toBeNull();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Remove reference style-ref' }),
+      screen.getByRole('button', { name: 'Remove reference Style photo' }),
     );
     fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
 

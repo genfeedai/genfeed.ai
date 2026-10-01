@@ -6,6 +6,7 @@ import type {
   IHttpInterceptorError,
   IHttpSanitizedError,
 } from '@genfeedai/contracts/interfaces/utils/http-interceptor-error.interface';
+import type { IHttpRequestOptions } from '@genfeedai/contracts/interfaces/utils/http-request-options.interface';
 import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
@@ -283,7 +284,7 @@ export abstract class HTTPBaseService {
     return config;
   };
 
-  private handleError = async (error: AxiosError) => {
+  handleError = async (error: AxiosError) => {
     // Silently ignore cancelled/aborted requests - check FIRST before any logging
     if (
       error.code === 'ERR_CANCELED' ||
@@ -334,11 +335,36 @@ export abstract class HTTPBaseService {
       const status = response?.status;
       const isExpectedClientStatus =
         status === 401 || status === 403 || status === 404 || status === 422;
+      const requestOptions = request as
+        | (InternalAxiosRequestConfig & IHttpRequestOptions)
+        | undefined;
+      const isSurfaceHandledStatus =
+        typeof status === 'number' &&
+        requestOptions?.handledErrorStatuses?.includes(status) === true;
+      let isSurfaceHandledResponse = false;
+      if (
+        typeof status === 'number' &&
+        Number.isFinite(status) &&
+        status >= 400 &&
+        typeof requestOptions?.handlesErrorResponse === 'function'
+      ) {
+        try {
+          isSurfaceHandledResponse =
+            requestOptions.handlesErrorResponse({
+              status,
+              data: response?.data,
+            }) === true;
+        } catch {
+          // Presentation policy must not replace the original request rejection.
+        }
+      }
       const shouldShowDebugModal =
         typeof window !== 'undefined' &&
         typeof status === 'number' &&
         status >= 400 &&
-        !isExpectedClientStatus;
+        !isExpectedClientStatus &&
+        !isSurfaceHandledStatus &&
+        !isSurfaceHandledResponse;
 
       if (shouldShowDebugModal) {
         openModal(ModalEnum.ERROR_DEBUG);

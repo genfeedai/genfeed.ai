@@ -7,11 +7,21 @@ import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-ke
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import {
+  AgentUntrustedContentGateService,
+  UNTRUSTED_CONTENT_WITHHELD_NOTICE,
+} from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
+import { EvaluateMcpToolResultDto } from '@api/services/agent-orchestrator/dto/evaluate-mcp-tool-result.dto';
+import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { getToolByName, getToolsForSurface } from '@genfeedai/actions';
+import {
+  type AgentToolResult,
+  isAgentUntrustedContentSource,
+  readAgentUntrustedContentSource,
+} from '@genfeedai/contracts/interfaces';
 
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -49,6 +59,7 @@ export class AgentToolsController {
     private readonly executor: AgentToolExecutorService,
     private readonly usersService: UsersService,
     private readonly loggerService: LoggerService,
+    private readonly untrustedContentGate: AgentUntrustedContentGateService,
   ) {}
 
   @Post(':name/execute')
@@ -114,11 +125,26 @@ export class AgentToolsController {
         );
       }
 
-      return await this.executor.executeTool(
+      const result = await this.executor.executeTool(
         name,
         body.parameters ?? {},
         context,
       );
+      const gated = await this.evaluateMcpResult(
+        name,
+        JSON.stringify(result),
+        organizationId,
+        userId,
+      );
+      if (gated.outcome === 'withheld') {
+        const withheld: AgentToolResult = {
+          success: false,
+          error: UNTRUSTED_CONTENT_WITHHELD_NOTICE,
+          creditsUsed: result.creditsUsed,
+        };
+        return withheld;
+      }
+      return result;
     } catch (error: unknown) {
       return ErrorResponse.handle(
         error,
@@ -128,8 +154,56 @@ export class AgentToolsController {
     }
   }
 
+  @Post(':name/result-gate')
+  @ApiOperation({
+    summary: 'Classify an authenticated MCP tool result observation',
+  })
+  async resultGate(
+    @Param('name') name: string,
+    @Body() body: EvaluateMcpToolResultDto,
+    @CurrentUser() user: User,
+    @Req() request: Request,
+  ) {
+    const organizationId = this.resolveOrganizationId(user);
+    const userId = await this.resolveDatabaseUserId(user);
+    const tool = getToolByName(name);
+    if (!tool)
+      throw new NotFoundException({ message: `Unknown tool: ${name}` });
+    if (
+      !tool.surfaces.mcp ||
+      !isAgentUntrustedContentSource(readAgentUntrustedContentSource(name))
+    ) {
+      throw new ForbiddenException(
+        `Tool ${name} has no external MCP result surface`,
+      );
+    }
+    if (tool.requiredRole !== 'user' && !getIsSuperAdmin(user, request)) {
+      throw new ForbiddenException(
+        `Tool ${name} requires ${tool.requiredRole}`,
+      );
+    }
+    return this.evaluateMcpResult(name, body.content, organizationId, userId);
+  }
+
+  private evaluateMcpResult(
+    name: string,
+    content: string,
+    organizationId: string,
+    userId: string,
+  ) {
+    return this.untrustedContentGate.evaluateToolResult({
+      brandId: null,
+      content,
+      context: { organizationId, userId },
+      origin: 'mcp',
+      threadId: null,
+      toolCallId: name,
+      toolName: name,
+    });
+  }
+
   private resolveOrganizationId(user: User): string {
-    const organization = user.organizationId;
+    const organization = user?.organizationId;
     if (!organization) {
       throw new UnauthorizedException(
         'Invalid organization context. Please sign in again.',

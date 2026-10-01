@@ -1,6 +1,8 @@
+import { createHash } from 'node:crypto';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildResearchCollectionRequestKey,
   RESEARCH_COLLECTION_JOB_STATUS,
   ResearchCollectionJobService,
 } from './research-collection-job.service';
@@ -272,6 +274,58 @@ describe('ResearchCollectionJobService', () => {
           leaseExpiresAt: { gt: new Date('2026-09-24T12:00:00.000Z') },
           leaseToken: 'lease-1',
           status: RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+        }),
+      }),
+    );
+  });
+  it('keeps legacy hashes identical and isolates explicit hosted source scope', () => {
+    const input = {
+      actorId: 'actor',
+      input: { query: 'x' },
+      organizationId: 'org-1',
+    };
+    const legacy = createHash('sha256')
+      .update(JSON.stringify(input))
+      .digest('hex');
+    expect(buildResearchCollectionRequestKey(input)).toBe(legacy);
+    expect(
+      buildResearchCollectionRequestKey({
+        ...input,
+        requestScope: 'social-source-hosted',
+      }),
+    ).not.toBe(legacy);
+  });
+  it('confirms submission only for the unexpired current starting lease', async () => {
+    const now = new Date();
+    await service.confirmSubmission(row, now);
+    expect(updateMany).toHaveBeenLastCalledWith({
+      data: { startAttemptedAt: now },
+      where: {
+        id: row.id,
+        organizationId: 'org-1',
+        isDeleted: false,
+        inflightRequestKey: 'request-1',
+        leaseToken: 'lease-1',
+        leaseExpiresAt: { gt: now },
+        status: 'starting',
+        upstreamRunId: null,
+        terminalReason: null,
+      },
+    });
+    updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(service.confirmSubmission(row, now)).resolves.toBe(false);
+  });
+  it('records bounded no-start reason without completing or clearing inflight ownership', async () => {
+    await service.markNoStart(row, 'access_denied');
+    expect(updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: { terminalReason: 'no_start:access_denied' },
+        where: expect.objectContaining({
+          inflightRequestKey: 'request-1',
+          leaseToken: 'lease-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+          upstreamRunId: null,
         }),
       }),
     );

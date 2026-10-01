@@ -15,7 +15,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getDefaultVideoResolution } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { useDesktopRuntimeContext } from '@genfeedai/hooks/ui/use-desktop-runtime-context/use-desktop-runtime-context';
 import type { StudioGenerateComposerProps } from '@genfeedai/props/studio/studio-generate.props';
+import { canSubmitStudioGeneration } from '@genfeedai/services/core/desktop-runtime.service';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import StudioGenerationSummary from '@pages/studio/generate/components/StudioGenerationSummary';
 import StudioIdentityFields from '@pages/studio/generate/components/StudioIdentityFields';
@@ -101,6 +103,11 @@ export default function StudioGenerateComposer({
   type,
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
+  const runtime = useDesktopRuntimeContext();
+  const isRuntimeBlocked = !canSubmitStudioGeneration(runtime);
+  const guardedSubmit = () => {
+    if (canSubmitStudioGeneration()) onSubmit();
+  };
   // Narrowed against the selected model's own registry capability — the
   // static per-type config is only the widest case across every music
   // model (see `resolveStudioGenerateCapabilities`).
@@ -155,6 +162,7 @@ export default function StudioGenerateComposer({
   // stale list, so the send button waits for the type's models to land.
   const isAwaitingModels = capabilities.hasModelSelection && isLoadingModels;
   const isSubmitBlocked =
+    isRuntimeBlocked ||
     isGenerating ||
     isPromptEmpty ||
     isFirstFrameMissing ||
@@ -297,7 +305,7 @@ export default function StudioGenerateComposer({
         onDocumentChange={onPromptDocumentChange}
         onSubmit={() => {
           if (!isSubmitBlocked) {
-            onSubmit();
+            guardedSubmit();
           }
         }}
         onValueChange={onPromptChange}
@@ -476,7 +484,7 @@ export default function StudioGenerateComposer({
               icon={<ArrowUp className="size-4" />}
               isDisabled={isSubmitBlocked}
               isLoading={isGenerating}
-              onClick={onSubmit}
+              onClick={guardedSubmit}
               size={ButtonSize.ICON}
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}

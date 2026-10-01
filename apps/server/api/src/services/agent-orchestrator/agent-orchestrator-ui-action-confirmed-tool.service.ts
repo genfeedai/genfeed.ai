@@ -13,10 +13,8 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import {
-  buildLogicalWriteKey,
-  type CuratedActionName,
-} from '@genfeedai/actions';
+import { type CuratedActionName } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { toRouterPriority } from '@genfeedai/contracts';
 import {
   type AgentToolResult,

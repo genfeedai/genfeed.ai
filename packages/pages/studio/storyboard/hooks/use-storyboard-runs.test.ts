@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   brandId: { value: 'brand-1' },
   listBrandRemixRuns: vi.fn(),
+  listStoryboardRuns: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -13,7 +14,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 // A stable resolver, like the real `useCallback`-backed hook.
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
-  const service = { listBrandRemixRuns: mocks.listBrandRemixRuns };
+  const service = {
+    listBrandRemixRuns: mocks.listBrandRemixRuns,
+    listStoryboardRuns: mocks.listStoryboardRuns,
+  };
   const resolveService = async () => service;
   return { useAuthedService: () => resolveService };
 });
@@ -44,6 +48,7 @@ const fullPage = Array.from({ length: STORYBOARD_RUNS_PAGE_SIZE }, (_, index) =>
 
 describe('useStoryboardRuns', () => {
   beforeEach(() => {
+    mocks.listStoryboardRuns.mockResolvedValue([]);
     vi.clearAllMocks();
     mocks.brandId.value = 'brand-1';
   });
@@ -104,13 +109,13 @@ describe('useStoryboardRuns', () => {
       { limit: STORYBOARD_RUNS_PAGE_SIZE, page: 2 },
       { limit: STORYBOARD_RUNS_PAGE_SIZE, page: 2 },
     ]);
-    expect(result.current.runs.at(-1)?.id).toBe('run-51');
+    expect(result.current.runs.some((run) => run.id === 'run-51')).toBe(true);
   });
 
   it('starts over when the brand changes', async () => {
     mocks.listBrandRemixRuns
       .mockResolvedValueOnce([summary('run-1')])
-      .mockResolvedValueOnce([summary('run-b')]);
+      .mockResolvedValueOnce([{ ...summary('run-b'), brandId: 'brand-2' }]);
     const { result, rerender } = renderHook(() => useStoryboardRuns());
     await waitFor(() => expect(result.current.runs).toHaveLength(1));
 

@@ -31,6 +31,7 @@ import {
   createPortraitAction,
   createPromptAction,
   createPublishAction,
+  createRemixVideoAction,
   createResizeAction,
   createReverseAction,
   createSeeDetailsAction,
@@ -87,6 +88,7 @@ const ACTION_SECTION_BY_ID: Partial<Record<string, MenuSection>> = {
   'convert-to-video': 'Transform',
   'copy-prompt': 'Library',
   remix: 'Transform',
+  'remix-video': 'Transform',
   'resize-landscape': 'Transform',
   'resize-portrait': 'Transform',
   'resize-square': 'Transform',
@@ -310,6 +312,14 @@ export function useQuickActions({
 
     if (isVideo) {
       actionsList.push(
+        copy?.remixThisVideo
+          ? createRemixVideoAction(
+              selectedIngredient,
+              handlers.onRemixVideo,
+              copy.remixThisVideo,
+              loadingStates.isCreatingStoryboard,
+            )
+          : null,
         createExtendAction(
           selectedIngredient,
           handlers.onExtend,
@@ -367,6 +377,7 @@ export function useQuickActions({
         createUseAsVideoReferenceAction(
           selectedIngredient,
           handlers.onUseAsVideoReference,
+          loadingStates.isCreatingStoryboard,
         ),
         // Hide "Set as Logo" and "Set as Banner" for GIFs
         !isGif

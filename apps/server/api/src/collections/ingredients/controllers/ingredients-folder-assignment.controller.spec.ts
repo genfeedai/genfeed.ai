@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { ContentEvaluationProjectionService } from '@api/collections/evaluations/services/content-evaluation-projection.service';
 import type { FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { IngredientsController } from '@api/collections/ingredients/controllers/ingredients.controller';
@@ -24,6 +25,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
     (_request: unknown, _serializer: unknown, data: unknown) => ({ data }),
   ),
 }));
+
+const evaluationProjection = {
+  attachToItem: vi.fn(async (item: object) => ({ ...item, evaluation: null })),
+  attachToPage: vi.fn(async (page: { docs: object[] }) => ({
+    ...page,
+    docs: page.docs.map((item) => ({ ...item, evaluation: null })),
+  })),
+};
 
 const organizationId = testId('org');
 const brandId = testId('brand');
@@ -106,6 +115,10 @@ describe('IngredientsController folder assignment', () => {
         {
           provide: MediaUrlService,
           useValue: { buildUrlFromAbsolute: (url: string) => url },
+        },
+        {
+          provide: ContentEvaluationProjectionService,
+          useValue: evaluationProjection,
         },
       ],
     })

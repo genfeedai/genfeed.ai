@@ -30,6 +30,14 @@ const { assetSelection, setSelectedAsset } = vi.hoisted(() => ({
 // The grid hands its single selection to the shared asset selection, and the
 // library surface adapter renders the rail from there. Stubbing the context is
 // what lets this test assert the handoff instead of the rail's markup.
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({
+    createFromAsset: vi.fn(),
+    canCreateFromAsset: () => false,
+    pendingAssetId: null,
+  }),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };

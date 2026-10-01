@@ -5,10 +5,8 @@ import {
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
-import {
-  buildLogicalWriteKey,
-  UNSUPPORTED_APPROVAL_ERROR,
-} from '@genfeedai/actions';
+import { UNSUPPORTED_APPROVAL_ERROR } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

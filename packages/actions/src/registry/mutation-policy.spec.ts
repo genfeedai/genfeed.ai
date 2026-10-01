@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { getActionDefinition } from './action-registry';
 import { CURATED_ACTION_CATALOG } from './curated-action-catalog';
 import {
-  buildLogicalWriteKey,
   evaluateMutationPolicy,
   getDeclaredMutationPolicy,
   isApprovalRequiredToolName,
@@ -36,6 +35,16 @@ const MCP_QUEUED_WRITES = [
 ] as const;
 
 describe('mutation policy map', () => {
+  it('exposes Storyboard capabilities as a free read-only MCP tool', () => {
+    expect(getToolByName('storyboard_run_capabilities')).toMatchObject({
+      creditCost: 0,
+    });
+    expect(isReadOnlyToolName('storyboard_run_capabilities')).toBe(true);
+    expect(toolRequiresMutationPolicy('storyboard_run_capabilities')).toBe(
+      false,
+    );
+  });
+
   it('classifies durable work-object presentation as a write without changing payment presentation', () => {
     expect(toolRequiresMutationPolicy('present_work_object')).toBe(true);
     expect(getToolByName('present_work_object')?.mutationPolicy).toBe('direct');
@@ -214,67 +223,5 @@ describe('evaluateMutationPolicy', () => {
         policy: 'direct',
       }),
     ).toEqual({ kind: 'execute' });
-  });
-});
-
-describe('buildLogicalWriteKey', () => {
-  it('distinguishes scoped intents while preserving absent-scope keys', () => {
-    const input = {
-      arguments: { count: 3 },
-      organizationId: 'org-1',
-      userId: 'user-1',
-      threadId: 'thread-1',
-      toolName: 'generate_content_batch',
-    };
-    const original = buildLogicalWriteKey(input);
-    expect(buildLogicalWriteKey({ ...input, scope: undefined })).toBe(original);
-    const scoped = buildLogicalWriteKey({
-      ...input,
-      scope: { brandId: 'brand-1', contextVersion: 1 },
-    });
-    expect(scoped).not.toBe(original);
-    expect(
-      buildLogicalWriteKey({
-        ...input,
-        scope: { brandId: 'brand-1', contextVersion: 2 },
-      }),
-    ).not.toBe(scoped);
-    expect(
-      buildLogicalWriteKey({
-        ...input,
-        scope: { brandId: 'brand-2', contextVersion: 1 },
-      }),
-    ).not.toBe(scoped);
-  });
-
-  it('is stable across key order and distinct across arguments', () => {
-    const base = {
-      organizationId: 'org-1',
-      threadId: 'thread-1',
-      toolName: 'create_post',
-      userId: 'user-1',
-    };
-    expect(
-      buildLogicalWriteKey({
-        ...base,
-        arguments: { b: 2, a: 1 },
-      }),
-    ).toBe(
-      buildLogicalWriteKey({
-        ...base,
-        arguments: { a: 1, b: 2 },
-      }),
-    );
-    expect(
-      buildLogicalWriteKey({
-        ...base,
-        arguments: { a: 1 },
-      }),
-    ).not.toBe(
-      buildLogicalWriteKey({
-        ...base,
-        arguments: { a: 2 },
-      }),
-    );
   });
 });

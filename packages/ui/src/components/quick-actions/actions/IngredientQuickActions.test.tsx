@@ -16,6 +16,14 @@ const mocks = vi.hoisted(() => ({
   useBrand: vi.fn(() => ({ settings: null })),
 }));
 
+vi.mock('@hooks/ui/use-storyboard-entry/use-storyboard-entry', () => ({
+  useStoryboardEntry: () => ({
+    createFromAsset: vi.fn(),
+    canCreateFromAsset: () => false,
+    isCreating: false,
+  }),
+}));
+
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
 }));

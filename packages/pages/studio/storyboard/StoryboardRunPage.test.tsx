@@ -3,6 +3,7 @@ import {
   BrandRemixOrganicPlatform,
   type BrandRemixRunView,
 } from '@genfeedai/contracts/api-types/contracts';
+import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { StoryboardRunRecipe } from '@genfeedai/contracts/interfaces';
 import type {
   StoryboardRunPanelProps,
@@ -78,7 +79,7 @@ vi.mock('next-intl', async () => {
   return { useTranslations: translateFromCatalog };
 });
 
-import StoryboardRunPage from './StoryboardRunPage';
+import { LegacyStoryboardRunPage as StoryboardRunPage } from './StoryboardRunPage';
 
 const run = {
   draft: {
@@ -103,6 +104,36 @@ const run = {
     title: 'Proof-led hook',
   },
 } as unknown as BrandRemixRunView;
+
+function handoffPipeline(
+  videos: Record<string, BrandRemixScenePipeline['scenes'][string]['video']>,
+): BrandRemixScenePipeline {
+  return {
+    version: 1,
+    language: 'en',
+    state: 'ready',
+    cancellationGeneration: 0,
+    receipts: [],
+    replacedAssetIds: [],
+    scenes: Object.fromEntries(
+      Object.entries(videos).map(([id, video]) => [
+        id,
+        {
+          identity: { avatarAssetId: 'avatar', speechVoiceId: 'voice' },
+          referenceAssetIds: [],
+          image: { attempt: 1, state: 'ready', assetId: `image-${id}` },
+          video,
+          replacedAssetIds: [],
+        },
+      ]),
+    ),
+    assembly: {
+      assetId: 'assembled',
+      orderedAssetIds: [],
+      transcription: { attempt: 1, state: 'ready' },
+    },
+  };
+}
 
 describe('StoryboardRunPage', () => {
   beforeEach(() => {
@@ -172,5 +203,56 @@ describe('StoryboardRunPage', () => {
     expect(mocks.preparePausedDraft).toHaveBeenCalledWith({
       destination: { adAccountId: 'act_1', credentialId: 'credential-1' },
     });
+  });
+  it('links ready shot videos to the existing scoped Editor creation route in order', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'ready', assetId: 'clip-a' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    const href = screen
+      .getByRole('link', { name: 'Open in Editor' })
+      .getAttribute('href');
+    expect(href?.startsWith('/acme/northstar/studio/editor/new?')).toBe(true);
+    expect(
+      new URL(href ?? '', 'https://example.test').searchParams.getAll('video'),
+    ).toEqual(['clip-b', 'clip-a']);
+  });
+  it('blocks incomplete individual clips even when assembly is ready', () => {
+    mocks.state = {
+      error: null,
+      status: 'ready',
+      run: {
+        ...run,
+        concept: {
+          savedAt: '2026-09-30T00:00:00Z',
+          storyboard: [
+            { id: 'b', ordinal: 1, visualIntent: 'Second' },
+            { id: 'a', ordinal: 2, visualIntent: 'First' },
+          ],
+        },
+        scenePipeline: handoffPipeline({
+          a: { attempt: 1, state: 'failed' },
+          b: { attempt: 1, state: 'ready', assetId: 'clip-b' },
+        }),
+      },
+    };
+    render(<StoryboardRunPage runId="run-1" />);
+    expect(screen.queryByRole('link', { name: 'Open in Editor' })).toBeNull();
+    expect(screen.getByRole('status')).toHaveTextContent('incomplete');
   });
 });

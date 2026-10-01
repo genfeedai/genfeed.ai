@@ -2,7 +2,10 @@ import type {
   IPersuasionScores,
   ITrendVideoPersuasionHighlight,
 } from '@genfeedai/contracts/interfaces';
-import { PERSUASION_LAYERS } from '@genfeedai/harness/contracts';
+import {
+  normalizePersuasionScores,
+  PERSUASION_LAYERS,
+} from '@genfeedai/harness/contracts';
 
 /**
  * Picks the single highest-scoring persuasion layer for a "why it works"
@@ -17,20 +20,35 @@ import { PERSUASION_LAYERS } from '@genfeedai/harness/contracts';
  */
 export function getPersuasionHighlight(
   persuasion: IPersuasionScores | undefined,
+  strengths?: readonly string[],
 ): ITrendVideoPersuasionHighlight | undefined {
-  if (!persuasion) {
+  const normalized = normalizePersuasionScores(persuasion);
+  if (!normalized) {
     return undefined;
   }
 
+  const savedStrengths: readonly unknown[] = Array.isArray(strengths)
+    ? strengths
+    : [];
+  const analysisNote = savedStrengths.find(
+    (strength): strength is string =>
+      typeof strength === 'string' && strength.trim().length > 0,
+  );
+
   return PERSUASION_LAYERS.reduce<ITrendVideoPersuasionHighlight | undefined>(
     (top, layer) => {
-      const score = persuasion[layer.scoreKey];
+      const score = normalized[layer.scoreKey];
 
       if (typeof score !== 'number' || (top && score <= top.score)) {
         return top;
       }
 
-      return { id: layer.id, label: layer.label, score };
+      return {
+        id: layer.id,
+        label: layer.label,
+        score,
+        analysisNote,
+      };
     },
     undefined,
   );

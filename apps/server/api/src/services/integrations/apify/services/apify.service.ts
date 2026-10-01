@@ -23,6 +23,7 @@ import { ApifyRedditService } from '@api/services/integrations/apify/services/mo
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
+import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Platform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -92,12 +93,20 @@ export class ApifyService {
   getTikTokUserVideos(
     username: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyTikTokVideo[]> {
-    return this.tiktokService.getTikTokUserVideos(username, options);
+    return this.tiktokService.getTikTokUserVideos(
+      username,
+      options,
+      researchContext,
+    );
   }
 
-  getTikTokVideoByUrl(videoUrl: string): Promise<ApifyTikTokVideo> {
-    return this.tiktokService.getTikTokVideoByUrl(videoUrl);
+  getTikTokVideoByUrl(
+    videoUrl: string,
+    researchContext?: SocialSourceResearchContext,
+  ): Promise<ApifyTikTokVideo> {
+    return this.tiktokService.getTikTokVideoByUrl(videoUrl, researchContext);
   }
 
   searchTikTokByHashtag(
@@ -127,12 +136,23 @@ export class ApifyService {
   getInstagramUserPosts(
     username: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyInstagramPost[]> {
-    return this.instagramService.getInstagramUserPosts(username, options);
+    return this.instagramService.getInstagramUserPosts(
+      username,
+      options,
+      researchContext,
+    );
   }
 
-  getInstagramPostByUrl(postUrl: string): Promise<ApifyInstagramPost> {
-    return this.instagramService.getInstagramPostByUrl(postUrl);
+  getInstagramPostByUrl(
+    postUrl: string,
+    researchContext?: SocialSourceResearchContext,
+  ): Promise<ApifyInstagramPost> {
+    return this.instagramService.getInstagramPostByUrl(
+      postUrl,
+      researchContext,
+    );
   }
 
   searchInstagramByHashtag(
@@ -158,15 +178,25 @@ export class ApifyService {
   getTwitterUserTimeline(
     username: string,
     options?: { limit?: number; sinceId?: string },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyNormalizedTweet[]> {
-    return this.twitterService.getTwitterUserTimeline(username, options);
+    return this.twitterService.getTwitterUserTimeline(
+      username,
+      options,
+      researchContext,
+    );
   }
 
   getTweetByUrl(
     tweetUrl: string,
     tweetId: string,
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyNormalizedTweet> {
-    return this.twitterService.getTweetByUrl(tweetUrl, tweetId);
+    return this.twitterService.getTweetByUrl(
+      tweetUrl,
+      tweetId,
+      researchContext,
+    );
   }
 
   getTwitterTweetReplies(
@@ -210,8 +240,13 @@ export class ApifyService {
   getYouTubeChannelUploads(
     channelUrl: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyYouTubeVideo[]> {
-    return this.youtubeService.getYouTubeChannelUploads(channelUrl, options);
+    return this.youtubeService.getYouTubeChannelUploads(
+      channelUrl,
+      options,
+      researchContext,
+    );
   }
 
   searchYouTubeVideos(
@@ -264,8 +299,13 @@ export class ApifyService {
   getLinkedInProfilePosts(
     profileUrl: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyLinkedInPost[]> {
-    return this.linkedinService.getLinkedInProfilePosts(profileUrl, options);
+    return this.linkedinService.getLinkedInProfilePosts(
+      profileUrl,
+      options,
+      researchContext,
+    );
   }
 
   // ==================== Pinterest ====================

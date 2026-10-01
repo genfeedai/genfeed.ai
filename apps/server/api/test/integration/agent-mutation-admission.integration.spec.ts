@@ -4,7 +4,7 @@ import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { buildLogicalWriteKey } from '@genfeedai/actions';
+import { buildLogicalWriteKey } from '@genfeedai/actions/server';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import { ConflictException } from '@nestjs/common';

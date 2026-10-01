@@ -7,10 +7,10 @@ import {
   type CuratedActionCatalogEntry,
 } from '@eval-actions/registry/curated-action-catalog';
 import {
-  buildLogicalWriteKey,
   evaluateMutationPolicy,
   getDeclaredMutationPolicy,
 } from '@eval-actions/registry/mutation-policy';
+import { buildLogicalWriteKey } from '@eval-actions/server';
 import { hasRenderableThreadState } from '@eval-agent/utils/has-renderable-thread-state';
 import {
   isAgentRuntimeTerminalState,

@@ -531,6 +531,105 @@ describe('BaseService', () => {
     });
   });
 
+  describe('findAllPage request-local recovery policy', () => {
+    it('passes only selected options in config and preserves pagination mapping', async () => {
+      const query = { brandId: 'brand-1', page: 2 };
+      const signal = new AbortController().signal;
+      service.getInstanceForTest().get.mockResolvedValue({
+        data: {
+          data: [{ id: '1', name: 'Test' }],
+          links: { pagination: { page: 2, pages: 3, total: 50, limit: 24 } },
+        },
+      });
+      const result = await service.findAllPage(query, signal, {
+        handledErrorStatuses: [503],
+      });
+      expect(service.getInstanceForTest().get).toHaveBeenCalledWith('', {
+        params: query,
+        signal,
+        handledErrorStatuses: [503],
+      });
+      const config = service.getInstanceForTest().get.mock.calls[0]?.[1];
+      if (!config) throw new Error('expected request config');
+      expect(config.params).toBe(query);
+      expect(config.signal).toBe(signal);
+      expect(config.params).not.toHaveProperty('handledErrorStatuses');
+      expect(config).not.toHaveProperty('headers');
+      expect(result).toMatchObject({
+        page: 2,
+        pageSize: 24,
+        total: 50,
+        totalPages: 3,
+        hasNext: true,
+        hasPrevious: true,
+      });
+      expect(result.items[0]).toBeInstanceOf(TestModel);
+      expect(result.items[0].id).toBe('1');
+    });
+
+    it('does not persist the allowlist for the next request on the same service', async () => {
+      service
+        .getInstanceForTest()
+        .get.mockResolvedValue({ data: { data: [] } });
+      await service.findAllPage({}, undefined, { handledErrorStatuses: [503] });
+      await service.findAllPage({ page: 1 });
+      expect(service.getInstanceForTest().get).toHaveBeenNthCalledWith(2, '', {
+        params: { page: 1 },
+        signal: undefined,
+      });
+    });
+
+    it('explicitly forwards the response predicate without leaking arbitrary options or affecting subsequent calls', async () => {
+      service
+        .getInstanceForTest()
+        .get.mockResolvedValue({ data: { data: [] } });
+      const predicate = vi.fn(() => true);
+      const query = { page: 2 };
+      const signal = new AbortController().signal;
+      const options = {
+        handlesErrorResponse: predicate,
+        handledErrorStatuses: [503],
+        unrecognized: 'must-not-forward',
+      };
+      await service.findAllPage(query, signal, options);
+      const config = service.getInstanceForTest().get.mock.calls[0]?.[1];
+      if (!config) throw new Error('expected request config');
+      expect(config).toEqual({
+        params: query,
+        signal,
+        handlesErrorResponse: predicate,
+        handledErrorStatuses: [503],
+      });
+      expect(config.params).toBe(query);
+      expect(config.signal).toBe(signal);
+      expect(config.params).not.toHaveProperty('handlesErrorResponse');
+      expect(config).not.toHaveProperty('headers');
+      expect(predicate).not.toHaveBeenCalled();
+      await service.findAllPage({ page: 3 });
+      expect(service.getInstanceForTest().get).toHaveBeenNthCalledWith(2, '', {
+        params: { page: 3 },
+        signal: undefined,
+      });
+    });
+
+    it('keeps handled failures normalized and rejected instead of returning empty items', async () => {
+      service.getInstanceForTest().get.mockRejectedValue({
+        response: {
+          status: 503,
+          data: { errors: [{ status: '503', detail: 'Unavailable' }] },
+        },
+      });
+      await expect(
+        service.findAllPage({}, undefined, { handledErrorStatuses: [503] }),
+      ).rejects.toMatchObject({
+        name: 'ServiceOperationError',
+        status: 503,
+        message: 'Unavailable',
+      });
+      expect(logger.error).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('findAllPages', () => {
     // An `{ id }`-only object is a relationship reference to the JSON:API
     // extractor mock, so rows carry a second attribute to stay resources.

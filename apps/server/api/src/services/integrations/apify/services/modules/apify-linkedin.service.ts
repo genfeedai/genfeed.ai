@@ -1,5 +1,7 @@
 import type { ApifyLinkedInPost } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
+import type { SocialSourceResearchContext } from '@api/services/source-collector/source-collector.types';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -13,7 +15,10 @@ import { Injectable } from '@nestjs/common';
 export class ApifyLinkedInService {
   private readonly constructorName: string = String(this.constructor.name);
 
-  constructor(private readonly baseService: ApifyBaseService) {}
+  constructor(
+    private readonly baseService: ApifyBaseService,
+    private readonly runner: ResearchCollectionRunner,
+  ) {}
 
   /**
    * Get recent posts from a public LinkedIn profile.
@@ -24,9 +29,10 @@ export class ApifyLinkedInService {
   async getLinkedInProfilePosts(
     profileUrl: string,
     options?: { limit?: number },
+    researchContext?: SocialSourceResearchContext,
   ): Promise<ApifyLinkedInPost[]> {
-    const token = this.baseService.getApiToken();
-    if (!token) {
+    const token = researchContext ? undefined : this.baseService.getApiToken();
+    if (!researchContext && !token) {
       throw new Error(
         'APIFY_API_TOKEN is not configured — cannot scrape LinkedIn timelines',
       );
@@ -38,10 +44,17 @@ export class ApifyLinkedInService {
         profileUrls: [profileUrl],
       };
 
-      const rawPosts = await this.baseService.runActor<ApifyLinkedInPost>(
-        this.baseService.ACTORS.LINKEDIN_PROFILE_SCRAPER,
-        input,
-      );
+      const rawPosts = await (researchContext
+        ? this.runner.run<ApifyLinkedInPost>(
+            researchContext.organizationId,
+            this.baseService.ACTORS.LINKEDIN_PROFILE_SCRAPER,
+            input,
+            { tokenMode: 'hosted-only', requestScope: 'social-source-hosted' },
+          )
+        : this.baseService.runActor<ApifyLinkedInPost>(
+            this.baseService.ACTORS.LINKEDIN_PROFILE_SCRAPER,
+            input,
+          ));
 
       return rawPosts;
     } catch (error: unknown) {

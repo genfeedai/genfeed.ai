@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import type { BrandRemixRunSummary } from '@genfeedai/contracts/api-types/contracts';
+import type { StoryboardListRun } from '@genfeedai/props/studio/storyboard.props';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { ContentRunsService } from '@services/content/content-runs.service';
 import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
@@ -15,7 +15,7 @@ export interface UseStoryboardRunsResult {
   readonly isLoading: boolean;
   /** Loads the next page, or retries the page that last failed. */
   readonly loadMore: () => void;
-  readonly runs: BrandRemixRunSummary[];
+  readonly runs: StoryboardListRun[];
 }
 
 /** Studio → Storyboard saved runs for the active brand, newest edit first. */
@@ -24,7 +24,7 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
   const getContentRunsService = useAuthedService((token: string) =>
     ContentRunsService.getInstance(token),
   );
-  const [runs, setRuns] = useState<BrandRemixRunSummary[]>([]);
+  const [runs, setRuns] = useState<StoryboardListRun[]>([]);
   const [request, setRequest] = useState({ attempt: 0, page: 1 });
   const [loadedPage, setLoadedPage] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -54,27 +54,57 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
     const load = async () => {
       try {
         const service = await getContentRunsService();
-        const pageRuns = await service.listBrandRemixRuns(
-          brandId,
-          { limit: STORYBOARD_RUNS_PAGE_SIZE, page },
-          controller.signal,
-        );
-        if (controller.signal.aborted) {
-          return;
-        }
-        setRuns((current) =>
-          page === 1
-            ? pageRuns
-            : [
-                ...current,
-                ...pageRuns.filter(
-                  (run) => !current.some((prior) => prior.id === run.id),
-                ),
-              ],
-        );
+        const results = await Promise.allSettled([
+          service.listBrandRemixRuns(
+            brandId,
+            { limit: STORYBOARD_RUNS_PAGE_SIZE, page },
+            controller.signal,
+          ),
+          service.listStoryboardRuns(
+            brandId,
+            { limit: STORYBOARD_RUNS_PAGE_SIZE, page },
+            controller.signal,
+          ),
+        ]);
+        if (controller.signal.aborted) return;
+        const pageRuns: StoryboardListRun[] = results
+          .flatMap<StoryboardListRun>((result) =>
+            result.status === 'fulfilled' ? result.value : [],
+          )
+          .filter((run) => run.brandId === brandId);
+        const failed = results.find((result) => result.status === 'rejected');
+        setRuns((current) => {
+          const combined = new Map<string, StoryboardListRun>();
+          for (const run of [
+            ...(page === 1 && !failed ? [] : current),
+            ...pageRuns,
+          ]) {
+            const previous = combined.get(run.id);
+            if (previous && 'state' in previous && 'phase' in run) continue;
+            combined.set(run.id, run);
+          }
+          return [...combined.values()].sort(
+            (a, b) =>
+              b.updatedAt.localeCompare(a.updatedAt) ||
+              a.id.localeCompare(b.id),
+          );
+        });
         setLoadedPage(page);
-        setHasMore(pageRuns.length === STORYBOARD_RUNS_PAGE_SIZE);
-        setError(null);
+        setHasMore(
+          results.some(
+            (result) =>
+              result.status === 'fulfilled' &&
+              result.value.length === STORYBOARD_RUNS_PAGE_SIZE,
+          ),
+        );
+        setError(
+          failed?.status === 'rejected'
+            ? getJsonApiErrorMessage(
+                failed.reason,
+                'Some storyboard runs could not be loaded. Retry to see every run.',
+              )
+            : null,
+        );
       } catch (caughtError) {
         if (
           controller.signal.aborted ||
@@ -106,5 +136,11 @@ export function useStoryboardRuns(): UseStoryboardRunsResult {
     }));
   }, [error, loadedPage]);
 
-  return { error, hasMore, isLoading, loadMore, runs };
+  return {
+    error,
+    hasMore,
+    isLoading,
+    loadMore,
+    runs: runs.filter((run) => run.brandId === brandId),
+  };
 }

@@ -3,6 +3,8 @@ import {
   hasOrganizationBilling,
   hasOrganizationBillingHint,
   isEEEnabled,
+  shouldShowCreditsNav,
+  usesMeteredCredits,
 } from './license';
 import {
   resetLicenseVerificationForTests,
@@ -91,5 +93,68 @@ describe('hasOrganizationBillingHint', () => {
     process.env.GENFEED_LICENSE_KEY = 'server-only';
 
     expect(hasOrganizationBillingHint()).toBe(false);
+  });
+});
+
+describe('shouldShowCreditsNav cosmetic context', () => {
+  it('preserves web community and cloud visibility', () => {
+    expect(shouldShowCreditsNav({ clientSurface: 'web' })).toBe(true);
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    expect(shouldShowCreditsNav({ clientSurface: 'web' })).toBe(true);
+  });
+
+  it('uses the selected cloud account independently of generation execution', () => {
+    for (const generationExecution of [
+      'remote',
+      'local-byok',
+      'unknown',
+    ] as const) {
+      expect(
+        shouldShowCreditsNav({
+          clientSurface: 'desktop',
+          selectedServerKind: 'cloud',
+          runtimeMode: 'cloud',
+          generationExecution,
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it('keeps remembered cloud profiles hidden in explicit local mode', () => {
+    expect(
+      shouldShowCreditsNav({
+        clientSurface: 'desktop',
+        selectedServerKind: 'cloud',
+        runtimeMode: 'local',
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowCreditsNav({
+        clientSurface: 'desktop',
+        selectedServerKind: 'cloud',
+      }),
+    ).toBe(false);
+  });
+
+  it('keeps self-hosted and unknown desktop contexts hidden despite cloud or license hints', () => {
+    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'cosmetic-only';
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = 'true';
+    expect(shouldShowCreditsNav()).toBe(false);
+    expect(shouldShowCreditsNav({ clientSurface: 'desktop' })).toBe(false);
+    expect(
+      shouldShowCreditsNav({
+        clientSurface: 'desktop',
+        selectedServerKind: null,
+      }),
+    ).toBe(false);
+    expect(
+      shouldShowCreditsNav({
+        clientSurface: 'desktop',
+        selectedServerKind: 'self-hosted',
+      }),
+    ).toBe(false);
+    expect(hasOrganizationBilling()).toBe(false);
+    expect(usesMeteredCredits()).toBe(false);
   });
 });

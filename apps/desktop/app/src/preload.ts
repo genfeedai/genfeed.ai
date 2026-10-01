@@ -66,6 +66,18 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.agentRuntimeStartTurn, request),
   },
   app: {
+    getRuntimeContext: async () =>
+      ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appRuntimeContext),
+    onDidChangeRuntimeContext: (callback) => {
+      const listener = (_event: unknown, context: unknown) =>
+        callback(context as Parameters<typeof callback>[0]);
+      ipcRenderer.on(DESKTOP_IPC_CHANNELS.runtimeContextChanged, listener);
+      return () =>
+        ipcRenderer.removeListener(
+          DESKTOP_IPC_CHANNELS.runtimeContextChanged,
+          listener,
+        );
+    },
     detectLocalTools: async () =>
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.appDetectLocalTools),
     enableOfflineMode: async () =>

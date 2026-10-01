@@ -97,11 +97,13 @@ describe('bounded Studio gallery loading', () => {
         sort: 'createdAt: -1',
       }),
       signal,
+      { handledErrorStatuses: [408, 429, 500, 502, 503, 504] },
     );
     expect(findAllPage).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ brandId: 'brand-1', limit: 100, page: 2 }),
       signal,
+      { handledErrorStatuses: [408, 429, 500, 502, 503, 504] },
     );
   });
   it('loads one page of 24 for an individual category', async () => {
@@ -117,6 +119,27 @@ describe('bounded Studio gallery loading', () => {
       ),
     ).toHaveLength(24);
     expect(findAllPage).toHaveBeenCalledTimes(1);
+  });
+  it('rejects a later-page failure without publishing the first page', async () => {
+    const failure = new Error('page two unavailable');
+    const findAllPage = vi
+      .fn()
+      .mockResolvedValueOnce({ items: ingredients(0, 100), totalPages: 2 })
+      .mockRejectedValueOnce(failure);
+    const signal = new AbortController().signal;
+    await expect(
+      loadStudioGalleryIngredients({ findAllPage }, 'brand-1', 'all', signal),
+    ).rejects.toBe(failure);
+    for (const page of [1, 2]) {
+      expect(findAllPage).toHaveBeenNthCalledWith(
+        page,
+        expect.objectContaining({ brandId: 'brand-1', page }),
+        signal,
+        {
+          handledErrorStatuses: [408, 429, 500, 502, 503, 504],
+        },
+      );
+    }
   });
   it('does not fetch an unresolved brand', async () => {
     const findAllPage = vi.fn();

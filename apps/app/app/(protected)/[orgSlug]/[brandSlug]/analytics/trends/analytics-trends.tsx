@@ -32,6 +32,9 @@ export default function AnalyticsTrends() {
     isLoadingSounds,
     isLoadingTrends,
     isLoadingVideos,
+    isUsingCachedVideos,
+    hasVideoReadError,
+    retryEvaluationRead,
     leadingPlatform,
     playbooks,
     remixVideo,
@@ -126,6 +129,11 @@ export default function AnalyticsTrends() {
       </section>
 
       <CrossPlatformLeaderboardSection
+        isUsingCachedVideos={isUsingCachedVideos}
+        hasVideoReadError={hasVideoReadError}
+        onRetryEvaluationRead={() => {
+          void retryEvaluationRead();
+        }}
         viralLeaderboard={viralLeaderboard}
         creatorLeaderboard={creatorLeaderboard}
         platformConfigLookup={PLATFORM_CONFIG_LOOKUP}
