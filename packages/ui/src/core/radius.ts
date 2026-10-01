@@ -5,7 +5,7 @@
  * `lg` control inside an `md` container makes the inner corner bulge — pick the
  * step *below* the parent for anything inset by a single padding step.
  *
- * `card` is `lg` (8px): cards and media tiles.
+ * `card` is `lg` (8px), the same radius as the workspace content block.
  */
 export type RadiusTokenName =
   | 'none'

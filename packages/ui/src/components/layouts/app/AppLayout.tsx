@@ -60,15 +60,30 @@ export default function AppLayout({
     topbarComponent,
   });
 
-  // Codex chrome: rail, sidebar, and topbar share the sidebar plane. The page
-  // is the surface beneath the topbar and owns its own scroll (desktop only;
-  // mobile keeps document scrolling under the fixed topbar).
+  // Codex chrome: the rail and the topbar share the window plane. The menu and
+  // the page share one rounded block, inset from that plane. The page owns
+  // its own scroll (desktop only; mobile keeps document scrolling under the
+  // fixed topbar).
   const hasChrome = Boolean(railComponent);
   const TopbarComponent = topbarComponent;
   const topbarContent =
     TopbarComponent && topbarProps ? (
       <TopbarComponent {...topbarProps} />
     ) : null;
+  const desktopSidebar = menuComponent ? (
+    <DesktopSidebar
+      ariaLabel="Navigation"
+      collapsedWidth={desktopSidebarCollapsedWidth}
+      embedded={hasChrome}
+      isCollapsed={isDesktopCollapsed}
+      isResizing={isSidebarResizing}
+      onResizeKeyDown={handleSidebarResizeKeyDown}
+      onResizeStart={handleSidebarResizeStart}
+      width={desktopSidebarExpandedWidth}
+    >
+      {desktopMenuContent}
+    </DesktopSidebar>
+  ) : null;
 
   const layoutContent = (
     <SidebarNavigationProvider
@@ -82,7 +97,12 @@ export default function AppLayout({
           className={cn(
             'overflow-x-hidden',
             hasChrome
-              ? 'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px]'
+              ? cn(
+                  'bg-gray-100 [--shell-edge:0px] [--shell-inset:0px] md:[--shell-inset:0.5rem]',
+                  topbarContent
+                    ? '[--shell-topbar-offset:3rem]'
+                    : '[--shell-topbar-offset:0px]',
+                )
               : 'bg-background',
             lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
           )}
@@ -91,29 +111,16 @@ export default function AppLayout({
           style={layoutStyle}
         >
           {railComponent ? <DesktopRail>{railComponent}</DesktopRail> : null}
-          {menuComponent && (
+          {menuComponent ? (
             <>
-              {/* Desktop sidebar */}
-              {/* Always "Navigation": the column belongs to whichever module owns
-              the surface, and only that module decides what goes in it. It was
-              named after the conversation back when the conversation was the
-              only thing that could be in there. */}
-              <DesktopSidebar
-                ariaLabel="Navigation"
-                collapsedWidth={desktopSidebarCollapsedWidth}
-                isCollapsed={isDesktopCollapsed}
-                isResizing={isSidebarResizing}
-                onResizeKeyDown={handleSidebarResizeKeyDown}
-                onResizeStart={handleSidebarResizeStart}
-                width={desktopSidebarExpandedWidth}
-              >
-                {desktopMenuContent}
-              </DesktopSidebar>
+              {/* Without a rail there is no rounded block, so the menu stays a
+                  fixed column. With a rail it renders inside the block. */}
+              {hasChrome ? null : desktopSidebar}
               {isDesktopCollapsed && !topbarContent ? (
                 <CollapsedSidebarToggle onClick={handleToggleDesktopSidebar} />
               ) : null}
             </>
-          )}
+          ) : null}
 
           {hasMobileNavigation ? (
             <>
@@ -175,10 +182,10 @@ export default function AppLayout({
               'relative flex flex-col',
               hasChrome
                 ? cn(
-                    // Codex: flush to the window. The rail, sidebar header, and
-                    // topbar share one row on the chrome plane. The inspector
-                    // reserves its width on the right.
-                    'bg-background md:bg-transparent md:pl-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] md:pt-[var(--desktop-titlebar-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
+                    // The shell starts after the rail. The topbar is the chrome
+                    // band; the rounded block below it carries the menu and the
+                    // page. The inspector reserves its width on the right.
+                    'bg-background md:bg-transparent md:pl-[var(--desktop-rail-width)] md:pt-[var(--desktop-titlebar-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
                     lockViewportHeight
                       ? 'h-dvh overflow-hidden'
                       : 'min-h-screen md:h-dvh md:min-h-0 md:overflow-hidden',
@@ -198,7 +205,7 @@ export default function AppLayout({
                 className={cn(
                   'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border',
                   hasChrome
-                    ? 'bg-gray-100 md:static md:z-auto md:shrink-0'
+                    ? 'bg-gray-100 md:static md:z-auto md:shrink-0 md:border-b-0'
                     : 'bg-background md:left-[calc(var(--desktop-rail-width)+var(--desktop-sidebar-width))] xl:right-[var(--workspace-inspector-width,0px)]',
                 )}
                 style={{
@@ -214,16 +221,19 @@ export default function AppLayout({
               data-testid="app-content-panel"
               className={cn(
                 'flex flex-1 flex-col bg-background',
-                // The page surface. The sidebar's right border is the divider,
-                // so this column has no frame of its own.
-                hasChrome && 'md:min-h-0 md:overflow-hidden',
+                // Menu and page, one block. Inset on every side so the radius
+                // reads against the rail plane. The inspector squares the
+                // right corners and finishes the outer radius.
+                hasChrome &&
+                  'md:m-[var(--shell-inset)] md:min-h-0 md:flex-row md:overflow-hidden md:rounded-lg md:border md:border-border xl:[[data-inspector-open=true]_&]:rounded-r-none',
               )}
             >
+              {hasChrome ? desktopSidebar : null}
               <main
                 ref={mainScrollRef}
                 data-testid="app-main-content"
                 className={cn(
-                  'relative z-0 flex flex-1 flex-col bg-background',
+                  'relative z-0 flex min-w-0 flex-1 flex-col bg-background',
                   hasChrome &&
                     (topbarContent
                       ? 'pt-[calc(var(--desktop-titlebar-height)+3rem)] md:pt-0'

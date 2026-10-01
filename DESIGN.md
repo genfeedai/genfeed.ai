@@ -505,8 +505,9 @@ solid step everywhere else. They are interchangeable by design.
 
 Four planes, one step apart, and no fifth:
 
-1. `bg-primary` — the page canvas (`background-100`). The app chrome (rail,
-   sidebar, and topbar) sits on the `gray-100` sidebar plane — see Shell Layout.
+1. `bg-primary` — the page canvas (`background-100`). The app rail and the
+   topbar sit on the `gray-100` window plane; the menu shares that step inside
+   the page block — see Shell Layout.
 2. `bg-secondary` / `card` / `bg-elevated` — the raised content plane: cards,
    panels, dropdowns, dialogs, the composer (`gray-100` in Dark,
    `background-200` in Light).
@@ -785,34 +786,36 @@ the same overlay surface — never `bg-hover`, never the page canvas.
 
 ### Shell Layout
 
-Codex chrome. The sidebar and the topbar sit on the `gray-100` sidebar plane
-(`#0A0A0A` dark, `#F5F5F5` light). The app rail is one tone off that plane
-(`bg-foreground/[0.04]`, lighter in Dark, darker in Light) with no border
-against the sidebar and none under the sidebar header. The rail's bottom holds
-Admin (platform admins), Help, and the account avatar, whose menu carries the
-name, email and settings scopes; the sidebar has no profile row.
+Codex chrome. The app rail and the topbar share the `gray-100` window plane
+(`#0A0A0A` dark, `#F5F5F5` light). The rail is full height, flush under the
+titlebar, with no border of its own. The rail's bottom holds Admin (platform
+admins), Help, and the account avatar, whose menu carries the name, email and
+settings scopes; the sidebar has no profile row.
 
-The menu sidebar carries `border-r border-border`. That edge is the divider
-between chrome and the page. The topbar is the same plane as the sidebar, in
-the page column and outside the page surface, aligned with the sidebar header.
-The page beneath it is `bg-primary`, flush to the window, and owns scrolling,
-so `sticky top-0` inside a page sticks under the topbar. There is no inset and
-no rounded frame around the page. The workspace inspector is a full-height
-column on the page colour; `border-l` is its divider. Every route starts at
-the top of the page scroll. Mobile keeps document scroll under a fixed topbar
-on the same chrome plane, and the rail + menu live in the navigation drawer.
+The menu and the page share one block, inset from the window by `--shell-inset`
+(8px, desktop) on every side: `rounded-lg` and `border border-border`. The menu
+is `gray-100`, one step off the page (`bg-primary`; pure black in Dark), with
+`border-r border-border` while expanded. The page owns scrolling, so
+`sticky top-0` inside a page sticks under the block's top. The topbar sits on
+the rail plane, outside that block, in the band above it.
+
+The workspace inspector attaches to the block's right side as one surface: the
+block squares its right corners and the inspector carries the outer right
+radius. The block's right border is their shared divider. Every route starts at
+the top of the page scroll. Mobile has no inset: document scroll under a fixed
+topbar on the same plane, and the rail + menu live in the navigation drawer.
 
 ### Sidebar
 
-On the shared chrome surface (see Shell Layout), with `border-r` against the
-page and no border against the rail. Menu items use ghost semantics:
-transparent, `hover:bg-hover`, active is `bg-hover text-foreground`.
+Inside the rounded block (see Shell Layout), on `gray-100`, with `border-r`
+against the page. Menu items use ghost semantics: transparent,
+`hover:bg-hover`, active is `bg-hover text-foreground`.
 Section labels are `caption` type, uppercase, `text-muted`.
 
 ### App Rail
 
-Persistent top-level navigation at the far left, 52px wide, on the shared
-chrome surface with no divider. It picks the app; the sidebar to its right
+Persistent top-level navigation at the far left, 52px wide, the same `gray-100`
+plane as the topbar, with no divider. It picks the app; the sidebar to its right
 holds that app's own menu, and collapsing the sidebar leaves the rail in place.
 Items are 36px `rounded-lg` icon-only links: `text-foreground/50` at rest,
 `hover:bg-foreground/[0.06]`, and the active app a filled

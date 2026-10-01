@@ -22,6 +22,11 @@ type DesktopSidebarProps = {
   ariaLabel?: string;
   children: ReactNode;
   collapsedWidth?: number;
+  /**
+   * In-flow column inside the rounded content block. Fixed positioning would
+   * escape the block's overflow clip and sit on the window chrome instead.
+   */
+  embedded?: boolean;
   isCollapsed: boolean;
   isResizing?: boolean;
   onResizeKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
@@ -38,6 +43,7 @@ export default function DesktopSidebar({
   ariaLabel,
   children,
   collapsedWidth = SIDEBAR_COLLAPSED_WIDTH,
+  embedded = false,
   isCollapsed,
   isResizing = false,
   onResizeKeyDown,
@@ -55,21 +61,26 @@ export default function DesktopSidebar({
       aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
-        // Chrome plane, shared with the topbar. The right border is the
-        // divider against the page. Omitted while collapsed so a 1px line
-        // does not survive at width 0.
-        'fixed bottom-0 z-30 hidden flex-col overflow-hidden bg-gray-100 md:flex',
+        // One step off the page (gray-100 on pure black). The right border is
+        // the divider. Omitted while collapsed so a 1px line does not survive
+        // at width 0.
+        'hidden flex-col overflow-hidden bg-gray-100 md:flex',
+        embedded ? 'relative h-full min-h-0 shrink-0' : 'fixed bottom-0 z-30',
         !isCollapsed && 'border-r border-border',
       )}
       style={{
-        // Sits right of the app rail; 0 when the host renders no rail.
-        left: 'var(--desktop-rail-width, 0px)',
         minWidth: widthStyle,
-        top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
         transition: isResizing
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
         width: widthStyle,
+        // Fixed only when the host has no rounded block to clip into.
+        ...(embedded
+          ? {}
+          : {
+              left: 'var(--desktop-rail-width, 0px)',
+              top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px) + var(--shell-edge, 0px))',
+            }),
       }}
     >
       {children}

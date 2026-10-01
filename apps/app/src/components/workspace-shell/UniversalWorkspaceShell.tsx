@@ -877,8 +877,8 @@ function UniversalWorkspaceShellContent({
       '--workspace-inspector-width',
       `${inspectorRailWidth}px`,
     );
-    // Open, the inspector is a full-height page column. Its left border is
-    // the divider.
+    // Open, the inspector attaches to the rounded block. The block's right
+    // border is the divider; this flag squares that block's right corners.
     layoutRoot.dataset.inspectorOpen = String(isInspectorOpen);
 
     return () => {
@@ -1077,10 +1077,10 @@ function UniversalWorkspaceShellContent({
             ) : null}
           </div>
 
-          {/* Full-height column on the page colour, flush from the titlebar to
-              the bottom. Collapsed it goes to zero — border included, or a 1px
-              line survives at width 0. The topbar and the page reserve space
-              for it through --workspace-inspector-width. */}
+          {/* Attached to the rounded block: same top, bottom, and right inset.
+              Collapsed it goes to zero — border included, or a 1px line
+              survives at width 0. The shell reserves its width through
+              --workspace-inspector-width. */}
           {isFocusedOnboardingRoute ? null : (
             <aside
               // Nothing selected: the empty, zero-width column is not a
@@ -1088,10 +1088,10 @@ function UniversalWorkspaceShellContent({
               aria-hidden={activeContextSidebar ? undefined : true}
               aria-label={translateContextSidebar('label')}
               className={cn(
-                'fixed z-30 hidden min-h-0 flex-col overflow-hidden bg-background xl:flex',
-                // Left border is the divider against the page. Collapsed it is
-                // zero-width, so no border.
-                isInspectorOpen && 'border-l border-border',
+                'fixed z-30 hidden min-h-0 flex-col overflow-hidden rounded-r-lg bg-background xl:flex',
+                // The block's right border is the shared divider. The inspector
+                // finishes the top, right, and bottom edges and the outer radius.
+                isInspectorOpen && 'border-y border-r border-border',
               )}
               id="workspace-context-inspector"
               inert={!isInspectorOpen}
@@ -1100,7 +1100,7 @@ function UniversalWorkspaceShellContent({
                 bottom: 'var(--shell-inset, 0px)',
                 minWidth: inspectorRailWidth,
                 right: 'var(--shell-inset, 0px)',
-                top: 'calc(var(--desktop-titlebar-height) + var(--shell-inset, 0px))',
+                top: 'calc(var(--desktop-titlebar-height) + var(--shell-topbar-offset, 0px) + var(--shell-inset, 0px))',
                 transition: INSPECTOR_RAIL_TRANSITION,
                 width: inspectorRailWidth,
               }}
