@@ -1,5 +1,10 @@
-import type { WebsiteScrapingResult } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type {
+  WebsiteScrapingResult,
+  WebsiteStylesheetEvidence,
+} from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
+import type {
+  IBrandKitDiagnostic,
+  IBrandKitSourceEvidence,
   IScrapedBrandData,
   IScrapedImageCandidate,
 } from '@genfeedai/contracts/interfaces';
@@ -11,8 +16,12 @@ const MAX_FONT_CANDIDATES = 8;
 
 @Injectable()
 export class BrandWebsiteParserService {
-  parseHtml(html: string, sourceUrl: string): WebsiteScrapingResult {
-    return this.extractFromDom(cheerio.load(html), sourceUrl);
+  parseHtml(
+    html: string,
+    sourceUrl: string,
+    stylesheets: WebsiteStylesheetEvidence[] = [],
+  ): WebsiteScrapingResult {
+    return this.extractFromDom(cheerio.load(html), sourceUrl, stylesheets);
   }
 
   /**
@@ -21,6 +30,7 @@ export class BrandWebsiteParserService {
   private extractFromDom(
     $: cheerio.CheerioAPI,
     sourceUrl: string,
+    stylesheets: WebsiteStylesheetEvidence[],
   ): WebsiteScrapingResult {
     const title = $('title').first().text().trim() || undefined;
     const description =
@@ -58,8 +68,9 @@ export class BrandWebsiteParserService {
     const socialLinks = this.extractSocialLinks(allLinks);
 
     // Extract colors from theme-color meta, <style> tags, inline styles
-    const colors = this.extractColorsFromDom($);
-    const fonts = this.extractFontsFromDom($);
+    const colors = this.extractColorsFromDom($, stylesheets);
+    const { fonts, fontDetails, evidence, diagnostics } =
+      this.extractFontsFromDom($, sourceUrl, stylesheets);
 
     // Extract headings
     const headings = this.extractHeadingsFromDom($);
@@ -91,6 +102,9 @@ export class BrandWebsiteParserService {
       description,
       favicon,
       fonts,
+      fontDetails,
+      evidence,
+      diagnostics,
       headings,
       heroText: headings[0],
       icons,
@@ -225,6 +239,7 @@ export class BrandWebsiteParserService {
    */
   private extractColorsFromDom(
     $: cheerio.CheerioAPI,
+    stylesheets: WebsiteStylesheetEvidence[],
   ): WebsiteScrapingResult['colors'] {
     const colorCounts = new Map<string, number>();
 
@@ -266,6 +281,7 @@ export class BrandWebsiteParserService {
       }
     });
 
+    cssText.push(...stylesheets.map(({ cssText }) => cssText));
     const allCss = cssText.join(' ');
 
     // Extract hex colors
@@ -299,72 +315,203 @@ export class BrandWebsiteParserService {
     };
   }
 
-  private extractFontsFromDom($: cheerio.CheerioAPI): string[] {
-    const candidates: string[] = [];
-    const seen = new Set<string>();
-
-    const addFont = (font: string): void => {
-      const normalized = font
-        .split(',')
-        .map((part) => part.trim().replace(/^['"]|['"]$/g, ''))
-        .find((part) => part.length > 0);
-
+  /** Provenance is separate from the URL used for guarded fetching. */
+  sanitizeProvenanceUrl(value: string): string | undefined {
+    try {
+      const url = new URL(value);
+      if (!['http:', 'https:'].includes(url.protocol)) return undefined;
+      url.username = '';
+      url.password = '';
+      url.hash = '';
+      for (const key of [...url.searchParams.keys()]) {
+        if (
+          /^(token|access_token|api_key|apikey|key|signature|sig|credential|authorization|auth|password|secret)$/i.test(
+            key,
+          )
+        )
+          url.searchParams.delete(key);
+      }
       if (
-        !normalized ||
-        /^(system-ui|sans-serif|serif|monospace|inherit|initial|var\()/i.test(
-          normalized,
-        ) ||
-        seen.has(normalized)
-      ) {
-        return;
-      }
+        [...url.searchParams.keys()].some((key) =>
+          /^(x-amz-|x-goog-|awsaccesskeyid|googleaccessid)/i.test(key),
+        )
+      )
+        return undefined;
+      return url.href;
+    } catch {
+      return undefined;
+    }
+  }
 
-      seen.add(normalized);
-      candidates.push(normalized);
-    };
-
-    $('link[href*="fonts.googleapis.com"]').each((_i, el) => {
-      const href = $(el).attr('href');
-      if (!href) {
+  extractStylesheetUrls(html: string, sourceUrl: string): string[] {
+    const $ = cheerio.load(html);
+    const urls: string[] = [];
+    $('link[rel][href]').each((_i, el) => {
+      if (
+        $(el).attr('disabled') !== undefined ||
+        !($(el).attr('rel') ?? '')
+          .toLowerCase()
+          .split(/\s+/)
+          .includes('stylesheet')
+      )
         return;
-      }
       try {
-        const family = new URL(
-          href,
-          'https://fonts.googleapis.com',
-        ).searchParams
-          .get('family')
-          ?.split(':')[0]
-          ?.replace(/\+/g, ' ');
-        if (family) {
-          addFont(family);
+        const url = new URL($(el).attr('href') ?? '', sourceUrl);
+        if (
+          !['http:', 'https:'].includes(url.protocol) ||
+          url.username ||
+          url.password
+        )
+          return;
+        url.hash = '';
+        if (!urls.includes(url.href)) urls.push(url.href);
+      } catch {
+        /* Malformed links cannot be fetched. */
+      }
+    });
+    return urls;
+  }
+
+  private extractFontsFromDom(
+    $: cheerio.CheerioAPI,
+    sourceUrl: string,
+    stylesheets: WebsiteStylesheetEvidence[],
+  ): Pick<
+    Required<WebsiteScrapingResult>,
+    'fonts' | 'fontDetails' | 'evidence' | 'diagnostics'
+  > {
+    const fonts: string[] = [];
+    const fontDetails: NonNullable<WebsiteScrapingResult['fontDetails']> = [];
+    const evidence: IBrandKitSourceEvidence[] = [
+      {
+        sourceType: 'website',
+        label: 'Website page',
+        url: this.sanitizeProvenanceUrl(sourceUrl),
+      },
+    ];
+    const diagnostics: IBrandKitDiagnostic[] = [];
+    const seenDetails = new Set<string>();
+    const warn = (code: string, message: string): void => {
+      if (!diagnostics.some((item) => item.code === `brand_scrape.${code}`))
+        diagnostics.push({
+          code: `brand_scrape.${code}`,
+          severity: 'warning',
+          message,
+        });
+    };
+    const addFont = (
+      value: string,
+      url: string,
+      excerpt: string,
+      weight?: string,
+      style?: string,
+    ): void => {
+      for (const part of value.split(',')) {
+        const raw = part.trim();
+        if (/\\\\|[(){}]|\/\*/.test(raw)) {
+          warn(
+            'font_syntax_unsupported',
+            'Unsupported font declaration omitted.',
+          );
+          continue;
+        }
+        const family = raw.replace(/^(['"])(.*)\1$/, '$2').trim();
+        if (
+          !family ||
+          /^(system-ui|sans-serif|serif|monospace|cursive|fantasy|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|emoji|math|fangsong|inherit|initial|unset|revert|revert-layer)$/i.test(
+            family,
+          )
+        )
+          continue;
+        if (family.length > 512 || /['";:]/.test(family)) {
+          warn(
+            'font_syntax_unsupported',
+            'Unsupported font declaration omitted.',
+          );
+          continue;
+        }
+        if (!fonts.includes(family)) {
+          if (fonts.length < MAX_FONT_CANDIDATES) fonts.push(family);
+          else warn('font_candidate_limit', 'Font candidate limit reached.');
+        }
+        const safeUrl = this.sanitizeProvenanceUrl(url);
+        const key = JSON.stringify([family, safeUrl, weight, style]);
+        if (seenDetails.has(key)) continue;
+        seenDetails.add(key);
+        if (fontDetails.length >= 16) {
+          warn('font_candidate_limit', 'Font candidate limit reached.');
+          continue;
+        }
+        fontDetails.push({
+          family,
+          sourceUrl: safeUrl ?? '',
+          weight,
+          style,
+          availability: 'unknown',
+        });
+        evidence.push({
+          sourceType: 'website',
+          label:
+            url === sourceUrl
+              ? 'Website font declaration'
+              : 'Stylesheet font declaration',
+          url: safeUrl,
+          excerpt: excerpt.slice(0, 4000),
+        });
+      }
+    };
+    $('link[href*="fonts.googleapis.com"]').each((_i, el) => {
+      try {
+        const href = new URL($(el).attr('href') ?? '', sourceUrl);
+        if (href.hostname !== 'fonts.googleapis.com') return;
+        for (const family of href.searchParams.getAll('family')) {
+          for (const entry of family.split('|'))
+            addFont(
+              entry.split(':')[0] ?? '',
+              href.href,
+              'Font stylesheet family parameter',
+            );
         }
       } catch {
-        // Ignore malformed stylesheet URLs; inline declarations still apply.
+        /* Inline declarations still apply. */
       }
     });
-
-    const cssText: string[] = [];
+    const sources: WebsiteStylesheetEvidence[] = [];
     $('style').each((_i, el) => {
-      cssText.push($(el).text());
+      sources.push({ url: sourceUrl, cssText: $(el).text() });
     });
     $('[style]').each((_i, el) => {
-      const style = $(el).attr('style');
-      if (style) {
-        cssText.push(style);
-      }
+      sources.push({ url: sourceUrl, cssText: $(el).attr('style') ?? '' });
     });
-
-    const fontMatches = cssText
-      .join(' ')
-      .matchAll(/font-family\s*:\s*([^;{}]+)/gi);
-    for (const match of fontMatches) {
-      if (match[1]) {
-        addFont(match[1]);
+    sources.push(...stylesheets);
+    for (const source of sources) {
+      const css = source.cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+      const faces = [...css.matchAll(/@font-face\s*\{([^{}]*)\}/gi)];
+      for (const match of css.matchAll(/font-family\s*:\s*([^;{}]+)/gi)) {
+        const face = faces.find(
+          (block) =>
+            (match.index ?? 0) >= (block.index ?? 0) &&
+            (match.index ?? 0) < (block.index ?? 0) + block[0].length,
+        );
+        const weight = face?.[1]
+          .match(/font-weight\s*:\s*([^;{}]+)/i)?.[1]
+          .trim();
+        const style = face?.[1]
+          .match(/font-style\s*:\s*([^;{}]+)/i)?.[1]
+          .trim();
+        addFont(match[1], source.url, match[0], weight, style);
       }
     }
-
-    return candidates.slice(0, MAX_FONT_CANDIDATES);
+    if (fontDetails.length)
+      warn(
+        'font_availability_unknown',
+        'Discovered font families have unknown runtime availability.',
+      );
+    warn(
+      'css_cascade_unverified',
+      'Declarations are candidates; the rendered CSS cascade is unverified.',
+    );
+    return { fonts, fontDetails, evidence, diagnostics };
   }
 
   /**

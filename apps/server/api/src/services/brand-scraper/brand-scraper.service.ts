@@ -5,10 +5,16 @@ import type {
   LinkedInScrapedData,
   MergedBrandAnalysis,
   MetaTagFallbackData,
+  WebsiteBrandScrapeEvidence,
+  WebsiteFetchBudget,
+  WebsiteResponseState,
   WebsiteScrapingResult,
+  WebsiteStylesheetByteBudget,
+  WebsiteStylesheetEvidence,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
 import type {
+  IBrandKitDiagnostic,
   IExtractedBrandData,
   IScrapedBrandData,
   IScrapedImageCandidate,
@@ -22,6 +28,10 @@ import * as cheerio from 'cheerio';
 import { buildLogoDevLogoUrl } from './logo-dev-logo.util';
 
 const FETCH_TIMEOUT_MS = 10_000;
+const WEBSITE_TIMEOUT_MS = 60_000;
+const MAX_STYLESHEETS = 5;
+const MAX_CSS_BYTES = 262_144;
+const MAX_TOTAL_CSS_BYTES = 1_048_576;
 
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -50,6 +60,10 @@ const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 @Injectable()
 export class BrandScraperService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly websiteResponses = new WeakMap<
+    Response,
+    WebsiteResponseState
+  >();
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -61,13 +75,23 @@ export class BrandScraperService {
    * Scrape a website URL and extract brand information
    */
   async scrapeWebsite(url: string): Promise<IScrapedBrandData> {
-    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} starting`, { url });
+    return (await this.scrapeWebsiteWithEvidence(url)).data;
+  }
 
+  async scrapeWebsiteWithEvidence(
+    url: string,
+  ): Promise<WebsiteBrandScrapeEvidence> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const normalizedUrl = this.normalizeUrl(url);
+    const budget: WebsiteFetchBudget = {
+      deadlineAt: performance.now() + WEBSITE_TIMEOUT_MS,
+    };
+    this.loggerService.log(`${caller} starting`, {
+      url: this.brandWebsiteParser.sanitizeProvenanceUrl(normalizedUrl),
+    });
 
     try {
-      const rawContent = await this.fetchAndParse(normalizedUrl);
+      const rawContent = await this.fetchAndParse(normalizedUrl, budget);
       const scrapedData = this.brandWebsiteParser.extractBrandData(
         rawContent,
         normalizedUrl,
@@ -83,18 +107,26 @@ export class BrandScraperService {
 
       this.loggerService.log(`${caller} completed`, {
         companyName: scrapedData.companyName,
-        url: normalizedUrl,
+        url: this.brandWebsiteParser.sanitizeProvenanceUrl(normalizedUrl),
       });
 
-      return scrapedData;
+      return {
+        data: scrapedData,
+        evidence: rawContent.evidence ?? [],
+        diagnostics: rawContent.diagnostics ?? [],
+        fontCandidates: rawContent.fontDetails ?? [],
+      };
     } catch (error: unknown) {
       this.loggerService.warn(
         `${caller} full scrape failed, falling back to meta tags`,
-        { error: (error as Error)?.message, url: normalizedUrl },
+        { url: this.brandWebsiteParser.sanitizeProvenanceUrl(normalizedUrl) },
       );
 
       try {
-        const fallback = await this.scrapeMetaTagsFallback(normalizedUrl);
+        const fallback = await this.scrapeMetaTagsFallback(
+          normalizedUrl,
+          budget,
+        );
         const companyName = this.brandWebsiteParser.extractCompanyName(
           fallback.title,
           fallback.ogTitle,
@@ -104,7 +136,7 @@ export class BrandScraperService {
           normalizedUrl,
         );
 
-        return {
+        const data: IScrapedBrandData = {
           aboutText: undefined,
           bannerUrl: fallback.ogImage,
           companyName: companyName || fallback.siteName,
@@ -124,10 +156,29 @@ export class BrandScraperService {
           tagline: fallback.ogTitle,
           valuePropositions: [],
         };
+        return {
+          data,
+          evidence: [
+            {
+              sourceType: 'website',
+              label: 'Website meta fallback',
+              url: this.brandWebsiteParser.sanitizeProvenanceUrl(normalizedUrl),
+            },
+          ],
+          diagnostics: [
+            this.diagnostic(
+              'html_fallback',
+              'Full HTML extraction failed; meta tags were used.',
+            ),
+          ],
+          fontCandidates: [],
+        };
       } catch (fallbackError: unknown) {
         this.loggerService.error(
           `${caller} meta tag fallback also failed`,
-          fallbackError,
+          fallbackError instanceof Error
+            ? fallbackError.name
+            : 'Fallback failed',
         );
         throw error;
       }
@@ -429,26 +480,203 @@ export class BrandScraperService {
   /**
    * Fetch a URL and parse HTML with cheerio
    */
-  private async fetchAndParse(url: string): Promise<WebsiteScrapingResult> {
-    const response = await this.fetchWithRetry(url, {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': BROWSER_USER_AGENT,
+  private async fetchAndParse(
+    url: string,
+    budget: WebsiteFetchBudget,
+  ): Promise<WebsiteScrapingResult> {
+    const response = await this.fetchWithRetry(
+      url,
+      {
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': BROWSER_USER_AGENT,
+        },
+        redirect: 'follow',
       },
-      redirect: 'follow',
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch ${url}: ${response.status} ${response.statusText}`,
-      );
+      budget,
+    );
+    const pageUrl = this.websiteResponses.get(response)?.url ?? url;
+    let html: string;
+    try {
+      if (!response.ok)
+        throw new Error(`Failed to fetch website: ${response.status}`);
+      this.brandWebsiteParser.assertHtmlResponse(response);
+      html = await this.readWebsiteBody(response, budget);
+    } finally {
+      await this.releaseWebsiteResponse(response);
     }
+    // Parse usable HTML first. Enrichment failures cannot activate the HTML fallback.
+    const parsed = this.brandWebsiteParser.parseHtml(html, pageUrl);
+    const stylesheetUrls = this.brandWebsiteParser.extractStylesheetUrls(
+      html,
+      pageUrl,
+    );
+    const diagnostics: IBrandKitDiagnostic[] = [];
+    const stylesheets: WebsiteStylesheetEvidence[] = [];
+    const total = { bytes: 0 };
+    if (stylesheetUrls.length > MAX_STYLESHEETS)
+      diagnostics.push(
+        this.diagnostic(
+          'stylesheet_count_limit',
+          'Only the first five stylesheets are fetched.',
+        ),
+      );
+    for (const sheetUrl of stylesheetUrls.slice(0, MAX_STYLESHEETS)) {
+      if (total.bytes >= MAX_TOTAL_CSS_BYTES) {
+        diagnostics.push(
+          this.diagnostic(
+            'stylesheet_total_limit',
+            'Aggregate stylesheet byte limit reached.',
+          ),
+        );
+        break;
+      }
+      let sheetResponse: Response | undefined;
+      try {
+        sheetResponse = await this.fetchWithRetry(
+          sheetUrl,
+          { headers: { Accept: 'text/css', 'User-Agent': BROWSER_USER_AGENT } },
+          budget,
+        );
+        if (!sheetResponse.ok) throw new Error('stylesheet_failed');
+        if (
+          !/^text\/css(?:\s*;|\s*$)/i.test(
+            sheetResponse.headers.get('content-type') ?? '',
+          )
+        )
+          throw new Error('stylesheet_content_type');
+        const length = Number(sheetResponse.headers.get('content-length'));
+        if (Number.isFinite(length) && length > MAX_CSS_BYTES)
+          throw new Error('stylesheet_size_limit');
+        const cssText = await this.readWebsiteBody(
+          sheetResponse,
+          budget,
+          total,
+        );
+        stylesheets.push({
+          url: this.websiteResponses.get(sheetResponse)?.url ?? sheetUrl,
+          cssText,
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : '';
+        const code =
+          performance.now() >= budget.deadlineAt ||
+          message === 'deadline_exceeded'
+            ? 'deadline_exceeded'
+            : /^stylesheet_(content_type|size_limit|total_limit)$/.test(message)
+              ? message
+              : /Too many redirects/.test(message)
+                ? 'stylesheet_redirect_limit'
+                : /blocked|private|unsafe|Invalid redirect|Unsupported stylesheet URL/i.test(
+                      message,
+                    )
+                  ? 'stylesheet_unsafe'
+                  : 'stylesheet_failed';
+        diagnostics.push(
+          this.diagnostic(code, 'Stylesheet enrichment omitted a source.'),
+        );
+        parsed.evidence?.push({
+          sourceType: 'website',
+          label: 'Omitted stylesheet',
+          url: this.brandWebsiteParser.sanitizeProvenanceUrl(sheetUrl),
+        });
+        if (code === 'deadline_exceeded' || total.bytes >= MAX_TOTAL_CSS_BYTES)
+          break;
+      } finally {
+        if (sheetResponse) await this.releaseWebsiteResponse(sheetResponse);
+      }
+    }
+    const enriched = stylesheets.length
+      ? this.brandWebsiteParser.parseHtml(html, pageUrl, stylesheets)
+      : parsed;
+    enriched.evidence = [
+      ...(enriched.evidence ?? []),
+      ...(parsed.evidence ?? []).filter(
+        (item) => item.label === 'Omitted stylesheet',
+      ),
+      ...stylesheets.map((sheet) => ({
+        sourceType: 'website' as const,
+        label: 'Website stylesheet',
+        url: this.brandWebsiteParser.sanitizeProvenanceUrl(sheet.url),
+      })),
+    ];
+    enriched.diagnostics = [...(enriched.diagnostics ?? []), ...diagnostics];
+    enriched.stylesheetUrls = stylesheetUrls.slice(0, MAX_STYLESHEETS);
+    return enriched;
+  }
 
-    this.brandWebsiteParser.assertHtmlResponse(response);
-    const html = await response.text();
+  private diagnostic(code: string, message: string): IBrandKitDiagnostic {
+    return { code: `brand_scrape.${code}`, severity: 'warning', message };
+  }
 
-    return this.brandWebsiteParser.parseHtml(html, url);
+  private remainingBudget(budget: WebsiteFetchBudget): number {
+    const remaining = budget.deadlineAt - performance.now();
+    if (remaining <= 0) throw new Error('deadline_exceeded');
+    return remaining;
+  }
+
+  private async releaseWebsiteResponse(response: Response): Promise<void> {
+    const state = this.websiteResponses.get(response);
+    if (!state) return;
+    clearTimeout(state.timeout);
+    state.controller.abort();
+    this.websiteResponses.delete(response);
+    if (response.body && !response.body.locked)
+      void response.body.cancel().catch(() => undefined);
+  }
+
+  private async readWebsiteBody(
+    response: Response,
+    budget: WebsiteFetchBudget,
+    total?: WebsiteStylesheetByteBudget,
+  ): Promise<string> {
+    const state = this.websiteResponses.get(response);
+    const remaining = Math.min(
+      this.remainingBudget(budget),
+      (state?.deadlineAt ?? budget.deadlineAt) - performance.now(),
+    );
+    if (remaining <= 0) throw new Error('deadline_exceeded');
+    if (!response.body) return '';
+    const reader = response.body.getReader();
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<never>((_resolve, reject) => {
+      timeout = setTimeout(() => {
+        state?.controller.abort();
+        reject(
+          new Error(
+            performance.now() >= budget.deadlineAt
+              ? 'deadline_exceeded'
+              : 'stylesheet_failed',
+          ),
+        );
+      }, remaining);
+    });
+    const decoder = new TextDecoder();
+    let bytes = 0;
+    let text = '';
+    let complete = false;
+    try {
+      while (true) {
+        const chunk = await Promise.race([reader.read(), expired]);
+        if (chunk.done) {
+          complete = true;
+          return text + decoder.decode();
+        }
+        bytes += chunk.value.byteLength;
+        if (total) {
+          total.bytes += chunk.value.byteLength;
+          if (total.bytes >= MAX_TOTAL_CSS_BYTES)
+            throw new Error('stylesheet_total_limit');
+          if (bytes > MAX_CSS_BYTES) throw new Error('stylesheet_size_limit');
+        }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+    } finally {
+      if (timeout) clearTimeout(timeout);
+      if (!complete) void reader.cancel().catch(() => undefined);
+      reader.releaseLock();
+    }
   }
 
   /**
@@ -458,11 +686,22 @@ export class BrandScraperService {
   private async fetchWithRetry(
     url: string,
     options: RequestInit,
+    budget?: WebsiteFetchBudget,
   ): Promise<Response> {
     let currentUrl = url;
 
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-      const response = await this.fetchOnce(currentUrl, options);
+      if (budget) {
+        this.remainingBudget(budget);
+        const target = new URL(currentUrl);
+        if (
+          !['http:', 'https:'].includes(target.protocol) ||
+          target.username ||
+          target.password
+        )
+          throw new Error('Unsupported stylesheet URL');
+      }
+      const response = await this.fetchOnce(currentUrl, options, budget);
 
       if (
         REDIRECT_STATUS_CODES.has(response.status) &&
@@ -473,12 +712,22 @@ export class BrandScraperService {
         try {
           nextUrl = new URL(location, currentUrl).href;
         } catch {
-          throw new Error(`Invalid redirect target "${location}" from ${url}`);
+          if (budget) await this.releaseWebsiteResponse(response);
+          throw new Error(
+            budget
+              ? 'Invalid redirect target'
+              : `Invalid redirect target "${location}" from ${url}`,
+          );
         }
+        if (budget) await this.releaseWebsiteResponse(response);
         currentUrl = nextUrl;
         continue;
       }
 
+      if (budget) {
+        const state = this.websiteResponses.get(response);
+        if (state) state.url = response.url || currentUrl;
+      }
       return response;
     }
 
@@ -493,42 +742,91 @@ export class BrandScraperService {
   private async fetchOnce(
     url: string,
     options: RequestInit,
+    budget?: WebsiteFetchBudget,
   ): Promise<Response> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     for (let attempt = 0; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      const duration = budget
+        ? Math.min(FETCH_TIMEOUT_MS, this.remainingBudget(budget))
+        : FETCH_TIMEOUT_MS;
+      const deadlineAt = performance.now() + duration;
+      let rejectExpired: ((error: Error) => void) | undefined;
+      const expired = new Promise<never>((_resolve, reject) => {
+        rejectExpired = reject;
+      });
+      const timeout = setTimeout(() => {
+        controller.abort();
+        if (budget)
+          rejectExpired?.(
+            new Error(
+              performance.now() >= budget.deadlineAt
+                ? 'deadline_exceeded'
+                : 'Fetch timeout',
+            ),
+          );
+      }, duration);
+      let retained = false;
 
       try {
-        const response = await safeFetch(url, {
+        const pending = safeFetch(url, {
           ...options,
           redirect: 'manual',
           signal: controller.signal,
         });
+        const response = budget
+          ? await Promise.race([pending, expired])
+          : await pending;
 
         if (response.status === 429 && attempt < MAX_RETRY_ATTEMPTS) {
           const retryAfterHeader = response.headers.get('Retry-After');
-          const retryAfterSeconds = retryAfterHeader
-            ? Number.parseInt(retryAfterHeader, 10)
+          const parsedRetryAfter = retryAfterHeader
+            ? budget
+              ? Number(retryAfterHeader)
+              : Number.parseInt(retryAfterHeader, 10)
             : 0;
+          const retryAfterSeconds = budget
+            ? Number.isFinite(parsedRetryAfter) && parsedRetryAfter >= 0
+              ? parsedRetryAfter
+              : 0
+            : parsedRetryAfter;
           const backoffMs = Math.max(
             retryAfterSeconds * 1_000,
             RETRY_BASE_DELAY_MS * 2 ** attempt,
           );
 
+          if (budget) {
+            void response.body?.cancel().catch(() => undefined);
+            clearTimeout(timeout);
+            if (backoffMs >= this.remainingBudget(budget))
+              throw new Error('Retry delay exceeds remaining budget');
+          }
           this.loggerService.warn(
             `${caller} rate-limited (429), retrying in ${backoffMs}ms (attempt ${attempt + 1}/${MAX_RETRY_ATTEMPTS})`,
-            { url },
+            {
+              url: budget
+                ? this.brandWebsiteParser.sanitizeProvenanceUrl(url)
+                : url,
+            },
           );
 
           await new Promise((resolve) => setTimeout(resolve, backoffMs));
           continue;
         }
 
+        if (budget) {
+          this.websiteResponses.set(response, {
+            deadlineAt,
+            controller,
+            timeout,
+            url,
+          });
+          retained = true;
+        }
         return response;
       } finally {
-        clearTimeout(timeout);
+        if (!retained) clearTimeout(timeout);
       }
     }
 
@@ -541,27 +839,37 @@ export class BrandScraperService {
    */
   private async scrapeMetaTagsFallback(
     url: string,
+    budget?: WebsiteFetchBudget,
   ): Promise<MetaTagFallbackData> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${caller} attempting meta tag fallback`, { url });
-
-    const response = await this.fetchWithRetry(url, {
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'User-Agent': BROWSER_USER_AGENT,
-      },
-      redirect: 'follow',
+    this.loggerService.log(`${caller} attempting meta tag fallback`, {
+      url: this.brandWebsiteParser.sanitizeProvenanceUrl(url),
     });
 
-    if (!response.ok) {
-      throw new Error(
-        `Meta tag fallback failed: ${response.status} ${response.statusText}`,
-      );
-    }
+    const response = await this.fetchWithRetry(
+      url,
+      {
+        headers: {
+          Accept: 'text/html,application/xhtml+xml',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'User-Agent': BROWSER_USER_AGENT,
+        },
+        redirect: 'follow',
+      },
+      budget,
+    );
 
-    this.brandWebsiteParser.assertHtmlResponse(response);
-    const html = await response.text();
+    let html: string;
+    try {
+      if (!response.ok)
+        throw new Error(`Meta tag fallback failed: ${response.status}`);
+      this.brandWebsiteParser.assertHtmlResponse(response);
+      html = budget
+        ? await this.readWebsiteBody(response, budget)
+        : await response.text();
+    } finally {
+      if (budget) await this.releaseWebsiteResponse(response);
+    }
     const $ = cheerio.load(html);
 
     return {

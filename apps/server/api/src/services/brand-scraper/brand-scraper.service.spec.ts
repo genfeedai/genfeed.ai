@@ -348,8 +348,10 @@ describe('BrandScraperService', () => {
         .mockResolvedValueOnce(cssResponse("a{font-family:'Next Face'}"));
       const result =
         await service.scrapeWebsiteWithEvidence('https://acme.com');
-      expect(codes(result)).toContain('brand_scrape.deadline_exceeded');
-      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(codes(result)).toContain('brand_scrape.stylesheet_failed');
+      expect(codes(result)).not.toContain('brand_scrape.deadline_exceeded');
+      expect(result.data.fontFamily).toBe('Next Face');
+      expect(fetchMock).toHaveBeenCalledTimes(3);
       expect(vi.getTimerCount()).toBe(0);
       vi.useRealTimers();
     });
