@@ -3,7 +3,6 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-  formatPlatformLabel,
   normalizeReviewDecision,
   PageScope,
   ReviewDecision,
@@ -32,6 +31,8 @@ import {
   getActivityLifecycleText,
 } from '@pages/activities/activities-list.utils';
 import ActivityThumbnailCell from '@pages/activities/components/ActivityThumbnailCell';
+import AccountCell from '@pages/brands/components/integrations/AccountCell';
+import PublishingPostHoverPreview from '@pages/posts/library/publishing-post-hover-preview';
 import {
   badgeVariantForTone,
   releaseStatusBadge,
@@ -50,11 +51,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import MetricCard, { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ListRow } from '@ui/lists/list-row/ListRow';
+import { credentialToSocialConnection } from '@ui/modals/brands/brand/ModalBrand.types';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
-import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
+import { ArrowRight, Check, RefreshCw, TriangleAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -193,15 +196,6 @@ function getExecutionTimestamp(execution: IWorkflowExecution): string {
   );
 }
 
-function getCredentialLabel(credential: ICredential): string {
-  const handle = credential.externalHandle?.replace(/^@/, '');
-  return (
-    credential.label ??
-    credential.externalName ??
-    (handle ? `@${handle}` : credential.platform)
-  );
-}
-
 function formatScheduleDayLabel(date: Date, index: number): string {
   if (index === 0) {
     return 'today';
@@ -288,63 +282,106 @@ function NeedsYouSurface({
               const isApproving = approvingItemId === item.id;
 
               return (
-                <ListRow
-                  data-testid="operational-home-needs-you-row"
-                  density="compact"
+                <PublishingPostHoverPreview
+                  className="border-b border-border last:border-b-0"
                   key={needsYouItem.key}
-                  leading={
-                    item.mediaUrl ? (
-                      <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
-                        <Image
-                          alt=""
-                          className="object-cover"
-                          fill
-                          sizes="40px"
-                          src={item.mediaUrl}
-                        />
+                  postId={item.postId}
+                  target={{
+                    id: item.id,
+                    caption: item.summary,
+                    platform: item.platform ?? 'social',
+                    media: item.mediaUrl
+                      ? [
+                          {
+                            id: item.id,
+                            kind:
+                              item.format === 'video' ||
+                              item.format === 'short_video'
+                                ? 'video'
+                                : 'image',
+                            url: item.mediaUrl,
+                          },
+                        ]
+                      : [],
+                  }}
+                >
+                  <ListRow
+                    className="border-b-0"
+                    data-testid="operational-home-needs-you-row"
+                    density="compact"
+                    leading={
+                      item.mediaUrl ? (
+                        <span className="relative block size-10 overflow-hidden rounded-md bg-background-secondary shadow-border">
+                          {item.format === 'video' ||
+                          item.format === 'short_video' ? (
+                            <VideoPlayer
+                              className="size-full"
+                              src={`${item.mediaUrl.split('#')[0]}#t=0.001`}
+                              config={{
+                                muted: true,
+                                controls: false,
+                                loop: false,
+                                preload: 'metadata',
+                                playsInline: true,
+                              }}
+                              mediaProps={{ tabIndex: -1 }}
+                              mediaClassName="object-cover"
+                            />
+                          ) : (
+                            <Image
+                              alt=""
+                              className="object-cover"
+                              fill
+                              sizes="40px"
+                              src={item.mediaUrl}
+                            />
+                          )}
+                        </span>
+                      ) : null
+                    }
+                    meta={
+                      <span className="flex flex-wrap items-center gap-2">
+                        {item.platform ? (
+                          <PlatformBadge
+                            platform={item.platform}
+                            showLabel={false}
+                            size={ComponentSize.SM}
+                          />
+                        ) : null}
+                        <span>{item.format}</span>
+                        <Badge variant="info">
+                          {translate('home.approvals.readyToReview')}
+                        </Badge>
                       </span>
-                    ) : null
-                  }
-                  meta={
-                    <span className="flex flex-wrap items-center gap-2">
-                      {item.platform ? (
-                        <PlatformBadge
-                          platform={item.platform}
-                          showLabel={false}
-                          size={ComponentSize.SM}
-                        />
-                      ) : null}
-                      <span>{item.format}</span>
-                      <Badge variant="info">
-                        {translate('home.approvals.readyToReview')}
-                      </Badge>
-                    </span>
-                  }
-                  title={item.summary}
-                  trailing={
-                    <div className="flex shrink-0 items-center gap-2">
+                    }
+                    title={
+                      <Link
+                        aria-label={`Open ${item.summary}`}
+                        className="block truncate hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        href={reviewItemHref(reviewHref, item)}
+                      >
+                        {item.summary}
+                      </Link>
+                    }
+                    trailing={
                       <Button
+                        ariaLabel="Approve"
+                        className="size-8"
                         disabled={isApproving}
+                        isLoading={isApproving}
                         onClick={() => {
                           void handleApprove(item);
                         }}
-                        size={ButtonSize.SM}
-                        variant={ButtonVariant.SECONDARY}
-                      >
-                        {isApproving ? 'Approving…' : 'Approve'}
-                      </Button>
-                      <Button
-                        asChild
-                        size={ButtonSize.SM}
+                        size={ButtonSize.ICON}
+                        tooltip="Approve post"
                         variant={ButtonVariant.GHOST}
+                        withWrapper={false}
                       >
-                        <Link href={reviewItemHref(reviewHref, item)}>
-                          {translate('home.approvals.openItem')}
-                        </Link>
+                        <Check aria-hidden="true" className="size-4" />
                       </Button>
-                    </div>
-                  }
-                />
+                    }
+                  />
+                </PublishingPostHoverPreview>
               );
             }
 
@@ -391,14 +428,12 @@ function NeedsYouSurface({
                 data-testid="operational-home-needs-you-row"
                 density="compact"
                 key={needsYouItem.key}
-                leading={
-                  <PlatformBadge
-                    platform={credential.platform}
-                    showLabel={false}
+                meta={<Badge variant={badge.variant}>{badge.label}</Badge>}
+                title={
+                  <AccountCell
+                    connection={credentialToSocialConnection(credential)}
                   />
                 }
-                meta={<Badge variant={badge.variant}>{badge.label}</Badge>}
-                title={getCredentialLabel(credential)}
                 trailing={
                   <Button
                     asChild
@@ -712,12 +747,12 @@ function CredentialHealthSurface({
             return (
               <ListRow
                 density="compact"
-                description={
-                  formatPlatformLabel(credential.platform) ??
-                  credential.platform
-                }
                 key={credential.id}
-                title={getCredentialLabel(credential)}
+                title={
+                  <AccountCell
+                    connection={credentialToSocialConnection(credential)}
+                  />
+                }
                 trailing={<Badge variant={badge.variant}>{badge.label}</Badge>}
               />
             );

@@ -72,7 +72,6 @@ function renderPromptBar(
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
-    isCollapsed?: boolean;
     pendingInputRequest: AgentInputRequest | null;
     promptBarSuggestions: ReactNode;
   }> = {},
@@ -98,7 +97,6 @@ function renderPromptBar(
       getCompletedAttachments={() => []}
       isAttachmentUploading={false}
       isBusy={extras.isBusy ?? false}
-      isCollapsed={extras.isCollapsed}
       isReadOnly={isReadOnly}
       isRunActive={extras.isRunActive ?? false}
       isSubmittingInputRequest={false}
@@ -210,11 +208,5 @@ describe('AgentChatPromptBar', () => {
     });
 
     expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
-  });
-
-  it('unmounts the overlay composer while it is collapsed', () => {
-    renderPromptBar(false, { isCollapsed: true });
-
-    expect(screen.queryByTestId('chat-input')).not.toBeInTheDocument();
   });
 });

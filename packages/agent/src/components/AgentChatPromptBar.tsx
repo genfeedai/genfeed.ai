@@ -17,7 +17,6 @@ import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/co
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
-import type { AgentChatComposerOccupancy } from '@genfeedai/agent/utils/should-collapse-empty-surface-composer.util';
 import type { AgentThreadMode } from '@genfeedai/contracts';
 import type { KnowledgeSelection } from '@genfeedai/contracts/interfaces';
 import type {
@@ -46,7 +45,6 @@ type AgentChatPromptBarProps = {
   isComposerUnavailable?: boolean;
   isReadOnly: boolean;
   highlightWhenEmpty?: boolean;
-  isCollapsed?: boolean;
   isRunActive: boolean;
   placeholder?: string;
   showSuggestedActionsWhenNotEmpty: boolean;
@@ -82,7 +80,6 @@ type AgentChatPromptBarProps = {
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   creditsAvailable?: number | null;
-  onOccupancyChange?: (occupancy: AgentChatComposerOccupancy) => void;
   onOverlayElement?: (node: HTMLElement | null) => void;
 };
 
@@ -99,7 +96,6 @@ export function AgentChatPromptBar({
   isComposerUnavailable = false,
   isReadOnly,
   highlightWhenEmpty = false,
-  isCollapsed = false,
   isRunActive,
   placeholder,
   showSuggestedActionsWhenNotEmpty,
@@ -130,7 +126,6 @@ export function AgentChatPromptBar({
   pendingInputRequest,
   socketConnectionState,
   creditsAvailable = null,
-  onOccupancyChange,
   onOverlayElement,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
@@ -197,7 +192,6 @@ export function AgentChatPromptBar({
   // The dock rail is narrower — fill it. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
-      isVisible={!isCollapsed}
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       // Portal already owns max-w-4xl + matching px; fill it without re-padding.
       maxWidth={isPortaled ? 'full' : '4xl'}
@@ -214,7 +208,6 @@ export function AgentChatPromptBar({
     >
       <AgentChatInput
         highlightWhenEmpty={highlightWhenEmpty}
-        onOccupancyChange={onOccupancyChange}
         agentMode={agentMode}
         onAgentModeChange={onAgentModeChange}
         onSend={onSend}
