@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import {
   brandArtifactValidationReportV1Schema,
   brandedGenerationInputV1Schema,
@@ -13,7 +14,6 @@ import type {
   BrandGenerationArtifactV1,
   BrandIdentitySnapshotV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import type { BrandedGenerationOperationKindV1 } from './branded-generation-state.util';
 export type BrandedGenerationJsonV1 =
   | null
   | boolean
@@ -269,8 +269,8 @@ export function hashBrandedGenerationArtifactManifestV1(
   );
   if (
     input.textHash !== null &&
-    (!/^sha256:[0-9a-f]{64}$/.test(input.textHash) ||
-      typeof input.textHash !== 'string')
+    (typeof input.textHash !== 'string' ||
+      !/^sha256:[0-9a-f]{64}$/.test(input.textHash))
   )
     invalid();
   if (mediaKind === 'text' && input.textHash === null) invalid();

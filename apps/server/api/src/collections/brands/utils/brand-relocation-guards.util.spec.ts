@@ -1,4 +1,5 @@
 import {
+  assertNoBrandedGenerationReceiptHistory,
   assertNoOpenVisualProjects,
   assertNoSecurityAuditHistory,
 } from '@api/collections/brands/utils/brand-relocation-guards.util';
@@ -163,4 +164,99 @@ describe('visual revision relocation holds', () => {
       ),
     ).rejects.toThrow(/unfinished visual work/);
   });
+});
+
+interface ReceiptHistoryQuery {
+  where: { organizationId: string; brandId: string };
+  select: { id: boolean };
+}
+
+interface ReceiptHistoryRow {
+  id: string;
+  organizationId: string;
+  brandId: string;
+  isDeleted: boolean;
+}
+
+describe('saved generation relocation history', () => {
+  const conflict =
+    'Cannot move a brand with saved generation history. Receipts and receipt events, including deleted records, must remain in their original organization.';
+  const scope = { organizationId: 'org', brandId: 'brand' };
+  const query = { where: scope, select: { id: true } };
+
+  it.each([
+    ['brandedGenerationReceipt', false],
+    ['brandedGenerationReceipt', true],
+    ['brandedGenerationReceiptEvent', false],
+    ['brandedGenerationReceiptEvent', true],
+  ] as const)(
+    'rejects %s history with isDeleted=%s',
+    async (model, isDeleted) => {
+      const client = {
+        brandedGenerationReceipt: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+        brandedGenerationReceiptEvent: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+      };
+      client[model].findFirst.mockResolvedValue({
+        id: 'history',
+        ...scope,
+        isDeleted,
+      });
+      await expect(
+        assertNoBrandedGenerationReceiptHistory(
+          client as unknown as Prisma.TransactionClient,
+          'brand',
+          'org',
+        ),
+      ).rejects.toThrow(conflict);
+      for (const delegate of Object.values(client)) {
+        expect(delegate.findFirst).toHaveBeenCalledExactlyOnceWith(query);
+        expect(delegate.findFirst.mock.calls[0][0].where).not.toHaveProperty(
+          'isDeleted',
+        );
+      }
+    },
+  );
+
+  it.each(['none', 'foreign organization', 'foreign brand'] as const)(
+    'permits %s history without leaking another scope',
+    async (scenario) => {
+      const rows: ReceiptHistoryRow[] =
+        scenario === 'none'
+          ? []
+          : [
+              {
+                id: 'foreign-history',
+                organizationId:
+                  scenario === 'foreign organization' ? 'other-org' : 'org',
+                brandId: scenario === 'foreign brand' ? 'other-brand' : 'brand',
+                isDeleted: true,
+              },
+            ];
+      const findHistory = (args: ReceiptHistoryQuery) =>
+        Promise.resolve(
+          rows.find(
+            (row) =>
+              row.organizationId === args.where.organizationId &&
+              row.brandId === args.where.brandId,
+          ) ?? null,
+        );
+      const client = {
+        brandedGenerationReceipt: { findFirst: vi.fn(findHistory) },
+        brandedGenerationReceiptEvent: { findFirst: vi.fn(findHistory) },
+      };
+      await expect(
+        assertNoBrandedGenerationReceiptHistory(
+          client as unknown as Prisma.TransactionClient,
+          'brand',
+          'org',
+        ),
+      ).resolves.toBeUndefined();
+      for (const delegate of Object.values(client))
+        expect(delegate.findFirst).toHaveBeenCalledExactlyOnceWith(query);
+    },
+  );
 });

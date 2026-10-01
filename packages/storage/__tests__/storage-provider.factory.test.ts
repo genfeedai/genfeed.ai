@@ -91,4 +91,13 @@ describe('createStorageProvider', () => {
       'https://my-bucket.s3.eu-central-1.amazonaws.com/k.png',
     );
   });
+  it('returns additive bounded capability for cloud provider', async () => {
+    vi.doMock('@genfeedai/config', () => ({
+      isSelfHostedDeployment: () => false,
+    }));
+    const { createStorageProvider } = await import(
+      '../src/storage-provider.factory'
+    );
+    expect(typeof createStorageProvider().readBytes).toBe('function');
+  });
 });

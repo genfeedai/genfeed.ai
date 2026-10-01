@@ -1,15 +1,15 @@
+import {
+  type BrandedGenerationOperationKindV1,
+  type BrandedGenerationStateV1,
+  canTransitionBrandedGenerationStateV1,
+  classifyBrandedGenerationReadinessV1,
+} from '@api/services/branded-generation-receipts/branded-generation-state.util';
 import type {
   BrandArtifactValidationReportV1,
   BrandedGenerationReceiptV1,
 } from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
 import { describe, expect, it } from 'vitest';
 import { ZodError } from 'zod';
-import {
-  type BrandedGenerationOperationKindV1,
-  type BrandedGenerationStateV1,
-  canTransitionBrandedGenerationStateV1,
-  classifyBrandedGenerationReadinessV1,
-} from './branded-generation-state.util';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -463,5 +463,79 @@ describe('schema-delegating actual report classification', () => {
         validation: report(),
       }),
     ).toThrow('Invalid branded generation readiness input');
+  });
+});
+
+describe('canonical owner media scope classification', () => {
+  it('delegates explicit exclusions without exempting universal fonts or synthetic hard checks', () => {
+    const v = receipt();
+    if (!v.snapshot) throw new Error('Missing fixture snapshot');
+    v.snapshot.generationRules.typography = [
+      {
+        id: 'font',
+        role: 'heading',
+        family: 'Custom',
+        weight: 400,
+        style: 'normal',
+        availability: 'verified_runtime',
+        runtimeFontId: 'runtime',
+        required: true,
+        evidenceIds: ['evidence'],
+      },
+    ];
+    const evidence = report();
+    expect(
+      classifyBrandedGenerationReadinessV1({
+        receipt: v,
+        validation: evidence,
+      }),
+    ).toEqual({ state: 'needs_review', compliance: 'unverified' });
+    v.snapshot.generationRules.typography[0].appliesToMediaKinds = [
+      'image',
+      'video',
+    ];
+    expect(
+      classifyBrandedGenerationReadinessV1({
+        receipt: v,
+        validation: evidence,
+      }),
+    ).toEqual({ state: 'ready', compliance: 'passed' });
+    evidence.checks.push({
+      ruleId: 'font',
+      category: 'typography',
+      severity: 'hard',
+      result: 'not_applicable',
+      method: 'capability',
+      reasonCode: 'rule_media_not_applicable',
+      evidenceIds: [],
+    });
+    expect(
+      classifyBrandedGenerationReadinessV1({
+        receipt: v,
+        validation: evidence,
+      }),
+    ).toEqual({ state: 'ready', compliance: 'passed' });
+    evidence.checks.push({
+      ruleId: 'system:factual_coverage',
+      category: 'fact',
+      severity: 'hard',
+      result: 'unknown',
+      method: 'capability',
+      reasonCode: 'factual_coverage_unknown',
+      evidenceIds: [],
+    });
+    expect(
+      classifyBrandedGenerationReadinessV1({
+        receipt: v,
+        validation: evidence,
+      }),
+    ).toEqual({ state: 'needs_review', compliance: 'unverified' });
+    evidence.checks[2].result = 'fail';
+    expect(
+      classifyBrandedGenerationReadinessV1({
+        receipt: v,
+        validation: evidence,
+      }),
+    ).toEqual({ state: 'blocked', compliance: 'failed' });
   });
 });

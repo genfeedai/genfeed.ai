@@ -1,12 +1,22 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { constants, existsSync, mkdirSync } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { resolveContainedPathWithoutSymlinks } from './path-containment';
+import {
+  collectBoundedStorageBytes,
+  createStorageReadContext,
+  normalizeStorageReadError,
+  StorageReadError,
+} from './bounded-storage-read';
+import {
+  assertSafeObjectKey,
+  resolveContainedPathWithoutSymlinks,
+} from './path-containment';
 import type {
+  BoundedStorageProvider,
   FileEntry,
   ListOptions,
   StorageObject,
-  StorageProvider,
+  StorageReadOptions,
 } from './storage.provider';
 import { resolveLocalStorageBaseDir } from './storage-base-dir';
 
@@ -33,7 +43,7 @@ function getFileType(filePath: string): string {
   return MIME_TYPE_MAP[ext] ?? 'file';
 }
 
-export class LocalStorageProvider implements StorageProvider {
+export class LocalStorageProvider implements BoundedStorageProvider {
   private readonly baseDir: string;
 
   constructor(baseDir?: string) {
@@ -50,6 +60,103 @@ export class LocalStorageProvider implements StorageProvider {
       filePath === '' ? '.' : filePath,
       (message) => new Error(message),
     );
+  }
+
+  async readBytes(
+    filePath: string,
+    options: StorageReadOptions,
+  ): Promise<Buffer> {
+    const context = createStorageReadContext(options);
+    let handle: fs.FileHandle | undefined;
+    let primary: StorageReadError | undefined;
+    let result: Buffer | undefined;
+    try {
+      context.throwIfAborted();
+      const key = assertSafeObjectKey(
+        filePath,
+        () => new StorageReadError('storage_read_invalid_key'),
+      );
+      const fullPath = await resolveContainedPathWithoutSymlinks(
+        this.baseDir,
+        key,
+        () => new StorageReadError('storage_read_invalid_key'),
+      );
+      context.throwIfAborted();
+      handle = await fs.open(
+        fullPath,
+        constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+      );
+      context.throwIfAborted();
+      const before = await handle.stat({ bigint: true });
+      context.throwIfAborted();
+      if (
+        !before.isFile() ||
+        before.size < 0n ||
+        before.size > BigInt(Number.MAX_SAFE_INTEGER)
+      )
+        throw new StorageReadError('storage_read_invalid_response');
+      if (before.size > BigInt(context.maxBytes))
+        throw new StorageReadError('storage_read_limit_exceeded');
+      await resolveContainedPathWithoutSymlinks(
+        this.baseDir,
+        key,
+        () => new StorageReadError('storage_read_changed'),
+      );
+      context.throwIfAborted();
+      const pathname = await fs.lstat(fullPath, { bigint: true });
+      context.throwIfAborted();
+      if (
+        pathname.dev !== before.dev ||
+        pathname.ino !== before.ino ||
+        !pathname.isFile()
+      )
+        throw new StorageReadError('storage_read_changed');
+      const opened = handle;
+      const body = opened.createReadStream({
+        autoClose: false,
+        emitClose: true,
+        highWaterMark: 65536,
+        signal: context.signal,
+      });
+      result = await collectBoundedStorageBytes(
+        body,
+        Number(before.size),
+        context,
+        async () => {
+          context.throwIfAborted();
+          const after = await opened.stat({ bigint: true });
+          context.throwIfAborted();
+          if (
+            before.dev !== after.dev ||
+            before.ino !== after.ino ||
+            before.size !== after.size ||
+            before.mtimeNs !== after.mtimeNs ||
+            before.ctimeNs !== after.ctimeNs
+          )
+            throw new StorageReadError('storage_read_changed');
+        },
+      );
+    } catch (error) {
+      primary = normalizeStorageReadError(error, context);
+    } finally {
+      try {
+        await handle?.close();
+      } catch (error) {
+        primary ??= normalizeStorageReadError(error, context);
+      } finally {
+        if (!primary) {
+          try {
+            context.throwIfAborted();
+          } catch (error) {
+            primary = normalizeStorageReadError(error, context);
+          }
+        }
+        context.dispose();
+      }
+    }
+    if (primary) throw primary;
+    if (!result) throw new StorageReadError('storage_read_unavailable');
+    return result;
   }
 
   async upload(

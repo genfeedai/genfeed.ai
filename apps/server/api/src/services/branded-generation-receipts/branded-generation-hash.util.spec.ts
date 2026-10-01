@@ -1,11 +1,3 @@
-import { ContentLearningArm } from '@genfeedai/contracts/enums';
-import type {
-  BrandArtifactValidationReportV1,
-  BrandedGenerationInputV1,
-  BrandedGenerationResolutionV1,
-  BrandIdentitySnapshotV1,
-} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
-import { describe, expect, it } from 'vitest';
 import {
   type BrandedGenerationHashDomainV1,
   type BrandedGenerationJsonV1,
@@ -18,8 +10,16 @@ import {
   hashBrandedGenerationResolutionV1,
   hashBrandedGenerationTextV1,
   hashBrandIdentitySnapshotV1,
-} from './branded-generation-hash.util';
-import type { BrandedGenerationOperationKindV1 } from './branded-generation-state.util';
+} from '@api/services/branded-generation-receipts/branded-generation-hash.util';
+import type { BrandedGenerationOperationKindV1 } from '@api/services/branded-generation-receipts/branded-generation-state.util';
+import { ContentLearningArm } from '@genfeedai/contracts/enums';
+import type {
+  BrandArtifactValidationReportV1,
+  BrandedGenerationInputV1,
+  BrandedGenerationResolutionV1,
+  BrandIdentitySnapshotV1,
+} from '@genfeedai/contracts/interfaces/content/branded-generation.interface';
+import { describe, expect, it } from 'vitest';
 
 const hash = `sha256:${'a'.repeat(64)}`;
 const time = '2026-10-01T00:00:00.000Z';
@@ -425,6 +425,23 @@ describe('frozen typed hash projections', () => {
       }),
     ).toMatch(/^sha256:/);
   });
+  it('rejects malformed textHash without coercing it', () => {
+    let coercions = 0;
+    const textHash = {
+      toString() {
+        coercions += 1;
+        throw new Error('textHash must not be coerced');
+      },
+    };
+    expect(() =>
+      hashBrandedGenerationArtifactManifestV1({
+        mediaKind: 'text',
+        textHash: textHash as unknown as string,
+        parts: [],
+      }),
+    ).toThrow(new TypeError('Invalid branded generation JSON'));
+    expect(coercions).toBe(0);
+  });
   it('report excludes id/clock/message but retains structural diagnostics, quality and checks', () => {
     const v = report();
     const changed = {
@@ -531,4 +548,36 @@ it('identity preserves canonical rule list order and source values', () => {
       },
     }),
   ).not.toBe(original);
+});
+
+it('identity hashes explicit approved applicability and preserves list order and repeated resolution', () => {
+  const v = snapshot();
+  v.generationRules.evidence = [
+    { id: 'evidence', sourceType: 'manual', label: 'Owner attestation' },
+  ];
+  v.generationRules.typography = [
+    {
+      id: 'font',
+      role: 'heading',
+      family: 'Custom',
+      weight: 400,
+      style: 'normal',
+      availability: 'verified_runtime',
+      runtimeFontId: 'runtime',
+      required: true,
+      evidenceIds: ['evidence'],
+    },
+  ];
+  const universal = hashBrandIdentitySnapshotV1(v);
+  v.generationRules.typography[0].appliesToMediaKinds = ['image', 'video'];
+  const scoped = hashBrandIdentitySnapshotV1(v);
+  expect(scoped).not.toBe(universal);
+  expect(
+    hashBrandIdentitySnapshotV1({
+      ...v,
+      resolvedAt: '2027-01-01T00:00:00.000Z',
+    }),
+  ).toBe(scoped);
+  v.generationRules.typography[0].appliesToMediaKinds = ['video', 'image'];
+  expect(hashBrandIdentitySnapshotV1(v)).not.toBe(scoped);
 });
