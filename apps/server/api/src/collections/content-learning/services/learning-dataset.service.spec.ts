@@ -1,4 +1,5 @@
 import {
+  LearningDatasetGraph,
   LearningDatasetService,
   validateLearningRows,
 } from '@api/collections/content-learning/services/learning-dataset.service';
@@ -77,7 +78,9 @@ describe('immutable dataset operation retries', () => {
         create: createDataset,
         findFirst: vi.fn().mockImplementation(() => Promise.resolve(dataset)),
       },
-      contentLearningDatasetEntry: { create: vi.fn().mockResolvedValue({}) },
+      contentLearningDatasetEntry: {
+        createMany: vi.fn().mockResolvedValue({}),
+      },
     };
     const prisma = {
       $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
@@ -100,7 +103,7 @@ describe('immutable dataset operation retries', () => {
       second = await service.create(input);
     expect(second).toEqual(first);
     expect(createDataset).toHaveBeenCalledTimes(1);
-    expect(tx.contentLearningDatasetEntry.create).toHaveBeenCalledTimes(1);
+    expect(tx.contentLearningDatasetEntry.createMany).toHaveBeenCalledTimes(1);
     await expect(
       service.create({ ...input, rightsStatement: 'Changed rights' }),
     ).rejects.toThrow('payload conflict');
@@ -124,7 +127,7 @@ describe('consented source account identities', () => {
       contentLearningReward: { findMany: vi.fn(), findFirst: vi.fn() },
       contentLearningDecision: { findFirst: vi.fn() },
       contentLearningDataset: { create: vi.fn() },
-      contentLearningDatasetEntry: { create: vi.fn() },
+      contentLearningDatasetEntry: { createMany: vi.fn() },
     };
     const prisma = {
       $transaction: vi.fn().mockImplementation((callback) => callback(tx)),
@@ -183,5 +186,91 @@ describe('consented source account identities', () => {
         isDeleted: false,
       },
     });
+  });
+});
+
+describe('bounded dataset graph validation', () => {
+  function graph(
+    edges: unknown[],
+    limits?: { nodes: number; edges: number; levels: number },
+  ) {
+    const tx = {
+      contentLearningReward: {
+        findMany: vi.fn().mockResolvedValue([{ id: 'reward', version: 1 }]),
+      },
+      contentLearningDependency: {
+        findMany: vi
+          .fn()
+          .mockImplementation(({ where }) =>
+            Promise.resolve(
+              edges.filter(
+                (edge: { derivedKind: string }) =>
+                  edge.derivedKind === where.derivedKind,
+              ),
+            ),
+          ),
+      },
+    };
+    return { tx, graph: new LearningDatasetGraph(tx as never, limits) };
+  }
+  const root = { kind: 'reward' as const, id: 'reward', organizationId: 'org' };
+  const edge = {
+    derivedKind: 'reward',
+    derivedId: 'reward',
+    sourceKind: 'config',
+    sourceId: 'numeric-nine-v1',
+    sourceVersion: 'numeric-nine-v1',
+    sourceOrganizationId: null,
+    valid: true,
+  };
+  it('reads shared ancestors once across pages', async () => {
+    const f = graph([edge]);
+    await f.graph.load([root]);
+    await f.graph.load([root]);
+    expect(f.graph.valid(root)).toBe(true);
+    expect(f.tx.contentLearningReward.findMany).toHaveBeenCalledTimes(1);
+    expect(f.tx.contentLearningDependency.findMany).toHaveBeenCalledTimes(2);
+  });
+  it.each([
+    [],
+    [{ ...edge, valid: false }],
+    [{ ...edge, sourceKind: 'unknown' }],
+    [{ ...edge, sourceVersion: 'current' }],
+    [{ ...edge, sourceVersion: 'changed' }],
+    [{ ...edge, sourceOrganizationId: 'org' }],
+    [{ ...edge, sourceId: 'missing' }],
+    [
+      {
+        ...edge,
+        sourceKind: 'reward',
+        sourceId: 'reward',
+        sourceVersion: '1',
+        sourceOrganizationId: 'org',
+      },
+    ],
+    [
+      {
+        ...edge,
+        sourceKind: 'reward',
+        sourceId: 'reward',
+        sourceVersion: '1',
+        sourceOrganizationId: 'foreign',
+      },
+    ],
+  ])('rejects invalid/missing/scoped/cyclic dependencies %#', async (edges) => {
+    const f = graph(edges);
+    await f.graph.load([root]);
+    expect(f.graph.valid(root)).toBe(false);
+  });
+  it('rejects node, edge and depth overflow with small configured bounds', async () => {
+    for (const limits of [
+      { nodes: 1, edges: 10, levels: 10 },
+      { nodes: 10, edges: 0, levels: 10 },
+      { nodes: 10, edges: 10, levels: 1 },
+    ]) {
+      await expect(graph([edge], limits).graph.load([root])).rejects.toThrow(
+        'selection too large',
+      );
+    }
   });
 });
