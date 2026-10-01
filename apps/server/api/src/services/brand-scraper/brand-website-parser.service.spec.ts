@@ -204,6 +204,26 @@ describe('website CSS evidence', () => {
       ]),
     );
   });
+  it('omits a single CSS escape without guessing a decoded font family', () => {
+    const parsed = parser.parseHtml(
+      String.raw`<style>body {font-family: 'Acme\20Text', 'Literal Fallback';}</style>`,
+      'https://acme.example',
+      [
+        {
+          url: 'https://cdn.example/style.css',
+          cssText: String.raw`h1 {font-family: Linked\20Face;}`,
+        },
+      ],
+    );
+    expect(parsed.fonts).toEqual(['Literal Fallback']);
+    expect(parsed.fontDetails?.map((candidate) => candidate.family)).toEqual([
+      'Literal Fallback',
+    ]);
+    expect(parsed.diagnostics?.map((entry) => entry.code)).toContain(
+      'brand_scrape.font_syntax_unsupported',
+    );
+  });
+
   it('removes credentials and omits signed provenance URLs', () => {
     expect(
       parser.sanitizeProvenanceUrl(

@@ -408,7 +408,7 @@ export class BrandWebsiteParserService {
     ): void => {
       for (const part of value.split(',')) {
         const raw = part.trim();
-        if (/\\\\|[(){}]|\/\*/.test(raw)) {
+        if (raw.includes('\\') || /[(){}]|\/\*/.test(raw)) {
           warn(
             'font_syntax_unsupported',
             'Unsupported font declaration omitted.',
