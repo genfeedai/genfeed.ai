@@ -735,6 +735,7 @@ describe('TiktokService', () => {
             data: {
               videos: [
                 {
+                  id: 'v',
                   comment_count: 1,
                   download_count: 0,
                   like_count: 2,
@@ -755,7 +756,7 @@ describe('TiktokService', () => {
       );
 
       expect(httpService.get).toHaveBeenCalled();
-      expect(res).toEqual({
+      expect(res).toMatchObject({
         averageWatchTime: undefined,
         comments: 1,
         completionRate: undefined,
@@ -767,6 +768,33 @@ describe('TiktokService', () => {
         reach: undefined,
         shares: undefined,
         views: 5,
+      });
+      expect(res).toMatchObject({
+        learningMetrics: {
+          collection: { version: 1, outcome: 'observed', reasonCode: null },
+          metrics: {
+            videoViews: {
+              value: 5,
+              availability: 'observed',
+              source: 'view_count',
+            },
+            likes: { value: 2, availability: 'observed', source: 'like_count' },
+            comments: {
+              value: 1,
+              availability: 'observed',
+              source: 'comment_count',
+            },
+            shares: {
+              value: 0,
+              availability: 'observed',
+              source: 'share_count',
+            },
+            averageWatchTimeSeconds: {
+              availability: 'unavailable',
+              source: 'average_watch_time',
+            },
+          },
+        },
       });
     });
   });

@@ -2,3 +2,10 @@ export * from '@serializers/attributes/analytics/ad-watched-advertiser.attribute
 export * from '@serializers/attributes/analytics/evaluation.attributes';
 export * from '@serializers/attributes/analytics/saved-ad.attributes';
 export * from '@serializers/attributes/analytics/watchlist.attributes';
+export * from './content-learning-account.attributes';
+export * from './content-learning-dataset.attributes';
+export * from './content-learning-evidence.attributes';
+export * from './content-learning-operation.attributes';
+export * from './content-learning-policy.attributes';
+export * from './content-learning-release.attributes';
+export * from './content-learning-run.attributes';

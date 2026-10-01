@@ -301,7 +301,7 @@ describe('PendingWorkflowExecutionReconcileService', () => {
     });
 
     it('leaves a turn alone once a worker has started its job', async () => {
-      seedTurn('turn-running', 5 * 60_000);
+      seedTurn('turn-running', 3 * 60_000);
       queueService.withdrawUnstartedSystemWorkflowJob.mockResolvedValue(
         'started',
       );

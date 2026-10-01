@@ -114,7 +114,16 @@ describe('AnalyticsSocialCollectionService', () => {
     ).toHaveBeenCalledWith(
       'post-1',
       { mediaType: undefined, views: 42 },
-      { organizationId: 'org-1', brandId: 'brand-1', credentialId: 'cred-1' },
+      {
+        brandId: 'brand-1',
+        credentialId: 'cred-1',
+        learningObservation: {
+          receivedAt: expect.any(Date),
+          requestStartedAt: expect.any(Date),
+          sourceAttemptId: expect.any(String),
+        },
+        organizationId: 'org-1',
+      },
     );
     expect(harness.collectionState.markReady).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'post-1', organizationId: 'org-1' }),

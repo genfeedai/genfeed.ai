@@ -1,5 +1,9 @@
 import type { CredentialDocument } from '@api/collections/credentials/credential.types';
 import type { ITikTokMediaAnalytics } from '@genfeedai/contracts/interfaces';
+import {
+  captureLearningMetrics,
+  type LearningMetrics,
+} from '@genfeedai/contracts/interfaces/analytics/content-learning.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -31,7 +35,7 @@ export class TiktokAnalyticsService {
     brandId: string,
     mediaId: string,
     credentialId: string,
-  ): Promise<ITikTokMediaAnalytics> {
+  ): Promise<ITikTokMediaAnalytics & { learningMetrics?: LearningMetrics }> {
     const url = `TiktokService ${CallerUtil.getCallerName()}`;
     let credential: CredentialDocument | null = null;
 
@@ -50,12 +54,22 @@ export class TiktokAnalyticsService {
           headers: { Authorization: `Bearer ${accessToken}` },
           params: {
             fields:
-              'like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
+              'id,like_count,comment_count,view_count,share_count,download_count,reach_count,impression_count,full_video_watched_rate,average_watch_time,total_time_watched',
             video_ids: mediaId,
           },
         }),
       );
-      const item = response.data?.data?.videos?.[0] || {};
+      const videos = response.data?.data?.videos;
+      if (
+        !Array.isArray(videos) ||
+        videos.length !== 1 ||
+        !videos[0] ||
+        typeof videos[0] !== 'object' ||
+        Array.isArray(videos[0]) ||
+        videos[0].id !== mediaId
+      )
+        throw new Error('malformed_provider_response');
+      const item = videos[0];
       const totalEngagements =
         (item.like_count || 0) +
         (item.comment_count || 0) +
@@ -65,6 +79,13 @@ export class TiktokAnalyticsService {
         item.view_count > 0 ? (totalEngagements / item.view_count) * 100 : 0;
 
       return {
+        learningMetrics: captureLearningMetrics(item, {
+          videoViews: 'view_count',
+          likes: 'like_count',
+          comments: 'comment_count',
+          shares: 'share_count',
+          averageWatchTimeSeconds: 'average_watch_time',
+        }),
         averageWatchTime: item.average_watch_time || undefined,
         comments: item.comment_count || 0,
         completionRate: item.full_video_watched_rate

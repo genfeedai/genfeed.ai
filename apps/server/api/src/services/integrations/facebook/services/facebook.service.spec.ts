@@ -81,6 +81,105 @@ describe('FacebookService', () => {
     service = module.get<FacebookService>(FacebookService);
   });
 
+  it('retains exact provider keys and paths on learning evidence before display fallbacks', async () => {
+    mockHttpService.get.mockReturnValue(
+      of({
+        data: {
+          id: 'post',
+          reactions: { summary: { total_count: 0 } },
+          comments: { summary: { total_count: 2 } },
+          shares: { count: 3 },
+          insights: {
+            data: [{ name: 'post_impressions', values: [{ value: 100 }] }],
+          },
+        },
+      }),
+    );
+    const result = await service.getPostAnalytics('post', 'token');
+    expect(result.learningMetrics?.metrics).toEqual({
+      impressions: {
+        value: 100,
+        availability: 'observed',
+        source: 'post_impressions',
+      },
+      likes: {
+        value: 0,
+        availability: 'observed',
+        source: 'reactions.summary.total_count',
+      },
+      comments: {
+        value: 2,
+        availability: 'observed',
+        source: 'comments.summary.total_count',
+      },
+      shares: { value: 3, availability: 'observed', source: 'shares.count' },
+    });
+  });
+  it.each([
+    [401, 'terminal_unavailable'],
+    [404, 'terminal_unavailable'],
+    [429, 'retryable_failure'],
+    [503, 'retryable_failure'],
+  ])(
+    'classifies transport status %s without granting observation',
+    async (status, outcome) => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({ response: { status } })),
+      );
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection?.outcome).toBe(outcome);
+      expect(
+        Object.values(result.learningMetrics?.metrics ?? {}).every(
+          (metric) => metric?.availability !== 'observed',
+        ),
+      ).toBe(true);
+    },
+  );
+  it('rejects malformed or wrong-resource HTTP200 instead of marking observation', async () => {
+    for (const data of [undefined, {}, { id: 'foreign' }]) {
+      mockHttpService.get.mockReturnValue(of({ data }));
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection?.outcome).toBe(
+        'retryable_failure',
+      );
+      expect(
+        Object.values(result.learningMetrics?.metrics ?? {}).some(
+          (metric) => metric?.availability === 'observed',
+        ),
+      ).toBe(false);
+    }
+    mockHttpService.get.mockReturnValue(of({ data: { id: 'post' } }));
+    expect(
+      (await service.getPostAnalytics('post', 'token')).learningMetrics
+        ?.collection?.outcome,
+    ).toBe('observed');
+  });
+  it.each([
+    [190, 'terminal_unavailable'],
+    [102, 'terminal_unavailable'],
+    [10, 'terminal_unavailable'],
+    [200, 'terminal_unavailable'],
+    [294, 'terminal_unavailable'],
+    [4, 'retryable_failure'],
+    [17, 'retryable_failure'],
+    [32, 'retryable_failure'],
+    [613, 'retryable_failure'],
+  ])(
+    'recognizes Meta code %s on HTTP400 without guessing another failure',
+    async (code, outcome) => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({
+          response: { status: 400, data: { error: { code } } },
+        })),
+      );
+      const result = await service.getPostAnalytics('post', 'token');
+      expect(result.learningMetrics?.collection).toMatchObject({
+        outcome,
+        reasonCode:
+          outcome === 'terminal_unavailable' ? 'unauthorized' : 'rate_limited',
+      });
+    },
+  );
   afterEach(() => {
     vi.clearAllMocks();
   });

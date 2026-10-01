@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { TwitterAnalyticsCollectionInput } from '@api/analytics/analytics-collection-action.types';
 import {
   AccountAnalyticsSnapshotService,
@@ -63,12 +64,15 @@ export class AnalyticsTwitterCollectionService {
 
       const credentialData = this.buildCredentialData(credential);
       const tweetIds = posts.map((post) => post.externalId);
+      const sourceAttemptId = randomUUID(),
+        requestStartedAt = new Date();
       const analyticsMap = await this.twitterService.getMediaAnalyticsBatch(
         tweetIds,
         credentialData.accessToken,
         credentialData.accessTokenSecret,
       );
 
+      const receivedAt = new Date();
       const readyTargets: AnalyticsCollectionAttemptRef[] = [];
       const delayedTargets: AnalyticsCollectionAttemptRef[] = [];
       const failedTargets: AnalyticsCollectionAttemptRef[] = [];
@@ -103,6 +107,11 @@ export class AnalyticsTwitterCollectionService {
             post.id,
             analytics,
             {
+              learningObservation: {
+                sourceAttemptId,
+                requestStartedAt,
+                receivedAt,
+              },
               organizationId: post.organizationId,
               brandId: post.brandId,
               credentialId: credentialId,

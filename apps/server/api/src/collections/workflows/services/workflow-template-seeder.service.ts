@@ -18,6 +18,7 @@ import { AD_AUTOMATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/tem
 import { AGENT_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/agent-autopilot-workflows.template';
 import { ANALYTICS_SYNC_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CAMPAIGN_ORCHESTRATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/campaign-orchestration-workflows.template';
+import { CONTENT_LEARNING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-learning-workflows.template';
 import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import { CONTENT_PRODUCTION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-production-workflows.template';
 import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/livestream-bot-workflows.template';
@@ -427,6 +428,19 @@ export class WorkflowTemplateSeederService {
    * Operator helper: install the analytics sync catalog set for one
    * organization. Not called from deploy or signup.
    */
+  async ensureContentLearningWorkflows(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    await this.ensureSeededTemplateWorkflows({
+      logContext: 'ensureContentLearningWorkflows',
+      organizationId,
+      userId,
+      sourceIssue: 5728,
+      templates: CONTENT_LEARNING_WORKFLOW_TEMPLATES,
+    });
+  }
+
   async ensureAnalyticsSyncWorkflows(
     userId: string,
     organizationId: string,

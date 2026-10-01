@@ -10,6 +10,7 @@ import { getBatchActionContract } from './batch-action-contracts';
 import { getBrandRemixActionContract } from './brand-remix-action-contracts';
 import { getCampaignOutreachActionContract } from './campaign-outreach-action-contracts';
 import { getClipActionContract } from './clip-action-contracts';
+import { getContentLearningActionContract } from './content-learning-action-contracts';
 import { getContentOptimizationActionContract } from './content-optimization-action-contracts';
 import { getContentPipelineActionContract } from './content-pipeline-action-contracts';
 import { getCriticalActionContract } from './critical-action-contracts';
@@ -54,6 +55,7 @@ const CONTRACT_RESOLVERS = [
   getAgentCampaignActionContract,
   getAgentTurnActionContract,
   getAnalyticsActionContract,
+  getContentLearningActionContract,
   getEditorialActionContract,
   getEmailDigestActionContract,
   getAutomationActionContract,

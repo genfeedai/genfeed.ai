@@ -67,6 +67,14 @@ describe('PlatformSchedulesProcessor', () => {
       ],
       [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC, workflowSchedules.sweep],
       [
+        PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RECONCILE,
+        workflowSchedules.sweep,
+      ],
+      [
+        PLATFORM_SCHEDULED_TASKS.CONTENT_LEARNING_RETENTION,
+        workflowSchedules.sweep,
+      ],
+      [
         PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT,
         workflowSchedules.sweep,
       ],
