@@ -6,6 +6,7 @@ import {
   collectFirstRunReferenceIds,
   resolveFirstRunImageRouting,
 } from '@api/helpers/utils/first-run-image-generation/first-run-image-generation.util';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import {
   AGENT_GENERATION_GATEWAY,
   type IAgentGenerationGateway,
@@ -15,6 +16,7 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   Platform,
@@ -81,6 +83,7 @@ export class OnboardingStarterAssetsService {
     private readonly configService: ConfigService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
+    private readonly harnessGenerationService: HarnessGenerationService,
   ) {}
 
   /**
@@ -142,11 +145,9 @@ export class OnboardingStarterAssetsService {
     const websiteUrl = input.websiteUrl?.trim() ?? '';
     const [tweetResult, adResult] = await Promise.allSettled([
       this.writeTweet({
-        brandName,
-        description,
+        brandId,
         organizationId,
         userId,
-        websiteUrl,
       }),
       this.writeAd({
         brandId,
@@ -171,6 +172,10 @@ export class OnboardingStarterAssetsService {
       });
     }
 
+    if (tweet === null && !ad?.url) {
+      throw new Error('No onboarding draft could be generated. Please retry.');
+    }
+
     const postId =
       tweet || ad?.id
         ? await this.saveDraft({
@@ -191,12 +196,29 @@ export class OnboardingStarterAssetsService {
   }
 
   private async writeTweet(input: {
-    brandName: string;
-    description: string;
+    brandId: string;
     organizationId: string;
     userId: string;
-    websiteUrl: string;
   }): Promise<string | null> {
+    const brief = await this.harnessGenerationService.resolveBrief({
+      brandId: input.brandId,
+      contentType: 'post',
+      includeContentMemory: false,
+      objective: 'engagement',
+      organizationId: input.organizationId,
+      platform: 'twitter',
+      topic: 'Introduce the brand and its offering in one standalone tweet.',
+    });
+    const brandContext = this.harnessGenerationService.formatBrief(brief);
+    if (
+      !brief ||
+      !brandContext?.trim() ||
+      brandContext.length > BRAND_CONTEXT_CHARACTER_BUDGET
+    ) {
+      throw new Error(
+        'Brand context is unavailable for this draft. Please retry.',
+      );
+    }
     const response = await this.llmDispatcherService.chatCompletion(
       {
         max_tokens: 180,
@@ -207,13 +229,7 @@ export class OnboardingStarterAssetsService {
             role: 'system',
           },
           {
-            content: [
-              `Brand: ${input.brandName}.`,
-              input.websiteUrl ? `Website: ${input.websiteUrl}.` : '',
-              input.description ? `Context: ${input.description}.` : '',
-            ]
-              .filter(Boolean)
-              .join('\n'),
+            content: brandContext,
             role: 'user',
           },
         ],

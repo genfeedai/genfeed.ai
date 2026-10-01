@@ -1,16 +1,93 @@
+import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   clampOnboardingTweet,
   OnboardingStarterAssetsService,
 } from '@api/endpoints/onboarding/services/onboarding-starter-assets.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import type { IAgentGenerationGateway } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { RouterPriority } from '@genfeedai/contracts';
 import { LOWEST_COST_IMAGE_MODEL_KEY } from '@genfeedai/contracts/constants';
+import type { IBrandOsRevision } from '@genfeedai/contracts/interfaces';
+import {
+  BRAND_FIDELITY_HARNESS_PACK,
+  CORE_CONTENT_HARNESS_PACK,
+  type ContentHarnessInput,
+  ContentHarnessRegistry,
+  composeContentHarnessBrief,
+  VIRAL_PSYCHOLOGY_HARNESS_PACK,
+  X_PLATFORM_HARNESS_PACK,
+} from '@genfeedai/harness';
+import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+function approvedOnboardingRevision(version: number): IBrandOsRevision {
+  const content = buildBrandKitDraftFromManualInput(
+    { id: 'brand-1' },
+    {
+      description: `Approved offering ${version}`,
+      label: `Approved identity ${version}`,
+      voiceTone: `Distinctive voice ${version}`,
+    },
+  );
+  for (const field of Object.values(content.fields)) {
+    if (field) {
+      field.currentValue = field.proposedValue;
+      delete field.proposedValue;
+    }
+  }
+  return {
+    approvedAt: '2026-10-01T00:00:00.000Z',
+    approvedById: 'user-1',
+    brandId: 'brand-1',
+    content,
+    createdAt: '2026-10-01T00:00:00.000Z',
+    exportSchemaVersion: '1.0.0',
+    id: `revision-${version}`,
+    organizationId: 'org-1',
+    status: 'APPROVED',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+    version,
+  };
+}
+
+function realOnboardingHarness() {
+  const registry = new ContentHarnessRegistry();
+  for (const pack of [
+    CORE_CONTENT_HARNESS_PACK,
+    X_PLATFORM_HARNESS_PACK,
+    BRAND_FIDELITY_HARNESS_PACK,
+    VIRAL_PSYCHOLOGY_HARNESS_PACK,
+  ])
+    registry.registerPack(pack);
+  const findApproved = vi
+    .fn<BrandOsRevisionsService['findApproved']>()
+    .mockResolvedValue(approvedOnboardingRevision(1));
+  const findOne = vi.fn().mockResolvedValue({
+    agentConfig: { voice: { tone: 'Saved fallback voice' } },
+    description: 'Conflicting legacy description',
+    id: 'brand-1',
+    label: 'Conflicting legacy label',
+  });
+  const harness = new HarnessGenerationService(
+    {
+      composeBrief: (input: ContentHarnessInput) =>
+        composeContentHarnessBrief(registry, input),
+    } as never,
+    { log: vi.fn(), warn: vi.fn() } as never,
+    { findOne } as never,
+    { resolveContributionForBrand: vi.fn().mockResolvedValue(null) } as never,
+    { retrieveBrandContentMemory: vi.fn().mockResolvedValue([]) } as never,
+    undefined,
+    { findApproved } as never,
+  );
+  return { findApproved, findOne, harness };
+}
 
 describe('clampOnboardingTweet', () => {
   it('trims surrounding quotes and collapses whitespace', () => {
@@ -54,6 +131,7 @@ describe('OnboardingStarterAssetsService', () => {
     Pick<IAgentGenerationGateway, 'generateImage'>
   >;
   let service: OnboardingStarterAssetsService;
+  let harnessFixture: ReturnType<typeof realOnboardingHarness>;
 
   const input = {
     brandId: 'brand-1',
@@ -91,6 +169,7 @@ describe('OnboardingStarterAssetsService', () => {
       } as never),
     };
 
+    harnessFixture = realOnboardingHarness();
     service = new OnboardingStarterAssetsService(
       loggerService as unknown as LoggerService,
       brandsService as unknown as BrandsService,
@@ -98,7 +177,105 @@ describe('OnboardingStarterAssetsService', () => {
       llmDispatcherService as unknown as LlmDispatcherService,
       configService as ConfigService,
       generationGateway as unknown as IAgentGenerationGateway,
+      harnessFixture.harness,
     );
+  });
+
+  it('resolves fresh approved A/B identity and voice into the actual tweet request', async () => {
+    for (const version of [1, 2]) {
+      harnessFixture.findApproved.mockResolvedValueOnce(
+        approvedOnboardingRevision(version),
+      );
+      await service.generate(input);
+      const request =
+        llmDispatcherService.chatCompletion.mock.calls.at(-1)?.[0];
+      expect(request).toMatchObject({ max_tokens: 180, temperature: 0.4 });
+      const prompt = request?.messages
+        .map((message) => message.content)
+        .join('\n');
+      expect(prompt).toContain(`Approved identity ${version}`);
+      expect(prompt).toContain(`Approved offering ${version}`);
+      expect(prompt).toContain(`Distinctive voice ${version}`);
+      expect(prompt).not.toContain('Conflicting legacy');
+      expect(prompt).not.toContain('Website:');
+    }
+    expect(harnessFixture.findApproved).toHaveBeenNthCalledWith(
+      1,
+      'org-1',
+      'brand-1',
+    );
+    expect(harnessFixture.findApproved).toHaveBeenNthCalledWith(
+      2,
+      'org-1',
+      'brand-1',
+    );
+    expect(harnessFixture.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+  });
+
+  it('uses saved voice through the real harness when no approved revision exists', async () => {
+    harnessFixture.findApproved.mockResolvedValueOnce(null);
+    await service.generate(input);
+    const prompt = llmDispatcherService.chatCompletion.mock.calls[0][0].messages
+      .map((message) => message.content)
+      .join('\n');
+    expect(prompt).toContain('Saved fallback voice');
+    expect(prompt).toContain('Conflicting legacy label');
+    expect(prompt).not.toContain('Approved identity');
+  });
+
+  it.each(['null', 'empty', 'oversized', 'throwing'] as const)(
+    'does not dispatch text for %s required context and retains the image-only draft',
+    async (mode) => {
+      if (mode === 'null')
+        vi.spyOn(harnessFixture.harness, 'resolveBrief').mockResolvedValue(
+          null,
+        );
+      if (mode === 'empty')
+        vi.spyOn(harnessFixture.harness, 'formatBrief').mockReturnValue('   ');
+      if (mode === 'oversized')
+        vi.spyOn(harnessFixture.harness, 'formatBrief').mockReturnValue(
+          'x'.repeat(BRAND_CONTEXT_CHARACTER_BUDGET + 1),
+        );
+      if (mode === 'throwing')
+        vi.spyOn(harnessFixture.harness, 'resolveBrief').mockRejectedValue(
+          new Error('Unavailable'),
+        );
+      const result = await service.generate(input);
+      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        adImageUrl: 'https://cdn.genfeed.ai/ad.png',
+        postId: 'post-1',
+        tweet: null,
+      });
+      expect(postsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ingredients: ['ingredient-1'] }),
+      );
+    },
+  );
+
+  it('rejects an all-empty result and records the failed job marker without saving a post', async () => {
+    llmDispatcherService.chatCompletion.mockResolvedValueOnce({
+      choices: [{ message: { content: ' ' } }],
+    } as never);
+    generationGateway.generateImage.mockResolvedValueOnce({
+      data: { id: 'unusable-image' },
+    } as never);
+    await expect(service.generateForJob(input)).rejects.toThrow(
+      'No onboarding draft could be generated. Please retry.',
+    );
+    expect(postsService.create).not.toHaveBeenCalled();
+    expect(
+      brandsService.updateAgentConfig.mock.calls.at(-1)?.[2],
+    ).toMatchObject({
+      onboardingStarterAssets: {
+        status: 'failed',
+        error: 'No onboarding draft could be generated. Please retry.',
+      },
+    });
   });
 
   it('drafts a tweet and an ad, then saves a single post draft', async () => {
