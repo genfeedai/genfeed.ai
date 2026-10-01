@@ -4935,6 +4935,8 @@ enum AgentFailureReason {
 }
 
 model WorkflowExecution {
+  generationAdmissionSource Json?
+  generationBilling Json?
   costEstimate Json?
   id                String                  @id @default(cuid())
   idempotencyKey    String?

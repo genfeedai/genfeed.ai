@@ -24,3 +24,4 @@ export type {
   TopbarBalanceStatus,
 } from './topbar-balance.interface';
 export * from './unit-economics.interface';
+export * from './workflow-generation-billing.interface';

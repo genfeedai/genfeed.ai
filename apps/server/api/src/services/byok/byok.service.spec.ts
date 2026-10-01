@@ -1,5 +1,6 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/contracts';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { ForbiddenException } from '@nestjs/common';
 import { of, throwError } from 'rxjs';
 
@@ -12,7 +13,11 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 
 describe('ByokService subscription entitlement', () => {
   const organizationSettingsService = { findOne: vi.fn() };
-  const organizationPaidAccessService = { isSubscriptionGated: vi.fn() };
+  const subscriptionGate = vi.fn();
+  const organizationPaidAccessService = {
+    isSubscriptionGated: subscriptionGate,
+    isSubscriptionGatedStrict: subscriptionGate,
+  };
   const logger = { error: vi.fn(), log: vi.fn() };
   const service = new ByokService(
     organizationSettingsService as never,
@@ -86,6 +91,79 @@ describe('ByokService subscription entitlement', () => {
     await expect(
       service.lookupApiKey('org-1', ByokProvider.OPENAI),
     ).resolves.toBeUndefined();
+  });
+
+  it('keeps credential identity stable across usage counters and settings timestamps', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
+    const original = await service.lookupApiKeyWithIdentity(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    organizationSettingsService.findOne.mockResolvedValue({
+      updatedAt: new Date('2026-09-30T12:00:00Z'),
+      byokKeys: {
+        [ByokProvider.REPLICATE]: {
+          apiKey: 'stored-key',
+          isEnabled: true,
+          totalRequests: 42,
+          lastUsedAt: new Date('2026-09-30T12:00:00Z'),
+          provider: ByokProvider.REPLICATE,
+        },
+      },
+    });
+    const used = await service.lookupApiKeyWithIdentity(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    expect(used?.credentialId).toBe(original?.credentialId);
+    expect(used?.credentialId).toMatch(/^[a-f0-9]{64}$/);
+    expect(used?.apiKey).toBe('decrypted:stored-key');
+  });
+
+  it('changes credential identity on replacement and scopes it to the organization', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
+    const original = await service.lookupApiKeyWithIdentity(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    const foreign = await service.lookupApiKeyWithIdentity(
+      'org-2',
+      ByokProvider.REPLICATE,
+    );
+    expect(foreign?.credentialId).not.toBe(original?.credentialId);
+    organizationSettingsService.findOne.mockResolvedValue({
+      byokKeys: {
+        [ByokProvider.REPLICATE]: {
+          apiKey: 'replacement-key',
+          isEnabled: true,
+          provider: ByokProvider.REPLICATE,
+        },
+      },
+    });
+    const replaced = await service.lookupApiKeyWithIdentity(
+      'org-1',
+      ByokProvider.REPLICATE,
+    );
+    expect(replaced?.credentialId).not.toBe(original?.credentialId);
+  });
+
+  it('does not turn a strict credential identity lookup failure into a platform route', async () => {
+    organizationSettingsService.findOne.mockRejectedValue(
+      new Error('database unavailable'),
+    );
+    await expect(
+      service.lookupApiKeyWithIdentity('org-1', ByokProvider.REPLICATE),
+    ).rejects.toThrow('database unavailable');
+  });
+
+  it('propagates decryption errors from identity lookup', async () => {
+    organizationPaidAccessService.isSubscriptionGated.mockResolvedValue(false);
+    vi.mocked(EncryptionUtil.decrypt).mockImplementationOnce(() => {
+      throw new Error('cannot decrypt');
+    });
+    await expect(
+      service.lookupApiKeyWithIdentity('org-1', ByokProvider.REPLICATE),
+    ).rejects.toThrow('cannot decrypt');
   });
 
   it('refuses to store a key without a paid subscription', async () => {

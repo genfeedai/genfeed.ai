@@ -23,6 +23,7 @@ export interface OpenRouterToolCallResponse {
 
 export interface OpenRouterPlugin {
   id: string;
+  enabled?: boolean;
   allowed_models?: string[];
   cost_tier?: 'high' | 'low' | 'max' | 'medium' | 'xhigh';
   engine?: 'exa' | 'firecrawl' | 'native' | 'parallel';
@@ -53,6 +54,9 @@ export interface OpenRouterMessage {
 export type OpenRouterDataCollectionPolicy = 'allow' | 'deny';
 
 export interface OpenRouterProviderPreferences {
+  order?: string[];
+  only?: string[];
+  max_price?: { prompt?: number; completion?: number; request?: number };
   allow_fallbacks?: boolean;
   data_collection: OpenRouterDataCollectionPolicy;
   require_parameters?: boolean;
@@ -110,6 +114,11 @@ export interface OpenRouterChatCompletionParams {
     | { type: 'function'; function: { name: string } };
 }
 
+export interface OpenRouterChatCompletionEvidence {
+  response: unknown;
+  generationMetadata: unknown | null;
+}
+
 export interface OpenRouterChatCompletionResponse {
   id: string;
   model?: string;
@@ -129,6 +138,7 @@ export interface OpenRouterChatCompletionResponse {
     /** Exact provider charge in USD when reported by OpenRouter. */
     cost?: number;
     cost_source?: 'generation' | 'usage';
+    cost_details?: { upstream_inference_cost?: number };
     is_byok?: boolean;
   };
 }

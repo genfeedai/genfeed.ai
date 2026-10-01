@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import type { WorkflowAccountingScope } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 
@@ -45,4 +46,21 @@ export async function validatedWorkflowAccountingAttribution(
   // The scoped lookup prevents attaching another organization's execution.
   if (!execution) return {};
   return attribution;
+}
+
+/** Aggregate workflow funding carries explicit execution attribution without borrowing a node's ALS scope. */
+export async function validatedWorkflowFundingAttribution(
+  prisma: Pick<Prisma.TransactionClient, 'workflowExecution'>,
+  organizationId: string,
+  workflowExecutionId: string,
+): Promise<Pick<WorkflowAccountingScope, 'workflowExecutionId'>> {
+  const execution = await prisma.workflowExecution.findFirst({
+    where: { id: workflowExecutionId, organizationId, isDeleted: false },
+    select: { id: true },
+  });
+  if (!execution)
+    throw new BusinessLogicException(
+      'Workflow funding execution is outside the organization',
+    );
+  return { workflowExecutionId: execution.id };
 }

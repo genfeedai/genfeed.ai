@@ -8,6 +8,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { WorkflowEngineExecutorRegistryService } from '@api/collections/workflows/services/workflow-engine-executor-registry.service';
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
 import { WorkflowMediaProcessingExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-processing-executor-registrar.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { WorkflowSocialExecutorRegistrarService } from '@api/collections/workflows/services/workflow-social-executor-registrar.service';
 import { WorkflowTrendPublishExecutorRegistrarService } from '@api/collections/workflows/services/workflow-trend-publish-executor-registrar.service';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
@@ -62,7 +63,12 @@ function createWorkflowEngineAdapterForTest(
   const mediaGeneration = new WorkflowMediaGenerationExecutorRegistrarService(
     helper,
     dependency(1),
-    dependency(20),
+    new WorkflowMediaProviderPlanService(
+      helper,
+      dependency(1),
+      dependency(20),
+      dependency(6),
+    ),
     dependency(16),
     dependency(17),
     dependency(19),

@@ -93,6 +93,8 @@ export interface ICreditReservation extends IBaseEntity {
 }
 
 export interface IReserveCreditsInput {
+  /** Internal aggregate execution funding; tenant ownership is validated before the hold write. */
+  workflowExecutionId?: string;
   organizationId: string;
   actorUserId: string;
   amount: number;

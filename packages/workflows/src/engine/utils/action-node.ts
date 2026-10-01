@@ -84,3 +84,23 @@ export function getExecutableNodeOperationId(node: ExecutableNode): string {
 
   return actionId;
 }
+
+/** Normalize the product envelope exactly once, preserving runtime overrides over stored parameters. */
+export function unwrapExecutableActionNode(
+  node: ExecutableNode,
+): ExecutableNode {
+  if (node.type !== GENFEED_ACTION_NODE_TYPE) return node;
+  const actionId = node.config.actionId;
+  if (typeof actionId !== 'string' || actionId.length === 0)
+    throw new Error('A Genfeed action node requires a non-empty actionId');
+  if (!getActionDefinition(actionId))
+    throw new Error(`Unknown Genfeed action: ${actionId}`);
+  const { actionId: _actionId, parameters, ...runtimeConfig } = node.config;
+  const stored =
+    parameters !== null &&
+    typeof parameters === 'object' &&
+    !Array.isArray(parameters)
+      ? (parameters as Record<string, unknown>)
+      : {};
+  return { ...node, config: { ...stored, ...runtimeConfig }, type: actionId };
+}

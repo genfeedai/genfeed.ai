@@ -1,4 +1,5 @@
 import { WorkflowMediaGenerationExecutorRegistrarService } from '@api/collections/workflows/services/workflow-media-generation-executor-registrar.service';
+import { WorkflowMediaProviderPlanService } from '@api/collections/workflows/services/workflow-media-provider-plan.service';
 import { IngredientCategory } from '@genfeedai/contracts';
 import type {
   INodeExecutor,
@@ -93,7 +94,12 @@ function setup(category = IngredientCategory.VIDEO) {
   new WorkflowMediaGenerationExecutorRegistrarService(
     helper as unknown as Arguments[0],
     { log: vi.fn() } as unknown as Arguments[1],
-    undefined,
+    new WorkflowMediaProviderPlanService(
+      helper as unknown as Arguments[0],
+      { log: vi.fn() } as unknown as Arguments[1],
+      undefined,
+      files as unknown as Arguments[6],
+    ),
     { generatePhotoAvatarVideo: photo } as unknown as Arguments[3],
     undefined,
     { runModel } as unknown as Arguments[5],
@@ -201,7 +207,12 @@ describe('Text-to-speech workflow input ports', () => {
     new WorkflowMediaGenerationExecutorRegistrarService(
       helper as unknown as Arguments[0],
       { log: vi.fn() } as unknown as Arguments[1],
-      undefined,
+      new WorkflowMediaProviderPlanService(
+        helper as unknown as Arguments[0],
+        { log: vi.fn() } as unknown as Arguments[1],
+        undefined,
+        undefined,
+      ),
       undefined,
       { generateAndUploadAudio } as unknown as Arguments[4],
     ).register({

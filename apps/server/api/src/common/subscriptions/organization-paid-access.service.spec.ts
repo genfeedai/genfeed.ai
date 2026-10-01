@@ -1,6 +1,9 @@
+import { WorkflowMediaCredentialRouteService } from '@api/collections/workflows/services/workflow-media-credential-route.service';
 import { OrganizationPaidAccessService } from '@api/common/subscriptions/organization-paid-access.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  ByokProvider,
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
@@ -108,6 +111,38 @@ function createService(prisma: ReturnType<typeof createFakePrisma>) {
 describe('OrganizationPaidAccessService', () => {
   beforeEach(() => {
     configMocks.hasOrganizationBilling.mockReturnValue(true);
+  });
+
+  it('propagates entitlement uncertainty through real strict BYOK workflow preparation', async () => {
+    const prisma = createFakePrisma({ ownSubscriptionReadFails: true });
+    const { service: paidAccess } = createService(prisma);
+    const settings = {
+      findOne: vi.fn().mockResolvedValue({
+        byokKeys: {
+          [ByokProvider.REPLICATE]: {
+            apiKey: 'stored-encrypted-fixture',
+            isEnabled: true,
+            provider: ByokProvider.REPLICATE,
+          },
+        },
+      }),
+    };
+    const byok = new ByokService(
+      settings as never,
+      paidAccess,
+      {} as never,
+      {} as never,
+      prisma as unknown as PrismaService,
+    );
+    const routes = new WorkflowMediaCredentialRouteService(byok);
+    await expect(
+      routes.prepareRoute('org-1', ByokProvider.REPLICATE),
+    ).rejects.toThrow('db down');
+    await expect(paidAccess.isSubscriptionGatedStrict('org-1')).rejects.toThrow(
+      'db down',
+    );
+    await expect(paidAccess.isSubscriptionGated('org-1')).resolves.toBe(true);
+    expect(prisma.subscription.findMany).toHaveBeenCalledTimes(3);
   });
 
   it("grants access from the organization's own active subscription", async () => {

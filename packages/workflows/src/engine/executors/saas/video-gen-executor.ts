@@ -1,7 +1,4 @@
-import type {
-  ClipChainIdentityReference,
-  VideoGenerationIdentityLock,
-} from '@genfeedai/contracts/interfaces';
+import type { VideoGenerationIdentityLock } from '@genfeedai/contracts/interfaces';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import {
@@ -9,6 +6,7 @@ import {
   type ExecutorInput,
   type ExecutorOutput,
 } from '../base-executor';
+import { buildVideoGenerationResolverRequest } from './media-generation-resolver-request';
 
 export interface VideoGenOutput {
   // `id` and `status` mirror the pending ingredient the resolver creates before
@@ -69,80 +67,7 @@ export class VideoGenExecutor extends BaseExecutor {
       throw new Error('VideoGen resolver not configured');
     }
 
-    const model = this.getRequiredConfig<string>(node.config, 'model');
-    const prompt =
-      (inputs.get('prompt') as string) ??
-      this.getOptionalConfig<string>(node.config, 'prompt', '');
-    const image =
-      (inputs.get('image') as string) ??
-      this.getOptionalConfig<string | undefined>(
-        node.config,
-        'image',
-        undefined,
-      );
-    const lastFrame =
-      (inputs.get('lastFrame') as string) ??
-      this.getOptionalConfig<string | undefined>(
-        node.config,
-        'lastFrame',
-        undefined,
-      );
-    const videoReference =
-      (inputs.get('videoReference') as string) ??
-      this.getOptionalConfig<string | undefined>(
-        node.config,
-        'videoReference',
-        undefined,
-      );
-
-    const params: Record<string, unknown> = {
-      actionVerb: this.getOptionalConfig<string | undefined>(
-        node.config,
-        'actionVerb',
-        undefined,
-      ),
-      brandId: this.getOptionalConfig<string | undefined>(
-        node.config,
-        'brandId',
-        undefined,
-      ),
-      duration: this.getOptionalConfig<number | undefined>(
-        node.config,
-        'duration',
-        undefined,
-      ),
-      height: this.getOptionalConfig<number>(node.config, 'height', 1080),
-      // Run-level identity stills ride next to the start frame, never as it.
-      identityReferences: this.getOptionalConfig<
-        ClipChainIdentityReference[] | undefined
-      >(node.config, 'identityReferences', undefined),
-      lastFrame,
-      negativePrompt: this.getOptionalConfig<string | undefined>(
-        node.config,
-        'negativePrompt',
-        undefined,
-      ),
-      parentIngredientId: this.getOptionalConfig<string | undefined>(
-        node.config,
-        'parentIngredientId',
-        undefined,
-      ),
-      prompt,
-      references: image ? [image] : undefined,
-      seed: this.getOptionalConfig<number | undefined>(
-        node.config,
-        'seed',
-        undefined,
-      ),
-      videoReferences: videoReference ? [videoReference] : undefined,
-      width: this.getOptionalConfig<number>(node.config, 'width', 1920),
-    };
-
-    for (const key of Object.keys(params)) {
-      if (params[key] === undefined) {
-        delete params[key];
-      }
-    }
+    const { model, params } = buildVideoGenerationResolverRequest(node, inputs);
 
     const result = await this.resolver(model, params, input.context, node);
 
